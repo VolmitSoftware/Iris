@@ -82,6 +82,27 @@ public final class GenerationHistory {
         return savedBiomes;
     }
 
+    public void sync() throws IOException {
+        IOException failure = null;
+        try {
+            semantics.sync();
+        } catch (IOException semanticFailure) {
+            failure = semanticFailure;
+        }
+        try {
+            savedBiomes.sync();
+        } catch (IOException biomeFailure) {
+            if (failure == null) {
+                failure = biomeFailure;
+            } else {
+                failure.addSuppressed(biomeFailure);
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
     public static GenerationHistory create(
             Path dimensionRoot,
             Path packSource,
@@ -478,6 +499,7 @@ public final class GenerationHistory {
     private GenerationActivation promotePendingLocked(
             BoundarySignatureCapture signatureCapture, boolean startupRecovery, boolean validateSemantics
     ) throws IOException {
+        sync();
         WorldChunkInventory inventory = recoverUnstoredClaims(startupRecovery);
         validateReferencedState(Optional.empty(), validateSemantics);
         Optional<GenerationActivation> pending = store.pendingActivation();

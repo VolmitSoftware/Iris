@@ -193,7 +193,7 @@ public class GenerationHistoryAdmissionTest {
     }
 
     @Test
-    public void queuedClaimsShareOneForceAndRetainIndividualValidation() throws Exception {
+    public void queuedClaimsShareOneAppendPerRegionWithoutForcingAndRetainIndividualValidation() throws Exception {
         GenerationHistory history = history();
         GenerationAdmission.RuntimeLease runtime = history.retainRuntime();
         List<GenerationHistory.GenerationStage> stages = new ArrayList<>();
@@ -207,6 +207,7 @@ public class GenerationHistoryAdmissionTest {
             workers.add(thread);
             return thread;
         });
+        AtomicInteger appends = new AtomicInteger();
         AtomicInteger forces = new AtomicInteger();
         List<Future<Boolean>> results = new ArrayList<>();
         try {
@@ -217,7 +218,7 @@ public class GenerationHistoryAdmissionTest {
                             ? ChunkGenerationSemantics.builder(1, 0, stage.activation().activationId())
                                     .addSurfaceBiome("iris:conflict").seal().build()
                             : claim(stage);
-                    results.add(executor.submit(() -> persistCountingForces(history, stage, update, forces)));
+                    results.add(executor.submit(() -> persistCounting(history, stage, update, appends, forces)));
                     awaitBlockedOnHistory(history, workers, index + 1);
                 }
                 stages.get(5).close();
@@ -232,7 +233,8 @@ public class GenerationHistoryAdmissionTest {
                     .getCause() instanceof IllegalStateException);
             assertTrue(results.get(6).get(5, TimeUnit.SECONDS));
             assertTrue(results.get(7).get(5, TimeUnit.SECONDS));
-            assertEquals(2, forces.get());
+            assertEquals(2, appends.get());
+            assertEquals(0, forces.get());
             GenerationSemanticIndex loaded = GenerationSemanticIndex.loadRequired(history.paths().dimensionRoot());
             assertEquals(5, loaded.recordCount());
             assertEquals(claim(stages.getFirst()), loaded.get(1, 0).orElseThrow());
@@ -348,8 +350,9 @@ public class GenerationHistoryAdmissionTest {
         }
     }
 
-    private static boolean persistCountingForces(GenerationHistory history, GenerationHistory.GenerationStage stage,
-                                                ChunkGenerationSemantics claim, AtomicInteger forces) throws Exception {
+    private static boolean persistCounting(GenerationHistory history, GenerationHistory.GenerationStage stage,
+                                           ChunkGenerationSemantics claim, AtomicInteger appends,
+                                           AtomicInteger forces) throws Exception {
         try (MockedStatic<FileChannel> ignored = mockStatic(FileChannel.class, invocation -> {
             FileChannel source = (FileChannel) invocation.callRealMethod();
             Path path = invocation.getArgument(0);
@@ -357,6 +360,7 @@ public class GenerationHistoryAdmissionTest {
                     || !path.getFileName().toString().endsWith(".iswal")) {
                 return source;
             }
+            appends.incrementAndGet();
             FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
             doAnswer(force -> {
                 forces.incrementAndGet();
@@ -396,14 +400,13 @@ public class GenerationHistoryAdmissionTest {
                 return channel;
             }
             FileChannel intercepted = mock(FileChannel.class, delegatesTo(channel));
-            doAnswer(force -> {
+            doAnswer(write -> {
                 entered.countDown();
                 if (!release.await(5, TimeUnit.SECONDS)) {
                     throw new IOException("Timed out waiting to resume journal persistence");
                 }
-                channel.force(true);
-                return null;
-            }).when(intercepted).force(true);
+                return channel.write((ByteBuffer) write.getArgument(0));
+            }).when(intercepted).write(any(ByteBuffer.class));
             return intercepted;
         })) {
             return history.claimGeneratedSemantics(stage, claim);

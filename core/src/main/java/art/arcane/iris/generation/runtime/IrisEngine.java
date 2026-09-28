@@ -1529,6 +1529,7 @@ public class IrisEngine implements Engine {
 
     private void scheduleWorldSave() {
         backgroundTasks.scheduleAdmittedTask(this, () -> NativeStructureOwnershipStore.flush(this));
+        backgroundTasks.scheduleAdmittedTask(this, this::syncGenerationHistory);
         getMantle().save();
         getWorldManager().onSave();
         saveEngineData();
@@ -1537,6 +1538,20 @@ public class IrisEngine implements Engine {
     @Override
     public void saveEngineData() {
         engineDataStore.saveEngineData();
+    }
+
+    @Override
+    public void syncGenerationHistory() {
+        GenerationHistoryRuntimeRouter router = getGenerationHistoryRuntimeRouter().orElse(null);
+        if (router == null) {
+            return;
+        }
+        try {
+            router.history().sync();
+        } catch (IOException failure) {
+            throw new IllegalStateException("Unable to force Iris generation history to stable storage for "
+                    + getWorld().name() + ".", failure);
+        }
     }
 
     @Override

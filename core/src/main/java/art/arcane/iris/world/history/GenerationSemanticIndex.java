@@ -2,6 +2,7 @@ package art.arcane.iris.world.history;
 
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.world.storage.DeferredDurability;
 import art.arcane.iris.world.storage.Durability;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -93,6 +94,7 @@ public final class GenerationSemanticIndex {
     private final PointerPublisher pointerPublisher;
     private final CatalogPublisher catalogPublisher;
     private final boolean unpublished;
+    private final DeferredDurability durability;
     private long regionDecodeCount;
     private volatile IOException journalFailure;
     private long appendingRegionKey;
@@ -118,6 +120,8 @@ public final class GenerationSemanticIndex {
         this.pointerPublisher = pointerPublisher;
         this.catalogPublisher = catalogPublisher;
         this.unpublished = unpublished;
+        this.durability = new DeferredDurability(
+                DeferredDurability.DEFAULT_FLUSH_DELAY_MILLIS, failure -> journalFailure = failure);
     }
 
     public static GenerationSemanticIndex load(Path dimensionRoot) throws IOException {
@@ -265,7 +269,7 @@ public final class GenerationSemanticIndex {
             appendingBase = baseRegion;
             publicationLock.unlock();
             try {
-                SemanticJournal.append(directory, regionX, regionZ, updates, unpublished);
+                SemanticJournal.append(directory, regionX, regionZ, updates, unpublished, durability);
             } catch (JournalAppendFailure failure) {
                 journalFailure = failure;
                 throw failure;
@@ -286,6 +290,15 @@ public final class GenerationSemanticIndex {
             for (Claim pending : claims) {
                 pending.fail(failure);
             }
+        }
+    }
+
+    public void sync() throws IOException {
+        try {
+            durability.sync();
+        } catch (IOException failure) {
+            journalFailure = failure;
+            throw failure;
         }
     }
 
@@ -1940,7 +1953,8 @@ public final class GenerationSemanticIndex {
                 int regionX,
                 int regionZ,
                 List<ChunkGenerationSemantics> claims,
-                boolean unpublished
+                boolean unpublished,
+                DeferredDurability durability
         ) throws IOException {
             Path file = directory.resolve(journalFileName(regionX, regionZ));
             boolean created = !Files.exists(file, LinkOption.NOFOLLOW_LINKS);
@@ -1974,10 +1988,10 @@ public final class GenerationSemanticIndex {
                         }
                     }
                     if (!unpublished) {
-                        Durability.force(channel);
+                        durability.written(file);
                     }
                     if (created) {
-                        RegionShard.forceDirectory(directory);
+                        durability.linked(directory);
                     }
                 } catch (IOException failure) {
                     try {

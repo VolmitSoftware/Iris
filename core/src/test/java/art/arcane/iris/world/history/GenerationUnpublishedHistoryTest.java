@@ -46,6 +46,7 @@ public final class GenerationUnpublishedHistoryTest extends GenerationHistorySup
         GenerationHistory reopened = GenerationHistory.open(root);
         assertEquals(biomes(1), reopened.savedBiomes().get(1, 0).orElseThrow());
         assertBiomeAppendForces(reopened.savedBiomes(), root, 2, 1);
+        assertEquals(biomes(2), GenerationHistory.open(root).savedBiomes().get(2, 0).orElseThrow());
     }
 
     @Test
@@ -61,7 +62,10 @@ public final class GenerationUnpublishedHistoryTest extends GenerationHistorySup
         GenerationSemanticIndex reopened = GenerationSemanticIndex.loadRequired(root);
         assertEquals(semantics(1), reopened.get(1, 0).orElseThrow());
         try (MockedStatic<Durability> forces = mockStatic(Durability.class, CALLS_REAL_METHODS)) {
+            forces.when(Durability::enabled).thenReturn(true);
             assertTrue(reopened.claimAndPersist(semantics(2)));
+            forces.verify(() -> Durability.force(any(FileChannel.class)), times(0));
+            reopened.sync();
             forces.verify(() -> Durability.force(any(FileChannel.class)), times(1));
         }
         reopened.compactJournals();
@@ -91,7 +95,7 @@ public final class GenerationUnpublishedHistoryTest extends GenerationHistorySup
         assertTrue(store.claimAndPersist(biomes(1)));
     }
 
-    private static void assertBiomeAppendForces(SavedBiomeStore store, Path root, int x, int count) throws Exception {
+    private static void assertBiomeAppendForces(SavedBiomeStore store, Path root, int x, int syncForces) throws Exception {
         try (MockedStatic<Durability> durability = mockStatic(Durability.class, CALLS_REAL_METHODS);
              RandomAccessFile actual = new RandomAccessFile(region(root).toFile(), "rw")) {
             durability.when(Durability::enabled).thenReturn(true);
@@ -101,7 +105,9 @@ public final class GenerationUnpublishedHistoryTest extends GenerationHistorySup
                     (file, context) -> doReturn(channel).when(file).getChannel())) {
                 assertTrue(store.claimAndPersist(biomes(x)));
             }
-            verify(channel, times(count)).force(true);
+            verify(channel, times(0)).force(true);
+            store.sync();
+            durability.verify(() -> Durability.force(any(FileChannel.class)), times(syncForces));
         }
     }
 

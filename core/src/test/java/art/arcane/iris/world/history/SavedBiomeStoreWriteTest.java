@@ -5,6 +5,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -21,7 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -41,6 +42,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -112,40 +114,41 @@ public class SavedBiomeStoreWriteTest {
     }
 
     @Test
-    public void appendWritesOneFrameAndPublishesOnlyAfterForce() throws Exception {
+    public void appendWritesOneFrameAndPublishesOnceTheWriteCompletes() throws Exception {
         Path root = temporaryFolder.newFolder().toPath();
         SavedBiomeStore store = SavedBiomeStore.open(root);
         store.claimAndPersist(chunk(0, 3L));
-        CountDownLatch forcing = new CountDownLatch(1);
+        CountDownLatch writing = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         ExecutorService workers = Executors.newSingleThreadExecutor();
         try {
-            Future<Boolean> writing = workers.submit(() -> {
+            Future<Boolean> claimed = workers.submit(() -> {
                 try (RandomAccessFile actual = new RandomAccessFile(regionPath(root).toFile(), "rw")) {
                     FileChannel channel = mock(FileChannel.class, delegatesTo(actual.getChannel()));
                     doAnswer(invocation -> {
-                        forcing.countDown();
+                        writing.countDown();
                         await(release);
-                        actual.getChannel().force(true);
-                        return null;
-                    }).when(channel).force(true);
+                        return actual.getChannel().write((ByteBuffer[]) invocation.getArgument(0),
+                                (int) invocation.getArgument(1), (int) invocation.getArgument(2));
+                    }).when(channel).write(any(ByteBuffer[].class), anyInt(), anyInt());
                     try (MockedConstruction<RandomAccessFile> files = mockConstruction(RandomAccessFile.class,
                             withSettings().defaultAnswer(delegatesTo(actual)),
                             (file, context) -> doReturn(channel).when(file).getChannel())) {
                         boolean result = store.claimAndPersist(chunk(1, 3L));
                         assertEquals(1, files.constructed().size());
                         verify(channel).write(any(ByteBuffer[].class), anyInt(), anyInt());
+                        verify(channel, never()).force(true);
                         verify(files.constructed().getFirst(), never()).write(any(byte[].class));
                         verify(files.constructed().getFirst(), never()).writeInt(anyInt());
                         return result;
                     }
                 }
             });
-            assertTrue(forcing.await(5, TimeUnit.SECONDS));
+            assertTrue(writing.await(5, TimeUnit.SECONDS));
             assertTrue(store.cached(1, 0).isEmpty());
-            assertFalse(writing.isDone());
+            assertFalse(claimed.isDone());
             release.countDown();
-            assertTrue(writing.get(5, TimeUnit.SECONDS));
+            assertTrue(claimed.get(5, TimeUnit.SECONDS));
             assertEquals(chunk(1, 3L), store.cached(1, 0).orElseThrow());
             assertEquals(chunk(1, 3L), SavedBiomeStore.open(root).get(1, 0).orElseThrow());
         } finally {
@@ -155,21 +158,63 @@ public class SavedBiomeStoreWriteTest {
     }
 
     @Test
-    public void failedForceRollsBackWithoutPublishingAndRetainsRollbackFailure() throws Exception {
+    public void syncForcesAppendedRegionsOnce() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        SavedBiomeStore store = SavedBiomeStore.open(root);
+        store.claimAndPersist(chunk(0, 3L));
+        store.sync();
+        AtomicInteger forces = new AtomicInteger();
+        try (MockedStatic<FileChannel> ignored = regionChannels(root, (source, intercepted) ->
+                doAnswer(invocation -> {
+                    forces.incrementAndGet();
+                    source.force(true);
+                    return null;
+                }).when(intercepted).force(true))) {
+            assertTrue(store.claimAndPersist(chunk(1, 3L)));
+            assertTrue(store.claimAndPersist(chunk(2, 3L)));
+            assertEquals(0, forces.get());
+            store.sync();
+            assertEquals(1, forces.get());
+            store.sync();
+            assertEquals(1, forces.get());
+        }
+        assertEquals(chunk(2, 3L), SavedBiomeStore.open(root).get(2, 0).orElseThrow());
+    }
+
+    @Test
+    public void failedSyncRejectsFurtherClaimsButKeepsWrittenRecords() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        SavedBiomeStore store = SavedBiomeStore.open(root);
+        store.claimAndPersist(chunk(0, 3L));
+        IOException failure = new IOException("Deferred saved biome force failed");
+        try (MockedStatic<FileChannel> ignored = regionChannels(root, (source, intercepted) ->
+                doAnswer(invocation -> {
+                    throw failure;
+                }).when(intercepted).force(true))) {
+            assertSame(failure, assertThrows(IOException.class, store::sync));
+        }
+        assertSame(failure, assertThrows(IOException.class, () -> store.claimAndPersist(chunk(1, 3L))).getCause());
+        assertSame(failure, assertThrows(IOException.class, () -> store.get(5, 0)).getCause());
+        SavedBiomeStore reopened = SavedBiomeStore.open(root);
+        assertEquals(chunk(0, 3L), reopened.get(0, 0).orElseThrow());
+        assertTrue(reopened.get(1, 0).isEmpty());
+    }
+
+    @Test
+    public void failedWriteRollsBackWithoutPublishingAndRetainsRollbackFailure() throws Exception {
         for (boolean failRollback : List.of(false, true)) {
             Path root = temporaryFolder.newFolder().toPath();
             SavedBiomeStore store = SavedBiomeStore.open(root);
             store.claimAndPersist(chunk(0, 3L));
             byte[] original = Files.readAllBytes(regionPath(root));
-            IOException failure = new IOException("Saved biome force failed");
+            IOException failure = new IOException("Saved biome write failed");
             IOException rollback = new IOException("Saved biome rollback force failed");
-            AtomicBoolean first = new AtomicBoolean(true);
             try (RandomAccessFile actual = new RandomAccessFile(regionPath(root).toFile(), "rw")) {
                 FileChannel channel = mock(FileChannel.class, delegatesTo(actual.getChannel()));
                 doAnswer(invocation -> {
-                    if (first.getAndSet(false)) {
-                        throw failure;
-                    }
+                    throw failure;
+                }).when(channel).write(any(ByteBuffer[].class), anyInt(), anyInt());
+                doAnswer(invocation -> {
                     if (failRollback) {
                         throw rollback;
                     }
@@ -260,6 +305,24 @@ public class SavedBiomeStoreWriteTest {
             release.countDown();
             drain(workers);
         }
+    }
+
+    private static MockedStatic<FileChannel> regionChannels(Path root, ChannelMutation mutation) {
+        Path region = regionPath(root);
+        return mockStatic(FileChannel.class, invocation -> {
+            FileChannel source = (FileChannel) invocation.callRealMethod();
+            if (invocation.getMethod().getParameterCount() != 2 || !region.equals(invocation.getArgument(0))) {
+                return source;
+            }
+            FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
+            mutation.apply(source, intercepted);
+            return intercepted;
+        });
+    }
+
+    @FunctionalInterface
+    private interface ChannelMutation {
+        void apply(FileChannel source, FileChannel intercepted) throws IOException;
     }
 
     private static ClaimResult claimResult(SavedBiomeStore store, SavedBiomeChunk chunk) {

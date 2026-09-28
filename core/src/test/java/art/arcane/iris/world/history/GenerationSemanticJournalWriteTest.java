@@ -92,29 +92,46 @@ public class GenerationSemanticJournalWriteTest {
     }
 
     @Test
-    public void failedForceRestoresBytesAndLeavesTheClaimRetryable() throws Exception {
+    public void claimReturnsBeforeTheJournalIsForcedAndSyncForcesIt() throws Exception {
         Path root = temporaryFolder.newFolder().toPath();
         GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
         index.claimAndPersist(claim(0, "first"));
-        Path journal = index.storageDirectory().resolve("r.0.0.iswal");
-        byte[] original = Files.readAllBytes(journal);
-        IOException failure = new IOException("Journal force failed");
+        index.sync();
         AtomicInteger forces = new AtomicInteger();
         try (MockedStatic<FileChannel> ignored = journalChannels((source, intercepted) ->
                 doAnswer(invocation -> {
-                    if (forces.incrementAndGet() == 1) {
-                        throw failure;
-                    }
+                    forces.incrementAndGet();
                     source.force(true);
                     return null;
                 }).when(intercepted).force(true))) {
-            assertSame(failure, assertThrows(IOException.class, () -> index.claimAndPersist(claim(1, "second"))));
+            assertTrue(index.claimAndPersist(claim(1, "second")));
+            assertEquals(0, forces.get());
+            assertEquals(Optional.of(claim(1, "second")), index.get(1, 0));
+            index.sync();
+            assertEquals(1, forces.get());
+            index.sync();
+            assertEquals(1, forces.get());
         }
-        assertEquals(2, forces.get());
-        assertArrayEquals(original, Files.readAllBytes(journal));
-        assertTrue(index.get(1, 0).isEmpty());
-        assertTrue(index.claimAndPersist(claim(1, "second")));
         assertEquals(Optional.of(claim(1, "second")), GenerationSemanticIndex.loadRequired(root).get(1, 0));
+    }
+
+    @Test
+    public void failedSyncRejectsFurtherMutationButKeepsWrittenClaims() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
+        index.claimAndPersist(claim(0, "first"));
+        IOException failure = new IOException("Deferred journal force failed");
+        try (MockedStatic<FileChannel> ignored = journalChannels((source, intercepted) ->
+                doAnswer(invocation -> {
+                    throw failure;
+                }).when(intercepted).force(true))) {
+            assertSame(failure, assertThrows(IOException.class, index::sync));
+        }
+        assertSame(failure, assertThrows(IOException.class, () -> index.claimAndPersist(claim(1, "second"))).getCause());
+        assertThrows(IllegalStateException.class, () -> index.get(0, 0));
+        GenerationSemanticIndex replayed = GenerationSemanticIndex.loadRequired(root);
+        assertEquals(Optional.of(claim(0, "first")), replayed.get(0, 0));
+        assertTrue(replayed.get(1, 0).isEmpty());
     }
 
     @Test
@@ -122,14 +139,17 @@ public class GenerationSemanticJournalWriteTest {
         Path root = temporaryFolder.newFolder().toPath();
         GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
         index.claimAndPersist(claim(0, "first"));
-        IOException failure = new IOException("Journal force failed");
+        IOException failure = new IOException("Journal write failed");
         IOException rollback = new IOException("Rollback force failed");
-        AtomicInteger forces = new AtomicInteger();
         IOException reported;
-        try (MockedStatic<FileChannel> ignored = journalChannels((source, intercepted) ->
-                doAnswer(invocation -> {
-                    throw forces.incrementAndGet() == 1 ? failure : rollback;
-                }).when(intercepted).force(true))) {
+        try (MockedStatic<FileChannel> ignored = journalChannels((source, intercepted) -> {
+            doAnswer(invocation -> {
+                throw failure;
+            }).when(intercepted).write(any(ByteBuffer.class));
+            doAnswer(invocation -> {
+                throw rollback;
+            }).when(intercepted).force(true);
+        })) {
             reported = assertThrows(IOException.class, () -> index.claimAndPersist(claim(1, "failed")));
         }
         assertSame(failure, reported.getCause());
@@ -176,7 +196,7 @@ public class GenerationSemanticJournalWriteTest {
     }
 
     @Test
-    public void newJournalDirectoryFailureRollsBackBeforeRetry() throws Exception {
+    public void newJournalDirectoryIsForcedBySyncAndItsFailureRejectsFurtherMutation() throws Exception {
         assumeTrue(File.separatorChar != '\\');
         Path root = temporaryFolder.newFolder().toPath();
         GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
@@ -190,20 +210,17 @@ public class GenerationSemanticJournalWriteTest {
             }
             FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
             doAnswer(force -> {
-                if (directoryForces.incrementAndGet() == 1) {
-                    throw failure;
-                }
-                source.force(true);
-                return null;
+                directoryForces.incrementAndGet();
+                throw failure;
             }).when(intercepted).force(true);
             return intercepted;
         })) {
-            assertSame(failure, assertThrows(IOException.class, () -> index.claimAndPersist(claim(0, "first"))));
+            assertTrue(index.claimAndPersist(claim(0, "first")));
+            assertEquals(0, directoryForces.get());
+            assertSame(failure, assertThrows(IOException.class, index::sync));
+            assertEquals(1, directoryForces.get());
         }
-        assertEquals(2, directoryForces.get());
-        assertEquals(0L, Files.size(index.storageDirectory().resolve("r.0.0.iswal")));
-        assertTrue(index.get(0, 0).isEmpty());
-        assertTrue(index.claimAndPersist(claim(0, "first")));
+        assertThrows(IOException.class, () -> index.claimAndPersist(claim(1, "second")));
         assertEquals(Optional.of(claim(0, "first")), GenerationSemanticIndex.loadRequired(root).get(0, 0));
     }
 

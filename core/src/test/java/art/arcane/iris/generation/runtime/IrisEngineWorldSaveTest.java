@@ -68,6 +68,7 @@ public class IrisEngineWorldSaveTest {
                 fixture.release().countDown();
                 close.get(5, TimeUnit.SECONDS).requireComplete("close");
                 assertEquals(0, fixture.sessions().activeLeases());
+                verify(fixture.engine()).syncGenerationHistory();
             } finally {
                 fixture.release().countDown();
             }

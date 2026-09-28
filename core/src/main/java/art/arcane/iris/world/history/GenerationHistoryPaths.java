@@ -26,6 +26,7 @@ public final class GenerationHistoryPaths {
     private final Path legacyPackRoot;
     private final Path legacyMantleRoot;
     private final Path regionRoot;
+    private volatile PackRoot lastPackRoot;
 
     private GenerationHistoryPaths(Path dimensionRoot) {
         this.dimensionRoot = Objects.requireNonNull(dimensionRoot, "dimensionRoot")
@@ -71,7 +72,13 @@ public final class GenerationHistoryPaths {
     }
 
     public Path packRoot(String epochId) {
-        return epochRoot(epochId).resolve(LEGACY_PACK_DIRECTORY_NAME);
+        PackRoot cached = lastPackRoot;
+        if (cached != null && cached.epochId().equals(epochId)) {
+            return cached.path();
+        }
+        Path resolved = epochRoot(epochId).resolve(LEGACY_PACK_DIRECTORY_NAME);
+        lastPackRoot = new PackRoot(epochId, resolved);
+        return resolved;
     }
 
     public Path activationsRoot() {
@@ -107,5 +114,8 @@ public final class GenerationHistoryPaths {
 
     public Path regionRoot() {
         return regionRoot;
+    }
+
+    private record PackRoot(String epochId, Path path) {
     }
 }

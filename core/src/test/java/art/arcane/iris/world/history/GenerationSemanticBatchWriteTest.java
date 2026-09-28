@@ -95,19 +95,18 @@ public class GenerationSemanticBatchWriteTest {
         GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
         List<GenerationSemanticIndex.Claim> claims = List.of(
                 pending(0, "first"), pending(32, "failed"), pending(64, "last"));
-        IOException failure = new IOException("Middle region force failed");
-        AtomicInteger forces = new AtomicInteger();
+        IOException failure = new IOException("Middle region write failed");
+        AtomicInteger writes = new AtomicInteger();
         try (MockedStatic<FileChannel> ignored = channels((path, source, intercepted) -> {
             if (!path.getFileName().toString().equals("r.1.0.iswal")) {
                 return;
             }
             doAnswer(invocation -> {
-                if (forces.incrementAndGet() == 1) {
+                if (writes.incrementAndGet() == 1) {
                     throw failure;
                 }
-                source.force(true);
-                return null;
-            }).when(intercepted).force(true);
+                return source.write((ByteBuffer) invocation.getArgument(0));
+            }).when(intercepted).write(any(ByteBuffer.class));
         })) {
             index.claimAndPersistBatch(claims);
         }

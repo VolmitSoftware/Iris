@@ -779,6 +779,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     TimeUnit.SECONDS,
                     () -> IrisLogging.warn("Async pregen is still draining outstanding chunks. " + metricsSnapshot())
             );
+            syncGenerationHistory();
 
             mantleCleanup.close(MANTLE_CLEANUP_DRAIN_SECONDS, TimeUnit.SECONDS);
             flushAllRemainingChunks();
@@ -804,6 +805,19 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     }
                 }
             }
+        }
+    }
+
+    private void syncGenerationHistory() {
+        Engine engine = resolveMetricsEngine();
+        if (engine == null) {
+            return;
+        }
+        try {
+            engine.syncGenerationHistory();
+        } catch (Throwable e) {
+            IrisLogging.reportError("Async pregen could not force generation history to stable storage for world "
+                    + world.getName() + ".", e);
         }
     }
 

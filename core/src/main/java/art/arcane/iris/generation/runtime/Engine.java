@@ -250,6 +250,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     default void save() {
         NativeStructureOwnershipStore.flush(this);
+        syncGenerationHistory();
         getMantle().save();
         getWorldManager().onSave();
         saveEngineData();
@@ -259,6 +260,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     default void saveNow() {
         NativeStructureOwnershipStore.flush(this);
+        syncGenerationHistory();
         getMantle().saveAllNow();
         saveEngineData();
     }
@@ -266,6 +268,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     SeedManager getSeedManager();
 
     void saveEngineData();
+
+    void syncGenerationHistory();
 
     default String getName() {
         return getDimension().getName();

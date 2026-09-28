@@ -6,6 +6,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.MockedStatic;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -69,7 +71,7 @@ public class GenerationSemanticPointReadTest {
     }
 
     @Test
-    public void newRegionRemainsAbsentUntilItsFirstForceCompletes() throws Exception {
+    public void newRegionRemainsAbsentUntilItsFirstAppendCompletes() throws Exception {
         GenerationSemanticIndex index = index();
         ExecutorService reader = Executors.newSingleThreadExecutor();
         try (AppendGate gate = append(() -> index.claimAndPersist(claim(-32, 1)), Failure.NONE)) {
@@ -233,7 +235,7 @@ public class GenerationSemanticPointReadTest {
     private static AppendGate append(Callable<?> operation, Failure mode) throws InterruptedException {
         AppendGate gate = new AppendGate(operation, mode);
         gate.worker.start();
-        assertTrue(gate.forcing.await(5, TimeUnit.SECONDS));
+        assertTrue(gate.appending.await(5, TimeUnit.SECONDS));
         return gate;
     }
 
@@ -250,7 +252,7 @@ public class GenerationSemanticPointReadTest {
     }
 
     private static final class AppendGate implements AutoCloseable {
-        private final CountDownLatch forcing = new CountDownLatch(1);
+        private final CountDownLatch appending = new CountDownLatch(1);
         private final CountDownLatch release = new CountDownLatch(1);
         private final AtomicReference<Throwable> failure = new AtomicReference<>();
         private final IOException originalFailure = new IOException("Semantic journal failed");
@@ -266,24 +268,24 @@ public class GenerationSemanticPointReadTest {
                         return source;
                     }
                     FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
-                    AtomicInteger forces = new AtomicInteger();
+                    AtomicInteger writes = new AtomicInteger();
                     doAnswer(call -> {
-                        int count = forces.incrementAndGet();
-                        if (count == 1) {
-                            forcing.countDown();
+                        if (writes.incrementAndGet() == 1) {
+                            appending.countDown();
                             if (!release.await(10, TimeUnit.SECONDS)) {
-                                throw new IOException("Timed out waiting to resume semantic force");
+                                throw new IOException("Timed out waiting to resume semantic append");
                             }
                             if (mode == Failure.ROLLBACK_CONFIRMED || mode == Failure.ROLLBACK_UNCERTAIN) {
                                 throw originalFailure;
                             }
                         }
-                        if (count == 2 && mode == Failure.ROLLBACK_UNCERTAIN) {
+                        return source.write((ByteBuffer) call.getArgument(0));
+                    }).when(intercepted).write(any(ByteBuffer.class));
+                    if (mode == Failure.ROLLBACK_UNCERTAIN) {
+                        doAnswer(call -> {
                             throw new IOException("Semantic rollback failed");
-                        }
-                        source.force(true);
-                        return null;
-                    }).when(intercepted).force(true);
+                        }).when(intercepted).force(true);
+                    }
                     if (mode == Failure.CLOSE_UNCERTAIN) {
                         doAnswer(call -> {
                             source.close();

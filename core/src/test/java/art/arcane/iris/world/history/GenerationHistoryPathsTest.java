@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.nio.file.Path;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
 public final class GenerationHistoryPathsTest {
@@ -33,5 +34,19 @@ public final class GenerationHistoryPathsTest {
         assertEquals(expectedRoot.resolve("region"), paths.regionRoot());
         assertThrows(IllegalArgumentException.class, () -> paths.epochRoot("../escape"));
         assertThrows(IllegalArgumentException.class, () -> paths.activationRoot(0L));
+    }
+
+    @Test
+    public void repeatedPackRootsStayValidatedAndFollowTheRequestedEpoch() {
+        GenerationHistoryPaths paths = GenerationHistoryPaths.forDimension(Path.of("build", "world"));
+        String first = "a".repeat(64);
+        String second = "b".repeat(64);
+
+        Path firstRoot = paths.packRoot(first);
+        assertSame(firstRoot, paths.packRoot(first));
+        assertEquals(paths.epochRoot(second).resolve("pack"), paths.packRoot(second));
+        assertEquals(firstRoot, paths.packRoot(first));
+        assertThrows(IllegalArgumentException.class, () -> paths.packRoot("../escape"));
+        assertThrows(NullPointerException.class, () -> paths.packRoot(null));
     }
 }

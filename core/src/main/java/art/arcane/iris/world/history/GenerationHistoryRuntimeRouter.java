@@ -501,6 +501,11 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             failure = detachFailure;
         }
         try {
+            history.sync();
+        } catch (Throwable syncFailure) {
+            failure = appendFailure(failure, syncFailure);
+        }
+        try {
             biomes.close();
         } catch (Throwable biomeFailure) {
             failure = appendFailure(failure, biomeFailure);

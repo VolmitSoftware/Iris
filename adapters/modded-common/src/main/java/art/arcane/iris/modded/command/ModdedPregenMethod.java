@@ -116,6 +116,11 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
             }
             ModdedIrisLog.info("Iris modded pregen done: dim={} completed={} peakInFlight={} finalLimit={}",
                     runtime.worldIdentity(), completed.get(), inFlightPeak.get(), adaptiveLimit.get());
+            try {
+                engine.syncGenerationHistory();
+            } catch (RuntimeException e) {
+                ModdedIrisLog.error("Iris modded pregen could not force generation history to stable storage", e);
+            }
             if (deferFinalSaveIfRequested()) {
                 return;
             }

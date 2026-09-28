@@ -112,6 +112,19 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         return cached;
     }
 
+    private void syncGenerationHistory() {
+        Engine engine = resolveEngine();
+        if (engine == null) {
+            return;
+        }
+        try {
+            engine.syncGenerationHistory();
+        } catch (Throwable e) {
+            IrisLogging.reportError("Medieval pregen could not force generation history to stable storage for world "
+                    + world.getName() + ".", e);
+        }
+    }
+
     private void waitForChunks() {
         for (CompletableFuture<?> i : futures) {
             try {
@@ -179,6 +192,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
             if (prefetchPool != null) {
                 prefetchPool.shutdownNow();
             }
+            syncGenerationHistory();
             unloadAndSaveAllChunks(true);
             chunkFlush.close(UNLOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } finally {

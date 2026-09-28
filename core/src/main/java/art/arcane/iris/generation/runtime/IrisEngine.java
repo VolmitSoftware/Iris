@@ -1491,7 +1491,7 @@ public class IrisEngine implements Engine {
              IrisContext.Scope generationScope = IrisContext.open(this, lease.sessionId(), null)) {
             getEngineData().getStatistics().generatedChunk();
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<NativeBlockState> blocks = new ColumnExtentListeningHunk<>(vblocks, (xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
+            Hunk<NativeBlockState> blocks = new ColumnExtentListeningHunk<>(vblocks, new ChunkBlockUpdateListener(this, x, z));
 
             if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
                 NativeBlockState crossSection = B.getState("CRYING_OBSIDIAN");

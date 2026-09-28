@@ -291,7 +291,7 @@ public class DimensionTerrain3DCompositionTest {
         when(context.getRock()).thenReturn(rocks);
         when(context.getRoundedHeight(0, 0)).thenReturn(8);
         Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(1, 64, 1);
-        new IrisTerrainNormalActuator(engine).terrainSliver(0, 0, 0, blocks, context);
+        new IrisTerrainNormalActuator(engine).paint(0, 0, blocks, context);
         return blocks;
     }
 

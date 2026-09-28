@@ -47,6 +47,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 @Snippet("biome-palette")
 @Accessors(chain = true)
@@ -64,7 +65,8 @@ public class IrisBiomePaletteLayer {
             new LazyBoundedCache<>(LAYER_GENERATOR_CACHE_SIZE);
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private final transient AtomicReference<CachedLayerGenerator> recentLayerGenerator = new AtomicReference<>();
+    private final transient AtomicReferenceArray<CachedLayerGenerator> recentLayerGenerators =
+            new AtomicReferenceArray<>(LAYER_GENERATOR_CACHE_SIZE);
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient LazyBoundedCache<LayerGeneratorKey, CNG> heightGenerators =
@@ -145,7 +147,8 @@ public class IrisBiomePaletteLayer {
     public CNG getLayerGenerator(RNG parent, int signature, IrisData data) {
         Engine engine = data == null ? null : data.getEngine();
         long generatorSeed = parent.getSeed() + signature + minHeight + maxHeight + getBlockData(data).size();
-        CachedLayerGenerator recent = recentLayerGenerator.get();
+        int slot = (int) generatorSeed & (LAYER_GENERATOR_CACHE_SIZE - 1);
+        CachedLayerGenerator recent = recentLayerGenerators.getAcquire(slot);
         if (recent != null && recent.key.matches(data, engine, generatorSeed)) {
             return recent.generator;
         }
@@ -154,7 +157,7 @@ public class IrisBiomePaletteLayer {
         CNG generator = layerGenerators.computeIfAbsent(key,
                 ignored -> style.create(new RNG(generatorSeed), data, engine));
         if (generator != null) {
-            recentLayerGenerator.set(new CachedLayerGenerator(key, generator));
+            recentLayerGenerators.setRelease(slot, new CachedLayerGenerator(key, generator));
         }
         return generator;
     }

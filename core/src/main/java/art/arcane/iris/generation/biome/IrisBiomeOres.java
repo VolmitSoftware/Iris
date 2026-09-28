@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
-import art.arcane.iris.generation.decoration.IrisOreGeneratorBounds;
+import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -73,30 +73,22 @@ final class IrisBiomeOres {
                 .contains(IrisProceduralBlocks.materialKey(state));
     }
 
-    static KList<IrisOreGenerator> getSurfaceOreGenerators(IrisBiome biome) {
-        return getOres(biome, true);
-    }
-
-    static KList<IrisOreGenerator> getUndergroundOreGenerators(IrisBiome biome) {
-        return getOres(biome, false);
-    }
-
-    static IrisOreGeneratorBounds getSurfaceOreGeneratorBounds(IrisBiome biome) {
+    static IrisOreBands getSurfaceOreBands(IrisBiome biome) {
         // getIfPresent fast path: aquire allocates a capturing lambda even on a hit, and this
         // runs per column on the terrain hot path.
-        IrisOreGeneratorBounds cached = biome.getSurfaceOreBoundsCache().getIfPresent();
+        IrisOreBands cached = biome.getSurfaceOreBandsCache().getIfPresent();
         if (cached != null) {
             return cached;
         }
-        return biome.getSurfaceOreBoundsCache().aquire(() -> IrisOreGeneratorBounds.of(getSurfaceOres(biome)));
+        return biome.getSurfaceOreBandsCache().aquire(() -> IrisOreBands.of(getSurfaceOres(biome)));
     }
 
-    static IrisOreGeneratorBounds getUndergroundOreGeneratorBounds(IrisBiome biome) {
-        IrisOreGeneratorBounds cached = biome.getUndergroundOreBoundsCache().getIfPresent();
+    static IrisOreBands getUndergroundOreBands(IrisBiome biome) {
+        IrisOreBands cached = biome.getUndergroundOreBandsCache().getIfPresent();
         if (cached != null) {
             return cached;
         }
-        return biome.getUndergroundOreBoundsCache().aquire(() -> IrisOreGeneratorBounds.of(getUndergroundOres(biome)));
+        return biome.getUndergroundOreBandsCache().aquire(() -> IrisOreBands.of(getUndergroundOres(biome)));
     }
 
     private static KList<IrisOreGenerator> getSurfaceOres(IrisBiome biome) {

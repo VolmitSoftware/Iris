@@ -18,20 +18,50 @@
 
 package art.arcane.iris.generation.chunk;
 
-import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.hunk.Hunk;
-import art.arcane.volmlib.util.hunk.view.ListeningHunk;
 
-public final class ColumnExtentListeningHunk<T> extends ListeningHunk<T> implements ColumnExtent {
+public final class ColumnExtentListeningHunk<T> implements Hunk<T>, ColumnExtent {
     private final Hunk<T> source;
+    private final Listener<T> listener;
 
-    public ColumnExtentListeningHunk(Hunk<T> source, Consumer4<Integer, Integer, Integer, T> listener) {
-        super(source, listener);
+    public ColumnExtentListeningHunk(Hunk<T> source, Listener<T> listener) {
         this.source = source;
+        this.listener = listener;
+    }
+
+    @Override
+    public void setRaw(int x, int y, int z, T t) {
+        listener.onWrite(x, y, z, t);
+        source.setRaw(x, y, z, t);
+    }
+
+    @Override
+    public T getRaw(int x, int y, int z) {
+        return source.getRaw(x, y, z);
+    }
+
+    @Override
+    public int getWidth() {
+        return source.getWidth();
+    }
+
+    @Override
+    public int getHeight() {
+        return source.getHeight();
+    }
+
+    @Override
+    public int getDepth() {
+        return source.getDepth();
     }
 
     @Override
     public int highestStoredY(int x, int z) {
         return ColumnExtent.highestStoredY(source, x, z);
+    }
+
+    @FunctionalInterface
+    public interface Listener<T> {
+        void onWrite(int x, int y, int z, T value);
     }
 }

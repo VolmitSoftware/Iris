@@ -24,7 +24,7 @@ import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
-import art.arcane.iris.generation.decoration.IrisOreGeneratorBounds;
+import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisProceduralObjects;
 import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
@@ -120,8 +120,8 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private final transient IrisBiomeLayerHeightCache layerSeaHeightGenerators = new IrisBiomeLayerHeightCache();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> undergroundOreBoundsCache = new AtomicCache<>();
+    private final transient AtomicCache<IrisOreBands> surfaceOreBandsCache = new AtomicCache<>();
+    private final transient AtomicCache<IrisOreBands> undergroundOreBandsCache = new AtomicCache<>();
     private final transient AtomicCache<KSet<String>> surfaceOreReplaceableBlockData = new AtomicCache<>();
     private final transient AtomicCache<EnumMap<IrisDecorationPart, IrisDecorator[]>> decoratorBuckets = new AtomicCache<>();
     private final transient AtomicCache<Biome> derivativeResolved = new AtomicCache<>();
@@ -338,8 +338,8 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         this.ores = ores == null ? new KList<>() : ores;
         surfaceOreCache.reset();
         undergroundOreCache.reset();
-        surfaceOreBoundsCache.reset();
-        undergroundOreBoundsCache.reset();
+        surfaceOreBandsCache.reset();
+        undergroundOreBandsCache.reset();
     }
 
     public IrisBiome setSurfaceOreReplaceableBlocks(KList<String> surfaceOreReplaceableBlocks) {
@@ -348,20 +348,12 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return this;
     }
 
-    public KList<IrisOreGenerator> getSurfaceOreGenerators() {
-        return IrisBiomeOres.getSurfaceOreGenerators(this);
+    public IrisOreBands getSurfaceOreBands() {
+        return IrisBiomeOres.getSurfaceOreBands(this);
     }
 
-    public KList<IrisOreGenerator> getUndergroundOreGenerators() {
-        return IrisBiomeOres.getUndergroundOreGenerators(this);
-    }
-
-    public IrisOreGeneratorBounds getSurfaceOreGeneratorBounds() {
-        return IrisBiomeOres.getSurfaceOreGeneratorBounds(this);
-    }
-
-    public IrisOreGeneratorBounds getUndergroundOreGeneratorBounds() {
-        return IrisBiomeOres.getUndergroundOreGeneratorBounds(this);
+    public IrisOreBands getUndergroundOreBands() {
+        return IrisBiomeOres.getUndergroundOreBands(this);
     }
 
     public Biome getDerivative() {

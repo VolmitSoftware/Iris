@@ -30,8 +30,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.hydrology.IrisSurfaceRiverBedConfig;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.generation.decoration.IrisOreGenerator;
-import art.arcane.iris.generation.decoration.IrisOreGeneratorBounds;
+import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
 import art.arcane.iris.generation.hydrology.IrisSurfaceRiverBankConfig;
@@ -52,8 +51,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     @Getter
     private final RNG rng;
-    @Getter
-    private int lastBedrock = -1;
 
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
@@ -64,263 +61,25 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
     @Override
     public void onActuate(int x, int z, Hunk<NativeBlockState> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-
-        for (int xf = 0; xf < h.getWidth(); xf++) {
-            terrainSliver(x, z, xf, h, context);
-        }
-
+        paint(x, z, h, context);
         getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
     }
 
     /**
-     * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
+     * Paints every column of the chunk from its top down to bedrock. Columns are walked z-major so
+     * consecutive columns share the cache lines of the x-minor block buffer.
      *
-     * @param x  the chunk x in blocks
-     * @param z  the chunk z in blocks
-     * @param xf the current x slice
-     * @param h  the blockdata
+     * @param x the chunk x in blocks
+     * @param z the chunk z in blocks
      */
     @BlockCoordinates
-    public void terrainSliver(int x, int z, int xf, Hunk<NativeBlockState> h, ChunkContext context) {
-        int chunkHeight = h.getHeight();
-        int chunkDepth = h.getDepth();
-        IrisDimension dimension = getDimension();
-        IrisData data = getData();
-        IrisComplex complex = getComplex();
-        ProceduralStream<Double> riverWaterSurfaceStream = complex.getRiverWaterSurfaceStream();
-        RNG localRng = rng;
-        boolean bedrockEnabled = dimension.isBedrock();
-        boolean hideOres = dimension.isHideOresForHiddenOre();
-        ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
-        ChunkedDataCache<IrisRegion> regionCache = context.getRegion();
-        ChunkedDataCache<NativeBlockState> rockCache = context.getRock();
-        int realX = xf + x;
-        UpperDimensionContext upperContext = getEngine().getUpperContext();
-        // Dimension-level ore lookups are chunk-invariant; resolving them per column paid
-        // four accessor chains times 256 per chunk for constants.
-        KList<IrisOreGenerator> dimensionSurfaceOres = hideOres ? null : dimension.getSurfaceOreGenerators();
-        KList<IrisOreGenerator> dimensionUndergroundOres = hideOres ? null : dimension.getUndergroundOreGenerators();
-        IrisOreGeneratorBounds dimensionSurfaceOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : dimension.getSurfaceOreGeneratorBounds();
-        IrisOreGeneratorBounds dimensionUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : dimension.getUndergroundOreGeneratorBounds();
-        IrisSurfaceRiverBankConfig riverBanks = dimension.getHydrology() == null
-                ? null
-                : dimension.getHydrology().getRivers().getSurface().getBanks();
-        boolean exposeCutStrata = riverBanks != null && riverBanks.isExposeCutStrata();
-        IrisSurfaceRiverBedConfig riverBed = dimension.getHydrology() == null
-                ? null
-                : dimension.getHydrology().getRivers().getSurface().getBed();
-        boolean padRiverBed = riverBed != null && !riverBed.isAllowGravityBlocks();
-        IrisRiverMaterialConfig bedMaterial = riverBed == null ? null : riverBed.getMaterial();
-        IrisRiverMaterialConfig shoreMaterial = riverBanks == null ? null : riverBanks.getShoreMaterial();
-        IrisRiverMaterialConfig bankMaterial = riverBanks == null ? null : riverBanks.getBankMaterial();
-
-        for (int zf = 0; zf < chunkDepth; zf++) {
-            int realZ = zf + z;
-            IrisBiome biome = biomeCache.get(xf, zf);
-            IrisRegion region = regionCache.get(xf, zf);
-            int he = Math.min(chunkHeight, context.getRoundedHeight(xf, zf));
-            int surfaceFluidHeight = Math.min(
-                    chunkHeight,
-                    (int) Math.round(riverWaterSurfaceStream.getDouble(realX, realZ))
-            );
-            int hf = Math.max(surfaceFluidHeight, he);
-            if (hf < 0) {
-                continue;
-            }
-
-            int topY = Math.min(hf, chunkHeight - 1);
-            HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(realX, realZ);
-            HydrologyColumnLayer hydrologyFluid = hydrology == null
-                    ? null
-                    : hydrology.primarySurfaceFluidLayerOrNull();
-            HydrologyColumnLayer hydrologyTerrain = hydrology == null
-                    ? null
-                    : hydrology.primarySurfaceLayerOrNull();
-            Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ, hydrology);
-            int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
-            int layerSurfaceY = he;
-            int layerCeilingY = 0;
-            boolean exposeRiverStrata = exposeCutStrata
-                    && hydrologyTerrain != null
-                    && hydrologyTerrain.terrainOwned()
-                    && !hydrologyTerrain.channel();
-            Terrain3DColumn naturalColumn = exposeRiverStrata ? complex.naturalTerrainColumn(realX, realZ) : null;
-            int cut = 0;
-            boolean riverOwned = padRiverBed && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
-            IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
-                    hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
-            NativeBlockState fluid = hydrologyFluid == null || complex.getTransitionDisplacement() != null
-                    ? complex.resolveSurfaceFluid(realX, realZ)
-                    : complex.resolveHydrologyFluid(hydrologyFluid.profileKey(), realX, realZ);
-            NativeBlockState rock = rockCache.get(xf, zf);
-            NativeBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
-            KList<IrisOreGenerator> biomeSurfaceOres = hideOres ? null : biome.getSurfaceOreGenerators();
-            KList<IrisOreGenerator> regionSurfaceOres = hideOres ? null : region.getSurfaceOreGenerators();
-            KList<IrisOreGenerator> biomeUndergroundOres = hideOres ? null : biome.getUndergroundOreGenerators();
-            KList<IrisOreGenerator> regionUndergroundOres = hideOres ? null : region.getUndergroundOreGenerators();
-            IrisOreGeneratorBounds biomeSurfaceOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : biome.getSurfaceOreGeneratorBounds();
-            IrisOreGeneratorBounds regionSurfaceOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : region.getSurfaceOreGeneratorBounds();
-            IrisOreGeneratorBounds biomeUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : biome.getUndergroundOreGeneratorBounds();
-            IrisOreGeneratorBounds regionUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : region.getUndergroundOreGeneratorBounds();
-            boolean hasSurfaceOres = biomeSurfaceOreBounds.hasOres() || regionSurfaceOreBounds.hasOres() || dimensionSurfaceOreBounds.hasOres();
-            boolean hasUndergroundOres = biomeUndergroundOreBounds.hasOres() || regionUndergroundOreBounds.hasOres() || dimensionUndergroundOreBounds.hasOres();
-            KList<NativeBlockState> blocks = null;
-            KList<NativeBlockState> ceilingBlocks = null;
-            KList<NativeBlockState> fblocks = null;
-
-            for (int i = topY; i >= 0; i--) {
-                if (i == 0 && bedrockEnabled) {
-                    h.setRaw(xf, i, zf, BEDROCK.get());
-                    lastBedrock = i;
-                    continue;
-                }
-
-                if (terrainColumn != null && i <= he) {
-                    while (terrainSpan >= 0 && i < terrainColumn.ceiling(terrainSpan)) {
-                        terrainSpan--;
-                        blocks = null;
-                        ceilingBlocks = null;
-                    }
-                    if (terrainSpan < 0 || i > terrainColumn.floor(terrainSpan)) {
-                        h.setRaw(xf, i, zf, AIR.get());
-                        continue;
-                    }
-                    layerSurfaceY = terrainColumn.floor(terrainSpan);
-                    layerCeilingY = terrainColumn.ceiling(terrainSpan);
-                }
-
-                NativeBlockState ore = null;
-                if (hasSurfaceOres) {
-                    if (biomeSurfaceOreBounds.contains(i)) {
-                        ore = generateOres(biomeSurfaceOres, realX, i, realZ, localRng, data);
-                    }
-                    if (ore == null && regionSurfaceOreBounds.contains(i)) {
-                        ore = generateOres(regionSurfaceOres, realX, i, realZ, localRng, data);
-                    }
-                    if (ore == null && dimensionSurfaceOreBounds.contains(i)) {
-                        ore = generateOres(dimensionSurfaceOres, realX, i, realZ, localRng, data);
-                    }
-                }
-                if (ore != null) {
-                    h.setRaw(xf, i, zf, ore);
-                    continue;
-                }
-
-                if (i > he && i <= hf) {
-                    int fdepth = hf - i;
-                    if (hydrologyFluid == null && fblocks == null) {
-                        fblocks = biome.generateSeaLayers(realX, realZ, localRng, hf - he, data);
-                    }
-                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(
-                            fblocks,
-                            fdepth,
-                            fluid,
-                            hydrologyFluid != null
-                    ));
-                    continue;
-                }
-
-                if (i <= he) {
-                    int depth = layerSurfaceY - i;
-                    if (depth == 0 && mappedSurfaceBlock != null) {
-                        h.setRaw(xf, i, zf, mappedSurfaceBlock);
-                        continue;
-                    }
-                    if (blocks == null) {
-                        if (exposeRiverStrata) {
-                            int naturalSurfaceY = naturalColumn == null ? hydrology.naturalHeight() : naturalColumn.surfaceY(layerSurfaceY);
-                            cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
-                        }
-                        blocks = biome.generateLayers(dimension, realX, realZ, localRng,
-                                layerSurfaceY + cut, layerSurfaceY + cut, data, complex);
-                    }
-
-                    if (layerCeilingY > 0 && depth >= 2 && i - layerCeilingY < 2) {
-                        if (ceilingBlocks == null) {
-                            ceilingBlocks = biome.generateCeilingLayers(dimension, realX, realZ, localRng,
-                                    2, layerCeilingY, data, complex);
-                        }
-                        int ceilingDepth = i - layerCeilingY;
-                        h.setRaw(xf, i, zf, ceilingBlocks.hasIndex(ceilingDepth)
-                                ? ceilingBlocks.get(ceilingDepth) : rock);
-                        continue;
-                    }
-
-                    int strataIndex = strataIndex(depth, cut, blocks.size());
-                    NativeBlockState layerBlock = paintHydrologyMaterial(
-                            blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
-                            roleMaterial, depth, localRng, realX, i, realZ, data);
-                    if (layerBlock != null) {
-                        if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
-                            layerBlock = riverBed.getPaddingPalette().get(localRng, realX, i, realZ, data);
-                        }
-                        h.setRaw(xf, i, zf, layerBlock);
-                        continue;
-                    }
-
-                    if (hasUndergroundOres) {
-                        if (biomeUndergroundOreBounds.contains(i)) {
-                            ore = generateOres(biomeUndergroundOres, realX, i, realZ, localRng, data);
-                        }
-                        if (ore == null && regionUndergroundOreBounds.contains(i)) {
-                            ore = generateOres(regionUndergroundOres, realX, i, realZ, localRng, data);
-                        }
-                        if (ore == null && dimensionUndergroundOreBounds.contains(i)) {
-                            ore = generateOres(dimensionUndergroundOres, realX, i, realZ, localRng, data);
-                        }
-                    }
-
-                    if (ore != null) {
-                        h.setRaw(xf, i, zf, ore);
-                    } else {
-                        h.setRaw(xf, i, zf, rock);
-                    }
-                }
-            }
-
-            if (upperContext != null) {
-                UpperDimensionContext.Column upperColumn = upperContext.sampleColumn(realX, realZ);
-                int upperSurfaceY = upperColumn.surfaceY();
-
-                if (upperSurfaceY < chunkHeight - 1) {
-                    IrisBiome upperBiome = upperContext.getUpperBiome(realX, realZ);
-                    NativeBlockState upperRock = upperContext.getRockBlock(realX, realZ);
-                    NativeBlockState upperMappedSurface = upperContext.getSurfaceBlock(realX, realZ);
-                    KList<NativeBlockState> upperBlocks = null;
-                    int paletteSourceY = -1;
-
-                    for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
-                        if (y == chunkHeight - 1 && bedrockEnabled) {
-                            h.setRaw(xf, y, zf, BEDROCK.get());
-                            continue;
-                        }
-                        if (!upperColumn.isSolid(y)) {
-                            h.setRaw(xf, y, zf, AIR.get());
-                            continue;
-                        }
-                        int faceY = upperColumn.faceY(y);
-                        int sourceSurfaceY = upperColumn.height() - 1 - faceY;
-                        if (sourceSurfaceY != paletteSourceY) {
-                            paletteSourceY = sourceSurfaceY;
-                            upperBlocks = null;
-                        }
-                        if (y == faceY && upperMappedSurface != null) {
-                            h.setRaw(xf, y, zf, upperMappedSurface);
-                            continue;
-                        }
-                        int depthFromFace = y - faceY;
-                        if (upperBlocks == null && upperBiome != null) {
-                            upperBlocks = upperBiome.generateLayersWithSlope(upperContext.getDimension(),
-                                    realX, realZ, localRng, sourceSurfaceY, sourceSurfaceY,
-                                    upperContext.getData(), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
-                        }
-                        if (upperBlocks != null && upperBlocks.hasIndex(depthFromFace)) {
-                            h.setRaw(xf, y, zf, upperBlocks.get(depthFromFace));
-                        } else {
-                            h.setRaw(xf, y, zf, upperRock);
-                        }
-                    }
-                }
+    public void paint(int x, int z, Hunk<NativeBlockState> h, ChunkContext context) {
+        ColumnPainter painter = new ColumnPainter(x, z, h, context);
+        int width = h.getWidth();
+        int depth = h.getDepth();
+        for (int zf = 0; zf < depth; zf++) {
+            for (int xf = 0; xf < width; xf++) {
+                painter.paint(xf, zf);
             }
         }
     }
@@ -385,20 +144,307 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         return painted == null ? layerBlock : painted;
     }
 
-    private NativeBlockState generateOres(KList<IrisOreGenerator> oreGenerators, int x, int y, int z, RNG rng, IrisData data) {
-        if (oreGenerators == null || oreGenerators.isEmpty()) {
-            return null;
+    private final class ColumnPainter {
+        private final int x;
+        private final int z;
+        private final Hunk<NativeBlockState> h;
+        private final ChunkContext context;
+        private final int chunkHeight;
+        private final IrisDimension dimension;
+        private final IrisData data;
+        private final IrisComplex complex;
+        private final ProceduralStream<Double> riverWaterSurfaceStream;
+        private final boolean bedrockEnabled;
+        private final boolean hideOres;
+        private final boolean transitionDisplaced;
+        private final ChunkedDataCache<IrisBiome> biomeCache;
+        private final ChunkedDataCache<IrisRegion> regionCache;
+        private final ChunkedDataCache<NativeBlockState> rockCache;
+        private final UpperDimensionContext upperContext;
+        private final IrisOreBands dimensionSurfaceOres;
+        private final IrisOreBands dimensionUndergroundOres;
+        private final boolean exposeCutStrata;
+        private final IrisSurfaceRiverBedConfig riverBed;
+        private final boolean padRiverBed;
+        private final IrisRiverMaterialConfig bedMaterial;
+        private final IrisRiverMaterialConfig shoreMaterial;
+        private final IrisRiverMaterialConfig bankMaterial;
+        private final NativeBlockState air;
+        private final NativeBlockState bedrock;
+        private IrisOreBands biomeSurfaceOres;
+        private IrisOreBands regionSurfaceOres;
+        private IrisOreBands biomeUndergroundOres;
+        private IrisOreBands regionUndergroundOres;
+
+        private ColumnPainter(int x, int z, Hunk<NativeBlockState> h, ChunkContext context) {
+            this.x = x;
+            this.z = z;
+            this.h = h;
+            this.context = context;
+            chunkHeight = h.getHeight();
+            dimension = getDimension();
+            data = getData();
+            complex = getComplex();
+            riverWaterSurfaceStream = complex.getRiverWaterSurfaceStream();
+            bedrockEnabled = dimension.isBedrock();
+            hideOres = dimension.isHideOresForHiddenOre();
+            transitionDisplaced = complex.getTransitionDisplacement() != null;
+            biomeCache = context.getBiome();
+            regionCache = context.getRegion();
+            rockCache = context.getRock();
+            upperContext = getEngine().getUpperContext();
+            dimensionSurfaceOres = hideOres ? IrisOreBands.EMPTY : dimension.getSurfaceOreBands();
+            dimensionUndergroundOres = hideOres ? IrisOreBands.EMPTY : dimension.getUndergroundOreBands();
+            IrisSurfaceRiverBankConfig riverBanks = dimension.getHydrology() == null
+                    ? null
+                    : dimension.getHydrology().getRivers().getSurface().getBanks();
+            exposeCutStrata = riverBanks != null && riverBanks.isExposeCutStrata();
+            riverBed = dimension.getHydrology() == null
+                    ? null
+                    : dimension.getHydrology().getRivers().getSurface().getBed();
+            padRiverBed = riverBed != null && !riverBed.isAllowGravityBlocks();
+            bedMaterial = riverBed == null ? null : riverBed.getMaterial();
+            shoreMaterial = riverBanks == null ? null : riverBanks.getShoreMaterial();
+            bankMaterial = riverBanks == null ? null : riverBanks.getBankMaterial();
+            air = AIR.get();
+            bedrock = BEDROCK.get();
         }
 
-        int oreCount = oreGenerators.size();
-        for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
-            IrisOreGenerator oreGenerator = oreGenerators.get(oreIndex);
-            NativeBlockState ore = oreGenerator.generate(x, y, z, rng, data);
-            if (ore != null) {
-                return ore;
+        private void paint(int xf, int zf) {
+            int realX = xf + x;
+            int realZ = zf + z;
+            IrisBiome biome = biomeCache.get(xf, zf);
+            IrisRegion region = regionCache.get(xf, zf);
+            int he = Math.min(chunkHeight, context.getRoundedHeight(xf, zf));
+            int surfaceFluidHeight = Math.min(
+                    chunkHeight,
+                    (int) Math.round(riverWaterSurfaceStream.getDouble(realX, realZ))
+            );
+            int hf = Math.max(surfaceFluidHeight, he);
+            if (hf < 0) {
+                return;
+            }
+
+            int topY = Math.min(hf, chunkHeight - 1);
+            HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(realX, realZ);
+            HydrologyColumnLayer hydrologyFluid = hydrology == null
+                    ? null
+                    : hydrology.primarySurfaceFluidLayerOrNull();
+            HydrologyColumnLayer hydrologyTerrain = hydrology == null
+                    ? null
+                    : hydrology.primarySurfaceLayerOrNull();
+            Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ, hydrology);
+            int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
+            int layerSurfaceY = he;
+            int layerCeilingY = 0;
+            boolean exposeRiverStrata = exposeCutStrata
+                    && hydrologyTerrain != null
+                    && hydrologyTerrain.terrainOwned()
+                    && !hydrologyTerrain.channel();
+            Terrain3DColumn naturalColumn = exposeRiverStrata ? complex.naturalTerrainColumn(realX, realZ) : null;
+            int cut = 0;
+            boolean riverOwned = padRiverBed && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
+            IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
+                    hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
+            int paintDepth = roleMaterial == null ? 0 : roleMaterial.getDepth();
+            NativeBlockState fluid = hydrologyFluid == null || transitionDisplaced
+                    ? complex.resolveSurfaceFluid(realX, realZ)
+                    : complex.resolveHydrologyFluid(hydrologyFluid.profileKey(), realX, realZ);
+            NativeBlockState rock = rockCache.get(xf, zf);
+            NativeBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
+            biomeSurfaceOres = hideOres ? IrisOreBands.EMPTY : biome.getSurfaceOreBands();
+            regionSurfaceOres = hideOres ? IrisOreBands.EMPTY : region.getSurfaceOreBands();
+            biomeUndergroundOres = hideOres ? IrisOreBands.EMPTY : biome.getUndergroundOreBands();
+            regionUndergroundOres = hideOres ? IrisOreBands.EMPTY : region.getUndergroundOreBands();
+            boolean hasSurfaceOres = biomeSurfaceOres.hasOres() || regionSurfaceOres.hasOres() || dimensionSurfaceOres.hasOres();
+            boolean hasUndergroundOres = biomeUndergroundOres.hasOres() || regionUndergroundOres.hasOres() || dimensionUndergroundOres.hasOres();
+            int bedrockFloor = bedrockEnabled ? 1 : 0;
+            KList<NativeBlockState> blocks = null;
+            KList<NativeBlockState> ceilingBlocks = null;
+            KList<NativeBlockState> fblocks = null;
+
+            for (int i = topY; i >= 0; i--) {
+                if (i == 0 && bedrockEnabled) {
+                    h.setRaw(xf, i, zf, bedrock);
+                    continue;
+                }
+
+                if (terrainColumn != null && i <= he) {
+                    while (terrainSpan >= 0 && i < terrainColumn.ceiling(terrainSpan)) {
+                        terrainSpan--;
+                        blocks = null;
+                        ceilingBlocks = null;
+                    }
+                    if (terrainSpan < 0 || i > terrainColumn.floor(terrainSpan)) {
+                        h.setRaw(xf, i, zf, air);
+                        continue;
+                    }
+                    layerSurfaceY = terrainColumn.floor(terrainSpan);
+                    layerCeilingY = terrainColumn.ceiling(terrainSpan);
+                }
+
+                NativeBlockState ore = hasSurfaceOres ? surfaceOre(realX, i, realZ) : null;
+                if (ore != null) {
+                    h.setRaw(xf, i, zf, ore);
+                    continue;
+                }
+
+                if (i > he && i <= hf) {
+                    int fdepth = hf - i;
+                    if (hydrologyFluid == null && fblocks == null) {
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data);
+                    }
+                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(
+                            fblocks,
+                            fdepth,
+                            fluid,
+                            hydrologyFluid != null
+                    ));
+                    continue;
+                }
+
+                if (i <= he) {
+                    int depth = layerSurfaceY - i;
+                    if (depth == 0 && mappedSurfaceBlock != null) {
+                        h.setRaw(xf, i, zf, mappedSurfaceBlock);
+                        continue;
+                    }
+                    if (blocks == null) {
+                        if (exposeRiverStrata) {
+                            int naturalSurfaceY = naturalColumn == null ? hydrology.naturalHeight() : naturalColumn.surfaceY(layerSurfaceY);
+                            cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
+                        }
+                        blocks = biome.generateLayers(dimension, realX, realZ, rng,
+                                layerSurfaceY + cut, layerSurfaceY + cut, data, complex);
+                    }
+
+                    int deepFloor = Math.max(bedrockFloor, layerCeilingY > 0 ? layerCeilingY + 2 : 0);
+                    if (i >= deepFloor && depth >= Math.max(blocks.size(), paintDepth)) {
+                        paintDeep(xf, zf, realX, realZ, i, deepFloor, rock, hasSurfaceOres, hasUndergroundOres);
+                        i = deepFloor;
+                        continue;
+                    }
+
+                    if (layerCeilingY > 0 && depth >= 2 && i - layerCeilingY < 2) {
+                        if (ceilingBlocks == null) {
+                            ceilingBlocks = biome.generateCeilingLayers(dimension, realX, realZ, rng,
+                                    2, layerCeilingY, data, complex);
+                        }
+                        int ceilingDepth = i - layerCeilingY;
+                        h.setRaw(xf, i, zf, ceilingBlocks.hasIndex(ceilingDepth)
+                                ? ceilingBlocks.get(ceilingDepth) : rock);
+                        continue;
+                    }
+
+                    int strataIndex = strataIndex(depth, cut, blocks.size());
+                    NativeBlockState layerBlock = paintHydrologyMaterial(
+                            blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
+                            roleMaterial, depth, rng, realX, i, realZ, data);
+                    if (layerBlock != null) {
+                        if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
+                            layerBlock = riverBed.getPaddingPalette().get(rng, realX, i, realZ, data);
+                        }
+                        h.setRaw(xf, i, zf, layerBlock);
+                        continue;
+                    }
+
+                    ore = hasUndergroundOres ? undergroundOre(realX, i, realZ) : null;
+                    h.setRaw(xf, i, zf, ore != null ? ore : rock);
+                }
+            }
+
+            if (upperContext != null) {
+                paintUpper(xf, zf, realX, realZ);
             }
         }
 
-        return null;
+        /**
+         * Paints the solid run from {@code top} down to {@code floor}, which lies below every biome
+         * layer, river material, mapped surface and cave ceiling of its span: only ores or rock land there.
+         */
+        private void paintDeep(int xf, int zf, int realX, int realZ, int top, int floor, NativeBlockState rock,
+                               boolean hasSurfaceOres, boolean hasUndergroundOres) {
+            for (int y = top; y >= floor; y--) {
+                NativeBlockState ore = hasSurfaceOres ? surfaceOre(realX, y, realZ) : null;
+                if (ore == null && hasUndergroundOres) {
+                    ore = undergroundOre(realX, y, realZ);
+                }
+                h.setRaw(xf, y, zf, ore != null ? ore : rock);
+            }
+        }
+
+        private NativeBlockState surfaceOre(int realX, int y, int realZ) {
+            NativeBlockState ore = null;
+            if (biomeSurfaceOres.contains(y)) {
+                ore = biomeSurfaceOres.generate(realX, y, realZ, rng, data);
+            }
+            if (ore == null && regionSurfaceOres.contains(y)) {
+                ore = regionSurfaceOres.generate(realX, y, realZ, rng, data);
+            }
+            if (ore == null && dimensionSurfaceOres.contains(y)) {
+                ore = dimensionSurfaceOres.generate(realX, y, realZ, rng, data);
+            }
+            return ore;
+        }
+
+        private NativeBlockState undergroundOre(int realX, int y, int realZ) {
+            NativeBlockState ore = null;
+            if (biomeUndergroundOres.contains(y)) {
+                ore = biomeUndergroundOres.generate(realX, y, realZ, rng, data);
+            }
+            if (ore == null && regionUndergroundOres.contains(y)) {
+                ore = regionUndergroundOres.generate(realX, y, realZ, rng, data);
+            }
+            if (ore == null && dimensionUndergroundOres.contains(y)) {
+                ore = dimensionUndergroundOres.generate(realX, y, realZ, rng, data);
+            }
+            return ore;
+        }
+
+        private void paintUpper(int xf, int zf, int realX, int realZ) {
+            UpperDimensionContext.Column upperColumn = upperContext.sampleColumn(realX, realZ);
+            int upperSurfaceY = upperColumn.surfaceY();
+            if (upperSurfaceY >= chunkHeight - 1) {
+                return;
+            }
+
+            IrisBiome upperBiome = upperContext.getUpperBiome(realX, realZ);
+            NativeBlockState upperRock = upperContext.getRockBlock(realX, realZ);
+            NativeBlockState upperMappedSurface = upperContext.getSurfaceBlock(realX, realZ);
+            KList<NativeBlockState> upperBlocks = null;
+            int paletteSourceY = -1;
+
+            for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
+                if (y == chunkHeight - 1 && bedrockEnabled) {
+                    h.setRaw(xf, y, zf, bedrock);
+                    continue;
+                }
+                if (!upperColumn.isSolid(y)) {
+                    h.setRaw(xf, y, zf, air);
+                    continue;
+                }
+                int faceY = upperColumn.faceY(y);
+                int sourceSurfaceY = upperColumn.height() - 1 - faceY;
+                if (sourceSurfaceY != paletteSourceY) {
+                    paletteSourceY = sourceSurfaceY;
+                    upperBlocks = null;
+                }
+                if (y == faceY && upperMappedSurface != null) {
+                    h.setRaw(xf, y, zf, upperMappedSurface);
+                    continue;
+                }
+                int depthFromFace = y - faceY;
+                if (upperBlocks == null && upperBiome != null) {
+                    upperBlocks = upperBiome.generateLayersWithSlope(upperContext.getDimension(),
+                            realX, realZ, rng, sourceSurfaceY, sourceSurfaceY,
+                            upperContext.getData(), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
+                }
+                if (upperBlocks != null && upperBlocks.hasIndex(depthFromFace)) {
+                    h.setRaw(xf, y, zf, upperBlocks.get(depthFromFace));
+                } else {
+                    h.setRaw(xf, y, zf, upperRock);
+                }
+            }
+        }
     }
 }

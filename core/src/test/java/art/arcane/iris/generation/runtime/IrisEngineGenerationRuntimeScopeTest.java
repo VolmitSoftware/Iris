@@ -923,9 +923,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         IrisEngine engine = mock(IrisEngine.class, CALLS_REAL_METHODS);
         setField(engine, "lifecycleLock", new Object());
         setField(engine, "generationHistoryRuntimeRouterLock", new Object());
-        setField(engine, "runtimeAssembly", new ThreadLocal<EngineRuntimeBuilder.RuntimeAssembly>());
-        setField(engine, "biomeEnvironmentScopes", new ThreadLocal<Object>());
-        setField(engine, "generationRuntimeScopes", new GenerationRuntimeScopeState());
+        setField(engine, "threadState", new EngineThreadState());
         Set<GenerationRuntime> detached = Collections.synchronizedSet(
                 Collections.newSetFromMap(new IdentityHashMap<GenerationRuntime, Boolean>()));
         setField(engine, "detachedGenerationRuntimes", detached);

@@ -93,7 +93,7 @@ final class EngineRuntimeBuilder {
                 mantleStorageDirectory,
                 selectRuntimeKernel(kernelVersion),
                 transitionPlan);
-        engine.runtimeAssembly.set(assembly);
+        engine.threadState.setAssembly(assembly);
         try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
             IrisLogging.debug("Setup Engine " + assembly.cacheId);
             long started = M.ms();
@@ -148,7 +148,7 @@ final class EngineRuntimeBuilder {
             }
             throw new IllegalStateException("Failed to build a complete Iris engine runtime.", e);
         } finally {
-            engine.runtimeAssembly.remove();
+            engine.threadState.setAssembly(null);
         }
     }
 
@@ -174,7 +174,7 @@ final class EngineRuntimeBuilder {
                 transitionPlan);
         PreparedHydrologyCacheIdentity cacheIdentity = PreparedHydrologyCacheIdentity.capture(
                 runtimeTarget, assembly.runtimeKernel, transitionPlan, engine.isStudio());
-        engine.runtimeAssembly.set(assembly);
+        engine.threadState.setAssembly(assembly);
         try (IrisContext.Scope ignored = IrisContext.open(engine, engine.getGenerationSessions().currentSessionId(), null)) {
             IrisLogging.debug("Setup Detached Generation Runtime " + assembly.cacheId);
             assembly.mantle = assembly.runtimeKernel.createMantle(engine, assembly.mantleStorageDirectory);
@@ -201,7 +201,7 @@ final class EngineRuntimeBuilder {
             }
             throw new IllegalStateException("Failed to build a detached Iris generation runtime.", e);
         } finally {
-            engine.runtimeAssembly.remove();
+            engine.threadState.setAssembly(null);
         }
     }
 

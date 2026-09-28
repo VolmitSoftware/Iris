@@ -62,7 +62,7 @@ public class IrisEngineEntryHydrologyTest {
         doAnswer(invocation -> {
             assertSame(engine, IrisContext.require().getEngine());
             assertEquals(93L, IrisContext.require().getGenerationSessionId());
-            assertSame(binding, engine.generationRuntimeScopes.current());
+            assertSame(binding, engine.threadState.binding());
             return null;
         }).when(hydrology).prepareChunkColumns(0, 0);
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
@@ -75,7 +75,7 @@ public class IrisEngineEntryHydrologyTest {
             verify(hydrology).prepareChunkColumns(0, 0);
             verify(lease).close();
             assertNull(IrisContext.get());
-            assertNull(engine.generationRuntimeScopes.current());
+            assertNull(engine.threadState.binding());
             tasks.drainBackgroundTasks("test").requireComplete("test");
         }
     }
@@ -325,9 +325,9 @@ public class IrisEngineEntryHydrologyTest {
         Field closing = IrisEngine.class.getDeclaredField("closing");
         closing.setAccessible(true);
         closing.set(engine, new AtomicBoolean());
-        Field scopes = IrisEngine.class.getDeclaredField("generationRuntimeScopes");
+        Field scopes = IrisEngine.class.getDeclaredField("threadState");
         scopes.setAccessible(true);
-        scopes.set(engine, new GenerationRuntimeScopeState());
+        scopes.set(engine, new EngineThreadState());
         Field lifecycle = IrisEngine.class.getDeclaredField("lifecycleLock");
         lifecycle.setAccessible(true);
         lifecycle.set(engine, new Object());

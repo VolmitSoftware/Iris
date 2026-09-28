@@ -103,7 +103,7 @@ public class IrisCarveWallPaletteScopeTest {
                  IrisContext.Scope context = IrisContext.open(fixture.engine, 71L, fixture.context);
                  MockedStatic<TerrainMatterView> terrain = mockStatic(TerrainMatterView.class)) {
                 if (mode == Mode.ASSEMBLY) {
-                    fixture.engine.runtimeAssembly.set(fixture.assembly);
+                    fixture.engine.threadState.setAssembly(fixture.assembly);
                 }
                 terrain.when(() -> TerrainMatterView.iterate(eq(fixture.chunk), eq(MatterCavern.class), any()))
                         .thenAnswer(call -> {
@@ -137,7 +137,7 @@ public class IrisCarveWallPaletteScopeTest {
                     verify(fixture.chunk).release();
                     assertEquals(1, fixture.dataLookups.get());
                 } finally {
-                    fixture.engine.runtimeAssembly.remove();
+                    fixture.engine.threadState.setAssembly(null);
                 }
             }
             assertSame(fixture.active.data(), fixture.engine.getData());
@@ -199,9 +199,7 @@ public class IrisCarveWallPaletteScopeTest {
             active = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
             detached = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
             field(engine, IrisEngine.class, "lifecycleLock", new Object());
-            field(engine, IrisEngine.class, "runtimeAssembly", new ThreadLocal<EngineRuntimeBuilder.RuntimeAssembly>());
-            field(engine, IrisEngine.class, "biomeEnvironmentScopes", new ThreadLocal<>());
-            field(engine, IrisEngine.class, "generationRuntimeScopes", new GenerationRuntimeScopeState());
+            field(engine, IrisEngine.class, "threadState", new EngineThreadState());
             field(engine, IrisEngine.class, "detachedGenerationRuntimes", Collections.newSetFromMap(new IdentityHashMap<>()));
             field(engine, IrisEngine.class, "retiringGenerationRuntimes", Collections.newSetFromMap(new IdentityHashMap<>()));
             engine.detachedGenerationRuntimes.add(detached);
@@ -255,7 +253,7 @@ public class IrisCarveWallPaletteScopeTest {
         private IrisBiome scopedBiome(IrisBiome biome) {
             try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(
                     new IrisEngine.GenerationRuntimeBinding(engine, active))) {
-                assertSame(engine.runtimeAssembly.get() == null ? active.data() : assemblyData, engine.getData());
+                assertSame(engine.threadState.assembly() == null ? active.data() : assemblyData, engine.getData());
             }
             return biome;
         }

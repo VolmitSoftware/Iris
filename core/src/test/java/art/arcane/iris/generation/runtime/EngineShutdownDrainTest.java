@@ -112,7 +112,7 @@ public class EngineShutdownDrainTest {
         doAnswer(invocation -> {
             Future<?> continuation = worker.submit(() -> {
                 try (IrisEngine.GenerationRuntimeScope ignored = fixture.engine.openGenerationRuntimeScope(binding)) {
-                    assertSame(binding, fixture.engine.generationRuntimeScopes.current());
+                    assertSame(binding, fixture.engine.threadState.binding());
                     assertSame(fixture.runtime, fixture.engine.runtime);
                     assertTrue(fixture.engine.getClosing().get());
                     assertThrows(IllegalStateException.class, () -> fixture.engine.requireRunning("start generation"));
@@ -513,16 +513,16 @@ public class EngineShutdownDrainTest {
         assembly.mantle = mock(EngineMantle.class);
         assembly.ownsMantle = true;
         RuntimeAssembly previous = mock(RuntimeAssembly.class);
-        fixture.engine.runtimeAssembly.set(previous);
+        fixture.engine.threadState.setAssembly(previous);
         IllegalStateException failure = new IllegalStateException("Planner still active");
         doAnswer(invocation -> {
-            assertSame(assembly, fixture.engine.runtimeAssembly.get());
+            assertSame(assembly, fixture.engine.threadState.assembly());
             throw failure;
         }).when(assembly.complex).close();
 
         assertSame(failure, fixture.shutdown.closeAssembly(assembly, null));
-        assertSame(previous, fixture.engine.runtimeAssembly.get());
-        fixture.engine.runtimeAssembly.remove();
+        assertSame(previous, fixture.engine.threadState.assembly());
+        fixture.engine.threadState.setAssembly(null);
         assertTrue(fixture.shutdown.retainsData(detachedTarget.getData()));
         assertTrue(fixture.shutdown.closeDetachedTarget(detachedTarget, null) instanceof IllegalStateException);
         verify(detachedTarget, never()).close();
@@ -531,13 +531,13 @@ public class EngineShutdownDrainTest {
             verify(fixture.target, never()).close();
             verifyNoInteractions(assembly.mantle);
             doAnswer(invocation -> {
-                assertSame(assembly, fixture.engine.runtimeAssembly.get());
+                assertSame(assembly, fixture.engine.threadState.assembly());
                 return null;
             }).when(assembly.complex).close();
             fixture.shutdown.close();
         }
 
-        assertNull(fixture.engine.runtimeAssembly.get());
+        assertNull(fixture.engine.threadState.assembly());
         assertFalse(assembly.ownsMantle);
         assertFalse(fixture.shutdown.retainsData(detachedTarget.getData()));
         verify(assembly.mantle).close();
@@ -851,10 +851,9 @@ public class EngineShutdownDrainTest {
             setField(engine, "shutdownSequence", shutdown);
             setField(engine, "engineDataStore", mock(EngineDataStore.class));
             setField(engine, "lifecycleLock", new Object());
-            setField(engine, "runtimeAssembly", new ThreadLocal<RuntimeAssembly>());
+            setField(engine, "threadState", new EngineThreadState());
             setField(engine, "detachedGenerationRuntimes", ConcurrentHashMap.newKeySet());
             setField(engine, "retiringGenerationRuntimes", ConcurrentHashMap.newKeySet());
-            setField(engine, "generationRuntimeScopes", new GenerationRuntimeScopeState());
             AtomicBoolean closing = new AtomicBoolean();
             setField(engine, "closing", closing);
             when(engine.getClosing()).thenReturn(closing);

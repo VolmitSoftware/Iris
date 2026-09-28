@@ -219,7 +219,7 @@ public class TreeFellerSVC implements IrisService, IrisTreeFellerService {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void haltWhenSneakingStops(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) {
-            runner.finishRuns(event.getPlayer().getUniqueId());
+            runner.finishSneakRuns(event.getPlayer().getUniqueId());
         }
     }
 

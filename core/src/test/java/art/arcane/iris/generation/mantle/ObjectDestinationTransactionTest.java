@@ -43,6 +43,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -656,5 +657,31 @@ public class ObjectDestinationTransactionTest {
     }
 
     private record Marker(String value) {
+    }
+
+    @Test
+    public void chunksThatCannotHoldHydrologyCellsSkipTheCellLookup() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.mayHoldHydrologyCells(1, 0)).thenReturn(true);
+        when(writer.getPrerequisiteDataIfPresent(anyInt(), anyInt(), anyInt(), any()))
+                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+        NativeBlockState block = mock(NativeBlockState.class);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        for (int x = 0; x < 16; x++) {
+            transaction.setData(x, 4, 0, block);
+        }
+        transaction.setData(16, 4, 0, block);
+
+        for (int x = 0; x < 16; x++) {
+            assertSame(block, transaction.get(x, 4, 0));
+        }
+        assertEquals(16, transaction.sourcePlanSince(0).mutationsFor(0, 0).size());
+        assertTrue(transaction.sourcePlanSince(0).mutationsFor(1, 0).isEmpty());
+        verify(complex, times(1)).mayHoldHydrologyCells(0, 0);
+        verify(writer, never()).getPrerequisiteDataIfPresent(0, 4, 0, HydrologyCaveCell.class);
+        verify(writer).getPrerequisiteDataIfPresent(16, 4, 0, HydrologyCaveCell.class);
     }
 }

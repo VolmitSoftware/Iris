@@ -18,7 +18,7 @@ public class CachedDoubleStream2D extends BasicStream<Double> implements Procedu
         super();
         this.stream = stream;
         this.engine = engine;
-        this.cache = new WorldCache2DDouble((x, z) -> stream.getDouble(x, z), size);
+        this.cache = new WorldCache2DDouble((x, z) -> ProvisionalSampling.memoizableDouble(stream, x, z), size);
         IrisServices.get(PreservationRegistry.class).registerCache(this);
     }
 
@@ -34,7 +34,7 @@ public class CachedDoubleStream2D extends BasicStream<Double> implements Procedu
 
     @Override
     public Double get(double x, double z) {
-        return cache.get((int) x, (int) z);
+        return getDouble(x, z);
     }
 
     @Override
@@ -44,7 +44,11 @@ public class CachedDoubleStream2D extends BasicStream<Double> implements Procedu
 
     @Override
     public double getDouble(double x, double z) {
-        return cache.get((int) x, (int) z);
+        try {
+            return cache.get((int) x, (int) z);
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.doubleValue();
+        }
     }
 
     @Override
@@ -75,13 +79,29 @@ public class CachedDoubleStream2D extends BasicStream<Double> implements Procedu
     public void fillChunkRaw(int worldX, int worldZ, Object[] target) {
         int chunkX = worldX >> 4;
         int chunkZ = worldZ >> 4;
-        cache.fillChunk(chunkX, chunkZ, target);
+        try {
+            cache.fillChunk(chunkX, chunkZ, target);
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            int originX = chunkX << 4;
+            int originZ = chunkZ << 4;
+            for (int index = 0; index < 256; index++) {
+                target[index] = getDouble(originX + (index & 15), originZ + (index >> 4));
+            }
+        }
     }
 
     @Override
     public void fillChunkDoubles(int worldX, int worldZ, double[] target) {
         int chunkX = worldX >> 4;
         int chunkZ = worldZ >> 4;
-        cache.fillChunk(chunkX, chunkZ, target);
+        try {
+            cache.fillChunk(chunkX, chunkZ, target);
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            int originX = chunkX << 4;
+            int originZ = chunkZ << 4;
+            for (int index = 0; index < 256; index++) {
+                target[index] = getDouble(originX + (index & 15), originZ + (index >> 4));
+            }
+        }
     }
 }

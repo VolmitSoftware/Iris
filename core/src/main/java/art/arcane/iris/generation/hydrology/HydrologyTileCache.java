@@ -38,6 +38,9 @@ public final class HydrologyTileCache implements AutoCloseable {
     private static final int CHUNK_SIZE = 16;
     private static final int CHUNK_COLUMN_COUNT = CHUNK_SIZE * CHUNK_SIZE;
     private static final int LOCAL_CHUNK_SLOTS = 16;
+    private static final byte AROUND_UNKNOWN = 0;
+    private static final byte AROUND_EMPTY = 1;
+    private static final byte AROUND_PUBLISHED = 2;
     private static final int MAXIMUM_PREGENERATION_TILES = 4096;
     private static final int PREGENERATION_HALO_BLOCKS = 512;
     private static final HydrologyColumnSample[] NO_COLUMNS = new HydrologyColumnSample[CHUNK_COLUMN_COUNT];
@@ -547,9 +550,25 @@ public final class HydrologyTileCache implements AutoCloseable {
     /**
      * Whether any planned footprint column lies in the chunk or one of its eight neighbours, which
      * decides whether the chunk can hold published hydrology at all. Tiles are planned like a sample
-     * would plan them.
+     * would plan them, and each thread remembers its recent final answers.
      */
     public boolean hasColumnsAround(int chunkX, int chunkZ) {
+        long epoch = cacheEpoch.get();
+        LocalChunks local = localChunks(epoch);
+        int slot = LocalChunks.slot(chunkX, chunkZ);
+        long key = RiverFootprint.pack(chunkX, chunkZ);
+        if (local.around[slot] != AROUND_UNKNOWN && local.aroundKeys[slot] == key) {
+            return local.around[slot] == AROUND_PUBLISHED;
+        }
+        boolean published = publishesAround(chunkX, chunkZ);
+        if (!waitsForbidden() && local.epoch == epoch) {
+            local.aroundKeys[slot] = key;
+            local.around[slot] = published ? AROUND_PUBLISHED : AROUND_EMPTY;
+        }
+        return published;
+    }
+
+    private boolean publishesAround(int chunkX, int chunkZ) {
         for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
             for (int offsetX = -1; offsetX <= 1; offsetX++) {
                 if (!chunkColumns((chunkX + offsetX) * CHUNK_SIZE, (chunkZ + offsetZ) * CHUNK_SIZE).empty()) {
@@ -839,6 +858,7 @@ public final class HydrologyTileCache implements AutoCloseable {
         LocalChunks local = localChunks.get();
         if (local.epoch != epoch) {
             Arrays.fill(local.slots, null);
+            Arrays.fill(local.around, AROUND_UNKNOWN);
             local.prefetched = null;
             local.epoch = epoch;
         }
@@ -1667,6 +1687,8 @@ public final class HydrologyTileCache implements AutoCloseable {
     /** Direct-mapped over a 4 by 4 chunk neighbourhood, so a placement crossing chunk edges keeps its chunks. */
     private static final class LocalChunks {
         private final ChunkColumns[] slots = new ChunkColumns[LOCAL_CHUNK_SLOTS];
+        private final long[] aroundKeys = new long[LOCAL_CHUNK_SLOTS];
+        private final byte[] around = new byte[LOCAL_CHUNK_SLOTS];
         private long epoch = Long.MIN_VALUE;
         private TileBounds prefetched;
 

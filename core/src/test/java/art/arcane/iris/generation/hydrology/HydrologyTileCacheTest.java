@@ -2577,4 +2577,27 @@ public class HydrologyTileCacheTest {
         }
     }
 
+    @Test
+    public void neighbourhoodAnswersFollowPublishedColumnsAndResetWithTheEpoch() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile publishing = mock(HydrologyTile.class);
+        HydrologyTile empty = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        AtomicReference<HydrologyTile> current = new AtomicReference<>(publishing);
+        when(planner.plan(any(HydrologyTileKey.class))).thenAnswer(invocation -> current.get());
+        publishesInto(publishing, RiverFootprint.pack(0, 0));
+        when(publishing.columnAt(0, 0)).thenReturn(Optional.of(
+                new HydrologyColumnSample(0, 0, 90, 63, false, "parent", List.of())));
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 64);
+
+        assertTrue(cache.hasColumnsAround(1, 1));
+        assertTrue(cache.hasColumnsAround(-1, 0));
+        assertFalse(cache.hasColumnsAround(2, 0));
+        assertTrue(cache.hasColumnsAround(1, 1));
+        current.set(empty);
+        cache.clear();
+        assertFalse(cache.hasColumnsAround(1, 1));
+        assertFalse(cache.hasColumnsAround(0, 0));
+    }
 }

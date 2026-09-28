@@ -127,52 +127,42 @@ public final class CaveTerrainSnapshot {
     }
 
     private void captureSection(int section, Matter matter) {
-        MatterCavern[] sectionCaverns = copy(matter.getSlice(MatterCavern.class), MatterCavern[]::new);
-        HydrologyCaveCell[] sectionHydrology = copy(matter.getSlice(HydrologyCaveCell.class), HydrologyCaveCell[]::new);
+        caverns[section] = copy(matter.getSlice(MatterCavern.class), MatterCavern[]::new);
+        hydrology[section] = copy(matter.getSlice(HydrologyCaveCell.class), HydrologyCaveCell[]::new);
         MatterSlice<PreObjectMatterCell> journal = matter.getSlice(PreObjectMatterCell.class);
         if (journal instanceof MappedHunk<?> mapped) {
             @SuppressWarnings("unchecked")
             Map<Integer, PreObjectMatterCell> entries = (Map<Integer, PreObjectMatterCell>) mapped.getData();
             for (Map.Entry<Integer, PreObjectMatterCell> entry : entries.entrySet()) {
-                int position = entry.getKey();
-                PreObjectMatterCell cell = entry.getValue();
-                if (cell.cavernCaptured() && (sectionCaverns != null || cell.cavern() != null)) {
-                    if (sectionCaverns == null) {
-                        sectionCaverns = new MatterCavern[SECTION_VOLUME];
-                    }
-                    sectionCaverns[position] = cell.cavern();
-                }
-                if (cell.hydrologyCaptured() && (sectionHydrology != null || cell.hydrology() != null)) {
-                    if (sectionHydrology == null) {
-                        sectionHydrology = new HydrologyCaveCell[SECTION_VOLUME];
-                    }
-                    sectionHydrology[position] = cell.hydrology();
-                }
+                restoreOriginals(section, entry.getKey(), entry.getValue());
             }
         } else if (journal != null) {
             for (int position = 0; position < SECTION_VOLUME; position++) {
                 PreObjectMatterCell cell = journal.get(position & 15, (position >> 4) & 15, position >> 8);
-                if (cell == null) {
-                    continue;
-                }
-                if (cell.cavernCaptured() && (sectionCaverns != null || cell.cavern() != null)) {
-                    if (sectionCaverns == null) {
-                        sectionCaverns = new MatterCavern[SECTION_VOLUME];
-                    }
-                    sectionCaverns[position] = cell.cavern();
-                }
-                if (cell.hydrologyCaptured() && (sectionHydrology != null || cell.hydrology() != null)) {
-                    if (sectionHydrology == null) {
-                        sectionHydrology = new HydrologyCaveCell[SECTION_VOLUME];
-                    }
-                    sectionHydrology[position] = cell.hydrology();
+                if (cell != null) {
+                    restoreOriginals(section, position, cell);
                 }
             }
         }
-        caverns[section] = sectionCaverns;
-        if (sectionHydrology != null && containsAny(sectionHydrology)) {
-            hydrology[section] = sectionHydrology;
+        if (hydrology[section] != null && containsAny(hydrology[section])) {
             hydrologyPresent = true;
+        } else {
+            hydrology[section] = null;
+        }
+    }
+
+    private void restoreOriginals(int section, int position, PreObjectMatterCell cell) {
+        if (cell.cavernCaptured() && (caverns[section] != null || cell.cavern() != null)) {
+            if (caverns[section] == null) {
+                caverns[section] = new MatterCavern[SECTION_VOLUME];
+            }
+            caverns[section][position] = cell.cavern();
+        }
+        if (cell.hydrologyCaptured() && (hydrology[section] != null || cell.hydrology() != null)) {
+            if (hydrology[section] == null) {
+                hydrology[section] = new HydrologyCaveCell[SECTION_VOLUME];
+            }
+            hydrology[section][position] = cell.hydrology();
         }
     }
 
@@ -184,8 +174,7 @@ public final class CaveTerrainSnapshot {
         T[] values = allocator.apply(SECTION_VOLUME);
         if (slice instanceof PaletteOrHunk<?> storage && storage.isPalette()
                 && slice.getWidth() == 16 && slice.getHeight() == 16 && slice.getDepth() == 16) {
-            ((DataContainer<T>) storage.palette()).copyAll(values);
-            return values;
+            return ((DataContainer<T>) storage.palette()).copyPresent(values) == 0 ? null : values;
         }
         int width = Math.min(16, slice.getWidth());
         int height = Math.min(16, slice.getHeight());

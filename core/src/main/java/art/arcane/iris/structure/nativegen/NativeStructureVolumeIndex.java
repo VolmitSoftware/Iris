@@ -8,6 +8,7 @@ import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.io.IOException;
@@ -313,7 +314,15 @@ public final class NativeStructureVolumeIndex {
         };
     }
 
+    static int runtimeChunkHash(int runtimeId, long chunkKey) {
+        return Long.hashCode(CacheKey.mix(chunkKey)) * 31 + runtimeId;
+    }
+
     private record RuntimeChunkKey(int runtimeId, long chunkKey) {
+        @Override
+        public int hashCode() {
+            return runtimeChunkHash(runtimeId, chunkKey);
+        }
     }
 
 }

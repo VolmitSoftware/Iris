@@ -187,9 +187,8 @@ public class IrisStaticObjectLayerTest {
         MatterSlice<TileWrapper> tiles = mock(MatterSlice.class);
         when(engine.getMantle()).thenReturn(engineMantle);
         when(engineMantle.getMantle()).thenReturn(mantle);
-        when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.getOrCreate(anyInt())).thenReturn(section);
-        when(chunk.use()).thenReturn(chunk);
         when(section.getSlice(TileWrapper.class)).thenReturn(tiles);
         when(chunk.isFlagged(MantleFlag.REAL)).thenReturn(true);
         Hunk<NativeBlockState> left = Hunk.newArrayHunk(16, 384, 16);
@@ -402,7 +401,7 @@ public class IrisStaticObjectLayerTest {
             when(engine.getMantle()).thenReturn(engineMantle);
             when(engineMantle.getMantle()).thenReturn(mantle);
             when(mantle.getWorldHeight()).thenReturn(384);
-            when(mantle.getChunk(anyInt(), anyInt())).thenAnswer(call -> chunk(call.getArgument(0), call.getArgument(1)));
+            when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk(call.getArgument(0), call.getArgument(1)));
         }
 
         @SuppressWarnings("unchecked")
@@ -410,7 +409,6 @@ public class IrisStaticObjectLayerTest {
             return chunks.computeIfAbsent(new ObjectContinuationBundle.ChunkPosition(x, z), key -> {
                 MantleChunk<Matter> chunk = mock(MantleChunk.class);
                 Map<Integer, Matter> sections = new HashMap<>();
-                when(chunk.use()).thenReturn(chunk);
                 when(chunk.get(anyInt())).thenAnswer(call -> sections.get((int) call.getArgument(0)));
                 when(chunk.getOrCreate(anyInt())).thenAnswer(call -> sections.computeIfAbsent(call.getArgument(0),
                         section -> new IrisMatter(16, 16, 16)));

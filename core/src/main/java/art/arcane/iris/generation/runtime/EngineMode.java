@@ -262,7 +262,7 @@ public interface EngineMode extends Staged {
     }
 
     private void restoreObjectMetadata(int x, int z, Matter continuation) {
-        MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             synchronized (chunk) {
                 MatterSlice<NativeBlockState> states = continuation.getSlice(NativeBlockState.class);

@@ -371,7 +371,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         Mantle<Matter> mantle = getMantle().getMantle();
         int chunkX = x >> 4;
         int chunkZ = z >> 4;
-        return mantle.hasTectonicPlate(chunkX >> 5, chunkZ >> 5) ? mantle.getChunk(chunkX, chunkZ).use() : null;
+        return mantle.hasTectonicPlate(chunkX >> 5, chunkZ >> 5) ? mantle.useChunk(chunkX, chunkZ) : null;
     }
 
     /**
@@ -763,7 +763,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return o.getObject().getLoadKey() + "@" + o.getId();
         }
 
-        MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             String raw = chunk.get(x & 15, y, z & 15, String.class);
             return (raw == null || raw.isEmpty()) ? null : raw;
@@ -773,7 +773,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     }
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
-        MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             return getObjectPlacement(x, y, z, chunk);
         } finally {

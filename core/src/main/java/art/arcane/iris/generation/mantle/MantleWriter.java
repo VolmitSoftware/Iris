@@ -880,7 +880,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         while (chunk == null) {
             // Losing this race must release our own use, never the winner's: the winner is already
             // writing through the chunk it published.
-            MantleChunk<Matter> acquired = mantle.getChunk(cx, cz).use();
+            MantleChunk<Matter> acquired = mantle.useChunk(cx, cz);
             if (window.compareAndSet(index, null, acquired)) {
                 chunk = acquired;
             } else {

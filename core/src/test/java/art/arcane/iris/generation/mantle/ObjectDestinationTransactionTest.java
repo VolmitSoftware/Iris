@@ -634,6 +634,7 @@ public class ObjectDestinationTransactionTest {
             when(mantle.getWorldHeight()).thenReturn(16);
             when(mantle.getChunk(0, 0)).thenReturn(chunk);
             when(chunk.use()).thenReturn(chunk);
+            when(mantle.useChunk(0, 0)).thenAnswer(call -> chunk.use());
             when(chunk.exists(0)).thenReturn(true);
             when(chunk.getOrCreate(0)).thenReturn(matter);
             when(chunk.get(0)).thenReturn(matter);

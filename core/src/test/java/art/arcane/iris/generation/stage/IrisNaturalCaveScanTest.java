@@ -81,18 +81,18 @@ public class IrisNaturalCaveScanTest {
         Fixture fixture = new Fixture();
         ChunkContext context = mock(ChunkContext.class);
         doReturn(CaveTerrainSnapshot.capture(fixture.chunk, -2, 3)).when(context).getCaveTerrain();
-        clearInvocations(fixture.chunk);
+        clearInvocations(fixture.mantle);
         fixture.modifier.decorateNaturalCaves(-32, 48, fixture.output(3, 2), context);
-        verify(fixture.chunk, never()).use();
+        verify(fixture.mantle, never()).useChunk(anyInt(), anyInt());
         verify(context).setCaveTerrain(null);
         assertFalse(fixture.calls.isEmpty());
 
         Fixture other = new Fixture();
         ChunkContext stale = mock(ChunkContext.class);
         doReturn(CaveTerrainSnapshot.capture(other.chunk, 5, 5)).when(stale).getCaveTerrain();
-        clearInvocations(other.chunk);
+        clearInvocations(other.mantle);
         other.modifier.decorateNaturalCaves(-32, 48, other.output(3, 2), stale);
-        verify(other.chunk).use();
+        verify(other.mantle).useChunk(-2, 3);
         assertEquals(fixture.calls, other.calls);
     }
 
@@ -213,7 +213,7 @@ public class IrisNaturalCaveScanTest {
         assertEquals(expectedWrites, writes);
         assertEquals(expectedMarkers, fixture.markers);
         assertTrue("fixture must exercise marker writes", !expectedMarkers.isEmpty());
-        verify(fixture.chunk).use();
+        verify(fixture.mantle).useChunk(-2, 3);
         verify(fixture.chunk).release();
     }
 
@@ -236,6 +236,7 @@ public class IrisNaturalCaveScanTest {
         private final NativeBlockState floor = block("minecraft:moss_block", true);
         private final NativeBlockState ceiling = block("minecraft:calcite", true);
         private final IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
+        private final Mantle<Matter> mantle;
         private final MantleChunk<Matter> chunk;
         private final List<String> calls = new ArrayList<>();
         private final List<String> markers = new ArrayList<>();
@@ -248,7 +249,7 @@ public class IrisNaturalCaveScanTest {
         private Fixture(boolean buildAboveTop) throws Exception {
             Engine engine = mock(Engine.class);
             EngineMantle engineMantle = mock(EngineMantle.class);
-            Mantle<Matter> mantle = mock(Mantle.class);
+            mantle = mock(Mantle.class);
             chunk = mock(MantleChunk.class);
             doReturn(engine).when(modifier).getEngine();
             doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
@@ -256,8 +257,7 @@ public class IrisNaturalCaveScanTest {
             doReturn(new SeedManager(1337L)).when(engine).getSeedManager();
             doReturn(engineMantle).when(engine).getMantle();
             doReturn(mantle).when(engineMantle).getMantle();
-            doReturn(chunk).when(mantle).getChunk(-2, 3);
-            doReturn(chunk).when(chunk).use();
+            doReturn(chunk).when(mantle).useChunk(-2, 3);
             doAnswer(call -> {
                 markers.add(call.getArgument(0) + ":" + call.getArgument(1) + ":" + call.getArgument(2) + ":" + call.getArgument(3));
                 return null;

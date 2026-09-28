@@ -157,7 +157,7 @@ final class WorldChunkMaintenance {
         }
 
         if (!J.isFolia()) {
-            manager.getMantle().getChunk(chunkX, chunkZ).flag(MantleFlag.DISCOVERED, true);
+            manager.getMantle().flag(chunkX, chunkZ, MantleFlag.DISCOVERED, true);
             return;
         }
 
@@ -473,7 +473,7 @@ final class WorldChunkMaintenance {
                     preparing = true;
                 }
                 opened = router.openSavedChunkMantle(target.x(), target.z());
-                loaded = opened.mantle().getChunk(target.x(), target.z()).use();
+                loaded = opened.mantle().useChunk(target.x(), target.z());
                 opened.detachThread();
                 synchronized (this) {
                     if (cancelled) {

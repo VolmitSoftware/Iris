@@ -290,7 +290,7 @@ public final class ObjectContinuationProbeTest {
         }
         GenerationHistoryRuntimeRouter router = engine.getGenerationHistoryRuntimeRouter().orElseThrow();
         try (GenerationHistoryRuntimeRouter.SavedChunkMantle saved = router.openSavedChunkMantle(0, 0)) {
-            MantleChunk<Matter> chunk = saved.mantle().getChunk(0, 0).use();
+            MantleChunk<Matter> chunk = saved.mantle().useChunk(0, 0);
             try {
                 for (Map.Entry<Position, String> edit : edits.entrySet()) {
                     Position position = edit.getKey();

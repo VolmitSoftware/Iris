@@ -264,7 +264,7 @@ public final class NativeStructureOwnershipStore {
         @Override
         public NativeStructureOwnershipBundle read(int chunkX, int chunkZ) {
             RuntimeMantleOwner owner = owner();
-            MantleChunk<Matter> chunk = owner.mantle().getMantle().getChunk(chunkX, chunkZ).use();
+            MantleChunk<Matter> chunk = owner.mantle().getMantle().useChunk(chunkX, chunkZ);
             try {
                 synchronized (chunk) {
                     return chunk.get(0, 0, 0, NativeStructureOwnershipBundle.class);
@@ -279,7 +279,7 @@ public final class NativeStructureOwnershipStore {
             RuntimeMantleOwner owner = owner();
             int targetChunkX = unpackX(target);
             int targetChunkZ = unpackZ(target);
-            MantleChunk<Matter> chunk = owner.mantle().getMantle().getChunk(targetChunkX, targetChunkZ).use();
+            MantleChunk<Matter> chunk = owner.mantle().getMantle().useChunk(targetChunkX, targetChunkZ);
             try {
                 synchronized (chunk) {
                     Matter section = chunk.getOrCreate(0);
@@ -302,7 +302,7 @@ public final class NativeStructureOwnershipStore {
             RuntimeMantleOwner owner = owner();
             int targetChunkX = unpackX(target);
             int targetChunkZ = unpackZ(target);
-            MantleChunk<Matter> chunk = owner.mantle().getMantle().getChunk(targetChunkX, targetChunkZ).use();
+            MantleChunk<Matter> chunk = owner.mantle().getMantle().useChunk(targetChunkX, targetChunkZ);
             try {
                 synchronized (chunk) {
                     Matter section = chunk.getOrCreate(0);
@@ -396,7 +396,7 @@ public final class NativeStructureOwnershipStore {
 
         private void restorePendingBundle(Mantle<Matter> mantle, long target,
                                           NativeStructureOwnershipBundle bundle) {
-            MantleChunk<Matter> chunk = mantle.getChunk(unpackX(target), unpackZ(target)).use();
+            MantleChunk<Matter> chunk = mantle.useChunk(unpackX(target), unpackZ(target));
             try {
                 synchronized (chunk) {
                     Matter section = chunk.getOrCreate(0);

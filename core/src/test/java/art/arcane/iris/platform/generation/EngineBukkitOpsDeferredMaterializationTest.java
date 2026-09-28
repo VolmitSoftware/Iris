@@ -87,7 +87,7 @@ public class EngineBukkitOpsDeferredMaterializationTest {
         Block block = mock(Block.class);
         when(chunk.getBlock(1, 2, 3)).thenReturn(block);
         when(saved.isLoaded(chunk)).thenReturn(true);
-        when(saved.getChunk(chunk)).thenReturn(stored);
+        when(saved.useChunk(chunk)).thenAnswer(invocation -> stored.use());
         ExternalDataSVC provider = mock(ExternalDataSVC.class);
 
         try (MockedStatic<J> scheduling = mockStatic(J.class);

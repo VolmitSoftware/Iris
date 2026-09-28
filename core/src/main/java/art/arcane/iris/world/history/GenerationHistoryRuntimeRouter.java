@@ -574,7 +574,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             SavedMantleAccess access = acquireSavedMantle(activation, requireEpoch(activation));
             try {
                 Mantle<Matter> mantle = access.mantle();
-                MantleChunk<Matter> anchor = mantle.getChunk(regionX << 5, regionZ << 5).use();
+                MantleChunk<Matter> anchor = mantle.useChunk(regionX << 5, regionZ << 5);
                 try {
                     TectonicPlate<Matter> plate = mantle.getLoadedRegion(regionX, regionZ);
                     HashMap<Long, ObjectContinuationBundle> bundles = new HashMap<>();

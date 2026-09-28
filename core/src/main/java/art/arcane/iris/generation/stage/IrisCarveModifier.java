@@ -124,7 +124,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             }
         }
 
-        MantleChunk<Matter> mantleChunk = mantle.getChunk(x, z).use();
+        MantleChunk<Matter> mantleChunk = mantle.useChunk(x, z);
         try {
             PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
             CaveTerrainSnapshot terrain = CaveTerrainSnapshot.capture(mantleChunk, x, z);
@@ -873,7 +873,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             context.setCaveTerrain(null);
         }
         if (terrain == null || !terrain.covers(blockX >> 4, blockZ >> 4)) {
-            MantleChunk<Matter> chunk = mantle.getChunk(blockX >> 4, blockZ >> 4).use();
+            MantleChunk<Matter> chunk = mantle.useChunk(blockX >> 4, blockZ >> 4);
             try {
                 terrain = CaveTerrainSnapshot.capture(chunk, blockX >> 4, blockZ >> 4);
             } finally {

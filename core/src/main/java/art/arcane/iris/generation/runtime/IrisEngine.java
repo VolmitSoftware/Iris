@@ -48,6 +48,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.atomics.AtomicRollingSequence;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -1465,7 +1466,7 @@ public class IrisEngine implements Engine {
              IrisContext.Scope generationScope = IrisContext.open(this, lease.sessionId(), null)) {
             getEngineData().getStatistics().generatedChunk();
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<NativeBlockState> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
+            Hunk<NativeBlockState> blocks = new ColumnExtentListeningHunk<>(vblocks, (xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
 
             if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
                 NativeBlockState crossSection = B.getState("CRYING_OBSIDIAN");

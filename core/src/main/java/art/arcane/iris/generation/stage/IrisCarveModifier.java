@@ -40,6 +40,7 @@ import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.chunk.ColumnExtent;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.block.B;
@@ -896,12 +897,16 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             int width = output.getWidth();
             int depth = output.getDepth();
             int height = output.getHeight();
+            ColumnExtent extent = output instanceof ColumnExtent columnExtent ? columnExtent : null;
             for (int localX = 0; localX < width; localX++) {
                 for (int localZ = 0; localZ < depth; localZ++) {
                     int worldX = blockX + localX;
                     int worldZ = blockZ + localZ;
                     int floor = -1;
                     for (int y = 1; y < height; y++) {
+                        if (extent != null && y > extent.highestStoredY(localX, localZ)) {
+                            break;
+                        }
                         NativeBlockState state = output.getRaw(localX, y, localZ);
                         if (B.isSolid(state)) {
                             if (floor >= 0) {

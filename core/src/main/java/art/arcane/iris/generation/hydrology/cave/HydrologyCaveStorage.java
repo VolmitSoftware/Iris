@@ -15,7 +15,7 @@ public final class HydrologyCaveStorage {
         }
         int chunkX = x >> 4;
         int chunkZ = z >> 4;
-        TectonicPlate<Matter> plate = mantle.getLoadedRegions().get(Mantle.key(chunkX >> 5, chunkZ >> 5));
+        TectonicPlate<Matter> plate = mantle.getLoadedRegion(chunkX >> 5, chunkZ >> 5);
         if (plate == null || plate.isClosed()) {
             return null;
         }

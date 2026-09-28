@@ -27,7 +27,7 @@ import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
-import art.arcane.iris.generation.decoration.IrisOreGeneratorBounds;
+import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.tree.IrisTreeSettings;
 import art.arcane.iris.generation.hydrology.IrisDeepFluidConfig;
 import art.arcane.iris.generation.hydrology.IrisHydrology;
@@ -137,8 +137,8 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> undergroundOreBoundsCache = new AtomicCache<>();
+    private final transient AtomicCache<IrisOreBands> surfaceOreBandsCache = new AtomicCache<>();
+    private final transient AtomicCache<IrisOreBands> undergroundOreBandsCache = new AtomicCache<>();
     @MinNumber(2)
     @Required
     @Description("The human readable name of this dimension")
@@ -484,24 +484,16 @@ public class IrisDimension extends IrisRegistrant {
         this.ores = ores == null ? new KList<>() : ores;
         surfaceOreCache.reset();
         undergroundOreCache.reset();
-        surfaceOreBoundsCache.reset();
-        undergroundOreBoundsCache.reset();
+        surfaceOreBandsCache.reset();
+        undergroundOreBandsCache.reset();
     }
 
-    public KList<IrisOreGenerator> getSurfaceOreGenerators() {
-        return getOres(true);
+    public IrisOreBands getSurfaceOreBands() {
+        return surfaceOreBandsCache.aquire(() -> IrisOreBands.of(getSurfaceOres()));
     }
 
-    public KList<IrisOreGenerator> getUndergroundOreGenerators() {
-        return getOres(false);
-    }
-
-    public IrisOreGeneratorBounds getSurfaceOreGeneratorBounds() {
-        return surfaceOreBoundsCache.aquire(() -> IrisOreGeneratorBounds.of(getSurfaceOres()));
-    }
-
-    public IrisOreGeneratorBounds getUndergroundOreGeneratorBounds() {
-        return undergroundOreBoundsCache.aquire(() -> IrisOreGeneratorBounds.of(getUndergroundOres()));
+    public IrisOreBands getUndergroundOreBands() {
+        return undergroundOreBandsCache.aquire(() -> IrisOreBands.of(getUndergroundOres()));
     }
 
     private KList<IrisOreGenerator> getSurfaceOres() {

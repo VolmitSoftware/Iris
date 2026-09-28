@@ -163,7 +163,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
 
         private Hunk<NativeBlockState> actuate() {
             Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);
-            new IrisTerrainNormalActuator(engine).terrainSliver(11, -4, 0, output, context);
+            new IrisTerrainNormalActuator(engine).paint(11, -4, output, context);
             return output;
         }
     }

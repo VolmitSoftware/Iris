@@ -38,6 +38,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.mockito.ArgumentCaptor;
 
@@ -45,6 +46,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -613,6 +615,25 @@ public class HydrologyTileCacheTest {
 
         pregen.close();
         verify(planner).limitEarlyOwners(null);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void plannerFindsTilesThisCachePlanned() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        when(planner.plan(any(HydrologyTileKey.class))).thenReturn(tile);
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 128);
+        ArgumentCaptor<Function<HydrologyTileKey, HydrologyTile>> planned = ArgumentCaptor.forClass(Function.class);
+        verify(planner).usePlannedTiles(planned.capture());
+        HydrologyTileKey key = new HydrologyTileKey(3, -2);
+
+        assertNull(planned.getValue().apply(key));
+        assertSame(tile, cache.get(key));
+        assertSame(tile, planned.getValue().apply(key));
+        verify(planner, times(1)).plan(key);
     }
 
     @Test

@@ -161,6 +161,17 @@ public final class HydrologyTileCache implements AutoCloseable {
         this.closed = new AtomicBoolean();
         this.localChunks = ThreadLocal.withInitial(LocalChunks::new);
         this.neighbourPrefetchEnabled = true;
+        planner.usePlannedTiles(this::plannedTile);
+    }
+
+    /** A tile already planned, resident or in the prepared-plan store, loaded without planning it. */
+    private HydrologyTile plannedTile(HydrologyTileKey key) {
+        HydrologyTile resident = tiles.getIfPresent(key);
+        if (resident != null) {
+            return resident;
+        }
+        PreparedHydrologyTileStore store = persistentStore;
+        return store == null ? null : store.load(key).orElse(null);
     }
 
     /**

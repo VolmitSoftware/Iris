@@ -134,6 +134,33 @@ public class HydrologyPlannerTest {
     }
 
     @Test
+    public void evictedOwnerIsRestoredFromItsPlannedTileWithoutDrafting() {
+        AtomicInteger samples = new AtomicInteger();
+        HydrologyTerrainSampler counted = (int x, int z) -> {
+            samples.incrementAndGet();
+            return EARLY_OWNER_TERRAIN.sample(x, z);
+        };
+        HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, counted);
+        HydrologyTile tile = planner.plan(EARLY_OWNER_TILE);
+        CrossTileResolvedOwner original = tile.resolvedOwner();
+        planner.clearOwnerDrafts();
+        AtomicInteger lookups = new AtomicInteger();
+        planner.usePlannedTiles(key -> {
+            lookups.incrementAndGet();
+            return key.equals(EARLY_OWNER_TILE) ? tile : null;
+        });
+        samples.set(0);
+
+        CrossTileResolvedOwner restored = planner.resolveIndependentOwner(EARLY_OWNER_TILE);
+
+        assertEquals(original, restored);
+        assertEquals(0, samples.get());
+        assertEquals(1, lookups.get());
+        assertSame(restored, planner.resolveIndependentOwner(EARLY_OWNER_TILE));
+        assertEquals(1, lookups.get());
+    }
+
+    @Test
     public void restoringPreparedTileKeepsExistingCanonicalOwner() {
         HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
         HydrologyTile tile = planner.plan(EARLY_OWNER_TILE);

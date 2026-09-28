@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class HydrologyPlanner {
@@ -66,6 +67,7 @@ public final class HydrologyPlanner {
     final HydrologyFeatureSitePlanner featureSites;
     final HydrologyRegionalPlanner regional;
     private volatile Predicate<HydrologyTileKey> earlyOwnerScope;
+    private volatile Function<HydrologyTileKey, HydrologyTile> plannedTiles;
 
     public HydrologyPlanner(long worldSeed, HydrologyPlannerSettings settings, HydrologyTerrainSampler sampler) {
         this(
@@ -255,6 +257,14 @@ public final class HydrologyPlanner {
         earlyOwnerScope = scope;
     }
 
+    /**
+     * Where the plans of tiles already planned are found. An owner draft that left the owner cache is
+     * restored from its tile's plan when a neighbour demands it again, instead of being drafted twice.
+     */
+    void usePlannedTiles(Function<HydrologyTileKey, HydrologyTile> source) {
+        plannedTiles = source;
+    }
+
     void clearOwnerDrafts() {
         resolvedOwners.invalidateAll();
         regional.clear();
@@ -300,6 +310,9 @@ public final class HydrologyPlanner {
             return local;
         }
         CrossTileResolvedOwner cached = resolvedOwners.getIfPresent(key);
+        if (cached == null) {
+            cached = plannedOwner(key);
+        }
         if (cached != null) {
             context.remember(key, cached);
             return cached;
@@ -344,6 +357,17 @@ public final class HydrologyPlanner {
             context.end(key);
             resolvingOwners.remove(key, owned);
         }
+    }
+
+    private CrossTileResolvedOwner plannedOwner(HydrologyTileKey key) {
+        Function<HydrologyTileKey, HydrologyTile> source = plannedTiles;
+        HydrologyTile tile = source == null ? null : source.apply(key);
+        if (tile == null || tile.resolvedOwner() == null) {
+            return null;
+        }
+        reuseResolvedTile(tile);
+        CrossTileResolvedOwner restored = resolvedOwners.getIfPresent(key);
+        return restored == null ? tile.resolvedOwner() : restored;
     }
 
     List<CrossTileResolvedOwner> resolveLowerRankOwners(

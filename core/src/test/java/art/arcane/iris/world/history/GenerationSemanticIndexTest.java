@@ -207,6 +207,27 @@ public final class GenerationSemanticIndexTest {
     }
 
     @Test
+    public void claimsDeferRegionSummariesUntilAQueryReadsThem() throws Exception {
+        Path root = temporaryFolder.newFolder("lazy-summaries").toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
+
+        index.claimAndPersist(ChunkGenerationSemantics.builder(-33, -1, 1L).addObject("iris:first").seal().build());
+        assertEquals(0, index.cachedSummaryCount());
+        assertEquals("iris:first", requiredMatch(index, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:first").key());
+        assertEquals(1, index.cachedSummaryCount());
+
+        index.claimAndPersist(ChunkGenerationSemantics.builder(-34, -1, 1L).addObject("iris:second").seal().build());
+        assertEquals(0, index.cachedSummaryCount());
+        assertEquals("iris:second", requiredMatch(index, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:second").key());
+        assertEquals("iris:first", requiredMatch(index, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:first").key());
+        assertEquals(2, sealedClaims(index, 1L).size());
+
+        GenerationSemanticIndex reopened = GenerationSemanticIndex.load(root);
+        assertEquals("iris:second", requiredMatch(reopened, GenerationSemanticIndex.SemanticKind.OBJECT, "iris:second").key());
+        assertEquals(index.recordsSnapshot(), reopened.recordsSnapshot());
+    }
+
+    @Test
     public void conflictingActivationsAndFactsAfterSealAreRejectedWithoutDiskChanges() throws Exception {
         Path dimensionRoot = temporaryFolder.newFolder("sealed").toPath();
         GenerationSemanticIndex index = GenerationSemanticIndex.load(dimensionRoot);

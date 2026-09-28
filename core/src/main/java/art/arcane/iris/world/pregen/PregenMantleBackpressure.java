@@ -18,16 +18,24 @@
 
 package art.arcane.iris.world.pregen;
 
+import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.M;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+/**
+ * Keeps the resident tectonic plate count near its cap during pregeneration. Over the cap, the least recently
+ * used idle plates are saved and unloaded one at a time on the eviction executor while submissions continue;
+ * a submission only waits once residency passes the cap by the eviction overshoot.
+ */
 public final class PregenMantleBackpressure {
     private static final long LOG_INTERVAL_MS = 5_000L;
 
@@ -38,6 +46,9 @@ public final class PregenMantleBackpressure {
     private final Runnable onBudgetTimeout;
     private final Supplier<String> diagnostics;
     private final BooleanSupplier cancelled;
+    private final Executor evictionExecutor;
+    private final AtomicBoolean evicting = new AtomicBoolean();
+    private final AtomicBoolean evictionFailed = new AtomicBoolean();
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition progressed = lock.newCondition();
 
@@ -46,6 +57,12 @@ public final class PregenMantleBackpressure {
     }
 
     public PregenMantleBackpressure(Supplier<Mantle> mantleSupplier, int maxResidentTectonicPlates, int waitMs, long timeoutMs, Runnable onBudgetTimeout, Supplier<String> diagnostics, BooleanSupplier cancelled) {
+        this(mantleSupplier, maxResidentTectonicPlates, waitMs, timeoutMs, onBudgetTimeout, diagnostics, cancelled,
+                command -> MultiBurst.ioBurst.execute(command));
+    }
+
+    public PregenMantleBackpressure(Supplier<Mantle> mantleSupplier, int maxResidentTectonicPlates, int waitMs, long timeoutMs, Runnable onBudgetTimeout, Supplier<String> diagnostics, BooleanSupplier cancelled, Executor evictionExecutor) {
+        this.evictionExecutor = evictionExecutor;
         this.mantleSupplier = mantleSupplier;
         this.maxResidentTectonicPlates = maxResidentTectonicPlates;
         this.waitMs = Math.max(1, waitMs);
@@ -75,33 +92,38 @@ public final class PregenMantleBackpressure {
             return;
         }
 
+        evictionFailed.set(false);
+        requestEviction(mantle, cap);
+        int ceiling = cap + evictionOvershoot(cap);
+        if (mantle.getLoadedRegionCount() <= ceiling || evictionFailed.getAndSet(false)) {
+            return;
+        }
+
         long waitStart = M.ms();
         long lastLog = 0L;
-        while (mantle.getLoadedRegionCount() > cap) {
+        int resident = mantle.getLoadedRegionCount();
+        while (resident > ceiling) {
             if (isCancelled()) {
                 return;
             }
 
-            int freed;
-            int resident;
+            int before = resident;
+            if (!awaitProgress() || evictionFailed.getAndSet(false)) {
+                return;
+            }
             try {
-                mantle.trim(0L);
-                freed = mantle.unloadTectonicPlate(0);
+                requestEviction(mantle, cap);
                 resident = mantle.getLoadedRegionCount();
-                if (resident > cap && mantle.saveOldestIdleTectonicPlate()) {
-                    freed++;
-                    resident = mantle.getLoadedRegionCount();
-                }
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
-                break;
+                return;
             }
-            if (resident <= cap) {
-                break;
+            if (resident <= ceiling) {
+                return;
             }
 
             long elapsed = M.ms() - waitStart;
-            if (elapsed >= timeoutMs && freed == 0) {
+            if (elapsed >= timeoutMs && resident >= before) {
                 IrisLogging.warn("Pregen mantle backpressure exceeded " + timeoutMs + "ms with " + resident
                         + " tectonic plates resident (residency target " + cap + "); no idle plate could be evicted. "
                         + "Allowing the active dependency working set to exceed the residency target; "
@@ -116,12 +138,42 @@ public final class PregenMantleBackpressure {
                 // Pausing to stay under the plate cap is the design working, and it is reported every five
                 // seconds for the whole duration of a large pregen. Only exceeding the budget is a warning.
                 IrisLogging.info("Pregen mantle backpressure: " + resident + " tectonic plates resident (residency target " + cap
-                        + "), freed " + freed + " last pass, waited " + elapsed + "ms.");
+                        + "), waited " + elapsed + "ms.");
             }
+        }
+    }
 
-            if (!awaitProgress()) {
-                return;
+    static int evictionOvershoot(int cap) {
+        return Math.max(2, cap / 8);
+    }
+
+    private void requestEviction(Mantle mantle, int cap) {
+        if (!evicting.compareAndSet(false, true)) {
+            return;
+        }
+
+        try {
+            evictionExecutor.execute(() -> evictToCap(mantle, cap));
+        } catch (Throwable e) {
+            evicting.set(false);
+            IrisLogging.reportError(e);
+        }
+    }
+
+    private void evictToCap(Mantle mantle, int cap) {
+        try {
+            while (!mantle.isClosed() && !isCancelled() && mantle.getLoadedRegionCount() > cap
+                    && mantle.saveOldestIdleTectonicPlate()) {
+                signalProgress();
             }
+        } catch (Throwable e) {
+            if (!mantle.isClosed()) {
+                evictionFailed.set(true);
+                IrisLogging.reportError(e);
+            }
+        } finally {
+            evicting.set(false);
+            signalProgress();
         }
     }
 

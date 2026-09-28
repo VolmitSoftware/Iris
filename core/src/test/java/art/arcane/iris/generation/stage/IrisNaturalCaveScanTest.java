@@ -5,6 +5,7 @@ import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
 import art.arcane.iris.generation.decoration.IrisSurfaceDecorator;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
@@ -38,6 +39,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
@@ -78,7 +80,7 @@ public class IrisNaturalCaveScanTest {
             throw failure;
         });
         assertSame(failure, assertThrows(IllegalStateException.class,
-                () -> fixture.modifier.decorateNaturalCaves(-32, 48, output)));
+                () -> fixture.modifier.decorateNaturalCaves(-32, 48, output, null)));
         verify(fixture.chunk).release();
     }
 
@@ -92,7 +94,7 @@ public class IrisNaturalCaveScanTest {
         IllegalStateException failure = new IllegalStateException("height unavailable");
         doAnswer(call -> { throw failure; }).when(output).getHeight();
         assertSame(failure, assertThrows(IllegalStateException.class,
-                () -> fixture.modifier.decorateNaturalCaves(-32, 48, output)));
+                () -> fixture.modifier.decorateNaturalCaves(-32, 48, output, null)));
         verify(fixture.chunk).release();
     }
 
@@ -104,7 +106,7 @@ public class IrisNaturalCaveScanTest {
             Hunk<NativeBlockState> fullOutput = full.sparseOutput(Hunk.newArrayHunk(16, 32, 16));
             List<String> fullWrites = new ArrayList<>();
             full.modifier.decorateNaturalCaves(-32, 48,
-                    fullOutput.listen((x, y, z, state) -> fullWrites.add(x + ":" + y + ":" + z + ":" + state.key())));
+                    fullOutput.listen((x, y, z, state) -> fullWrites.add(x + ":" + y + ":" + z + ":" + state.key())), null);
 
             Fixture bounded = new Fixture(true);
             ChunkGenerator.ChunkData chunkData = mock(ChunkGenerator.ChunkData.class);
@@ -114,7 +116,7 @@ public class IrisNaturalCaveScanTest {
             bounded.sparseOutput(holder);
             List<String> boundedWrites = new ArrayList<>();
             bounded.modifier.decorateNaturalCaves(-32, 48, new ColumnExtentListeningHunk<>(holder,
-                    (x, y, z, state) -> boundedWrites.add(x + ":" + y + ":" + z + ":" + state.key())));
+                    (x, y, z, state) -> boundedWrites.add(x + ":" + y + ":" + z + ":" + state.key())), null);
 
             assertTrue("fixture must decorate a zone above the initial column top",
                     full.calls.contains("floor:0:0:27:1"));
@@ -141,7 +143,7 @@ public class IrisNaturalCaveScanTest {
         Hunk<NativeBlockState> output = fixture.output(width, depth);
         List<String> writes = new ArrayList<>();
         fixture.modifier.decorateNaturalCaves(-32, 48,
-                output.listen((x, y, z, state) -> writes.add(x + ":" + y + ":" + z + ":" + state.key())));
+                output.listen((x, y, z, state) -> writes.add(x + ":" + y + ":" + z + ":" + state.key())), null);
         List<String> expectedCalls = new ArrayList<>();
         List<String> expectedMarkers = new ArrayList<>();
         List<String> expectedWrites = new ArrayList<>();
@@ -239,7 +241,7 @@ public class IrisNaturalCaveScanTest {
             IrisBiome biome = mock(IrisBiome.class);
             doReturn(new IrisDecorator[]{new IrisDecorator()}).when(biome).getDecoratorBucket(IrisDecorationPart.NONE);
             doReturn(new IrisDecorator[]{new IrisDecorator()}).when(biome).getDecoratorBucket(IrisDecorationPart.CEILING);
-            doReturn(biome).when(modifier).resolveCaveBoundaryBiome(eq(chunk), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any());
+            doReturn(biome).when(modifier).resolveCaveBoundaryBiome(argThat((CaveTerrainSnapshot terrain) -> terrain != null && terrain.covers(-2, 3)), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any());
             IrisDecorantActuator decorant = mock(IrisDecorantActuator.class);
             IrisSurfaceDecorator surface = mock(IrisSurfaceDecorator.class);
             IrisCeilingDecorator roof = mock(IrisCeilingDecorator.class);

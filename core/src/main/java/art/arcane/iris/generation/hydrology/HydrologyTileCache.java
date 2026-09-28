@@ -933,11 +933,17 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     private ChunkColumns composeChunkColumns(int chunkX, int chunkZ) {
+        if (knownEmpty(chunkX, chunkZ)) {
+            return ChunkColumns.empty(chunkX, chunkZ);
+        }
         ArrayList<HydrologyTileKey> relevantKeys = relevantKeys(chunkX, chunkZ);
         return composeChunkColumns(chunkX, chunkZ, relevantKeys, tiles(relevantKeys));
     }
 
     private ChunkColumns composeChunkColumnsInline(int chunkX, int chunkZ, long epoch) {
+        if (knownEmpty(chunkX, chunkZ)) {
+            return ChunkColumns.empty(chunkX, chunkZ);
+        }
         ArrayList<HydrologyTileKey> keys = relevantKeys(chunkX, chunkZ);
         ArrayList<HydrologyTile> snapshots = new ArrayList<>(keys.size());
         for (HydrologyTileKey key : keys) {
@@ -1209,7 +1215,7 @@ public final class HydrologyTileCache implements AutoCloseable {
     private ChunkCoordinate pollQuery() {
         while (!queriedChunks.isEmpty()) {
             ChunkCoordinate chunk = queriedChunks.getFirst();
-            if (composedChunks.getIfPresent(chunk.packed()) == null) {
+            if (composedChunks.getIfPresent(chunk.packed()) == null && !knownEmpty(chunk.x(), chunk.z())) {
                 return chunk;
             }
             queriedChunks.removeFirst();

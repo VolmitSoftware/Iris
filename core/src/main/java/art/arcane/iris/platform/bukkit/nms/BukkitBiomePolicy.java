@@ -633,7 +633,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             return existingHolder;
         }
 
-        if (noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
+        if ((y & 63) == 0 && noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
             noiseBiomeCache.clear();
         }
 

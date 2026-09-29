@@ -37,6 +37,14 @@ tasks.named('processResources').configure {
     dependsOn(unpackNativeMinecraftSources)
 }
 
+tasks.named('verifyLoggingPolicy').configure {
+    dependsOn(unpackNativeMinecraftSources)
+}
+
+tasks.named('verifyNativeClassBoundary').configure {
+    dependsOn(tasks.named('classes'))
+}
+
 tasks.matching { Task task -> task.name == 'createMinecraftArtifacts' }.configureEach {
     dependsOn(unpackNativeMinecraftSources)
 }

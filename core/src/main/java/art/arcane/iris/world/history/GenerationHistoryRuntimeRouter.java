@@ -9,6 +9,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
 import art.arcane.iris.generation.runtime.EngineTarget;
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.generation.runtime.GenerationTransitionGate;
 import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
 import art.arcane.iris.world.storage.matter.IrisMatterContext;
@@ -749,7 +750,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             throw propagate(entry.failure, "Saved mantle for activation " + entry.activationId + " is unavailable.");
         }
         if (closed) {
-            throw new IllegalStateException("Generation-history runtime router is closed.");
+            throw new GenerationClosedException("Generation-history runtime router is closed.");
         }
         try {
             inactive.await();
@@ -800,7 +801,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
     private void awaitRetirementLocked(long activationId) throws IOException {
         while (true) {
             if (closed) {
-                throw new IllegalStateException("Generation-history runtime router is closed.");
+                throw new GenerationClosedException("Generation-history runtime router is closed.");
             }
             RuntimeRetirement retirement = retiringBindings.get(activationId);
             if (retirement == null) {
@@ -1032,7 +1033,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         stateLock.lock();
         try {
             if (closed) {
-                throw new IllegalStateException("Generation-history runtime router is closed.");
+                throw new GenerationClosedException("Generation-history runtime router is closed.");
             }
             activeOperations++;
             operationDepth.set(operationDepth.get() + 1);
@@ -1045,7 +1046,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         stateLock.lock();
         try {
             if (closed) {
-                throw new IllegalStateException("Generation-history runtime router is closed.");
+                throw new GenerationClosedException("Generation-history runtime router is closed.");
             }
             activeOperations++;
         } finally {
@@ -1202,7 +1203,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         public Scope openScope() {
             synchronized (this) {
                 if (closed) {
-                    throw new IllegalStateException("Saved chunk mantle is closed.");
+                    throw new GenerationClosedException("Saved chunk mantle is closed.");
                 }
                 activeScopes++;
             }
@@ -1535,7 +1536,7 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         public RuntimeScope openRuntimeScope() {
             synchronized (this) {
                 if (closed) {
-                    throw new IllegalStateException("Generation-history runtime route is closed.");
+                    throw new GenerationClosedException("Generation-history runtime route is closed.");
                 }
                 activeScopes++;
             }

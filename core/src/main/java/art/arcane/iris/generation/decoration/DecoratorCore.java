@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -89,6 +90,7 @@ final class DecoratorCore {
                     }
                 }
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
         }
@@ -163,6 +165,7 @@ final class DecoratorCore {
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, upper);
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
             return;
@@ -356,6 +359,7 @@ final class DecoratorCore {
                 data.set(xf, lowerY, zf, lower);
                 data.set(xf, upperY, zf, upper);
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
             return;

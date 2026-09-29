@@ -2044,6 +2044,7 @@ public class IrisComplex implements DataProvider {
                 GeneratorBounds bounds = complex.resolveGeneratorBounds(engine, generators, bx, cachedBounds, localBounds);
                 return bounds.noiseBounds;
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 long now = System.currentTimeMillis();
                 long last = lastBoundsFailureLog.get();
                 // The five second gate keeps this off the hot path; the once key keeps it out of a log

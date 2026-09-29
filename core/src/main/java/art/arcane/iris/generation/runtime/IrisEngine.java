@@ -1083,10 +1083,10 @@ public class IrisEngine implements Engine {
                 throw new IllegalArgumentException("Generation runtime binding belongs to a different Iris engine.");
             }
             if (retiringGenerationRuntimes.contains(required.runtime)) {
-                throw new IllegalStateException("Iris generation runtime binding is retiring.");
+                throw new GenerationClosedException("Iris generation runtime binding is retiring.");
             }
             if (!isGenerationRuntimeBindingLive(required)) {
-                throw new IllegalStateException("Iris generation runtime binding is closed or no longer owned.");
+                throw new GenerationClosedException("Iris generation runtime binding is closed or no longer owned.");
             }
             return threadState.open(required);
         }
@@ -1682,7 +1682,7 @@ public class IrisEngine implements Engine {
 
     void requireRunning(String operation) {
         if (closed || closing.get() || lifecycleState != LifecycleState.RUNNING || runtime == null) {
-            throw new IllegalStateException("Cannot " + operation + " while Iris engine " + getWorld().name()
+            throw new GenerationClosedException("Cannot " + operation + " while Iris engine " + getWorld().name()
                     + " is " + lifecycleState.name().toLowerCase() + ".");
         }
     }

@@ -20,6 +20,7 @@ package art.arcane.iris.generation.mantle;
 
 import java.io.UncheckedIOException;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.biome.FloatingIslandSample;
@@ -231,6 +232,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 throw failure;
             } catch (Throwable e) {
                 transaction.discard();
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
         }
@@ -326,6 +328,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 throw failure;
             } catch (Throwable e) {
                 transaction.discard();
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
         }
@@ -438,6 +441,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 throw failure;
             } catch (Throwable e) {
                 transaction.discard();
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
         }
@@ -611,11 +615,13 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                             maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveBottomObjects(target), data, sizeCache, warnedLargeObjects));
                         }
                     } catch (Throwable e) {
+                        GenerationFailures.rethrowEngineFailure(e);
                         IrisLogging.reportError(e);
                     }
                 }
             }
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             IrisLogging.reportError(e);
         }
         return maxObjectExtent;
@@ -649,6 +655,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                     }
                     radius = Math.max(radius, reach);
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                 }
             }

@@ -49,9 +49,11 @@ body:
     id: mcversion
     attributes:
       label: Minecraft Version
-      description: What version of Minecraft is the server on? Iris 4.x targets 26.2 only; older versions are not supported.
+      description: What version of Minecraft is the server on? Iris 4.x supports 26.1.2 to 26.3 on Bukkit-family servers and 26.3 on Fabric, Forge and NeoForge; older versions are not supported.
       options:
+        - '26.3'
         - '26.2'
+        - '26.1.2'
         - Other (unsupported)
     validations:
       required: true
@@ -59,7 +61,7 @@ body:
     id: loaderversion
     attributes:
       label: Platform / Loader Version
-      description: Exact server or loader build (see console). For example "Paper 26.2-60", "Fabric Loader 0.19.3", "NeoForge 26.2.0.12-beta".
+      description: Exact server or loader build (see console). For example "Paper 26.3-133", "Fabric Loader 0.19.5", "NeoForge 26.3.0.33-beta".
       placeholder: DO NOT SAY "LATEST"
     validations:
       required: true

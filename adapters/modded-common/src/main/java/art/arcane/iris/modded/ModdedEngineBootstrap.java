@@ -122,7 +122,7 @@ public final class ModdedEngineBootstrap {
         captureInitialSpawn(server);
         currentServer = server;
         bind();
-        // Pair of the stop() burst-pools stage. Load-bearing on integrated servers: once
+        // Pair of the stopped() burst-pools stage. Load-bearing on integrated servers: once
         // closed, MultiBurst falls back to a same-thread executor, so a second world load
         // without reopen() would silently run every burst inline.
         MultiBurst.burst.reopen();
@@ -180,15 +180,9 @@ public final class ModdedEngineBootstrap {
         try {
             generator.unbindEngine(world);
         } catch (Throwable exception) {
+            // Never propagate into the loader's unload loop: a throw there skips closing every later level. A
+            // runtime dimension removal retries the eviction itself and fails with the retained mapping.
             ModdedIrisLog.error("Iris engine unload failed for {}", world.name(), exception);
-            if (exception instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            if (exception instanceof Error fatalError) {
-                throw fatalError;
-            }
-            throw new IllegalStateException("Iris engine unload failed for "
-                    + world.name(), exception);
         }
     }
 
@@ -205,6 +199,16 @@ public final class ModdedEngineBootstrap {
         failure = runStopStage(failure, "studio commands", ModdedStudioCommands::clear);
         failure = runStopStage(failure, "gui host", ModdedGuiHost::clear);
         failure = runStopStage(failure, "services", () -> services().disableAll());
+        reportStopFailure("stopping", failure);
+    }
+
+    /**
+     * The loaders still drain queued chunk generation after server stopping and only close levels afterwards, so
+     * engines, their mantle and generation history, and the generation pools stay open until the server stopped.
+     * Engines of unloaded levels are already closed by {@link #levelUnloaded}; this closes whatever remains.
+     */
+    public static void stopped() {
+        Throwable failure = null;
         failure = runStopStage(failure, "world engines", ModdedWorldEngines::shutdown);
         failure = runStopStage(failure, "primary world router", ModdedPrimaryWorldRouter::clear);
         failure = runStopStage(failure, "dimension manager", ModdedDimensionManager::clear);
@@ -226,10 +230,14 @@ public final class ModdedEngineBootstrap {
             spawnCaptureServer = null;
             initialSpawnWasDefault = false;
         });
+        reportStopFailure("stopped", failure);
+    }
+
+    private static void reportStopFailure(String phase, Throwable failure) {
         if (failure != null) {
             // The shutdown path must not propagate: propagating aborts the remaining loader stop handlers and
             // can leave the level unsaved. Every stage already logged its own failure.
-            ModdedIrisLog.error("Iris modded shutdown completed with failures", failure);
+            ModdedIrisLog.error("Iris modded shutdown ({}) completed with failures", phase, failure);
         }
     }
 

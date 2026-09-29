@@ -391,7 +391,7 @@ public final class ModdedEngineBootstrap {
                 BlockDataMergeSupport.StateMerger previousMerger = BlockDataMergeSupport.bindPlatformMerger(new NativeStateMerger(ModdedBlockResolution.BLOCKS)::merge);
                 rollback.add(() -> BlockDataMergeSupport.restorePlatformMerger(previousMerger));
 
-                NativeTileReader nativeTileReader = NativeTileReader.forServer(boundLoader::currentServer);
+                NativeTileReader nativeTileReader = NativeModdedServer.tileReader(boundLoader::currentServer);
                 TileData.TileReader previousTileReader = TileData.bindPlatformReader(in -> ModdedTileData.wrap(nativeTileReader.read(in)));
                 rollback.add(() -> TileData.restorePlatformReader(previousTileReader));
 

@@ -36,7 +36,7 @@ public class NativeRegistryAccessTest {
 
     @Test
     public void statePropertiesPreserveTypesDefaultsAndSharedGroups() {
-        NativeRegistryAccess access = new NativeRegistryAccess(new NativeRegistryAccess.Configuration(() -> null, message -> {}));
+        NativeRegistryAccess access = NativeModdedServer.registryAccess(() -> null, message -> {});
         Map<String, List<NativeBlockProperty>> properties = access.blockStateProperties();
 
         assertSame(properties.get("minecraft:stone"), properties.get("minecraft:dirt"));
@@ -52,7 +52,7 @@ public class NativeRegistryAccessTest {
     @Test
     public void staticRegistriesResolveWithoutAnActiveServerAndDynamicReadsStayEmpty() {
         List<String> warnings = new ArrayList<>();
-        NativeRegistryAccess access = new NativeRegistryAccess(new NativeRegistryAccess.Configuration(() -> null, warnings::add));
+        NativeRegistryAccess access = NativeModdedServer.registryAccess(() -> null, warnings::add);
 
         assertEquals("minecraft:diamond_sword", access.item("DIAMOND SWORD").key());
         assertEquals("creature", access.entity("minecraft:cow").spawnCategory());
@@ -68,7 +68,7 @@ public class NativeRegistryAccessTest {
     public void dynamicRegistriesFollowServerStartupReloadAndShutdown() {
         AtomicReference<NativeModdedServer> activeServer = new AtomicReference<>();
         List<String> warnings = new ArrayList<>();
-        NativeRegistryAccess access = new NativeRegistryAccess(new NativeRegistryAccess.Configuration(activeServer::get, warnings::add));
+        NativeRegistryAccess access = NativeModdedServer.registryAccess(activeServer::get, warnings::add);
         assertTrue(access.lootTableKeys().isEmpty());
 
         MinecraftServer server = mock(MinecraftServer.class, RETURNS_DEEP_STUBS);

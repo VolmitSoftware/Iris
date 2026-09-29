@@ -20,7 +20,6 @@ package art.arcane.iris.modded;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 
-import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeRegistryAccess;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeRegistryDefinitions;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntitySpawns;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
@@ -61,9 +60,7 @@ public final class ModdedPlatform implements IrisPlatform {
     public ModdedPlatform(NativeModdedLoader loader) {
         this.loader = loader;
         this.registries = new ModdedRegistries(
-                new NativeRegistryAccess(new NativeRegistryAccess.Configuration(
-                        ModdedEngineBootstrap::currentServer,
-                        ModdedRegistries::warnNotReady)),
+                NativeModdedServer.registryAccess(ModdedEngineBootstrap::currentServer, ModdedRegistries::warnNotReady),
                 ModdedPlatform::generationRegistry);
         this.scheduler = new ModdedScheduler();
         this.structureHooks = new ModdedStructureHooks(ModdedEngineBootstrap::currentServer);

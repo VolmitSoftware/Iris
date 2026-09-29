@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTileReader;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.iris.generation.block.TileData;
@@ -41,7 +42,7 @@ public class ModdedTileParityTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
-        NativeTileReader nativeTileReader = NativeTileReader.forServer(() -> null);
+        NativeTileReader nativeTileReader = NativeModdedServer.tileReader(() -> null);
         TileData.bindPlatformReader(in -> ModdedTileData.wrap(nativeTileReader.read(in)));
         TileData.bindPlatformFactory(ModdedTileData::fromProperties);
     }

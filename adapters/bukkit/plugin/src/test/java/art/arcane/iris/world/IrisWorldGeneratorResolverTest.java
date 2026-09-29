@@ -464,28 +464,10 @@ public class IrisWorldGeneratorResolverTest {
         }
     }
 
-    @Test
-    public void refusalNoticeNamesTheWorldTheCauseChainAndWhatHappensNext() {
-        IllegalStateException failure = new IllegalStateException("Iris generation history is unusable at /srv/moon.",
-                new IOException("Historical generated registry definition changed for iris:biomes/abc"));
-
-        String startup = String.join("\n", IrisWorldGeneratorResolver.refusalNotice(
-                "world_iris_moon", "iris:moon", failure, false));
-        String runtime = String.join("\n", IrisWorldGeneratorResolver.refusalNotice(
-                "world_iris_moon", "iris:moon", failure, true));
-
-        for (String notice : List.of(startup, runtime)) {
-            assertTrue(notice, notice.contains("world_iris_moon"));
-            assertTrue(notice, notice.contains("iris:moon"));
-            assertTrue(notice, notice.contains("Iris generation history is unusable at /srv/moon."));
-            assertTrue(notice, notice.contains("Historical generated registry definition changed for iris:biomes/abc"));
-            assertTrue(notice, notice.contains("no chunks"));
-        }
-        assertTrue(startup, startup.contains("startup stops"));
-        assertTrue(runtime, runtime.contains("does not load"));
-        assertFalse(runtime, runtime.contains("startup stops"));
-    }
-
+    /**
+     * A vanilla slot bound to Iris in bukkit.yml with no Iris storage stops startup, so no command can run until the
+     * binding is gone. /iris create is for new worlds anyway; a vanilla slot is taken over with /iris replace.
+     */
     @Test
     public void vanillaDimensionSlotWithoutFrozenPackFailsClosed() throws Exception {
         File worldContainer = temporaryFolder.newFolder("vanilla-slot");
@@ -500,7 +482,10 @@ public class IrisWorldGeneratorResolverTest {
                     .resolveDefaultWorldGenerator("world_nether", "overworld"));
 
             assertTrue(refusal, refusal.contains("minecraft:the_nether"));
-            assertTrue(refusal, refusal.contains("/iris create"));
+            assertTrue(refusal, refusal.contains("worlds.world_nether.generator"));
+            assertTrue(refusal, refusal.contains("bukkit.yml"));
+            assertTrue(refusal, refusal.contains("/iris replace minecraft:the_nether type=<pack>"));
+            assertFalse(refusal, refusal.contains("/iris create"));
             bukkit.verify(Bukkit::shutdown, never());
         }
     }

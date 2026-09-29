@@ -49,9 +49,18 @@ final class IrisFailClosedChunkGenerator extends ChunkGenerator {
                 + "' remains locked: " + denialReason);
     }
 
+    /**
+     * Built on the way back to CraftServer, which turns any throw into the vanilla generator, so a cause that cannot
+     * be summarized is named by its type instead.
+     */
     static IrisFailClosedChunkGenerator refused(String worldName, Throwable failure) {
-        return new IrisFailClosedChunkGenerator("Iris refuses to generate '" + worldName + "': "
-                + GenerationRefusalNotice.summary(failure));
+        String reason;
+        try {
+            reason = GenerationRefusalNotice.summary(failure);
+        } catch (Throwable unreadable) {
+            reason = failure.getClass().getName();
+        }
+        return new IrisFailClosedChunkGenerator("Iris refuses to generate '" + worldName + "': " + reason);
     }
 
     @Override

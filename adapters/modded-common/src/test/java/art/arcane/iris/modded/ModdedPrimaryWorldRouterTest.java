@@ -37,7 +37,7 @@ public class ModdedPrimaryWorldRouterTest {
     }
 
     @Test
-    public void aMissingPrimaryWorldRefusesPlayersOnceStartupHasRestoredDimensions() {
+    public void aPrimaryWorldThisSaveListsButDidNotRestoreRefusesPlayers() {
         NativeModdedServer server = mock(NativeModdedServer.class);
         NativeProtocolPlayer online = mock(NativeProtocolPlayer.class);
         onlinePlayers(server, online);
@@ -45,10 +45,12 @@ public class ModdedPrimaryWorldRouterTest {
 
         try (MockedStatic<ModdedModConfig> configs = mockStatic(ModdedModConfig.class);
              MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
+             MockedStatic<ModdedDimensionRegistryStore> registry = mockStatic(ModdedDimensionRegistryStore.class);
              MockedStatic<ModdedStartup> startup = mockStatic(ModdedStartup.class);
              MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
             configs.when(ModdedModConfig::get).thenReturn(routed);
             manager.when(() -> ModdedDimensionManager.level(server, PRIMARY)).thenReturn(null);
+            registry.when(() -> ModdedDimensionRegistryStore.get(server, PRIMARY)).thenReturn(persisted());
             startup.when(ModdedStartup::dimensionsRestored).thenReturn(true);
 
             evaluate(server);
@@ -60,6 +62,37 @@ public class ModdedPrimaryWorldRouterTest {
             NativeProtocolPlayer joining = mock(NativeProtocolPlayer.class);
             assertTrue(ModdedPrimaryWorldRouter.refuseIfUnavailable(joining));
             verify(joining).disconnect(contains(PRIMARY));
+        }
+    }
+
+    /**
+     * primaryWorld lives in the instance-wide modded.json, but the dimension it names lives in one save. Another
+     * save, a new world or a reset world folder never had it, so nothing failed there and nothing is refused.
+     */
+    @Test
+    public void aPrimaryWorldThisSaveNeverHadLeavesRoutingIdleWithOneWarning() {
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        NativeProtocolPlayer online = mock(NativeProtocolPlayer.class);
+        onlinePlayers(server, online);
+        ModdedModConfig routed = config(true, PRIMARY);
+
+        try (MockedStatic<ModdedModConfig> configs = mockStatic(ModdedModConfig.class);
+             MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
+             MockedStatic<ModdedDimensionRegistryStore> registry = mockStatic(ModdedDimensionRegistryStore.class);
+             MockedStatic<ModdedStartup> startup = mockStatic(ModdedStartup.class);
+             MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
+            configs.when(ModdedModConfig::get).thenReturn(routed);
+            manager.when(() -> ModdedDimensionManager.level(server, PRIMARY)).thenReturn(null);
+            registry.when(() -> ModdedDimensionRegistryStore.get(server, PRIMARY)).thenReturn(null);
+            startup.when(ModdedStartup::dimensionsRestored).thenReturn(true);
+
+            evaluate(server);
+            evaluate(server);
+
+            verify(online, never()).disconnect(anyString());
+            assertFalse(ModdedPrimaryWorldRouter.refuseIfUnavailable(mock(NativeProtocolPlayer.class)));
+            log.verify(() -> ModdedIrisLog.warn(argThat((String line) -> line != null && line.contains(PRIMARY))), times(1));
+            log.verify(() -> ModdedIrisLog.error(anyString()), never());
         }
     }
 
@@ -100,8 +133,10 @@ public class ModdedPrimaryWorldRouterTest {
 
         try (MockedStatic<ModdedModConfig> configs = mockStatic(ModdedModConfig.class);
              MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
+             MockedStatic<ModdedDimensionRegistryStore> registry = mockStatic(ModdedDimensionRegistryStore.class);
              MockedStatic<ModdedStartup> startup = mockStatic(ModdedStartup.class);
              MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
+            registry.when(() -> ModdedDimensionRegistryStore.get(server, PRIMARY)).thenReturn(persisted());
             startup.when(ModdedStartup::dimensionsRestored).thenReturn(true);
             configs.when(ModdedModConfig::get).thenReturn(routed);
             evaluate(server);
@@ -117,6 +152,38 @@ public class ModdedPrimaryWorldRouterTest {
             evaluate(server);
             assertFalse(ModdedPrimaryWorldRouter.refuseIfUnavailable(mock(NativeProtocolPlayer.class)));
         }
+    }
+
+    /**
+     * A registry that cannot be read cannot prove the primary world was never here, so it counts as expected.
+     */
+    @Test
+    public void anUnreadableRegistryRefusesPlayersRatherThanGuessing() {
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        NativeProtocolPlayer online = mock(NativeProtocolPlayer.class);
+        onlinePlayers(server, online);
+        ModdedModConfig routed = config(true, PRIMARY);
+
+        try (MockedStatic<ModdedModConfig> configs = mockStatic(ModdedModConfig.class);
+             MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
+             MockedStatic<ModdedDimensionRegistryStore> registry = mockStatic(ModdedDimensionRegistryStore.class);
+             MockedStatic<ModdedStartup> startup = mockStatic(ModdedStartup.class);
+             MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
+            configs.when(ModdedModConfig::get).thenReturn(routed);
+            manager.when(() -> ModdedDimensionManager.level(server, PRIMARY)).thenReturn(null);
+            registry.when(() -> ModdedDimensionRegistryStore.get(server, PRIMARY))
+                    .thenThrow(new IllegalStateException("registry could not be read"));
+            startup.when(ModdedStartup::dimensionsRestored).thenReturn(true);
+
+            evaluate(server);
+
+            verify(online).disconnect(contains(PRIMARY));
+            assertTrue(ModdedPrimaryWorldRouter.refuseIfUnavailable(mock(NativeProtocolPlayer.class)));
+        }
+    }
+
+    private static ModdedDimensionRegistryStore.PersistentDimension persisted() {
+        return new ModdedDimensionRegistryStore.PersistentDimension(PRIMARY, "overworld", "overworld", 1337L);
     }
 
     private static void evaluate(NativeModdedServer server) {

@@ -26,12 +26,12 @@ final class FailedEnableLock {
     /**
      * @return true when Iris must stay enabled and locked, false when the failure may disable Iris as before
      */
-    static boolean engage(Throwable failure, boolean irisWorldsPresent) {
+    static boolean engage(Throwable failure, boolean irisWorldsPresent, boolean startupWorldsCreated) {
         if (!irisWorldsPresent) {
             return false;
         }
         IrisStartupValidation.markRuntimeInvalid("Iris failed to enable: " + GenerationRefusalNotice.summary(failure));
-        List<String> notice = notice(failure);
+        List<String> notice = notice(failure, startupWorldsCreated);
         try {
             for (String line : notice) {
                 Iris.error(line);
@@ -45,14 +45,29 @@ final class FailedEnableLock {
         return true;
     }
 
-    static List<String> notice(Throwable failure) {
+    /**
+     * Deferring teardown to the server stop quiesces through the NMS binding and waits for generators Paper closes.
+     * A failed enable may have neither, so it tears down at once even while the server stops.
+     */
+    static boolean defersTeardownToServerStop(boolean enableFailed, boolean serverStopping) {
+        return !enableFailed && serverStopping;
+    }
+
+    /**
+     * @param startupWorldsCreated true when Iris enabled on a running server (a hotload), whose startup worlds
+     *                             already exist, so nothing stops
+     */
+    static List<String> notice(Throwable failure, boolean startupWorldsCreated) {
         return GenerationRefusalNotice.compose(
                 "Iris failed to enable",
                 GenerationRefusalNotice.causes(failure),
                 List.of(
                         "Iris stays enabled with a locked runtime so no Iris world falls back to vanilla generation.",
-                        "Every Iris world refuses to generate: server startup stops before the first one loads,"
-                                + " and no chunks are written.",
+                        startupWorldsCreated
+                                ? "Every Iris world that is not loaded yet refuses to load; the server keeps running"
+                                + " and no chunks are written for them."
+                                : "Every Iris world refuses to generate: server startup stops before the first one"
+                                + " loads, and no chunks are written.",
                         "Player logins are refused until this is fixed and the server restarts."
                 ));
     }

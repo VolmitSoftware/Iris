@@ -47,7 +47,6 @@ import art.arcane.iris.world.history.GenerationHistoryPaths;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
-import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
 import art.arcane.iris.world.task.J;
@@ -91,7 +90,7 @@ public final class IrisWorldGeneratorResolver {
     private final AtomicBoolean externalContentRefreshQueued = new AtomicBoolean();
     private final AtomicBoolean externalContentRefreshRequested = new AtomicBoolean();
     private final Map<Path, PendingSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
-    private volatile boolean serverRunning;
+    private final WorldRefusalReporter refusals = new WorldRefusalReporter();
 
     public IrisWorldGeneratorResolver(VolmitPlugin plugin) {
         this.plugin = plugin;
@@ -533,46 +532,28 @@ public final class IrisWorldGeneratorResolver {
         return resolveFrozenWorldGenerator(worldName, dimension);
     }
 
-    /**
-     * Startup worlds are created before the first server tick; anything asked for after it is a runtime load.
-     */
-    public void markServerRunning() {
-        serverRunning = true;
+    public WorldRefusalReporter refusals() {
+        return refusals;
     }
 
     private ChunkGenerator refuseWorld(String worldName, Throwable failure) {
-        ChunkGenerator refused = IrisFailClosedChunkGenerator.refused(worldName, failure);
+        refusals.report(worldName, refusalKey(worldName), failure);
         try {
-            for (String line : refusalNotice(worldName, refusalKey(worldName), failure, serverRunning)) {
-                Iris.error(line);
-            }
             Iris.reportError(failure);
         } catch (Throwable loggingFailure) {
-            failure.addSuppressed(loggingFailure);
-            failure.printStackTrace(System.err);
+            System.err.println("[Iris] Could not log the refusal of '" + worldName + "': "
+                    + loggingFailure.getClass().getName());
         }
-        return refused;
+        return IrisFailClosedChunkGenerator.refused(worldName, failure);
     }
 
-    private static String refusalKey(String worldName) {
+    @Nullable
+    private static NamespacedKey refusalKey(String worldName) {
         try {
-            return messageWorldKey(worldName, IrisWorldStorage.levelRoot().getName()).toString();
+            return messageWorldKey(worldName, IrisWorldStorage.levelRoot().getName());
         } catch (Throwable unresolved) {
-            return "unresolved key";
+            return null;
         }
-    }
-
-    static List<String> refusalNotice(String worldName, String worldKey, Throwable failure, boolean serverRunning) {
-        return GenerationRefusalNotice.compose(
-                "Iris refused to generate world '" + worldName + "' (" + worldKey + ")",
-                GenerationRefusalNotice.causes(failure),
-                List.of(
-                        "Iris does not generate this world and does not let vanilla or any other generator"
-                                + " write it; no chunks are written.",
-                        serverRunning
-                                ? "The world does not load; the server keeps running. Fix the cause, then load it again."
-                                : "Server startup stops before this world loads. Fix the cause, then start the server again."
-                ));
     }
 
     @Nullable
@@ -640,6 +621,14 @@ public final class IrisWorldGeneratorResolver {
             return;
         }
         NamespacedKey messageKey = messageWorldKey(worldName, levelRoot.getName());
+        if (!IRIS_DIMENSION_NAMESPACE.equals(messageKey.getNamespace())) {
+            // Only bukkit.yml binds a vanilla slot at startup, and the refusal stops startup, so no command can run
+            // until that binding is gone.
+            throw new IllegalStateException("'" + worldName + "' (" + messageKey
+                    + ") is a vanilla world slot with no Iris world storage, so Iris cannot generate it."
+                    + " Remove worlds." + worldName + ".generator from bukkit.yml, start the server, then run"
+                    + " /iris replace " + messageKey + " type=<pack> to replace it with Iris on the next restart.");
+        }
         throw new IllegalStateException("'" + worldName + "' (" + messageKey
                 + ") has no Iris world storage, so Iris cannot generate it."
                 + " Create Iris worlds with /iris create " + IrisWorldStorage.logicalName(messageKey)

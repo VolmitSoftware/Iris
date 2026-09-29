@@ -53,4 +53,25 @@ public class IrisFailClosedChunkGeneratorTest {
         assertTrue(refusal.getMessage(), refusal.getMessage().contains("generation history is unusable"));
         assertTrue(refusal.getMessage(), refusal.getMessage().contains("registry definition changed"));
     }
+
+    /**
+     * The refusal is built on the way back to CraftServer, which turns any throw into the vanilla generator, so an
+     * unreadable cause still has to produce a generator.
+     */
+    @Test
+    public void aCauseWhoseMessageCannotBeReadStillRefuses() {
+        IllegalStateException unreadable = new IllegalStateException() {
+            @Override
+            public String getMessage() {
+                throw new UnsupportedOperationException("message unavailable");
+            }
+        };
+
+        ChunkGenerator generator = IrisFailClosedChunkGenerator.refused("world_iris_moon", unreadable);
+
+        IllegalStateException refusal = assertThrows(
+                IllegalStateException.class,
+                () -> generator.getDefaultBiomeProvider(mock(WorldInfo.class)));
+        assertTrue(refusal.getMessage(), refusal.getMessage().contains("world_iris_moon"));
+    }
 }

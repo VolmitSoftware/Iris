@@ -34,6 +34,7 @@ import art.arcane.iris.world.BukkitWorldReconciler;
 import art.arcane.iris.world.IrisWorldGeneratorResolver;
 import art.arcane.iris.world.PendingWorldDeleteQueue;
 import art.arcane.iris.world.PendingWorldReplacementManager;
+import art.arcane.iris.world.WorldRefusalReporter;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
 import art.arcane.iris.pack.datapack.ServerConfigurator;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
@@ -754,7 +755,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
 
         J.s(() -> {
-            generatorResolver.markServerRunning();
             pendingWorldReplacements.captureVanillaLevelContext();
             pendingWorldReplacements.verifyLoadedPublishedWorlds();
             J.a(this::bstats);
@@ -900,6 +900,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisStartupValidation.begin();
         Bukkit.getPluginManager().registerEvents(new IrisStartupAdmissionListener(), this);
         try {
+            generatorResolver.refusals().attach(this);
             IrisPlatforms.bind(new BukkitPlatform());
             Bukkit.getPluginManager().registerEvents(pendingWorldReplacements, this);
             pendingWorldReplacements.registerPlatformEntryListener();
@@ -909,7 +910,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             }
             enable();
         } catch (Throwable failure) {
-            if (!FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent())) {
+            if (!FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent(),
+                    generatorResolver.refusals().startupWorldsCreated())) {
                 throw failure;
             }
             enableFailed = true;
@@ -933,7 +935,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IllegalStateException failure = new IllegalStateException("Iris cannot start: " + (bindFailure == null
                 ? "no NMS binding is available for this server version."
                 : bindFailure.getMessage()), bindFailure);
-        if (FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent())) {
+        if (FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent(),
+                generatorResolver.refusals().startupWorldsCreated())) {
             enableFailed = true;
             return;
         }
@@ -980,13 +983,11 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
         IrisLanguage.shutdown();
         teardownPapi();
-        // A failed enable left no generator for Paper's shutdown to close, so it tears down the way a failed
-        // enable always did instead of deferring to the post-stop finisher.
-        boolean serverStopping = !enableFailed && IrisToolbelt.isServerStopping();
+        boolean deferToServerStop = FailedEnableLock.defersTeardownToServerStop(enableFailed, IrisToolbelt.isServerStopping());
         boolean restartingAtStartupBoundary = startupBoundaryRestart.get();
         if (restartingAtStartupBoundary) {
             teardownRuntime("startup-boundary-restart", 30L);
-        } else if (serverStopping) {
+        } else if (deferToServerStop) {
             quiesceRuntimeForServerShutdown("onDisable");
             startPostStopFinisher();
         } else {
@@ -1004,7 +1005,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
         // super.onDisable() cancels plugin tasks and unregisters every listener.
         super.onDisable();
-        if (!serverStopping || restartingAtStartupBoundary) {
+        if (!deferToServerStop || restartingAtStartupBoundary) {
             finishTerminalCleanup();
         }
     }
@@ -1427,6 +1428,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     public ChunkGenerator requireWorldGenerator(String worldName, String id) {
         return generatorResolver.requireWorldGenerator(worldName, id);
+    }
+
+    public WorldRefusalReporter worldRefusals() {
+        return generatorResolver.refusals();
     }
 
     public void splash() {

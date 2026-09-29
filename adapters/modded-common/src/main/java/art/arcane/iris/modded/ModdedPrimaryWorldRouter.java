@@ -40,6 +40,7 @@ public final class ModdedPrimaryWorldRouter {
     private static final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
     private static int tickCounter = 0;
     private static volatile String loginRefusal;
+    private static volatile String absentPrimary;
 
     private ModdedPrimaryWorldRouter() {
     }
@@ -48,6 +49,7 @@ public final class ModdedPrimaryWorldRouter {
         routed.clear();
         inFlight.clear();
         loginRefusal = null;
+        absentPrimary = null;
     }
 
     /**
@@ -99,7 +101,7 @@ public final class ModdedPrimaryWorldRouter {
         NativeWorld target = ModdedDimensionManager.level(server, primary);
         if (target == null) {
             if (ModdedStartup.dimensionsRestored()) {
-                refuseLogins(server, primary);
+                judgeMissingPrimary(server, primary);
             }
             return;
         }
@@ -142,8 +144,36 @@ public final class ModdedPrimaryWorldRouter {
     }
 
     /**
+     * primaryWorld is instance-wide but the dimension it names belongs to one save. Only a save whose registry lists
+     * it expected it here, so only that save has a primary world that failed to load.
+     */
+    private static void judgeMissingPrimary(NativeModdedServer server, String primary) {
+        if (loginRefusal == null && primary.equals(absentPrimary)) {
+            return;
+        }
+        if (loginRefusal == null && !expectedInThisSave(server, primary)) {
+            absentPrimary = primary;
+            ModdedIrisLog.warn("Iris primary world '" + primary + "' from config/irisworldgen/modded.json does not"
+                    + " exist in this save, so players are not routed. Create it here with /iris world replace-overworld"
+                    + " <pack> or clear primaryWorld.");
+            return;
+        }
+        refuseLogins(server, primary);
+    }
+
+    private static boolean expectedInThisSave(NativeModdedServer server, String primary) {
+        try {
+            return ModdedDimensionRegistryStore.get(server, primary) != null;
+        } catch (RuntimeException unreadable) {
+            ModdedIrisLog.error("Iris could not read this save's dimension registry to judge primary world '"
+                    + primary + "'", unreadable);
+            return true;
+        }
+    }
+
+    /**
      * Players left in the overworld would generate the terrain the primary Iris world was configured to replace, so a
-     * primary world that did not load refuses every player instead.
+     * primary world this save expected and did not load refuses every player instead.
      */
     private static void refuseLogins(NativeModdedServer server, String primary) {
         String refusal = "Iris primary world '" + primary + "' is not loaded, so this server refuses players."
@@ -152,7 +182,7 @@ public final class ModdedPrimaryWorldRouter {
             for (String line : GenerationRefusalNotice.compose(
                     "Iris refused player logins: primary world '" + primary + "' is not loaded",
                     List.of("routePlayersToPrimaryWorld sends players to '" + primary
-                            + "', which did not load at startup."),
+                            + "', which this save's dimension registry expects but did not load at startup."),
                     List.of(
                             "Players are disconnected instead of playing in the overworld, so no chunks are"
                                     + " written there.",

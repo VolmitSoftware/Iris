@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.v1217.DataFixerV1217;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationRegistryContract;
@@ -27,6 +28,8 @@ import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionType;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
 import java.lang.reflect.Constructor;
 import java.util.Set;
@@ -48,6 +51,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ModdedForcedDatapackTest {
     @Test
@@ -61,6 +66,29 @@ public class ModdedForcedDatapackTest {
             assertEquals(121, pack.getInt("min_format"));
             assertEquals(121, pack.getInt("max_format"));
         } finally {
+            deleteTree(packDirectory);
+        }
+    }
+
+    @Test
+    public void metadataFollowsTheRuntimeDataVersionThatValidationUses() throws IOException {
+        IrisPlatform previous = IrisPlatforms.getOrNull();
+        IrisPlatform runtime = mock(IrisPlatform.class);
+        when(runtime.minecraftVersion()).thenReturn("26.2");
+        Path packDirectory = Files.createTempDirectory("iris-modded-runtime-pack-format");
+        IrisPlatforms.unbind();
+        IrisPlatforms.bind(runtime);
+        try {
+            ModdedForcedDatapack.writePackMeta(packDirectory);
+            JSONObject pack = new JSONObject(Files.readString(packDirectory.resolve("pack.mcmeta")))
+                    .getJSONObject("pack");
+            assertEquals(DataVersion.getRuntime().getPackFormat(), pack.getInt("pack_format"));
+            assertEquals(DataVersion.V26_2.getPackFormat(), pack.getInt("pack_format"));
+        } finally {
+            IrisPlatforms.unbind();
+            if (previous != null) {
+                IrisPlatforms.bind(previous);
+            }
             deleteTree(packDirectory);
         }
     }

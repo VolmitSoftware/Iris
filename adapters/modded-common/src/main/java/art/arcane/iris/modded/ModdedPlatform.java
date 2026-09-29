@@ -61,7 +61,7 @@ public final class ModdedPlatform implements IrisPlatform {
         this.loader = loader;
         this.registries = new ModdedRegistries(
                 NativeModdedServer.registryAccess(ModdedEngineBootstrap::currentServer, ModdedRegistries::warnNotReady),
-                ModdedPlatform::generationRegistry);
+                () -> generationRegistry(loader));
         this.scheduler = new ModdedScheduler();
         this.structureHooks = new ModdedStructureHooks(ModdedEngineBootstrap::currentServer);
         this.biomeWriter = new ModdedBiomeWriter(new NativeBiomeRegistry(ModdedEngineBootstrap::currentServer, "minecraft:plains"));
@@ -352,13 +352,12 @@ public final class ModdedPlatform implements IrisPlatform {
         }
     }
 
-    private static PlatformGenerationRegistry generationRegistry() {
+    private static PlatformGenerationRegistry generationRegistry(NativeModdedLoader loader) {
         if (ModdedEngineBootstrap.currentServer() == null) {
             throw new IllegalStateException("Minecraft server is not ready for generation registry capture.");
         }
-        return new ModdedGenerationRegistry(NativeModdedServer.registryDefinitions(ModdedEngineBootstrap::currentServer),
-                new ModdedGenerationRegistry.Identity("modded-generation-registry-v1",
-                        "modded-generated-registry-json-v1|minecraft:" + BuildConstants.MINECRAFT_VERSION));
+        return new ModdedGenerationRegistry(NativeModdedServer.registryDefinitions(ModdedEngineBootstrap::currentServer, loader),
+                "modded-generation-registry-v1");
     }
 
 }

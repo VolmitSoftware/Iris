@@ -9,22 +9,15 @@ import java.util.Objects;
 final class ModdedGenerationRegistry implements PlatformGenerationRegistry {
     private final NativeGenerationRegistry nativeRegistry;
     private final String runtimeIdentity;
-    private final String rendererIdentity;
 
-    ModdedGenerationRegistry(NativeGenerationRegistry nativeRegistry, Identity identity) {
+    ModdedGenerationRegistry(NativeGenerationRegistry nativeRegistry, String runtimeIdentity) {
         this.nativeRegistry = Objects.requireNonNull(nativeRegistry, "nativeRegistry");
-        this.runtimeIdentity = requireText(identity.runtime(), "runtimeIdentity");
-        this.rendererIdentity = requireText(identity.renderer(), "rendererIdentity");
+        this.runtimeIdentity = requireText(runtimeIdentity, "runtimeIdentity");
     }
 
     @Override
     public String runtimeIdentity() {
         return runtimeIdentity;
-    }
-
-    @Override
-    public String generatedDefinitionRendererIdentity() {
-        return rendererIdentity;
     }
 
     @Override
@@ -74,8 +67,5 @@ final class ModdedGenerationRegistry implements PlatformGenerationRegistry {
             throw new IllegalArgumentException(label + " must not be blank.");
         }
         return required;
-    }
-
-    record Identity(String runtime, String renderer) {
     }
 }

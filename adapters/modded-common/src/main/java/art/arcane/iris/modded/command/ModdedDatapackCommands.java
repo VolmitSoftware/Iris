@@ -165,7 +165,7 @@ public final class ModdedDatapackCommands {
             IrisDimension dimension = engine.getDimension();
             String json;
             try {
-                json = dimension.getDimensionType().toJson(DataVersion.V26_3.get());
+                json = dimension.getDimensionType().toJson(DataVersion.getRuntime().get());
             } catch (Throwable e) {
                 ModdedIrisLog.error("Iris dimension type generation failed for {}", dimension.getLoadKey(), e);
                 IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_DATAPACK_COMMANDS_DIMENSION_TYPE_GENERATION_FAILED, MessageArgument.untrusted("value", level.name()), MessageArgument.untrusted("value2", String.valueOf(e.getMessage()))));
@@ -187,7 +187,7 @@ public final class ModdedDatapackCommands {
         }
 
         File mcmeta = new File(worldDatapacksFolder(server), WORLD_PACK_NAME + "/pack.mcmeta");
-        int packFormat = DataVersion.V26_3.getPackFormat();
+        int packFormat = DataVersion.getRuntime().getPackFormat();
         String meta = "{\n"
                 + "  \"pack\": {\n"
                 + "    \"description\": \"Iris dimension types derived from the installed Iris packs.\",\n"

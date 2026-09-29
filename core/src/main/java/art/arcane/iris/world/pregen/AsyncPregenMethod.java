@@ -21,6 +21,7 @@ package art.arcane.iris.world.pregen;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.lifecycle.WorldLifecycleService;
 import art.arcane.volmlib.nativelib.terrain.NativeWorkerPool;
+import java.util.Map;
 import java.util.Objects;
 import art.arcane.iris.world.IrisPaperLikeBackendMode;
 import art.arcane.iris.world.IrisRuntimeSchedulerMode;
@@ -55,6 +56,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     // THREAD_COUNT records the pool's original size while boosted; BOOST_HOLDERS counts live
@@ -64,7 +66,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private static final AtomicInteger BOOST_HOLDERS = new AtomicInteger();
     private static final int ADAPTIVE_SLOW_REQUEST_STEP = 3;
     private static final int ADAPTIVE_RECOVERY_INTERVAL = 8;
-    private static final long CLOSE_DRAIN_WARNING_SECONDS = 60L;
+    private static final long CLOSE_DRAIN_WARNING_SECONDS = 20L;
+    private static final long CLOSE_DRAIN_TIMEOUT_SECONDS = 60L;
     private static final long FLUSH_TIMEOUT_SECONDS = 120L;
     private static final long MANTLE_CLEANUP_DRAIN_SECONDS = 60L;
     private static final long CHUNK_FLUSH_DRAIN_SECONDS = 30L;
@@ -113,6 +116,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final AtomicLong failed = new AtomicLong();
     private final AtomicLong lastProgressAt = new AtomicLong(M.ms());
     private final AtomicBoolean closing = new AtomicBoolean();
+    private final PregenInFlightRequests inFlightRequests = new PregenInFlightRequests();
+    private final AtomicReference<GenerationFailure> generationFailure = new AtomicReference<>();
     private final AtomicBoolean holdsWorkerBoost = new AtomicBoolean();
     private volatile Engine metricsEngine;
     private volatile Mantle cachedMantle;
@@ -449,10 +454,20 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void completeChunk(int x, int z, PregenListener listener, Chunk chunk, Throwable throwable) {
+        PregenListener owner = inFlightRequests.settle(PregenInFlightRequests.key(x, z));
+        if (owner == null) {
+            return;
+        }
+        settleChunk(x, z, owner, chunk, throwable, true);
+    }
+
+    private void settleChunk(int x, int z, PregenListener listener, Chunk chunk, Throwable throwable, boolean reportFailure) {
         boolean success = false;
         try {
             if (throwable != null) {
-                onChunkFutureFailure(x, z, throwable);
+                if (reportFailure) {
+                    onChunkFutureFailure(x, z, throwable);
+                }
                 onChunkFailedToLoad(x, z);
                 listener.onChunkFailed(x, z);
             } else if (chunk == null) {
@@ -652,9 +667,55 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 + " stalledForMs=" + stalledFor;
     }
 
-    private void markSubmitted() {
+    private void markSubmitted(int x, int z, PregenListener listener) {
+        inFlightRequests.add(PregenInFlightRequests.key(x, z), listener);
         submitted.incrementAndGet();
         inFlight.incrementAndGet();
+    }
+
+    @Override
+    public void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+        GenerationFailure recorded = new GenerationFailure(chunkX, chunkZ, failure);
+        if (generationFailure.compareAndSet(null, recorded)) {
+            IrisLogging.error("Async pregen aborting: Iris failed to generate chunk " + chunkX + "," + chunkZ
+                    + " and the server's chunk system will not complete the " + inFlightRequests.size()
+                    + " outstanding chunk request(s). " + metricsSnapshot());
+        }
+        failOutstandingRequests(failure);
+    }
+
+    private void failOutstandingRequests(Throwable failure) {
+        Map<Long, PregenListener> outstanding = inFlightRequests.drain();
+        for (Map.Entry<Long, PregenListener> entry : outstanding.entrySet()) {
+            long key = entry.getKey();
+            settleChunk(PregenInFlightRequests.chunkX(key), PregenInFlightRequests.chunkZ(key), entry.getValue(),
+                    null, failure, false);
+        }
+        admission.wake();
+        backpressure.signalProgress();
+    }
+
+    private void throwIfGenerationFailed() {
+        GenerationFailure failure = generationFailure.get();
+        if (failure != null) {
+            throw new IllegalStateException("Pregen aborted: Iris failed to generate chunk " + failure.chunkX() + ","
+                    + failure.chunkZ() + " in world " + world.getName()
+                    + " and the server's chunk system stopped completing requests.", failure.cause());
+        }
+    }
+
+    private void abandonOutstandingRequests(PregenAdmissionGate.Drain drain) {
+        Map<Long, PregenListener> abandoned = inFlightRequests.drain();
+        IrisLogging.error("Async pregen abandoned " + abandoned.size() + " chunk request(s) that did not complete within "
+                + CLOSE_DRAIN_TIMEOUT_SECONDS + "s of closing (" + drain.outstanding()
+                + " permit(s) still held). They are not cached and regenerate on the next run. " + metricsSnapshot());
+        IllegalStateException cause = new IllegalStateException(
+                "Async chunk request never completed before the pregen closed in world " + world.getName() + ".");
+        for (Map.Entry<Long, PregenListener> entry : abandoned.entrySet()) {
+            long key = entry.getKey();
+            settleChunk(PregenInFlightRequests.chunkX(key), PregenInFlightRequests.chunkZ(key), entry.getValue(),
+                    null, cause, false);
+        }
     }
 
     private void markFinished(boolean success) {
@@ -774,11 +835,17 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         // A stop request interrupts the pregen worker; shield the drain and flush so chunks still hit disk.
         boolean interrupted = Thread.interrupted();
         try {
-            interrupted |= admission.awaitDrain(
+            PregenAdmissionGate.Drain drain = admission.awaitDrain(
                     CLOSE_DRAIN_WARNING_SECONDS,
+                    TimeUnit.SECONDS,
+                    CLOSE_DRAIN_TIMEOUT_SECONDS,
                     TimeUnit.SECONDS,
                     () -> IrisLogging.warn("Async pregen is still draining outstanding chunks. " + metricsSnapshot())
             );
+            interrupted |= drain.interrupted();
+            if (!drain.drained()) {
+                abandonOutstandingRequests(drain);
+            }
 
             mantleCleanup.close(MANTLE_CLEANUP_DRAIN_SECONDS, TimeUnit.SECONDS);
             flushAllRemainingChunks();
@@ -808,7 +875,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private boolean isCancelled() {
-        return closing.get() || Thread.currentThread().isInterrupted();
+        return closing.get() || generationFailure.get() != null || Thread.currentThread().isInterrupted();
     }
 
     @Override
@@ -835,6 +902,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
+        throwIfGenerationFailed();
         listener.onChunkGenerating(x, z);
         if (MantleHeapPressure.overHighWater()) {
             reclaimMemory();
@@ -865,9 +933,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             recordPermitWait(waited.permitMs());
         }
 
+        throwIfGenerationFailed();
         regionPending.computeIfAbsent(rkey(x >> 5, z >> 5), k -> new AtomicInteger(1)).incrementAndGet();
-        markSubmitted();
+        markSubmitted(x, z, listener);
         executor.generate(x, z, listener);
+        GenerationFailure failure = generationFailure.get();
+        if (failure != null) {
+            failOutstandingRequests(failure.cause());
+        }
     }
 
     private void reclaimHeapPressure() {
@@ -1102,6 +1175,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 completeChunk(x, z, listener, null, e);
             }
         }
+    }
+
+    private record GenerationFailure(int chunkX, int chunkZ, Throwable cause) {
     }
 
     private record ChunkAsyncMethodSelection(Method urgentMethod, Method standardMethod, String mode) {

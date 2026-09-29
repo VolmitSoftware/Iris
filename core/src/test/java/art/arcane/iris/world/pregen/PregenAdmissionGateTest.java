@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -162,7 +163,8 @@ public class PregenAdmissionGateTest {
         AtomicInteger warnings = new AtomicInteger();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Future<Boolean> drain = executor.submit(() -> gate.awaitDrain(5L, TimeUnit.MILLISECONDS, warnings::incrementAndGet));
+            Future<PregenAdmissionGate.Drain> drain = executor.submit(() -> gate.awaitDrain(
+                    5L, TimeUnit.MILLISECONDS, 5L, TimeUnit.SECONDS, warnings::incrementAndGet));
 
             while (warnings.get() < 2) {
                 Thread.onSpinWait();
@@ -170,11 +172,44 @@ public class PregenAdmissionGateTest {
             gate.release();
             gate.release();
 
-            assertEquals(Boolean.FALSE, drain.get(5, TimeUnit.SECONDS));
+            PregenAdmissionGate.Drain result = drain.get(5, TimeUnit.SECONDS);
+            assertTrue(result.drained());
+            assertFalse(result.interrupted());
+            assertEquals(0, result.outstanding());
             assertEquals(2, gate.availablePermits());
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    public void drainGivesUpAtItsDeadlineWhilePermitsStayHeld() throws Exception {
+        PregenAdmissionGate gate = new PregenAdmissionGate(2, GENEROUS_BOUND_MS, System::currentTimeMillis);
+        assertNotNull(gate.admit(() -> false, () -> false));
+        assertNotNull(gate.admit(() -> false, () -> false));
+        AtomicInteger warnings = new AtomicInteger();
+
+        PregenAdmissionGate.Drain result = gate.awaitDrain(
+                5L, TimeUnit.MILLISECONDS, 80L, TimeUnit.MILLISECONDS, warnings::incrementAndGet);
+
+        assertFalse(result.drained());
+        assertFalse(result.interrupted());
+        assertEquals(2, result.outstanding());
+        assertTrue(warnings.get() > 0);
+        assertEquals(0, gate.availablePermits());
+    }
+
+    @Test
+    public void drainReturnsAtOnceWhenNothingIsHeld() {
+        PregenAdmissionGate gate = new PregenAdmissionGate(2, GENEROUS_BOUND_MS, System::currentTimeMillis);
+        AtomicInteger warnings = new AtomicInteger();
+
+        PregenAdmissionGate.Drain result = gate.awaitDrain(
+                5L, TimeUnit.MILLISECONDS, 5L, TimeUnit.SECONDS, warnings::incrementAndGet);
+
+        assertTrue(result.drained());
+        assertEquals(0, result.outstanding());
+        assertEquals(0, warnings.get());
     }
 
     @Test(expected = IllegalArgumentException.class)

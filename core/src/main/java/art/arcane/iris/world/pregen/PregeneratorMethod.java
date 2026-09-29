@@ -83,6 +83,9 @@ public interface PregeneratorMethod {
     default void onRegionBounds(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
     }
 
+    default void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+    }
+
     default void onPregenStart(int centerBlockX, int centerBlockZ) {
     }
 

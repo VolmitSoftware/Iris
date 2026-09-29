@@ -464,6 +464,8 @@ public class AsyncPregenServerSaveOwnershipTest {
             set("regionPending", pendingRegions);
             set("pendingEvictions", evictions);
             set("chunkIoExecutor", (Executor) Runnable::run);
+            set("generationFailure", new AtomicReference<>());
+            set("inFlightRequests", new PregenInFlightRequests());
             when(chunk.getX()).thenReturn(2);
             when(chunk.getZ()).thenReturn(3);
             when(binding.saveAndUnloadChunk(world, 2, 3)).thenReturn(true);

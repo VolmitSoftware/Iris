@@ -503,7 +503,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     /**
      * A dedicated server with {@code pause-when-empty-seconds > 0} returns from
      * {@code MinecraftServer#tickServer} before {@code tickChildren} once it has been empty for that
-     * long (26.2 only keeps {@code tickConnection} plus the task/chunk-poll window alive). That
+     * long (26.3 only keeps {@code tickConnection} plus the task/chunk-poll window alive). That
      * freezes every per-tick Iris service - world manager, scheduler, protocol sync, pregen HUD - and
      * the loader's own generation hooks for the whole job, and console pregen on a default
      * server.properties is always empty. The guard zeroes the setting for the duration of the job

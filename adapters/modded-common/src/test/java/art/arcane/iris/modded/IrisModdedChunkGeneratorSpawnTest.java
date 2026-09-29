@@ -6,6 +6,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.util.random.Weighted;
 import net.minecraft.util.random.WeightedList;
+import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import org.junit.Test;
@@ -24,10 +25,10 @@ public class IrisModdedChunkGeneratorSpawnTest {
 
     @Test
     public void explicitSpawnsReplaceMatchingVanillaTypesAndPreserveOthers() {
-        MobSpawnSettings.SpawnerData zombie = new MobSpawnSettings.SpawnerData(EntityTypes.ZOMBIE, 1, 4);
-        MobSpawnSettings.SpawnerData vanillaSlime = new MobSpawnSettings.SpawnerData(EntityTypes.SLIME, 1, 1);
-        MobSpawnSettings.SpawnerData explicitSlime = new MobSpawnSettings.SpawnerData(EntityTypes.SLIME, 2, 5);
-        MobSpawnSettings.SpawnerData explicitCow = new MobSpawnSettings.SpawnerData(EntityTypes.COW, 2, 4);
+        MobSpawnSettings.SpawnerData zombie = new MobSpawnSettings.SpawnerData(EntityTypes.ZOMBIE, UniformInt.of(1, 4));
+        MobSpawnSettings.SpawnerData vanillaSlime = new MobSpawnSettings.SpawnerData(EntityTypes.SLIME, UniformInt.of(1, 1));
+        MobSpawnSettings.SpawnerData explicitSlime = new MobSpawnSettings.SpawnerData(EntityTypes.SLIME, UniformInt.of(2, 5));
+        MobSpawnSettings.SpawnerData explicitCow = new MobSpawnSettings.SpawnerData(EntityTypes.COW, UniformInt.of(2, 4));
         WeightedList<MobSpawnSettings.SpawnerData> vanilla = WeightedList.of(List.of(
                 new Weighted<>(zombie, 100),
                 new Weighted<>(vanillaSlime, 1)));

@@ -14,16 +14,18 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeResolver;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
+import net.minecraft.world.level.levelgen.structure.placement.AbstractSpreadingStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
-import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -166,10 +168,10 @@ public class ModdedStructureSetFrequencyOverridesTest {
     ) {
         return new RandomSpreadStructurePlacement(
                 Vec3i.ZERO,
-                StructurePlacement.FrequencyReductionMethod.DEFAULT,
+                AbstractSpreadingStructurePlacement.FrequencyReductionMethod.DEFAULT,
                 1F,
                 salt,
-                Optional.of(new StructurePlacement.ExclusionZone(exclusionTarget, 1)),
+                Optional.of(new AbstractSpreadingStructurePlacement.ExclusionZone(exclusionTarget, 1)),
                 spacing,
                 separation,
                 RandomSpreadType.LINEAR);
@@ -183,6 +185,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
                         RandomState.class,
                         BiomeSource.class,
                         long.class,
+                        ChunkPos.class,
                         long.class,
                         List.class);
         constructor.setAccessible(true);
@@ -190,6 +193,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
                 null,
                 new EmptyBiomeSource(),
                 1L,
+                ChunkPos.ZERO,
                 1L,
                 sets);
     }
@@ -211,8 +215,8 @@ public class ModdedStructureSetFrequencyOverridesTest {
 
     private static final class EmptyBiomeSource extends BiomeSource {
         @Override
-        public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
-            return null;
+        public BiomeResolver createResolver(Climate.Sampler sampler) {
+            return (x, y, z) -> null;
         }
 
         @Override
@@ -226,18 +230,14 @@ public class ModdedStructureSetFrequencyOverridesTest {
         }
     }
 
-    private static final class UnsupportedPlacement extends StructurePlacement {
-        private UnsupportedPlacement() {
-            super(Vec3i.ZERO, FrequencyReductionMethod.DEFAULT, 1F, 1, Optional.empty());
-        }
-
+    private static final class UnsupportedPlacement implements StructurePlacement {
         @Override
-        protected boolean isPlacementChunk(ChunkGeneratorStructureState state, int x, int z) {
+        public boolean isStructureChunk(ChunkGeneratorStructureState state, int x, int z) {
             return false;
         }
 
         @Override
-        public StructurePlacementType<?> type() {
+        public com.mojang.serialization.MapCodec<? extends StructurePlacement> codec() {
             return null;
         }
     }

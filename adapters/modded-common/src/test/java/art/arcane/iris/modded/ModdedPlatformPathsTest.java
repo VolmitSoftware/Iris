@@ -33,7 +33,7 @@ public class ModdedPlatformPathsTest {
 
             @Override
             public String minecraftVersion() {
-                return "26.2";
+                return "26.3";
             }
 
             @Override

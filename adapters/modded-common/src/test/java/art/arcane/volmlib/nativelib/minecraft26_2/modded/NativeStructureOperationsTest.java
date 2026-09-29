@@ -6,7 +6,11 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedPlatformWorld;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
-import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.level.levelgen.feature.FallenTreeFeature;
+import net.minecraft.world.level.levelgen.feature.HugeBrownMushroomFeature;
+import net.minecraft.world.level.levelgen.feature.HugeRedMushroomFeature;
+import net.minecraft.world.level.levelgen.feature.OreFeature;
+import net.minecraft.world.level.levelgen.feature.TreeFeature;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,11 +36,11 @@ public class NativeStructureOperationsTest {
 
     @Test
     public void objectFeaturesMatchPaperGroups() {
-        assertEquals("trees", NativeStructureOperations.classifyFeature(Feature.TREE));
-        assertEquals("fallen_trees", NativeStructureOperations.classifyFeature(Feature.FALLEN_TREE));
-        assertEquals("mushrooms", NativeStructureOperations.classifyFeature(Feature.HUGE_BROWN_MUSHROOM));
-        assertEquals("mushrooms", NativeStructureOperations.classifyFeature(Feature.HUGE_RED_MUSHROOM));
-        assertNull(NativeStructureOperations.classifyFeature(Feature.ORE));
+        assertEquals("trees", NativeStructureOperations.classifyFeature(mock(TreeFeature.class)));
+        assertEquals("fallen_trees", NativeStructureOperations.classifyFeature(mock(FallenTreeFeature.class)));
+        assertEquals("mushrooms", NativeStructureOperations.classifyFeature(mock(HugeBrownMushroomFeature.class)));
+        assertEquals("mushrooms", NativeStructureOperations.classifyFeature(mock(HugeRedMushroomFeature.class)));
+        assertNull(NativeStructureOperations.classifyFeature(mock(OreFeature.class)));
     }
 
     @Test

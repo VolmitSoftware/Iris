@@ -13,13 +13,12 @@ Configuration kernelDependencies = configurations.create('generationKernelDepend
     extendsFrom(configurations.implementation, configurations.slim, configurations.annotationProcessor)
 }
 dependencies.add(kernelDependencies.name, libs.guava)
-String nativeLibraryVersion = providers.gradleProperty('volmLibCoordinate').get().tokenize(':').last()
 List<String> nativeRevisionModules = ['native-common', 'native-minecraft26_2-sources']
 for (String adapter : rootProject.extensions.extraProperties.get('nativeDevelopmentAdapters')) {
     nativeRevisionModules.add('native-' + adapter)
 }
 for (String module : nativeRevisionModules) {
-    dependencies.add(kernelDependencies.name, "com.github.VolmitSoftware.VolmLib:${module}:${nativeLibraryVersion}") {
+    dependencies.add(kernelDependencies.name, "com.github.VolmitSoftware.VolmLib:${module}:master-SNAPSHOT") {
         transitive = false
     }
 }

@@ -271,6 +271,12 @@ when it exists, otherwise `build/consumers/` inside the repo. `-Plocation=/path/
 changes only the consumer directory. Both tasks copy all four verified platform jars into
 `../PluginOuts/`.
 
+VolmLib is built from source when a `VolmLib` checkout sits beside the repo or in a parent directory
+(`VOLMLIB_DIR` or `-PlocalVolmLibDirectory=<path>` pick another one). Without one, or with
+`-PuseLocalVolmLib=false`, the build uses VolmLib `master-SNAPSHOT` from JitPack. There is no VolmLib
+version to bump. The build logs which VolmLib it used, and every jar records it in
+`META-INF/volmit/volmlib.properties`.
+
 If you need help compiling as a developer or contributor, ask in the Discord.
 
 ## Adapters / modded development

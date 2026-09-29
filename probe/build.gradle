@@ -9,10 +9,6 @@ application {
     mainClass = 'art.arcane.iris.probe.ClassloadProbe'
 }
 
-String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
-    .orElse('com.github.VolmitSoftware:VolmLib:master-SNAPSHOT')
-    .get()
-
 configurations {
     studioProbeApi
 }
@@ -23,10 +19,10 @@ dependencies {
     testImplementation('junit:junit:4.13.2')
     testImplementation(libs.gson)
     testImplementation(testFixtures(project(':core')))
-    testImplementation(volmLibCoordinate) {
+    testImplementation('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
-    compileOnly(volmLibCoordinate) {
+    compileOnly('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
     runtimeOnly(libs.paralithic)

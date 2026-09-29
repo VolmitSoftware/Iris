@@ -43,8 +43,7 @@ buildscript {
         maven { url = uri('https://jitpack.io') }
     }
     dependencies {
-        String volmLibRevision = providers.gradleProperty('volmLibCoordinate').get().tokenize(':').last()
-        classpath("com.github.VolmitSoftware.VolmLib:packaging:${volmLibRevision}")
+        classpath('com.github.VolmitSoftware.VolmLib:packaging:master-SNAPSHOT')
     }
 }
 
@@ -55,6 +54,7 @@ plugins {
 
 apply plugin: 'art.arcane.volmit-packaging'
 apply from: file('gradle/runtime-relocations.gradle')
+apply from: file('gradle/volmlib-stamp.gradle')
 
 interface IrisFileOperations {
     @Inject
@@ -76,15 +76,9 @@ String bukkitMinecraftRange = providers.gradleProperty('bukkitMinecraftRange').g
 String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse('0.19.5')
 String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse('26.3-66.0.8')
 String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse('26.3.0.33-beta')
-String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
-    .orElse('com.github.VolmitSoftware:VolmLib:master-SNAPSHOT')
-    .get()
-String useLocalVolmLib = providers.gradleProperty('useLocalVolmLib').getOrElse('true')
-String localVolmLibDirectory = providers.gradleProperty('localVolmLibDirectory').getOrNull()
-boolean useMavenLocal = providers.gradleProperty('useMavenLocal')
-    .orElse(useLocalVolmLib.equalsIgnoreCase('true') ? 'false' : 'true')
-    .map { String value -> value.equalsIgnoreCase('true') }
-    .get()
+String volmLibShared = 'com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT'
+File localVolmLibCheckout = (File) gradle.extensions.extraProperties.get('volmLibDirectory')
+Map<String, String> volmLibStamp = (Map<String, String>) gradle.extensions.extraProperties.get('volmLibStamp')
 Closure<String> loaderDisplayVersion = { String loaderVersion ->
     String coordinatePrefix = "${minecraftVersion}-"
     if (loaderVersion.startsWith(coordinatePrefix)) {
@@ -153,11 +147,11 @@ nmsBindings.each { String key ->
         }
 
         dependencies {
-            implementation("com.github.VolmitSoftware.VolmLib:native-${key}:${volmLibCoordinate.tokenize(':').last()}") {
+            implementation("com.github.VolmitSoftware.VolmLib:native-${key}:master-SNAPSHOT") {
                 transitive = false
             }
             compileOnly(project(':core'))
-            compileOnly(volmLibCoordinate) {
+            compileOnly(volmLibShared) {
                 transitive = false
             }
             compileOnly(rootProject.libs.annotations)
@@ -169,10 +163,10 @@ nmsBindings.each { String key ->
             }
             testImplementation(project(':core'))
             testImplementation(testFixtures(project(':core')))
-            testImplementation("com.github.VolmitSoftware.VolmLib:native-common:${volmLibCoordinate.tokenize(':').last()}") {
+            testImplementation('com.github.VolmitSoftware.VolmLib:native-common:master-SNAPSHOT') {
                 transitive = false
             }
-            testCompileOnly(volmLibCoordinate) {
+            testCompileOnly(volmLibShared) {
                 transitive = false
             }
             testRuntimeOnly(project(':core'))
@@ -183,49 +177,32 @@ nmsBindings.each { String key ->
 
 def included = configurations.create('included')
 def nativeRuntime = configurations.create('nativeRuntime')
-def publishedNativeRuntime = configurations.create('publishedNativeRuntime') {
-    canBeConsumed = false
-    transitive = false
-    resolutionStrategy.useGlobalDependencySubstitutionRules = false
-}
-repositories.configureEach { repository ->
-    if (repository.name != 'publishedNativeProviders') {
-        repository.content { notForConfigurations('publishedNativeRuntime') }
-    }
-}
-repositories.maven {
-    name = 'publishedNativeProviders'
-    url = uri('https://jitpack.io/')
-    content {
-        onlyForConfigurations('publishedNativeRuntime')
-        includeGroup('com.github.VolmitSoftware.VolmLib')
-    }
-}
 def nativeRuntimeOutput = layout.buildDirectory.dir('generated/native-runtime')
 def nativeRuntimeRules = layout.buildDirectory.file('generated/native-runtime-keep.pro')
 List<String> nativeRuntimeModules = ['native-common'] + nmsBindings.collect { String adapter -> 'native-' + adapter }
 dependencies {
     nativeRuntimeModules.each { String module ->
-        add('nativeRuntime', "com.github.VolmitSoftware.VolmLib:${module}:${volmLibCoordinate.tokenize(':').last()}") {
+        add('nativeRuntime', "com.github.VolmitSoftware.VolmLib:${module}:master-SNAPSHOT") {
             transitive = false
         }
-        add('publishedNativeRuntime', "com.github.VolmitSoftware.VolmLib:${module}:${volmLibCoordinate.tokenize(':').last()}")
     }
 }
+// The natives PackedJar embeds are the single source for the runtime manifest, the reachability roots and
+// the ProGuard keep rules, so the shrinker can never prune against a different provider build.
+Closure<Map<String, File>> embeddedNatives = { ->
+    Map<ComponentIdentifier, File> resolved = new LinkedHashMap<>()
+    nativeRuntime.incoming.artifacts.artifacts.each { artifact ->
+        resolved.put(artifact.id.componentIdentifier, artifact.file)
+    }
+    return PackedJar.resolveNativeArtifacts(resolved)
+}
 def generateNativeRuntime = tasks.register('generateNativeRuntime') {
-    inputs.files(publishedNativeRuntime)
-    inputs.property('version', volmLibCoordinate.tokenize(':').last())
-    inputs.property('adapters', nmsBindings)
+    inputs.files(nativeRuntime)
+    inputs.property('modules', nativeRuntimeModules)
     outputs.dir(nativeRuntimeOutput)
     outputs.file(nativeRuntimeRules)
     doLast {
-        Map<ComponentIdentifier, File> resolved = new LinkedHashMap<>()
-        publishedNativeRuntime.incoming.artifacts.artifacts.each { artifact ->
-            resolved.put(artifact.id.componentIdentifier, artifact.file)
-        }
-        Map<String, File> artifacts = NativeRuntimeArtifacts.publishedArtifacts(resolved,
-            nativeRuntimeModules, volmLibCoordinate.tokenize(':').last())
-        NativeRuntimeArtifacts.generate(artifacts, volmLibCoordinate.tokenize(':').last(),
+        NativeRuntimeArtifacts.generate(embeddedNatives(), nativeRuntimeModules,
             nativeRuntimeOutput.get().asFile, nativeRuntimeRules.get().asFile)
     }
 }
@@ -240,6 +217,9 @@ tasks.named('jar', Jar).configure {
     inputs.files(included)
     dependsOn(generateNativeRuntime)
     from(nativeRuntimeOutput)
+    from(tasks.named('generateVolmLibStamp')) {
+        into('META-INF/volmit')
+    }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     includeEmptyDirs = false
     from(jarJar)
@@ -312,31 +292,6 @@ tasks.register('buildBukkit', Copy) {
 // task therefore has to carry the full inventory of what those builds read: every shared source tree,
 // every build script and version file they load, and the local VolmLib checkout when the composite
 // resolves one. Anything missing from that list publishes a stale jar.
-Closure<File> resolveLocalVolmLibDirectory = { ->
-    String configured = localVolmLibDirectory != null && !localVolmLibDirectory.isBlank()
-        ? localVolmLibDirectory
-        : System.getenv('VOLMLIB_DIR')
-    if (configured != null && !configured.isBlank()) {
-        File configuredDirectory = new File(configured)
-        if (!configuredDirectory.isAbsolute()) {
-            configuredDirectory = new File(rootDir, configured)
-        }
-        return configuredDirectory.isDirectory() ? configuredDirectory : null
-    }
-
-    File current = rootDir
-    while (current != null) {
-        File candidate = new File(current, 'VolmLib')
-        if (new File(candidate, 'settings.gradle').isFile() || new File(candidate, 'settings.gradle.kts').isFile()) {
-            return candidate
-        }
-
-        current = current.parentFile
-    }
-
-    return null
-}
-
 List<Object> moddedSharedInputs = []
 [
     'adapters/modded-common/src',
@@ -353,11 +308,11 @@ List<Object> moddedSharedInputs = []
     'lombok.config',
     'gradle/libs.versions.toml',
     'gradle/volmlib-resolution.settings.gradle',
+    'gradle/volmlib-stamp.gradle',
     'gradle/generation-build-revision.gradle',
     'gradle/modded-generation-build-revision.gradle',
     'gradle/native-minecraft-sources.gradle'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
-File localVolmLibCheckout = useLocalVolmLib.equalsIgnoreCase('true') ? resolveLocalVolmLibDirectory() : null
 if (localVolmLibCheckout != null) {
     moddedSharedInputs.add(fileTree(localVolmLibCheckout) {
         include('shared/src/main/**', 'native-api/src/main/**', 'native-terrain-api/src/main/**',
@@ -377,8 +332,7 @@ Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactN
         layout.projectDirectory.file("adapters/${adapter}/settings.gradle").asFile
     ).withPropertyName('adapterSources')
     versions.each { String key, String value -> task.inputs.property(key, value) }
-    task.inputs.property('useLocalVolmLib', useLocalVolmLib)
-    task.inputs.property('volmLibCoordinate', volmLibCoordinate)
+    task.inputs.property('volmLibStamp', volmLibStamp)
     task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/libs/${artifactName}"))
     return null
 }
@@ -394,8 +348,7 @@ tasks.register('fabricJar', Exec) {
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
         "-PfabricLoaderVersion=${fabricLoaderVersion}",
-        "-PuseLocalVolmLib=${useLocalVolmLib}",
-        "-PvolmLibCoordinate=${volmLibCoordinate}"
+        "-PuseLocalVolmLib=${localVolmLibCheckout != null}"
     ]
     if (localVolmLibCheckout != null) {
         environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
@@ -432,8 +385,7 @@ tasks.register('forgeJar', Exec) {
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
         "-PforgeVersion=${forgeVersion}",
-        "-PuseLocalVolmLib=${useLocalVolmLib}",
-        "-PvolmLibCoordinate=${volmLibCoordinate}"
+        "-PuseLocalVolmLib=${localVolmLibCheckout != null}"
     ]
     if (localVolmLibCheckout != null) {
         environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
@@ -470,8 +422,7 @@ tasks.register('neoforgeJar', Exec) {
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
         "-PneoForgeVersion=${neoForgeVersion}",
-        "-PuseLocalVolmLib=${useLocalVolmLib}",
-        "-PvolmLibCoordinate=${volmLibCoordinate}"
+        "-PuseLocalVolmLib=${localVolmLibCheckout != null}"
     ]
     if (localVolmLibCheckout != null) {
         environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
@@ -528,8 +479,7 @@ tasks.register('moddedTest', Exec) {
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
         "-PfabricLoaderVersion=${fabricLoaderVersion}",
-        "-PuseLocalVolmLib=${useLocalVolmLib}",
-        "-PvolmLibCoordinate=${volmLibCoordinate}"
+        "-PuseLocalVolmLib=${localVolmLibCheckout != null}"
     ]
     if (localVolmLibCheckout != null) {
         environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
@@ -545,8 +495,7 @@ tasks.register('moddedTest', Exec) {
     inputs.property('irisVersion', project.version.toString())
     inputs.property('minecraftVersion', minecraftVersion)
     inputs.property('fabricLoaderVersion', fabricLoaderVersion)
-    inputs.property('useLocalVolmLib', useLocalVolmLib)
-    inputs.property('volmLibCoordinate', volmLibCoordinate)
+    inputs.property('volmLibStamp', volmLibStamp)
     outputs.dir(layout.projectDirectory.dir('adapters/fabric/build/test-results/test'))
     mustRunAfter(tasks.named('jar'))
     mustRunAfter(project(':core').tasks.named('check'))
@@ -585,6 +534,7 @@ List<String> commonModdedArtifactEntries = [
     'native/windows-x86_64/jlibdeflate.dll',
     'META-INF/iris/generation-kernels/catalog.tsv',
     'META-INF/iris/generation-kernels/abi-1.revision',
+    'META-INF/volmit/volmlib.properties',
     'META-INF/services/art.arcane.iris.localization.IrisMessageContributor',
     'art/arcane/iris/generation/runtime/IrisEngine.class',
     'art/arcane/iris/pack/datapack/DataVersion.class',
@@ -700,6 +650,7 @@ List<String> requiredBukkitArtifactEntries = [
     'slimjar.dat',
     'slimjar-resolutions.dat',
     'META-INF/iris/native-runtime.properties',
+    'META-INF/volmit/volmlib.properties',
     'iris-language-source.properties',
     'agent.jar',
     'art/arcane/iris/Iris.class',
@@ -725,6 +676,7 @@ tasks.register('verifyBukkitArtifact') {
     dependsOn('jar')
     File artifact = bukkitArtifact
     inputs.file(artifact)
+    inputs.files(nativeRuntime)
     inputs.files(commandHandlerSources)
     inputs.files(mantleComponentSources)
     doLast {
@@ -733,7 +685,7 @@ tasks.register('verifyBukkitArtifact') {
                 requiredBukkitArtifactEntries,
                 16,
                 runtimeDownloadedPrefixes)
-        NativeRuntimeArtifacts.verify(artifact, nmsBindings, volmLibCoordinate.tokenize(':').last())
+        NativeRuntimeArtifacts.verify(artifact, nativeRuntimeModules, embeddedNatives())
         logger.lifecycle("Verified ${artifact.name} packaging and class reference graph")
     }
 }
@@ -819,11 +771,6 @@ tasks.register('irisDev', Copy) {
     dependsOn(':core:javadocJar')
 }
 
-configurations.configureEach {
-    resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
-    resolutionStrategy.cacheDynamicVersionsFor(0, 'seconds')
-}
-
 allprojects {
     apply plugin: 'java'
 
@@ -834,9 +781,6 @@ allprojects {
     }
 
     repositories {
-        if (useMavenLocal) {
-            mavenLocal()
-        }
         mavenCentral()
         maven { url = uri('https://repo.papermc.io/repository/maven-public/') }
         maven { url = uri('https://repo.codemc.org/repository/maven-public/') }
@@ -990,7 +934,7 @@ project(':adapters:bukkit:nms:v26_3_R1') {
         canBeResolved = true
     }
     dependencies.add(headlessNativeSources.name,
-            "com.github.VolmitSoftware.VolmLib:native-minecraft26_2-sources:${volmLibCoordinate.tokenize(':').last()}")
+            'com.github.VolmitSoftware.VolmLib:native-minecraft26_2-sources:master-SNAPSHOT')
     List<String> headlessNativeTypes = ['ModdedBlockState', 'ModdedBiome', 'NativeBlockProperties', 'NativeBlockResolver',
             'NativeBlockFaces', 'NativeStateRotator', 'NativeStateMerger',
             'NativeRegistryAccess', 'ModdedItem', 'ModdedEntityType', 'NativeTileReader', 'NativeTileData']
@@ -1016,10 +960,10 @@ project(':adapters:bukkit:nms:v26_3_R1') {
     dependencies {
         offlineImplementation(project(':probe'))
         offlineImplementation(project(':core'))
-        offlineImplementation("com.github.VolmitSoftware.VolmLib:native-common:${volmLibCoordinate.tokenize(':').last()}") {
+        offlineImplementation('com.github.VolmitSoftware.VolmLib:native-common:master-SNAPSHOT') {
             transitive = false
         }
-        offlineImplementation(volmLibCoordinate) {
+        offlineImplementation(volmLibShared) {
             transitive = false
         }
     }
@@ -1132,14 +1076,11 @@ commands:
 }
 
 tasks.withType(PackedJar).configureEach {
-    nativeManifestPath.set('META-INF/iris/native-runtime.properties')
-    nativeResourceDirectory.set('META-INF/iris/native/')
-    dependsOn(tasks.named('verifyBukkitArtifact'), configurations.nativeRuntime)
-    nativeArtifacts.set(providers.provider {
-        Map<ComponentIdentifier, File> resolved = new LinkedHashMap<>()
-        configurations.nativeRuntime.incoming.artifacts.artifacts.each { artifact ->
-            resolved.put(artifact.id.componentIdentifier, artifact.file)
-        }
-        PackedJar.resolveNativeArtifacts(resolved)
-    })
+    nativeManifestPath.set(NativeRuntimeArtifacts.MANIFEST)
+    nativeResourceDirectory.set(NativeRuntimeArtifacts.RESOURCES)
+    dependsOn(tasks.named('verifyBukkitArtifact'), nativeRuntime)
+    nativeArtifacts.set(providers.provider { embeddedNatives() })
+    doLast { PackedJar task ->
+        NativeRuntimeArtifacts.verifyPacked(task.outputJar.get().asFile, nativeRuntimeModules, embeddedNatives())
+    }
 }

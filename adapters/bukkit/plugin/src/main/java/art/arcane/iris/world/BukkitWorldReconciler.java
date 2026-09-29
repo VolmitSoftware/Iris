@@ -728,7 +728,7 @@ public final class BukkitWorldReconciler {
                 String logicalWorldName = IrisWorldStorage.logicalName(worldKey);
                 String configuredWorldName = configuredWorldName(worldKey);
                 Iris.info("Loading World: %s | Generator: %s", logicalWorldName, dimension);
-                ChunkGenerator generator = plugin.getDefaultWorldGenerator(configuredWorldName, dimension);
+                ChunkGenerator generator = plugin.requireWorldGenerator(configuredWorldName, dimension);
                 IrisDimension irisDimension = IrisWorldGeneratorResolver.loadDimension(configuredWorldName, dimension);
                 if (generator == null || irisDimension == null) {
                     throw new IllegalStateException("Could not resolve the Iris generator or dimension \"" + dimension + "\".");

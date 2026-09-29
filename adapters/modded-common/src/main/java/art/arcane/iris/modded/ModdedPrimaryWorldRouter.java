@@ -18,12 +18,15 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDimensionRuntime;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,7 @@ public final class ModdedPrimaryWorldRouter {
     private static final Set<UUID> routed = ConcurrentHashMap.newKeySet();
     private static final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
     private static int tickCounter = 0;
+    private static volatile String loginRefusal;
 
     private ModdedPrimaryWorldRouter() {
     }
@@ -43,6 +47,7 @@ public final class ModdedPrimaryWorldRouter {
     public static void clear() {
         routed.clear();
         inFlight.clear();
+        loginRefusal = null;
     }
 
     /**
@@ -54,6 +59,20 @@ public final class ModdedPrimaryWorldRouter {
             routed.remove(player);
             inFlight.remove(player);
         }
+    }
+
+    /**
+     * Disconnects a joining player while the configured primary world is missing.
+     *
+     * @return true when the player was refused
+     */
+    public static boolean refuseIfUnavailable(NativeProtocolPlayer player) {
+        String refusal = loginRefusal;
+        if (refusal == null || player == null) {
+            return false;
+        }
+        player.disconnect(refusal);
+        return true;
     }
 
     public static void tick(NativeModdedServer server) {
@@ -68,17 +87,23 @@ public final class ModdedPrimaryWorldRouter {
 
         ModdedModConfig config = ModdedModConfig.get();
         if (!config.routePlayersToPrimaryWorld()) {
+            loginRefusal = null;
             return;
         }
         String primary = config.primaryWorld();
         if (primary.isBlank()) {
+            loginRefusal = null;
             return;
         }
 
         NativeWorld target = ModdedDimensionManager.level(server, primary);
         if (target == null) {
+            if (ModdedStartup.dimensionsRestored()) {
+                refuseLogins(server, primary);
+            }
             return;
         }
+        loginRefusal = null;
         NativeWorld overworld = server.overworld();
         if (NativeDimensionRuntime.sameWorld(target, overworld)) {
             return;
@@ -114,5 +139,35 @@ public final class ModdedPrimaryWorldRouter {
                 ModdedIrisLog.error("Iris failed to route player {} to primary world '{}'", id, primary, e);
             }
         });
+    }
+
+    /**
+     * Players left in the overworld would generate the terrain the primary Iris world was configured to replace, so a
+     * primary world that did not load refuses every player instead.
+     */
+    private static void refuseLogins(NativeModdedServer server, String primary) {
+        String refusal = "Iris primary world '" + primary + "' is not loaded, so this server refuses players."
+                + " An operator has to check the server console.";
+        if (loginRefusal == null) {
+            for (String line : GenerationRefusalNotice.compose(
+                    "Iris refused player logins: primary world '" + primary + "' is not loaded",
+                    List.of("routePlayersToPrimaryWorld sends players to '" + primary
+                            + "', which did not load at startup."),
+                    List.of(
+                            "Players are disconnected instead of playing in the overworld, so no chunks are"
+                                    + " written there.",
+                            "Fix the dimension (see the Iris errors above) or clear primaryWorld in"
+                                    + " config/irisworldgen/modded.json, then start the server again."
+                    ))) {
+                ModdedIrisLog.error(line);
+            }
+        }
+        loginRefusal = refusal;
+        List<NativeProtocolPlayer> online = new ArrayList<>();
+        // Disconnecting removes the player from the list being walked, so collect first.
+        server.forEachPlayer(online::add);
+        for (NativeProtocolPlayer player : online) {
+            player.disconnect(refusal);
+        }
     }
 }

@@ -372,8 +372,7 @@ public final class BukkitWorldConfiguration {
                         + "\" is not a string.");
             }
             String configuredGenerator = generator.trim();
-            if (!configuredGenerator.equalsIgnoreCase("Iris")
-                    && !configuredGenerator.regionMatches(true, 0, "Iris:", 0, 5)) {
+            if (!isIrisGenerator(configuredGenerator)) {
                 continue;
             }
 
@@ -393,6 +392,35 @@ public final class BukkitWorldConfiguration {
             candidates.add(new IrisWorldCandidate(configuredName, namespacedKey, configuredGenerator));
         }
         return candidates;
+    }
+
+    /**
+     * True when any bukkit.yml world names Iris as its generator, vanilla slots included. CraftServer asks a plugin
+     * for a generator only for these worlds, so they are the ones a disabled Iris would hand to vanilla.
+     */
+    public static boolean configuresIrisGenerator(File configurationFile) throws IOException {
+        Path configurationPath = Objects.requireNonNull(configurationFile, "configurationFile").toPath();
+        if (!Files.exists(configurationPath, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        synchronized (MUTATION_LOCK) {
+            ConfigurationSection worlds = load(configurationFile).getConfigurationSection("worlds");
+            if (worlds == null) {
+                return false;
+            }
+            for (String worldName : worlds.getKeys(false)) {
+                if (worlds.get(worldName + ".generator") instanceof String generator
+                        && isIrisGenerator(generator.trim())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    private static boolean isIrisGenerator(String configuredGenerator) {
+        return configuredGenerator.equalsIgnoreCase("Iris")
+                || configuredGenerator.regionMatches(true, 0, "Iris:", 0, 5);
     }
 
     public static GeneratorReplacement replaceIfMatching(

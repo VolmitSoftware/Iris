@@ -18,6 +18,7 @@
 
 package art.arcane.iris.world;
 
+import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -46,6 +47,11 @@ final class IrisFailClosedChunkGenerator extends ChunkGenerator {
     static IrisFailClosedChunkGenerator startupLock(String worldName, String denialReason) {
         return new IrisFailClosedChunkGenerator("Iris generation for '" + worldName
                 + "' remains locked: " + denialReason);
+    }
+
+    static IrisFailClosedChunkGenerator refused(String worldName, Throwable failure) {
+        return new IrisFailClosedChunkGenerator("Iris refuses to generate '" + worldName + "': "
+                + GenerationRefusalNotice.summary(failure));
     }
 
     @Override

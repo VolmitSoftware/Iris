@@ -32,7 +32,6 @@ import art.arcane.iris.world.IrisStartupValidation;
 import art.arcane.iris.world.IrisStartupAdmissionListener;
 import art.arcane.iris.world.BukkitWorldReconciler;
 import art.arcane.iris.world.IrisWorldGeneratorResolver;
-import art.arcane.iris.world.IrisWorldStorage;
 import art.arcane.iris.world.PendingWorldDeleteQueue;
 import art.arcane.iris.world.PendingWorldReplacementManager;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
@@ -200,6 +199,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private final AtomicBoolean terminalCleanupCompleted = new AtomicBoolean(false);
     private final AtomicBoolean runtimeTeardownFailed = new AtomicBoolean(false);
     private volatile boolean generatorDrainCompleted;
+    private volatile boolean enableFailed;
     private volatile PlaceholderRegistration papiRegistration;
     private volatile IrisPapiListener papiListener;
     private volatile IrisPapiState papiState;
@@ -613,21 +613,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         return plugin == null ? ComponentLog.discriminator("Iris", "&a") : plugin.getTag();
     }
 
-    /**
-     * @return false when the bootstrap was aborted (unsupported server version); the caller
-     * must bail out of onEnable without touching any further setup.
-     */
-    private boolean enable() {
-        if (!INMS.isBound()) {
-            Throwable bindFailure = INMS.bindFailure();
-            Iris.error("Iris cannot start: " + (bindFailure == null
-                    ? "no NMS binding is available for this server version."
-                    : bindFailure.getMessage()));
-            // Deferred one tick: disablePlugin from inside onEnable re-enters onDisable
-            // synchronously and the loader then continues registering the half-enabled plugin.
-            J.s(() -> Bukkit.getPluginManager().disablePlugin(this), 1);
-            return false;
-        }
+    private void enable() {
         EnableTimings timings = new EnableTimings();
         alreadyDrained.set(false);
         postStopFinisherStarted.set(false);
@@ -768,6 +754,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
 
         J.s(() -> {
+            generatorResolver.markServerRunning();
             pendingWorldReplacements.captureVanillaLevelContext();
             pendingWorldReplacements.verifyLoadedPublishedWorlds();
             J.a(this::bstats);
@@ -788,7 +775,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         });
         timings.mark("startupTasks");
         timings.report();
-        return true;
     }
 
     private static final class EnableTimings {
@@ -910,20 +896,23 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onEnable() {
-        IrisPlatforms.bind(new BukkitPlatform());
+        enableFailed = false;
         IrisStartupValidation.begin();
         Bukkit.getPluginManager().registerEvents(new IrisStartupAdmissionListener(), this);
-        Bukkit.getPluginManager().registerEvents(pendingWorldReplacements, this);
-        pendingWorldReplacements.registerPlatformEntryListener();
-        boolean enabled;
         try {
-            enabled = enable();
+            IrisPlatforms.bind(new BukkitPlatform());
+            Bukkit.getPluginManager().registerEvents(pendingWorldReplacements, this);
+            pendingWorldReplacements.registerPlatformEntryListener();
+            if (!INMS.isBound()) {
+                refuseUnsupportedServer();
+                return;
+            }
+            enable();
         } catch (Throwable failure) {
-            refuseVanillaFallback(failure);
-            throw failure;
-        }
-        if (!enabled) {
-            refuseVanillaFallback(null);
+            if (!FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent())) {
+                throw failure;
+            }
+            enableFailed = true;
             return;
         }
         BukkitGuiHost.install();
@@ -939,51 +928,28 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         reportLockedRuntime();
     }
 
+    private void refuseUnsupportedServer() {
+        Throwable bindFailure = INMS.bindFailure();
+        IllegalStateException failure = new IllegalStateException("Iris cannot start: " + (bindFailure == null
+                ? "no NMS binding is available for this server version."
+                : bindFailure.getMessage()), bindFailure);
+        if (FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent())) {
+            enableFailed = true;
+            return;
+        }
+        Iris.error(failure.getMessage());
+        // Deferred one tick: disablePlugin from inside onEnable re-enters onDisable
+        // synchronously and the loader then continues registering the half-enabled plugin.
+        J.s(() -> Bukkit.getPluginManager().disablePlugin(this), 1);
+    }
+
     private static void reportLockedRuntime() {
         String denial = IrisStartupValidation.denialReason().orElse(null);
         if (denial == null) {
             return;
         }
-        boolean managedStorage;
-        try {
-            managedStorage = IrisWorldStorage.hasManagedWorldStorage(IrisWorldStorage.levelRoot());
-        } catch (Throwable unavailable) {
-            Iris.reportError("Could not inspect Iris world storage while reporting the locked runtime.", unavailable);
-            managedStorage = false;
-        }
-        for (String line : RuntimeLockNotice.compose(denial, managedStorage)) {
+        for (String line : RuntimeLockNotice.compose(denial, FailedEnableLock.irisWorldsPresent())) {
             Iris.error(line);
-        }
-    }
-
-    /**
-     * Stops a server whose Iris worlds would otherwise be generated by the vanilla generator.
-     * <p>
-     * A disabled Iris gets no {@code getDefaultWorldGenerator} call at all, so the server falls back to
-     * vanilla for every world bukkit.yml points at Iris and writes vanilla terrain into their region files.
-     * There is no Bukkit API that refuses a world at that point, so the server is stopped instead. This is
-     * damage control, not prevention: level creation runs in the same startup step that enables plugins, so
-     * spawn chunks of the affected worlds can still be written before the stop takes effect. The prevention
-     * lives in IrisBootstrap, which refuses startup before any level is created.
-     */
-    private static void refuseVanillaFallback(Throwable failure) {
-        File levelRoot;
-        try {
-            levelRoot = IrisWorldStorage.levelRoot();
-        } catch (Throwable unavailable) {
-            return;
-        }
-        if (!IrisWorldStorage.hasManagedWorldStorage(levelRoot)) {
-            return;
-        }
-        Iris.error("Iris did not enable and this server has Iris worlds; stopping the server before they generate vanilla terrain.");
-        if (failure != null) {
-            Iris.reportError("Iris enable failed", failure);
-        }
-        try {
-            Bukkit.shutdown();
-        } catch (Throwable unavailable) {
-            Iris.error("Could not stop the server: " + unavailable.getClass().getSimpleName());
         }
     }
 
@@ -1014,7 +980,9 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
         IrisLanguage.shutdown();
         teardownPapi();
-        boolean serverStopping = IrisToolbelt.isServerStopping();
+        // A failed enable left no generator for Paper's shutdown to close, so it tears down the way a failed
+        // enable always did instead of deferring to the post-stop finisher.
+        boolean serverStopping = !enableFailed && IrisToolbelt.isServerStopping();
         boolean restartingAtStartupBoundary = startupBoundaryRestart.get();
         if (restartingAtStartupBoundary) {
             teardownRuntime("startup-boundary-restart", 30L);
@@ -1455,6 +1423,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     @Override
     public ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, @Nullable String id) {
         return generatorResolver.resolveDefaultWorldGenerator(worldName, id);
+    }
+
+    public ChunkGenerator requireWorldGenerator(String worldName, String id) {
+        return generatorResolver.requireWorldGenerator(worldName, id);
     }
 
     public void splash() {

@@ -47,6 +47,7 @@ import art.arcane.iris.world.history.GenerationHistoryPaths;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
 import art.arcane.iris.world.history.GenerationRegistryContract;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
+import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
 import art.arcane.iris.world.task.J;
@@ -90,6 +91,7 @@ public final class IrisWorldGeneratorResolver {
     private final AtomicBoolean externalContentRefreshQueued = new AtomicBoolean();
     private final AtomicBoolean externalContentRefreshRequested = new AtomicBoolean();
     private final Map<Path, PendingSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
+    private volatile boolean serverRunning;
 
     public IrisWorldGeneratorResolver(VolmitPlugin plugin) {
         this.plugin = plugin;
@@ -480,12 +482,28 @@ public final class IrisWorldGeneratorResolver {
         return fallback.get();
     }
 
+    /**
+     * The generator CraftServer asks for. Paper turns a throw or a null here into the vanilla generator, so every
+     * request aimed at an Iris world gets a generator back: the Iris one, or a fail-closed one that refuses to let
+     * the level be created. Only the PlotSquared discovery sentinel, which is never created, gets null.
+     */
     @Nullable
     public ChunkGenerator resolveDefaultWorldGenerator(String worldName, @Nullable String id) {
         if (isPlotSquaredGeneratorDiscoveryProbe(worldName, id)) {
             Iris.debug("Ignoring PlotSquared generator discovery probe");
             return null;
         }
+        try {
+            return requireWorldGenerator(worldName, id);
+        } catch (Throwable failure) {
+            return refuseWorld(worldName, failure);
+        }
+    }
+
+    /**
+     * Resolution for Iris' own loads, which report a failure per world instead of handing it to CraftServer.
+     */
+    public ChunkGenerator requireWorldGenerator(String worldName, @Nullable String id) {
         if (isGeneratorDiscoveryProbe(worldName, id)) {
             Iris.debug("Generator discovery probe for loaded world " + worldName);
             return IrisFailClosedChunkGenerator.discoveryProbe(worldName);
@@ -505,22 +523,56 @@ public final class IrisWorldGeneratorResolver {
             return startupLock;
         }
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
-        if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
-        Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
+        String dimension = id == null || id.isEmpty() ? IrisSettings.get().getGenerator().getDefaultWorldType() : id;
+        Iris.debug("Generator ID: " + dimension + " requested by bukkit/plugin");
 
         File levelRoot = IrisWorldStorage.levelRoot();
         NamespacedKey worldKey = configuredWorldKey(worldName, levelRoot.getName(), levelRoot);
         requireWorldKeyAvailable(worldName, worldKey);
         requireOwnedWorld(worldName, levelRoot, worldKey);
+        return resolveFrozenWorldGenerator(worldName, dimension);
+    }
 
+    /**
+     * Startup worlds are created before the first server tick; anything asked for after it is a runtime load.
+     */
+    public void markServerRunning() {
+        serverRunning = true;
+    }
+
+    private ChunkGenerator refuseWorld(String worldName, Throwable failure) {
+        ChunkGenerator refused = IrisFailClosedChunkGenerator.refused(worldName, failure);
         try {
-            return resolveFrozenWorldGenerator(worldName, id);
-        } catch (RuntimeException failure) {
-            Iris.reportError("Refusing to load configured Iris world '" + worldName
-                    + "' because its frozen world-local pack snapshot could not be used.", failure);
-            Bukkit.shutdown();
-            throw failure;
+            for (String line : refusalNotice(worldName, refusalKey(worldName), failure, serverRunning)) {
+                Iris.error(line);
+            }
+            Iris.reportError(failure);
+        } catch (Throwable loggingFailure) {
+            failure.addSuppressed(loggingFailure);
+            failure.printStackTrace(System.err);
         }
+        return refused;
+    }
+
+    private static String refusalKey(String worldName) {
+        try {
+            return messageWorldKey(worldName, IrisWorldStorage.levelRoot().getName()).toString();
+        } catch (Throwable unresolved) {
+            return "unresolved key";
+        }
+    }
+
+    static List<String> refusalNotice(String worldName, String worldKey, Throwable failure, boolean serverRunning) {
+        return GenerationRefusalNotice.compose(
+                "Iris refused to generate world '" + worldName + "' (" + worldKey + ")",
+                GenerationRefusalNotice.causes(failure),
+                List.of(
+                        "Iris does not generate this world and does not let vanilla or any other generator"
+                                + " write it; no chunks are written.",
+                        serverRunning
+                                ? "The world does not load; the server keeps running. Fix the cause, then load it again."
+                                : "Server startup stops before this world loads. Fix the cause, then start the server again."
+                ));
     }
 
     @Nullable

@@ -106,6 +106,11 @@ public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public int inFlightChunks() {
+        return method.inFlightChunks();
+    }
+
+    @Override
     public Mantle getMantle() {
         return method.getMantle();
     }

@@ -302,7 +302,8 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
 
     public record PregenProgress(double percent, long generated, long totalChunks, double chunksPerSecond,
                                  double overallChunksPerSecond, double thirtySecondChunksPerSecond,
-                                 double sixtySecondChunksPerSecond, long chunksRemaining, long eta, long elapsed,
+                                 double sixtySecondChunksPerSecond, long chunksRemaining, long chunksInFlight,
+                                 long eta, long elapsed,
                                  String method, boolean paused, long failed, String worldName, String worldIdentity) {
     }
 
@@ -322,6 +323,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
                 Math.max(0D, lastThirtySecondChunksPerSecond),
                 Math.max(0D, lastSixtySecondChunksPerSecond),
                 Math.max(0L, lastChunksRemaining),
+                pregenerator.getInFlightChunks(),
                 lastEta,
                 lastElapsed,
                 lastMethod,

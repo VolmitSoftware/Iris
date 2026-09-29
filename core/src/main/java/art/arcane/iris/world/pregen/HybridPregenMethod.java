@@ -99,6 +99,11 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public int inFlightChunks() {
+        return inWorld.inFlightChunks();
+    }
+
+    @Override
     public Mantle getMantle() {
         return inWorld.getMantle();
     }

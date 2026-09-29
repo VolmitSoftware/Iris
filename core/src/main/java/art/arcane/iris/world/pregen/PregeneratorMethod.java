@@ -95,5 +95,9 @@ public interface PregeneratorMethod {
     default void reclaimMemory() {
     }
 
+    default int inFlightChunks() {
+        return 0;
+    }
+
     Mantle getMantle();
 }

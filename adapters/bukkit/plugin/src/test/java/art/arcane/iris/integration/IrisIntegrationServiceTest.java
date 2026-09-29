@@ -49,6 +49,7 @@ public class IrisIntegrationServiceTest {
                         100L,
                         200L,
                         100L,
+                        48L,
                         8D,
                         2_000L,
                         5_000L,
@@ -64,6 +65,8 @@ public class IrisIntegrationServiceTest {
                 IntegrationMetricSchema.IRIS_LOADED_CHUNKS,
                 IntegrationMetricSchema.IRIS_CHUNKS_GENERATED_TOTAL,
                 IntegrationMetricSchema.IRIS_PREGEN_THROUGHPUT,
+                IntegrationMetricSchema.IRIS_PREGEN_QUEUE,
+                IntegrationMetricSchema.IRIS_PREGEN_REMAINING,
                 IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS,
                 "iris.unsupported"
         ));
@@ -73,6 +76,8 @@ public class IrisIntegrationServiceTest {
         assertEquals(20D, value(samples, IntegrationMetricSchema.IRIS_LOADED_CHUNKS), 0D);
         assertEquals(50D, value(samples, IntegrationMetricSchema.IRIS_CHUNKS_GENERATED_TOTAL), 0D);
         assertEquals(8D, value(samples, IntegrationMetricSchema.IRIS_PREGEN_THROUGHPUT), 0D);
+        assertEquals(48D, value(samples, IntegrationMetricSchema.IRIS_PREGEN_QUEUE), 0D);
+        assertEquals(100D, value(samples, IntegrationMetricSchema.IRIS_PREGEN_REMAINING), 0D);
         assertEquals(4D, value(samples, IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS), 0D);
         assertFalse(samples.get("iris.unsupported").available());
         assertEquals("unsupported-key", samples.get("iris.unsupported").message());
@@ -84,9 +89,32 @@ public class IrisIntegrationServiceTest {
         assertEquals("minecraft:overworld", overworld.scopeId());
         assertEquals(1D, value(overworld.samples(), IntegrationMetricSchema.IRIS_PREGEN_ACTIVE), 0D);
         assertEquals(8D, value(overworld.samples(), IntegrationMetricSchema.IRIS_PREGEN_THROUGHPUT), 0D);
+        assertEquals(48D, value(overworld.samples(), IntegrationMetricSchema.IRIS_PREGEN_QUEUE), 0D);
+        assertEquals(100D, value(overworld.samples(), IntegrationMetricSchema.IRIS_PREGEN_REMAINING), 0D);
         assertEquals("minecraft:the_nether", nether.scopeId());
         assertEquals(0D, value(nether.samples(), IntegrationMetricSchema.IRIS_PREGEN_ACTIVE), 0D);
         assertFalse(nether.samples().get(IntegrationMetricSchema.IRIS_PREGEN_QUEUE).available());
+        assertFalse(nether.samples().get(IntegrationMetricSchema.IRIS_PREGEN_REMAINING).available());
+    }
+
+    @Test
+    public void idleWorldsPublishGenerationTimingsAsUnavailable() {
+        long now = System.currentTimeMillis();
+        EngineTelemetrySnapshot idle = new EngineTelemetrySnapshot(
+                now, "minecraft:overworld", "world", "dimension", true, false, false, false,
+                12L, 3L, 0.25D, 20L, 20L, 0D, 0L, 2, 0, 1L, 4L, 1L, 10D, Map.of());
+        IrisIntegrationService service = new IrisIntegrationService(
+                () -> telemetry(List.of(idle), IrisTelemetrySnapshot.PregenSnapshot.INACTIVE, now)
+        );
+
+        IntegrationMetricSample total = service.sampleMetrics(Set.of(IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS))
+                .get(IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS);
+        IntegrationMetricSample worldTotal = service.metricGroups().get(0).samples()
+                .get(IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS);
+
+        assertFalse(total.available());
+        assertEquals("timing-not-available", total.message());
+        assertFalse(worldTotal.available());
     }
 
     @Test

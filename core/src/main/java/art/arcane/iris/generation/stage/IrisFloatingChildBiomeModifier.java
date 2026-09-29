@@ -21,6 +21,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.decoration.FloatingDecorator;
 import art.arcane.iris.generation.decoration.IrisSeaSurfaceDecorator;
@@ -100,6 +101,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 try {
                     generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.getZoom(), j, (wz - j) / layer.getZoom(), data));
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                 }
             }
@@ -345,6 +347,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
                             FloatingDecorator.decorateColumn(getEngine(), target, IrisDecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
+                            GenerationFailures.rethrowEngineFailure(e);
                             IrisLogging.reportError(e);
                         }
                     }
@@ -377,6 +380,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                         try {
                             seaSurfaceDecorator.decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, output, target, fluidTopY, chunkHeight);
                         } catch (Throwable e) {
+                            GenerationFailures.rethrowEngineFailure(e);
                             IrisLogging.reportError(e);
                         }
                     }
@@ -432,6 +436,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 context.floatingBiomes(chunkHeight).record(wx & 15, y, wz & 15, matter.identity());
             }
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             IrisLogging.reportError(e);
         }
     }

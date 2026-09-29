@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
@@ -365,7 +366,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
             }
             if (!refresh) {
                 if (closed || prepared == null) {
-                    loading.result.completeExceptionally(new IllegalStateException("Saved biome runtime is closed."));
+                    loading.result.completeExceptionally(new GenerationClosedException("Saved biome runtime is closed."));
                 } else {
                     loading.result.complete(prepared);
                 }
@@ -480,7 +481,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
 
     private void requireOpen() {
         if (closed) {
-            throw new IllegalStateException("Saved biome runtime is closed.");
+            throw new GenerationClosedException("Saved biome runtime is closed.");
         }
     }
 

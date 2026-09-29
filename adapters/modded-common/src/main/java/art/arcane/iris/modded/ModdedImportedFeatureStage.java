@@ -25,6 +25,7 @@ import art.arcane.volmlib.nativelib.terrain.feature.NativeFeatureTable;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedImportedFeatures;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.structure.nativegen.NativeFeatureGenerationPolicy;
 import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
@@ -163,6 +164,7 @@ final class ModdedImportedFeatureStage implements NativeModdedGeneratorPolicy.Fe
         try {
             control = NativeFeatureGenerationPolicy.control(engine);
         } catch (RuntimeException error) {
+            GenerationFailures.rethrowEngineFailure(error);
             ModdedIrisLog.error("Iris could not read importedFeatures for this dimension; features off: {}",
                     error.toString(), error);
             markInert(runtimeIdentity, generation);
@@ -177,6 +179,7 @@ final class ModdedImportedFeatureStage implements NativeModdedGeneratorPolicy.Fe
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             built = nativeFeatures.buildTable(new ModdedImportedFeaturePolicy(engine), control, generation);
         } catch (Throwable error) {
+            GenerationFailures.rethrowEngineFailure(error);
             ModdedIrisLog.error("Iris importedFeatures is off for {}: feature table construction failed: {}",
                     dimensionKey(engine), error.toString(), error);
             markInert(runtimeIdentity, generation);

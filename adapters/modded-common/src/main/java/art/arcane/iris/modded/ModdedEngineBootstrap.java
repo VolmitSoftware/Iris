@@ -79,6 +79,8 @@ import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 
 import java.util.ArrayDeque;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ModdedEngineBootstrap {
     private static final String[] CORE_SELF_TEST_CLASSES = {
@@ -87,12 +89,17 @@ public final class ModdedEngineBootstrap {
         "art.arcane.iris.pack.loading.IrisData"
     };
     private static final Object LOCK = new Object();
+    private static final Object STOP_LOCK = new Object();
+    private static final AtomicBoolean EXIT_FLUSH_REGISTERED = new AtomicBoolean();
+    private static final long EXIT_FLUSH_SERVER_WAIT_SECONDS = 30L;
     private static final ModdedServiceManager UNBOUND_SERVICE_MANAGER = new ModdedServiceManager();
     private static volatile NativeModdedLoader loader;
     private static volatile BoundRuntime runtime;
     private static volatile NativeModdedServer currentServer;
     private static volatile NativeModdedServer spawnCaptureServer;
     private static volatile boolean initialSpawnWasDefault;
+    private static volatile boolean stoppedPending;
+    private static volatile Thread stoppingThread;
 
     private ModdedEngineBootstrap() {
     }
@@ -119,10 +126,12 @@ public final class ModdedEngineBootstrap {
     }
 
     public static void start(NativeModdedServer server) {
+        finishPreviousServer("server start");
+        registerExitFlush();
         captureInitialSpawn(server);
         currentServer = server;
         bind();
-        // Pair of the stop() burst-pools stage. Load-bearing on integrated servers: once
+        // Pair of the stopped() burst-pools stage. Load-bearing on integrated servers: once
         // closed, MultiBurst falls back to a same-thread executor, so a second world load
         // without reopen() would silently run every burst inline.
         MultiBurst.burst.reopen();
@@ -150,6 +159,7 @@ public final class ModdedEngineBootstrap {
     }
 
     public static void serverAboutToStart(NativeModdedServer server) {
+        finishPreviousServer("server start");
         captureInitialSpawn(server);
         ModdedStartup.prepareForStartup();
     }
@@ -180,20 +190,16 @@ public final class ModdedEngineBootstrap {
         try {
             generator.unbindEngine(world);
         } catch (Throwable exception) {
+            // Never propagate into the loader's unload loop: a throw there skips closing every later level. A
+            // runtime dimension removal retries the eviction itself and fails with the retained mapping.
             ModdedIrisLog.error("Iris engine unload failed for {}", world.name(), exception);
-            if (exception instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            if (exception instanceof Error fatalError) {
-                throw fatalError;
-            }
-            throw new IllegalStateException("Iris engine unload failed for "
-                    + world.name(), exception);
         }
     }
 
     public static void stop() {
         NativeModdedServer stoppingServer = currentServer;
+        stoppingThread = Thread.currentThread();
+        stoppedPending = true;
         Throwable failure = null;
         failure = runStopStage(failure, "pack downloads", IrisModdedCommands::shutdownDownloads);
         failure = runStopStage(failure, "world check", () -> ModdedWorldCheck.serverStopped(stoppingServer));
@@ -205,6 +211,62 @@ public final class ModdedEngineBootstrap {
         failure = runStopStage(failure, "studio commands", ModdedStudioCommands::clear);
         failure = runStopStage(failure, "gui host", ModdedGuiHost::clear);
         failure = runStopStage(failure, "services", () -> services().disableAll());
+        reportStopFailure("stopping", failure);
+    }
+
+    /**
+     * The loaders still drain queued chunk generation after server stopping and only close levels afterwards, so
+     * engines, their mantle and generation history, and the generation pools stay open until the server stopped.
+     * Engines of unloaded levels are already closed by {@link #levelUnloaded}; this closes whatever remains.
+     * Fabric fires it at the tail of stopServer, so a throw there skips it: the next server start or the JVM
+     * exit runs it instead.
+     */
+    public static void stopped() {
+        synchronized (STOP_LOCK) {
+            stoppedPending = false;
+            stoppingThread = null;
+            closeStoppedServer();
+        }
+    }
+
+    private static void finishPreviousServer(String trigger) {
+        synchronized (STOP_LOCK) {
+            if (!stoppedPending) {
+                return;
+            }
+            ModdedIrisLog.warn("Iris closing the engines the previous server left open ({})", trigger);
+            stopped();
+        }
+    }
+
+    private static void registerExitFlush() {
+        if (EXIT_FLUSH_REGISTERED.compareAndSet(false, true)) {
+            Runtime.getRuntime().addShutdownHook(new Thread(ModdedEngineBootstrap::flushAtExit, "Iris Exit Flush"));
+        }
+    }
+
+    private static void flushAtExit() {
+        if (!stoppedPending) {
+            return;
+        }
+        Thread serverThread = stoppingThread;
+        if (serverThread != null && serverThread != Thread.currentThread()) {
+            try {
+                serverThread.join(TimeUnit.SECONDS.toMillis(EXIT_FLUSH_SERVER_WAIT_SECONDS));
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            if (serverThread.isAlive()) {
+                ModdedIrisLog.warn("Iris skipped its exit flush: the server thread is still stopping");
+                return;
+            }
+        }
+        finishPreviousServer("JVM exit");
+    }
+
+    private static void closeStoppedServer() {
+        Throwable failure = null;
         failure = runStopStage(failure, "world engines", ModdedWorldEngines::shutdown);
         failure = runStopStage(failure, "primary world router", ModdedPrimaryWorldRouter::clear);
         failure = runStopStage(failure, "dimension manager", ModdedDimensionManager::clear);
@@ -226,10 +288,14 @@ public final class ModdedEngineBootstrap {
             spawnCaptureServer = null;
             initialSpawnWasDefault = false;
         });
+        reportStopFailure("stopped", failure);
+    }
+
+    private static void reportStopFailure(String phase, Throwable failure) {
         if (failure != null) {
             // The shutdown path must not propagate: propagating aborts the remaining loader stop handlers and
             // can leave the level unsaved. Every stage already logged its own failure.
-            ModdedIrisLog.error("Iris modded shutdown completed with failures", failure);
+            ModdedIrisLog.error("Iris modded shutdown ({}) completed with failures", phase, failure);
         }
     }
 

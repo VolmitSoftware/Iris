@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.pack.value.IrisDirection;
 import art.arcane.iris.pack.value.IrisPosition;
 
@@ -450,6 +451,7 @@ public class IrisObjectRotation {
                 }
             }
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             IrisLogging.reportError(e);
 
         }

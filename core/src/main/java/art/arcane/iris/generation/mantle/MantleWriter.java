@@ -29,6 +29,7 @@ import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.world.WorldMaintenance;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
@@ -1495,6 +1496,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         try {
             setData(pos.getX(), pos.getY(), pos.getZ(), data);
         } catch (Throwable e) {
+            GenerationFailures.rethrowEngineFailure(e);
             // Reached per position while an object writes past the edge of the writer window, which is
             // how a large object is clipped. Nothing here is actionable from outside the engine.
             IrisLogging.debug("No set? " + data.toString() + " for " + pos.toString());

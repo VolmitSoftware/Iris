@@ -16,6 +16,7 @@ public final class ModdedLifecycleCallbacks {
                 ModdedEngineBootstrap::start,
                 ModdedEngineBootstrap::serverStarted,
                 ModdedEngineBootstrap::stop,
+                ModdedEngineBootstrap::stopped,
                 ModdedEngineBootstrap::levelLoaded,
                 ModdedEngineBootstrap::levelUnloaded,
                 ModdedProtocolHandler::onPlayerJoin,

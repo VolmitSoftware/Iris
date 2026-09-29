@@ -86,6 +86,8 @@ import java.util.function.Supplier;
 @Data
 public class IrisEngine implements Engine {
     static final long SESSION_DRAIN_TIMEOUT_MILLIS = 15000L;
+    private static final long MAINTENANCE_REFUSAL_WARNING_MILLIS = 5000L;
+    private static final AtomicLong lastMaintenanceRefusalWarning = new AtomicLong();
 
     private final AtomicInteger bud;
     private final AtomicInteger buds;
@@ -1083,10 +1085,10 @@ public class IrisEngine implements Engine {
                 throw new IllegalArgumentException("Generation runtime binding belongs to a different Iris engine.");
             }
             if (retiringGenerationRuntimes.contains(required.runtime)) {
-                throw new IllegalStateException("Iris generation runtime binding is retiring.");
+                throw new GenerationClosedException("Iris generation runtime binding is retiring.");
             }
             if (!isGenerationRuntimeBindingLive(required)) {
-                throw new IllegalStateException("Iris generation runtime binding is closed or no longer owned.");
+                throw new GenerationClosedException("Iris generation runtime binding is closed or no longer owned.");
             }
             return threadState.open(required);
         }
@@ -1485,6 +1487,9 @@ public class IrisEngine implements Engine {
     @Override
     public void generate(int x, int z, Hunk<NativeBlockState> vblocks, Hunk<NativeBiome> vbiomes, boolean multicore) throws WrongEngineBroException {
         awaitGenerationCacheWarm();
+        if (platformHooks.shouldRefuseGeneration(this)) {
+            refuseMaintenanceGeneration(x >> 4, z >> 4);
+        }
         try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
                      openGenerationHistoryCoordinateScope(x, z);
              GenerationSessionLease lease = acquireGenerationLease("chunk_generate");
@@ -1505,20 +1510,17 @@ public class IrisEngine implements Engine {
                 activeMode.generate(x, z, blocks, vbiomes, multicore, lease.sessionId());
             }
 
-            boolean skipRealFlag = platformHooks.shouldBypassMantleStages(this);
-            if (!skipRealFlag) {
-                MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
-                try {
-                    synchronized (chunk) {
-                        Matter section = chunk.get(0);
-                        if (section != null) {
-                            section.deleteSlice(ObjectContinuationBundle.class);
-                        }
-                        chunk.flag(MantleFlag.REAL, true);
+            MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
+            try {
+                synchronized (chunk) {
+                    Matter section = chunk.get(0);
+                    if (section != null) {
+                        section.deleteSlice(ObjectContinuationBundle.class);
                     }
-                } finally {
-                    chunk.release();
+                    chunk.flag(MantleFlag.REAL, true);
                 }
+            } finally {
+                chunk.release();
             }
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
@@ -1536,6 +1538,17 @@ public class IrisEngine implements Engine {
             }
             throw new WrongEngineBroException("Failed to generate chunk at " + x + ", " + z + ".", e);
         }
+    }
+
+    private void refuseMaintenanceGeneration(int chunkX, int chunkZ) throws GenerationSessionException {
+        long now = System.currentTimeMillis();
+        long last = lastMaintenanceRefusalWarning.get();
+        if (now - last >= MAINTENANCE_REFUSAL_WARNING_MILLIS && lastMaintenanceRefusalWarning.compareAndSet(last, now)) {
+            IrisLogging.warn("Iris refused chunk " + chunkX + "," + chunkZ + " in " + getWorld().name()
+                    + ": world maintenance forbids mantle generation, the chunk stays ungenerated");
+        }
+        throw new GenerationSessionException("Iris refused chunk " + chunkX + "," + chunkZ + " in "
+                + getWorld().name() + " during world maintenance.", true);
     }
 
     @Override
@@ -1682,7 +1695,7 @@ public class IrisEngine implements Engine {
 
     void requireRunning(String operation) {
         if (closed || closing.get() || lifecycleState != LifecycleState.RUNNING || runtime == null) {
-            throw new IllegalStateException("Cannot " + operation + " while Iris engine " + getWorld().name()
+            throw new GenerationClosedException("Cannot " + operation + " while Iris engine " + getWorld().name()
                     + " is " + lifecycleState.name().toLowerCase() + ".");
         }
     }

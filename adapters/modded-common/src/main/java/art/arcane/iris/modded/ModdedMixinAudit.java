@@ -40,29 +40,31 @@ import java.util.function.BooleanSupplier;
  * references and is safe on a dedicated server.
  */
 public final class ModdedMixinAudit {
+    private static final String ENTITY_CONFIG = "volmlib.entity.mixins.json";
+    private static final String CLIENT_CONFIG = "volmlib.client.mixins.json";
     private static final AtomicBoolean AUDITED = new AtomicBoolean(false);
 
-    private static final List<ExpectedMixin> EXPECTED = List.of(
-            new ExpectedMixin("EntityPersistenceMixin", "entity",
+    static final List<ExpectedMixin> EXPECTED = List.of(
+            new ExpectedMixin(ENTITY_CONFIG, "EntityPersistenceMixin",
                     NativeMixinTarget.ENTITY, "iris$applyGeneratedPersistence",
                     false, NativeMixinFlags::entityPersistenceRan),
-            new ExpectedMixin("LivingEntityLootMixin", "entity",
+            new ExpectedMixin(ENTITY_CONFIG, "LivingEntityLootMixin",
                     NativeMixinTarget.LIVING_ENTITY, "iris$replaceBaseLoot",
                     false, NativeMixinFlags::livingEntityLootRan),
-            new ExpectedMixin("MobAwarenessMixin", "entity",
+            new ExpectedMixin(ENTITY_CONFIG, "MobAwarenessMixin",
                     NativeMixinTarget.MOB, "iris$tickUnawareMob",
                     false, NativeMixinFlags::mobAwarenessRan),
-            new ExpectedMixin("StructureTemplatePaletteConcurrencyMixin", "common",
+            new ExpectedMixin(ENTITY_CONFIG, "StructureTemplatePaletteConcurrencyMixin",
                     NativeMixinTarget.STRUCTURE_PALETTE,
                     "iris$installConcurrentBlockCache",
                     false, NativeMixinFlags::structureTemplatePaletteRan),
-            new ExpectedMixin("NativeWorldOpenFlowsMixin", "client",
+            new ExpectedMixin(CLIENT_CONFIG, "NativeWorldOpenFlowsMixin",
                     NativeMixinTarget.WORLD_OPEN_FLOWS,
-                    "iris$openWorldCheckWorldStemCompatibility",
+                    "volmlib$openWorldCheckWorldStemCompatibility",
                     true, NativeMixinFlags::worldOpenFlowsRan),
-            new ExpectedMixin("NativeWorldTypeEntryMixin", "client",
+            new ExpectedMixin(CLIENT_CONFIG, "NativeWorldTypeEntryMixin",
                     NativeMixinTarget.WORLD_TYPE_ENTRY,
-                    "iris$describePreset",
+                    "volmlib$describePreset",
                     true, NativeMixinFlags::worldTypeEntryRan));
 
     private ModdedMixinAudit() {
@@ -90,7 +92,7 @@ public final class ModdedMixinAudit {
             if (isApplied(expected)) {
                 applied.add(expected.mixinName() + (expected.ran().getAsBoolean() ? "" : " (not yet exercised)"));
             } else {
-                missing.add(expected.config() + '/' + expected.mixinName() + " -> " + expected.targetClass());
+                missing.add(expected.config() + '/' + expected.mixinName() + " -> " + expected.targetClass().className());
             }
         }
         if (missing.isEmpty()) {
@@ -119,7 +121,7 @@ public final class ModdedMixinAudit {
         }
     }
 
-    private record ExpectedMixin(String mixinName, String config, NativeMixinTarget targetClass, String handlerMethod,
-                                 boolean clientOnly, BooleanSupplier ran) {
+    record ExpectedMixin(String config, String mixinName, NativeMixinTarget targetClass, String handlerMethod,
+                         boolean clientOnly, BooleanSupplier ran) {
     }
 }

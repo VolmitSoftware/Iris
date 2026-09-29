@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.block.B;
+import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
+import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
@@ -13,6 +15,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.hunk.storage.ArrayHunk;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -24,6 +27,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,6 +57,46 @@ public class IrisPerfectionModifierColumnTest {
             }
             assertParity(fixture, source);
         }
+    }
+
+    @Test
+    public void columnExtentTopSearchMatchesFullHeightSearch() {
+        Fixture fixture = new Fixture();
+        Random random = new Random(55031L);
+        NativeBlockState[] palette = {null, fixture.air, fixture.water, fixture.stone,
+                fixture.decorant, fixture.half, fixture.spike(true, false), fixture.spike(false, true)};
+        for (int trial = 0; trial < 8; trial++) {
+            ChunkDataHunkHolder bounded = holder(64);
+            ChunkDataHunkHolder full = holder(64);
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    int top = random.nextInt(64);
+                    for (int y = 0; y <= top; y++) {
+                        NativeBlockState state = y == 0 ? fixture.stone : palette[random.nextInt(palette.length)];
+                        bounded.setRaw(x, y, z, state);
+                        full.setRaw(x, y, z, state);
+                    }
+                }
+            }
+            fixture.modifier.onModify(0, 0, new ColumnExtentListeningHunk<>(bounded, (x, y, z, state) -> {
+            }), false, null);
+            fixture.modifier.onModify(0, 0, full.listen((x, y, z, state) -> {
+            }), false, null);
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int y = 0; y < 64; y++) {
+                        assertSame("voxel " + x + "," + y + "," + z, full.getStoredRaw(x, y, z), bounded.getStoredRaw(x, y, z));
+                    }
+                }
+            }
+        }
+    }
+
+    private static ChunkDataHunkHolder holder(int height) {
+        ChunkGenerator.ChunkData chunk = mock(ChunkGenerator.ChunkData.class);
+        when(chunk.getMinHeight()).thenReturn(0);
+        when(chunk.getMaxHeight()).thenReturn(height);
+        return new ChunkDataHunkHolder(chunk);
     }
 
     @Test

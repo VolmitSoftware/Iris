@@ -391,6 +391,25 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
         return new CoordinateScope(blockX, blockZ, stage.route, stage);
     }
 
+    /**
+     * A coordinate scope for engine reads. Inside another chunk's route whose runtime the thread is bound to, it borrows
+     * that runtime instead of opening a stage: every generation stage binds the active activation, which cannot change
+     * while the route holds its transition participation.
+     */
+    public CoordinateScope openReadScope(int blockX, int blockZ) throws IOException {
+        RuntimeRoute current = scopedRoute.get();
+        if (current != null) {
+            if (current.chunkX() == Math.floorDiv(blockX, GenerationBoundary.CHUNK_SIZE)
+                    && current.chunkZ() == Math.floorDiv(blockZ, GenerationBoundary.CHUNK_SIZE)) {
+                return new CoordinateScope(blockX, blockZ, current, null);
+            }
+            if (current.binding == engine.captureGenerationRuntimeBinding()) {
+                return new CoordinateScope(blockX, blockZ, null, null);
+            }
+        }
+        return openCoordinateScope(blockX, blockZ);
+    }
+
     public void recordNaturalTerrain(SavedTerrainChunk terrain) {
         SavedTerrainChunk captured = Objects.requireNonNull(terrain, "natural terrain");
         RuntimeRoute route = scopedRoute.get();
@@ -501,6 +520,11 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             failure = detachFailure;
         }
         try {
+            history.sync();
+        } catch (Throwable syncFailure) {
+            failure = appendFailure(failure, syncFailure);
+        }
+        try {
             biomes.close();
         } catch (Throwable biomeFailure) {
             failure = appendFailure(failure, biomeFailure);
@@ -550,9 +574,9 @@ public final class GenerationHistoryRuntimeRouter implements AutoCloseable {
             SavedMantleAccess access = acquireSavedMantle(activation, requireEpoch(activation));
             try {
                 Mantle<Matter> mantle = access.mantle();
-                MantleChunk<Matter> anchor = mantle.getChunk(regionX << 5, regionZ << 5).use();
+                MantleChunk<Matter> anchor = mantle.useChunk(regionX << 5, regionZ << 5);
                 try {
-                    TectonicPlate<Matter> plate = mantle.getLoadedRegions().get(Mantle.key(regionX, regionZ));
+                    TectonicPlate<Matter> plate = mantle.getLoadedRegion(regionX, regionZ);
                     HashMap<Long, ObjectContinuationBundle> bundles = new HashMap<>();
                     for (int x = 0; x < 32; x++) {
                         for (int z = 0; z < 32; z++) {

@@ -134,6 +134,33 @@ public class HydrologyPlannerTest {
     }
 
     @Test
+    public void evictedOwnerIsRestoredFromItsPlannedTileWithoutDrafting() {
+        AtomicInteger samples = new AtomicInteger();
+        HydrologyTerrainSampler counted = (int x, int z) -> {
+            samples.incrementAndGet();
+            return EARLY_OWNER_TERRAIN.sample(x, z);
+        };
+        HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, counted);
+        HydrologyTile tile = planner.plan(EARLY_OWNER_TILE);
+        CrossTileResolvedOwner original = tile.resolvedOwner();
+        planner.clearOwnerDrafts();
+        AtomicInteger lookups = new AtomicInteger();
+        planner.usePlannedTiles(key -> {
+            lookups.incrementAndGet();
+            return key.equals(EARLY_OWNER_TILE) ? tile : null;
+        });
+        samples.set(0);
+
+        CrossTileResolvedOwner restored = planner.resolveIndependentOwner(EARLY_OWNER_TILE);
+
+        assertEquals(original, restored);
+        assertEquals(0, samples.get());
+        assertEquals(1, lookups.get());
+        assertSame(restored, planner.resolveIndependentOwner(EARLY_OWNER_TILE));
+        assertEquals(1, lookups.get());
+    }
+
+    @Test
     public void restoringPreparedTileKeepsExistingCanonicalOwner() {
         HydrologyPlanner planner = new HydrologyPlanner(77L, EARLY_OWNER_SETTINGS, EARLY_OWNER_TERRAIN);
         HydrologyTile tile = planner.plan(EARLY_OWNER_TILE);
@@ -378,6 +405,48 @@ public class HydrologyPlannerTest {
             running.remove(alreadyRunning, existing);
             admission.close();
             pool.shutdownNow();
+        }
+    }
+
+    @Test
+    public void earlyOwnersStayInsideTheirScope() throws Exception {
+        org.junit.Assume.assumeTrue(Runtime.getRuntime().availableProcessors() > 2);
+        HydrologyPlannerSettings settings = withPeriodTwo(standardSettings(4D, 2D, true, false, List.of()));
+        HydrologyPlanner planner = new HydrologyPlanner(77L, settings, (x, z) -> blockedTerrain());
+        planner.limitEarlyOwners(key -> key.tileX() >= -1);
+        AutoCloseable admission = earlyAdmission(planner, new HydrologyTileKey(-1, -1));
+        Map<HydrologyTileKey, HydrologyForkJoin.Task<?>> tasks = earlyTasks(admission);
+        Method prepare = admission.getClass().getDeclaredMethod("prepare");
+        prepare.setAccessible(true);
+        CapturingHydrologyPool pool = new CapturingHydrologyPool();
+        try {
+            pool.submit(() -> {
+                prepare.invoke(admission);
+                return null;
+            }).get(5, TimeUnit.SECONDS);
+            assertEquals(List.of(new HydrologyTileKey(0, -1),
+                    new HydrologyTileKey(-1, -2), new HydrologyTileKey(-1, 0),
+                    new HydrologyTileKey(0, -2), new HydrologyTileKey(0, 0)), new ArrayList<>(tasks.keySet()));
+            assertEquals(new ArrayList<>(tasks.values()), pool.submitted);
+        } finally {
+            tasks.clear();
+            admission.close();
+            pool.shutdownNow();
+        }
+        planner.limitEarlyOwners(null);
+        AutoCloseable unlimited = earlyAdmission(planner, new HydrologyTileKey(-1, -1));
+        Map<HydrologyTileKey, HydrologyForkJoin.Task<?>> unlimitedTasks = earlyTasks(unlimited);
+        CapturingHydrologyPool unlimitedPool = new CapturingHydrologyPool();
+        try {
+            unlimitedPool.submit(() -> {
+                prepare.invoke(unlimited);
+                return null;
+            }).get(5, TimeUnit.SECONDS);
+            assertEquals(8, unlimitedTasks.size());
+        } finally {
+            unlimitedTasks.clear();
+            unlimited.close();
+            unlimitedPool.shutdownNow();
         }
     }
 

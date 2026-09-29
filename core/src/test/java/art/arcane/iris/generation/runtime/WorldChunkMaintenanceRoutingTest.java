@@ -58,7 +58,7 @@ public class WorldChunkMaintenanceRoutingTest {
     public void materializesTheSavedOwnerAndKeepsSpawningAfterCompletion() throws Exception {
         try (Fixture fixture = new Fixture()) {
             fixture.schedule();
-            verify(fixture.currentMantle, never()).getChunk(2, -1);
+            verify(fixture.currentMantle, never()).useChunk(2, -1);
             fixture.prepare();
 
             verify(fixture.savedChunk).use();
@@ -285,6 +285,7 @@ public class WorldChunkMaintenanceRoutingTest {
             when(saved.mantle()).thenReturn(savedMantle);
             when(savedMantle.getChunk(2, -1)).thenReturn(savedChunk);
             when(savedChunk.use()).thenReturn(savedChunk);
+            when(savedMantle.useChunk(2, -1)).thenAnswer(invocation -> savedMantle.getChunk(2, -1).use());
             when(savedMantle.isChunkLoaded(2, -1)).thenReturn(true);
             when(savedMantle.hasFlag(2, -1, MantleFlag.ETCHED)).thenAnswer(invocation -> etched.get());
             when(router.openSavedChunkMantle(2, -1)).thenReturn(saved);

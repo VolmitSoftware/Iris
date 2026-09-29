@@ -245,7 +245,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
             return true;
         }
 
-        MantleChunk<Matter> chunk = mantle.getChunk(chunkX, chunkZ).use();
+        MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
         try {
             List<PreparedMarkerSpawn> markers = markerSystemEnabled()
                     ? prepareMarkerSpawns(level, chunkX, chunkZ, chunk) : List.of();
@@ -380,7 +380,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
             return;
         }
 
-        MantleChunk<Matter> chunk = mantle.getChunk(chunkX, chunkZ).use();
+        MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
         try {
             if (markerSystemEnabled()) {
                 spawnPreparedMarkers(level, prepareMarkerSpawns(level, chunkX, chunkZ, chunk), false);

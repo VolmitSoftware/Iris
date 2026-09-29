@@ -20,7 +20,6 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -34,13 +33,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -54,17 +53,56 @@ public class IrisBiomeActuatorCoordinateTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void historicalChunkDoesNotPublishNewPersistentMetadata() {
+    public void historicalStackChunkDoesNotClearPersistentMetadata() {
         Engine engine = mock(Engine.class);
         ChunkContext context = mock(ChunkContext.class);
         IrisComplex complex = mock(IrisComplex.class);
+        when(context.hasDimensionStack()).thenReturn(true);
         when(context.getComplex()).thenReturn(complex);
         when(complex.allowsMantleChunkWrite(0, 0)).thenReturn(false);
 
-        IrisBiomeActuator.publishNaturalMetadata(engine, 0, 0, mock(Hunk.class), context);
+        IrisDimensionStackActuator.clearHostNaturalMetadata(engine, 0, 0, 16, context);
 
         verifyNoMoreInteractions(engine);
+    }
+
+    @Test
+    public void unstackedChunkNeverTouchesTheMantle() {
+        Engine engine = mock(Engine.class);
+        ChunkContext context = mock(ChunkContext.class);
+        when(context.hasDimensionStack()).thenReturn(false);
+
+        IrisDimensionStackActuator.clearHostNaturalMetadata(engine, 0, 0, 16, context);
+
+        verifyNoMoreInteractions(engine);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void actuatorWritesColumnBiomesWithoutMantleMetadata() {
+        bindPlatform();
+        IrisComplex complex = mock(IrisComplex.class);
+        Engine engine = engine(complex);
+        IrisBiomeActuator actuator = new IrisBiomeActuator(engine);
+        Hunk<NativeBiome> output = mock(Hunk.class);
+        when(output.getWidth()).thenReturn(2);
+        when(output.getDepth()).thenReturn(2);
+        when(output.getHeight()).thenReturn(8);
+        ChunkedDataCache<IrisBiome> biomeCache = currentBiomeCache(engine);
+        ChunkContext context = mock(ChunkContext.class);
+        when(context.getComplex()).thenReturn(complex);
+        when(context.getBiome()).thenReturn(biomeCache);
+
+        actuator.onActuate(100, -200, output, false, context);
+
+        NativeBiome plains = IrisPlatforms.get().registries().biome("minecraft:plains");
+        for (int x = 0; x < 2; x++) {
+            for (int z = 0; z < 2; z++) {
+                verify(output).set(x, 0, z, x, 7, z, plains);
+            }
+        }
+        verifyNoInteractions(engine.getMantle().getMantle());
+        verify(IrisPlatforms.get().biomeWriter(), never()).biomeIdFor(anyString());
     }
 
     @Test
@@ -103,19 +141,6 @@ public class IrisBiomeActuatorCoordinateTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void stackedBiomeReplacementRemovesEveryExistingMarkerWithItsTypedSlice() {
-        Mantle<Matter> mantle = mock(Mantle.class);
-
-        IrisBiomeActuator.clearBiomeMatterRange(mantle, 100, -200, 4, 6);
-
-        verify(mantle).remove(100, 4, -200, MatterBiomeInject.class);
-        verify(mantle).remove(100, 5, -200, MatterBiomeInject.class);
-        verify(mantle).remove(100, 6, -200, MatterBiomeInject.class);
-        verifyNoMoreInteractions(mantle);
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
     public void transitionColumnOverlaysFrozenPhysicalKeyAfterCurrentBiome() {
         bindPlatform();
         IrisComplex complex = mock(IrisComplex.class);
@@ -143,11 +168,8 @@ public class IrisBiomeActuatorCoordinateTest {
         verify(biomeCache).get(0, 0);
         verify(IrisPlatforms.get().registries()).biome("iris:old-physical");
         verify(IrisPlatforms.get().biomeWriter(), never()).biomeIdFor("iris:old-physical");
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
-        verify(mantle).set(eq(100), eq(0), eq(-200), argThat(value -> {
-            MatterBiomeInject injection = (MatterBiomeInject) value;
-            return !injection.isCustom() && "iris:old-physical".equals(injection.getBiomeKey());
-        }));
+        verify(output, times(2)).set(0, 0, 0, 0, 0, 0, IrisPlatforms.get().registries().biome("iris:old-physical"));
+        verifyNoInteractions(engine.getMantle().getMantle());
     }
 
     @Test
@@ -184,15 +206,9 @@ public class IrisBiomeActuatorCoordinateTest {
         verify(transitionPlan, never()).historicalPhysicalBiomeKeyAt(anyInt(), anyInt(), anyInt());
         verify(output).set(eq(0), eq(0), eq(0), eq(0), eq(3), eq(0), any(NativeBiome.class));
         verify(output).set(eq(0), eq(4), eq(0), eq(0), eq(7), eq(0), any(NativeBiome.class));
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
-        verify(mantle).set(eq(100), eq(0), eq(-200), argThat(value -> {
-            MatterBiomeInject injection = (MatterBiomeInject) value;
-            return "iris:old-bottom".equals(injection.getBiomeKey());
-        }));
-        verify(mantle).set(eq(100), eq(4), eq(-200), argThat(value -> {
-            MatterBiomeInject injection = (MatterBiomeInject) value;
-            return "iris:old-top".equals(injection.getBiomeKey());
-        }));
+        verify(IrisPlatforms.get().registries()).biome("iris:old-bottom");
+        verify(IrisPlatforms.get().registries()).biome("iris:old-top");
+        verifyNoInteractions(engine.getMantle().getMantle());
     }
 
     @SuppressWarnings("unchecked")

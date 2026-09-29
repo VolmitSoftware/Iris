@@ -54,6 +54,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 
 public class BukkitSpiConformanceTest {
     @BeforeClass
@@ -179,6 +180,23 @@ public class BukkitSpiConformanceTest {
         BlockData data = blockData("iristest:append_block[axis=y]");
         NativeBlockState merged = BukkitBlockState.of(data).withProperty("lit", "true");
         assertEquals("iristest:append_block[axis=y,lit=true]", merged.key());
+    }
+
+    @Test
+    public void withPropertyParsesEachVariantOnce() {
+        String merged = "iristest:memo_leaves[distance=1,persistent=true]";
+        NativeBlockState state = BukkitBlockState.of(blockData("iristest:memo_leaves[distance=1,persistent=false]"));
+
+        NativeBlockState first = state.withProperty("persistent", "true");
+        NativeBlockState second = state.withProperty("persistent", "true");
+
+        assertSame(first, second);
+        assertEquals(merged, first.key());
+        long parses = mockingDetails(Bukkit.getServer()).getInvocations().stream()
+                .filter(invocation -> invocation.getMethod().getName().equals("createBlockData")
+                        && merged.equals(invocation.getArgument(0)))
+                .count();
+        assertEquals(1L, parses);
     }
 
     @Test

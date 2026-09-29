@@ -188,7 +188,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             return;
         }
 
-        MantleChunk<Matter> chunk = mantle.getChunk(chunkX, chunkZ).use();
+        MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
         try {
             chunk.raiseFlagUnchecked(MantleFlag.ETCHED, () -> {
                 chunk.raiseFlagUnchecked(MantleFlag.TILE, () -> runTilePass(engine, level, chunkX, chunkZ, chunk));

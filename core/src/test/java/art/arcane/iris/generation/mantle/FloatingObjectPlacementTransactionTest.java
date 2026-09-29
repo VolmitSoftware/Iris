@@ -112,10 +112,8 @@ public class FloatingObjectPlacementTransactionTest {
         when(engine.getHeight()).thenReturn(128);
         when(engine.getMantle()).thenReturn(engineMantle);
         when(engineMantle.getMantle()).thenReturn(mantle);
-        when(mantle.getChunk(0, 0)).thenReturn(left);
-        when(mantle.getChunk(1, 0)).thenReturn(right);
-        when(left.use()).thenReturn(left);
-        when(right.use()).thenReturn(right);
+        when(mantle.useChunk(0, 0)).thenReturn(left);
+        when(mantle.useChunk(1, 0)).thenReturn(right);
         when(left.getOrCreate(0)).thenReturn(leftSection);
         when(right.getOrCreate(0)).thenReturn(rightSection);
         NativeBlockState state = mock(NativeBlockState.class);
@@ -146,8 +144,7 @@ public class FloatingObjectPlacementTransactionTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(engine.getMantle()).thenReturn(engineMantle);
         when(engineMantle.getMantle()).thenReturn(mantle);
-        when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
-        when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.isFlagged(MantleFlag.REAL)).thenReturn(true);
         when(placer.getEngine()).thenReturn(engine);
         when(placer.canWriteObjectBlock(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {

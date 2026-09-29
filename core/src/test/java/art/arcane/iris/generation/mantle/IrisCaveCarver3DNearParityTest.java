@@ -1038,6 +1038,40 @@ public class IrisCaveCarver3DNearParityTest {
                 largestPlane < 192);
     }
 
+    @Test
+    public void sharedDensityLatticeReproducesIsolatedCarvesAcrossNeighbourChunks() throws Exception {
+        Engine engine = createEngine(96, 90);
+        for (boolean warp : new boolean[]{false, true}) {
+            for (boolean modules : new boolean[]{false, true}) {
+                AtomicLong sharedSamples = new AtomicLong();
+                AtomicLong isolatedSamples = new AtomicLong();
+                IrisCaveCarver3D shared = new IrisCaveCarver3D(engine,
+                        createProfile(warp, modules).setAdaptiveSampling(true), new CaveDensityGrid(4096));
+                baseDensityField.set(shared, new CountingCNG((CNG) baseDensityField.get(shared), sharedSamples));
+                for (int chunkX = -1; chunkX <= 1; chunkX++) {
+                    for (int chunkZ = -1; chunkZ <= 1; chunkZ++) {
+                        WriterCapture sharedCapture = createWriterCapture(96);
+                        int sharedCarved = shared.carve(sharedCapture.writer, chunkX, chunkZ, fullWeights(), 0D, 0D,
+                                null, filledHeights(90));
+                        IrisCaveCarver3D isolated = new IrisCaveCarver3D(engine,
+                                createProfile(warp, modules).setAdaptiveSampling(true));
+                        baseDensityField.set(isolated, new CountingCNG((CNG) baseDensityField.get(isolated), isolatedSamples));
+                        WriterCapture isolatedCapture = createWriterCapture(96);
+                        int isolatedCarved = isolated.carve(isolatedCapture.writer, chunkX, chunkZ, fullWeights(), 0D, 0D,
+                                null, filledHeights(90));
+                        assertTrue(isolatedCarved > 0);
+                        assertEquals(isolatedCarved, sharedCarved);
+                        assertEquals(isolatedCapture.carvedCells, sharedCapture.carvedCells);
+                        assertEquals(isolatedCapture.carvedLiquids, sharedCapture.carvedLiquids);
+                    }
+                }
+                assertTrue("warp=" + warp + " modules=" + modules + " shared=" + sharedSamples.get()
+                                + " isolated=" + isolatedSamples.get(),
+                        sharedSamples.get() < isolatedSamples.get() * 3 / 4);
+            }
+        }
+    }
+
     private void assertExactParity(boolean warp, boolean modules, boolean adaptiveSampling) throws Exception {
         Engine engine = createEngine(96, 90);
         double[] columnWeights = fullWeights();

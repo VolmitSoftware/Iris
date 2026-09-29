@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.world.storage.DeferredDurability;
 import art.arcane.iris.world.storage.Durability;
 
 import java.io.BufferedInputStream;
@@ -52,6 +53,7 @@ public final class SavedBiomeStore {
     private final Path dimensionRoot;
     private final Path directory;
     private final boolean unpublished;
+    private final DeferredDurability durability;
     private final WriteStripe[] regionLocks = new WriteStripe[64];
     private final LinkedHashMap<Long, RegionIndex> regions = new LinkedHashMap<>(64, 0.75F, true);
     private final LinkedHashMap<Long, Optional<SavedBiomeChunk>> chunks = new LinkedHashMap<>(128, 0.75F, true);
@@ -61,6 +63,8 @@ public final class SavedBiomeStore {
     private SavedBiomeStore(Path dimensionRoot, boolean unpublished) throws IOException {
         this.dimensionRoot = Objects.requireNonNull(dimensionRoot, "dimensionRoot").toAbsolutePath().normalize();
         this.unpublished = unpublished;
+        this.durability = new DeferredDurability(
+                DeferredDurability.DEFAULT_FLUSH_DELAY_MILLIS, failure -> writeFailure = failure);
         directory = this.dimensionRoot.resolve("iris/generation/biomes");
         requireSafeAncestors();
         for (int index = 0; index < regionLocks.length; index++) {
@@ -227,7 +231,7 @@ public final class SavedBiomeStore {
                         }
                     }
                     if (!unpublished) {
-                        Durability.force(output.getChannel());
+                        durability.written(region.path);
                     }
                     appendCompleted = true;
                 } catch (IOException failure) {
@@ -266,6 +270,15 @@ public final class SavedBiomeStore {
         }
         for (PendingWrite pending : batch) {
             pending.completed = true;
+        }
+    }
+
+    public void sync() throws IOException {
+        try {
+            durability.sync();
+        } catch (IOException failure) {
+            writeFailure = failure;
+            throw failure;
         }
     }
 

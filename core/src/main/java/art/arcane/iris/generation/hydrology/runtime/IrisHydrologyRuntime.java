@@ -195,6 +195,11 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         cache.prepareChunkColumns(blockX, blockZ);
     }
 
+    /** Whether the chunk or one of its eight neighbours holds a planned footprint column. */
+    public boolean hasColumnsAround(int chunkX, int chunkZ) {
+        return cache.hasColumnsAround(chunkX, chunkZ);
+    }
+
     public HydrologyRenderSample renderSample(double x, double z) {
         int blockX = (int) StrictMath.floor(x);
         int blockZ = (int) StrictMath.floor(z);

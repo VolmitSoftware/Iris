@@ -95,6 +95,9 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         private final int minimumY;
         private final ChunkContext context;
         private final Map<NativeBlockState, BoundaryColumnGeometry.Voxel> voxels = new IdentityHashMap<>();
+        private NativeBlockState air;
+        private NativeBlockState lastState;
+        private BoundaryColumnGeometry.Voxel lastVoxel;
 
         private GeometrySource(Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int minimumY, ChunkContext context) {
             this.blocks = blocks;
@@ -107,9 +110,16 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         public BoundaryColumnGeometry.Voxel voxel(int localX, int worldY, int localZ) {
             NativeBlockState state = blocks.getRaw(localX, worldY - minimumY, localZ);
             if (state == null) {
-                state = IrisPlatforms.get().registries().air();
+                if (air == null) {
+                    air = IrisPlatforms.get().registries().air();
+                }
+                state = air;
             }
-            return voxels.computeIfAbsent(state, GeometrySource::encode);
+            if (state != lastState) {
+                lastVoxel = voxels.computeIfAbsent(state, GeometrySource::encode);
+                lastState = state;
+            }
+            return lastVoxel;
         }
 
         @Override

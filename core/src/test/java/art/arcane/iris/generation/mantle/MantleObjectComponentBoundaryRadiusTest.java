@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -189,6 +190,23 @@ public class MantleObjectComponentBoundaryRadiusTest {
     }
 
     @Test
+    public void eagerInputRadiusCoversEverySourceChunkPlusOneChunkOfFootprint() {
+        assertEquals(129, MantleObjectComponent.calculateEagerInputRadius(103, false));
+        assertEquals(65, MantleObjectComponent.calculateEagerInputRadius(33, false));
+        assertEquals(113, MantleObjectComponent.calculateEagerInputRadius(33, true));
+        assertEquals(27, MantleObjectComponent.calculateEagerInputRadius(10, false));
+        assertEquals(1, MantleObjectComponent.calculateEagerInputRadius(0, false));
+        for (int radius = 0; radius < 300; radius++) {
+            for (boolean collisions : new boolean[]{false, true}) {
+                assertTrue(MantleObjectComponent.calculateEagerInputRadius(radius, collisions)
+                        <= MantleObjectComponent.calculateInputRadius(radius, collisions));
+            }
+        }
+        assertEquals(Integer.MAX_VALUE,
+                MantleObjectComponent.calculateEagerInputRadius(Integer.MAX_VALUE, true));
+    }
+
+    @Test
     public void proceduralTreeTransformsContributeToRadius() {
         IrisObjectPlacement placement = new IrisObjectPlacement()
                 .setRotation(IrisObjectRotation.of(90, 0, 0))
@@ -301,6 +319,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(mantle.getWorldHeight()).thenReturn(64);
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk.use());
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(1);
             task.run();

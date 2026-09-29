@@ -19,11 +19,11 @@ public class IrisCustomModifier extends EngineAssignedModifier<NativeBlockState>
 
     @Override
     public void onModify(int x, int z, Hunk<NativeBlockState> output, boolean multicore, ChunkContext context) {
-        MantleChunk<Matter> mc = getEngine().getMantle().getMantle().getChunk(x >> 4, z >> 4);
+        MantleChunk<Matter> mc = getEngine().getMantle().getMantle().useChunk(x >> 4, z >> 4);
         if (!mc.isFlagged(MantleFlag.CUSTOM_ACTIVE)) {
+            mc.release();
             return;
         }
-        mc.use();
 
         BurstExecutor burst = MultiBurst.burst.burst(output.getHeight());
         burst.setMulticore(multicore);

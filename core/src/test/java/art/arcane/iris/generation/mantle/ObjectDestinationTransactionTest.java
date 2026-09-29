@@ -43,6 +43,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -78,7 +79,7 @@ public class ObjectDestinationTransactionTest {
         }
         ObjectSourcePlan plan = source.sourcePlanSince(0);
         assertEquals(16, source.mutationCheckpoint());
-        assertEquals(Integer.MAX_VALUE, plan.estimatedRetainedBytes());
+        assertTrue(plan.estimatedRetainedBytes() < Integer.MAX_VALUE);
         for (int[] position : positions) {
             int x = position[0];
             int z = position[1];
@@ -87,9 +88,7 @@ public class ObjectDestinationTransactionTest {
             List<ObjectDestinationTransaction.Mutation> sourceMutations = plan.mutationsFor(x >> 4, z >> 4);
             List<ObjectDestinationTransaction.Mutation> replayed = destination.sourcePlanSince(0).mutationsFor(x >> 4, z >> 4);
             assertEquals(sourceMutations.size(), replayed.size());
-            for (int index = 0; index < sourceMutations.size(); index++) {
-                assertSame(sourceMutations.get(index), replayed.get(index));
-            }
+            assertEquals(sourceMutations, replayed);
             assertEquals(8, destination.mutationCheckpoint());
             assertSame(replacement, destination.get(x, 7, z));
             assertNull(destination.getDataIfPresent(x, 7, z, Identifier.class));
@@ -143,8 +142,8 @@ public class ObjectDestinationTransactionTest {
 
         List<ObjectDestinationTransaction.Mutation> replayed = destination.sourcePlanSince(0).mutationsFor(0, 0);
         assertEquals(2, replayed.size());
-        assertSame(plan.mutationsFor(0, 0).get(5), replayed.get(0));
-        assertSame(plan.mutationsFor(0, 0).get(6), replayed.get(1));
+        assertEquals(plan.mutationsFor(0, 0).get(5), replayed.get(0));
+        assertEquals(plan.mutationsFor(0, 0).get(6), replayed.get(1));
         assertNull(destination.getDataIfPresent(2, 4, 0, Identifier.class));
         assertNull(destination.getDataIfPresent(1, 4, 0, MatterCavern.class));
         assertEquals("tree", destination.getDataIfPresent(0, 4, 0, String.class));
@@ -573,7 +572,7 @@ public class ObjectDestinationTransactionTest {
         ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
         destination.apply(plan);
         assertNull(destination.getDataIfPresent(0, 4, 0, Identifier.class));
-        assertSame(plan.mutationsFor(0, 0).getFirst(), destination.sourcePlanSince(0).mutationsFor(0, 0).getFirst());
+        assertEquals(plan.mutationsFor(0, 0).getFirst(), destination.sourcePlanSince(0).mutationsFor(0, 0).getFirst());
 
         assertThrows(IllegalStateException.class, destination::commit);
         verify(writer).clearData(0, 4, 0, Identifier.class);
@@ -635,6 +634,7 @@ public class ObjectDestinationTransactionTest {
             when(mantle.getWorldHeight()).thenReturn(16);
             when(mantle.getChunk(0, 0)).thenReturn(chunk);
             when(chunk.use()).thenReturn(chunk);
+            when(mantle.useChunk(0, 0)).thenAnswer(call -> chunk.use());
             when(chunk.exists(0)).thenReturn(true);
             when(chunk.getOrCreate(0)).thenReturn(matter);
             when(chunk.get(0)).thenReturn(matter);
@@ -656,5 +656,31 @@ public class ObjectDestinationTransactionTest {
     }
 
     private record Marker(String value) {
+    }
+
+    @Test
+    public void chunksThatCannotHoldHydrologyCellsSkipTheCellLookup() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.mayHoldHydrologyCells(1, 0)).thenReturn(true);
+        when(writer.getPrerequisiteDataIfPresent(anyInt(), anyInt(), anyInt(), any()))
+                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+        NativeBlockState block = mock(NativeBlockState.class);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        for (int x = 0; x < 16; x++) {
+            transaction.setData(x, 4, 0, block);
+        }
+        transaction.setData(16, 4, 0, block);
+
+        for (int x = 0; x < 16; x++) {
+            assertSame(block, transaction.get(x, 4, 0));
+        }
+        assertEquals(16, transaction.sourcePlanSince(0).mutationsFor(0, 0).size());
+        assertTrue(transaction.sourcePlanSince(0).mutationsFor(1, 0).isEmpty());
+        verify(complex, times(1)).mayHoldHydrologyCells(0, 0);
+        verify(writer, never()).getPrerequisiteDataIfPresent(0, 4, 0, HydrologyCaveCell.class);
+        verify(writer).getPrerequisiteDataIfPresent(16, 4, 0, HydrologyCaveCell.class);
     }
 }

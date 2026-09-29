@@ -291,7 +291,7 @@ public class DimensionTerrain3DCompositionTest {
         when(context.getRock()).thenReturn(rocks);
         when(context.getRoundedHeight(0, 0)).thenReturn(8);
         Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(1, 64, 1);
-        new IrisTerrainNormalActuator(engine).terrainSliver(0, 0, 0, blocks, context);
+        new IrisTerrainNormalActuator(engine).paint(0, 0, blocks, context);
         return blocks;
     }
 
@@ -308,6 +308,7 @@ public class DimensionTerrain3DCompositionTest {
         when(engineMantle.getMantle()).thenReturn(mantle);
         when(mantle.getChunk(0, 0)).thenReturn(mantleChunk);
         when(mantleChunk.use()).thenReturn(mantleChunk);
+        when(mantle.useChunk(0, 0)).thenAnswer(call -> mantleChunk.use());
         when(context.getDimensionStackLayout(0, 0)).thenReturn(layout);
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, height, 1);
         for (int y = 0; y < height; y++) {

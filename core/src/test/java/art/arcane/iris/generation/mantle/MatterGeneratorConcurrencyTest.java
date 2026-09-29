@@ -387,12 +387,19 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     @Test
-    public void contentPhaseRequiresTerrainEvenWhenItsExplicitPrerequisiteIsMissing() {
+    public void contentPhaseGeneratesTerrainOfEveryChunkBeforeItIsReadOrWritten() {
         GeneratorFixture fixture = new GeneratorFixture(true);
+        List<String> events = new ArrayList<>();
         RecordingComponent terrain = new RecordingComponent(ReservedFlag.CARVED, 0, 0) {
             @Override
             public MatterGenerationPhase getGenerationPhase() {
                 return MatterGenerationPhase.TERRAIN;
+            }
+
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                assertSame(fixture.mantle.getChunk(x, z), writer.acquireChunk(x, z));
+                events.add("terrain " + x + "," + z);
             }
         };
         RecordingComponent content = new RecordingComponent(ReservedFlag.OBJECT, 1, 0) {
@@ -400,14 +407,74 @@ public class MatterGeneratorConcurrencyTest {
             public MantleFlag[] getPrerequisiteFlags() {
                 return new MantleFlag[]{ReservedFlag.CARVED};
             }
+
+            @Override
+            public int getInputRadius() {
+                return 48;
+            }
+
+            @Override
+            public int getEagerInputRadius(int inputRadius) {
+                return 0;
+            }
+
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                events.add("content " + x + "," + z);
+                assertSame(fixture.mantle.getChunk(x + 3, z), writer.acquireChunk(x + 3, z));
+                writer.acquireChunk(x + 3, z);
+                events.add("read " + (x + 3) + "," + z);
+            }
         };
         TestMatterGenerator generator = fixture.generator(List.of(
                 new MantlePass(List.of(terrain), 0, 0),
                 new MantlePass(List.of(content), 0, 0)));
 
-        assertThrows(IllegalStateException.class,
-                () -> generator.generateContentMatter(0, 0, false, fixture.context));
-        assertFalse(fixture.mantle.getChunk(0, 0).isFlagged(MantleFlag.PLANNED));
+        generator.generateTerrainMatter(0, 0, false, fixture.context);
+        assertEquals(List.of("terrain 0,0"), events);
+        generator.generateContentMatter(0, 0, false, fixture.context);
+
+        assertEquals(List.of("terrain 0,0", "content 0,0", "terrain 3,0", "read 3,0"), events);
+        assertTrue(fixture.mantle.getChunk(0, 0).isFlagged(MantleFlag.PLANNED));
+        assertTrue(fixture.mantle.getChunk(3, 0).isFlagged(ReservedFlag.CARVED));
+        assertFalse(fixture.mantle.getChunk(3, 0).isFlagged(ReservedFlag.OBJECT));
+    }
+
+    @Test
+    public void contentPhaseGeneratesMissingTerrainOfItsOwnChunk() {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        AtomicInteger terrainRuns = new AtomicInteger();
+        RecordingComponent terrain = new RecordingComponent(ReservedFlag.CARVED, 0, 0) {
+            @Override
+            public MatterGenerationPhase getGenerationPhase() {
+                return MatterGenerationPhase.TERRAIN;
+            }
+
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                terrainRuns.incrementAndGet();
+            }
+        };
+        RecordingComponent content = new RecordingComponent(ReservedFlag.OBJECT, 1, 0) {
+            @Override
+            public MantleFlag[] getPrerequisiteFlags() {
+                return new MantleFlag[]{ReservedFlag.CARVED};
+            }
+
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                assertEquals(1, terrainRuns.get());
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(
+                new MantlePass(List.of(terrain), 0, 0),
+                new MantlePass(List.of(content), 0, 0)));
+
+        generator.generateContentMatter(0, 0, false, fixture.context);
+
+        assertEquals(1, terrainRuns.get());
+        assertTrue(fixture.mantle.getChunk(0, 0).isFlagged(ReservedFlag.OBJECT));
+        assertTrue(fixture.mantle.getChunk(0, 0).isFlagged(MantleFlag.PLANNED));
     }
 
     @Test
@@ -709,6 +776,8 @@ public class MatterGeneratorConcurrencyTest {
                 long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
                 return chunks.computeIfAbsent(key, ignored -> lockingChunks ? lockingChunk() : chunk());
             });
+            when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(invocation ->
+                    mantle.getChunk(invocation.getArgument(0), invocation.getArgument(1)).use());
             context = mock(ChunkContext.class);
             when(context.getGenerationSessionId()).thenReturn(91L);
         }

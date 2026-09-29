@@ -2,6 +2,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -12,9 +13,10 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
+import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.Test;
@@ -55,30 +57,27 @@ public class IrisCarveModifierBoundarySupportTest {
         rng.setAccessible(true);
         rng.set(modifier, new RNG(71L));
 
+        IrisMatterSupport.ensureRegistered();
+        Matter floorMatter = new IrisMatter(16, 16, 16);
+        Matter ceilingMatter = new IrisMatter(16, 16, 16);
+        floorMatter.slice(MatterCavern.class).set(1, 6, 2, new MatterCavern(true, "custom/floor", (byte) 0));
+        ceilingMatter.slice(MatterCavern.class).set(1, 11, 2, new MatterCavern(true, "custom/other", (byte) 0));
         MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
-        Matter floorMatter = mock(Matter.class);
-        Matter ceilingMatter = mock(Matter.class);
-        MatterSlice<MatterCavern> floorSlice = mock(MatterSlice.class);
-        MatterSlice<MatterCavern> ceilingSlice = mock(MatterSlice.class);
+        doReturn(3).when(mantleChunk).sectionCount();
         doReturn(true).when(mantleChunk).exists(0);
         doReturn(true).when(mantleChunk).exists(2);
         doReturn(floorMatter).when(mantleChunk).get(0);
         doReturn(ceilingMatter).when(mantleChunk).get(2);
-        doReturn(true).when(floorMatter).hasSlice(MatterCavern.class);
-        doReturn(true).when(ceilingMatter).hasSlice(MatterCavern.class);
-        doReturn(floorSlice).when(floorMatter).getSlice(MatterCavern.class);
-        doReturn(ceilingSlice).when(ceilingMatter).getSlice(MatterCavern.class);
-        doReturn(new MatterCavern(true, "custom/floor", (byte) 0)).when(floorSlice).get(1, 6, 2);
-        doReturn(null).when(ceilingSlice).get(1, 10, 2);
+        CaveTerrainSnapshot terrain = CaveTerrainSnapshot.capture(mantleChunk, 2, 2);
 
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>();
         Map<String, IrisBiome> customBiomeCache = new HashMap<>();
         IrisCarveModifier.CaveInputs resolverState = new IrisCarveModifier.CaveInputs(engine);
 
         IrisBiome floor = modifier.resolveCaveBoundaryBiome(
-                mantleChunk, 1, 6, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
+                terrain, 1, 6, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
         IrisBiome ceiling = modifier.resolveCaveBoundaryBiome(
-                mantleChunk, 1, 42, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
+                terrain, 1, 42, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
 
         assertSame(customFloor, floor);
         assertSame(resolvedCeiling, ceiling);

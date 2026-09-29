@@ -35,10 +35,12 @@ import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Function3;
+import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
@@ -90,6 +92,11 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     private final ThreadLocal<Integer> activeComponentPriority = new ThreadLocal<>();
     @Getter(AccessLevel.NONE)
     private final ThreadLocal<ObjectPlacementCapture> objectPlacementCapture = new ThreadLocal<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private TerrainAccess terrainAccess;
 
     public MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int radius, boolean multicore) {
         this(engineMantle, mantle, x, z, radius, radius * 2, multicore);
@@ -104,17 +111,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             int accessRadius,
             boolean multicore
     ) {
-        this.engineMantle = engineMantle;
-        this.mantle = mantle;
-        this.radius = accessRadius;
-        this.x = x;
-        this.z = z;
-        IrisComplex complex = engineMantle.getComplex();
-        this.transitionGenerationPlan = complex == null ? null : complex.getTransitionGenerationPlan();
-        // Every coordinate acquireChunk accepts lives in this window, so a flat array replaces the
-        // boxed per-block map lookup on the placement and carve hot paths.
-        this.windowSide = (this.radius * 2) + 1;
-        this.window = new AtomicReferenceArray<>(windowSide * windowSide);
+        this(engineMantle, mantle, x, z, accessRadius);
 
         final boolean foliaMaintenance = J.isFolia()
                 && WorldMaintenance.isWorldMaintenanceActive(engineMantle.getEngine().getWorld().identity());
@@ -140,6 +137,41 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             close();
             throw e;
         }
+    }
+
+    private MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int accessRadius) {
+        this.engineMantle = engineMantle;
+        this.mantle = mantle;
+        this.radius = accessRadius;
+        this.x = x;
+        this.z = z;
+        IrisComplex complex = engineMantle.getComplex();
+        this.transitionGenerationPlan = complex == null ? null : complex.getTransitionGenerationPlan();
+        // Every coordinate acquireChunk accepts lives in this window, so a flat array replaces the
+        // boxed per-block map lookup on the placement and carve hot paths.
+        this.windowSide = (this.radius * 2) + 1;
+        this.window = new AtomicReferenceArray<>(windowSide * windowSide);
+    }
+
+    /**
+     * A writer over one already loaded chunk, for generating that chunk's terrain components without a
+     * prefetch.
+     */
+    static MantleWriter forChunk(EngineMantle engineMantle, Mantle<Matter> mantle, MantleChunk<Matter> chunk,
+                                 int chunkX, int chunkZ) {
+        MantleWriter writer = new MantleWriter(engineMantle, mantle, chunkX, chunkZ, 0);
+        writer.window.set(0, chunk.use());
+        return writer;
+    }
+
+    /**
+     * From now on every chunk this writer hands out has its terrain components generated first. Called once
+     * the terrain passes of the window are done and before any content pass reads or writes.
+     */
+    void requireTerrainOnAccess(List<MantleComponent> terrainComponents, ChunkContext context, IrisComplex complex) {
+        terrainAccess = terrainComponents.isEmpty()
+                ? null
+                : new TerrainAccess(terrainComponents.toArray(new MantleComponent[0]), context, complex);
     }
 
     static int resolvePrefetchParallelism(boolean foliaMaintenance, boolean multicore, int availableProcessors) {
@@ -844,20 +876,24 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             return null;
         }
 
-        while (true) {
-            MantleChunk<Matter> chunk = window.get(index);
-            if (chunk != null) {
-                return chunk;
-            }
-
+        MantleChunk<Matter> chunk = window.get(index);
+        while (chunk == null) {
             // Losing this race must release our own use, never the winner's: the winner is already
             // writing through the chunk it published.
-            MantleChunk<Matter> acquired = mantle.getChunk(cx, cz).use();
+            MantleChunk<Matter> acquired = mantle.useChunk(cx, cz);
             if (window.compareAndSet(index, null, acquired)) {
-                return acquired;
+                chunk = acquired;
+            } else {
+                acquired.release();
+                chunk = window.get(index);
             }
-            acquired.release();
         }
+        TerrainAccess access = terrainAccess;
+        if (access != null && !access.ready[index]) {
+            access.ensure(chunk, cx, cz);
+            access.ready[index] = true;
+        }
+        return chunk;
     }
 
     @ChunkCoordinates
@@ -1502,10 +1538,52 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Override
     public void close() {
         for (int index = 0; index < window.length(); index++) {
+            if (window.get(index) == null) {
+                continue;
+            }
             MantleChunk<Matter> chunk = window.getAndSet(index, null);
             if (chunk != null) {
                 chunk.release();
             }
+        }
+    }
+
+    private final class TerrainAccess {
+        private final MantleComponent[] components;
+        private final ChunkContext context;
+        private final IrisComplex complex;
+        private final boolean[] ready = new boolean[window.length()];
+
+        private TerrainAccess(MantleComponent[] components, ChunkContext context, IrisComplex complex) {
+            this.components = components;
+            this.context = context;
+            this.complex = complex;
+        }
+
+        private void ensure(MantleChunk<Matter> chunk, int chunkX, int chunkZ) {
+            if (chunk.isFlagged(MantleFlag.PLANNED) || complex != null && !complex.allowsMantleChunkWrite(chunkX, chunkZ)) {
+                return;
+            }
+            for (MantleComponent component : components) {
+                if (chunk.isFlagged(component.getFlag()) || !hasPrerequisites(chunk, component)) {
+                    continue;
+                }
+                chunk.raiseFlagSuspend(component.getFlag(), () -> {
+                    try (MantleWriter terrainWriter = forChunk(engineMantle, mantle, chunk, chunkX, chunkZ)) {
+                        terrainWriter.withComponentPriority(component.getPriority(),
+                                () -> component.generateLayer(terrainWriter, chunkX, chunkZ, context));
+                    }
+                });
+            }
+        }
+
+        private static boolean hasPrerequisites(MantleChunk<Matter> chunk, MantleComponent component) {
+            for (MantleFlag prerequisite : component.getPrerequisiteFlags()) {
+                if (!chunk.isFlagged(prerequisite)) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 

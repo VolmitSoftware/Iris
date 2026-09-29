@@ -733,7 +733,7 @@ final class IrisObjectPlacementRunner {
                     } else {
                         String mat = IrisObjectShaping.materialKey(d);
                         if (mat.equals("minecraft:grass_block") || mat.equals("minecraft:mycelium") || mat.equals("minecraft:podzol") || mat.equals("minecraft:dirt_path")) {
-                            d = B.getState("minecraft:dirt");
+                            d = IrisObject.States.dirt();
                         }
                     }
 
@@ -745,11 +745,10 @@ final class IrisObjectPlacementRunner {
                     if (translating) {
                         i.add(translateOffset);
                     }
-                    d = config.getRotation().rotate(d, spinx, spiny, spinz);
-
                     int targetLayer = ceilingHang ? topLayer : lowest;
                     if (i.getBlockY() != targetLayer)
                         continue;
+                    d = config.getRotation().rotate(d, spinx, spiny, spinz);
 
                     if (hasEdits) {
                         for (IrisObjectReplace j : config.getEdit()) {

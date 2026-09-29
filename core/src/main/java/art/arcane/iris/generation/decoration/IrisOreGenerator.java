@@ -55,10 +55,10 @@ public class IrisOreGenerator {
     @Description("Vertical band (min, max) this ore can generate in, in engine-local Y where 0 is the bottom of the dimension, not world Y.")
     private IrisRange range = new IrisRange(30, 80);
 
-    private transient AtomicCache<CNG> chanceCache = new AtomicCache<>();
+    private transient AtomicCache<OreChance> chanceCache = new AtomicCache<>();
 
     public void warm(RNG rng, IrisData data) {
-        chanceCache.aquire(() -> chanceStyle.create(rng, data));
+        chanceCache.aquire(() -> OreChance.of(chanceStyle.create(rng, data)));
         palette.getLayerGenerator(rng, data);
     }
 
@@ -71,12 +71,30 @@ public class IrisOreGenerator {
             return null;
         }
 
-        CNG chance = chanceCache.aquire(() -> chanceStyle.create(rng, data));
+        OreChance chance = chanceCache.getIfPresent();
+        if (chance == null) {
+            chance = chanceCache.aquire(() -> OreChance.of(chanceStyle.create(rng, data)));
+        }
 
-        if (chance.noise(x, y, z) > threshold) {
+        if (chance.sample(x, y, z) > threshold) {
             return null;
         }
 
         return palette.get(rng, x, y, z, data);
+    }
+
+    /**
+     * The chance field, with its single value resolved once when it is constant (a FLAT style),
+     * which bands such as a full deepslate layer sample at every block.
+     */
+    private record OreChance(CNG noise, boolean constant, double value) {
+        private static OreChance of(CNG noise) {
+            boolean constant = noise.isConstant();
+            return new OreChance(noise, constant, constant ? noise.noise(0D, 0D, 0D) : 0D);
+        }
+
+        private double sample(int x, int y, int z) {
+            return constant ? value : noise.noise(x, y, z);
+        }
     }
 }

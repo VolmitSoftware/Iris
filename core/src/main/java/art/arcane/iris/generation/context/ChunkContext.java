@@ -8,6 +8,7 @@ import art.arcane.iris.generation.runtime.EngineMetrics;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.biome.FloatingIslandBoundarySampler;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -23,6 +24,7 @@ public class ChunkContext {
     private boolean naturalTerrain = true;
     private Hunk<NativeBiome> terrainBiomes;
     private FloatingBiomeOverlay floatingBiomes;
+    private CaveTerrainSnapshot caveTerrain;
     private final int x;
     private final int z;
     private final IrisComplex complex;
@@ -157,6 +159,14 @@ public class ChunkContext {
         return floatingBiomes;
     }
 
+    public CaveTerrainSnapshot getCaveTerrain() {
+        return caveTerrain;
+    }
+
+    public void setCaveTerrain(CaveTerrainSnapshot caveTerrain) {
+        this.caveTerrain = caveTerrain;
+    }
+
     public void setNaturalBiome(int localX, int y, int localZ, NativeBiome biome) {
         if (terrainBiomes != null) {
             terrainBiomes.setRaw(localX, y, localZ, biome);
@@ -228,6 +238,10 @@ public class ChunkContext {
 
     public ChunkedDataCache<IrisRegion> getRegion() {
         return region;
+    }
+
+    public boolean hasDimensionStack() {
+        return dimensionStackContext != null;
     }
 
     public DimensionStackLayout getDimensionStackLayout(int localX, int localZ) {

@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Proxy;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -107,6 +108,48 @@ public class LinkedTerrainChunkTest {
                 assertSame(plains, chunk.getBiome(0, y, 0));
             }
             assertEquals(1, conversions.get());
+        }
+    }
+
+    @Test
+    public void columnBiomeHunkMatchesTheLinkedChunkView() {
+        NativeBiome plains = BukkitBiome.of(Biome.PLAINS);
+        NativeBiome desert = BukkitBiome.of(Biome.DESERT);
+        NativeBiome alternate = mock(NativeBiome.class);
+        when(alternate.nativeHandle()).thenReturn(Biome.DESERT);
+        NativeBiome[] palette = {plains, desert, alternate};
+        for (int trial = 0; trial < 12; trial++) {
+            Random random = new Random(9127L + trial);
+            TerrainChunkBiomeHunkView expected = new TerrainChunkBiomeHunkView(chunk());
+            ColumnBiomeHunk actual = new ColumnBiomeHunk(16);
+            int operations = 1 + random.nextInt(80);
+            for (int operation = 0; operation < operations; operation++) {
+                NativeBiome biome = palette[random.nextInt(palette.length)];
+                int x = random.nextInt(16);
+                int z = random.nextInt(16);
+                int kind = random.nextInt(trial % 3 == 0 ? 1 : 3);
+                if (kind == 0) {
+                    expected.set(x, 0, z, x, 15, z, biome);
+                    actual.set(x, 0, z, x, 15, z, biome);
+                } else if (kind == 1) {
+                    int minimumY = random.nextInt(16);
+                    int maximumY = minimumY + random.nextInt(16 - minimumY);
+                    expected.set(x, minimumY, z, x, maximumY, z, biome);
+                    actual.set(x, minimumY, z, x, maximumY, z, biome);
+                } else {
+                    int y = random.nextInt(20) - 2;
+                    int rawX = x + (random.nextBoolean() ? 16 : 0);
+                    expected.setRaw(rawX, y, z, biome);
+                    actual.setRaw(rawX, y, z, biome);
+                }
+            }
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int y = -2; y < 18; y++) {
+                        assertSame("biome " + x + "," + y + "," + z, expected.getRaw(x, y, z), actual.getRaw(x, y, z));
+                    }
+                }
+            }
         }
     }
 

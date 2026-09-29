@@ -90,7 +90,7 @@ public interface MatterGenerator {
         int prefetchRadius = passPlans[0].passChunkRadius();
         LongOpenHashSet partialChunks = new LongOpenHashSet();
         List<MantleComponent> requiredComponents = enabledComponents();
-        List<MantleFlag> terrainFlags = terrainFlags(requiredComponents);
+        boolean terrainOnAccess = false;
 
         try (MantleWriter writer = new MantleWriter(
                 getEngine().getMantle(),
@@ -128,6 +128,10 @@ public interface MatterGenerator {
 
                     if (enabledComponentCount == 0) {
                         continue;
+                    }
+                    if (!terrainOnAccess && includesContent(enabledComponents, enabledComponentCount)) {
+                        writer.requireTerrainOnAccess(terrainComponents(requiredComponents), context, complex);
+                        terrainOnAccess = true;
                     }
 
                     // Every multicore generation claims its components through the in-flight map.
@@ -185,9 +189,6 @@ public interface MatterGenerator {
                                 continue;
                             }
 
-                            if (phase == MatterGenerationPhase.CONTENT) {
-                                requireTerrainPhase(chunk, passX, passZ, terrainFlags);
-                            }
                             int eligibleComponentCount = 0;
                             for (int componentIndex = 0; componentIndex < enabledComponentCount; componentIndex++) {
                                 MantleComponent component = enabledComponents[componentIndex];
@@ -303,9 +304,8 @@ public interface MatterGenerator {
                         : 0;
                 int componentInputRadius = component.getInputRadius(x, z, invocationChunkRadius, context);
                 passAccessInputRadius = Math.max(passAccessInputRadius, componentInputRadius);
-                if (!component.isInputGenerationLazy()) {
-                    passGenerationInputRadius = Math.max(passGenerationInputRadius, componentInputRadius);
-                }
+                passGenerationInputRadius = Math.max(passGenerationInputRadius,
+                        component.getEagerInputRadius(componentInputRadius));
             }
             int accessInvocationRadius = accessDownstreamBlockRadius + passBlockRadius;
             int generationInvocationRadius = generationDownstreamBlockRadius + passBlockRadius;
@@ -332,24 +332,23 @@ public interface MatterGenerator {
         return List.copyOf(components);
     }
 
-    private static List<MantleFlag> terrainFlags(List<MantleComponent> components) {
-        List<MantleFlag> flags = new ArrayList<>();
-        for (MantleComponent component : components) {
-            if (component.getGenerationPhase() == MatterGenerationPhase.TERRAIN) {
-                flags.add(component.getFlag());
+    private static boolean includesContent(MantleComponent[] components, int count) {
+        for (int index = 0; index < count; index++) {
+            if (components[index].getGenerationPhase() == MatterGenerationPhase.CONTENT) {
+                return true;
             }
         }
-        return List.copyOf(flags);
+        return false;
     }
 
-    private static void requireTerrainPhase(MantleChunk<Matter> chunk, int chunkX, int chunkZ,
-                                            List<MantleFlag> flags) {
-        for (MantleFlag flag : flags) {
-            if (!chunk.isFlagged(flag)) {
-                throw new IllegalStateException("Content generation at " + chunkX + "," + chunkZ
-                        + " requires completed terrain component " + flag.name());
+    private static List<MantleComponent> terrainComponents(List<MantleComponent> components) {
+        List<MantleComponent> terrain = new ArrayList<>();
+        for (MantleComponent component : components) {
+            if (component.getGenerationPhase() == MatterGenerationPhase.TERRAIN) {
+                terrain.add(component);
             }
         }
+        return terrain;
     }
 
     private static boolean hasCompletedComponents(MantleChunk<Matter> chunk, List<MantleComponent> components) {

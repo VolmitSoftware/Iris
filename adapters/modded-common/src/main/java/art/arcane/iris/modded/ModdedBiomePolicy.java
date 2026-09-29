@@ -29,6 +29,7 @@ import java.util.function.LongSupplier;
 
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.DimensionTerrainContext;
@@ -338,7 +339,12 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
                 return cached;
             }
         }
-        H resolved = resolveStructureBiome(engine, quartX, quartY, quartZ, sampler);
+        H resolved;
+        try {
+            resolved = ProvisionalSampling.memoizable(() -> resolveStructureBiome(engine, quartX, quartY, quartZ, sampler));
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.value();
+        }
         if (cacheable) {
             cache.put(runtimeIdentity, key, resolved);
         }
@@ -388,8 +394,13 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
                 return cached;
             }
         }
-        H resolved = resolveVisibleBiome(
-                engine, quartX, quartY, quartZ, sampler, null);
+        H resolved;
+        try {
+            resolved = ProvisionalSampling.memoizable(() -> resolveVisibleBiome(
+                    engine, quartX, quartY, quartZ, sampler, null));
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.value();
+        }
         if (cacheable) {
             cache.put(runtimeIdentity, key, resolved);
         }
@@ -531,7 +542,12 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         if (cached != null) {
             return cached;
         }
-        H resolved = resolveSurfaceStructureBiome(engine, quartX, quartZ, sampler);
+        H resolved;
+        try {
+            resolved = ProvisionalSampling.memoizable(() -> resolveSurfaceStructureBiome(engine, quartX, quartZ, sampler));
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.value();
+        }
         cache.put(runtimeIdentity, key, resolved);
         return resolved;
     }

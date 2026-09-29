@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.InferredType;
@@ -56,7 +57,7 @@ public class IrisCarveModifierInferenceIsolationTest {
         Method paintBoundaryZone = IrisCarveModifier.class.getDeclaredMethod(
                 "paintBoundaryZone",
                 Hunk.class,
-                MantleChunk.class,
+                CaveTerrainSnapshot.class,
                 CarveWallBuffer.class,
                 int.class,
                 int.class,
@@ -72,7 +73,7 @@ public class IrisCarveModifierInferenceIsolationTest {
         paintBoundaryZone.invoke(
                 modifier,
                 mock(Hunk.class),
-                mock(MantleChunk.class),
+                CaveTerrainSnapshot.capture(mock(MantleChunk.class), 0, 0),
                 walls,
                 0,
                 0,

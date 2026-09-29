@@ -21,6 +21,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.stream.GenerationStreams;
 import art.arcane.iris.generation.stream.CachedDoubleStream2D;
 import art.arcane.iris.generation.stream.CachedStream2D;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 
 
 import art.arcane.iris.configuration.IrisSettings;
@@ -115,7 +116,7 @@ public class IrisComplex implements DataProvider {
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
     private static final int GRID_BOUNDS_CACHE_SIZE = 8192;
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
-    private static final int TERRAIN_COLUMN_CACHE_SIZE = 65_536;
+    private static final int TERRAIN_COLUMN_CACHE_SIZE = 524_288;
     /** One million corners: about 16 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
     /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
@@ -386,10 +387,9 @@ public class IrisComplex implements DataProvider {
         proceduralTerrainHeight = new ProceduralTerrainHeightSampler(
                 (x, z) -> getHeight(engine, x, z, engine.getSeedManager().getHeight()),
                 engine.getDimension().getTerrainSamplingStep());
-        baseTerrainHeightStream = GenerationStreams.cache2DDouble(ProceduralStream.of(
-                this::sampleUnblendedNaturalTerrainHeight,
-                Interpolated.DOUBLE
-        ), "baseTerrainHeightStream", engine, cacheSize);
+        baseTerrainHeightStream = GenerationStreams.cache2DDouble(
+                ProceduralStream.ofDouble(this::sampleUnblendedNaturalTerrainHeight),
+                "baseTerrainHeightStream", engine, cacheSize);
         boolean terrain3DEnabled = false;
         for (IrisBiome biome : generatorBiomes) {
             if (biome.getTerrain3D() != null) {
@@ -992,7 +992,11 @@ public class IrisComplex implements DataProvider {
         HydrologyColumnLayer layer = sample.primarySurfaceLayerOrNull();
         if (hydrologyBanks3D != null && layer != null && layer.terrainOwned() && !layer.channel()) {
             Optional<Terrain3DColumn> column = hydrologyBanks3D.columnIfReady(blockCoordinate(x), blockCoordinate(z));
-            return column.isPresent() ? column.get().topY() : naturalHeightStream.getDouble(x, z);
+            if (column.isPresent()) {
+                return column.get().topY();
+            }
+            ProvisionalSampling.mark();
+            return naturalHeightStream.getDouble(x, z);
         }
         return sample.terrainHeight();
     }
@@ -1188,8 +1192,11 @@ public class IrisComplex implements DataProvider {
             return false;
         }
         HydrologyColumnLayer layer = snapshot.column() == null ? null : snapshot.column().primarySurfaceLayerOrNull();
-        return layer == null || !layer.terrainOwned() || layer.channel()
-                || hydrologyBanks3D.columnIfReady(x, z).isPresent();
+        if (layer == null || !layer.terrainOwned() || layer.channel() || hydrologyBanks3D.columnIfReady(x, z).isPresent()) {
+            return true;
+        }
+        ProvisionalSampling.mark();
+        return false;
     }
 
     public ProceduralStream<Double> getRawHeightStream() {
@@ -1220,6 +1227,17 @@ public class IrisComplex implements DataProvider {
     public boolean allowsMantleChunkWrite(int chunkX, int chunkZ) {
         return transitionGenerationPlan == null
                 || !transitionGenerationPlan.boundary().isHistoricalChunk(chunkX, chunkZ);
+    }
+
+    /**
+     * Whether the mantle chunk can hold hydrology cave cells. The hydrology component publishes them
+     * only from footprint columns within one block of the chunk, so a chunk with none around it holds
+     * none. A transition world or a studio keeps cells an earlier plan wrote, so there every chunk may.
+     */
+    public boolean mayHoldHydrologyCells(int chunkX, int chunkZ) {
+        return hydrologyRuntime == null || transitionGenerationPlan != null
+                || terrainEngine == null || terrainEngine.isStudio()
+                || hydrologyRuntime.hasColumnsAround(chunkX, chunkZ);
     }
 
     public boolean allowsNewDiscreteContentAt(int blockX, int blockZ) {

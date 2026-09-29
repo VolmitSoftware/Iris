@@ -132,7 +132,7 @@ public final class EngineBukkitOps {
             return;
         }
 
-        MantleChunk<Matter> chunk = mantle.getChunk(c).use();
+        MantleChunk<Matter> chunk = mantle.useChunk(c);
         try {
             Runnable tileTask = () -> materializeTiles(engine, c, chunk);
             Runnable customTask = () -> materializeCustomBlocks(engine, c, chunk);
@@ -461,7 +461,7 @@ public final class EngineBukkitOps {
     }
 
     public static KList<IrisLootTable> getLootTables(Engine engine, RNG rng, Block b) {
-        MantleChunk<Matter> mc = engine.getMantle().getMantle().getChunk(b.getChunk()).use();
+        MantleChunk<Matter> mc = engine.getMantle().getMantle().useChunk(b.getChunk());
         try {
             return getLootTables(engine, rng, b, mc, hasNativeLootTable(b));
         } finally {

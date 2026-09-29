@@ -67,15 +67,16 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
     }
 
     @Override
-    public boolean isInputGenerationLazy() {
-        return true;
+    public int getEagerInputRadius(int inputRadius) {
+        return 0;
     }
 
     @Override
     public void generateLayer(MantleWriter writer, int chunkX, int chunkZ, ChunkContext context) {
         IrisComplex complex = context.getComplex();
         IrisHydrologyRuntime runtime = complex.getHydrologyRuntime();
-        if (runtime == null || !complex.allowsMantleChunkWrite(chunkX, chunkZ)) {
+        if (runtime == null || !complex.allowsMantleChunkWrite(chunkX, chunkZ)
+                || !runtime.hasColumnsAround(chunkX, chunkZ)) {
             return;
         }
         int minimumX = chunkX << 4;

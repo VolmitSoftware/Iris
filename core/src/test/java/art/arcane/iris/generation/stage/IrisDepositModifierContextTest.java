@@ -177,8 +177,7 @@ public class IrisDepositModifierContextTest {
                     .thenReturn(new KList<>(biomeDeposit));
             chunk = mock(MantleChunk.class);
             Mantle<Matter> mantle = engine.getMantle().getMantle();
-            doReturn(chunk).when(mantle).getChunk(2, -3);
-            when(chunk.use()).thenReturn(chunk);
+            doReturn(chunk).when(mantle).useChunk(2, -3);
             if (engine instanceof IrisEngine irisEngine) {
                 when(irisEngine.hasGenerationRuntimeScope()).thenReturn(scoped);
                 when(irisEngine.captureGenerationRuntimeBinding()).thenReturn(binding);

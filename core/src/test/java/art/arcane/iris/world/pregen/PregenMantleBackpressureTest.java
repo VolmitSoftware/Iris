@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -63,16 +64,56 @@ public class PregenMantleBackpressureTest {
     }
 
     @Test
-    public void residencyOverTheConfiguredPlateCapIsTrimmedUntilItFits() {
+    public void residencyOverTheConfiguredPlateCapEvictsLeastRecentlyUsedPlatesUntilItFits() {
         Mantle mantle = mock(Mantle.class);
-        when(mantle.getLoadedRegionCount()).thenReturn(5, 5, 4);
+        AtomicInteger resident = new AtomicInteger(7);
+        when(mantle.getLoadedRegionCount()).thenAnswer(invocation -> resident.get());
+        when(mantle.saveOldestIdleTectonicPlate()).thenAnswer(invocation -> {
+            resident.decrementAndGet();
+            return true;
+        });
 
         backpressure(() -> mantle, 4, 1_000L, () -> {
         }).enforceMantleBudget();
 
-        verify(mantle, times(1)).trim(0L);
-        verify(mantle, times(1)).unloadTectonicPlate(0);
+        assertEquals(4, resident.get());
+        verify(mantle, times(3)).saveOldestIdleTectonicPlate();
+        verify(mantle, never()).trim(0L);
+        verify(mantle, never()).unloadTectonicPlate(0);
+    }
+
+    @Test
+    public void residencyWithinTheEvictionOvershootDoesNotWaitForTheEvictor() {
+        Mantle mantle = mock(Mantle.class);
+        when(mantle.getLoadedRegionCount()).thenReturn(5);
+        List<Runnable> queued = new ArrayList<>();
+        AtomicInteger timeouts = new AtomicInteger();
+
+        new PregenMantleBackpressure(() -> mantle, 4, 600_000, 0L, timeouts::incrementAndGet, () -> "test", () -> false,
+                queued::add).enforceMantleBudget();
+
+        assertEquals(1, queued.size());
+        assertEquals(0, timeouts.get());
         verify(mantle, never()).saveOldestIdleTectonicPlate();
+        queued.getFirst().run();
+        verify(mantle).saveOldestIdleTectonicPlate();
+    }
+
+    @Test
+    public void aSecondRequestWhileTheEvictorRunsDoesNotQueueAnotherEvictor() {
+        Mantle mantle = mock(Mantle.class);
+        when(mantle.getLoadedRegionCount()).thenReturn(5);
+        List<Runnable> queued = new ArrayList<>();
+        PregenMantleBackpressure backpressure = new PregenMantleBackpressure(() -> mantle, 4, 5, 1_000L, () -> {
+        }, () -> "test", () -> false, queued::add);
+
+        backpressure.enforceMantleBudget();
+        backpressure.enforceMantleBudget();
+
+        assertEquals(1, queued.size());
+        queued.getFirst().run();
+        backpressure.enforceMantleBudget();
+        assertEquals(2, queued.size());
     }
 
     @Test
@@ -94,15 +135,15 @@ public class PregenMantleBackpressureTest {
     }
 
     @Test
-    public void aTrimFailureEndsTheWaitInsteadOfSpinning() {
+    public void anEvictionFailureEndsTheWaitInsteadOfSpinning() {
         Mantle mantle = mock(Mantle.class);
         when(mantle.getLoadedRegionCount()).thenReturn(20);
-        doThrow(new IllegalStateException("mantle is gone")).when(mantle).trim(0L);
+        doThrow(new IllegalStateException("mantle is gone")).when(mantle).saveOldestIdleTectonicPlate();
         AtomicInteger timeouts = new AtomicInteger();
 
         backpressure(() -> mantle, 4, 1_000L, timeouts::incrementAndGet).enforceMantleBudget();
 
-        verify(mantle, never()).unloadTectonicPlate(0);
+        verify(mantle, times(1)).saveOldestIdleTectonicPlate();
         assertEquals(0, timeouts.get());
     }
 
@@ -115,7 +156,7 @@ public class PregenMantleBackpressureTest {
         backpressure(() -> mantle, 4, 0L, timeouts::incrementAndGet).enforceMantleBudget();
 
         assertEquals(1, timeouts.get());
-        verify(mantle).saveOldestIdleTectonicPlate();
+        verify(mantle, atLeastOnce()).saveOldestIdleTectonicPlate();
     }
 
     @Test
@@ -124,12 +165,11 @@ public class PregenMantleBackpressureTest {
         when(mantle.getLoadedRegionCount()).thenReturn(20);
         AtomicInteger timeouts = new AtomicInteger();
         PregenMantleBackpressure backpressure = new PregenMantleBackpressure(
-                () -> mantle, 4, 5, 0L, timeouts::incrementAndGet, () -> "cancelled", () -> true);
+                () -> mantle, 4, 5, 0L, timeouts::incrementAndGet, () -> "cancelled", () -> true, Runnable::run);
 
         backpressure.enforceMantleBudget();
 
-        verify(mantle, never()).trim(0L);
-        verify(mantle, never()).unloadTectonicPlate(0);
+        verify(mantle, never()).saveOldestIdleTectonicPlate();
         assertEquals(0, timeouts.get());
     }
 
@@ -141,7 +181,7 @@ public class PregenMantleBackpressureTest {
         PregenMantleBackpressure backpressure = new PregenMantleBackpressure(
                 () -> mantle, 4, 5, 0L, timeouts::incrementAndGet, () -> "probing", () -> {
             throw new IllegalStateException("cancellation probe exploded");
-        });
+        }, Runnable::run);
 
         backpressure.enforceMantleBudget();
 
@@ -154,7 +194,7 @@ public class PregenMantleBackpressureTest {
         when(mantle.getLoadedRegionCount()).thenReturn(20, 20, 20, 3);
         PregenMantleBackpressure backpressure = new PregenMantleBackpressure(
                 () -> mantle, 4, 600_000, 600_000L, () -> {
-        }, () -> "waiting");
+        }, () -> "waiting", () -> false, Runnable::run);
         Thread waiter = new Thread(backpressure::enforceMantleBudget, "pregen-backpressure-waiter");
 
         waiter.start();
@@ -320,6 +360,6 @@ public class PregenMantleBackpressureTest {
             Runnable onBudgetTimeout
     ) {
         return new PregenMantleBackpressure(
-                mantleSupplier, maxResidentTectonicPlates, 5, timeoutMs, onBudgetTimeout, () -> "test");
+                mantleSupplier, maxResidentTectonicPlates, 5, timeoutMs, onBudgetTimeout, () -> "test", () -> false, Runnable::run);
     }
 }

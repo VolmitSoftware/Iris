@@ -68,6 +68,7 @@ public class MantleWriterOverlayTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(mantle.getChunk(0, 0)).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(0, 0)).thenAnswer(call -> chunk.use());
         when(chunk.getOrCreate(0)).thenReturn(matter);
         when(chunk.exists(0)).thenReturn(true);
         when(chunk.get(0)).thenReturn(matter);

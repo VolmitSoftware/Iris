@@ -10,6 +10,7 @@ import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.DimensionTerrainContext;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
@@ -327,7 +328,12 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             }
         }
 
-        H resolvedHolder = resolveStructureBiomeHolder(x, y, z);
+        H resolvedHolder;
+        try {
+            resolvedHolder = ProvisionalSampling.memoizable(() -> resolveStructureBiomeHolder(x, y, z));
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.value();
+        }
         if (!cacheable) {
             return resolvedHolder;
         }
@@ -453,7 +459,12 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             if (surfaceHolder != null) {
                 return surfaceHolder;
             }
-            H resolvedSurfaceHolder = resolveSurfaceStructureBiomeHolder(x, z);
+            H resolvedSurfaceHolder;
+            try {
+                resolvedSurfaceHolder = ProvisionalSampling.memoizable(() -> resolveSurfaceStructureBiomeHolder(x, z));
+            } catch (ProvisionalSampling.Unmemoizable provisional) {
+                return provisional.value();
+            }
             H existingSurfaceHolder = surfaceStructureBiomeCache.putIfAbsent(
                     columnKey, resolvedSurfaceHolder);
             if (existingSurfaceHolder != null) {
@@ -624,7 +635,12 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             }
         }
 
-        H resolvedHolder = resolveVisibleBiomeHolder(x, y, z, resolverState);
+        H resolvedHolder;
+        try {
+            resolvedHolder = ProvisionalSampling.memoizable(() -> resolveVisibleBiomeHolder(x, y, z, resolverState));
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            return provisional.value();
+        }
         if (!cacheable) {
             return resolvedHolder;
         }
@@ -633,7 +649,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             return existingHolder;
         }
 
-        if (noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
+        if ((y & 63) == 0 && noiseBiomeCache.size() > NOISE_BIOME_CACHE_MAX) {
             noiseBiomeCache.clear();
         }
 

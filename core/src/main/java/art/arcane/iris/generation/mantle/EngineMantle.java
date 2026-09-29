@@ -212,7 +212,7 @@ public interface EngineMantle extends MatterGenerator {
         boolean protectUpper = upperCtx != null;
         DimensionStackContext stackContext = getEngine().getDimensionStackContext();
 
-        MantleChunk<Matter> chunk = getMantle().getChunk(x, z).use();
+        MantleChunk<Matter> chunk = getMantle().useChunk(x, z);
         try {
             if (stackContext != null) {
                 DimensionStackLayout[] layouts = new DimensionStackLayout[256];
@@ -317,21 +317,30 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default boolean cleanupCoveredChunk(int x, int z, boolean force) {
-        return cleanupCoveredChunk(getMantle().getChunk(x, z), force);
+        MantleChunk<Matter> chunk = getMantle().useChunk(x, z);
+        try {
+            return cleanupUsedChunk(chunk, force);
+        } finally {
+            chunk.release();
+        }
     }
 
     default boolean cleanupCoveredChunk(MantleChunk<Matter> chunk, boolean force) {
         chunk.use();
         try {
-            synchronized (chunk) {
-                if (chunk.isFlagged(MantleFlag.CLEANED)) {
-                    return false;
-                }
-                chunk.raiseFlagUnchecked(MantleFlag.CLEANED, () -> cleanupSlices(chunk, force));
-                return true;
-            }
+            return cleanupUsedChunk(chunk, force);
         } finally {
             chunk.release();
+        }
+    }
+
+    private boolean cleanupUsedChunk(MantleChunk<Matter> chunk, boolean force) {
+        synchronized (chunk) {
+            if (chunk.isFlagged(MantleFlag.CLEANED)) {
+                return false;
+            }
+            chunk.raiseFlagUnchecked(MantleFlag.CLEANED, () -> cleanupSlices(chunk, force));
+            return true;
         }
     }
 

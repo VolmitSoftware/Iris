@@ -79,9 +79,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private static final byte LIQUID_FORCED_AIR = 3;
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
+    private static final long SOURCE_PLAN_STATS_INTERVAL_MS = 30_000L;
 
     private final Object collisionRuleLock;
     private final ObjectSourcePlanCache sourcePlans;
+    private final AtomicLong lastSourcePlanStatsLog = new AtomicLong();
     private volatile int collisionRuleState;
 
     public MantleObjectComponent(EngineMantle engineMantle) {
@@ -127,6 +129,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @Override
+    public int getEagerInputRadius(int inputRadius) {
+        return Math.min(inputRadius, calculateEagerInputRadius(getRadius(), hasCollisionRules()));
+    }
+
+    @Override
     public void hotload() {
         super.hotload();
         synchronized (collisionRuleLock) {
@@ -138,18 +145,41 @@ public class MantleObjectComponent extends IrisMantleComponent {
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, x, z);
+        int radius = getRadius();
+        int sourceChunkRadius = sourceChunkRadius(radius);
         replaySourceChunks(
                 x,
                 z,
-                getRadius(),
+                radius,
                 (sourceX, sourceZ) -> {
-                    ObjectSourcePlan plan = sourcePlans.get(sourceX, sourceZ,
+                    ObjectSourcePlan plan = sourcePlans.acquire(sourceX, sourceZ, x, z, sourceChunkRadius,
                             () -> buildSourcePlan(writer, sourceX, sourceZ, context));
-                    transaction.apply(plan);
-                    plan.persistContinuations(writer, sourceX, sourceZ, x, z);
+                    if (plan != null) {
+                        transaction.apply(plan);
+                        plan.persistContinuations(writer, sourceX, sourceZ, x, z);
+                    }
                 }
         );
         transaction.commit();
+        logSourcePlanStats();
+    }
+
+    private void logSourcePlanStats() {
+        long now = System.currentTimeMillis();
+        long last = lastSourcePlanStatsLog.get();
+        if (now - last < SOURCE_PLAN_STATS_INTERVAL_MS || !lastSourcePlanStatsLog.compareAndSet(last, now)) {
+            return;
+        }
+        ObjectSourcePlanCache.Stats stats = sourcePlans.stats();
+        IrisLogging.debug("Object source plans: lookups=" + stats.lookups()
+                + " builds=" + stats.builds()
+                + " waits=" + stats.waits()
+                + " replays=" + stats.replays()
+                + " drained=" + stats.drained()
+                + " retired=" + stats.retired()
+                + " retained=" + stats.retained()
+                + " retainedMiB=" + (stats.retainedBytes() >> 20)
+                + " budgetMiB=" + (stats.budgetBytes() >> 20));
     }
 
     private ObjectSourcePlan buildSourcePlan(
@@ -245,6 +275,17 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     static int sourceChunkRadius(int radius) {
         return radius > 0 ? Math.ceilDiv(radius, 16) : 0;
+    }
+
+    /**
+     * Every replayed source chunk plus one chunk of placement footprint. Larger footprints read past it and
+     * get their terrain generated on first access.
+     */
+    static int calculateEagerInputRadius(int radius, boolean sourceAnchoredCollisions) {
+        int normalizedRadius = Math.max(0, radius);
+        long sourceLegs = sourceAnchoredCollisions ? 2L : 1L;
+        long inputRadius = (sourceChunkRadius(normalizedRadius) * 16L * sourceLegs) + Math.min(normalizedRadius, 16) + 1L;
+        return inputRadius >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) inputRadius;
     }
 
     static int calculateInputRadius(int radius, boolean sourceAnchoredCollisions) {

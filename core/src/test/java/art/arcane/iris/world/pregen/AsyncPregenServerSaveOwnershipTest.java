@@ -17,7 +17,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Queue;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -333,20 +335,39 @@ public class AsyncPregenServerSaveOwnershipTest {
     }
 
     @Test
-    public void completedRegionsUnloadWithoutWaitingForTheirNeighbors() throws Exception {
+    public void completedRegionsUnloadAtDrainWhileRetentionKeepsOnlyTheBordersUndrainedNeighboursNeed() throws Exception {
         Fixture fixture = new Fixture();
         fixture.chunks.clear();
+        Set<Long> retained = new HashSet<>();
+        PregenChunkRetention retention = new PregenChunkRetention(new PregenChunkRetention.Tickets() {
+            @Override
+            public void retain(int chunkX, int chunkZ) {
+                assertTrue(retained.add(PregenChunkRetention.regionKey(chunkX, chunkZ)));
+            }
+
+            @Override
+            public void release(int chunkX, int chunkZ) {
+                assertTrue(retained.remove(PregenChunkRetention.regionKey(chunkX, chunkZ)));
+            }
+        }, 10, 1_000_000, 0, 0, 127, 0);
+        fixture.set("retention", retention);
         try (SchedulingContext context = new SchedulingContext(fixture)) {
             for (int region = 0; region < 128; region++) {
                 long key = (long) region << 32;
+                retention.retainAround(region << 5, 0);
+                retention.retainAround((region << 5) + 31, 0);
                 fixture.pendingRegions.put(key, new AtomicInteger(2));
                 invoke(fixture.method, "onChunkCompleted", region << 5, 0, fixture.chunk);
                 assertEquals(1, fixture.pendingRegions.get(key).get());
                 fixture.method.onRegionSubmitted(region, 0);
                 assertTrue(fixture.pendingRegions.isEmpty());
                 assertTrue(fixture.chunks.isEmpty());
+                verify(fixture.binding, times(region + 1)).saveAndUnloadChunk(fixture.world, 2, 3);
+                for (long position : retained) {
+                    assertTrue((int) (position >> 32) >= ((region + 1) << 5) - 10);
+                }
             }
-            verify(fixture.binding, times(128)).saveAndUnloadChunk(fixture.world, 2, 3);
+            assertTrue(retained.isEmpty());
         }
     }
 
@@ -388,6 +409,35 @@ public class AsyncPregenServerSaveOwnershipTest {
             verify(fixture.binding).saveAndUnloadChunk(fixture.world, 2, 3);
             fixture.method.onRegionSubmitted(0, 0);
             assertTrue(fixture.pendingRegions.isEmpty());
+        }
+    }
+
+    @Test
+    public void heapPressureReleasesEveryRetainedChunkBeforeEvicting() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.chunks.clear();
+        Set<Long> retained = new HashSet<>();
+        PregenChunkRetention retention = new PregenChunkRetention(new PregenChunkRetention.Tickets() {
+            @Override
+            public void retain(int chunkX, int chunkZ) {
+                retained.add(PregenChunkRetention.regionKey(chunkX, chunkZ));
+            }
+
+            @Override
+            public void release(int chunkX, int chunkZ) {
+                retained.remove(PregenChunkRetention.regionKey(chunkX, chunkZ));
+            }
+        }, 10, 1_000_000, 0, 0, 0, 0);
+        retention.retainAround(2, 3);
+        fixture.set("retention", retention);
+        fixture.pendingRegions.put(0L, new AtomicInteger(2));
+        try (SchedulingContext context = new SchedulingContext(fixture);
+             MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
+            pressure.when(MantleHeapPressure::overHighWater).thenReturn(true);
+            invoke(fixture.method, "onChunkCompleted", 2, 3, fixture.chunk);
+            assertTrue(retained.isEmpty());
+            assertEquals(0, retention.size());
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 2, 3);
         }
     }
 

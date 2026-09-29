@@ -59,6 +59,7 @@ import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Function2;
 import art.arcane.volmlib.util.hunk.Hunk;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.M;
@@ -250,6 +251,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     default void save() {
         NativeStructureOwnershipStore.flush(this);
+        syncGenerationHistory();
         getMantle().save();
         getWorldManager().onSave();
         saveEngineData();
@@ -259,6 +261,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     default void saveNow() {
         NativeStructureOwnershipStore.flush(this);
+        syncGenerationHistory();
         getMantle().saveAllNow();
         saveEngineData();
     }
@@ -266,6 +269,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     SeedManager getSeedManager();
 
     void saveEngineData();
+
+    void syncGenerationHistory();
 
     default String getName() {
         return getDimension().getName();
@@ -337,25 +342,101 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {
+        IrisBiome mantleBiome = mantleCaveBiome(x, y, z);
+        return mantleBiome != null ? mantleBiome : getCaveBiome(x, y, z);
+    }
+
+    private IrisBiome mantleCaveBiome(int x, int y, int z) {
+        IrisBiome flooded = floodedCaveBiome(x, y, z);
+        return flooded != null ? flooded : customCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
+    }
+
+    private IrisBiome floodedCaveBiome(int x, int y, int z) {
         HydrologyCaveCell hydrology = HydrologyCaveStorage.getIfPresent(
                 getMantle().getMantle(), x, y, z);
         if (hydrology != null && !hydrology.floodedBiomeKey().isEmpty()) {
-            IrisBiome biome = getData().getBiomeLoader().load(hydrology.floodedBiomeKey());
-            if (biome != null) {
-                return biome;
+            return getData().getBiomeLoader().load(hydrology.floodedBiomeKey());
+        }
+        return null;
+    }
+
+    private IrisBiome customCaveBiome(MatterCavern cavern) {
+        if (cavern != null && cavern.getCustomBiome() != null && !cavern.getCustomBiome().isEmpty()) {
+            return getData().getBiomeLoader().load(cavern.getCustomBiome());
+        }
+        return null;
+    }
+
+    private MantleChunk<Matter> useCavernChunk(int x, int z) {
+        Mantle<Matter> mantle = getMantle().getMantle();
+        int chunkX = x >> 4;
+        int chunkZ = z >> 4;
+        return mantle.hasTectonicPlate(chunkX >> 5, chunkZ >> 5) ? mantle.useChunk(chunkX, chunkZ) : null;
+    }
+
+    /**
+     * Fills {@code biomes[i]} with {@link #getBiomeOrMantle(int, int, int)} and {@code regions[i]} with
+     * {@link #getRegion(int, int, int)} at y = i * step of one column, resolving what does not vary along it once.
+     */
+    @BlockCoordinates
+    default void getBiomeOrMantleColumn(int x, int z, int step, IrisBiome[] biomes, IrisRegion[] regions) {
+        if (getDimensionStackContext() != null) {
+            for (int index = 0; index < biomes.length; index++) {
+                biomes[index] = getBiomeOrMantle(x, index * step, z);
+                regions[index] = getRegion(x, index * step, z);
+            }
+            return;
+        }
+        IrisComplex complex = getComplex();
+        int caveTop = getHeight(x, z) - 2;
+        IrisRegion region = getRegion(x, 0, z);
+        IrisBiome surface = null;
+        boolean cavernChunkResolved = false;
+        MantleChunk<Matter> cavernChunk = null;
+        boolean caveColumnResolved = false;
+        IrisBiome caveBase = null;
+        IrisBiome caveSurface = null;
+        int caveSurfaceY = 0;
+        try {
+            for (int index = 0; index < biomes.length; index++) {
+                int y = index * step;
+                regions[index] = region;
+                if (y > caveTop || complex.isTerrain3DSurface(x, y, z)) {
+                    if (surface == null) {
+                        surface = getSurfaceBiome(x, z);
+                    }
+                    biomes[index] = surface;
+                    continue;
+                }
+                IrisBiome biome = floodedCaveBiome(x, y, z);
+                if (biome == null) {
+                    if (!cavernChunkResolved) {
+                        cavernChunk = useCavernChunk(x, z);
+                        cavernChunkResolved = true;
+                    }
+                    biome = cavernChunk == null || y < 0 || y >= getMantle().getMantle().getWorldHeight()
+                            ? null : customCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
+                }
+                if (biome == null) {
+                    biome = resolveConfiguredCaveBiome(x, y, z, null);
+                }
+                if (biome == null) {
+                    if (!caveColumnResolved) {
+                        boolean naturalFallback = answersFromNaturalTerrain(x, z);
+                        caveSurface = caveDepthSurfaceBiome(x, z, naturalFallback);
+                        caveSurfaceY = caveDepthSurfaceY(x, z, naturalFallback);
+                        caveBase = getCaveBiome(x, z);
+                        caveColumnResolved = true;
+                    }
+                    biome = depthCaveBiome(caveBase, y, caveSurface, caveSurfaceY);
+                }
+                biomes[index] = biome;
+            }
+        } finally {
+            if (cavernChunk != null) {
+                cavernChunk.release();
             }
         }
-        MatterCavern m = getMantle().getMantle().get(x, y, z, MatterCavern.class);
-
-        if (m != null && m.getCustomBiome() != null && !m.getCustomBiome().isEmpty()) {
-            IrisBiome biome = getData().getBiomeLoader().load(m.getCustomBiome());
-
-            if (biome != null) {
-                return biome;
-            }
-        }
-
-        return getCaveBiome(x, y, z);
     }
 
     @ChunkCoordinates
@@ -382,16 +463,22 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return configuredBiome;
         }
         boolean naturalFallback = answersFromNaturalTerrain(x, z);
-        DimensionStackContext dimensionStackContext = getDimensionStackContext();
-        IrisBiome surfaceBiome = naturalFallback || dimensionStackContext == null
-                ? naturalFallback
-                        ? getComplex().naturalSurfaceBiome(x, z)
-                        : getSurfaceBiome(x, z)
-                : getComplex().getTrueBiomeStream().get(x, z);
-        int surfaceY = naturalFallback
+        IrisBiome surfaceBiome = caveDepthSurfaceBiome(x, z, naturalFallback);
+        int surfaceY = caveDepthSurfaceY(x, z, naturalFallback);
+        return resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
+    }
+
+    private IrisBiome caveDepthSurfaceBiome(int x, int z, boolean naturalFallback) {
+        if (naturalFallback) {
+            return getComplex().naturalSurfaceBiome(x, z);
+        }
+        return getDimensionStackContext() == null ? getSurfaceBiome(x, z) : getComplex().getTrueBiomeStream().get(x, z);
+    }
+
+    private int caveDepthSurfaceY(int x, int z, boolean naturalFallback) {
+        return naturalFallback
                 ? getComplex().naturalTrueHeight(x, z)
                 : getComplex().getHeightStream().get(x, z).intValue();
-        return resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
     }
 
     @BlockCoordinates
@@ -427,7 +514,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             IrisBiome surfaceBiome,
             int surfaceY
     ) {
-        IrisBiome caveBiome = getCaveBiome(x, z);
+        return depthCaveBiome(getCaveBiome(x, z), y, surfaceBiome, surfaceY);
+    }
+
+    private static IrisBiome depthCaveBiome(IrisBiome caveBiome, int y, IrisBiome surfaceBiome, int surfaceY) {
         if (caveBiome == null) {
             return surfaceBiome;
         }
@@ -673,7 +763,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return o.getObject().getLoadKey() + "@" + o.getId();
         }
 
-        MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             String raw = chunk.get(x & 15, y, z & 15, String.class);
             return (raw == null || raw.isEmpty()) ? null : raw;
@@ -683,7 +773,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     }
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
-        MantleChunk<Matter> chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
         try {
             return getObjectPlacement(x, y, z, chunk);
         } finally {

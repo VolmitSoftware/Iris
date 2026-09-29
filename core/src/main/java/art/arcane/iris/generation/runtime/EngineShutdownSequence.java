@@ -264,20 +264,16 @@ final class EngineShutdownSequence {
             return failure;
         }
         incompleteAssemblies.add(assembly);
-        RuntimeAssembly previous = engine == null ? null : engine.runtimeAssembly.get();
+        RuntimeAssembly previous = engine == null ? null : engine.threadState.assembly();
         if (engine != null) {
-            engine.runtimeAssembly.set(assembly);
+            engine.threadState.setAssembly(assembly);
         }
         Throwable assemblyFailure;
         try {
             assemblyFailure = closeAssemblyResources(assembly);
         } finally {
             if (engine != null) {
-                if (previous == null) {
-                    engine.runtimeAssembly.remove();
-                } else {
-                    engine.runtimeAssembly.set(previous);
-                }
+                engine.threadState.setAssembly(previous);
             }
         }
         if (assemblyFailure == null) {
@@ -401,7 +397,7 @@ final class EngineShutdownSequence {
                 engine,
                 generationRuntime);
         Throwable runtimeFailure;
-        try (IrisEngine.GenerationRuntimeScope ignored = engine.generationRuntimeScopes.open(binding)) {
+        try (IrisEngine.GenerationRuntimeScope ignored = engine.threadState.open(binding)) {
             runtimeFailure = closeGenerationRuntime(generationRuntime, null);
         } catch (Throwable scopeFailure) {
             runtimeFailure = scopeFailure;

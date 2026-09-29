@@ -1,17 +1,24 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.world.storage.Durability;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
@@ -21,8 +28,12 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -65,6 +76,73 @@ public final class GenerationHistoryRuntimeRouterLifecycleTest extends Generatio
             executor.shutdownNow();
         }
         router.close();
+    }
+
+    @Test
+    public void closeForcesDeferredSemanticAndBiomeWrites() throws Exception {
+        Path world = temporaryFolder.newFolder("router-close-sync-world").toPath();
+        GenerationHistory history = createHistory(world, createPack("router-close-sync-pack", "alpha"));
+        IrisEngine engine = mock(IrisEngine.class);
+        FakeRuntimeFactory runtimes = new FakeRuntimeFactory();
+        IrisEngine.GenerationRuntimeBinding active = runtimes.binding(history, history.activeActivation());
+        when(engine.getActiveGenerationRuntimeBinding()).thenReturn(active);
+        GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
+                engine, history, (ignored, x, z) -> signature(x, z), runtimes);
+        Path journal = history.paths().generationRoot().resolve("semantics/r.0.0.iswal");
+        Path biomes = history.paths().generationRoot().resolve("biomes/r.0.0.ibio");
+        Map<Path, AtomicInteger> forces = new ConcurrentHashMap<>();
+        try (MockedStatic<Durability> durability = mockStatic(Durability.class, CALLS_REAL_METHODS);
+             MockedStatic<FileChannel> ignored = countingForces(Set.of(journal, biomes), forces)) {
+            durability.when(Durability::enabled).thenReturn(true);
+            try (GenerationAdmission.RuntimeLease runtime = history.retainRuntime();
+                 GenerationHistory.GenerationStage stage = history.openStage(1, 0)) {
+                long activation = stage.activation().activationId();
+                assertTrue(history.claimGeneratedSemantics(stage, ChunkGenerationSemantics.builder(1, 0, activation)
+                        .addSurfaceBiome("iris:forest").seal().build()));
+                assertTrue(history.savedBiomes().claimAndPersist(savedBiomes(1, activation)));
+            }
+            assertEquals(0, forced(forces, journal));
+            assertEquals(0, forced(forces, biomes));
+            router.close();
+            assertEquals(1, forced(forces, journal));
+            assertEquals(1, forced(forces, biomes));
+        }
+        verify(engine).detachGenerationHistoryRuntimeRouter(router);
+    }
+
+    private static int forced(Map<Path, AtomicInteger> forces, Path path) {
+        AtomicInteger count = forces.get(path);
+        return count == null ? 0 : count.get();
+    }
+
+    private static MockedStatic<FileChannel> countingForces(Set<Path> watched, Map<Path, AtomicInteger> forces) {
+        return mockStatic(FileChannel.class, invocation -> {
+            FileChannel source = (FileChannel) invocation.callRealMethod();
+            if (invocation.getMethod().getParameterCount() != 2 || !watched.contains(invocation.getArgument(0))) {
+                return source;
+            }
+            Path path = invocation.getArgument(0);
+            FileChannel intercepted = mock(FileChannel.class, delegatesTo(source));
+            doAnswer(force -> {
+                forces.computeIfAbsent(path, unused -> new AtomicInteger()).incrementAndGet();
+                source.force(true);
+                return null;
+            }).when(intercepted).force(true);
+            return intercepted;
+        });
+    }
+
+    private static SavedBiomeChunk savedBiomes(int chunkX, long activation) {
+        SavedBiomeChunk.Cell cell = new SavedBiomeChunk.Cell(activation, "biome/main", "region/main");
+        SavedBiomeChunk.Column column = new SavedBiomeChunk.Column(cell, cell,
+                List.of(new SavedBiomeChunk.Span(-64, 320, cell)));
+        SavedBiomeChunk.Builder builder = SavedBiomeChunk.builder(new SavedBiomeChunk.Header(chunkX, 0, activation, -64, 384));
+        for (int z = 0; z < 16; z++) {
+            for (int x = 0; x < 16; x++) {
+                builder.column(x, z, column);
+            }
+        }
+        return builder.build();
     }
 
     @Test

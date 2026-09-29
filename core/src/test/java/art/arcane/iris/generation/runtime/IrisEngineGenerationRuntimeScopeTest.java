@@ -204,10 +204,10 @@ public class IrisEngineGenerationRuntimeScopeTest {
             assertSame(cave, engine.getCaveBiome(19, 20, -3, new IrisDimensionCarvingResolver.State()));
             assertSame(surface, engine.getSurfaceBiome(19, -3));
             assertSame(selected.complex, engine.getComplex());
-            verify(router, never()).openCoordinateScope(anyInt(), anyInt());
+            verify(router, never()).openReadScope(anyInt(), anyInt());
             when(context.isNaturalTerrain()).thenReturn(false);
             assertSame(cave, engine.getCaveBiome(19, -3));
-            verify(router, times(1)).openCoordinateScope(19, -3);
+            verify(router, times(1)).openReadScope(19, -3);
         }
         assertSame(active.complex, engine.getComplex());
         assertNull(IrisContext.get());
@@ -242,7 +242,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
             }
         }
         engine.getCaveBiome(19, -3);
-        verify(router, times(3)).openCoordinateScope(19, -3);
+        verify(router, times(3)).openReadScope(19, -3);
     }
 
     @Test
@@ -274,7 +274,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(caves.get(19D, -3D)).thenReturn(cave);
         when(surfaces.get(19D, -3D)).thenReturn(surface);
         when(regions.get(19D, -3D)).thenReturn(region);
-        when(router.openCoordinateScope(19, -3)).thenAnswer(invocation -> {
+        when(router.openReadScope(19, -3)).thenAnswer(invocation -> {
             assertSame(active.complex, engine.getComplex());
             IrisEngine.GenerationRuntimeScope runtimeScope = engine.openGenerationRuntimeScope(binding);
             GenerationHistoryRuntimeRouter.CoordinateScope coordinateScope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
@@ -292,7 +292,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
             assertSame(region, engine.getRegion(19, 20, -3));
             assertSame(active.complex, engine.getComplex());
         }
-        verify(router, times(4)).openCoordinateScope(19, -3);
+        verify(router, times(4)).openReadScope(19, -3);
         verifyNoInteractions(saved);
         assertNull(IrisContext.get());
     }
@@ -318,7 +318,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         }
         verify(saved).resolveCaveBase(19, -3);
         verify(saved, times(2)).resolve(19, -64, -3, true);
-        verify(router, never()).openCoordinateScope(anyInt(), anyInt());
+        verify(router, never()).openReadScope(anyInt(), anyInt());
         assertNull(IrisContext.get());
     }
 
@@ -839,7 +839,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         assertSame(environment.biome(), engine.getSurfaceBiome(19, -3));
         assertSame(environment.region(), engine.getRegion(19, -3));
         assertSame(environment.region(), engine.getRegion(19, 20, -3));
-        verify(router, never()).openCoordinateScope(anyInt(), anyInt());
+        verify(router, never()).openReadScope(anyInt(), anyInt());
     }
 
     @Test
@@ -855,7 +855,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
 
         assertSame(failure, assertThrows(SavedBiomeUnavailableException.class,
                 () -> engine.getBiome(19, 20, -3)));
-        verify(router, never()).openCoordinateScope(anyInt(), anyInt());
+        verify(router, never()).openReadScope(anyInt(), anyInt());
     }
 
     @Test
@@ -923,9 +923,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         IrisEngine engine = mock(IrisEngine.class, CALLS_REAL_METHODS);
         setField(engine, "lifecycleLock", new Object());
         setField(engine, "generationHistoryRuntimeRouterLock", new Object());
-        setField(engine, "runtimeAssembly", new ThreadLocal<EngineRuntimeBuilder.RuntimeAssembly>());
-        setField(engine, "biomeEnvironmentScopes", new ThreadLocal<Object>());
-        setField(engine, "generationRuntimeScopes", new GenerationRuntimeScopeState());
+        setField(engine, "threadState", new EngineThreadState());
         Set<GenerationRuntime> detached = Collections.synchronizedSet(
                 Collections.newSetFromMap(new IdentityHashMap<GenerationRuntime, Boolean>()));
         setField(engine, "detachedGenerationRuntimes", detached);

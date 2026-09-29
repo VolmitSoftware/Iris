@@ -169,8 +169,7 @@ public class EngineMantleCleanupTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(engineMantle.getMantle()).thenReturn(mantle);
         doReturn(true).when(engineMantle).isCovered(7, -4);
-        when(mantle.getChunk(7, -4)).thenReturn(chunk);
-        when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(7, -4)).thenReturn(chunk);
         doAnswer(invocation -> {
             Runnable cleanup = invocation.getArgument(1);
             cleanup.run();

@@ -5,12 +5,14 @@ import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.decoration.IrisDepositBiomeScope;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
 import art.arcane.iris.generation.decoration.IrisDepositShape;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -25,17 +27,21 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.math.RNG;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
+import art.arcane.iris.pack.loading.ResourceLoader;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -84,8 +90,38 @@ public class IrisDepositModifierParityTest {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @Test
+    public void variantFreePacksSkipPerBlockCaveBiomeLookupsWithIdenticalOutput() {
+        for (long seed : new long[]{101L, -73L, 90181L}) {
+            AtomicInteger scannedLookups = new AtomicInteger();
+            AtomicInteger unscannedLookups = new AtomicInteger();
+            long[] scanned = generateConfigured(seed, false, false, true, scannedLookups);
+            long[] unscanned = generateConfigured(seed, false, false, false, unscannedLookups);
+            assertArrayEquals("seed=" + seed, unscanned, scanned);
+            assertTrue(scannedLookups.get() < unscannedLookups.get());
+        }
+    }
+
+    @Test
+    public void unmatchableSurfaceBiomeFiltersSkipClumpsWithoutChangingOutput() {
+        long[] expected = {-4609692219192155345L, 784L, 2118L, 53L, 67L, 11L};
+        AtomicInteger clumps = new AtomicInteger();
+        assertArrayEquals(expected, generateConfigured(101L, false, true, false, new AtomicInteger(), clumps));
+        assertEquals(0, clumps.get());
+    }
+
     private long[] generateConfigured(long seed, boolean multicore) {
+        return generateConfigured(seed, multicore, true, false, new AtomicInteger());
+    }
+
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups) {
+        return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps) {
         Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         ChunkContext context = mock(ChunkContext.class, RETURNS_DEEP_STUBS);
         IrisDimension dimension = new IrisDimension();
@@ -99,7 +135,9 @@ public class IrisDepositModifierParityTest {
         denied.setLoadKey("denied");
         IrisDepositVariant variant = new IrisDepositVariant().setMinHeight(-64).setMaxHeight(64);
         variant.getRemap().put("minecraft:gold_ore", "minecraft:redstone_ore");
-        cave.getDepositVariants().add(variant);
+        if (caveVariant) {
+            cave.getDepositVariants().add(variant);
+        }
         dimension.getDeposits().add(generator("granite", IrisDepositShape.IRIS, 25, 70,
                 IrisDepositHeightDistribution.CLIPPED_UNIFORM, "stone", "deepslate"));
         region.getDeposits().add(generator("iron_ore", IrisDepositShape.VANILLA_ELLIPSOID, 20, 110,
@@ -114,11 +152,37 @@ public class IrisDepositModifierParityTest {
         gold.setExcludedBiomes(new KList<>("allowed"));
         gold.setDiscardChanceOnAirExposure(0.3D);
         surface.getDeposits().add(gold);
+        if (unmatchableClumps != null) {
+            IrisDepositGenerator unmatchable = new CountingPaletteGenerator(state("emerald_ore"), unmatchableClumps)
+                    .setShape(IrisDepositShape.VANILLA_ELLIPSOID).setMinSize(9).setMaxSize(9)
+                    .setMinPerChunk(90).setMaxPerChunk(90).setMinHeight(-4).setMaxHeight(44)
+                    .setHeightDistribution(IrisDepositHeightDistribution.UNIFORM).setSurfaceClearance(0)
+                    .setReplaceableBlocks(new KList<>("stone"))
+                    .setBiomeScope(IrisDepositBiomeScope.SURFACE)
+                    .setIncludedBiomes(new KList<>("elsewhere"));
+            surface.getDeposits().add(unmatchable);
+        }
         when(engine.getHeight()).thenReturn(48);
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getSeedManager().getDeposit()).thenReturn(seed);
         when(engine.getDimension()).thenReturn(dimension);
+        if (enumerablePack) {
+            IrisData data = mock(IrisData.class);
+            ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
+            ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+            when(data.getBiomeLoader()).thenReturn(biomes);
+            when(data.getRegionLoader()).thenReturn(regions);
+            when(biomes.getPossibleKeys()).thenReturn(new String[]{"allowed", "denied", "surface"});
+            when(biomes.load("allowed")).thenReturn(cave);
+            when(biomes.load("denied")).thenReturn(denied);
+            when(biomes.load("surface")).thenReturn(surface);
+            when(regions.getPossibleKeys()).thenReturn(new String[]{"region"});
+            when(regions.load("region")).thenReturn(region);
+            when(engine.getData()).thenReturn(data);
+            when(engine.getDimensionStackContext()).thenReturn(null);
+        }
         when(engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any())).thenAnswer(invocation -> {
+            caveBiomeLookups.incrementAndGet();
             int x = invocation.getArgument(0);
             int y = invocation.getArgument(1);
             int z = invocation.getArgument(2);
@@ -129,8 +193,7 @@ public class IrisDepositModifierParityTest {
         when(context.getRegion().get(anyInt(), anyInt())).thenReturn(region);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         Mantle<Matter> mantle = engine.getMantle().getMantle();
-        doReturn(chunk).when(mantle).getChunk(-3, 5);
-        when(chunk.use()).thenReturn(chunk);
+        doReturn(chunk).when(mantle).useChunk(-3, 5);
         MatterCavern cavern = new MatterCavern(true, "allowed", (byte) 0);
         when(chunk.get(anyInt(), anyInt(), anyInt(), any())).thenAnswer(invocation -> {
             int x = invocation.getArgument(0);
@@ -366,7 +429,7 @@ public class IrisDepositModifierParityTest {
         }
     }
 
-    private static final class PaletteGenerator extends IrisDepositGenerator {
+    private static class PaletteGenerator extends IrisDepositGenerator {
         private final KList<NativeBlockState> blocks;
 
         private PaletteGenerator(NativeBlockState block) {
@@ -376,6 +439,27 @@ public class IrisDepositModifierParityTest {
         @Override
         public KList<NativeBlockState> getBlockData(IrisData data) {
             return blocks;
+        }
+    }
+
+    private static final class CountingPaletteGenerator extends PaletteGenerator {
+        private final AtomicInteger clumps;
+
+        private CountingPaletteGenerator(NativeBlockState block, AtomicInteger clumps) {
+            super(block);
+            this.clumps = clumps;
+        }
+
+        @Override
+        public IrisObject getClump(Engine engine, RNG rng, IrisData data) {
+            clumps.incrementAndGet();
+            return super.getClump(engine, rng, data);
+        }
+
+        @Override
+        public ClumpFootprint sampleClumpFootprint(RNG rng, IrisData data) {
+            clumps.incrementAndGet();
+            return super.sampleClumpFootprint(rng, data);
         }
     }
 }

@@ -73,7 +73,7 @@ import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.hunk.Hunk;
-import art.arcane.iris.generation.chunk.TerrainChunkBiomeHunkView;
+import art.arcane.iris.generation.chunk.ColumnBiomeHunk;
 import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
@@ -1308,12 +1308,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         try {
             Engine engine = getEngine(world);
             StudioGenerator selected = computeStudioGenerator();
-            TerrainChunk tc = TerrainChunk.create(d);
             if (selected != null) {
-                selected.generateChunk(engine, tc, x, z);
+                selected.generateChunk(engine, TerrainChunk.create(d), x, z);
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(d);
-                Hunk<NativeBiome> biomes = new TerrainChunkBiomeHunkView(tc);
+                Hunk<NativeBiome> biomes = new ColumnBiomeHunk(d.getMaxHeight() - d.getMinHeight());
                 try (GenerationHistoryRuntimeRouter.CoordinateScope historyScope =
                              openGenerationHistoryCoordinateScope(engine, x << 4, z << 4);
                      GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_terrain_stage");

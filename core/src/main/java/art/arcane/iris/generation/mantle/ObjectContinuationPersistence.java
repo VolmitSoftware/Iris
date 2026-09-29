@@ -26,7 +26,7 @@ public final class ObjectContinuationPersistence {
         List<ObjectContinuationBundle.ChunkPosition> touched = List.copyOf(destinations.keySet());
         for (Map.Entry<ObjectContinuationBundle.ChunkPosition, Supplier<Matter>> entry : destinations.entrySet()) {
             ObjectContinuationBundle.ChunkPosition destination = entry.getKey();
-            MantleChunk<Matter> chunk = mantle.getChunk(destination.x(), destination.z()).use();
+            MantleChunk<Matter> chunk = mantle.useChunk(destination.x(), destination.z());
             try {
                 synchronized (chunk) {
                     if (chunk.isFlagged(MantleFlag.REAL)) {

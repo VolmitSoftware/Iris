@@ -39,6 +39,7 @@ public class MatterGeneratorCarvePassRadiusTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk.use());
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(1);
             task.run();
@@ -76,6 +77,7 @@ public class MatterGeneratorCarvePassRadiusTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk.use());
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(1);
             task.run();
@@ -107,6 +109,7 @@ public class MatterGeneratorCarvePassRadiusTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk.use());
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(1);
             task.run();
@@ -144,6 +147,7 @@ public class MatterGeneratorCarvePassRadiusTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk.use());
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(1);
             task.run();
@@ -184,6 +188,7 @@ public class MatterGeneratorCarvePassRadiusTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         when(mantle.getChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.use()).thenReturn(chunk);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> chunk.use());
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(1);
             task.run();
@@ -309,8 +314,8 @@ public class MatterGeneratorCarvePassRadiusTest {
         }
 
         @Override
-        public boolean isInputGenerationLazy() {
-            return lazyInputGeneration;
+        public int getEagerInputRadius(int inputRadius) {
+            return lazyInputGeneration ? 0 : inputRadius;
         }
 
         @Override

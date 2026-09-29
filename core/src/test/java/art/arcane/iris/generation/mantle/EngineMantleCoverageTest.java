@@ -197,7 +197,7 @@ public class EngineMantleCoverageTest {
 
         assertTrue(actual.isEmpty());
         verify(fixture.mantle(), never()).hasLoadedFlag(anyInt(), anyInt(), any());
-        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).useChunk(anyInt(), anyInt());
 
         when(fixture.mantle().isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
         fixture.engine().cleanupChunksCoveredBy(0, 0, true,
@@ -217,7 +217,7 @@ public class EngineMantleCoverageTest {
 
         assertTrue(actual.isEmpty());
         assertTrue(fixture.cleaned().isEmpty());
-        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).useChunk(anyInt(), anyInt());
         verify(fixture.mantle(), never()).hasFlag(anyInt(), anyInt(), any());
     }
 
@@ -233,7 +233,7 @@ public class EngineMantleCoverageTest {
 
         assertTrue(actual.isEmpty());
         verify(fixture.mantle(), never()).withLoadedChunk(anyInt(), anyInt(), any());
-        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).useChunk(anyInt(), anyInt());
         verify(fixture.mantle(), never()).hasFlag(anyInt(), anyInt(), any());
     }
 
@@ -270,7 +270,7 @@ public class EngineMantleCoverageTest {
             });
         }
         assertEquals(List.of(new Chunk(0, 0)), actual);
-        verify(fixture.mantle(), never()).getChunk(anyInt(), anyInt());
+        verify(fixture.mantle(), never()).useChunk(anyInt(), anyInt());
         verify(fixture.mantle(), never()).hasFlag(anyInt(), anyInt(), any());
     }
 

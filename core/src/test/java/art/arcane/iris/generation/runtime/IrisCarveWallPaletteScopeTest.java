@@ -2,7 +2,6 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.mantle.EngineMantle;
-import art.arcane.iris.generation.mantle.TerrainMatterView;
 import art.arcane.iris.generation.stage.IrisCarveModifier;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
@@ -15,12 +14,13 @@ import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
+import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
@@ -42,7 +42,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
@@ -100,19 +99,10 @@ public class IrisCarveWallPaletteScopeTest {
             }
             try (IrisEngine.GenerationRuntimeScope generation = fixture.engine.openGenerationRuntimeScope(
                     new IrisEngine.GenerationRuntimeBinding(fixture.engine, selected));
-                 IrisContext.Scope context = IrisContext.open(fixture.engine, 71L, fixture.context);
-                 MockedStatic<TerrainMatterView> terrain = mockStatic(TerrainMatterView.class)) {
+                 IrisContext.Scope context = IrisContext.open(fixture.engine, 71L, fixture.context)) {
                 if (mode == Mode.ASSEMBLY) {
-                    fixture.engine.runtimeAssembly.set(fixture.assembly);
+                    fixture.engine.threadState.setAssembly(fixture.assembly);
                 }
-                terrain.when(() -> TerrainMatterView.iterate(eq(fixture.chunk), eq(MatterCavern.class), any()))
-                        .thenAnswer(call -> {
-                            Consumer4<Integer, Integer, Integer, MatterCavern> consumer = call.getArgument(2);
-                            for (int coordinate : new int[]{4, 8, 12}) {
-                                consumer.accept(coordinate, 10, coordinate, new MatterCavern(true, "", (byte) 0));
-                            }
-                            return null;
-                        });
                 try {
                     assertSame(expectedData, fixture.engine.getData());
                     assertEquals(mode == Mode.NATURAL, expectedComplex.isNaturalTerrainContext());
@@ -137,7 +127,7 @@ public class IrisCarveWallPaletteScopeTest {
                     verify(fixture.chunk).release();
                     assertEquals(1, fixture.dataLookups.get());
                 } finally {
-                    fixture.engine.runtimeAssembly.remove();
+                    fixture.engine.threadState.setAssembly(null);
                 }
             }
             assertSame(fixture.active.data(), fixture.engine.getData());
@@ -194,14 +184,19 @@ public class IrisCarveWallPaletteScopeTest {
             chunk = mock(MantleChunk.class);
             EngineMantle engineMantle = mock(EngineMantle.class);
             doReturn(mantle).when(engineMantle).getMantle();
-            doReturn(chunk).when(mantle).getChunk(-2, 3);
-            doReturn(chunk).when(chunk).use();
+            doReturn(chunk).when(mantle).useChunk(-2, 3);
+            IrisMatterSupport.ensureRegistered();
+            Matter section = new IrisMatter(16, 16, 16);
+            for (int coordinate : new int[]{4, 8, 12}) {
+                section.slice(MatterCavern.class).set(coordinate, 10, coordinate, new MatterCavern(true, "", (byte) 0));
+            }
+            doReturn(1).when(chunk).sectionCount();
+            doReturn(true).when(chunk).exists(0);
+            doReturn(section).when(chunk).get(0);
             active = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
             detached = runtime(mock(IrisData.class), mock(IrisComplex.class), engineMantle);
             field(engine, IrisEngine.class, "lifecycleLock", new Object());
-            field(engine, IrisEngine.class, "runtimeAssembly", new ThreadLocal<EngineRuntimeBuilder.RuntimeAssembly>());
-            field(engine, IrisEngine.class, "biomeEnvironmentScopes", new ThreadLocal<>());
-            field(engine, IrisEngine.class, "generationRuntimeScopes", new GenerationRuntimeScopeState());
+            field(engine, IrisEngine.class, "threadState", new EngineThreadState());
             field(engine, IrisEngine.class, "detachedGenerationRuntimes", Collections.newSetFromMap(new IdentityHashMap<>()));
             field(engine, IrisEngine.class, "retiringGenerationRuntimes", Collections.newSetFromMap(new IdentityHashMap<>()));
             engine.detachedGenerationRuntimes.add(detached);
@@ -255,7 +250,7 @@ public class IrisCarveWallPaletteScopeTest {
         private IrisBiome scopedBiome(IrisBiome biome) {
             try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(
                     new IrisEngine.GenerationRuntimeBinding(engine, active))) {
-                assertSame(engine.runtimeAssembly.get() == null ? active.data() : assemblyData, engine.getData());
+                assertSame(engine.threadState.assembly() == null ? active.data() : assemblyData, engine.getData());
             }
             return biome;
         }

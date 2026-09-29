@@ -27,7 +27,6 @@ import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -35,12 +34,7 @@ import art.arcane.iris.generation.context.ChunkedDataCache;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
-import art.arcane.volmlib.util.mantle.runtime.Mantle;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterBiomeInject;
-import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.List;
@@ -48,8 +42,8 @@ import java.util.Objects;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
     private final RNG rng;
-    private final KMap<String, ResolvedBiome> resolvedBiomes = new KMap<>();
-    private final KMap<String, ResolvedBiome> resolvedPhysicalBiomes = new KMap<>();
+    private final KMap<String, NativeBiome> resolvedBiomes = new KMap<>();
+    private final KMap<String, NativeBiome> resolvedPhysicalBiomes = new KMap<>();
 
     public IrisBiomeActuator(Engine engine) {
         super(engine, "Biome");
@@ -64,7 +58,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
         int depth = h.getDepth();
         int height = h.getHeight();
         Engine engine = getEngine();
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
         ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
         IrisComplex complex = context.getComplex();
         DimensionStackContext dimensionStackContext = engine.getDimensionStackContext();
@@ -74,7 +67,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
                 int worldX = x + xf;
                 int worldZ = z + zf;
                 IrisBiome biome = biomeCache.get(xf, zf);
-                ResolvedBiome resolved = resolve(biomeKey(
+                NativeBiome platformBiome = resolve(biomeKey(
                         biome,
                         getDimension(),
                         engine,
@@ -82,8 +75,9 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
                         0,
                         worldZ
                 ));
-                NativeBiome platformBiome = resolved.biome();
-                writeColumn(h, mantle, xf, zf, worldX, worldZ, height, resolved);
+                if (platformBiome != null) {
+                    h.set(xf, 0, zf, xf, height - 1, zf, platformBiome);
+                }
 
                 if (dimensionStackContext != null) {
                     NativeBiome bottomBiome = platformBiome == null
@@ -95,48 +89,19 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
                             worldX,
                             worldZ,
                             h,
-                            mantle,
                             engine,
-                            new ResolvedBiome(bottomBiome, resolved.matter()),
+                            bottomBiome,
                             context.getDimensionStackLayout(xf, zf)
                     );
                 }
-                writeHistoricalColumn(h, mantle, xf, zf, worldX, worldZ, height, engine, complex);
+                writeHistoricalColumn(h, xf, zf, worldX, worldZ, height, engine, complex);
             }
         }
         engine.getMetrics().getBiome().put(p.getMilliseconds());
     }
 
-    public static void publishNaturalMetadata(Engine engine, int x, int z, Hunk<NativeBiome> biomes,
-                                               ChunkContext context) {
-        if (!context.getComplex().allowsMantleChunkWrite(x >> 4, z >> 4)) {
-            return;
-        }
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
-        MantleChunk<Matter> chunk = mantle.getChunk(x >> 4, z >> 4).use();
-        try {
-            synchronized (chunk) {
-                IrisDimensionStackActuator.clearNaturalMetadata(chunk, context, biomes.getHeight());
-                chunk.deleteSlices(MatterBiomeInject.class);
-                for (int localX = 0; localX < biomes.getWidth(); localX += 4) {
-                    for (int localZ = 0; localZ < biomes.getDepth(); localZ += 4) {
-                        for (int y = 0; y < biomes.getHeight(); y += 4) {
-                            NativeBiome biome = biomes.getRaw(localX, y, localZ);
-                            if (biome != null) {
-                                mantle.set(x + localX, y, z + localZ, BiomeInjectMatter.get(biome.key()));
-                            }
-                        }
-                    }
-                }
-            }
-        } finally {
-            chunk.release();
-        }
-    }
-
     private void writeHistoricalColumn(
             Hunk<NativeBiome> output,
-            Mantle<Matter> mantle,
             int localX,
             int localZ,
             int worldX,
@@ -167,35 +132,14 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
                 applyBiomeRange(
                         localX,
                         localZ,
-                        worldX,
-                        worldZ,
                         rangeStart,
                         internalY - 1,
                         output,
-                        mantle,
                         resolvePhysicalKey(activeKey)
                 );
             }
             activeKey = nextKey;
             rangeStart = internalY;
-        }
-    }
-
-    private void writeColumn(
-            Hunk<NativeBiome> output,
-            Mantle<Matter> mantle,
-            int localX,
-            int localZ,
-            int worldX,
-            int worldZ,
-            int height,
-            ResolvedBiome resolved
-    ) {
-        if (resolved.biome() != null) {
-            output.set(localX, 0, localZ, localX, height - 1, localZ, resolved.biome());
-        }
-        if (mantle != null) {
-            mantle.set(worldX, 0, worldZ, resolved.matter());
         }
     }
 
@@ -205,9 +149,8 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
             int worldX,
             int worldZ,
             Hunk<NativeBiome> output,
-            Mantle<Matter> mantle,
             Engine engine,
-            ResolvedBiome bottom,
+            NativeBiome bottom,
             DimensionStackLayout layout
     ) {
         List<DimensionStackLayout.Layer> layers = layout.layersBottomToTop();
@@ -222,18 +165,15 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
             applyBiomeRange(
                     localX,
                     localZ,
-                    worldX,
-                    worldZ,
                     gapMinY,
                     gapMaxY,
                     output,
-                    mantle,
                     bottom
             );
             if (!layer.visible()) {
                 continue;
             }
-            ResolvedBiome resolved = bottom;
+            NativeBiome resolved = bottom;
             if (layer.biome() != null) {
                 IrisDimension dimension = layer.terrainContext().getDimension();
                 resolved = resolve(biomeKey(
@@ -248,12 +188,9 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
             applyBiomeRange(
                     localX,
                     localZ,
-                    worldX,
-                    worldZ,
                     layer.renderMinY(),
                     layer.renderMaxY(),
                     output,
-                    mantle,
                     resolved
             );
         }
@@ -262,46 +199,15 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
     private void applyBiomeRange(
             int localX,
             int localZ,
-            int worldX,
-            int worldZ,
             int minimumY,
             int maximumY,
             Hunk<NativeBiome> output,
-            Mantle<Matter> mantle,
-            ResolvedBiome resolved
+            NativeBiome biome
     ) {
-        if (minimumY > maximumY) {
+        if (minimumY > maximumY || biome == null) {
             return;
         }
-        if (mantle != null) {
-            clearBiomeMatterRange(mantle, worldX, worldZ, minimumY, maximumY);
-        }
-        if (resolved.biome() != null) {
-            output.set(
-                    localX,
-                    minimumY,
-                    localZ,
-                    localX,
-                    maximumY,
-                    localZ,
-                    resolved.biome()
-            );
-        }
-        if (mantle != null && resolved.matter() != null) {
-            mantle.set(worldX, minimumY, worldZ, resolved.matter());
-        }
-    }
-
-    static void clearBiomeMatterRange(
-            Mantle<Matter> mantle,
-            int worldX,
-            int worldZ,
-            int minimumY,
-            int maximumY
-    ) {
-        for (int y = minimumY; y <= maximumY; y++) {
-            mantle.remove(worldX, y, worldZ, MatterBiomeInject.class);
-        }
+        output.set(localX, minimumY, localZ, localX, maximumY, localZ, biome);
     }
 
     private String biomeKey(
@@ -319,37 +225,28 @@ public class IrisBiomeActuator extends EngineAssignedActuator<NativeBiome> {
         return biome.getSkyBiomeKey(rng, engine, x, y, z);
     }
 
-    private ResolvedBiome resolve(String key) {
-        ResolvedBiome cached = key == null ? null : resolvedBiomes.get(key);
+    private NativeBiome resolve(String key) {
+        NativeBiome cached = key == null ? null : resolvedBiomes.get(key);
         if (cached != null) {
             return cached;
         }
 
-        IrisPlatform platform = IrisPlatforms.get();
-        NativeBiome biome = platform.registries().biome(key);
-        ResolvedBiome resolved = new ResolvedBiome(
-                biome,
-                BiomeInjectMatter.get(platform.biomeWriter().biomeIdFor(key))
-        );
+        NativeBiome biome = IrisPlatforms.get().registries().biome(key);
         if (key != null && biome != null) {
-            resolvedBiomes.put(key, resolved);
+            resolvedBiomes.put(key, biome);
         }
-        return resolved;
+        return biome;
     }
 
-    private ResolvedBiome resolvePhysicalKey(String key) {
-        ResolvedBiome cached = resolvedPhysicalBiomes.get(key);
+    private NativeBiome resolvePhysicalKey(String key) {
+        NativeBiome cached = resolvedPhysicalBiomes.get(key);
         if (cached != null) {
             return cached;
         }
         NativeBiome biome = IrisPlatforms.get().registries().biome(key);
-        ResolvedBiome resolved = new ResolvedBiome(biome, BiomeInjectMatter.get(key));
         if (biome != null) {
-            resolvedPhysicalBiomes.put(key, resolved);
+            resolvedPhysicalBiomes.put(key, biome);
         }
-        return resolved;
-    }
-
-    private record ResolvedBiome(NativeBiome biome, MatterBiomeInject matter) {
+        return biome;
     }
 }

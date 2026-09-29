@@ -2,6 +2,7 @@ package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.volmlib.util.cache.CacheKey;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -9,7 +10,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -36,6 +37,13 @@ public final class HydrologyTileCache implements AutoCloseable {
     private static final int MAXIMUM_COMPOSED_CHUNKS = 256;
     private static final int CHUNK_SIZE = 16;
     private static final int CHUNK_COLUMN_COUNT = CHUNK_SIZE * CHUNK_SIZE;
+    private static final int LOCAL_CHUNK_SLOTS = 16;
+    private static final byte AROUND_UNKNOWN = 0;
+    private static final byte AROUND_EMPTY = 1;
+    private static final byte AROUND_PUBLISHED = 2;
+    private static final int MAXIMUM_PREGENERATION_TILES = 4096;
+    private static final int PREGENERATION_HALO_BLOCKS = 512;
+    private static final HydrologyColumnSample[] NO_COLUMNS = new HydrologyColumnSample[CHUNK_COLUMN_COUNT];
     private static final Cache<SharedTileKey, HydrologyTile> SHARED_TILES = Caffeine.newBuilder()
             .maximumWeight(HydrologyCacheBudget.sharedStudioBytes())
             .weigher((SharedTileKey key, HydrologyTile tile) -> HydrologyCacheWeights.bounded(
@@ -48,17 +56,18 @@ public final class HydrologyTileCache implements AutoCloseable {
     private final int publicationRadius;
     private final int maximumEntries;
     private final Cache<HydrologyTileKey, HydrologyTile> tiles;
+    private final ConcurrentHashMap<HydrologyTileKey, HydrologyChunkOccupancy> occupancies;
     private final Cache<Long, ChunkColumns> composedChunks;
     private final Cache<HydrologyTileKey, List<HydrologyDiagnosticCandidate>> diagnostics;
     private final AtomicLong cacheEpoch;
     private final AtomicBoolean closed;
-    private final ThreadLocal<LocalChunkColumns> localChunkColumns;
+    private final ThreadLocal<LocalChunks> localChunks;
     private final Executor prefetchExecutor;
+    private final int prefetchSlots;
     private final ConcurrentLinkedQueue<HydrologyTileKey> prefetchQueue;
     private final Set<HydrologyTileKey> queuedPrefetches;
     private final LinkedHashSet<ChunkCoordinate> queriedChunks;
     private final Set<CacheLoadKey<HydrologyTileKey>> demandedPlans;
-    private final AtomicBoolean prefetchActive;
     private final ConcurrentHashMap<CacheLoadKey<HydrologyTileKey>, CompletableFuture<HydrologyTile>> planning;
     private final ConcurrentHashMap<CacheLoadKey<HydrologyTileKey>, PendingLoad<HydrologyTile>> loading;
     private final ConcurrentHashMap<CacheLoadKey<Long>, PendingLoad<ChunkColumns>> composing;
@@ -72,6 +81,8 @@ public final class HydrologyTileCache implements AutoCloseable {
     private volatile Runnable terrainPreparation;
     private PregenerationScope pregenerationScope;
     private int demandBatches;
+    private int activePrefetches;
+    private boolean pumping;
 
     public HydrologyTileCache(HydrologyPlanner planner) {
         this(planner, DEFAULT_MAXIMUM_ENTRIES, null, null, null);
@@ -112,6 +123,7 @@ public final class HydrologyTileCache implements AutoCloseable {
         this.tileSize = planner.settings().routing().tileSize();
         this.publicationRadius = planner.settings().publicationRadius();
         this.prefetchExecutor = prefetchExecutor;
+        this.prefetchSlots = prefetchSlots(HydrologyPlanningAdmission.maximumRoots());
         this.waitingForbidden = waitingForbidden;
         this.sharedCacheScope = sharedCacheScope;
         this.persistentStore = null;
@@ -128,7 +140,7 @@ public final class HydrologyTileCache implements AutoCloseable {
         this.queuedPrefetches = ConcurrentHashMap.newKeySet();
         this.queriedChunks = new LinkedHashSet<>();
         this.demandedPlans = new HashSet<>();
-        this.prefetchActive = new AtomicBoolean();
+        this.occupancies = new ConcurrentHashMap<>();
         HydrologyCacheBudget budget = HydrologyCacheBudget.runtime();
         this.tiles = Caffeine.newBuilder()
                 .maximumWeight(budget.tileBytes())
@@ -147,8 +159,27 @@ public final class HydrologyTileCache implements AutoCloseable {
                 .build();
         this.cacheEpoch = new AtomicLong();
         this.closed = new AtomicBoolean();
-        this.localChunkColumns = new ThreadLocal<>();
+        this.localChunks = ThreadLocal.withInitial(LocalChunks::new);
         this.neighbourPrefetchEnabled = true;
+        planner.usePlannedTiles(this::plannedTile);
+    }
+
+    /** A tile already planned, resident or in the prepared-plan store, loaded without planning it. */
+    private HydrologyTile plannedTile(HydrologyTileKey key) {
+        HydrologyTile resident = tiles.getIfPresent(key);
+        if (resident != null) {
+            return resident;
+        }
+        PreparedHydrologyTileStore store = persistentStore;
+        return store == null ? null : store.load(key).orElse(null);
+    }
+
+    /**
+     * Speculative roots run beside each other but leave one root permit free, so a chunk that needs a
+     * tile nobody queued yet does not wait behind a full row of prefetches.
+     */
+    static int prefetchSlots(int maximumRoots) {
+        return Math.max(1, maximumRoots - 1);
     }
 
     /**
@@ -317,9 +348,14 @@ public final class HydrologyTileCache implements AutoCloseable {
         try {
             present = tiles.getIfPresent(key);
             HydrologyTile tile = present == null ? planRequired(key, epoch) : present;
+            HydrologyChunkOccupancy occupancy = occupancies.get(key);
+            if (occupancy == null) {
+                occupancy = HydrologyChunkOccupancy.of(tile.footprint());
+            }
             synchronized (publicationLock) {
                 if (!closed.get() && cacheEpoch.get() == epoch) {
                     tiles.put(key, tile);
+                    occupancies.putIfAbsent(key, occupancy);
                 }
             }
             owned.future().complete(tile);
@@ -355,9 +391,20 @@ public final class HydrologyTileCache implements AutoCloseable {
                         SHARED_TILES.invalidate(sharedKey);
                     }
                 }
+                if (attempt == 0L && store != null) {
+                    HydrologyTile persisted = store.load(key).orElse(null);
+                    if (persisted != null) {
+                        planner.reuseResolvedTile(persisted);
+                        if (sharedKey != null) {
+                            SHARED_TILES.put(sharedKey, persisted);
+                        }
+                        IrisLogging.debug("Loaded persisted prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
+                        return persisted;
+                    }
+                }
                 try (HydrologyPlanningAdmission.Permit ignored = HydrologyPlanningAdmission.acquireRoot(
                         closed::get)) {
-                    return planAdmitted(key, planningEpoch, sharedKey, store, attempt == 0L);
+                    return planAdmitted(key, planningEpoch, sharedKey, store);
                 }
             } catch (RuntimeException failure) {
                 if (failure instanceof CancellationException || interrupted(failure)) {
@@ -407,18 +454,9 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
+    /** Plans the tile under a root permit; a persisted plan is restored before any permit is taken. */
     private HydrologyTile planAdmitted(HydrologyTileKey key, long planningEpoch,
-                                       SharedTileKey sharedKey, PreparedHydrologyTileStore store,
-                                       boolean reusePrepared) {
-        if (store != null && reusePrepared) {
-            HydrologyTile persisted = store.load(key).orElse(null);
-            if (persisted != null) {
-                planner.reuseResolvedTile(persisted);
-                SHARED_TILES.put(sharedKey, persisted);
-                IrisLogging.debug("Loaded persisted prepared hydrology tile %d,%d", key.tileX(), key.tileZ());
-                return persisted;
-            }
-        }
+                                       SharedTileKey sharedKey, PreparedHydrologyTileStore store) {
         prepareTerrain();
         HydrologyTile planned = planner.plan(key);
         synchronized (publicationLock) {
@@ -470,10 +508,12 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
         int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);
-        LocalChunkColumns local = localChunkColumns.get();
-        if (local != null && local.epoch() == cacheEpoch.get()
-                && local.columns().chunkX() == chunkX && local.columns().chunkZ() == chunkZ) {
-            return HydrologyColumnSnapshot.ready(local.columns().columnAt(blockX, blockZ).orElse(null));
+        ChunkColumns local = localChunks(cacheEpoch.get()).get(chunkX, chunkZ);
+        if (local != null) {
+            return HydrologyColumnSnapshot.ready(local.columnAt(blockX, blockZ).orElse(null));
+        }
+        if (knownEmpty(chunkX, chunkZ)) {
+            return HydrologyColumnSnapshot.ready(null);
         }
         ChunkColumns composed = composedChunks.getIfPresent(CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ)));
         if (composed != null) {
@@ -485,6 +525,7 @@ public final class HydrologyTileCache implements AutoCloseable {
             HydrologyTile tile = tiles.getIfPresent(key);
             if (tile == null) {
                 requestUnplanned(chunkX, chunkZ);
+                ProvisionalSampling.mark();
                 return HydrologyColumnSnapshot.unavailable();
             }
             snapshots.add(tile);
@@ -497,18 +538,56 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     /**
-     * Whether every tile the column's chunk composes from is already planned. A caller that must not
-     * wait (the server thread answering a height or biome query) uses this before sampling: when the
-     * answer is false the missing tiles are handed to the prefetch executor so a later query finds
-     * them, and nothing is planned on the caller.
+     * Whether the column's chunk can be answered without planning: every tile it composes from is
+     * already planned. A caller that must not wait (the server thread answering a height or biome
+     * query) uses this before sampling: when the answer is false the missing tiles are handed to the
+     * prefetch executor so a later query finds them, nothing is planned on the caller, and the caller
+     * is marked as answering provisionally.
      */
     public boolean isPlanned(int blockX, int blockZ) {
         int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);
-        if (composedChunks.getIfPresent(CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ))) != null) {
+        if (knownEmpty(chunkX, chunkZ)
+                || composedChunks.getIfPresent(CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ))) != null) {
             return true;
         }
-        return !requestUnplanned(chunkX, chunkZ);
+        if (requestUnplanned(chunkX, chunkZ)) {
+            ProvisionalSampling.mark();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether any planned footprint column lies in the chunk or one of its eight neighbours, which
+     * decides whether the chunk can hold published hydrology at all. Tiles are planned like a sample
+     * would plan them, and each thread remembers its recent final answers.
+     */
+    public boolean hasColumnsAround(int chunkX, int chunkZ) {
+        long epoch = cacheEpoch.get();
+        LocalChunks local = localChunks(epoch);
+        int slot = LocalChunks.slot(chunkX, chunkZ);
+        long key = RiverFootprint.pack(chunkX, chunkZ);
+        if (local.around[slot] != AROUND_UNKNOWN && local.aroundKeys[slot] == key) {
+            return local.around[slot] == AROUND_PUBLISHED;
+        }
+        boolean published = publishesAround(chunkX, chunkZ);
+        if (!waitsForbidden() && local.epoch == epoch) {
+            local.aroundKeys[slot] = key;
+            local.around[slot] = published ? AROUND_PUBLISHED : AROUND_EMPTY;
+        }
+        return published;
+    }
+
+    private boolean publishesAround(int chunkX, int chunkZ) {
+        for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+            for (int offsetX = -1; offsetX <= 1; offsetX++) {
+                if (!chunkColumns((chunkX + offsetX) * CHUNK_SIZE, (chunkZ + offsetZ) * CHUNK_SIZE).empty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -567,6 +646,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 cacheEpoch.incrementAndGet();
                 planner.clearOwnerDrafts();
                 tiles.invalidateAll();
+                occupancies.clear();
                 composedChunks.invalidateAll();
                 diagnostics.invalidateAll();
                 composing.forEach((key, load) -> {
@@ -581,7 +661,7 @@ public final class HydrologyTileCache implements AutoCloseable {
             demandedPlans.clear();
             demandBatches = 0;
         }
-        localChunkColumns.remove();
+        localChunks.remove();
         for (CompletableFuture<ChunkColumns> future : cancelledQueries) {
             future.completeExceptionally(new CancellationException("Hydrology query was invalidated."));
         }
@@ -600,20 +680,28 @@ public final class HydrologyTileCache implements AutoCloseable {
         neighbourPrefetchEnabled = enabled;
     }
 
+    /**
+     * Queues every tile the area's chunks compose from, nearest the centre first and at most
+     * {@link #MAXIMUM_PREGENERATION_TILES} of them, so planning runs ahead of the generation front and
+     * each plan lands in the prepared-plan store. Speculation stays inside the area plus a halo that
+     * covers generation reaching past its edge.
+     */
     public PregenerationScope preparePregeneration(PregenerationArea area) {
         Objects.requireNonNull(area, "area");
+        long reach = (long) PREGENERATION_HALO_BLOCKS + publicationRadius;
         TileBounds bounds = new TileBounds(
+                tileCoordinate(Math.subtractExact(area.minimumBlockX(), reach), tileSize),
+                tileCoordinate(Math.subtractExact(area.minimumBlockZ(), reach), tileSize),
+                tileCoordinate(Math.addExact(area.maximumBlockX(), reach), tileSize),
+                tileCoordinate(Math.addExact(area.maximumBlockZ(), reach), tileSize));
+        TileBounds required = new TileBounds(
                 tileCoordinate(Math.subtractExact(area.minimumBlockX(), publicationRadius), tileSize),
                 tileCoordinate(Math.subtractExact(area.minimumBlockZ(), publicationRadius), tileSize),
                 tileCoordinate(Math.addExact(area.maximumBlockX(), publicationRadius), tileSize),
                 tileCoordinate(Math.addExact(area.maximumBlockZ(), publicationRadius), tileSize));
-        List<HydrologyTileKey> keys = prefetchAreaKeys(
-                Math.max(area.minimumBlockX(), (long) area.centerBlockX() - tileSize),
-                Math.max(area.minimumBlockZ(), (long) area.centerBlockZ() - tileSize),
-                Math.min(area.maximumBlockX(), (long) area.centerBlockX() + tileSize),
-                Math.min(area.maximumBlockZ(), (long) area.centerBlockZ() + tileSize),
-                area.centerBlockX(), area.centerBlockZ());
-        PregenerationScope scope = new PregenerationScope(bounds);
+        List<HydrologyTileKey> keys = nearestFirst(required, tileCoordinate(area.centerBlockX(), tileSize),
+                tileCoordinate(area.centerBlockZ(), tileSize), MAXIMUM_PREGENERATION_TILES);
+        PregenerationScope scope = new PregenerationScope(bounds, required);
         try {
             enqueuePrefetchArea(keys, scope);
             return scope;
@@ -713,45 +801,107 @@ public final class HydrologyTileCache implements AutoCloseable {
                 && tile.tileSize() == tileSize;
     }
 
+    /**
+     * The chunk's composed columns. A chunk no planned tile publishes into is answered from the
+     * occupancy index alone, without composition or the tiles being resident; the last chunks each
+     * thread resolved answer repeated lookups without touching any shared structure.
+     */
     private ChunkColumns chunkColumns(int blockX, int blockZ) {
         requireOpen();
         int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);
         long epoch = cacheEpoch.get();
-        LocalChunkColumns local = localChunkColumns.get();
-        if (local != null && local.epoch() == epoch
-                && local.columns().chunkX() == chunkX
-                && local.columns().chunkZ() == chunkZ) {
-            return local.columns();
+        LocalChunks local = localChunks(epoch);
+        ChunkColumns cached = local.get(chunkX, chunkZ);
+        if (cached != null) {
+            return cached;
         }
-        long packedChunk = CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ));
-        if (waitsForbidden()) {
-            ChunkColumns present = composedChunks.getIfPresent(packedChunk);
-            if (present != null) {
-                return present;
+        TileBounds relevant = chunkTiles(chunkX, chunkZ);
+        ChunkColumns columns;
+        if (knownEmpty(chunkX, chunkZ, relevant)) {
+            columns = local.put(ChunkColumns.empty(chunkX, chunkZ));
+        } else if (waitsForbidden()) {
+            columns = nonblockingChunkColumns(chunkX, chunkZ, epoch);
+            if (columns == null) {
+                ProvisionalSampling.mark();
+                columns = ChunkColumns.empty(chunkX, chunkZ);
+            } else {
+                local.put(columns);
             }
-            ArrayList<HydrologyTileKey> keys = relevantKeys(chunkX, chunkZ);
-            ArrayList<HydrologyTile> snapshots = new ArrayList<>(keys.size());
-            for (HydrologyTileKey key : keys) {
-                HydrologyTile tile = tiles.getIfPresent(key);
-                if (tile == null) {
-                    requestChunk(chunkX, chunkZ);
-                    return ChunkColumns.empty(chunkX, chunkZ);
-                }
-                snapshots.add(tile);
-            }
-            ChunkColumns columns = composeChunkColumns(chunkX, chunkZ, keys, snapshots);
-            synchronized (publicationLock) {
-                if (!closed.get() && cacheEpoch.get() == epoch) {
-                    composedChunks.put(packedChunk, columns);
-                }
-            }
-            localChunkColumns.set(new LocalChunkColumns(epoch, columns));
-            return columns;
+        } else {
+            long packedChunk = CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ));
+            columns = local.put(loadChunkColumns(new CacheLoadKey<>(epoch, packedChunk), chunkX, chunkZ));
         }
-        ChunkColumns columns = loadChunkColumns(new CacheLoadKey<>(epoch, packedChunk), chunkX, chunkZ);
-        localChunkColumns.set(new LocalChunkColumns(epoch, columns));
+        if (!relevant.equals(local.prefetched)) {
+            local.prefetched = relevant;
+            prefetchNeighbours(relevant);
+        }
         return columns;
+    }
+
+    /** The chunk's columns from resident tiles only, or null after handing its missing tiles to the planner. */
+    private ChunkColumns nonblockingChunkColumns(int chunkX, int chunkZ, long epoch) {
+        long packedChunk = CacheKey.mix(RiverFootprint.pack(chunkX, chunkZ));
+        ChunkColumns present = composedChunks.getIfPresent(packedChunk);
+        if (present != null) {
+            return present;
+        }
+        ArrayList<HydrologyTileKey> keys = relevantKeys(chunkX, chunkZ);
+        ArrayList<HydrologyTile> snapshots = new ArrayList<>(keys.size());
+        for (HydrologyTileKey key : keys) {
+            HydrologyTile tile = tiles.getIfPresent(key);
+            if (tile == null) {
+                requestChunk(chunkX, chunkZ);
+                return null;
+            }
+            snapshots.add(tile);
+        }
+        ChunkColumns columns = composeChunkColumns(chunkX, chunkZ, keys, snapshots);
+        synchronized (publicationLock) {
+            if (!closed.get() && cacheEpoch.get() == epoch) {
+                composedChunks.put(packedChunk, columns);
+            }
+        }
+        return columns;
+    }
+
+    private LocalChunks localChunks(long epoch) {
+        LocalChunks local = localChunks.get();
+        if (local.epoch != epoch) {
+            Arrays.fill(local.slots, null);
+            Arrays.fill(local.around, AROUND_UNKNOWN);
+            local.prefetched = null;
+            local.epoch = epoch;
+        }
+        return local;
+    }
+
+    /** The tiles a chunk's columns compose from: every tile within the publication radius of the chunk. */
+    private TileBounds chunkTiles(int chunkX, int chunkZ) {
+        long minimumBlockX = (long) chunkX * CHUNK_SIZE;
+        long minimumBlockZ = (long) chunkZ * CHUNK_SIZE;
+        return new TileBounds(
+                tileCoordinate(minimumBlockX - publicationRadius, tileSize),
+                tileCoordinate(minimumBlockZ - publicationRadius, tileSize),
+                tileCoordinate(minimumBlockX + CHUNK_SIZE - 1L + publicationRadius, tileSize),
+                tileCoordinate(minimumBlockZ + CHUNK_SIZE - 1L + publicationRadius, tileSize));
+    }
+
+    private boolean knownEmpty(int chunkX, int chunkZ) {
+        return knownEmpty(chunkX, chunkZ, chunkTiles(chunkX, chunkZ));
+    }
+
+    /** Whether every tile the chunk composes from is planned and none of them publishes into it. */
+    private boolean knownEmpty(int chunkX, int chunkZ, TileBounds relevant) {
+        for (int tileZ = relevant.minimumZ(); tileZ <= relevant.maximumZ(); tileZ++) {
+            for (int tileX = relevant.minimumX(); tileX <= relevant.maximumX(); tileX++) {
+                HydrologyChunkOccupancy occupancy = occupancies.get(new HydrologyTileKey(tileX, tileZ));
+                if (occupancy == null || occupancy.occupies(chunkX, chunkZ)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private ChunkColumns loadChunkColumns(CacheLoadKey<Long> loadKey, int chunkX, int chunkZ) {
@@ -801,19 +951,12 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
-    /** The tiles a chunk's columns compose from: every tile within the publication radius of the chunk. */
     private ArrayList<HydrologyTileKey> relevantKeys(int chunkX, int chunkZ) {
-        int minimumBlockX = Math.multiplyExact(chunkX, CHUNK_SIZE);
-        int minimumBlockZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
-        int minimumTileX = tileCoordinate((long) minimumBlockX - publicationRadius, tileSize);
-        int maximumTileX = tileCoordinate((long) minimumBlockX + CHUNK_SIZE - 1L + publicationRadius, tileSize);
-        int minimumTileZ = tileCoordinate((long) minimumBlockZ - publicationRadius, tileSize);
-        int maximumTileZ = tileCoordinate((long) minimumBlockZ + CHUNK_SIZE - 1L + publicationRadius, tileSize);
-        ArrayList<HydrologyTileKey> relevantKeys = new ArrayList<>(
-                Math.multiplyExact(maximumTileX - minimumTileX + 1, maximumTileZ - minimumTileZ + 1)
-        );
-        for (int tileZ = minimumTileZ; tileZ <= maximumTileZ; tileZ++) {
-            for (int tileX = minimumTileX; tileX <= maximumTileX; tileX++) {
+        TileBounds relevant = chunkTiles(chunkX, chunkZ);
+        ArrayList<HydrologyTileKey> relevantKeys = new ArrayList<>(Math.multiplyExact(
+                relevant.maximumX() - relevant.minimumX() + 1, relevant.maximumZ() - relevant.minimumZ() + 1));
+        for (int tileZ = relevant.minimumZ(); tileZ <= relevant.maximumZ(); tileZ++) {
+            for (int tileX = relevant.minimumX(); tileX <= relevant.maximumX(); tileX++) {
                 relevantKeys.add(new HydrologyTileKey(tileX, tileZ));
             }
         }
@@ -821,11 +964,17 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     private ChunkColumns composeChunkColumns(int chunkX, int chunkZ) {
+        if (knownEmpty(chunkX, chunkZ)) {
+            return ChunkColumns.empty(chunkX, chunkZ);
+        }
         ArrayList<HydrologyTileKey> relevantKeys = relevantKeys(chunkX, chunkZ);
         return composeChunkColumns(chunkX, chunkZ, relevantKeys, tiles(relevantKeys));
     }
 
     private ChunkColumns composeChunkColumnsInline(int chunkX, int chunkZ, long epoch) {
+        if (knownEmpty(chunkX, chunkZ)) {
+            return ChunkColumns.empty(chunkX, chunkZ);
+        }
         ArrayList<HydrologyTileKey> keys = relevantKeys(chunkX, chunkZ);
         ArrayList<HydrologyTile> snapshots = new ArrayList<>(keys.size());
         for (HydrologyTileKey key : keys) {
@@ -839,41 +988,43 @@ public final class HydrologyTileCache implements AutoCloseable {
                                              List<HydrologyTile> relevantTiles) {
         int minimumBlockX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumBlockZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
-        int minimumTileX = relevantKeys.getFirst().tileX();
-        int maximumTileX = relevantKeys.getLast().tileX();
-        int minimumTileZ = relevantKeys.getFirst().tileZ();
-        int maximumTileZ = relevantKeys.getLast().tileZ();
-        prefetchNeighbours(minimumTileX, maximumTileX, minimumTileZ, maximumTileZ);
+        if (knownEmpty(chunkX, chunkZ)) {
+            return ChunkColumns.empty(chunkX, chunkZ);
+        }
         HydrologyColumnSample[] columns = new HydrologyColumnSample[CHUNK_COLUMN_COUNT];
+        boolean published = false;
         for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
             for (int localX = 0; localX < CHUNK_SIZE; localX++) {
                 int blockX = minimumBlockX + localX;
                 int blockZ = minimumBlockZ + localZ;
-                columns[localZ * CHUNK_SIZE + localX] = composeColumn(
+                HydrologyColumnSample column = composeColumn(
                         blockX,
                         blockZ,
                         relevantKeys,
                         relevantTiles
                 )
                         .orElse(null);
+                columns[localZ * CHUNK_SIZE + localX] = column;
+                published |= column != null;
             }
         }
-        return new ChunkColumns(chunkX, chunkZ, columns);
+        return published ? new ChunkColumns(chunkX, chunkZ, columns) : ChunkColumns.empty(chunkX, chunkZ);
     }
 
     /**
-     * Plans the ring of tiles around the ones a chunk just needed, on the prefetch executor, so a
-     * generation front walking outward finds its next tiles already planned instead of stalling on
-     * a cold plan. Tiles already cached or already being prefetched are skipped; a tile a chunk
-     * needs before its prefetch finishes simply joins that computation.
+     * Plans the ring of tiles around the ones a chunk needs, on the prefetch executor, so a generation
+     * front walking outward finds its next tiles already planned instead of stalling on a cold plan.
+     * Tiles already planned or already being prefetched are skipped; a tile a chunk needs before its
+     * prefetch finishes simply joins that computation.
      */
-    private void prefetchNeighbours(int minimumTileX, int maximumTileX, int minimumTileZ, int maximumTileZ) {
+    private void prefetchNeighbours(TileBounds relevant) {
         if (prefetchExecutor == null || !neighbourPrefetchEnabled) {
             return;
         }
-        for (int tileZ = minimumTileZ - 1; tileZ <= maximumTileZ + 1; tileZ++) {
-            for (int tileX = minimumTileX - 1; tileX <= maximumTileX + 1; tileX++) {
-                if (tileX >= minimumTileX && tileX <= maximumTileX && tileZ >= minimumTileZ && tileZ <= maximumTileZ) {
+        for (int tileZ = relevant.minimumZ() - 1; tileZ <= relevant.maximumZ() + 1; tileZ++) {
+            for (int tileX = relevant.minimumX() - 1; tileX <= relevant.maximumX() + 1; tileX++) {
+                if (tileX >= relevant.minimumX() && tileX <= relevant.maximumX()
+                        && tileZ >= relevant.minimumZ() && tileZ <= relevant.maximumZ()) {
                     continue;
                 }
                 prefetch(new HydrologyTileKey(tileX, tileZ));
@@ -886,33 +1037,51 @@ public final class HydrologyTileCache implements AutoCloseable {
         if (prefetchExecutor == null) {
             return;
         }
-        enqueuePrefetchArea(prefetchAreaKeys(minimumBlockX, minimumBlockZ, maximumBlockX, maximumBlockZ,
-                centreBlockX, centreBlockZ), null);
+        TileBounds area = new TileBounds(
+                tileCoordinate((long) minimumBlockX - publicationRadius, tileSize),
+                tileCoordinate((long) minimumBlockZ - publicationRadius, tileSize),
+                tileCoordinate((long) maximumBlockX + publicationRadius, tileSize),
+                tileCoordinate((long) maximumBlockZ + publicationRadius, tileSize));
+        enqueuePrefetchArea(nearestFirst(area, tileCoordinate(centreBlockX, tileSize),
+                tileCoordinate(centreBlockZ, tileSize), Integer.MAX_VALUE), null);
     }
 
-    private List<HydrologyTileKey> prefetchAreaKeys(long minimumBlockX, long minimumBlockZ, long maximumBlockX,
-                                                  long maximumBlockZ, int centreBlockX, int centreBlockZ) {
-        int minimumTileX = tileCoordinate((long) minimumBlockX - publicationRadius, tileSize);
-        int maximumTileX = tileCoordinate((long) maximumBlockX + publicationRadius, tileSize);
-        int minimumTileZ = tileCoordinate((long) minimumBlockZ - publicationRadius, tileSize);
-        int maximumTileZ = tileCoordinate((long) maximumBlockZ + publicationRadius, tileSize);
-        int centreTileX = tileCoordinate(centreBlockX, tileSize);
-        int centreTileZ = tileCoordinate(centreBlockZ, tileSize);
+    /** Tiles of the bounds in rings around the centre tile, each ring in row order, up to the limit. */
+    static List<HydrologyTileKey> nearestFirst(TileBounds bounds, int centreX, int centreZ, int limit) {
         ArrayList<HydrologyTileKey> keys = new ArrayList<>();
-        for (int tileZ = minimumTileZ; tileZ <= maximumTileZ; tileZ++) {
-            for (int tileX = minimumTileX; tileX <= maximumTileX; tileX++) {
-                keys.add(new HydrologyTileKey(tileX, tileZ));
+        long rings = Math.max(
+                Math.max((long) centreX - bounds.minimumX(), (long) bounds.maximumX() - centreX),
+                Math.max((long) centreZ - bounds.minimumZ(), (long) bounds.maximumZ() - centreZ));
+        for (long ring = 0L; ring <= rings && keys.size() < limit; ring++) {
+            long firstZ = Math.max(bounds.minimumZ(), centreZ - ring);
+            long lastZ = Math.min(bounds.maximumZ(), centreZ + ring);
+            for (long tileZ = firstZ; tileZ <= lastZ && keys.size() < limit; tileZ++) {
+                if (tileZ == centreZ - ring || tileZ == centreZ + ring) {
+                    long firstX = Math.max(bounds.minimumX(), centreX - ring);
+                    long lastX = Math.min(bounds.maximumX(), centreX + ring);
+                    for (long tileX = firstX; tileX <= lastX && keys.size() < limit; tileX++) {
+                        keys.add(new HydrologyTileKey((int) tileX, (int) tileZ));
+                    }
+                    continue;
+                }
+                long westX = centreX - ring;
+                long eastX = centreX + ring;
+                if (westX >= bounds.minimumX() && westX <= bounds.maximumX()) {
+                    keys.add(new HydrologyTileKey((int) westX, (int) tileZ));
+                }
+                if (eastX >= bounds.minimumX() && eastX <= bounds.maximumX() && keys.size() < limit) {
+                    keys.add(new HydrologyTileKey((int) eastX, (int) tileZ));
+                }
             }
         }
-        keys.sort(Comparator.comparingInt((HydrologyTileKey key) -> Math.max(Math.abs(key.tileX() - centreTileX), Math.abs(key.tileZ() - centreTileZ)))
-                .thenComparingInt(HydrologyTileKey::tileZ)
-                .thenComparingInt(HydrologyTileKey::tileX));
         return keys;
     }
 
     private void enqueuePrefetchArea(List<HydrologyTileKey> keys, PregenerationScope scope) {
         Set<HydrologyTileKey> area = scope != null ? new HashSet<>(keys) : Set.of();
-        tiles.cleanUp();
+        if (persistentStore == null) {
+            tiles.cleanUp();
+        }
         synchronized (prefetchQueue) {
             if (closed.get()) {
                 if (scope != null) {
@@ -924,6 +1093,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 scope.previousNeighbourPrefetch = pregenerationScope == null
                         ? neighbourPrefetchEnabled : pregenerationScope.previousNeighbourPrefetch;
                 pregenerationScope = scope;
+                planner.limitEarlyOwners(scope.required::contains);
                 prefetchQueue.removeIf(key -> {
                     if (!area.contains(key)) {
                         queuedPrefetches.remove(key);
@@ -937,7 +1107,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                 return;
             }
             for (HydrologyTileKey key : keys) {
-                if (!enqueuePrefetch(key) && speculativeEntryCount() >= maximumEntries) {
+                if (!enqueuePrefetch(key) && speculationFull()) {
                     break;
                 }
             }
@@ -947,12 +1117,14 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     private boolean prefetch(HydrologyTileKey key) {
         if (closed.get()
-                || tiles.getIfPresent(key) != null
+                || occupancies.containsKey(key)
                 || planning.containsKey(new CacheLoadKey<>(cacheEpoch.get(), key))
                 || queuedPrefetches.contains(key)) {
             return false;
         }
-        tiles.cleanUp();
+        if (persistentStore == null) {
+            tiles.cleanUp();
+        }
         synchronized (prefetchQueue) {
             if (!enqueuePrefetch(key)) {
                 return false;
@@ -965,15 +1137,24 @@ public final class HydrologyTileCache implements AutoCloseable {
     private boolean enqueuePrefetch(HydrologyTileKey key) {
         if (closed.get()
                 || pregenerationScope != null && !pregenerationScope.bounds.contains(key)
-                || tiles.getIfPresent(key) != null
+                || occupancies.containsKey(key)
                 || planning.containsKey(new CacheLoadKey<>(cacheEpoch.get(), key))
                 || queuedPrefetches.contains(key)
-                || speculativeEntryCount() >= maximumEntries) {
+                || speculationFull()) {
             return false;
         }
         queuedPrefetches.add(key);
         prefetchQueue.add(key);
         return true;
+    }
+
+    /**
+     * Without a prepared-plan store a speculative tile lives only in memory, so speculation stops at
+     * the tile budget; with one every plan is persisted and its occupancy kept, so it never has to
+     * stay resident.
+     */
+    private boolean speculationFull() {
+        return persistentStore == null && speculativeEntryCount() >= maximumEntries;
     }
 
     private int speculativeEntryCount() {
@@ -993,57 +1174,80 @@ public final class HydrologyTileCache implements AutoCloseable {
         return Math.max(0L, budget - weight) / expectedWeight;
     }
 
+    /**
+     * Starts queued work while nothing is demanded: a nonblocking chunk query on its own, otherwise
+     * up to {@link #prefetchSlots} speculative roots at once. One caller pumps at a time and loops, so
+     * work that completes on the calling thread resumes the loop instead of recursing into it.
+     */
     private void pumpPrefetch() {
         synchronized (prefetchQueue) {
-            if (prefetchExecutor == null || closed.get() || demandBatches != 0 || !demandedPlans.isEmpty()
-                    || !prefetchActive.compareAndSet(false, true)) {
+            if (pumping) {
                 return;
             }
+            pumping = true;
         }
-        scheduleNextPrefetch();
-    }
-
-    private void scheduleNextPrefetch() {
-        CacheLoadKey<HydrologyTileKey> loadKey = null;
-        ChunkCoordinate chunk;
-        long epoch;
-        synchronized (prefetchQueue) {
-            if (closed.get() || demandBatches != 0 || !demandedPlans.isEmpty()) {
-                prefetchActive.set(false);
-                return;
-            }
-            epoch = cacheEpoch.get();
-            chunk = pollQuery();
-            if (chunk != null) {
-                demandBatches++;
-            } else {
-                HydrologyTileKey key = pollPrefetch();
-                if (key == null) {
-                    prefetchActive.set(false);
-                    return;
-                }
-                loadKey = new CacheLoadKey<>(epoch, key);
-            }
-        }
-        if (chunk != null) {
-            composeAsync(chunk, epoch).whenComplete((columns, failure) -> {
+        boolean idle = false;
+        try {
+            while (!idle) {
+                ChunkCoordinate chunk = null;
+                CacheLoadKey<HydrologyTileKey> loadKey = null;
+                long epoch;
                 synchronized (prefetchQueue) {
-                    if (epoch == cacheEpoch.get()) {
-                        queriedChunks.remove(chunk);
+                    epoch = cacheEpoch.get();
+                    if (prefetchExecutor != null && !closed.get() && demandBatches == 0 && demandedPlans.isEmpty()) {
+                        chunk = pollQuery();
+                        if (chunk != null) {
+                            demandBatches++;
+                        } else if (activePrefetches < prefetchSlots) {
+                            HydrologyTileKey key = pollPrefetch(epoch);
+                            if (key != null) {
+                                activePrefetches++;
+                                loadKey = new CacheLoadKey<>(epoch, key);
+                            }
+                        }
+                    }
+                    if (chunk == null && loadKey == null) {
+                        pumping = false;
+                        idle = true;
                     }
                 }
-                finishDemandBatch(epoch);
-                scheduleNextPrefetch();
-            });
-        } else {
-            planAsync(loadKey).whenComplete((tile, failure) -> scheduleNextPrefetch());
+                if (chunk != null) {
+                    startQuery(chunk, epoch);
+                } else if (loadKey != null) {
+                    planAsync(loadKey).whenComplete((tile, failure) -> finishPrefetch());
+                }
+            }
+        } finally {
+            if (!idle) {
+                synchronized (prefetchQueue) {
+                    pumping = false;
+                }
+            }
         }
+    }
+
+    private void startQuery(ChunkCoordinate chunk, long epoch) {
+        composeAsync(chunk, epoch).whenComplete((columns, failure) -> {
+            synchronized (prefetchQueue) {
+                if (epoch == cacheEpoch.get()) {
+                    queriedChunks.remove(chunk);
+                }
+            }
+            finishDemandBatch(epoch);
+        });
+    }
+
+    private void finishPrefetch() {
+        synchronized (prefetchQueue) {
+            activePrefetches--;
+        }
+        pumpPrefetch();
     }
 
     private ChunkCoordinate pollQuery() {
         while (!queriedChunks.isEmpty()) {
             ChunkCoordinate chunk = queriedChunks.getFirst();
-            if (composedChunks.getIfPresent(chunk.packed()) == null) {
+            if (composedChunks.getIfPresent(chunk.packed()) == null && !knownEmpty(chunk.x(), chunk.z())) {
                 return chunk;
             }
             queriedChunks.removeFirst();
@@ -1105,13 +1309,15 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
-    private HydrologyTileKey pollPrefetch() {
-        tiles.cleanUp();
-        long weight = tiles.policy().eviction().orElseThrow().weightedSize().orElse(0L);
-        if (speculativeCapacity(tiles.estimatedSize(), HydrologyCacheBudget.runtime().tileBytes(), weight) == 0L) {
-            prefetchQueue.clear();
-            queuedPrefetches.clear();
-            return null;
+    private HydrologyTileKey pollPrefetch(long epoch) {
+        if (persistentStore == null) {
+            tiles.cleanUp();
+            long weight = tiles.policy().eviction().orElseThrow().weightedSize().orElse(0L);
+            if (speculativeCapacity(tiles.estimatedSize(), HydrologyCacheBudget.runtime().tileBytes(), weight) == 0L) {
+                prefetchQueue.clear();
+                queuedPrefetches.clear();
+                return null;
+            }
         }
         HydrologyTileKey key;
         while ((key = prefetchQueue.poll()) != null) {
@@ -1119,7 +1325,8 @@ public final class HydrologyTileCache implements AutoCloseable {
                 continue;
             }
             if ((pregenerationScope == null || pregenerationScope.bounds.contains(key))
-                    && tiles.getIfPresent(key) == null) {
+                    && !occupancies.containsKey(key)
+                    && !planning.containsKey(new CacheLoadKey<>(epoch, key))) {
                 return key;
             }
         }
@@ -1424,12 +1631,19 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
+    /**
+     * Speculative planning during a pregeneration: tiles inside {@code bounds} may be planned ahead of
+     * generation, and owner drafts start their lower-rank neighbours early only inside {@code required},
+     * the tiles the area composes from.
+     */
     public final class PregenerationScope implements AutoCloseable {
         private final TileBounds bounds;
+        private final TileBounds required;
         private boolean previousNeighbourPrefetch;
 
-        private PregenerationScope(TileBounds bounds) {
+        private PregenerationScope(TileBounds bounds, TileBounds required) {
             this.bounds = bounds;
+            this.required = required;
         }
 
         @Override
@@ -1439,6 +1653,7 @@ public final class HydrologyTileCache implements AutoCloseable {
                     return;
                 }
                 pregenerationScope = null;
+                planner.limitEarlyOwners(null);
                 neighbourPrefetchEnabled = previousNeighbourPrefetch;
                 prefetchQueue.clear();
                 queuedPrefetches.clear();
@@ -1449,7 +1664,7 @@ public final class HydrologyTileCache implements AutoCloseable {
     private record PendingTile(int index, CompletableFuture<HydrologyTile> future) {
     }
 
-    private record TileBounds(int minimumX, int minimumZ, int maximumX, int maximumZ) {
+    record TileBounds(int minimumX, int minimumZ, int maximumX, int maximumZ) {
         private boolean contains(HydrologyTileKey key) {
             return key.tileX() >= minimumX && key.tileX() <= maximumX
                     && key.tileZ() >= minimumZ && key.tileZ() <= maximumZ;
@@ -1458,6 +1673,9 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     private record ChunkColumns(int chunkX, int chunkZ, HydrologyColumnSample[] columns) {
         private long estimatedBytes() {
+            if (empty()) {
+                return 64L;
+            }
             long bytes = 64L + 8L * columns.length;
             for (HydrologyColumnSample column : columns) {
                 if (column != null) {
@@ -1467,9 +1685,16 @@ public final class HydrologyTileCache implements AutoCloseable {
             return bytes;
         }
 
-        /** A chunk with no hydrology at all, the answer for a caller that may not wait for its plan. */
+        /**
+         * A chunk with no hydrology at all: one no planned tile publishes into, or the answer for a
+         * caller that may not wait for its plan.
+         */
         private static ChunkColumns empty(int chunkX, int chunkZ) {
-            return new ChunkColumns(chunkX, chunkZ, new HydrologyColumnSample[CHUNK_COLUMN_COUNT]);
+            return new ChunkColumns(chunkX, chunkZ, NO_COLUMNS);
+        }
+
+        private boolean empty() {
+            return columns == NO_COLUMNS;
         }
 
         private Optional<HydrologyColumnSample> columnAt(int blockX, int blockZ) {
@@ -1479,7 +1704,27 @@ public final class HydrologyTileCache implements AutoCloseable {
         }
     }
 
-    private record LocalChunkColumns(long epoch, ChunkColumns columns) {
+    /** Direct-mapped over a 4 by 4 chunk neighbourhood, so a placement crossing chunk edges keeps its chunks. */
+    private static final class LocalChunks {
+        private final ChunkColumns[] slots = new ChunkColumns[LOCAL_CHUNK_SLOTS];
+        private final long[] aroundKeys = new long[LOCAL_CHUNK_SLOTS];
+        private final byte[] around = new byte[LOCAL_CHUNK_SLOTS];
+        private long epoch = Long.MIN_VALUE;
+        private TileBounds prefetched;
+
+        private ChunkColumns get(int chunkX, int chunkZ) {
+            ChunkColumns columns = slots[slot(chunkX, chunkZ)];
+            return columns != null && columns.chunkX() == chunkX && columns.chunkZ() == chunkZ ? columns : null;
+        }
+
+        private ChunkColumns put(ChunkColumns columns) {
+            slots[slot(columns.chunkX(), columns.chunkZ())] = columns;
+            return columns;
+        }
+
+        private static int slot(int chunkX, int chunkZ) {
+            return (chunkX & 3) | (chunkZ & 3) << 2;
+        }
     }
 
     private record ChunkCoordinate(int x, int z) {

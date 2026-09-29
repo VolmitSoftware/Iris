@@ -14,7 +14,7 @@ import art.arcane.volmlib.util.noise.CNG;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,8 +81,9 @@ public final class IrisDimensionCarvingResolver {
     }
 
     private static IrisDimensionCarvingEntry resolveBoundRootEntry(Engine engine, int worldY, IrisData data, State resolvedState) {
-        if (resolvedState.rootEntriesByWorldY.containsKey(worldY)) {
-            return resolvedState.rootEntriesByWorldY.get(worldY);
+        int slot = resolvedState.rootSlot(worldY);
+        if (slot >= 0) {
+            return resolvedState.roots[slot];
         }
 
         return selectBoundRootEntry(engine.getDimension(), worldY, data, resolvedState);
@@ -91,7 +92,7 @@ public final class IrisDimensionCarvingResolver {
     private static IrisDimensionCarvingEntry selectBoundRootEntry(IrisDimension dimension, int worldY, IrisData data, State resolvedState) {
         List<IrisDimensionCarvingEntry> entries = dimension.getCarving();
         if (entries == null || entries.isEmpty()) {
-            resolvedState.rootEntriesByWorldY.put(worldY, null);
+            resolvedState.rememberRoot(worldY, null);
             return null;
         }
 
@@ -104,7 +105,7 @@ public final class IrisDimensionCarvingResolver {
             resolved = entry;
         }
 
-        resolvedState.rootEntriesByWorldY.put(worldY, resolved);
+        resolvedState.rememberRoot(worldY, resolved);
         return resolved;
     }
 
@@ -324,8 +325,9 @@ public final class IrisDimensionCarvingResolver {
         }
 
         public IrisBiome resolveBiome(int worldX, int worldY, int worldZ) {
-            IrisDimensionCarvingEntry root = state.rootEntriesByWorldY.containsKey(worldY)
-                    ? state.rootEntriesByWorldY.get(worldY)
+            int slot = state.rootSlot(worldY);
+            IrisDimensionCarvingEntry root = slot >= 0
+                    ? state.roots[slot]
                     : selectBoundRootEntry(dimension, worldY, data, state);
             if (root == null) {
                 return null;
@@ -336,7 +338,11 @@ public final class IrisDimensionCarvingResolver {
     }
 
     public static final class State {
-        private final Map<Integer, IrisDimensionCarvingEntry> rootEntriesByWorldY = new HashMap<>();
+        private static final int ROOT_SLOTS = 512;
+
+        private int[] rootWorldYs;
+        private IrisDimensionCarvingEntry[] roots;
+        private boolean[] rootsKnown;
         private final Map<IrisDimensionCarvingEntry, IrisRaritySelection<CarvingChoice>> selectionPlans = new IdentityHashMap<>();
         private final Map<IrisDimensionCarvingEntry, IrisBiome> biomeCache = new IdentityHashMap<>();
         private WeakReference<Engine> engineIdentity;
@@ -357,13 +363,33 @@ public final class IrisDimensionCarvingResolver {
             engineIdentity = new WeakReference<>(engine);
             dimensionIdentity = new WeakReference<>(dimension);
             dataIdentity = new WeakReference<>(data);
-            rootEntriesByWorldY.clear();
+            if (rootsKnown != null) {
+                Arrays.fill(rootsKnown, false);
+                Arrays.fill(roots, null);
+            }
             selectionPlans.clear();
             biomeCache.clear();
             entryIndex = null;
             childSeed = null;
             columns = null;
             return data;
+        }
+
+        private int rootSlot(int worldY) {
+            int slot = worldY & (ROOT_SLOTS - 1);
+            return rootsKnown != null && rootsKnown[slot] && rootWorldYs[slot] == worldY ? slot : -1;
+        }
+
+        private void rememberRoot(int worldY, IrisDimensionCarvingEntry root) {
+            if (rootsKnown == null) {
+                rootWorldYs = new int[ROOT_SLOTS];
+                roots = new IrisDimensionCarvingEntry[ROOT_SLOTS];
+                rootsKnown = new boolean[ROOT_SLOTS];
+            }
+            int slot = worldY & (ROOT_SLOTS - 1);
+            rootWorldYs[slot] = worldY;
+            roots[slot] = root;
+            rootsKnown[slot] = true;
         }
 
         private static boolean references(WeakReference<?> identity, Object value) {

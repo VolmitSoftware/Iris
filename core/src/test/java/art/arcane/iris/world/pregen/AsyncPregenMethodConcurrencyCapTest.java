@@ -148,9 +148,11 @@ public class AsyncPregenMethodConcurrencyCapTest {
         AtomicInteger warnings = new AtomicInteger();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Future<Boolean> drain = executor.submit(() -> gate.awaitDrain(
+            Future<PregenAdmissionGate.Drain> drain = executor.submit(() -> gate.awaitDrain(
                     10L,
                     TimeUnit.MILLISECONDS,
+                    5L,
+                    TimeUnit.SECONDS,
                     warnings::incrementAndGet
             ));
 
@@ -160,7 +162,9 @@ public class AsyncPregenMethodConcurrencyCapTest {
             gate.release();
             gate.release();
 
-            assertFalse(drain.get(1L, TimeUnit.SECONDS));
+            PregenAdmissionGate.Drain result = drain.get(1L, TimeUnit.SECONDS);
+            assertTrue(result.drained());
+            assertFalse(result.interrupted());
             assertTrue(warnings.get() > 0);
             assertEquals(2, gate.availablePermits());
         } finally {

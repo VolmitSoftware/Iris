@@ -31,13 +31,14 @@ public class IrisComplexTransitionTest {
 
     @Test
     public void tapersRiverDepthWithoutRaisingItsFluidHead() {
-        HydrologyColumnSample tapered = IrisComplex.taperHydrologySample(hydrologySample(), 0.5D);
+        HydrologyColumnSample tapered = IrisComplex.taperHydrologySample(hydrologySample(), 0.8D);
         HydrologyColumnLayer layer = tapered.layers().getFirst();
 
-        assertEquals(73, layer.bedY());
+        assertEquals(69, layer.bedY());
         assertEquals(70, layer.fluidHeadY());
         assertEquals(70, layer.ceilingY());
-        assertEquals(73, tapered.terrainHeight());
+        assertTrue(layer.channel());
+        assertEquals(69, tapered.terrainHeight());
         assertEquals("river", layer.profileKey());
     }
 
@@ -61,10 +62,10 @@ public class IrisComplexTransitionTest {
         HydrologyColumnLayer surface = hydrologySample().layers().getFirst();
         HydrologyColumnSample sample = new HydrologyColumnSample(4, 6, 80, 63, false, "parent", List.of(surface, cave));
 
-        HydrologyColumnSample tapered = IrisComplex.taperHydrologySample(sample, 0.5D);
+        HydrologyColumnSample tapered = IrisComplex.taperHydrologySample(sample, 0.8D);
 
         assertSame(cave, tapered.layers().getFirst());
-        assertEquals(73, tapered.layers().getLast().bedY());
+        assertEquals(69, tapered.layers().getLast().bedY());
         assertEquals(70, tapered.layers().getLast().fluidHeadY());
         assertEquals(70, tapered.layers().getLast().ceilingY());
     }
@@ -86,6 +87,62 @@ public class IrisComplexTransitionTest {
     }
 
     @Test
+    public void taperedDryBankKeepsItsHeadOnItsBed() {
+        HydrologyColumnSample tapered = IrisComplex.taperHydrologySample(bankSample(364, 366), 0.5D);
+        HydrologyColumnLayer bank = tapered.layers().getFirst();
+
+        assertEquals(365, bank.bedY());
+        assertEquals(365, bank.fluidHeadY());
+        assertEquals(365, bank.ceilingY());
+        assertFalse(bank.channel());
+        assertTrue(bank.grading());
+        assertTrue(bank.terrainOwned());
+        assertEquals(365, tapered.terrainHeight());
+    }
+
+    @Test
+    public void transitionedDryBankKeepsItsHeadOnItsBed() {
+        HydrologyColumnSample sample = bankSample(365, 380);
+        TransitionDisplacementField displacement = mock(TransitionDisplacementField.class);
+        when(displacement.sample(4, 6)).thenReturn(
+                new TransitionDisplacementField.Sample(0D, 8D, 0.25D, 0D, 0D, 300D, "minecraft:water"));
+        when(displacement.fluidHeight(4, 6, 63D)).thenReturn(63D);
+        when(displacement.fluidHeight(4, 6, 365D)).thenReturn(364D);
+
+        HydrologyColumnSample transitioned = IrisComplex.transitionHydrologySample(sample, 1D, displacement);
+        HydrologyColumnLayer bank = transitioned.layers().getFirst();
+
+        assertEquals(365, bank.bedY());
+        assertEquals(365, bank.fluidHeadY());
+        assertEquals(365, bank.ceilingY());
+        assertFalse(bank.channel());
+        assertTrue(bank.terrainOwned());
+        assertEquals(365, transitioned.terrainHeight());
+    }
+
+    @Test
+    public void driedChannelHeadFollowsItsTaperedBed() {
+        HydrologyColumnSample sample = hydrologySample();
+        TransitionDisplacementField displacement = mock(TransitionDisplacementField.class);
+        when(displacement.sample(4, 6)).thenReturn(
+                new TransitionDisplacementField.Sample(0D, 8D, 0.25D, 1D, 80D, 80D, "minecraft:water"));
+        when(displacement.fluidHeight(4, 6, 63D)).thenReturn(63D);
+        when(displacement.fluidHeight(4, 6, 70D)).thenReturn(70D);
+
+        HydrologyColumnSample transitioned = IrisComplex.transitionHydrologySample(sample, 0.35D, displacement);
+        HydrologyColumnLayer river = transitioned.layers().getFirst();
+
+        assertEquals(75, river.bedY());
+        assertEquals(75, river.fluidHeadY());
+        assertEquals(75, river.ceilingY());
+        assertFalse(river.channel());
+        assertFalse(river.fluidOwned());
+        assertFalse(river.connectedFluid());
+        assertTrue(river.terrainOwned());
+        assertEquals(75, transitioned.terrainHeight());
+    }
+
+    @Test
     public void tinyRiverWeightsExcavateGraduallyUntilReachingUnraisedWater() {
         HydrologyColumnSample sample = hydrologySample();
         int previousBed = 80;
@@ -93,13 +150,14 @@ public class IrisComplexTransitionTest {
             double weight = step / 100D;
             HydrologyColumnSample tapered = IrisComplex.taperHydrologySample(sample, weight);
             HydrologyColumnLayer layer = tapered.layers().getFirst();
-            assertEquals(70, layer.fluidHeadY());
+            assertEquals(layer.bedY() <= 70, layer.channel());
+            assertEquals(layer.channel() ? 70 : layer.bedY(), layer.fluidHeadY());
+            assertEquals(layer.fluidHeadY(), layer.ceilingY());
             assertTrue(layer.bedY() <= previousBed);
             assertTrue(previousBed - layer.bedY() <= 1);
             assertEquals(layer.bedY(), tapered.terrainHeight());
-            assertEquals(layer.bedY() <= layer.fluidHeadY(), layer.channel());
             assertEquals(layer.channel(), layer.fluidOwned());
-            if (layer.bedY() > layer.fluidHeadY()) {
+            if (!layer.channel()) {
                 assertFalse(layer.connectedFluid());
                 assertFalse(layer.fallingFluid());
                 assertFalse(layer.receivingPool());
@@ -207,6 +265,15 @@ public class IrisComplexTransitionTest {
 
     private static HydrologyColumnSample hydrologySample() {
         return hydrologySample(HydrologyFeatureType.SURFACE_POOL);
+    }
+
+    private static HydrologyColumnSample bankSample(int bankHeight, int naturalHeight) {
+        HydrologyFeatureRef feature = new HydrologyFeatureRef(
+                1L, HydrologyFeatureType.SURFACE_POOL, 2L, 3L, 1080, 346, 204, 0, -1, false);
+        HydrologyColumnLayer bank = new HydrologyColumnLayer(feature, bankHeight, bankHeight, bankHeight,
+                false, false, true, false, false, false, true, false, false,
+                "water", "surface", "mouth", "shore", "bank", "cave");
+        return new HydrologyColumnSample(4, 6, naturalHeight, 63, false, "parent", List.of(bank));
     }
 
     private static HydrologyColumnSample hydrologySample(HydrologyFeatureType type) {

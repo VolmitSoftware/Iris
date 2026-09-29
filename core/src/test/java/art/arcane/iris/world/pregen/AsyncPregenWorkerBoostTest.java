@@ -113,7 +113,8 @@ public class AsyncPregenWorkerBoostTest {
             AsyncPregenMethod method = mock(AsyncPregenMethod.class, CALLS_REAL_METHODS);
             PregenAdmissionGate admission = mock(PregenAdmissionGate.class);
             IllegalStateException failure = new IllegalStateException("drain failed");
-            when(admission.awaitDrain(anyLong(), any(TimeUnit.class), any(Runnable.class))).thenThrow(failure);
+            when(admission.awaitDrain(anyLong(), any(TimeUnit.class), anyLong(), any(TimeUnit.class), any(Runnable.class)))
+                    .thenThrow(failure);
             set(method, "closing", new AtomicBoolean());
             set(method, "holdsWorkerBoost", new AtomicBoolean(true));
             set(method, "admission", admission);

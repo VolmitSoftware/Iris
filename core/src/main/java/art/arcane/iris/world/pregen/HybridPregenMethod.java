@@ -79,6 +79,11 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+        inWorld.onChunkGenerationFailed(chunkX, chunkZ, failure);
+    }
+
+    @Override
     public void onPregenStart(int centerBlockX, int centerBlockZ) {
         inWorld.onPregenStart(centerBlockX, centerBlockZ);
     }

@@ -1089,16 +1089,18 @@ public class IrisComplex implements DataProvider {
                 continue;
             }
             HydrologyColumnLayer original = sample.layers().get(index);
-            int head = (int) Math.round(transitionDisplacement.fluidHeight(sample.x(), sample.z(), layer.fluidHeadY()));
+            int displacedHead = (int) Math.round(
+                    transitionDisplacement.fluidHeight(sample.x(), sample.z(), original.fluidHeadY()));
+            boolean channel = original.channel() && layer.bedY() <= displacedHead;
+            int head = channel ? displacedHead : layer.bedY();
             if ((tapered.naturalHeight() < seaLevel || tapered.naturalHeight() == seaLevel && head > seaLevel)
                     && (original.terrainOwned() || original.fluidOwned() || original.grading() || original.shore())) {
                 continue;
             }
-            boolean dryChannel = original.channel() && layer.bedY() > head;
             layers.add(new HydrologyColumnLayer(layer.feature(), layer.bedY(),
-                    head, head, original.channel() && !dryChannel, layer.shore(), layer.grading(), original.connectedFluid() && !dryChannel,
-                    original.fallingFluid() && !dryChannel, original.receivingPool() && !dryChannel,
-                    layer.terrainOwned(), original.fluidOwned() && !dryChannel, layer.oceanApron(),
+                    head, head, channel, layer.shore(), layer.grading(), original.connectedFluid() && channel,
+                    original.fallingFluid() && channel, original.receivingPool() && channel,
+                    layer.terrainOwned(), original.fluidOwned() && channel, layer.oceanApron(),
                     layer.profileKey(), layer.surfaceBiomeKey(), layer.mouthBiomeKey(), layer.shoreBiomeKey(),
                     layer.bankBiomeKey(), layer.floodedCaveBiomeKey()));
         }
@@ -1140,20 +1142,21 @@ public class IrisComplex implements DataProvider {
             return layer;
         }
         int bed = GenerationBlend.interpolateHeight(naturalHeight, layer.bedY(), hydrologyWeight);
-        boolean dryChannel = layer.channel() && bed > layer.fluidHeadY();
+        boolean channel = layer.channel() && bed <= layer.fluidHeadY();
+        int head = channel ? layer.fluidHeadY() : bed;
         return new HydrologyColumnLayer(
                 layer.feature(),
                 bed,
-                layer.fluidHeadY(),
-                layer.ceilingY(),
-                layer.channel() && !dryChannel,
+                head,
+                head,
+                channel,
                 layer.shore(),
                 layer.grading(),
-                layer.connectedFluid() && !dryChannel,
-                layer.fallingFluid() && !dryChannel,
-                layer.receivingPool() && !dryChannel,
+                layer.connectedFluid() && channel,
+                layer.fallingFluid() && channel,
+                layer.receivingPool() && channel,
                 layer.terrainOwned(),
-                layer.fluidOwned() && !dryChannel,
+                layer.fluidOwned() && channel,
                 layer.oceanApron(),
                 layer.profileKey(),
                 layer.surfaceBiomeKey(),

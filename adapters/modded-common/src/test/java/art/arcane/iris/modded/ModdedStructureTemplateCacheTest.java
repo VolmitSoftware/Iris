@@ -1,6 +1,7 @@
 package art.arcane.iris.modded;
 
 import org.junit.Test;
+import org.objectweb.asm.ClassReader;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -62,9 +63,11 @@ public class ModdedStructureTemplateCacheTest {
             config = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
         assertTrue(config.contains("\"StructureTemplatePaletteConcurrencyMixin\""));
-        assertNotNull(Class.forName(
-                "art.arcane.volmlib.nativelib.minecraft26_2.modded.mixin.StructureTemplatePaletteConcurrencyMixin",
-                false,
-                ModdedStructureTemplateCacheTest.class.getClassLoader()));
+        String mixin = "art/arcane/volmlib/nativelib/minecraft26_2/modded/mixin/StructureTemplatePaletteConcurrencyMixin";
+        try (InputStream input = ModdedStructureTemplateCacheTest.class.getClassLoader()
+                .getResourceAsStream(mixin + ".class")) {
+            assertNotNull(input);
+            assertEquals(mixin, new ClassReader(input).getClassName());
+        }
     }
 }

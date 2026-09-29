@@ -215,6 +215,10 @@ public class IrisPregenerator {
         signalState();
     }
 
+    public void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
+        generator.onChunkGenerationFailed(chunkX, chunkZ, failure);
+    }
+
     public void start() {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         boolean completed = false;

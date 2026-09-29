@@ -11,9 +11,12 @@ import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -34,6 +37,11 @@ public class ModdedWaterEntitySpawnTest {
     public static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+        for (Block block : BuiltInRegistries.BLOCK) {
+            for (BlockState state : block.getStateDefinition().getPossibleStates()) {
+                state.initCache();
+            }
+        }
     }
 
     @Test

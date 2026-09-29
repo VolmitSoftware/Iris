@@ -111,14 +111,20 @@ public final class PregenAdmissionGate {
         }
     }
 
-    public boolean awaitDrain(long warningInterval, TimeUnit timeUnit, Runnable onWait) {
+    public Drain awaitDrain(long warningInterval, TimeUnit warningUnit, long deadline, TimeUnit deadlineUnit, Runnable onWait) {
+        long warningNanos = warningUnit.toNanos(warningInterval);
+        long deadlineAt = System.nanoTime() + deadlineUnit.toNanos(deadline);
         boolean interrupted = false;
         lock.lock();
         try {
             while (free < permits) {
+                long remaining = deadlineAt - System.nanoTime();
+                if (remaining <= 0L) {
+                    return new Drain(false, interrupted, permits - free);
+                }
                 boolean signalled = false;
                 try {
-                    signalled = changed.await(warningInterval, timeUnit);
+                    signalled = changed.awaitNanos(Math.min(warningNanos, remaining)) > 0L;
                 } catch (InterruptedException e) {
                     interrupted = true;
                     continue;
@@ -127,10 +133,12 @@ public final class PregenAdmissionGate {
                     onWait.run();
                 }
             }
+            return new Drain(true, interrupted, 0);
         } finally {
             lock.unlock();
         }
+    }
 
-        return interrupted;
+    public record Drain(boolean drained, boolean interrupted, int outstanding) {
     }
 }

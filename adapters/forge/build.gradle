@@ -200,6 +200,7 @@ dependencies {
         libs.asm,
         libs.lru,
         libs.caffeine,
+        'com.fulcrumgenomics:jlibdeflate:0.2.0',
         libs.dom4j,
         libs.jaxen
     ]

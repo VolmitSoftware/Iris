@@ -357,8 +357,7 @@ public final class ModdedPlatform implements IrisPlatform {
             throw new IllegalStateException("Minecraft server is not ready for generation registry capture.");
         }
         return new ModdedGenerationRegistry(NativeModdedServer.registryDefinitions(ModdedEngineBootstrap::currentServer),
-                new ModdedGenerationRegistry.Identity("modded-generation-registry-v1",
-                        "modded-generated-registry-json-v1|minecraft:" + BuildConstants.MINECRAFT_VERSION));
+                "modded-generation-registry-v1");
     }
 
 }

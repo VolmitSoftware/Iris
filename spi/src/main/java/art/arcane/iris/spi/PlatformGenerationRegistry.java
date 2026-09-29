@@ -11,8 +11,6 @@ public interface PlatformGenerationRegistry extends NativeGenerationRegistry {
 
     String runtimeIdentity();
 
-    String generatedDefinitionRendererIdentity();
-
     default String customBiomeResourceKey(String identitySha256) {
         return contentAddressedCustomBiomeResourceKey(identitySha256);
     }

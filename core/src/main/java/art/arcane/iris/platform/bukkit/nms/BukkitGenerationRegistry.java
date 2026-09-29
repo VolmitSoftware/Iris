@@ -9,13 +9,11 @@ import java.util.Objects;
 
 public record BukkitGenerationRegistry(
         NativeGenerationRegistry registry,
-        String runtimeIdentity,
-        String generatedDefinitionRendererIdentity
+        String runtimeIdentity
 ) implements PlatformGenerationRegistry {
     public BukkitGenerationRegistry {
         registry = Objects.requireNonNull(registry, "registry");
         runtimeIdentity = requireText(runtimeIdentity, "runtimeIdentity");
-        generatedDefinitionRendererIdentity = requireText(generatedDefinitionRendererIdentity, "rendererIdentity");
     }
 
     @Override

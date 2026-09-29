@@ -15,7 +15,6 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockResolver;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeRegistryAccess;
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeGenerationRegistryImpl;
-import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeWorldGenerationImpl;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -49,7 +48,7 @@ final class HeadlessNativePlatform implements IrisPlatform, PlatformRegistries, 
                 return access;
             }
             throw new IllegalStateException("Generation registry contract requires loaded native registries");
-        }), "bukkit-generation-registry-v1", new NativeWorldGenerationImpl().generationRendererIdentity());
+        }), "bukkit-generation-registry-v1");
         nativeAccess = new NativeRegistryAccess(new NativeRegistryAccess.Configuration(registries,
                 () -> { throw new UnsupportedOperationException("Headless reloadable registries are not loaded"); },
                 message -> { throw new IllegalStateException("Unavailable native registry: " + message); }));

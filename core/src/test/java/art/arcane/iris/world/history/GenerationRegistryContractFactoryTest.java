@@ -8,7 +8,11 @@ import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
+import art.arcane.iris.generation.biome.IrisBiomeCustomCategory;
+import art.arcane.iris.generation.biome.IrisBiomeCustomParticle;
+import art.arcane.iris.generation.biome.IrisBiomeCustomPrecipType;
 import art.arcane.iris.generation.biome.IrisBiomeCustomSpawn;
+import art.arcane.iris.generation.biome.IrisBiomeCustomSpawnType;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionType;
 import art.arcane.iris.generation.terrain.IrisDimensionTypeOptions;
@@ -510,7 +514,7 @@ public class GenerationRegistryContractFactoryTest {
                 GenerationRegistryContractFactory.CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA,
                 semanticFingerprint,
                 semantic,
-                registry.generatedDefinitionRendererIdentity(),
+                "test-renderer-v1",
                 GenerationRegistryContractFactory.fingerprintDefinition(
                         generated,
                         definition,
@@ -528,18 +532,18 @@ public class GenerationRegistryContractFactoryTest {
 
         GenerationRegistryContract available = GenerationRegistryContractFactory.captureRequiredDefinitions(
                 Set.of(required),
+                firstFixer,
                 registry
         );
 
         required.requireDefinitionsAvailableIn(available);
         assertEquals(
-                source,
-                GenerationRegistryContractFactory.requireGeneratedSource(
+                JsonParser.parseString(source),
+                JsonParser.parseString(GenerationRegistryContractFactory.renderGeneratedSource(
                         required,
                         generated,
-                        firstFixer,
-                        registry
-                )
+                        firstFixer
+                ))
         );
 
         registry.put(generated, PlatformGenerationRegistry.Definition.exactJson(
@@ -547,33 +551,199 @@ public class GenerationRegistryContractFactoryTest {
         ));
         assertThrows(
                 IOException.class,
-                () -> GenerationRegistryContractFactory.captureRequiredDefinitions(Set.of(required), registry)
+                () -> GenerationRegistryContractFactory.captureRequiredDefinitions(
+                        Set.of(required),
+                        firstFixer,
+                        registry
+                )
         );
         registry.remove(generated);
         assertThrows(
                 IOException.class,
-                () -> GenerationRegistryContractFactory.captureRequiredDefinitions(Set.of(required), registry)
+                () -> GenerationRegistryContractFactory.captureRequiredDefinitions(
+                        Set.of(required),
+                        firstFixer,
+                        registry
+                )
+        );
+    }
+
+    @Test
+    public void validatesTheCurrentRenderingWhenTheRendererChangedUnderTheSameIdentity() throws Exception {
+        FakeGenerationRegistry registry = new FakeGenerationRegistry("runtime-a");
+        GenerationRegistryContract.PhysicalResourceKey generated = key(
+                GenerationRegistryContractFactory.BIOME_REGISTRY,
+                "iris:biomes/" + HASH_A
+        );
+        IrisBiomeCustom customBiome = new IrisBiomeCustom().setId("mist").setTemperature(0.5D);
+        String semantic = GenerationRegistryContractFactory.customBiomeEffectiveSemanticJson(customBiome, null);
+        String capturedSource = customBiome.generateJson(
+                new TaggedBiomeFixer("first"),
+                new ContentGate(null, Map.of(), null)
+        );
+        GenerationRegistryContract.GeneratedSource generatedSource = new GenerationRegistryContract.GeneratedSource(
+                GenerationRegistryContractFactory.CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA,
+                GenerationRegistryContractFactory.fingerprintCustomBiomeAuthoredDefinition(semantic),
+                semantic,
+                "test-renderer-v1",
+                GenerationRegistryContractFactory.fingerprintDefinition(
+                        generated,
+                        PlatformGenerationRegistry.Definition.exactJson(capturedSource),
+                        "generated"
+                ),
+                capturedSource
+        );
+        GenerationRegistryContract required = GenerationRegistryContract.fromDefinitionsAndGeneratedSources(
+                Map.of(generated, GenerationRegistryContractFactory.fingerprintGeneratedSemantic(
+                        generated,
+                        generatedSource
+                )),
+                Map.of(generated, generatedSource)
+        );
+        IDataFixer currentFixer = new TaggedBiomeFixer("second");
+        String installed = GenerationRegistryContractFactory.renderGeneratedSource(required, generated, currentFixer);
+        assertNotEquals(JsonParser.parseString(capturedSource), JsonParser.parseString(installed));
+        registry.put(generated, PlatformGenerationRegistry.Definition.exactJson(installed));
+
+        GenerationRegistryContract available = GenerationRegistryContractFactory.captureRequiredDefinitions(
+                Set.of(required),
+                currentFixer,
+                registry
         );
 
-        FakeGenerationRegistry changedRenderer = new FakeGenerationRegistry("runtime-b") {
-            @Override
-            public String generatedDefinitionRendererIdentity() {
-                return "test-renderer-v2";
-            }
-        };
-        IDataFixer secondFixer = new TaggedBiomeFixer("second");
-        String rerendered = GenerationRegistryContractFactory.requireGeneratedSource(
-                required,
-                generated,
-                secondFixer,
-                changedRenderer
+        required.requireDefinitionsAvailableIn(available);
+    }
+
+    @Test
+    public void semanticRenderingMatchesTheCapturedRenderingForEverySupportedFixer() throws Exception {
+        IrisData data = mock(IrisData.class);
+        when(data.getContentGate()).thenReturn(new ContentGate(null, Map.of(), null));
+        IrisDimension dimension = new IrisDimension();
+        dimension.setLoadKey("overworld");
+        IrisBiomeCustom biome = richCustomBiome();
+        IrisDimensionTypeOptions options = new IrisDimensionTypeOptions()
+                .coordinateScale(4.0)
+                .ambientLight(0.25F)
+                .fixedTime(18000L)
+                .cloudHeight(-96)
+                .monsterSpawnBlockLightLimit(11)
+                .ultrawarm(IrisDimensionTypeOptions.TriState.TRUE)
+                .natural(IrisDimensionTypeOptions.TriState.FALSE)
+                .piglinSafe(IrisDimensionTypeOptions.TriState.TRUE)
+                .respawnAnchorWorks(IrisDimensionTypeOptions.TriState.TRUE)
+                .bedWorks(IrisDimensionTypeOptions.TriState.FALSE)
+                .raids(IrisDimensionTypeOptions.TriState.FALSE)
+                .skylight(IrisDimensionTypeOptions.TriState.FALSE)
+                .ceiling(IrisDimensionTypeOptions.TriState.TRUE);
+        FakeGenerationRegistry registry = new FakeGenerationRegistry("runtime");
+        GenerationRegistryContract.PhysicalResourceKey dimensionKey = key(
+                GenerationRegistryContractFactory.DIMENSION_TYPE_REGISTRY,
+                "iris:overworld_type"
         );
-        assertTrue(rerendered.contains("second"));
-        assertNotEquals(source, rerendered);
-        changedRenderer.put(generated, PlatformGenerationRegistry.Definition.exactJson(rerendered));
-        GenerationRegistryContract availableAfterUpgrade = GenerationRegistryContractFactory
-                .captureRequiredDefinitions(Set.of(required), secondFixer, changedRenderer);
-        required.requireDefinitionsAvailableIn(availableAfterUpgrade);
+        int fixers = 0;
+        for (DataVersion version : DataVersion.values()) {
+            if (version == DataVersion.UNSUPPORTED) {
+                continue;
+            }
+            fixers++;
+            IDataFixer fixer = version.get();
+            GenerationRegistryContractFactory.CustomBiomeDefinition captured = GenerationRegistryContractFactory
+                    .customBiomeDefinition(data, dimension, biome, fixer, registry);
+            assertCapturedRenderingRoundTrips(
+                    version,
+                    captured.physicalKey(),
+                    GenerationRegistryContractFactory.CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA,
+                    captured.semanticFingerprint(),
+                    captured.semanticJson(),
+                    captured.definition(),
+                    fixer,
+                    registry
+            );
+            for (IDataFixer.Dimension base : IDataFixer.Dimension.values()) {
+                IrisDimensionType dimensionType = new IrisDimensionType(base, options, 192, 384, -128);
+                assertCapturedRenderingRoundTrips(
+                        version,
+                        dimensionKey,
+                        GenerationRegistryContractFactory.DIMENSION_TYPE_EFFECTIVE_SOURCE_SCHEMA,
+                        GenerationEpochContractFactory.fingerprintDimensionType(dimensionType),
+                        GenerationEpochContractFactory.dimensionTypeSemanticJson(dimensionType),
+                        registry.canonicalDefinition(
+                                dimensionKey.registryKey(),
+                                dimensionKey.resourceKey(),
+                                dimensionType.toJson(fixer)
+                        ),
+                        fixer,
+                        registry
+                );
+            }
+        }
+        assertEquals(DataVersion.values().length - 1, fixers);
+    }
+
+    private static void assertCapturedRenderingRoundTrips(
+            DataVersion version,
+            GenerationRegistryContract.PhysicalResourceKey key,
+            String sourceSchema,
+            String semanticFingerprint,
+            String semanticJson,
+            PlatformGenerationRegistry.Definition captured,
+            IDataFixer fixer,
+            PlatformGenerationRegistry registry
+    ) throws IOException {
+        GenerationRegistryContract.GeneratedSource source = new GenerationRegistryContract.GeneratedSource(
+                sourceSchema,
+                semanticFingerprint,
+                semanticJson,
+                "round-trip",
+                GenerationRegistryContractFactory.fingerprintDefinition(key, captured, "generated"),
+                captured.value()
+        );
+        GenerationRegistryContract contract = GenerationRegistryContract.fromDefinitionsAndGeneratedSources(
+                Map.of(key, GenerationRegistryContractFactory.fingerprintGeneratedSemantic(key, source)),
+                Map.of(key, source)
+        );
+        String rendered = GenerationRegistryContractFactory.renderGeneratedSource(contract, key, fixer);
+        assertEquals(
+                version + " " + key.resourceKey(),
+                JsonParser.parseString(captured.value()),
+                JsonParser.parseString(registry.canonicalDefinition(
+                        key.registryKey(),
+                        key.resourceKey(),
+                        rendered
+                ).value())
+        );
+    }
+
+    private static IrisBiomeCustom richCustomBiome() {
+        String[] entities = {
+                "minecraft:zombie", "minecraft:cow", "minecraft:bat", "minecraft:axolotl",
+                "minecraft:glow_squid", "minecraft:squid", "minecraft:cod", "minecraft:allay"
+        };
+        IrisBiomeCustomSpawnType[] groups = IrisBiomeCustomSpawnType.values();
+        KList<IrisBiomeCustomSpawn> spawns = new KList<>();
+        for (int index = 0; index < groups.length; index++) {
+            spawns.add(new IrisBiomeCustomSpawn()
+                    .setType(entities[index % entities.length])
+                    .setGroup(groups[index])
+                    .setWeight(index + 1)
+                    .setMinCount(index + 1)
+                    .setMaxCount(index % 2 == 0 ? index + 3 : index + 1));
+        }
+        return new IrisBiomeCustom()
+                .setId("round_trip")
+                .setTemperature(1.25D)
+                .setHumidity(0.3D)
+                .setDownfallType(IrisBiomeCustomPrecipType.snow)
+                .setCategory(IrisBiomeCustomCategory.forest)
+                .setSpawnRarity(7)
+                .setSkyColor("#112233")
+                .setFogColor("445566")
+                .setWaterColor("#778899")
+                .setWaterFogColor("#aabbcc")
+                .setGrassColor("#55aa33")
+                .setFoliageColor("#335511")
+                .setAmbientParticle(new IrisBiomeCustomParticle().setParticle("ash").setRarity(80))
+                .setSpawns(spawns);
     }
 
     @Test
@@ -621,18 +791,11 @@ public class GenerationRegistryContractFactoryTest {
                 Map.of(key, GenerationRegistryContractFactory.fingerprintGeneratedSemantic(key, generatedSource)),
                 Map.of(key, generatedSource)
         );
-        FakeGenerationRegistry upgraded = new FakeGenerationRegistry("runtime-b") {
-            @Override
-            public String generatedDefinitionRendererIdentity() {
-                return "test-renderer-v2";
-            }
-        };
 
-        String rerendered = GenerationRegistryContractFactory.requireGeneratedSource(
+        String rerendered = GenerationRegistryContractFactory.renderGeneratedSource(
                 contract,
                 key,
-                new TaggedBiomeFixer("second"),
-                upgraded
+                new TaggedBiomeFixer("second")
         );
 
         assertTrue(rerendered.contains("second"));
@@ -748,11 +911,6 @@ public class GenerationRegistryContractFactoryTest {
         @Override
         public String runtimeIdentity() {
             return runtimeIdentity;
-        }
-
-        @Override
-        public String generatedDefinitionRendererIdentity() {
-            return "test-renderer-v1";
         }
 
         @Override

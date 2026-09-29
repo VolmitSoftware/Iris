@@ -112,16 +112,16 @@ public final class IrisBootstrap implements PluginBootstrap {
      * Stops startup when a world the server is about to load carries Iris storage Iris cannot generate from.
      * <p>
      * The server enumerates levels from {@code <levelRoot>/dimensions/<namespace>/<key>} on disk, so a world
-     * whose folder is present is going to be loaded whatever Iris does; and CraftBukkit swallows whatever
-     * {@code getDefaultWorldGenerator} throws and falls back to the vanilla generator, which writes vanilla
-     * terrain straight into that world's region files. A pack snapshot that has gone missing therefore has
-     * to be found here, before any level is created, exactly as a corrupt {@code dimensions/<id>.json} is.
+     * whose folder is present is going to be loaded whatever Iris does. The generator resolver answers a world
+     * it cannot generate with a fail-closed generator, which stops startup at that world's own level creation,
+     * after the levels before it have loaded. A pack snapshot that has gone missing is found here instead,
+     * before any level is created, exactly as a corrupt {@code dimensions/<id>.json} is.
      * <p>
      * A world with no folder at all is not a startup failure: nothing enumerates it, nothing loads it, and
      * its bukkit.yml and Multiverse entries are what make restoring the folder a complete recovery. Neither
      * is a folder that holds no pack snapshot and no world data - {@link #quarantineWorthlessHusks} has
      * already moved those out of the dimensions tree, and one that survives it (a Spigot-layout world folder,
-     * or a move that failed) owns nothing a vanilla generator could destroy. Both are only reported.
+     * or a move that failed) owns nothing to lose. Both are only reported here.
      */
     static void requireUsableWorldStorage(BukkitStartupPaths startupPaths) throws IOException {
         Path levelRoot = startupPaths.levelRoot();

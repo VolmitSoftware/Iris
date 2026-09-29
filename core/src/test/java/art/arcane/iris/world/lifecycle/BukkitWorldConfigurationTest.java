@@ -53,6 +53,33 @@ public class BukkitWorldConfigurationTest {
         )), bindings);
     }
 
+    /**
+     * CraftServer only asks a plugin for a generator when bukkit.yml names it, so any world bound to Iris - a vanilla
+     * slot included - is one a disabled Iris would hand to the vanilla generator.
+     */
+    @Test
+    public void detectsAnyWorldBoundToIrisIncludingVanillaSlots() throws Exception {
+        File overworld = temporaryFolder.newFile("iris-overworld.yml");
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("worlds.world.generator", "iris:overworld");
+        yaml.set("worlds.world_nether.generator", "Other:generator");
+        yaml.save(overworld);
+        File bare = temporaryFolder.newFile("iris-bare.yml");
+        yaml = new YamlConfiguration();
+        yaml.set("worlds.world_the_end.generator", "Iris");
+        yaml.save(bare);
+        File other = temporaryFolder.newFile("other-only.yml");
+        yaml = new YamlConfiguration();
+        yaml.set("worlds.world.generator", "Irish:overworld");
+        yaml.set("worlds.world_nether.seed", 1337L);
+        yaml.save(other);
+
+        assertTrue(BukkitWorldConfiguration.configuresIrisGenerator(overworld));
+        assertTrue(BukkitWorldConfiguration.configuresIrisGenerator(bare));
+        assertFalse(BukkitWorldConfiguration.configuresIrisGenerator(other));
+        assertFalse(BukkitWorldConfiguration.configuresIrisGenerator(new File(temporaryFolder.getRoot(), "absent.yml")));
+    }
+
     @Test
     public void rejectsCustomIrisBindingWithoutSelectedDimension() throws Exception {
         File configuration = temporaryFolder.newFile("missing-binding-dimension.yml");

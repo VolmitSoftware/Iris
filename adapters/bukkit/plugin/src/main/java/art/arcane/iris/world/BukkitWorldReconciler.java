@@ -722,19 +722,30 @@ public final class BukkitWorldReconciler {
             return WorldIdentity.resolve(worldKey);
         }
 
+        /**
+         * A world Iris cannot resolve is refused like one CraftServer asked for, with the banner and operator notice,
+         * then fails this load only.
+         */
         @Override
         public CompletableFuture<World> createWorld(NamespacedKey worldKey, String dimension, Long seed) {
+            String configuredWorldName = worldKey.toString();
+            ChunkGenerator generator;
+            IrisDimension irisDimension;
             try {
-                String logicalWorldName = IrisWorldStorage.logicalName(worldKey);
-                String configuredWorldName = configuredWorldName(worldKey);
-                Iris.info("Loading World: %s | Generator: %s", logicalWorldName, dimension);
-                ChunkGenerator generator = plugin.getDefaultWorldGenerator(configuredWorldName, dimension);
-                IrisDimension irisDimension = IrisWorldGeneratorResolver.loadDimension(configuredWorldName, dimension);
+                configuredWorldName = configuredWorldName(worldKey);
+                Iris.info("Loading World: %s | Generator: %s", IrisWorldStorage.logicalName(worldKey), dimension);
+                generator = plugin.requireWorldGenerator(configuredWorldName, dimension);
+                irisDimension = IrisWorldGeneratorResolver.loadDimension(configuredWorldName, dimension);
                 if (generator == null || irisDimension == null) {
                     throw new IllegalStateException("Could not resolve the Iris generator or dimension \"" + dimension + "\".");
                 }
-
-                Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + logicalWorldName + " using Iris:" + dimension + "...");
+            } catch (Throwable refusal) {
+                plugin.worldRefusals().report(configuredWorldName, worldKey, refusal);
+                return CompletableFuture.failedFuture(refusal);
+            }
+            try {
+                Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + IrisWorldStorage.logicalName(worldKey)
+                        + " using Iris:" + dimension + "...");
                 WorldCreator creator = WorldCreatorCompat.ofPersistentKey(worldKey)
                         .generator(generator)
                         .environment(BukkitEnvironment.from(irisDimension.getEnvironment()));

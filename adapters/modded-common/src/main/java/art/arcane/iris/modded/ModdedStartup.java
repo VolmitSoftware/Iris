@@ -26,6 +26,7 @@ import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.modded.command.ModdedPackCommands;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 
@@ -36,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -43,6 +45,7 @@ public final class ModdedStartup {
     private static final int COMPAT_BOOT_KEY_CAP = 3;
     private static final AtomicBoolean PREPARED = new AtomicBoolean(false);
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);
+    private static final List<String> DIMENSION_FAILURES = new CopyOnWriteArrayList<>();
 
     private ModdedStartup() {
     }
@@ -50,6 +53,7 @@ public final class ModdedStartup {
     public static void reset() {
         PREPARED.set(false);
         STARTED.set(false);
+        DIMENSION_FAILURES.clear();
     }
 
     public static void prepareForStartup() {
@@ -208,7 +212,7 @@ public final class ModdedStartup {
         }
     }
 
-    private static void reinjectPersistentDimensions(NativeModdedServer server) {
+    static void reinjectPersistentDimensions(NativeModdedServer server) {
         List<ModdedDimensionRegistryStore.PersistentDimension> dimensions =
                 ModdedDimensionRegistryStore.loadForStartup(server);
         if (dimensions.isEmpty()) {
@@ -233,7 +237,7 @@ public final class ModdedStartup {
                         index, dimensions.size(), dimension.id(), dimension.pack(), dimension.dimension(),
                         System.currentTimeMillis() - dimensionStartedAt);
             } catch (Throwable e) {
-                ModdedIrisLog.error("Iris failed to re-inject persistent dimension '{}' (pack={} dim={} seed={})", dimension.id(), dimension.pack(), dimension.dimension(), dimension.seed(), e);
+                reportDimensionFailure(dimension, e);
                 if (e instanceof OutOfMemoryError outOfMemory) {
                     throw outOfMemory;
                 }
@@ -241,6 +245,25 @@ public final class ModdedStartup {
         }
         ModdedIrisLog.info("Iris re-injected {}/{} persistent dimension(s) at startup in {}ms",
                 injected, dimensions.size(), System.currentTimeMillis() - startedAt);
+    }
+
+    private static void reportDimensionFailure(ModdedDimensionRegistryStore.PersistentDimension dimension, Throwable failure) {
+        List<String> notice = GenerationRefusalNotice.compose(
+                "Iris refused to load dimension '" + dimension.id() + "' (pack=" + dimension.pack()
+                        + " dim=" + dimension.dimension() + " seed=" + dimension.seed() + ")",
+                GenerationRefusalNotice.causes(failure),
+                List.of(
+                        "Iris does not generate this dimension and does not let vanilla or any other generator"
+                                + " write it; no chunks are written.",
+                        "It stays unloaded. Fix the cause, then start the server again."
+                ));
+        for (String line : notice) {
+            ModdedIrisLog.error(line);
+        }
+        ModdedIrisLog.error("Iris failed to re-inject persistent dimension '{}' (pack={} dim={} seed={})",
+                dimension.id(), dimension.pack(), dimension.dimension(), dimension.seed(), failure);
+        DIMENSION_FAILURES.add("Iris dimension '" + dimension.id() + "' did not load and refuses to generate: "
+                + GenerationRefusalNotice.summary(failure));
     }
 
     private static long newestModificationMillis(Path root) {
@@ -261,12 +284,23 @@ public final class ModdedStartup {
     }
 
     /**
-     * SP-6: a pack excluded by validation is otherwise only visible in the console. Tell the operators who
-     * can actually act on it when they join.
+     * True once the first tick with a player list has re-injected the persistent dimensions. Before that a runtime
+     * dimension that is not loaded yet is still on its way.
      */
-    public static void warnPackFailuresTo(NativeProtocolPlayer player) {
+    public static boolean dimensionsRestored() {
+        return STARTED.get();
+    }
+
+    /**
+     * SP-6: a pack excluded by validation or a persistent dimension that did not load is otherwise only visible in
+     * the console. Tell the operators who can actually act on it when they join.
+     */
+    public static void warnStartupFailuresTo(NativeProtocolPlayer player) {
         if (player == null || !player.isGameMaster()) {
             return;
+        }
+        for (String failure : DIMENSION_FAILURES) {
+            player.sendMessage(failure);
         }
         for (Map.Entry<String, PackValidationResult> entry : PackValidationRegistry.snapshot().entrySet()) {
             PackValidationResult result = entry.getValue();

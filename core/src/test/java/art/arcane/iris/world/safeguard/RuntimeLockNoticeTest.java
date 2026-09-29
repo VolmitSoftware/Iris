@@ -10,8 +10,8 @@ import static org.junit.Assert.assertTrue;
 /**
  * A boot that ends in Danger Mode used to say so only in the banner. The server then ran on with every
  * configured Iris world bound to a generator that throws on the first chunk, and nothing after the banner
- * said that out loud. {@code refuseVanillaFallback} never covers this case because it only runs when enable
- * itself fails.
+ * said that out loud. The failed-enable lock never covers this case because it only runs when enable itself
+ * fails.
  */
 public class RuntimeLockNoticeTest {
     @Test

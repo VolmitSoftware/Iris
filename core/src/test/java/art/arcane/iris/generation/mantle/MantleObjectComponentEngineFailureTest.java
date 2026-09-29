@@ -22,6 +22,7 @@ import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -89,7 +90,7 @@ public class MantleObjectComponentEngineFailureTest {
             Engine engine = mock(Engine.class);
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getSeedManager()).thenReturn(seeds);
-                EngineMantle engineMantle = mock(EngineMantle.class);
+            EngineMantle engineMantle = mock(EngineMantle.class);
             IrisData data = mock(IrisData.class);
             when(engineMantle.getEngine()).thenReturn(engine);
             when(engineMantle.getData()).thenReturn(data);
@@ -99,7 +100,7 @@ public class MantleObjectComponentEngineFailureTest {
             when(object.getW()).thenReturn(1);
             when(object.getH()).thenReturn(1);
             when(object.getD()).thenReturn(1);
-            doAnswer(invocation -> {
+            doAnswer((InvocationOnMock invocation) -> {
                 placements.incrementAndGet();
                 throw placementFailure;
             }).when(object).place(anyInt(), anyInt(), anyInt(), any(IObjectPlacer.class), any(IrisObjectPlacement.class),
@@ -141,7 +142,7 @@ public class MantleObjectComponentEngineFailureTest {
             writer = mock(MantleWriter.class);
             when(writer.getMantle()).thenReturn(mantle);
             when(writer.getEngine()).thenReturn(engine);
-            doAnswer(invocation -> {
+            doAnswer((InvocationOnMock invocation) -> {
                 Runnable task = invocation.getArgument(2);
                 task.run();
                 return null;

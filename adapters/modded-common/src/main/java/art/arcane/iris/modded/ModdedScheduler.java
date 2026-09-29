@@ -195,7 +195,8 @@ public final class ModdedScheduler implements PlatformScheduler {
         mainQueue.clear();
         delayedQueue.clear();
         mainThread = null;
-        // Shutdown stage that always runs (ModdedEngineBootstrap.stopped): release the level snapshot with it.
+        // Runs from ModdedEngineBootstrap.stopped, or its fallback at the next server start or JVM exit when the
+        // loader skipped it: release the level snapshot with it.
         ModdedServerLevels.forget();
     }
 

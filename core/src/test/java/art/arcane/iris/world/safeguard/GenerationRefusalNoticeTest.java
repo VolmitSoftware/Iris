@@ -3,6 +3,7 @@ package art.arcane.iris.world.safeguard;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -31,6 +32,20 @@ public class GenerationRefusalNoticeTest {
         assertEquals(List.of("history drifted"), GenerationRefusalNotice.causes(wrapper));
         assertEquals(List.of("history drifted"), GenerationRefusalNotice.causes(
                 new IllegalStateException("history drifted", root)));
+    }
+
+    /**
+     * A file system failure's message is only the path, which says nothing about what went wrong with it.
+     */
+    @Test
+    public void fileSystemFailuresAreNamedByTheirType() {
+        IllegalStateException failure = new IllegalStateException("Iris generation history is unusable at /srv/moon.",
+                new NoSuchFileException("/srv/moon/iris/generation/epochs/a/epoch.json"));
+
+        assertEquals(List.of(
+                "Iris generation history is unusable at /srv/moon.",
+                "NoSuchFileException: /srv/moon/iris/generation/epochs/a/epoch.json"
+        ), GenerationRefusalNotice.causes(failure));
     }
 
     @Test

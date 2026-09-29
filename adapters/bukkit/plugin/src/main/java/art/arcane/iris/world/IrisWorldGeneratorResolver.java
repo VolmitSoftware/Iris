@@ -73,6 +73,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * Pack validation, dimension lookup, and the world generator / biome provider resolution that the
@@ -622,17 +623,53 @@ public final class IrisWorldGeneratorResolver {
         }
         NamespacedKey messageKey = messageWorldKey(worldName, levelRoot.getName());
         if (!IRIS_DIMENSION_NAMESPACE.equals(messageKey.getNamespace())) {
+            if (dimensionRoot != null && IrisWorldStorage.holdsIrisContent(dimensionRoot.toPath())) {
+                throw new IllegalStateException("'" + worldName + "' (" + messageKey + ") is an Iris world whose"
+                        + " generation history is missing from "
+                        + GenerationHistoryPaths.forDimension(dimensionRoot.toPath()).generationRoot()
+                        + ", so Iris cannot generate it. Restore that folder from a backup. Keep worlds." + worldName
+                        + ".generator in bukkit.yml: without it the server generates vanilla terrain into this world.");
+            }
             // Only bukkit.yml binds a vanilla slot at startup, and the refusal stops startup, so no command can run
             // until that binding is gone.
             throw new IllegalStateException("'" + worldName + "' (" + messageKey
                     + ") is a vanilla world slot with no Iris world storage, so Iris cannot generate it."
-                    + " Remove worlds." + worldName + ".generator from bukkit.yml, start the server, then run"
-                    + " /iris replace " + messageKey + " type=<pack> to replace it with Iris on the next restart.");
+                    + " Remove worlds." + worldName + ".generator from bukkit.yml"
+                    + leftoverLevelDataRemoval(levelRoot)
+                    + ", start the server, then run /iris replace " + messageKey
+                    + " type=<pack> to replace it with Iris on the next restart.");
         }
         throw new IllegalStateException("'" + worldName + "' (" + messageKey
                 + ") has no Iris world storage, so Iris cannot generate it."
                 + " Create Iris worlds with /iris create " + IrisWorldStorage.logicalName(messageKey)
                 + " type=<pack>; Iris registers them with Multiverse itself.");
+    }
+
+    /**
+     * A start refused before the level's overworld existed still leaves level.dat behind, and vanilla cannot start
+     * from a level.dat without world generation settings. A level that holds no chunks loses nothing to its removal.
+     */
+    private static String leftoverLevelDataRemoval(File levelRoot) {
+        Path level = levelRoot.toPath();
+        Path overworld = level.resolve("dimensions").resolve("minecraft").resolve("overworld");
+        if (Files.exists(overworld.resolve("data").resolve("minecraft").resolve("world_gen_settings.dat"),
+                LinkOption.NOFOLLOW_LINKS)
+                || hasEntries(overworld.resolve("region"))
+                || hasEntries(level.resolve("region"))) {
+            return "";
+        }
+        return " and delete " + level.resolve("level.dat") + " (this level has no chunks and was never created)";
+    }
+
+    private static boolean hasEntries(Path directory) {
+        if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        try (Stream<Path> entries = Files.list(directory)) {
+            return entries.findAny().isPresent();
+        } catch (IOException unreadable) {
+            return true;
+        }
     }
 
     private static boolean hasGenerationStorage(File dimensionRoot) {

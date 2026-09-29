@@ -83,6 +83,6 @@ final class FailedEnableLock {
 
     static boolean irisWorldsPresent(File levelRoot, File bukkitConfiguration) throws IOException {
         return IrisWorldStorage.hasManagedWorldStorage(levelRoot)
-                || BukkitWorldConfiguration.configuresIrisGenerator(bukkitConfiguration);
+                || BukkitWorldConfiguration.configuresLoadingIrisWorld(bukkitConfiguration, levelRoot.toPath());
     }
 }

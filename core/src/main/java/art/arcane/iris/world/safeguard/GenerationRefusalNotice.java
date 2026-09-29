@@ -1,5 +1,6 @@
 package art.arcane.iris.world.safeguard;
 
+import java.nio.file.FileSystemException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -31,7 +32,8 @@ public final class GenerationRefusalNotice {
 
     /**
      * Every distinct message in the cause chain, outermost first. A wrapper whose message only repeats its cause
-     * (CompletionException, a rethrow with the same text) adds nothing and is skipped.
+     * (CompletionException, a rethrow with the same text) adds nothing and is skipped. A file system failure carries
+     * only a path, so its type is named with it.
      */
     public static List<String> causes(Throwable failure) {
         List<String> causes = new ArrayList<>();
@@ -42,7 +44,11 @@ public final class GenerationRefusalNotice {
             String message = current.getMessage();
             boolean repeatsCause = cause != null && cause.toString().equals(message);
             if (!repeatsCause) {
-                String text = message == null || message.isBlank() ? current.getClass().getSimpleName() : message.trim();
+                String text = message == null || message.isBlank()
+                        ? current.getClass().getSimpleName()
+                        : current instanceof FileSystemException
+                        ? current.getClass().getSimpleName() + ": " + message.trim()
+                        : message.trim();
                 if (causes.isEmpty() || !causes.getLast().equals(text)) {
                     causes.add(text);
                 }

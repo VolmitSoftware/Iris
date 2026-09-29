@@ -490,6 +490,76 @@ public class IrisWorldGeneratorResolverTest {
         }
     }
 
+    /**
+     * The fix for a vanilla slot bound to Iris is removing the binding. Given for an Iris world whose history is
+     * gone, that fix loads the world under the vanilla generator, which writes vanilla terrain into it.
+     */
+    @Test
+    public void vanillaSlotHoldingAnIrisWorldKeepsItsBindingAndPointsAtTheHistory() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("iris-in-vanilla-slot");
+        File levelRoot = new File(worldContainer, "world");
+        File dimensionRoot = new File(levelRoot, "dimensions/minecraft/overworld");
+        assertTrue(new File(dimensionRoot, "iris/engine-data").mkdirs());
+        assertTrue(new File(dimensionRoot, "data/minecraft").mkdirs());
+        assertTrue(new File(dimensionRoot, "data/minecraft/world_gen_settings.dat").createNewFile());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world", "overworld"));
+
+            assertTrue(refusal, refusal.contains("minecraft:overworld"));
+            assertTrue(refusal, refusal.contains("is an Iris world"));
+            assertTrue(refusal, refusal.contains(new File(dimensionRoot, "iris/generation").getPath()));
+            assertFalse(refusal, refusal.contains("Remove worlds.world.generator"));
+            assertFalse(refusal, refusal.contains("/iris replace"));
+        }
+    }
+
+    /**
+     * A start refused before the overworld existed still leaves level.dat behind, and vanilla cannot start from a
+     * level.dat that has no world generation settings next to it.
+     */
+    @Test
+    public void vanillaSlotRefusalOnANeverCreatedLevelNamesTheLeftoverLevelDat() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("never-created");
+        File levelRoot = new File(worldContainer, "world");
+        assertTrue(levelRoot.mkdirs());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world", "overworld"));
+
+            assertTrue(refusal, refusal.contains("Remove worlds.world.generator"));
+            assertTrue(refusal, refusal.contains(new File(levelRoot, "level.dat").getPath()));
+        }
+    }
+
+    @Test
+    public void vanillaSlotRefusalOnAnExistingLevelLeavesLevelDatAlone() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("existing-vanilla");
+        File levelRoot = new File(worldContainer, "world");
+        File settings = new File(levelRoot, "dimensions/minecraft/overworld/data/minecraft/world_gen_settings.dat");
+        assertTrue(settings.getParentFile().mkdirs());
+        assertTrue(settings.createNewFile());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world", "overworld"));
+
+            assertTrue(refusal, refusal.contains("Remove worlds.world.generator"));
+            assertFalse(refusal, refusal.contains("level.dat"));
+        }
+    }
+
     @Test
     public void alreadyLoadedIrisKeyIsRefusedBeforeAnyEngineCanStart() throws Exception {
         File worldContainer = temporaryFolder.newFolder("duplicate-key");

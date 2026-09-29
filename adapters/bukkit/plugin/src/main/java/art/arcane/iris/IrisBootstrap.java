@@ -13,6 +13,7 @@ import art.arcane.iris.pack.datapack.DataVersion;
 import io.papermc.paper.ServerBuildInfo;
 import art.arcane.iris.pack.DefaultPackBootstrapProvisioner.ProvisionResult;
 import art.arcane.iris.platform.bootstrap.SlimJar;
+import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEvent;
@@ -21,6 +22,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -115,7 +117,9 @@ public final class IrisBootstrap implements PluginBootstrap {
      * whose folder is present is going to be loaded whatever Iris does. The generator resolver answers a world
      * it cannot generate with a fail-closed generator, which stops startup at that world's own level creation,
      * after the levels before it have loaded. A pack snapshot that has gone missing is found here instead,
-     * before any level is created, exactly as a corrupt {@code dimensions/<id>.json} is.
+     * before any level is created, exactly as a corrupt {@code dimensions/<id>.json} is. An Iris world in a
+     * vanilla slot whose bukkit.yml entry no longer names Iris stops startup too: CraftServer would build it
+     * with the vanilla generator without ever asking Iris.
      * <p>
      * A world with no folder at all is not a startup failure: nothing enumerates it, nothing loads it, and
      * its bukkit.yml and Multiverse entries are what make restoring the folder a complete recovery. Neither
@@ -135,6 +139,7 @@ public final class IrisBootstrap implements PluginBootstrap {
                 levelRoot
         );
         StringBuilder unusable = new StringBuilder();
+        StringBuilder unbound = new StringBuilder();
         for (IrisWorldStorageEntry entry : entries) {
             switch (entry.state()) {
                 case PRESENT -> {
@@ -152,15 +157,29 @@ public final class IrisBootstrap implements PluginBootstrap {
                         .append(": ")
                         .append(entry.detail() == null ? "storage is unusable" : entry.detail())
                         .append(')');
+                case UNBOUND -> unbound.append(unbound.isEmpty() ? "" : "; ")
+                        .append(entry.configuredWorldName())
+                        .append(" (")
+                        .append(entry.storagePath())
+                        .append("): set worlds.")
+                        .append(entry.configuredWorldName())
+                        .append(".generator to Iris:<pack> in bukkit.yml, or move the folder aside to start a new"
+                                + " vanilla world there");
             }
         }
-        if (unusable.isEmpty()) {
-            return;
+        List<String> refusals = new ArrayList<>(2);
+        if (!unusable.isEmpty()) {
+            refusals.add("Iris world storage is unusable and the server would generate vanilla terrain over it: "
+                    + unusable + ". Restore each world folder from a backup, or move it aside; a world with no"
+                    + " folder is reported and skipped, and the server starts.");
         }
-        throw new IllegalStateException("Iris world storage is unusable and the server would generate vanilla"
-                + " terrain over it: " + unusable
-                + ". Restore each world folder from a backup, or move it aside; a world with no folder is"
-                + " reported and skipped, and the server starts.");
+        if (!unbound.isEmpty()) {
+            refusals.add("Iris worlds in vanilla slots are not bound to Iris, so the server would generate vanilla"
+                    + " terrain into them: " + unbound + ".");
+        }
+        if (!refusals.isEmpty()) {
+            throw new IllegalStateException(String.join(" ", refusals));
+        }
     }
 
     static void armStartupFailure(BootstrapContext context, Throwable failure) {
@@ -175,15 +194,28 @@ public final class IrisBootstrap implements PluginBootstrap {
         context.getLifecycleManager().registerEventHandler(eventType, event -> {
             throw new IllegalStateException("Iris bootstrap did not establish safe world-generation state.", failure);
         });
+        List<String> notice = startupRefusalNotice(failure);
         try {
-            context.getLogger().error(
-                    "Iris bootstrap failed; registry and world startup will be stopped at datapack discovery.",
-                    failure
-            );
+            for (String line : notice) {
+                context.getLogger().error(line);
+            }
+            context.getLogger().warn("Iris bootstrap failure", failure);
         } catch (Throwable loggingFailure) {
+            notice.forEach(System.err::println);
             failure.addSuppressed(loggingFailure);
             failure.printStackTrace(System.err);
         }
+    }
+
+    static List<String> startupRefusalNotice(Throwable failure) {
+        return GenerationRefusalNotice.compose(
+                "Iris stopped server startup before any world loads",
+                GenerationRefusalNotice.causes(failure),
+                List.of(
+                        "Startup stops at datapack discovery: no world loads and no chunks are written.",
+                        "Fix the cause, then start the server again. Paper's --safeMode hint does not apply:"
+                                + " Iris worlds must not load without Iris."
+                ));
     }
 
     private static ProvisionResult provision(BootstrapContext context, BukkitStartupPaths startupPaths) {

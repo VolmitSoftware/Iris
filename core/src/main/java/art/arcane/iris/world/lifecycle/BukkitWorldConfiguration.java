@@ -4,6 +4,7 @@ import art.arcane.iris.world.IrisWorldStorage;
 import art.arcane.iris.world.WorldSlotKey;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
+import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -26,11 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class BukkitWorldConfiguration {
     private static final String DEFAULT_WORLD_CONTAINER = ".";
     private static final Object MUTATION_LOCK = new Object();
+    private static final List<NamespacedKey> VANILLA_SLOTS = List.of(
+            NamespacedKey.minecraft("overworld"),
+            NamespacedKey.minecraft("the_nether"),
+            NamespacedKey.minecraft("the_end"));
 
     private BukkitWorldConfiguration() {
     }
@@ -160,7 +166,8 @@ public final class BukkitWorldConfiguration {
     }
 
     /**
-     * Classifies the world storage behind every Iris entry in bukkit.yml.
+     * Classifies the world storage behind every Iris entry in bukkit.yml, and behind every vanilla slot of the level
+     * that holds an Iris world, bound or not.
      * <p>
      * {@link #readIrisGeneratorBindings} answers "which worlds can Iris bind", which deliberately drops
      * anything without storage. Startup needs the opposite view: a world whose folder is on disk but whose
@@ -178,21 +185,33 @@ public final class BukkitWorldConfiguration {
         Path requiredLevelRoot = Objects.requireNonNull(levelRoot, "levelRoot")
                 .toAbsolutePath()
                 .normalize();
-        Path configurationPath = requiredConfigurationFile.toPath();
-        if (!Files.exists(configurationPath, LinkOption.NOFOLLOW_LINKS)) {
-            return List.of();
-        }
         Path worldContainer = requiredLevelRoot.getParent();
         if (worldContainer == null) {
             throw new IOException("Selected level root has no world container: " + requiredLevelRoot);
         }
         synchronized (MUTATION_LOCK) {
+            YamlConfiguration configuration = Files.exists(requiredConfigurationFile.toPath(), LinkOption.NOFOLLOW_LINKS)
+                    ? load(requiredConfigurationFile)
+                    : new YamlConfiguration();
             List<IrisWorldStorageEntry> entries = new ArrayList<>();
-            for (IrisWorldCandidate candidate : readIrisWorldCandidates(
-                    load(requiredConfigurationFile),
-                    requiredLevelName
-            )) {
+            for (IrisWorldCandidate candidate : readIrisWorldCandidates(configuration, requiredLevelName)) {
                 entries.add(classifyStorage(worldContainer, requiredLevelRoot, candidate));
+            }
+            for (NamespacedKey vanillaSlot : VANILLA_SLOTS) {
+                Path dimensionRoot = expectedDimensionRoot(requiredLevelRoot, vanillaSlot);
+                if (!IrisWorldStorage.holdsIrisContent(dimensionRoot)) {
+                    continue;
+                }
+                String configuredName = IrisWorldStorage.configuredWorldName(vanillaSlot, requiredLevelName);
+                if (configuration.get("worlds." + configuredName + ".generator") instanceof String generator
+                        && isIrisGenerator(generator.trim())) {
+                    entries.add(classifyStorage(worldContainer, requiredLevelRoot,
+                            new IrisWorldCandidate(configuredName, vanillaSlot, generator.trim())));
+                } else {
+                    entries.add(new IrisWorldStorageEntry(configuredName,
+                            new WorldSlotKey(vanillaSlot.getNamespace(), vanillaSlot.getKey()), dimensionRoot,
+                            IrisWorldStorageState.UNBOUND, "bukkit.yml does not name Iris as its generator"));
+                }
             }
             return List.copyOf(entries);
         }
@@ -249,10 +268,19 @@ public final class BukkitWorldConfiguration {
                     hasWorldData(resolvedRoot)
                             ? IrisWorldStorageState.UNUSABLE
                             : IrisWorldStorageState.EMPTY,
-                    unusablePack.getMessage());
+                    describe(unusablePack));
         }
         return new IrisWorldStorageEntry(configuredName, slotKey, resolvedRoot,
                 IrisWorldStorageState.PRESENT, null);
+    }
+
+    /**
+     * The cause chain on one line: why a history cannot be read sits below the failure that names the world.
+     */
+    private static String describe(Throwable failure) {
+        return GenerationRefusalNotice.causes(failure).stream()
+                .map((String cause) -> cause.lines().findFirst().orElse(cause))
+                .collect(Collectors.joining("; "));
     }
 
     /**
@@ -395,11 +423,19 @@ public final class BukkitWorldConfiguration {
     }
 
     /**
-     * True when any bukkit.yml world names Iris as its generator, vanilla slots included. CraftServer asks a plugin
-     * for a generator only for these worlds, so they are the ones a disabled Iris would hand to vanilla.
+     * True when a bukkit.yml world the server loads names Iris as its generator: the level's overworld, nether or
+     * end, or a world whose dimension folder exists. CraftServer asks a plugin for a generator only for worlds it
+     * creates, so these are the ones a disabled Iris would hand to vanilla; an entry for a world that is never
+     * created is not.
      */
-    public static boolean configuresIrisGenerator(File configurationFile) throws IOException {
+    public static boolean configuresLoadingIrisWorld(File configurationFile, Path levelRoot) throws IOException {
         Path configurationPath = Objects.requireNonNull(configurationFile, "configurationFile").toPath();
+        Path root = Objects.requireNonNull(levelRoot, "levelRoot").toAbsolutePath().normalize();
+        Path levelName = root.getFileName();
+        Path worldContainer = root.getParent();
+        if (levelName == null || worldContainer == null) {
+            throw new IOException("Selected level root has no world container: " + root);
+        }
         if (!Files.exists(configurationPath, LinkOption.NOFOLLOW_LINKS)) {
             return false;
         }
@@ -410,12 +446,28 @@ public final class BukkitWorldConfiguration {
             }
             for (String worldName : worlds.getKeys(false)) {
                 if (worlds.get(worldName + ".generator") instanceof String generator
-                        && isIrisGenerator(generator.trim())) {
+                        && isIrisGenerator(generator.trim())
+                        && loadsAtStartup(worldContainer, root, levelName.toString(), worldName)) {
                     return true;
                 }
             }
             return false;
         }
+    }
+
+    private static boolean loadsAtStartup(Path worldContainer, Path levelRoot, String levelName, String worldName) {
+        if (worldName.equals(levelName)
+                || worldName.equals(levelName + "_nether")
+                || worldName.equals(levelName + "_the_end")) {
+            return true;
+        }
+        NamespacedKey worldKey;
+        try {
+            worldKey = IrisWorldStorage.keyFromConfiguredWorldName(worldName, levelName);
+        } catch (IllegalArgumentException unmappable) {
+            return false;
+        }
+        return hasDimensionDirectory(worldContainer, levelRoot, worldName, worldKey);
     }
 
     private static boolean isIrisGenerator(String configuredGenerator) {
@@ -766,7 +818,12 @@ public final class BukkitWorldConfiguration {
          * A world directory the server will load, whose frozen pack snapshot cannot be used. Iris cannot
          * generate it and nothing else may.
          */
-        UNUSABLE
+        UNUSABLE,
+        /**
+         * An Iris world in a vanilla slot whose bukkit.yml entry does not name Iris, so the server would build
+         * it with the vanilla generator.
+         */
+        UNBOUND
     }
 
     public record IrisWorldStorageEntry(

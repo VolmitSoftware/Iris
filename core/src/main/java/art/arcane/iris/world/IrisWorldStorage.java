@@ -18,11 +18,14 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public final class IrisWorldStorage {
     private static final String IRIS_NAMESPACE = "iris";
     private static final String DEFAULT_LEVEL_NAME = "world";
+    private static final Set<String> OS_METADATA_FILES = Set.of(".DS_Store", "Thumbs.db", "desktop.ini");
+    private static final String APPLE_DOUBLE_PREFIX = "._";
 
     /**
      * Server#getLevelDirectory is Paper-API-only. Once a call throws NoSuchMethodError (plain
@@ -325,6 +328,46 @@ public final class IrisWorldStorage {
             }
         }
         return target.toFile();
+    }
+
+    /**
+     * True when the world folder's {@code iris/} entry holds anything of Iris' own, which makes the folder an Iris
+     * world whatever its dimension namespace.
+     * <p>
+     * The desktop file managers recreate a directory to hold their own metadata while a delete is still in
+     * flight - on macOS a world folder can come back holding nothing but {@code iris/.DS_Store} - and a folder
+     * that holds only that is exactly as worthless as one with no {@code iris/} entry at all. Only files are
+     * ever treated as metadata: a directory, a symbolic link, an unreadable entry and anything that is not on
+     * the list all count as content.
+     */
+    public static boolean holdsIrisContent(Path dimensionRoot) {
+        Path irisRoot = Objects.requireNonNull(dimensionRoot, "dimensionRoot").resolve(IRIS_NAMESPACE);
+        if (Files.isSymbolicLink(irisRoot)) {
+            return true;
+        }
+        if (!Files.exists(irisRoot, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        if (!Files.isDirectory(irisRoot, LinkOption.NOFOLLOW_LINKS)) {
+            return true;
+        }
+        try (Stream<Path> entries = Files.list(irisRoot)) {
+            return entries.anyMatch(entry -> !isOperatingSystemMetadata(entry));
+        } catch (IOException unreadable) {
+            return true;
+        }
+    }
+
+    private static boolean isOperatingSystemMetadata(Path entry) {
+        if (!Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        Path name = entry.getFileName();
+        if (name == null) {
+            return false;
+        }
+        String fileName = name.toString();
+        return OS_METADATA_FILES.contains(fileName) || fileName.startsWith(APPLE_DOUBLE_PREFIX);
     }
 
     /**

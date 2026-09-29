@@ -16,7 +16,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -41,8 +40,6 @@ public final class HuskWorldQuarantine {
     private static final String[] CHUNK_DATA_DIRECTORIES = {
             "region", "entities", "poi", IrisEngineMantle.STORAGE_FOLDER_NAME
     };
-    private static final Set<String> OS_METADATA_FILES = Set.of(".DS_Store", "Thumbs.db", "desktop.ini");
-    private static final String APPLE_DOUBLE_PREFIX = "._";
     private static final DateTimeFormatter STAMP = DateTimeFormatter
             .ofPattern("yyyyMMdd'T'HHmmss")
             .withZone(ZoneOffset.UTC);
@@ -117,7 +114,7 @@ public final class HuskWorldQuarantine {
         if (!isReadableDirectory(dimensionRoot)) {
             return false;
         }
-        if (holdsIrisContent(dimensionRoot.resolve("iris"))) {
+        if (IrisWorldStorage.holdsIrisContent(dimensionRoot)) {
             return false;
         }
         for (String directory : CHUNK_DATA_DIRECTORIES) {
@@ -126,44 +123,6 @@ public final class HuskWorldQuarantine {
             }
         }
         return true;
-    }
-
-    /**
-     * True when the {@code iris/} entry holds anything of Iris' own.
-     * <p>
-     * The desktop file managers recreate a directory to hold their own metadata while a delete is still in
-     * flight - on macOS a world folder can come back holding nothing but {@code iris/.DS_Store} - and a folder
-     * that holds only that is exactly as worthless as one with no {@code iris/} entry at all. Only files are
-     * ever treated as metadata: a directory, a symbolic link, an unreadable entry and anything that is not on
-     * the list all count as content.
-     */
-    private static boolean holdsIrisContent(Path irisRoot) {
-        if (Files.isSymbolicLink(irisRoot)) {
-            return true;
-        }
-        if (!Files.exists(irisRoot, LinkOption.NOFOLLOW_LINKS)) {
-            return false;
-        }
-        if (!Files.isDirectory(irisRoot, LinkOption.NOFOLLOW_LINKS)) {
-            return true;
-        }
-        try (Stream<Path> entries = Files.list(irisRoot)) {
-            return entries.anyMatch(entry -> !isOperatingSystemMetadata(entry));
-        } catch (IOException unreadable) {
-            return true;
-        }
-    }
-
-    private static boolean isOperatingSystemMetadata(Path entry) {
-        if (!Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
-            return false;
-        }
-        Path name = entry.getFileName();
-        if (name == null) {
-            return false;
-        }
-        String fileName = name.toString();
-        return OS_METADATA_FILES.contains(fileName) || fileName.startsWith(APPLE_DOUBLE_PREFIX);
     }
 
     /**

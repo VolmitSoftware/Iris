@@ -183,13 +183,17 @@ public class FailedEnableLockTest {
     }
 
     @Test
-    public void irisWorldsAreManagedStorageOrAnyBukkitBinding() throws Exception {
+    public void irisWorldsAreManagedStorageOrABukkitBindingForAWorldThatLoads() throws Exception {
         File levelRoot = temporaryFolder.newFolder("level", "world");
         File bukkit = new File(temporaryFolder.getRoot(), "bukkit.yml");
 
         assertFalse(FailedEnableLock.irisWorldsPresent(levelRoot, bukkit));
 
         YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("worlds.removed_iris_world.generator", "Iris:overworld");
+        yaml.save(bukkit);
+        assertFalse("a leftover entry for a world that never loads", FailedEnableLock.irisWorldsPresent(levelRoot, bukkit));
+
         yaml.set("worlds.world.generator", "Iris:overworld");
         yaml.save(bukkit);
         assertTrue("an Iris overworld lives in a vanilla slot", FailedEnableLock.irisWorldsPresent(levelRoot, bukkit));

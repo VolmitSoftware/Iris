@@ -67,6 +67,9 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 
 public final class IrisModdedCommands {
     private static final long DOWNLOAD_SHUTDOWN_POLL_SECONDS = 15L;
+    // The first chunk of a cold dimension also loads the pack and binds the engine; the deadline only bounds a
+    // destination whose chunk never completes (a refusing generator or a removed dimension).
+    private static final long TELEPORT_DEADLINE_SECONDS = 120L;
     private static final Object DOWNLOAD_MONITOR = new Object();
 
     static final SuggestionProvider<NativeCommandSource> PACK_NAMES = ModdedCommandSuggestions.PACK_NAMES;
@@ -133,7 +136,8 @@ public final class IrisModdedCommands {
         String dimensionId = level.name();
         NativeModdedServer server = source.server();
         CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player, new NativeWorldTeleport.Destination(
-                server, ModdedDimensionManager.level(server, dimensionId), 8.5D, Double.MIN_VALUE, 8.5D, 0L));
+                server, ModdedDimensionManager.level(server, dimensionId), 8.5D, Double.MIN_VALUE, 8.5D,
+                System.nanoTime() + TimeUnit.SECONDS.toNanos(TELEPORT_DEADLINE_SECONDS)));
         teleport.whenComplete((success, failure) -> {
             if (Boolean.TRUE.equals(success) && failure == null) {
                 return;

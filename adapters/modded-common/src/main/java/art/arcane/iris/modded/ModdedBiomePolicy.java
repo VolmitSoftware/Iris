@@ -72,6 +72,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
     private volatile BiomeHolderTable<H> visibleBiomeCache = new BiomeHolderTable<>();
     private volatile BiomeHolderTable<H> structureBiomeCache = new BiomeHolderTable<>();
     private volatile BiomeHolderTable<H> surfaceStructureBiomeCache = new BiomeHolderTable<>();
+    private volatile BiomeHolderTable<H> naturalStructureBiomeCache = new BiomeHolderTable<>();
     private volatile RuntimeCallbacks runtime;
     private volatile Set<String> possibleStructureBiomeKeys;
     private volatile BiomeKeySets biomeKeySets;
@@ -94,6 +95,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         visibleBiomeCache = new BiomeHolderTable<>();
         structureBiomeCache = new BiomeHolderTable<>();
         surfaceStructureBiomeCache = new BiomeHolderTable<>();
+        naturalStructureBiomeCache = new BiomeHolderTable<>();
         warnedUnresolvedBiomeKeys.clear();
         possibleStructureBiomeKeys = null;
         biomeKeySets = null;
@@ -104,6 +106,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         visibleBiomeCache.evictRuntime(runtimeIdentity);
         structureBiomeCache.evictRuntime(runtimeIdentity);
         surfaceStructureBiomeCache.evictRuntime(runtimeIdentity);
+        naturalStructureBiomeCache.evictRuntime(runtimeIdentity);
     }
 
     /**
@@ -791,9 +794,38 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
                 if (!isReady(engine)) {
                     throw new IllegalStateException("Iris structure biome lookup has no active engine runtime");
                 }
-                return getNoiseBiome(engine, quartX, quartY, quartZ, sampler);
+                return getNaturalStructureBiome(engine, quartX, quartZ);
             }
         }
+    }
+
+    // The structure state only samples biomes for the concentric-ring search, which reaches ~24k blocks out for
+    // strongholds. The natural surface answers there without planning hydrology tiles, the same as the Bukkit ring search.
+    private H getNaturalStructureBiome(Engine engine, int quartX, int quartZ) {
+        long key = packColumnKey(quartX, quartZ);
+        int runtimeIdentity = engine.getCacheID();
+        BiomeHolderTable<H> cache = naturalStructureBiomeCache;
+        H cached = cache.get(runtimeIdentity, key);
+        if (cached != null) {
+            return cached;
+        }
+        NativeBiomeSourceAccess.RegistryView<H> registry = biomeRegistry();
+        if (registry == null) {
+            throw new IllegalStateException("Iris structure biome lookup has no biome registry");
+        }
+        int blockX = quartX << 2;
+        int blockZ = quartZ << 2;
+        IrisBiome irisBiome = engine.getComplex().getNaturalTrueBiomeStream().get(blockX, blockZ);
+        if (irisBiome == null) {
+            throw new IllegalStateException("Iris returned no natural structure biome at block " + blockX + "," + blockZ);
+        }
+        H resolved = resolveHolder(registry, irisBiome.getStructureDerivativeKey());
+        if (resolved == null) {
+            throw new IllegalStateException("Iris natural structure biome derivative '"
+                    + irisBiome.getStructureDerivativeKey() + "' is not registered at block " + blockX + "," + blockZ);
+        }
+        cache.put(runtimeIdentity, key, resolved);
+        return resolved;
     }
 
     static long biomeResolutionSeed(long worldSeed, int blockX, int blockY, int blockZ) {

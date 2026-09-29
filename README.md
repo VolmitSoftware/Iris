@@ -4,7 +4,7 @@ Iris is a world generation engine for Minecraft servers and mod loaders. It gene
 biomes, caves, structures, objects, and entities from editable JSON packs, with a full in-game
 studio authoring workflow. The same engine runs as a Bukkit-family plugin and as a Fabric, Forge,
 or NeoForge server mod. Cross-platform generation targets deterministic parity for identical
-artifacts, pack bytes, seeds, and test areas. The master branch targets Minecraft 26.2.
+artifacts, pack bytes, seeds, and test areas. The master branch targets Minecraft 26.3.
 
 # [Support](https://discord.gg/3xxPTpT) **|** [Documentation](https://github.com/VolmitSoftware/docs/blob/master/iris/00-overview.md) **|** [Git](https://github.com/IrisDimensions)
 
@@ -20,12 +20,12 @@ Canonical English is defined in the typed Java catalogs under `core/src/main/jav
 
 | Platform | Artifact | Minecraft | Notes |
 |---|---|---|---|
-| Paper / Purpur / Leaf / Canvas | plugin jar | 26.1.2 - 26.2 | Full feature set |
-| Folia | plugin jar | 26.1.2 - 26.2 | Region-safe scheduling throughout |
-| Spigot / CraftBukkit | plugin jar | 26.1.2 - 26.2 | Managed `iris:*` creation and generation; exact vanilla-slot `/iris replace` is unavailable |
-| Fabric | mod jar | 26.2 | Server worldgen + client HUD; requires Fabric Loader 0.19.3+ |
-| Forge | mod jar | 26.2 | Server worldgen + client HUD; current target is Forge 26.2-65.1.1 |
-| NeoForge | mod jar | 26.2 | Server worldgen + client HUD; current target is NeoForge 26.2.0.59 |
+| Paper / Purpur / Leaf / Canvas | plugin jar | 26.1.2 - 26.3 | Full feature set |
+| Folia | plugin jar | 26.1.2 - 26.3 | Region-safe scheduling throughout |
+| Spigot / CraftBukkit | plugin jar | 26.1.2 - 26.3 | Managed `iris:*` creation and generation; exact vanilla-slot `/iris replace` is unavailable |
+| Fabric | mod jar | 26.3 | Server worldgen + client HUD; requires Fabric Loader 0.19.5+ |
+| Forge | mod jar | 26.3 | Server worldgen + client HUD; current target is Forge 26.3-66.0.8 |
+| NeoForge | mod jar | 26.3 | Server worldgen + client HUD; current target is NeoForge 26.3.0.33-beta |
 
 Java 25 is required on every platform.
 

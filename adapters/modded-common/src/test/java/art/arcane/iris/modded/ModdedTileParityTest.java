@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.storage.TagValueInput;
 import org.junit.BeforeClass;
@@ -61,9 +62,9 @@ public class ModdedTileParityTest {
 
         sign.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, registries, tile.nativeData().payload()));
 
-        assertEquals("Iris", sign.getFrontText().getMessage(0, false).getString());
-        assertEquals("parity", sign.getBackText().getMessage(3, false).getString());
-        assertEquals(DyeColor.BLUE, sign.getFrontText().getColor());
+        assertEquals("Iris", sign.getText(SignTextSlot.FRONT).getMessages(false).get(0).getString());
+        assertEquals("parity", sign.getText(SignTextSlot.BACK).getMessages(false).get(3).getString());
+        assertEquals(DyeColor.BLUE, sign.getText(SignTextSlot.FRONT).getColor());
     }
 
     @Test

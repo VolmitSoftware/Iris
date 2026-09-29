@@ -55,7 +55,7 @@ final class WorldCheckDimensionContract {
     }
 
     static Dimension expectedDimensionContract(IrisDimension dimension) {
-        JSONObject json = new JSONObject(dimension.getDimensionType().toJson(DataVersion.V26_2.get()));
+        JSONObject json = new JSONObject(dimension.getDimensionType().toJson(DataVersion.V26_3.get()));
         return new Dimension(
                 json.getInt("min_y"),
                 json.getInt("height"),

@@ -9,6 +9,9 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerAccess;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedServerLevels;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,7 +36,7 @@ public class ModdedPlatformPathsTest {
 
             @Override
             public String minecraftVersion() {
-                return "26.2";
+                return "26.3";
             }
 
             @Override
@@ -81,6 +84,11 @@ public class ModdedPlatformPathsTest {
 
             @Override
             public boolean canBreakBlock(ServerLevel level, ServerPlayer player, BlockPos position, BlockState state) {
+                return false;
+            }
+
+            @Override
+            public boolean checkSpawnPosition(Mob mob, ServerLevelAccessor level, EntitySpawnReason reason) {
                 return false;
             }
         });

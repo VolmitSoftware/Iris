@@ -44,6 +44,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeFeatureBiomeSourc
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDimensionRuntime;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeGeneratorOwner;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeGeneratorHandle;
@@ -1009,6 +1010,11 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
     @Override
     public NativeModdedServer server() {
         return ModdedEngineBootstrap.currentServer();
+    }
+
+    @Override
+    public NativeModdedLoader loader() {
+        return ModdedEngineBootstrap.loader();
     }
 
     @Override

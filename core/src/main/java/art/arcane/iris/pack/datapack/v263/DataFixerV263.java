@@ -34,9 +34,12 @@ public final class DataFixerV263 extends DataFixerV1217 {
                         .put("max_inclusive", maximum));
             }
         }
+        // Vanilla writes spawns as an overlay. A bare value decodes as an override, which NeoForge biome modifiers refuse to edit.
         attributes.put("minecraft:gameplay/natural_mob_spawns", new JSONObject()
-                .put("spawns_by_category", spawners)
-                .put("spawn_costs", fixed.getJSONObject("spawn_costs")));
+                .put("argument", new JSONObject()
+                        .put("spawns_by_category", spawners)
+                        .put("spawn_costs", fixed.getJSONObject("spawn_costs")))
+                .put("modifier", "overlay"));
         Object probability = fixed.remove("creature_spawn_probability");
         if (probability != null) {
             attributes.put("minecraft:gameplay/creature_world_gen_spawn_probability", probability);

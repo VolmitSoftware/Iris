@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[65,66)"
+loaderVersion = "[66,67)"
 license = "GPL-3.0"
 issueTrackerURL = "https://github.com/VolmitSoftware/Iris/issues"
 
@@ -16,7 +16,7 @@ logoFile = "assets/irisworldgen/icon.png"
 [[dependencies.irisworldgen]]
 modId = "forge"
 mandatory = true
-versionRange = "[65,66)"
+versionRange = "[66,67)"
 ordering = "NONE"
 side = "BOTH"
 

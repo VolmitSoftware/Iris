@@ -51,15 +51,15 @@ import static org.junit.Assert.assertTrue;
 
 public class ModdedForcedDatapackTest {
     @Test
-    public void metadataRetains262FormatWhenBukkitAlsoSupports263() throws IOException {
+    public void metadataUses263DataFormat() throws IOException {
         Path packDirectory = Files.createTempDirectory("iris-modded-pack-format");
         try {
             ModdedForcedDatapack.writePackMeta(packDirectory);
             JSONObject pack = new JSONObject(Files.readString(packDirectory.resolve("pack.mcmeta")))
                     .getJSONObject("pack");
-            assertEquals(107, pack.getInt("pack_format"));
-            assertEquals(107, pack.getInt("min_format"));
-            assertEquals(107, pack.getInt("max_format"));
+            assertEquals(121, pack.getInt("pack_format"));
+            assertEquals(121, pack.getInt("min_format"));
+            assertEquals(121, pack.getInt("max_format"));
         } finally {
             deleteTree(packDirectory);
         }

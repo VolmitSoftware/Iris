@@ -152,7 +152,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             int centerZ = player.z() >> 4;
             for (int dx = -PLAYER_CHUNK_RADIUS; dx <= PLAYER_CHUNK_RADIUS; dx++) {
                 for (int dz = -PLAYER_CHUNK_RADIUS; dz <= PLAYER_CHUNK_RADIUS; dz++) {
-                    updateChunk(engine, level, centerX + dx, centerZ + dz);
+                    updatePassChunk(engine, level, centerX + dx, centerZ + dz);
                 }
             }
         });
@@ -160,15 +160,29 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
 
     private void updateForcedChunks(Engine engine, NativeWorld level) {
         new NativeWorldMaintenance(level).forEachForcedChunk(chunkKey ->
-                updateChunk(engine, level, (int) chunkKey, (int) (chunkKey >> 32)));
+                updatePassChunk(engine, level, (int) chunkKey, (int) (chunkKey >> 32)));
     }
 
     public void updateRegeneratedChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
         updateChunk(engine, level, chunkX, chunkZ, false);
     }
 
-    private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
-        updateChunk(engine, level, chunkX, chunkZ, true);
+    /**
+     * One chunk of a level pass. A failed chunk keeps its flags and retries on a later pass without stopping the
+     * chunks after it; only a closed engine ends the level's pass.
+     */
+    private void updatePassChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
+        try {
+            updateChunk(engine, level, chunkX, chunkZ, true);
+        } catch (Throwable failure) {
+            if (engine.isClosed() || engine.getMantle().getMantle().isClosed()) {
+                throw failure;
+            }
+            if (IrisLogging.errorOnce("chunk-update:" + level.name() + ":" + chunkX + "," + chunkZ + ":" + failure,
+                    "Iris chunk update failed at " + chunkX + "," + chunkZ + " in " + level.name() + ", retrying each pass: " + failure)) {
+                IrisLogging.reportError(failure);
+            }
+        }
     }
 
     private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ, boolean requireNeighbors) {
@@ -370,6 +384,10 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             }
             try {
                 ModdedLootApplier.apply(engine, level, pos, state, chunk);
+            } catch (SavedBiomeUnavailableException unavailable) {
+                GenerationFailures.rethrowEngineFailure(unavailable);
+                IrisLogging.warnOnce("chunk-update-loot:" + level.name() + ":" + unavailable.getMessage(),
+                        "Iris left the container at " + pos + " in " + level.name() + " without loot: " + unavailable.getMessage());
             } catch (Throwable e) {
                 GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);

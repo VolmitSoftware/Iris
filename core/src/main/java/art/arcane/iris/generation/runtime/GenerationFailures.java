@@ -31,7 +31,7 @@ public final class GenerationFailures {
                     || current instanceof GenerationClosedException
                     || current instanceof MantleClosedException
                     || current instanceof WrongEngineBroException
-                    || current instanceof SavedBiomeUnavailableException
+                    || current instanceof SavedBiomeUnavailableException unavailable && unavailable.isLoading()
                     || current instanceof InterruptedException
                     || current instanceof InterruptedIOException
                     || current instanceof ClosedChannelException

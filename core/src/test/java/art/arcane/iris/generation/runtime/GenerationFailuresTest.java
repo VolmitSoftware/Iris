@@ -35,6 +35,14 @@ public class GenerationFailuresTest {
     }
 
     @Test
+    public void permanentSavedBiomeUnavailabilityIsAContentFailure() {
+        assertFalse(GenerationFailures.isEngineFailure(new SavedBiomeUnavailableException(
+                "This chunk has no exact saved Iris biome assignment for generation 3.", false)));
+        assertFalse(GenerationFailures.isEngineFailure(new SavedBiomeUnavailableException(
+                "Unable to read the saved biome at chunk 0,0.", new IllegalArgumentException("bad header"))));
+    }
+
+    @Test
     public void anyFailureOnAnInterruptedThreadIsAnEngineFailure() {
         Thread.currentThread().interrupt();
         try {

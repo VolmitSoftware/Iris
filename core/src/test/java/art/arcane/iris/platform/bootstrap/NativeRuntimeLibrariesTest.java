@@ -1,8 +1,5 @@
 package art.arcane.iris.platform.bootstrap;
 
-import io.github.slimjar.exceptions.DownloaderException;
-import io.github.slimjar.resolver.data.Dependency;
-import io.github.slimjar.resolver.data.DependencyData;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -28,7 +25,6 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -37,37 +33,36 @@ public class NativeRuntimeLibrariesTest {
     public TemporaryFolder temporary = new TemporaryFolder();
 
     @Test
-    public void selectsOnlyCommonAndMatchingProvider() throws Exception {
-        Properties manifest = manifest();
-        Dependency original = new Dependency("example", "library", "1", null, List.of());
-        DependencyData data = new DependencyData(List.of(), List.of(), List.of(original), List.of());
-        List<String> selected = NativeRuntimeLibraries.from(manifest, "26.3.0").merge(data).dependencies()
-                .stream().map(Dependency::artifactId).sorted().toList();
-        assertEquals(List.of("library", "native-common", "native-v26_3_R1"), selected);
-        assertThrows(UnsupportedOperationException.class, () -> NativeRuntimeLibraries.from(manifest, "1.21.11"));
+    public void providersMustBeEmbedded() throws Exception {
+        EmbeddedFixture fixture = embeddedFixture();
+        fixture.manifest().setProperty("storage", "repository");
+        assertThrows(IllegalStateException.class, () -> NativeRuntimeLibraries.from(fixture.manifest(), "26.2.0"));
+        fixture.manifest().remove("storage");
+        assertThrows(IllegalStateException.class, () -> NativeRuntimeLibraries.from(fixture.manifest(), "26.2.0"));
+    }
+
+    @Test
+    public void rejectsMinecraftVersionsWithoutProvider() throws Exception {
+        EmbeddedFixture fixture = embeddedFixture();
+        assertThrows(UnsupportedOperationException.class, () -> NativeRuntimeLibraries.from(fixture.manifest(), "1.21.11"));
+        fixture.manifest().setProperty("modules", "native-common,native-v26_2_R1");
+        assertThrows(UnsupportedOperationException.class, () -> NativeRuntimeLibraries.from(fixture.manifest(), "26.3.0"));
     }
 
     @Test
     public void rejectsProviderBytesFromDifferentBuild() throws Exception {
-        Path jar = Files.createTempFile("native-runtime", ".jar");
-        try {
-            Files.write(jar, new byte[0]);
-            NativeRuntimeLibraries.verify(jar.toFile(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-            Files.writeString(jar, "different build");
-            assertThrows(DownloaderException.class, () -> NativeRuntimeLibraries.verify(jar.toFile(),
-                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
-        } finally {
-            Files.deleteIfExists(jar);
-        }
+        Path jar = temporary.newFile("native-runtime.jar").toPath();
+        Files.write(jar, new byte[0]);
+        NativeRuntimeLibraries.verify(jar, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        Files.writeString(jar, "different build");
+        assertThrows(IOException.class, () -> NativeRuntimeLibraries.verify(jar,
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
     }
 
     @Test
-    public void embeddedProvidersLoadWithoutRepositoryAndSelectOnlyCurrentVersion() throws Exception {
+    public void embeddedProvidersSelectOnlyCommonAndCurrentVersion() throws Exception {
         EmbeddedFixture fixture = embeddedFixture();
         NativeRuntimeLibraries libraries = NativeRuntimeLibraries.from(fixture.manifest(), "26.2.0");
-        Dependency original = new Dependency("example", "library", "1", null, List.of());
-        DependencyData data = new DependencyData(List.of(), List.of(), List.of(original), List.of());
-        assertSame(data, libraries.merge(data));
         Path downloads = temporary.newFolder("downloads").toPath();
         try (URLClassLoader resources = new URLClassLoader(new URL[]{fixture.resources().toUri().toURL()}, null)) {
             List<URL> providers = libraries.providerUrls(downloads, resources);
@@ -125,7 +120,7 @@ public class NativeRuntimeLibrariesTest {
         NativeRuntimeLibraries libraries = NativeRuntimeLibraries.from(fixture.manifest(), "26.2.0");
         Path downloads = temporary.newFolder("downloads").toPath();
         try (URLClassLoader resources = new URLClassLoader(new URL[]{fixture.resources().toUri().toURL()}, null)) {
-            DownloaderException failure = assertThrows(DownloaderException.class, () -> libraries.providerUrls(downloads, resources));
+            IOException failure = assertThrows(IOException.class, () -> libraries.providerUrls(downloads, resources));
             assertTrue(failure.getMessage().contains("native-v26_2_R1"));
             assertNoFailedExtract(downloads);
         }
@@ -139,12 +134,13 @@ public class NativeRuntimeLibrariesTest {
     }
 
     private EmbeddedFixture embeddedFixture() throws Exception {
-        Properties properties = manifest();
+        Properties properties = new Properties();
+        List<String> modules = List.of("native-common", "native-v26_2_R1", "native-v26_3_R1");
+        properties.setProperty("modules", String.join(",", modules));
         properties.setProperty("storage", "embedded");
-        properties.remove("repository");
         Path resources = temporary.newFolder("resources").toPath();
         Path providers = Files.createDirectories(resources.resolve("META-INF/iris/native"));
-        for (String module : properties.getProperty("modules").split(",")) {
+        for (String module : modules) {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             try (JarOutputStream jar = new JarOutputStream(output)) {
                 jar.putNextEntry(new JarEntry("provider.txt"));
@@ -168,17 +164,5 @@ public class NativeRuntimeLibrariesTest {
     }
 
     private record EmbeddedFixture(Properties manifest, Path resources) {
-    }
-
-    private static Properties manifest() {
-        Properties properties = new Properties();
-        List<String> modules = List.of("native-common", "native-v26_2_R1", "native-v26_3_R1");
-        properties.setProperty("modules", String.join(",", modules));
-        properties.setProperty("repository", "https://jitpack.io/");
-        for (String module : modules) {
-            properties.setProperty(module + ".coordinate", "com.github.VolmitSoftware.VolmLib:" + module + ":revision");
-            properties.setProperty(module + ".sha256", "0".repeat(64));
-        }
-        return properties;
     }
 }

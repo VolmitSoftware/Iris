@@ -323,6 +323,16 @@ if (localVolmLibCheckout != null) {
     })
 }
 
+// The published master-SNAPSHOT is resolved inside the nested build, so no outer input changes when it
+// moves. Without a local checkout the Exec tasks always run and the nested build decides what is stale.
+Closure<Void> declareVolmLibInputs = { Exec task ->
+    task.inputs.property('volmLibStamp', volmLibStamp)
+    if (localVolmLibCheckout == null) {
+        task.outputs.upToDateWhen { false }
+    }
+    return null
+}
+
 Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactName, Map<String, String> versions ->
     task.inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
         .withPathSensitivity(PathSensitivity.RELATIVE)
@@ -332,7 +342,7 @@ Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactN
         layout.projectDirectory.file("adapters/${adapter}/settings.gradle").asFile
     ).withPropertyName('adapterSources')
     versions.each { String key, String value -> task.inputs.property(key, value) }
-    task.inputs.property('volmLibStamp', volmLibStamp)
+    declareVolmLibInputs(task)
     task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/libs/${artifactName}"))
     return null
 }
@@ -495,7 +505,7 @@ tasks.register('moddedTest', Exec) {
     inputs.property('irisVersion', project.version.toString())
     inputs.property('minecraftVersion', minecraftVersion)
     inputs.property('fabricLoaderVersion', fabricLoaderVersion)
-    inputs.property('volmLibStamp', volmLibStamp)
+    declareVolmLibInputs(it)
     outputs.dir(layout.projectDirectory.dir('adapters/fabric/build/test-results/test'))
     mustRunAfter(tasks.named('jar'))
     mustRunAfter(project(':core').tasks.named('check'))

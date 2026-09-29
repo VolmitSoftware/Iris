@@ -121,7 +121,7 @@ if (irisLocalVolmLibDirectory == null) {
     }
 } else {
     String commit = irisGit(irisLocalVolmLibDirectory, 'rev-parse', 'HEAD')
-    String status = commit == null ? null : irisGit(irisLocalVolmLibDirectory, 'status', '--porcelain')
+    String status = commit == null ? null : irisGit(irisLocalVolmLibDirectory, '--no-optional-locks', 'status', '--porcelain')
     String dirty = status == null ? 'unknown' : String.valueOf(!status.isEmpty())
     irisVolmLibStamp = [source: 'local', commit: commit ?: 'unknown', dirty: dirty]
     irisVolmLibDescription = "${irisLocalVolmLibDirectory.canonicalPath} @ ${commit == null ? 'unknown' : commit.take(7)}${dirty == 'true' ? '+dirty' : ''}"

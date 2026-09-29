@@ -1,7 +1,7 @@
 import org.gradle.api.GradleException;
-import org.gradle.api.artifacts.component.ComponentIdentifier;
-import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
+import org.tukaani.xz.XZInputStream;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HexFormat;
 import java.util.List;
@@ -21,46 +22,32 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public final class NativeRuntimeArtifacts {
     public static final String MANIFEST = "META-INF/iris/native-runtime.properties";
+    public static final String RESOURCES = "META-INF/iris/native/";
+    private static final String PAYLOAD = "META-INF/volmit/runtime.jar.xz";
     private static final String GROUP = "com.github.VolmitSoftware.VolmLib";
     private static final String NATIVE = "art/arcane/volmlib/nativelib/";
 
     private NativeRuntimeArtifacts() {
     }
 
-    public static Map<String, File> publishedArtifacts(Map<ComponentIdentifier, File> resolved,
-                                                       List<String> modules, String version) {
-        Map<String, File> artifacts = new TreeMap<>();
-        for (Map.Entry<ComponentIdentifier, File> entry : resolved.entrySet()) {
-            if (!(entry.getKey() instanceof ModuleComponentIdentifier component)
-                    || !GROUP.equals(component.getGroup()) || !version.equals(component.getVersion())
-                    || !modules.contains(component.getModule())) {
-                throw new GradleException("Native runtime providers must resolve to published coordinates at "
-                        + version + ": " + entry.getKey().getDisplayName());
-            }
-            if (artifacts.put(component.getModule(), entry.getValue()) != null) {
-                throw new GradleException("Duplicate native runtime provider: " + component.getModule());
-            }
-        }
-        if (!artifacts.keySet().equals(new TreeSet<>(modules))) {
-            throw new GradleException("Published native runtime providers differ: " + artifacts.keySet()
-                    + "; expected " + modules);
-        }
-        return artifacts;
-    }
-
-    public static void generate(Map<String, File> artifacts, String version, File output, File rules) throws IOException {
+    public static void generate(Map<String, File> natives, List<String> modules, File output, File rules) throws IOException {
+        requireModules(natives, modules);
+        Map<String, File> providers = new TreeMap<>(natives);
         List<String> manifest = new ArrayList<>();
-        manifest.add("modules=" + String.join(",", artifacts.keySet()));
-        manifest.add("repository=https://jitpack.io/");
+        manifest.add("modules=" + String.join(",", providers.keySet()));
+        manifest.add("storage=embedded");
         Set<String> retained = new TreeSet<>();
-        for (Map.Entry<String, File> artifact : artifacts.entrySet()) {
-            String module = artifact.getKey();
-            manifest.add(module + ".coordinate=" + GROUP + ":" + module + ":" + version);
-            manifest.add(module + ".sha256=" + digest(artifact.getValue()));
-            try (JarFile jar = new JarFile(artifact.getValue())) {
+        for (Map.Entry<String, File> provider : providers.entrySet()) {
+            String module = provider.getKey();
+            String digest = digest(Files.readAllBytes(provider.getValue().toPath()));
+            manifest.add(module + ".coordinate=" + GROUP + ":" + module + ":embedded-" + digest);
+            manifest.add(module + ".sha256=" + digest);
+            try (JarFile jar = new JarFile(provider.getValue())) {
                 Enumeration<JarEntry> entries = jar.entries();
                 while (entries.hasMoreElements()) {
                     JarEntry entry = entries.nextElement();
@@ -92,31 +79,15 @@ public final class NativeRuntimeArtifacts {
         Files.write(rules.toPath(), keep, StandardCharsets.UTF_8);
     }
 
-    public static void verify(File artifact, List<String> adapters, String version) throws IOException {
+    public static void verify(File artifact, List<String> modules, Map<String, File> natives) throws IOException {
+        requireModules(natives, modules);
         try (JarFile jar = new JarFile(artifact)) {
             JarEntry entry = jar.getJarEntry(MANIFEST);
             if (entry == null) {
                 throw new GradleException("Missing native runtime dependency manifest");
             }
-            Properties manifest = new Properties();
             try (InputStream input = jar.getInputStream(entry)) {
-                manifest.load(input);
-            }
-            Set<String> expected = new TreeSet<>();
-            expected.add("native-common");
-            for (String adapter : adapters) {
-                expected.add("native-" + adapter);
-            }
-            Set<String> actual = new TreeSet<>(List.of(manifest.getProperty("modules", "").split(",")));
-            if (!expected.equals(actual)) {
-                throw new GradleException("Native dependency modules differ: " + actual + "; expected " + expected);
-            }
-            for (String module : expected) {
-                String coordinate = GROUP + ":" + module + ":" + version;
-                if (!coordinate.equals(manifest.getProperty(module + ".coordinate"))
-                        || !manifest.getProperty(module + ".sha256", "").matches("[0-9a-f]{64}")) {
-                    throw new GradleException("Invalid native runtime dependency: " + module);
-                }
+                verifyManifest(input.readAllBytes(), natives);
             }
             Enumeration<JarEntry> entries = jar.entries();
             while (entries.hasMoreElements()) {
@@ -128,6 +99,82 @@ public final class NativeRuntimeArtifacts {
         }
     }
 
+    public static void verifyPacked(File artifact, List<String> modules, Map<String, File> natives) throws IOException {
+        requireModules(natives, modules);
+        Map<String, byte[]> contents;
+        try (JarFile jar = new JarFile(artifact)) {
+            JarEntry payload = jar.getJarEntry(PAYLOAD);
+            if (payload == null) {
+                contents = read(Files.newInputStream(artifact.toPath()));
+            } else {
+                try (InputStream input = new XZInputStream(jar.getInputStream(payload))) {
+                    contents = read(new ByteArrayInputStream(input.readAllBytes()));
+                }
+                JarEntry outer = jar.getJarEntry(MANIFEST);
+                byte[] embedded = contents.get(MANIFEST);
+                if (outer != null && embedded != null) {
+                    try (InputStream input = jar.getInputStream(outer)) {
+                        if (!Arrays.equals(input.readAllBytes(), embedded)) {
+                            throw new GradleException("Packed native runtime manifests differ");
+                        }
+                    }
+                }
+            }
+        }
+        byte[] manifest = contents.get(MANIFEST);
+        if (manifest == null) {
+            throw new GradleException("Missing native runtime dependency manifest");
+        }
+        verifyManifest(manifest, natives);
+        for (String module : natives.keySet()) {
+            byte[] provider = contents.get(RESOURCES + module + ".jar");
+            if (provider == null) {
+                throw new GradleException("Missing embedded native provider: " + module);
+            }
+            if (!digest(provider).equals(digest(Files.readAllBytes(natives.get(module).toPath())))) {
+                throw new GradleException("Embedded native provider differs from the resolved build: " + module);
+            }
+        }
+    }
+
+    private static void verifyManifest(byte[] bytes, Map<String, File> natives) throws IOException {
+        Properties manifest = new Properties();
+        manifest.load(new ByteArrayInputStream(bytes));
+        Set<String> actual = new TreeSet<>(List.of(manifest.getProperty("modules", "").split(",")));
+        if (!natives.keySet().equals(actual)) {
+            throw new GradleException("Native dependency modules differ: " + actual + "; expected " + natives.keySet());
+        }
+        if (!"embedded".equals(manifest.getProperty("storage"))) {
+            throw new GradleException("Native runtime providers must be embedded: " + manifest.getProperty("storage"));
+        }
+        for (Map.Entry<String, File> provider : natives.entrySet()) {
+            String module = provider.getKey();
+            String digest = digest(Files.readAllBytes(provider.getValue().toPath()));
+            if (!digest.equals(manifest.getProperty(module + ".sha256"))
+                    || !(GROUP + ":" + module + ":embedded-" + digest).equals(manifest.getProperty(module + ".coordinate"))) {
+                throw new GradleException("Native runtime manifest does not describe the embedded provider: " + module);
+            }
+        }
+    }
+
+    private static void requireModules(Map<String, File> natives, List<String> modules) {
+        if (!natives.keySet().equals(new TreeSet<>(modules))) {
+            throw new GradleException("Embedded native providers differ: " + natives.keySet() + "; expected " + modules);
+        }
+    }
+
+    private static Map<String, byte[]> read(InputStream source) throws IOException {
+        Map<String, byte[]> contents = new TreeMap<>();
+        try (ZipInputStream archive = new ZipInputStream(source)) {
+            for (ZipEntry entry = archive.getNextEntry(); entry != null; entry = archive.getNextEntry()) {
+                if (!entry.isDirectory()) {
+                    contents.put(entry.getName(), archive.readAllBytes());
+                }
+            }
+        }
+        return contents;
+    }
+
     private static boolean implementation(String name) {
         if (!name.startsWith(NATIVE)) {
             return false;
@@ -137,9 +184,9 @@ public final class NativeRuntimeArtifacts {
                 || relative.matches("v[0-9_]+R[0-9]+/.*");
     }
 
-    private static String digest(File file) throws IOException {
+    private static String digest(byte[] bytes) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file.toPath())));
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
         }

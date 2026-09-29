@@ -32,11 +32,7 @@ buildscript {
         maven { url = uri('https://jitpack.io') }
     }
     dependencies {
-        Properties libraryProperties = new Properties()
-        file('../../gradle.properties').withInputStream { InputStream stream -> libraryProperties.load(stream) }
-        String libraryCoordinate = providers.gradleProperty('volmLibCoordinate')
-            .getOrElse(libraryProperties.getProperty('volmLibCoordinate'))
-        classpath("com.github.VolmitSoftware.VolmLib:packaging:${libraryCoordinate.tokenize(':').last()}")
+        classpath('com.github.VolmitSoftware.VolmLib:packaging:master-SNAPSHOT')
     }
 }
 
@@ -56,13 +52,13 @@ interface IrisFileOperations {
 IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
 
 apply from: file('../../gradle/modded-generation-build-revision.gradle')
+apply from: file('../../gradle/volmlib-stamp.gradle')
 
 Properties rootProperties = new Properties()
 file('../../gradle.properties').withInputStream { InputStream stream -> rootProperties.load(stream) }
 String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.1.2-26.2'))
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse(rootProperties.getProperty('minecraftVersion', '26.3'))
 String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse(rootProperties.getProperty('neoForgeVersion', '26.3.0.33-beta'))
-String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate').getOrElse(rootProperties.getProperty('volmLibCoordinate', 'com.github.VolmitSoftware:VolmLib:master-SNAPSHOT'))
 Closure<String> irisArtifactName = { String platform, String targetVersion ->
     return "Iris v${project.version} [${platform}] ${targetVersion}.jar"
 }
@@ -152,10 +148,10 @@ dependencies {
     compileOnly(libs.spigot) {
         transitive = false
     }
-    add('bundle', volmLibCoordinate) {
+    add('bundle', 'com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
-    add('devBundle', volmLibCoordinate) {
+    add('devBundle', 'com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
     add('bundle', libs.zip) {
@@ -273,6 +269,9 @@ tasks.named('shadowJar', ShadowJar).configure {
         irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
             spec.delete(staleLoaderJars, legacyLoaderJar)
         }
+    }
+    from(tasks.named('generateVolmLibStamp')) {
+        into('META-INF/volmit')
     }
     archiveFileName.set(irisArtifactName('NeoForge', "${minecraftVersion}+${neoForgeVersion}"))
     configurations = [project.configurations.named('bundle').get()]

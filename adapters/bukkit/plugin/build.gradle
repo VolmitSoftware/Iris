@@ -2,15 +2,11 @@ String apiVersion = providers.gradleProperty('apiVersion').get()
 def mainClass = 'art.arcane.iris.Iris'
 def bootstrapperClass = 'art.arcane.iris.IrisBootstrap'
 
-String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
-    .orElse('com.github.VolmitSoftware:VolmLib:master-SNAPSHOT')
-    .get()
-
 dependencies {
     compileOnly(project(':core'))
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
-    compileOnly(volmLibCoordinate) {
+    compileOnly('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
     compileOnly(libs.paper.api)
@@ -23,7 +19,7 @@ dependencies {
     testImplementation(libs.bstats)
     testImplementation(project(':core'))
     testImplementation(testFixtures(project(':core')))
-    testImplementation(volmLibCoordinate) {
+    testImplementation('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
     compileOnly(libs.placeholderApi)

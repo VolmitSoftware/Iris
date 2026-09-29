@@ -38,9 +38,6 @@ plugins {
 apply from: rootProject.file('gradle/runtime-relocations.gradle')
 
 def lib = 'art.arcane.iris.util'
-String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
-    .orElse('com.github.VolmitSoftware:VolmLib:master-SNAPSHOT')
-    .get()
 
 String languageSourceReference = providers.gradleProperty('languageRevision').orElse('master').get()
 List<File> languageSourceFiles = fileTree('src/main/resources/languages') {
@@ -93,10 +90,10 @@ tasks.named('processResources').configure {
  */
 dependencies {
     api(project(':spi'))
-    api("com.github.VolmitSoftware.VolmLib:native-api:${volmLibCoordinate.tokenize(':').last()}") {
+    api('com.github.VolmitSoftware.VolmLib:native-api:master-SNAPSHOT') {
         transitive = false
     }
-    api("com.github.VolmitSoftware.VolmLib:native-terrain-api:${volmLibCoordinate.tokenize(':').last()}") {
+    api('com.github.VolmitSoftware.VolmLib:native-terrain-api:master-SNAPSHOT') {
         transitive = false
     }
 
@@ -129,7 +126,7 @@ dependencies {
 
     // Shaded
     implementation('de.crazydev22.slimjar.helper:spigot:2.1.9')
-    implementation(volmLibCoordinate) {
+    implementation('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
         transitive = false
     }
     implementation('com.moandjiezana.toml:toml4j:0.7.2') {

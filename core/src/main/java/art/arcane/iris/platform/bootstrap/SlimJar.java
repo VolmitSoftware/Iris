@@ -33,7 +33,7 @@ public class SlimJar {
                 return;
             }
             NativeRuntimeLibraries libraries = NativeRuntimeLibraries.load(minecraftVersion);
-            libraries.configure(ApplicationBuilder.appending("Iris"), downloadPath)
+            ApplicationBuilder.appending("Iris")
                     .injectableFactory(InjectableFactory.selecting(
                             InjectableFactory.ERROR,
                             InjectableFactory.INJECTABLE,
@@ -78,7 +78,7 @@ public class SlimJar {
             Path downloadPath = plugin.getDataFolder("cache", "libraries").toPath();
             debug(plugin, "Loading libraries...");
             NativeRuntimeLibraries libraries = NativeRuntimeLibraries.load(Bukkit.getBukkitVersion());
-            libraries.configure(ApplicationBuilder.appending(plugin.getName()), downloadPath)
+            ApplicationBuilder.appending(plugin.getName())
                     .injectableFactory(InjectableFactory.selecting(InjectableFactory.ERROR, InjectableFactory.INJECTABLE,
                             InjectableFactory.WRAPPED, InjectableFactory.UNSAFE))
                     .downloadDirectoryPath(downloadPath)

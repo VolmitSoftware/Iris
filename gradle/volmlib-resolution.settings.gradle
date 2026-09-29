@@ -40,9 +40,16 @@
  *   otherwise                         walk up from settingsDir looking for a `VolmLib` directory
  *                                     that contains a settings script.
  *
- * When nothing is found the build falls back to the published `volmLibCoordinate` from
- * gradle.properties.
+ * When nothing is found, or substitution is disabled, every VolmLib coordinate resolves the published
+ * master-SNAPSHOT from JitPack instead, re-checked on every build like the rest of the plugin fleet.
+ *
+ * The outcome is logged once per top-level build and handed to the build scripts through `gradle`
+ * extra properties: `volmLibDirectory` (the substituted checkout, or null) and `volmLibStamp` (the
+ * content of META-INF/volmit/volmlib.properties in every shipped jar).
  */
+
+import org.gradle.api.artifacts.Configuration
+import org.gradle.process.ExecOutput
 
 import java.io.File
 
@@ -85,9 +92,47 @@ boolean irisUseLocalVolmLib = providers.gradleProperty('useLocalVolmLib')
     .orElse('true')
     .map { String value -> value.equalsIgnoreCase('true') }
     .get()
-File irisLocalVolmLibDirectory = irisResolveLocalVolmLibDirectory()
+File irisLocalVolmLibDirectory = irisUseLocalVolmLib ? irisResolveLocalVolmLibDirectory() : null
 
-if (irisUseLocalVolmLib && irisLocalVolmLibDirectory != null) {
+String irisGit(File directory, String... arguments) {
+    try {
+        ExecOutput result = providers.exec {
+            commandLine(['git', '-C', directory.absolutePath] + arguments.toList())
+            ignoreExitValue = true
+        }
+        return result.result.get().exitValue == 0 ? result.standardOutput.asText.get().trim() : null
+    } catch (Exception ignored) {
+        return null
+    }
+}
+
+Map<String, String> irisVolmLibStamp
+String irisVolmLibDescription
+if (irisLocalVolmLibDirectory == null) {
+    irisVolmLibStamp = [source: 'published master-SNAPSHOT']
+    irisVolmLibDescription = 'published master-SNAPSHOT'
+    gradle.allprojects { Project project ->
+        project.buildscript.configurations.configureEach { Configuration configuration ->
+            configuration.resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
+        }
+        project.configurations.configureEach { Configuration configuration ->
+            configuration.resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
+        }
+    }
+} else {
+    String commit = irisGit(irisLocalVolmLibDirectory, 'rev-parse', 'HEAD')
+    String status = commit == null ? null : irisGit(irisLocalVolmLibDirectory, '--no-optional-locks', 'status', '--porcelain')
+    String dirty = status == null ? 'unknown' : String.valueOf(!status.isEmpty())
+    irisVolmLibStamp = [source: 'local', commit: commit ?: 'unknown', dirty: dirty]
+    irisVolmLibDescription = "${irisLocalVolmLibDirectory.canonicalPath} @ ${commit == null ? 'unknown' : commit.take(7)}${dirty == 'true' ? '+dirty' : ''}"
+}
+gradle.extensions.extraProperties.set('volmLibDirectory', irisLocalVolmLibDirectory)
+gradle.extensions.extraProperties.set('volmLibStamp', irisVolmLibStamp)
+if (gradle.parent == null) {
+    logger.lifecycle("VolmLib: ${irisVolmLibDescription}")
+}
+
+if (irisLocalVolmLibDirectory != null) {
     includeBuild(irisLocalVolmLibDirectory) {
         dependencySubstitution {
             substitute(module('com.github.VolmitSoftware:VolmLib')).using(project(':shared'))

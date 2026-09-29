@@ -4,6 +4,7 @@ import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.util.mantle.MantleClosedException;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
@@ -47,6 +48,33 @@ public class GenerationFailuresTest {
         Thread.currentThread().interrupt();
         try {
             assertTrue(GenerationFailures.isEngineFailure(new IllegalArgumentException("malformed object")));
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void shutdownFailuresAreTheLifecycleSubsetOfEngineFailures() {
+        assertTrue(GenerationFailures.isShutdownFailure(new GenerationClosedException("router closed")));
+        assertTrue(GenerationFailures.isShutdownFailure(new MantleClosedException("Tectonic Plate is closed!")));
+        assertTrue(GenerationFailures.isShutdownFailure(new RejectedExecutionException("pool shut down")));
+        assertTrue(GenerationFailures.isShutdownFailure(new ClosedByInterruptException()));
+        assertTrue(GenerationFailures.isShutdownFailure(new GenerationSessionException("sealed", true)));
+        assertTrue(GenerationFailures.isShutdownFailure(new IllegalStateException("bind failed",
+                new CompletionException(new InterruptedException()))));
+
+        assertFalse(GenerationFailures.isShutdownFailure(new OutOfMemoryError()));
+        assertFalse(GenerationFailures.isShutdownFailure(new NoClassDefFoundError("art/arcane/Missing")));
+        assertFalse(GenerationFailures.isShutdownFailure(new GenerationSessionException("wrong engine")));
+        assertFalse(GenerationFailures.isShutdownFailure(new IllegalStateException(
+                "Iris generation history is unusable", new IOException("registry definition changed"))));
+    }
+
+    @Test
+    public void anyFailureOnAnInterruptedThreadIsAShutdownFailure() {
+        Thread.currentThread().interrupt();
+        try {
+            assertTrue(GenerationFailures.isShutdownFailure(new IllegalStateException("history unusable")));
         } finally {
             Thread.interrupted();
         }

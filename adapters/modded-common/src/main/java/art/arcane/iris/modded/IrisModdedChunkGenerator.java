@@ -73,6 +73,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.structure.nativegen.NativeFeatureGenerationPolicy;
@@ -517,6 +518,12 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
     }
 
     private void recordBindFailure(NativeWorld level, Throwable error) {
+        // A runtime that is stopping says nothing about the world: fail this call, let the next bind try again.
+        if (GenerationFailures.isShutdownFailure(error)) {
+            ModdedIrisLog.warn("Iris bind of {} ({}) stopped with its runtime: {}", level.name(), dimensionKey,
+                    error.toString());
+            return;
+        }
         engineBinding.fail(error);
         for (String line : bindFailureNotice(level.name(), dimensionKey, error)) {
             ModdedIrisLog.error(line);
@@ -588,21 +595,11 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         }
     }
 
-    Engine engineOrNull() {
-        requireBindingAllowed();
-        Engine cached = engine;
-        requireCompletedShutdown(cached);
-        if (cached != null && !cached.isClosed()) {
-            return cached;
-        }
-        try {
-            return engine();
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    Engine structureEngineOrNull() {
+    /**
+     * Null only while no level uses this generator (world creation screens, codec validation). A bound level whose
+     * engine is refused, unloading or stopping throws, so no stage can mistake it for an unbound generator.
+     */
+    Engine boundEngineOrNull() {
         requireBindingAllowed();
         engineBinding.throwIfFailed(dimensionKey);
         Engine cached = engine;
@@ -1007,7 +1004,7 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
     @Override
     public <H, S> NativeModdedBiomePolicy<H, S> biomePolicy(NativeBiomeSourceAccess<H, S> source) {
         ModdedBiomePolicy<H, S> policy = new ModdedBiomePolicy<>(source);
-        policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(this::structureEngineOrNull, this::awaitStructureEngine,
+        policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(this::boundEngineOrNull, this::awaitStructureEngine,
                 this::allowsGenerationHistoryBypass, this::configuredStructureBiomeKeys,
                 IrisModdedChunkGenerator::retainedBiomeKeys, this::visibleBiomeSeed));
         return policy;

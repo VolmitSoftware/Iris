@@ -4,6 +4,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedChunkGenerator;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.util.mantle.MantleClosedException;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.server.level.ServerChunkCache;
@@ -16,14 +17,22 @@ import org.mockito.MockedStatic;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +69,62 @@ public class ModdedBindFailureTest {
             servers.verify(() -> NativeModdedServer.forWorld(level), times(1));
             log.verify(() -> ModdedIrisLog.error(argThat((String line) -> line != null && line.startsWith("Cause: ")
                     && line.contains("generate-structures=false"))), times(1));
+        }
+    }
+
+    /**
+     * A bind that fails because the runtime is stopping (level unload, quit to title, server stop) says nothing about
+     * the world: it fails the chunk that asked, but the next bind tries again and no refusal is announced.
+     */
+    @Test
+    public void aShutdownFailureDuringBindIsNeitherRememberedNorAnnouncedAsARefusal() throws Exception {
+        IrisModdedChunkGenerator generator = generator("overworld:overworld");
+        NativeWorld level = level(generator, "minecraft:overworld");
+        field("boundLevel").set(generator, level);
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        when(server.generateStructures()).thenReturn(true);
+        MantleClosedException closed = new MantleClosedException("Tectonic Plate is closed!");
+
+        try (MockedStatic<NativeModdedServer> servers = mockStatic(NativeModdedServer.class);
+             MockedStatic<ModdedWorldEngines> engines = mockStatic(ModdedWorldEngines.class);
+             MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
+            servers.when(() -> NativeModdedServer.forWorld(level)).thenReturn(server);
+            engines.when(() -> ModdedWorldEngines.get(eq(level), any(), any(), anyLong(), any())).thenThrow(closed);
+
+            assertSame(closed, assertThrows(MantleClosedException.class, generator::engine));
+            assertSame(closed, assertThrows(MantleClosedException.class, generator::engine));
+
+            engines.verify(() -> ModdedWorldEngines.get(eq(level), any(), any(), anyLong(), any()), times(2));
+            log.verify(() -> ModdedIrisLog.error(anyString()), never());
+        }
+    }
+
+    /**
+     * Unloading a level resets its binding, so a refusal recorded in one load never carries into the next load of the
+     * same generator (a runtime dimension removal that rolls back, or a level loaded again in the same JVM).
+     */
+    @Test
+    public void aRecordedRefusalDoesNotOutliveTheUnloadOfItsLevel() throws Exception {
+        IrisModdedChunkGenerator generator = generator("overworld:overworld");
+        NativeWorld level = level(generator, "minecraft:overworld");
+        doNothing().when((NativeModdedChunkGenerator<?, ?, ?>) field("nativeGenerator").get(generator)).clearCaches();
+        field("importedFeatures").set(generator, mock(ModdedImportedFeatureStage.class));
+        field("announced").set(generator, new AtomicBoolean());
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        when(server.generateStructures()).thenReturn(false);
+
+        try (MockedStatic<NativeModdedServer> servers = mockStatic(NativeModdedServer.class);
+             MockedStatic<ModdedWorldEngines> engines = mockStatic(ModdedWorldEngines.class);
+             MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
+            servers.when(() -> NativeModdedServer.forWorld(level)).thenReturn(server);
+
+            IllegalStateException first = assertThrows(IllegalStateException.class, () -> generator.bindLevel(level));
+            generator.unbindEngine(level);
+            IllegalStateException second = assertThrows(IllegalStateException.class, () -> generator.bindLevel(level));
+
+            assertNotSame(first, second.getCause());
+            servers.verify(() -> NativeModdedServer.forWorld(level), times(2));
+            engines.verify(() -> ModdedWorldEngines.evictOrThrow(level));
         }
     }
 

@@ -266,7 +266,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
 
     @Override
     public H getNoiseBiome(int quartX, int quartY, int quartZ, S sampler) {
-        Engine engine = engineOrNull();
+        Engine engine = boundEngineOrNull();
         if (engine == null) {
             return access.serializedNoise(quartX, quartY, quartZ, sampler);
         }
@@ -288,7 +288,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
 
     @Override
     public NativeBiomeSourcePolicy.BiomeLocation<H> findClosestBiome3d(ClosestQuery<H, S> query) {
-        Engine engine = engineOrNull();
+        Engine engine = boundEngineOrNull();
         if (engine == null) {
             return query.unboundFallback().get();
         }
@@ -355,7 +355,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
     }
 
     public H getVisibleNoiseBiome(int quartX, int quartY, int quartZ, S sampler) {
-        Engine engine = engineOrNull();
+        Engine engine = boundEngineOrNull();
         if (engine == null) {
             return access.serializedNoise(quartX, quartY, quartZ, sampler);
         }
@@ -411,7 +411,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
     }
 
     public H getVisibleSurfaceBiome(int blockX, int blockZ) {
-        Engine engine = engineOrNull();
+        Engine engine = boundEngineOrNull();
         if (engine == null) {
             return null;
         }
@@ -420,15 +420,15 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         try (historyScope) {
             GenerationSessionLease lease = tryAcquireGenerationLease(engine, "modded_surface_spawn_biome");
             if (lease == null) {
-                return null;
+                throw new IllegalStateException("Iris surface spawn biome lookup was rejected during an engine transition");
             }
             try (lease; IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
                 if (!isReady(engine)) {
-                    return null;
+                    throw new IllegalStateException("Iris surface spawn biome lookup has no active engine runtime");
                 }
                 NativeBiomeSourceAccess.RegistryView<H> registry = biomeRegistry();
                 if (registry == null) {
-                    return null;
+                    throw new IllegalStateException("Iris surface spawn biome lookup has no biome registry");
                 }
                 int quartX = ((blockX) >> 2);
                 int quartZ = ((blockZ) >> 2);
@@ -463,7 +463,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
     }
 
     public boolean isStructureReachable(Iterable<H> biomes) {
-        Engine engine = engineOrNull();
+        Engine engine = boundEngineOrNull();
         if (engine == null) {
             return isStructureReachable(biomes, possibleStructureBiomeKeys());
         }
@@ -494,7 +494,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         int radius = query.radius();
         S sampler = query.sampler();
         int minQuartY = ((y - radius) >> 2);
-        Engine engine = engineOrNull();
+        Engine engine = boundEngineOrNull();
         if (engine == null) {
             return query.fallback().get();
         }
@@ -874,7 +874,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         return engine != null && !engine.isClosed() && engine.getComplex() != null;
     }
 
-    private Engine engineOrNull() {
+    private Engine boundEngineOrNull() {
         RuntimeCallbacks current = runtime;
         return current == null ? null : current.currentEngine().get();
     }

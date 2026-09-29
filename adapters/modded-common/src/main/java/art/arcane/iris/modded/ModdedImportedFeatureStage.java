@@ -25,6 +25,7 @@ import art.arcane.volmlib.nativelib.terrain.feature.NativeFeatureTable;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedImportedFeatures;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.structure.nativegen.NativeFeatureGenerationPolicy;
@@ -96,10 +97,12 @@ final class ModdedImportedFeatureStage implements NativeModdedGeneratorPolicy.Fe
      * the per-step feature lists and {@code BiomeFilter}'s hasFeature gate both see real features for a biome
      * whose datapack JSON declares none by design. Real registry biomes pass straight through.
      *
-     * <p>With {@code importedFeatures} disabled there is no table and this is vanilla's default getter.
+     * <p>With {@code importedFeatures} disabled there is no table and this is vanilla's default getter. So is an
+     * unbound generator, which only world creation and codec validation ask. A bound generator whose engine is
+     * refused or stopping throws: BiomeFilter would otherwise drop every imported feature of a custom biome.
      */
     public NativeFeatureTable currentTable() {
-        Engine engine = generator == null ? null : generator.engineOrNull();
+        Engine engine = generator == null ? null : generator.boundEngineOrNull();
         return engine == null ? null : featureTables.get(engine.getCacheID());
     }
 
@@ -112,8 +115,15 @@ final class ModdedImportedFeatureStage implements NativeModdedGeneratorPolicy.Fe
      * the build itself is serialized because {@code applyBiomeDecoration} calls this from every worldgen
      * thread, and two threads that both found the stage unprepared would each run {@code FeatureSorter}, whose
      * cycle detection is the expensive part. Waiting here is safe: this caller holds no generator monitor.
+     * A sealed runtime keeps the table it already settled but cannot build one, and decorating without it
+     * would persist a chunk with no imported features, so it fails the chunk instead.
      */
     public void prepare(Engine engine) {
+        if ((engine.isClosed() || engine.isClosing())
+                && !settled(engine.getCacheID(), biomeSource.packGeneration())) {
+            throw new GenerationClosedException("Iris imported features cannot prepare runtime "
+                    + engine.getCacheID() + " while its engine is closing.");
+        }
         prepare(engine, true);
     }
 
@@ -128,7 +138,7 @@ final class ModdedImportedFeatureStage implements NativeModdedGeneratorPolicy.Fe
     }
 
     private void prepare(Engine engine, boolean waitForBuild) {
-        if (engine == null || engine.isClosed() || engine.isClosing()) {
+        if (engine.isClosed() || engine.isClosing()) {
             return;
         }
         int runtimeIdentity = engine.getCacheID();
@@ -204,17 +214,24 @@ final class ModdedImportedFeatureStage implements NativeModdedGeneratorPolicy.Fe
         inertGenerations.put(runtimeIdentity, generation);
     }
 
+    /**
+     * Null only for a runtime whose features are settled off. A table retired or superseded since this chunk's
+     * prepare fails the chunk: skipping the pass would persist it without imported features.
+     */
     public NativeFeatureTable placementTable(Engine engine) {
         int runtimeIdentity = engine.getCacheID();
+        long generation = biomeSource.packGeneration();
         NativeFeatureTable table = featureTables.get(runtimeIdentity);
-        if (table == null) {
+        if (table == null && Long.valueOf(generation).equals(inertGenerations.get(runtimeIdentity))) {
             WorldCheckFeaturePlacement.recordFeaturesOff();
             return null;
         }
-        if (table.generation() != biomeSource.packGeneration()) {
-            featureTables.remove(runtimeIdentity, table);
-            inertGenerations.remove(runtimeIdentity);
-            return null;
+        if (table == null || table.generation() != generation) {
+            if (table != null) {
+                featureTables.remove(runtimeIdentity, table);
+            }
+            throw new GenerationClosedException("Iris imported feature table for runtime " + runtimeIdentity
+                    + " was retired before decoration.");
         }
         return generator == null ? null : table;
     }

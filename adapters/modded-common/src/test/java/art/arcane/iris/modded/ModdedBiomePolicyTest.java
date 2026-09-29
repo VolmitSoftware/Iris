@@ -2,6 +2,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.volmlib.nativelib.terrain.NativeBiomeSourceAccess;
@@ -82,6 +83,29 @@ public class ModdedBiomePolicyTest {
 
         assertSame(forest, policy.requiredStructureBiome(6000, 0, -6000, null));
         assertSame(forest, policy.requiredStructureBiome(6000, -30, -6000, null));
+    }
+
+    /**
+     * Stacked initial mob spawning asks for the visible surface biome. A null answer made it spawn from the chunk's
+     * top biome instead, so a sealed or unready engine has to fail the chunk.
+     */
+    @Test
+    public void surfaceSpawnBiomeRefusesAnEngineInTransitionInsteadOfAnsweringNothing() throws Exception {
+        Engine sealed = mock(Engine.class);
+        when(sealed.isClosing()).thenReturn(true);
+        when(sealed.acquireGenerationLease(anyString())).thenThrow(new GenerationSessionException("sealed", true));
+        Engine unready = mock(Engine.class);
+        when(unready.acquireGenerationLease(anyString())).thenReturn(GenerationSessionLease.noop());
+
+        assertThrows(IllegalStateException.class, () -> boundTo(sealed).getVisibleSurfaceBiome(8, 8));
+        assertThrows(IllegalStateException.class, () -> boundTo(unready).getVisibleSurfaceBiome(8, 8));
+    }
+
+    private static ModdedBiomePolicy<BiomeToken, Object> boundTo(Engine engine) {
+        ModdedBiomePolicy<BiomeToken, Object> policy = new ModdedBiomePolicy<>(new Access(new ArrayList<>()));
+        policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(() -> engine, () -> engine, bound -> true,
+                Set::of, bound -> Set.of(), () -> 0L));
+        return policy;
     }
 
     private static ModdedBiomePolicy<BiomeToken, Object> policy(List<BiomeToken> entries,

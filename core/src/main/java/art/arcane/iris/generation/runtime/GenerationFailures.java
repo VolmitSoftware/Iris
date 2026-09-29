@@ -8,6 +8,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
 
 /**
  * Separates failures of the engine, its mantle, generation history, executors or the JVM from failures of one
@@ -22,22 +23,32 @@ public final class GenerationFailures {
     }
 
     public static boolean isEngineFailure(Throwable failure) {
-        if (Thread.currentThread().isInterrupted()) {
-            return true;
-        }
+        return isShutdownFailure(failure) || hasCause(failure, (Throwable cause) -> cause instanceof Error
+                || cause instanceof WrongEngineBroException
+                || cause instanceof SavedBiomeUnavailableException unavailable && unavailable.isLoading()
+                || cause instanceof TimeoutException);
+    }
+
+    /**
+     * The engine failures that only mean a runtime, pool or thread is stopping. They say nothing about the world, so
+     * nothing may remember them against it once the next runtime is up.
+     */
+    public static boolean isShutdownFailure(Throwable failure) {
+        return Thread.currentThread().isInterrupted() || hasCause(failure, (Throwable cause) ->
+                cause instanceof GenerationClosedException
+                        || cause instanceof MantleClosedException
+                        || cause instanceof GenerationSessionException session && session.isExpectedTeardown()
+                        || cause instanceof InterruptedException
+                        || cause instanceof InterruptedIOException
+                        || cause instanceof ClosedChannelException
+                        || cause instanceof RejectedExecutionException
+                        || cause instanceof CancellationException);
+    }
+
+    private static boolean hasCause(Throwable failure, Predicate<Throwable> match) {
         Throwable current = failure;
         for (int depth = 0; current != null && depth < MAXIMUM_CAUSE_DEPTH; depth++, current = current.getCause()) {
-            if (current instanceof Error
-                    || current instanceof GenerationClosedException
-                    || current instanceof MantleClosedException
-                    || current instanceof WrongEngineBroException
-                    || current instanceof SavedBiomeUnavailableException unavailable && unavailable.isLoading()
-                    || current instanceof InterruptedException
-                    || current instanceof InterruptedIOException
-                    || current instanceof ClosedChannelException
-                    || current instanceof RejectedExecutionException
-                    || current instanceof CancellationException
-                    || current instanceof TimeoutException) {
+            if (match.test(current)) {
                 return true;
             }
         }

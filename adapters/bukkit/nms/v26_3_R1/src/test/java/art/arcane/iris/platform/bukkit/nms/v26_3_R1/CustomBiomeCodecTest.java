@@ -13,6 +13,7 @@ import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.attribute.modifier.MobSpawnSettingsModifier;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.MobSpawnSettings;
@@ -53,5 +54,7 @@ public class CustomBiomeCodecTest {
         assertEquals(2, decoded.count().minInclusive());
         assertEquals(4, decoded.count().maxInclusive());
         assertEquals(0x102030, biome.getWaterColor() & 0xFFFFFF);
+        assertEquals(MobSpawnSettingsModifier.overlay(),
+                biome.getAttributes().get(EnvironmentAttributes.NATURAL_MOB_SPAWNS).modifier());
     }
 }

@@ -576,6 +576,14 @@ tasks.named('check').configure {
 }
 
 List<String> commonModdedArtifactEntries = [
+    'pack.mcmeta',
+    'com/fulcrumgenomics/jlibdeflate/LibdeflateDecompressor.class',
+    'com/fulcrumgenomics/jlibdeflate/LibdeflateException.class',
+    'native/linux-aarch64/libjlibdeflate.so',
+    'native/linux-x86_64/libjlibdeflate.so',
+    'native/osx-aarch64/libjlibdeflate.dylib',
+    'native/osx-x86_64/libjlibdeflate.dylib',
+    'native/windows-x86_64/jlibdeflate.dll',
     'META-INF/iris/generation-kernels/catalog.tsv',
     'META-INF/iris/generation-kernels/abi-1.revision',
     'META-INF/services/art.arcane.iris.localization.IrisMessageContributor',

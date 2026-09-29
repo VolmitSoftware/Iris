@@ -85,6 +85,11 @@ public final class ModdedArtifactVerifier {
                     throw new GradleException(artifact.getName() + " is missing " + requiredEntry);
                 }
             }
+            if (jar.getJarEntry("assets/irisworldgen/lang/en_us.json") != null
+                    && jar.getJarEntry("pack.mcmeta") == null) {
+                throw new GradleException(artifact.getName()
+                        + " ships Iris client language resources without pack.mcmeta");
+            }
 
             Set<String> bundledRuntimeEntries = new LinkedHashSet<>();
             Set<String> privateReferenceClasses = new LinkedHashSet<>();

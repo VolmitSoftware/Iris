@@ -45,6 +45,28 @@ public class ModdedArtifactVerifierTest {
     }
 
     @Test
+    public void rejectsClientLanguagesWithoutPackMetadata() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("assets/irisworldgen/lang/en_us.json", "{}".getBytes(StandardCharsets.UTF_8));
+        File artifact = createArtifact(entries);
+
+        GradleException failure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES));
+        assertTrue(failure.getMessage().contains("client language resources without pack.mcmeta"));
+    }
+
+    @Test
+    public void acceptsClientLanguagesWithPackMetadata() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("assets/irisworldgen/lang/en_us.json", "{}".getBytes(StandardCharsets.UTF_8));
+        entries.put("pack.mcmeta", ("{\"pack\":{\"description\":\"Iris\","
+                + "\"min_format\":[88,0],\"max_format\":[107,1]}}")
+                .getBytes(StandardCharsets.UTF_8));
+
+        ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES);
+    }
+
+    @Test
     public void rejectsRelocatedRuntimeReference() throws Exception {
         Map<String, byte[]> entries = validEntries();
         entries.put("art/arcane/iris/Test.class",

@@ -121,7 +121,7 @@ public class LinkedTerrainChunkTest {
         for (int trial = 0; trial < 12; trial++) {
             Random random = new Random(9127L + trial);
             TerrainChunkBiomeHunkView expected = new TerrainChunkBiomeHunkView(chunk());
-            ColumnBiomeHunk actual = new ColumnBiomeHunk(16);
+            ColumnBiomeHunk actual = new ColumnBiomeHunk(16, () -> plains);
             int operations = 1 + random.nextInt(80);
             for (int operation = 0; operation < operations; operation++) {
                 NativeBiome biome = palette[random.nextInt(palette.length)];

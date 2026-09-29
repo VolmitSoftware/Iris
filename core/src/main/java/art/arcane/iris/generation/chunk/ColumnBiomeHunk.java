@@ -18,26 +18,29 @@
 
 package art.arcane.iris.generation.chunk;
 
-import art.arcane.iris.platform.bukkit.BukkitBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.util.hunk.HunkMutationSupport;
 import art.arcane.volmlib.util.hunk.storage.StorageHunk;
-import org.bukkit.block.Biome;
+
+import java.util.function.Supplier;
 
 /**
  * Biome output for one Bukkit chunk, read back only by the generation stages. The biome actuator writes whole
  * columns, so storage stays at one entry per column until a partial column write arrives; that write switches
- * the hunk to full resolution. Reads, clamping and the plains fallback match {@link LinkedTerrainChunk}.
+ * the hunk to full resolution. Reads and clamping match {@link LinkedTerrainChunk}; unset cells read the
+ * caller's fallback biome, resolved on first use.
  */
 public final class ColumnBiomeHunk extends StorageHunk<NativeBiome> {
     private static final int CHUNK_SIZE = 16;
 
     private final NativeBiome[] columns = new NativeBiome[CHUNK_SIZE * CHUNK_SIZE];
     private NativeBiome[] cells;
+    private final Supplier<NativeBiome> fallback;
     private volatile NativeBiome defaultBiome;
 
-    public ColumnBiomeHunk(int height) {
+    public ColumnBiomeHunk(int height, Supplier<NativeBiome> fallback) {
         super(CHUNK_SIZE, height, CHUNK_SIZE);
+        this.fallback = fallback;
     }
 
     @Override
@@ -63,12 +66,12 @@ public final class ColumnBiomeHunk extends StorageHunk<NativeBiome> {
         if (biome != null) {
             return biome;
         }
-        NativeBiome fallback = defaultBiome;
-        if (fallback == null) {
-            fallback = BukkitBiome.of(Biome.PLAINS);
-            defaultBiome = fallback;
+        NativeBiome resolved = defaultBiome;
+        if (resolved == null) {
+            resolved = fallback.get();
+            defaultBiome = resolved;
         }
-        return fallback;
+        return resolved;
     }
 
     private void fillColumn(int x, int z, NativeBiome biome) {

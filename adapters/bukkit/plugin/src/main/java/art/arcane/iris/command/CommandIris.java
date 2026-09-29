@@ -511,7 +511,9 @@ public class CommandIris implements DirectorExecutor {
             return;
         }
         PlatformChunkGenerator generator = IrisToolbelt.access(world);
-        IrisToolbelt.beginWorldMaintenance(world, "world-unload", true);
+        // Maintenance that forbids mantle stages refuses every chunk, and Folia treats a refused chunk as a chunk
+        // system failure, so it starts only once no player is left to request one.
+        AtomicBoolean maintenanceEntered = new AtomicBoolean(false);
         try {
             AtomicBoolean terminalTimeout = new AtomicBoolean(false);
             CompletableFuture<Boolean> sequence = IrisToolbelt.evacuateAsync(world)
@@ -523,6 +525,8 @@ public class CommandIris implements DirectorExecutor {
                         if (!Boolean.TRUE.equals(evacuated)) {
                             return CompletableFuture.completedFuture(false);
                         }
+                        IrisToolbelt.beginWorldMaintenance(world, "world-unload", true);
+                        maintenanceEntered.set(true);
                         return WorldLifecycleService.get().unloadAsync(world, true);
                     })
                     .thenCompose(unloaded -> {
@@ -537,7 +541,9 @@ public class CommandIris implements DirectorExecutor {
                     });
             guardUnloadCompletion(sequence, terminalTimeout, world.getName())
                     .whenComplete((unloaded, throwable) -> {
-                        IrisToolbelt.endWorldMaintenance(world, "world-unload", true);
+                        if (maintenanceEntered.get()) {
+                            IrisToolbelt.endWorldMaintenance(world, "world-unload", true);
+                        }
                         lease.close();
                         Runnable response = () -> reportUnloadResult(responseSender, world, unloaded, throwable);
                         if (responseSender.isPlayer() && J.runEntity(responseSender.player(), response)) {
@@ -546,7 +552,9 @@ public class CommandIris implements DirectorExecutor {
                         J.s(response);
                     });
         } catch (Exception e) {
-            IrisToolbelt.endWorldMaintenance(world, "world-unload", true);
+            if (maintenanceEntered.get()) {
+                IrisToolbelt.endWorldMaintenance(world, "world-unload", true);
+            }
             lease.close();
             responseSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_FAILED_UNLOAD_WORLD_3, MessageArgument.untrusted("value", String.valueOf(e.getMessage()))));
             Iris.reportError("Failed to unload world \"" + world.getName() + "\".", e);

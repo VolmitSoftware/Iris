@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
@@ -713,7 +714,7 @@ public final class HydrologyTileCache implements AutoCloseable {
 
     public void enableSharedCache(SharedCacheScope scope, Path persistentRoot) {
         if (closed.get()) {
-            throw new IllegalStateException("Hydrology tile cache is closed.");
+            throw new GenerationClosedException("Hydrology tile cache is closed.");
         }
         sharedCacheScope = Objects.requireNonNull(scope, "scope");
         persistentStore = persistentRoot == null

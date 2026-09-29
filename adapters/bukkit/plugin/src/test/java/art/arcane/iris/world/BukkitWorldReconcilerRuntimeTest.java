@@ -11,12 +11,14 @@ import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.GenerationManifest;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -26,9 +28,11 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.MockedStatic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BukkitWorldReconcilerRuntimeTest {
@@ -95,6 +99,33 @@ public class BukkitWorldReconcilerRuntimeTest {
         }
     }
 
+    /**
+     * The startup reconcile and /iris load create worlds through the backend, so a world Iris refuses there needs
+     * the same banner and operator notice as one CraftServer asked for.
+     */
+    @Test
+    public void aRefusedReconcilerCreateIsReportedAsARefusal() throws Exception {
+        NamespacedKey key = new NamespacedKey("iris", "probe");
+        IllegalStateException refusal = new IllegalStateException("Iris generation history is unusable at /srv/probe.");
+        Iris plugin = mock(Iris.class);
+        WorldRefusalReporter refusals = mock(WorldRefusalReporter.class);
+        when(plugin.worldRefusals()).thenReturn(refusals);
+        when(plugin.requireWorldGenerator("world_iris_probe", "overworld")).thenThrow(refusal);
+
+        try (MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisWorldStorage> storage = mockStatic(IrisWorldStorage.class)) {
+            storage.when(IrisWorldStorage::levelRoot).thenReturn(new File("world"));
+            storage.when(() -> IrisWorldStorage.configuredWorldName(key, "world")).thenReturn("world_iris_probe");
+            storage.when(() -> IrisWorldStorage.logicalName(key)).thenReturn("probe");
+
+            CompletableFuture<World> created = backend(plugin).createWorld(key, "overworld", 1337L);
+
+            ExecutionException failure = assertThrows(ExecutionException.class, created::get);
+            assertSame(refusal, failure.getCause());
+            verify(refusals).report("world_iris_probe", key, refusal);
+        }
+    }
+
     private RuntimeFixture fixture() throws Exception {
         Path container = temporaryFolder.newFolder().toPath();
         Path root = container.resolve("world/dimensions/iris/probe");
@@ -134,11 +165,14 @@ public class BukkitWorldReconcilerRuntimeTest {
         when(dimension.getLoadKey()).thenReturn("overworld");
         when(engine.getData()).thenReturn(data);
         when(data.getDataFolder()).thenReturn(pack.toFile());
+        return new RuntimeFixture(backend(mock(Iris.class)), world, key, generator, engine, history, root, pack);
+    }
+
+    private static BukkitWorldReconciler.Backend backend(Iris plugin) throws Exception {
         Class<?> backendClass = Class.forName(BukkitWorldReconciler.class.getName() + "$BukkitBackend");
         Constructor<?> constructor = backendClass.getDeclaredConstructor(Iris.class);
         constructor.setAccessible(true);
-        BukkitWorldReconciler.Backend backend = (BukkitWorldReconciler.Backend) constructor.newInstance(mock(Iris.class));
-        return new RuntimeFixture(backend, world, key, generator, engine, history, root, pack);
+        return (BukkitWorldReconciler.Backend) constructor.newInstance(plugin);
     }
 
     private record RuntimeFixture(BukkitWorldReconciler.Backend backend, World world, NamespacedKey key,

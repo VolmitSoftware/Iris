@@ -1,6 +1,7 @@
 package art.arcane.iris.structure.nativegen;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
@@ -165,7 +166,7 @@ public final class NativeStructureOwnershipStore {
             lifecycleLock.writeLock().lock();
             try {
                 if (closed) {
-                    throw new IllegalStateException("Native structure ownership store is closed");
+                    throw new GenerationClosedException("Native structure ownership store is closed");
                 }
                 flushDirty();
             } finally {
@@ -214,7 +215,7 @@ public final class NativeStructureOwnershipStore {
         private void requireOpen() {
             engine();
             if (closed) {
-                throw new IllegalStateException("Native structure ownership store is closed");
+                throw new GenerationClosedException("Native structure ownership store is closed");
             }
         }
 

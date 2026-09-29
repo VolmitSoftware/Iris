@@ -29,6 +29,7 @@ import art.arcane.iris.generation.decoration.IrisVacuumSettings;
 import art.arcane.iris.world.entity.IrisMarker;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
@@ -519,6 +520,7 @@ final class IrisObjectPlacementRunner {
                         tile = states.get(g);
                     }
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                     IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (cme)");
                     d = IrisObject.States.air();
@@ -713,6 +715,7 @@ final class IrisObjectPlacementRunner {
                     try {
                         sourceData = stiltCursor.value();
                     } catch (Throwable e) {
+                        GenerationFailures.rethrowEngineFailure(e);
                         IrisLogging.reportError(e);
                         IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (stilt cme)");
                         sourceData = IrisObject.States.air();

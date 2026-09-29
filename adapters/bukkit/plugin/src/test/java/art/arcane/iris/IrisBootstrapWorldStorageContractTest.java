@@ -175,6 +175,81 @@ public class IrisBootstrapWorldStorageContractTest {
         assertFalse(MissingWorldStorageLog.hasWarned("world_iris_moon"));
     }
 
+    /**
+     * A vanilla slot that holds an Iris world is generated from its history like any Iris world, so a broken
+     * history stops startup before the level exists instead of reaching the level-load refusal.
+     */
+    @Test
+    public void startupIsRefusedWhenABoundVanillaSlotLostItsGenerationHistory() throws Exception {
+        Path serverRoot = temporaryFolder.newFolder("broken-overworld-server").toPath();
+        Files.createDirectories(serverRoot.resolve("world/dimensions/minecraft/overworld/iris/engine-data"));
+        Files.createDirectories(serverRoot.resolve("world/dimensions/minecraft/overworld/region"));
+        Files.writeString(serverRoot.resolve("world/dimensions/minecraft/overworld/region/r.0.0.mca"), "terrain");
+        writeServerProperties(serverRoot);
+        writeBukkitWorlds(serverRoot, "world");
+
+        IllegalStateException failure = assertThrows(
+                IllegalStateException.class,
+                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+
+        assertTrue(failure.getMessage(),
+                failure.getMessage().contains(serverRoot.toRealPath().resolve("world/dimensions/minecraft/overworld")
+                        .toString()));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("generation history"));
+        assertFalse(failure.getMessage(), failure.getMessage().contains("Remove worlds."));
+    }
+
+    @Test
+    public void unusableStorageNamesWhyTheHistoryCannotBeRead() throws Exception {
+        Path serverRoot = temporaryFolder.newFolder("cut-history-server").toPath();
+        Path generation = serverRoot.resolve("world/dimensions/minecraft/overworld/iris/generation");
+        Files.createDirectories(generation);
+        Files.writeString(generation.resolve("manifest.json"), "{\"schema\":1,\"epochs\":[{\"id", StandardCharsets.UTF_8);
+        writeServerProperties(serverRoot);
+        writeBukkitWorlds(serverRoot, "world");
+
+        IllegalStateException failure = assertThrows(
+                IllegalStateException.class,
+                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("Invalid generation manifest"));
+        assertFalse(failure.getMessage(), failure.getMessage().contains("\n"));
+    }
+
+    /**
+     * Without its bukkit.yml binding the server builds an Iris world in a vanilla slot with the vanilla generator,
+     * which writes vanilla terrain into it.
+     */
+    @Test
+    public void startupIsRefusedWhenAnIrisWorldInAVanillaSlotLostItsBinding() throws Exception {
+        Path serverRoot = temporaryFolder.newFolder("unbound-overworld-server").toPath();
+        Files.createDirectories(serverRoot.resolve("world/dimensions/minecraft/overworld/iris/pack"));
+        writeServerProperties(serverRoot);
+        writeBukkitWorlds(serverRoot);
+
+        IllegalStateException failure = assertThrows(
+                IllegalStateException.class,
+                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("worlds.world.generator"));
+        assertTrue(failure.getMessage(),
+                failure.getMessage().contains(serverRoot.toRealPath().resolve("world/dimensions/minecraft/overworld")
+                        .toString()));
+    }
+
+    @Test
+    public void startupContinuesForVanillaSlotsWithoutIrisContent() throws Exception {
+        Path serverRoot = temporaryFolder.newFolder("vanilla-server").toPath();
+        Files.createDirectories(serverRoot.resolve("world/dimensions/minecraft/overworld/region"));
+        Files.writeString(serverRoot.resolve("world/dimensions/minecraft/overworld/region/r.0.0.mca"), "terrain");
+        Files.createDirectories(serverRoot.resolve("world/dimensions/minecraft/the_nether/iris"));
+        Files.writeString(serverRoot.resolve("world/dimensions/minecraft/the_nether/iris/.DS_Store"), "finder");
+        writeServerProperties(serverRoot);
+        writeBukkitWorlds(serverRoot);
+
+        IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot));
+    }
+
     private static BukkitStartupPaths startupPaths(Path serverRoot) throws Exception {
         return BukkitStartupPaths.resolve(serverRoot, new String[0]);
     }

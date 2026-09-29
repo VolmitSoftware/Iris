@@ -1,5 +1,6 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.iris.world.storage.Durability;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -1386,7 +1387,7 @@ public final class GenerationHistory {
                 throw new IllegalArgumentException("Generation stage belongs to a different history.");
             }
             if (closed) {
-                throw new IllegalStateException("Generation stage is closed.");
+                throw new GenerationClosedException("Generation stage is closed.");
             }
         }
     }

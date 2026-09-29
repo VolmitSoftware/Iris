@@ -22,6 +22,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.cache.Cache;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.runtime.Engine;
@@ -475,6 +476,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     nullObjects += result.nullObjects();
                     errors += result.errors();
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     errors++;
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place objects in the following biome: " + surfaceBiome.getName());
@@ -508,6 +510,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     nullObjects += result.nullObjects();
                     errors += result.errors();
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     errors++;
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place cave objects in the following biome: " + caveBiome.getName());
@@ -538,6 +541,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     nullObjects += result.nullObjects();
                     errors += result.errors();
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     errors++;
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place objects in the following region: " + region.getName());
@@ -571,6 +575,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     nullObjects += result.nullObjects();
                     errors += result.errors();
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     errors++;
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place cave objects in the following region: " + region.getName());
@@ -760,6 +765,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                                 + " commit=" + commitResult);
                     }
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place procedural object '" + p.getName() + "' in " + scope);
                 }
@@ -988,6 +994,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             + " density=" + density);
                 }
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 errors++;
                 IrisLogging.reportError(e);
                 IrisLogging.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ
@@ -1192,6 +1199,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             + " density=" + density);
                 }
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 errors++;
                 IrisLogging.reportError(e);
                 IrisLogging.error("Regen cave object placement exception: chunk=" + metricChunkX + "," + metricChunkZ
@@ -1251,6 +1259,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 try {
                     placeUpperObject(writer, rng, chunkX, chunkZ, i, upperCtx, complex, forcePlace, traceRegen, "upper-biome-surface");
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place upper-dimension objects in biome " + upperBiome.getName()
                             + ": " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ")");
@@ -1266,6 +1275,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 try {
                     placeUpperObject(writer, rng, chunkX, chunkZ, i, upperCtx, complex, forcePlace, traceRegen, "upper-region-surface");
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place upper-dimension objects in region " + upperRegion.getName()
                             + ": " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ")");
@@ -1790,6 +1800,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     }
                     radius = Math.max(radius, reach);
                 } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                 }
             }

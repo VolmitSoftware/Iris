@@ -24,6 +24,7 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisLogging;
@@ -233,6 +234,7 @@ final class IrisBiomeLayerGenerator {
                 data.add(layer.get(random, layerIndex + offset,
                         (wx + offset) / zoom, offset, (wz - offset) / zoom, rdata));
             } catch (Throwable error) {
+                GenerationFailures.rethrowEngineFailure(error);
                 IrisLogging.reportError(error);
             }
         }
@@ -330,6 +332,7 @@ final class IrisBiomeLayerGenerator {
                 blocks.add(layer.get(random, layerIndex + offset,
                         (x + offset) / zoom, offset, (z - offset) / zoom, data));
             } catch (Throwable error) {
+                GenerationFailures.rethrowEngineFailure(error);
                 IrisLogging.reportError(error);
             }
         }

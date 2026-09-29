@@ -17,6 +17,7 @@ public final class IrisFabricBootstrap implements ModInitializer {
     public void onInitialize() {
         NativeFabricLoader loader = new NativeFabricLoader(new NativeLoaderOptions(
                 "irisworldgen", "treefeller", ModdedTreeFellerService::runBreakProbe));
+        loader.captureOriginalBiomes();
         NativeChunkGeneratorDefinition generator = IrisModdedChunkGenerator.DEFINITION;
         NativeFabricPackSources.bind(ModdedForcedDatapack::repositorySource);
         ModdedEngineBootstrap.bootCommon(loader, "Fabric", () -> NativeFabricBootstrap.registerGenerator(generator));

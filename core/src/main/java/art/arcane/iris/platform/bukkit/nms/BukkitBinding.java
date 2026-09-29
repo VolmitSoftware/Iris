@@ -55,7 +55,7 @@ public final class BukkitBinding implements INMSBinding {
 
     @Override
     public PlatformGenerationRegistry generationRegistry() {
-        return new BukkitGenerationRegistry(registry, "bukkit-generation-registry-v1", generation.generationRendererIdentity());
+        return new BukkitGenerationRegistry(registry, "bukkit-generation-registry-v1");
     }
 
     @Override

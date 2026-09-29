@@ -24,6 +24,7 @@ import org.bukkit.generator.WorldInfo;
 import org.mockito.MockedStatic;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -256,18 +257,12 @@ public class IrisWorldGeneratorResolverTest {
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<Iris> iris = mockStatic(Iris.class)) {
-            Server server = mock(Server.class);
-            when(server.getLevelDirectory()).thenReturn(levelRoot.toPath());
-            bukkit.when(Bukkit::getServer).thenReturn(server);
-            bukkit.when(Bukkit::getWorldContainer).thenReturn(worldContainer);
-            bukkit.when(Bukkit::getWorlds).thenReturn(List.of());
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
 
-            IllegalStateException failure = assertThrows(
-                    IllegalStateException.class,
-                    () -> new IrisWorldGeneratorResolver(null)
-                            .resolveDefaultWorldGenerator("CheckingPlotSquaredGenerator", "overworld"));
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("CheckingPlotSquaredGenerator", "overworld"));
 
-            assertTrue(failure.getMessage(), failure.getMessage().contains("CheckingPlotSquaredGenerator"));
+            assertTrue(refusal, refusal.contains("CheckingPlotSquaredGenerator"));
             bukkit.verify(Bukkit::shutdown, never());
         }
     }
@@ -382,32 +377,26 @@ public class IrisWorldGeneratorResolverTest {
     }
 
     @Test
-    public void externalCreateWithoutIrisStorageThrowsWithoutShutdown() throws Exception {
+    public void externalCreateWithoutIrisStorageFailsClosedWithoutShutdown() throws Exception {
         File worldContainer = temporaryFolder.newFolder("external-create");
         File levelRoot = new File(worldContainer, "world");
         assertTrue(levelRoot.mkdirs());
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<Iris> iris = mockStatic(Iris.class)) {
-            Server server = mock(Server.class);
-            when(server.getLevelDirectory()).thenReturn(levelRoot.toPath());
-            bukkit.when(Bukkit::getServer).thenReturn(server);
-            bukkit.when(Bukkit::getWorldContainer).thenReturn(worldContainer);
-            bukkit.when(Bukkit::getWorlds).thenReturn(List.of());
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
 
-            IllegalStateException failure = assertThrows(
-                    IllegalStateException.class,
-                    () -> new IrisWorldGeneratorResolver(null)
-                            .resolveDefaultWorldGenerator("mvtest", "overworld"));
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("mvtest", "overworld"));
 
-            assertTrue(failure.getMessage(), failure.getMessage().contains("mvtest"));
-            assertTrue(failure.getMessage(), failure.getMessage().contains("/iris create"));
+            assertTrue(refusal, refusal.contains("mvtest"));
+            assertTrue(refusal, refusal.contains("/iris create"));
             bukkit.verify(Bukkit::shutdown, never());
         }
     }
 
     @Test
-    public void ownedIrisWorldWithUnusableSnapshotStillStopsTheServer() throws Exception {
+    public void ownedIrisWorldWithUnusableSnapshotFailsClosedWithoutShutdown() throws Exception {
         File worldContainer = temporaryFolder.newFolder("owned-broken");
         File levelRoot = new File(worldContainer, "world");
         assertTrue(levelRoot.mkdirs());
@@ -415,43 +404,159 @@ public class IrisWorldGeneratorResolverTest {
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<Iris> iris = mockStatic(Iris.class)) {
-            Server server = mock(Server.class);
-            when(server.getLevelDirectory()).thenReturn(levelRoot.toPath());
-            bukkit.when(Bukkit::getServer).thenReturn(server);
-            bukkit.when(Bukkit::getWorldContainer).thenReturn(worldContainer);
-            bukkit.when(Bukkit::getWorlds).thenReturn(List.of());
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
 
-            assertThrows(
-                    IllegalStateException.class,
-                    () -> new IrisWorldGeneratorResolver(null)
-                            .resolveDefaultWorldGenerator("world_iris_moon", "overworld"));
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world_iris_moon", "overworld"));
 
-            bukkit.verify(Bukkit::shutdown);
+            assertTrue(refusal, refusal.contains("world_iris_moon"));
+            bukkit.verify(Bukkit::shutdown, never());
+        }
+    }
+
+    /**
+     * The tester's failure: a world whose generation history no longer matches the live registries. CraftServer
+     * turns a throw here into the vanilla generator, so the history failure has to come back as a generator that
+     * refuses to create the level.
+     */
+    @Test
+    public void unusableGenerationHistoryFailsClosedWithoutShutdown() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("history-broken").getCanonicalFile();
+        File levelRoot = new File(worldContainer, "world");
+        File dimensionRoot = new File(levelRoot, "dimensions/iris/moon");
+        assertTrue(new File(dimensionRoot, "iris/generation").mkdirs());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisWorlds> worlds = mockStatic(IrisWorlds.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+            worlds.when(() -> IrisWorlds.readBukkitWorldSeed("moon")).thenReturn(1337L);
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("moon", "overworld"));
+
+            assertTrue(refusal, refusal.contains("'moon'"));
+            assertTrue(refusal, refusal.contains("generation history is unusable"));
+            bukkit.verify(Bukkit::shutdown, never());
         }
     }
 
     @Test
-    public void vanillaDimensionSlotWithoutFrozenPackIsNotOwned() throws Exception {
+    public void internalLoadsGetTheResolutionFailureWithoutShutdown() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("internal-load").getCanonicalFile();
+        File levelRoot = new File(worldContainer, "world");
+        File dimensionRoot = new File(levelRoot, "dimensions/iris/moon");
+        assertTrue(new File(dimensionRoot, "iris/generation").mkdirs());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisWorlds> worlds = mockStatic(IrisWorlds.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+            worlds.when(() -> IrisWorlds.readBukkitWorldSeed("moon")).thenReturn(1337L);
+
+            IllegalStateException failure = assertThrows(
+                    IllegalStateException.class,
+                    () -> new IrisWorldGeneratorResolver(null).requireWorldGenerator("moon", "overworld"));
+
+            assertTrue(failure.getMessage(), failure.getMessage().contains("generation history is unusable"));
+            bukkit.verify(Bukkit::shutdown, never());
+            iris.verify(() -> Iris.error(any(String.class), any(Object[].class)), never());
+        }
+    }
+
+    /**
+     * A vanilla slot bound to Iris in bukkit.yml with no Iris storage stops startup, so no command can run until the
+     * binding is gone. /iris create is for new worlds anyway; a vanilla slot is taken over with /iris replace.
+     */
+    @Test
+    public void vanillaDimensionSlotWithoutFrozenPackFailsClosed() throws Exception {
         File worldContainer = temporaryFolder.newFolder("vanilla-slot");
         File levelRoot = new File(worldContainer, "world");
         assertTrue(new File(levelRoot, "dimensions/minecraft/the_nether").mkdirs());
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<Iris> iris = mockStatic(Iris.class)) {
-            Server server = mock(Server.class);
-            when(server.getLevelDirectory()).thenReturn(levelRoot.toPath());
-            bukkit.when(Bukkit::getServer).thenReturn(server);
-            bukkit.when(Bukkit::getWorldContainer).thenReturn(worldContainer);
-            bukkit.when(Bukkit::getWorlds).thenReturn(List.of());
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
 
-            IllegalStateException failure = assertThrows(
-                    IllegalStateException.class,
-                    () -> new IrisWorldGeneratorResolver(null)
-                            .resolveDefaultWorldGenerator("world_nether", "overworld"));
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world_nether", "overworld"));
 
-            assertTrue(failure.getMessage(), failure.getMessage().contains("minecraft:the_nether"));
-            assertTrue(failure.getMessage(), failure.getMessage().contains("/iris create"));
+            assertTrue(refusal, refusal.contains("minecraft:the_nether"));
+            assertTrue(refusal, refusal.contains("worlds.world_nether.generator"));
+            assertTrue(refusal, refusal.contains("bukkit.yml"));
+            assertTrue(refusal, refusal.contains("/iris replace minecraft:the_nether type=<pack>"));
+            assertFalse(refusal, refusal.contains("/iris create"));
             bukkit.verify(Bukkit::shutdown, never());
+        }
+    }
+
+    /**
+     * The fix for a vanilla slot bound to Iris is removing the binding. Given for an Iris world whose history is
+     * gone, that fix loads the world under the vanilla generator, which writes vanilla terrain into it.
+     */
+    @Test
+    public void vanillaSlotHoldingAnIrisWorldKeepsItsBindingAndPointsAtTheHistory() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("iris-in-vanilla-slot");
+        File levelRoot = new File(worldContainer, "world");
+        File dimensionRoot = new File(levelRoot, "dimensions/minecraft/overworld");
+        assertTrue(new File(dimensionRoot, "iris/engine-data").mkdirs());
+        assertTrue(new File(dimensionRoot, "data/minecraft").mkdirs());
+        assertTrue(new File(dimensionRoot, "data/minecraft/world_gen_settings.dat").createNewFile());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world", "overworld"));
+
+            assertTrue(refusal, refusal.contains("minecraft:overworld"));
+            assertTrue(refusal, refusal.contains("is an Iris world"));
+            assertTrue(refusal, refusal.contains(new File(dimensionRoot, "iris/generation").getPath()));
+            assertFalse(refusal, refusal.contains("Remove worlds.world.generator"));
+            assertFalse(refusal, refusal.contains("/iris replace"));
+        }
+    }
+
+    /**
+     * A start refused before the overworld existed still leaves level.dat behind, and vanilla cannot start from a
+     * level.dat that has no world generation settings next to it.
+     */
+    @Test
+    public void vanillaSlotRefusalOnANeverCreatedLevelNamesTheLeftoverLevelDat() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("never-created");
+        File levelRoot = new File(worldContainer, "world");
+        assertTrue(levelRoot.mkdirs());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world", "overworld"));
+
+            assertTrue(refusal, refusal.contains("Remove worlds.world.generator"));
+            assertTrue(refusal, refusal.contains(new File(levelRoot, "level.dat").getPath()));
+        }
+    }
+
+    @Test
+    public void vanillaSlotRefusalOnAnExistingLevelLeavesLevelDatAlone() throws Exception {
+        File worldContainer = temporaryFolder.newFolder("existing-vanilla");
+        File levelRoot = new File(worldContainer, "world");
+        File settings = new File(levelRoot, "dimensions/minecraft/overworld/data/minecraft/world_gen_settings.dat");
+        assertTrue(settings.getParentFile().mkdirs());
+        assertTrue(settings.createNewFile());
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            mockServer(bukkit, worldContainer, levelRoot, List.of());
+
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("world", "overworld"));
+
+            assertTrue(refusal, refusal.contains("Remove worlds.world.generator"));
+            assertFalse(refusal, refusal.contains("level.dat"));
         }
     }
 
@@ -468,21 +573,37 @@ public class IrisWorldGeneratorResolverTest {
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<Iris> iris = mockStatic(Iris.class)) {
-            Server server = mock(Server.class);
-            when(server.getLevelDirectory()).thenReturn(levelRoot.toPath());
-            bukkit.when(Bukkit::getServer).thenReturn(server);
-            bukkit.when(Bukkit::getWorldContainer).thenReturn(worldContainer);
-            bukkit.when(Bukkit::getWorlds).thenReturn(List.of(loaded));
+            mockServer(bukkit, worldContainer, levelRoot, List.of(loaded));
 
-            IllegalStateException failure = assertThrows(
-                    IllegalStateException.class,
-                    () -> new IrisWorldGeneratorResolver(null)
-                            .resolveDefaultWorldGenerator("irisworld", "overworld"));
+            String refusal = assertFailsClosed(() -> new IrisWorldGeneratorResolver(null)
+                    .resolveDefaultWorldGenerator("irisworld", "overworld"));
 
-            assertTrue(failure.getMessage(), failure.getMessage().contains("iris:irisworld"));
-            assertTrue(failure.getMessage(), failure.getMessage().contains("world_iris_irisworld"));
+            assertTrue(refusal, refusal.contains("iris:irisworld"));
+            assertTrue(refusal, refusal.contains("world_iris_irisworld"));
             bukkit.verify(Bukkit::shutdown, never());
         }
+    }
+
+    private static void mockServer(MockedStatic<Bukkit> bukkit, File worldContainer, File levelRoot, List<World> worlds) {
+        Server server = mock(Server.class);
+        when(server.getLevelDirectory()).thenReturn(levelRoot.toPath());
+        bukkit.when(Bukkit::getServer).thenReturn(server);
+        bukkit.when(Bukkit::getWorldContainer).thenReturn(worldContainer);
+        bukkit.when(Bukkit::getWorlds).thenReturn(worlds);
+    }
+
+    /**
+     * Resolves through CraftServer's fallback and proves the result is Iris' refusal rather than vanilla: Paper
+     * calls getDefaultBiomeProvider before the level exists, and that throw is what stops the level being created.
+     */
+    private static String assertFailsClosed(Supplier<ChunkGenerator> resolution) {
+        ChunkGenerator vanillaFallback = mock(ChunkGenerator.class);
+        ChunkGenerator selected = craftBukkitGeneratorOrFallback(resolution, vanillaFallback);
+        assertNotSame(vanillaFallback, selected);
+        IllegalStateException refusal = assertThrows(
+                IllegalStateException.class,
+                () -> selected.getDefaultBiomeProvider(mock(WorldInfo.class)));
+        return refusal.getMessage();
     }
 
     private static void writeValidPack(Path packRoot) throws Exception {

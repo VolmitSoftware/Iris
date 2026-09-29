@@ -61,7 +61,7 @@ public final class MissingWorldStorageLog {
         }
         emit(new String[]{
                 IrisLogging.format("Iris world %s has an empty world folder at %s: no pack snapshot, no region"
-                        + " data; it will generate as vanilla terrain.", worldName, worldStorage),
+                        + " data; Iris refuses to generate it and no other generator gets it.", worldName, worldStorage),
                 IrisLogging.format("Delete that folder, or drop the world with /iris remove world=%s delete=true.",
                         worldName)
         });

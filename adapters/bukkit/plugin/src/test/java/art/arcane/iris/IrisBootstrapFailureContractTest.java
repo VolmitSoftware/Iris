@@ -8,10 +8,16 @@ import io.papermc.paper.plugin.lifecycle.event.handler.configuration.LifecycleEv
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEventType;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.io.IOException;
 
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisBootstrapFailureContractTest {
@@ -30,6 +36,27 @@ public class IrisBootstrapFailureContractTest {
         assertSame(eventType, manager.eventType);
         IllegalStateException failure = assertThrows(IllegalStateException.class, manager::runCapturedHandler);
         assertSame(cause, failure.getCause());
+    }
+
+    @Test
+    public void bootstrapFailureIsReportedWithTheRefusalBanner() {
+        BootstrapContext context = mock(BootstrapContext.class);
+        ComponentLogger logger = mock(ComponentLogger.class);
+        when(context.getLogger()).thenReturn(logger);
+        when(context.getLifecycleManager()).thenReturn(new CapturingLifecycleManager());
+        IllegalStateException failure = new IllegalStateException("Iris world storage is unusable",
+                new IOException("Invalid generation manifest: manifest.json"));
+
+        IrisBootstrap.armStartupFailure(context, failure, lifecycleEventType());
+
+        ArgumentCaptor<String> lines = ArgumentCaptor.forClass(String.class);
+        verify(logger, atLeastOnce()).error(lines.capture());
+        String banner = String.join("\n", lines.getAllValues());
+        assertTrue(banner, banner.startsWith("=".repeat(78)));
+        assertTrue(banner, banner.contains("Cause: Iris world storage is unusable"));
+        assertTrue(banner, banner.contains("Caused by: Invalid generation manifest: manifest.json"));
+        assertTrue(banner, banner.contains("no chunks are written"));
+        assertTrue(banner, banner.contains("--safeMode"));
     }
 
     @SuppressWarnings("unchecked")

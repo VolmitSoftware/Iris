@@ -53,6 +53,46 @@ public class BukkitWorldConfigurationTest {
         )), bindings);
     }
 
+    /**
+     * CraftServer only asks a plugin for a generator when bukkit.yml names it, so a world bound to Iris - a vanilla
+     * slot included - is one a disabled Iris would hand to the vanilla generator. An entry for a world the server
+     * never loads is not.
+     */
+    @Test
+    public void detectsIrisBindingsOnlyForWorldsTheServerLoads() throws Exception {
+        Path levelRoot = temporaryFolder.newFolder("loading", "world").toPath();
+        File overworld = temporaryFolder.newFile("iris-overworld.yml");
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("worlds.world.generator", "iris:overworld");
+        yaml.set("worlds.world_nether.generator", "Other:generator");
+        yaml.save(overworld);
+        File bare = temporaryFolder.newFile("iris-bare.yml");
+        yaml = new YamlConfiguration();
+        yaml.set("worlds.world_the_end.generator", "Iris");
+        yaml.save(bare);
+        File other = temporaryFolder.newFile("other-only.yml");
+        yaml = new YamlConfiguration();
+        yaml.set("worlds.world.generator", "Irish:overworld");
+        yaml.set("worlds.world_nether.seed", 1337L);
+        yaml.save(other);
+        File leftovers = temporaryFolder.newFile("leftovers.yml");
+        yaml = new YamlConfiguration();
+        yaml.set("worlds.oldiris.generator", "Iris:overworld");
+        yaml.set("worlds.world_iris_gone.generator", "Iris:overworld");
+        yaml.save(leftovers);
+
+        assertTrue(BukkitWorldConfiguration.configuresLoadingIrisWorld(overworld, levelRoot));
+        assertTrue(BukkitWorldConfiguration.configuresLoadingIrisWorld(bare, levelRoot));
+        assertFalse(BukkitWorldConfiguration.configuresLoadingIrisWorld(other, levelRoot));
+        assertFalse(BukkitWorldConfiguration.configuresLoadingIrisWorld(
+                new File(temporaryFolder.getRoot(), "absent.yml"), levelRoot));
+        assertFalse("no world folder, so the server never loads it",
+                BukkitWorldConfiguration.configuresLoadingIrisWorld(leftovers, levelRoot));
+
+        Files.createDirectories(levelRoot.resolve("dimensions/iris/gone"));
+        assertTrue(BukkitWorldConfiguration.configuresLoadingIrisWorld(leftovers, levelRoot));
+    }
+
     @Test
     public void rejectsCustomIrisBindingWithoutSelectedDimension() throws Exception {
         File configuration = temporaryFolder.newFile("missing-binding-dimension.yml");
@@ -176,6 +216,35 @@ public class BukkitWorldConfigurationTest {
                 levelRoot.resolve("dimensions/iris/broken").toAbsolutePath().normalize(),
                 entryOf(audited, "world_iris_broken").storagePath());
         assertTrue(entryOf(audited, "world_iris_broken").detail().contains("generation history"));
+    }
+
+    /**
+     * A vanilla slot holding an Iris world is audited like any Iris world while bukkit.yml binds it to Iris, and is
+     * reported unbound when it does not, since the server would then build it with the vanilla generator.
+     */
+    @Test
+    public void auditCoversVanillaSlotsThatHoldIrisWorlds() throws Exception {
+        File configuration = temporaryFolder.newFile("audit-vanilla-slots.yml");
+        Path levelRoot = temporaryFolder.newFolder("audit-vanilla-slots", "world").toPath();
+        Files.createDirectories(levelRoot.resolve("dimensions/minecraft/overworld/iris/engine-data"));
+        Files.createDirectories(levelRoot.resolve("dimensions/minecraft/the_nether/iris/pack"));
+        Files.createDirectories(levelRoot.resolve("dimensions/minecraft/the_end/region"));
+        Files.writeString(levelRoot.resolve("dimensions/minecraft/the_end/region/r.0.0.mca"), "terrain");
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("worlds.world.generator", "Iris:overworld");
+        yaml.set("worlds.world_the_end.generator", "Iris:overworld");
+        yaml.save(configuration);
+
+        List<BukkitWorldConfiguration.IrisWorldStorageEntry> audited =
+                BukkitWorldConfiguration.auditIrisWorldStorage(configuration, "world", levelRoot);
+
+        assertEquals(BukkitWorldConfiguration.IrisWorldStorageState.UNUSABLE, stateOf(audited, "world"));
+        assertEquals(BukkitWorldConfiguration.IrisWorldStorageState.UNBOUND, stateOf(audited, "world_nether"));
+        assertEquals(
+                levelRoot.resolve("dimensions/minecraft/the_nether").toAbsolutePath().normalize(),
+                entryOf(audited, "world_nether").storagePath());
+        assertFalse("a vanilla world bound to Iris is the generator resolver's refusal",
+                audited.stream().anyMatch(entry -> entry.configuredWorldName().equals("world_the_end")));
     }
 
     @Test

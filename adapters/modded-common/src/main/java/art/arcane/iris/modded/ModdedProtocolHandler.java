@@ -123,11 +123,11 @@ public final class ModdedProtocolHandler {
     }
 
     public static void onPlayerJoin(NativeProtocolPlayer player) {
-        if (player == null) {
+        if (player == null || ModdedPrimaryWorldRouter.refuseIfUnavailable(player)) {
             return;
         }
         String sessionId = sessionId(player);
-        ModdedStartup.warnPackFailuresTo(player);
+        ModdedStartup.warnStartupFailuresTo(player);
         IrisSessionRegistry current = registry;
         ModdedProtocolTransport currentTransport = transport;
         if (current == null || currentTransport == null) {

@@ -71,6 +71,18 @@ public final class ModdedCommandMessages {
             "iris.modded.irismoddedcommands.teleport_failed_dimension_is_not_loaded",
             "Teleport failed: dimension " + "{dimensionId}" + " is not loaded."
     );
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_FAILED_REASON = TextKey.of(
+            "iris.modded.irismoddedcommands.teleport_failed_reason",
+            "Teleport into " + "{dimensionId}" + " failed: " + "{reason}"
+    );
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_CANCELLED_PLAYER_OFFLINE = TextKey.of(
+            "iris.modded.irismoddedcommands.teleport_cancelled_player_offline",
+            "Teleport into " + "{dimensionId}" + " cancelled: " + "{value}" + " is no longer online."
+    );
+    public static final TextKey IRIS_MODDED_COMMANDS_TELEPORT_REFUSED = TextKey.of(
+            "iris.modded.irismoddedcommands.teleport_refused",
+            "Teleport into " + "{dimensionId}" + " was refused by the server."
+    );
     public static final TextKey IRIS_MODDED_COMMANDS_TELEPORTING = TextKey.of(
             "iris.modded.irismoddedcommands.teleporting",
             "Teleporting " + "{value}" + " to " + "{dimensionId}" + "..."
@@ -1266,6 +1278,9 @@ public final class ModdedCommandMessages {
             IRIS_MODDED_COMMANDS_CONSOLE_MUST_NAME_PLAYER_IRIS_TP_DIMENSION_PLAYER,
             IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS,
             IRIS_MODDED_COMMANDS_TELEPORT_FAILED_DIMENSION_IS_NOT_LOADED,
+            IRIS_MODDED_COMMANDS_TELEPORT_FAILED_REASON,
+            IRIS_MODDED_COMMANDS_TELEPORT_CANCELLED_PLAYER_OFFLINE,
+            IRIS_MODDED_COMMANDS_TELEPORT_REFUSED,
             IRIS_MODDED_COMMANDS_TELEPORTING,
             IRIS_MODDED_COMMANDS_IS_NOT_GENERATED_BY_IRIS_2,
             IRIS_MODDED_COMMANDS_CANNOT_EVACUATE_PRIMARY_WORLD_THERE_IS_NOWHERE_SEND_PLAYERS,

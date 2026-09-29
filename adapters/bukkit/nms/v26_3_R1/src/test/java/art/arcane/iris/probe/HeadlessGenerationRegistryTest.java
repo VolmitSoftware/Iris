@@ -1,7 +1,6 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.spi.PlatformGenerationRegistry;
-import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeWorldGenerationImpl;
 import net.minecraft.data.registries.VanillaRegistries;
 import org.bukkit.Bukkit;
 import org.junit.Test;
@@ -22,8 +21,6 @@ public final class HeadlessGenerationRegistryTest {
             HeadlessNativeTestRegistries::get);
         PlatformGenerationRegistry registry = platform.generationRegistry();
         assertEquals("bukkit-generation-registry-v1", registry.runtimeIdentity());
-        assertEquals(new NativeWorldGenerationImpl().generationRendererIdentity(),
-                registry.generatedDefinitionRendererIdentity());
         assertEquals(registry.canonicalDefinition("minecraft:worldgen/biome", "iris:native_test", biome),
                 registry.generatedDefinition("minecraft:worldgen/biome", "iris:native_test"));
         assertEquals(registry.canonicalDefinition("minecraft:dimension_type", "iris:native_test", dimension),

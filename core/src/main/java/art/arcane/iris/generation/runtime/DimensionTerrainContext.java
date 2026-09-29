@@ -335,6 +335,7 @@ public final class DimensionTerrainContext implements DataProvider {
                         }
                         return new NoiseBounds(minimum, maximum);
                     } catch (Throwable e) {
+                        GenerationFailures.rethrowEngineFailure(e);
                         IrisLogging.reportError(e);
                         return ZERO_NOISE_BOUNDS;
                     }

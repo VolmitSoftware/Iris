@@ -73,6 +73,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
  * Pack validation, dimension lookup, and the world generator / biome provider resolution that the
@@ -90,6 +91,7 @@ public final class IrisWorldGeneratorResolver {
     private final AtomicBoolean externalContentRefreshQueued = new AtomicBoolean();
     private final AtomicBoolean externalContentRefreshRequested = new AtomicBoolean();
     private final Map<Path, PendingSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
+    private final WorldRefusalReporter refusals = new WorldRefusalReporter();
 
     public IrisWorldGeneratorResolver(VolmitPlugin plugin) {
         this.plugin = plugin;
@@ -480,12 +482,28 @@ public final class IrisWorldGeneratorResolver {
         return fallback.get();
     }
 
+    /**
+     * The generator CraftServer asks for. Paper turns a throw or a null here into the vanilla generator, so every
+     * request aimed at an Iris world gets a generator back: the Iris one, or a fail-closed one that refuses to let
+     * the level be created. Only the PlotSquared discovery sentinel, which is never created, gets null.
+     */
     @Nullable
     public ChunkGenerator resolveDefaultWorldGenerator(String worldName, @Nullable String id) {
         if (isPlotSquaredGeneratorDiscoveryProbe(worldName, id)) {
             Iris.debug("Ignoring PlotSquared generator discovery probe");
             return null;
         }
+        try {
+            return requireWorldGenerator(worldName, id);
+        } catch (Throwable failure) {
+            return refuseWorld(worldName, failure);
+        }
+    }
+
+    /**
+     * Resolution for Iris' own loads, which report a failure per world instead of handing it to CraftServer.
+     */
+    public ChunkGenerator requireWorldGenerator(String worldName, @Nullable String id) {
         if (isGeneratorDiscoveryProbe(worldName, id)) {
             Iris.debug("Generator discovery probe for loaded world " + worldName);
             return IrisFailClosedChunkGenerator.discoveryProbe(worldName);
@@ -505,21 +523,37 @@ public final class IrisWorldGeneratorResolver {
             return startupLock;
         }
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
-        if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
-        Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
+        String dimension = id == null || id.isEmpty() ? IrisSettings.get().getGenerator().getDefaultWorldType() : id;
+        Iris.debug("Generator ID: " + dimension + " requested by bukkit/plugin");
 
         File levelRoot = IrisWorldStorage.levelRoot();
         NamespacedKey worldKey = configuredWorldKey(worldName, levelRoot.getName(), levelRoot);
         requireWorldKeyAvailable(worldName, worldKey);
         requireOwnedWorld(worldName, levelRoot, worldKey);
+        return resolveFrozenWorldGenerator(worldName, dimension);
+    }
 
+    public WorldRefusalReporter refusals() {
+        return refusals;
+    }
+
+    private ChunkGenerator refuseWorld(String worldName, Throwable failure) {
+        refusals.report(worldName, refusalKey(worldName), failure);
         try {
-            return resolveFrozenWorldGenerator(worldName, id);
-        } catch (RuntimeException failure) {
-            Iris.reportError("Refusing to load configured Iris world '" + worldName
-                    + "' because its frozen world-local pack snapshot could not be used.", failure);
-            Bukkit.shutdown();
-            throw failure;
+            Iris.reportError(failure);
+        } catch (Throwable loggingFailure) {
+            System.err.println("[Iris] Could not log the refusal of '" + worldName + "': "
+                    + loggingFailure.getClass().getName());
+        }
+        return IrisFailClosedChunkGenerator.refused(worldName, failure);
+    }
+
+    @Nullable
+    private static NamespacedKey refusalKey(String worldName) {
+        try {
+            return messageWorldKey(worldName, IrisWorldStorage.levelRoot().getName());
+        } catch (Throwable unresolved) {
+            return null;
         }
     }
 
@@ -588,10 +622,54 @@ public final class IrisWorldGeneratorResolver {
             return;
         }
         NamespacedKey messageKey = messageWorldKey(worldName, levelRoot.getName());
+        if (!IRIS_DIMENSION_NAMESPACE.equals(messageKey.getNamespace())) {
+            if (dimensionRoot != null && IrisWorldStorage.holdsIrisContent(dimensionRoot.toPath())) {
+                throw new IllegalStateException("'" + worldName + "' (" + messageKey + ") is an Iris world whose"
+                        + " generation history is missing from "
+                        + GenerationHistoryPaths.forDimension(dimensionRoot.toPath()).generationRoot()
+                        + ", so Iris cannot generate it. Restore that folder from a backup. Keep worlds." + worldName
+                        + ".generator in bukkit.yml: without it the server generates vanilla terrain into this world.");
+            }
+            // Only bukkit.yml binds a vanilla slot at startup, and the refusal stops startup, so no command can run
+            // until that binding is gone.
+            throw new IllegalStateException("'" + worldName + "' (" + messageKey
+                    + ") is a vanilla world slot with no Iris world storage, so Iris cannot generate it."
+                    + " Remove worlds." + worldName + ".generator from bukkit.yml"
+                    + leftoverLevelDataRemoval(levelRoot)
+                    + ", start the server, then run /iris replace " + messageKey
+                    + " type=<pack> to replace it with Iris on the next restart.");
+        }
         throw new IllegalStateException("'" + worldName + "' (" + messageKey
                 + ") has no Iris world storage, so Iris cannot generate it."
                 + " Create Iris worlds with /iris create " + IrisWorldStorage.logicalName(messageKey)
                 + " type=<pack>; Iris registers them with Multiverse itself.");
+    }
+
+    /**
+     * A start refused before the level's overworld existed still leaves level.dat behind, and vanilla cannot start
+     * from a level.dat without world generation settings. A level that holds no chunks loses nothing to its removal.
+     */
+    private static String leftoverLevelDataRemoval(File levelRoot) {
+        Path level = levelRoot.toPath();
+        Path overworld = level.resolve("dimensions").resolve("minecraft").resolve("overworld");
+        if (Files.exists(overworld.resolve("data").resolve("minecraft").resolve("world_gen_settings.dat"),
+                LinkOption.NOFOLLOW_LINKS)
+                || hasEntries(overworld.resolve("region"))
+                || hasEntries(level.resolve("region"))) {
+            return "";
+        }
+        return " and delete " + level.resolve("level.dat") + " (this level has no chunks and was never created)";
+    }
+
+    private static boolean hasEntries(Path directory) {
+        if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        try (Stream<Path> entries = Files.list(directory)) {
+            return entries.findAny().isPresent();
+        } catch (IOException unreadable) {
+            return true;
+        }
     }
 
     private static boolean hasGenerationStorage(File dimensionRoot) {

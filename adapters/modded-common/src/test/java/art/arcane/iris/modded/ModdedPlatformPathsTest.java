@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import org.junit.Rule;
 import org.junit.Test;
@@ -90,6 +91,11 @@ public class ModdedPlatformPathsTest {
             @Override
             public boolean checkSpawnPosition(Mob mob, ServerLevelAccessor level, EntitySpawnReason reason) {
                 return false;
+            }
+
+            @Override
+            public Biome unmodifiedBiome(Biome biome) {
+                return biome;
             }
         });
     }

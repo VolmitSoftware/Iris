@@ -1,5 +1,7 @@
 package art.arcane.iris.world.history;
 
+import art.arcane.iris.generation.runtime.GenerationClosedException;
+
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -137,7 +139,7 @@ public final class GenerationAdmission {
 
         private void requireOpen() {
             if (closed) {
-                throw new IllegalStateException("Generation admission belongs to a closed runtime.");
+                throw new GenerationClosedException("Generation admission belongs to a closed runtime.");
             }
         }
 

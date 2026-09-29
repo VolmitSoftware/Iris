@@ -121,11 +121,6 @@ public class ArchivedRegistryCompilerTest {
         }
 
         @Override
-        public String generatedDefinitionRendererIdentity() {
-            return "bootstrap-renderer-v1";
-        }
-
-        @Override
         public String dimensionTypeResourceKey(String packName, String dimensionKey, String dimensionTypeKey) {
             return "iris:" + dimensionTypeKey;
         }

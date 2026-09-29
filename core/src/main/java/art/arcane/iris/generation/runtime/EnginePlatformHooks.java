@@ -94,7 +94,11 @@ public interface EnginePlatformHooks {
         return false;
     }
 
-    default boolean shouldBypassMantleStages(Engine engine) {
+    /**
+     * True while world maintenance forbids the mantle-backed stages. Generating without them would persist a
+     * chunk with no objects, caves or deposits, so the engine refuses the chunk instead.
+     */
+    default boolean shouldRefuseGeneration(Engine engine) {
         return false;
     }
 

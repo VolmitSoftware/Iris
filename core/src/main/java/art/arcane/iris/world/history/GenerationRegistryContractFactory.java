@@ -552,15 +552,14 @@ public final class GenerationRegistryContractFactory {
             for (Map.Entry<GenerationRegistryContract.PhysicalResourceKey, GenerationRegistryContract.GeneratedSource>
                     entry
                     : requiredContract.generatedSources().entrySet()) {
-                GenerationRegistryContract.GeneratedSource previous = generatedSources.get(entry.getKey());
+                GenerationRegistryContract.GeneratedSource previous = generatedSources.putIfAbsent(
+                        entry.getKey(),
+                        entry.getValue()
+                );
                 if (previous != null && !sameGeneratedSemantic(previous, entry.getValue())) {
                     throw new IOException("Retained generation epochs require conflicting generated sources for "
                             + entry.getKey().registryKey() + " / " + entry.getKey().resourceKey() + ".");
                 }
-                generatedSources.put(
-                        entry.getKey(),
-                        preferredGeneratedSource(previous, entry.getValue(), registry)
-                );
             }
         }
         Map<GenerationRegistryContract.PhysicalResourceKey, String> captured = new TreeMap<>();
@@ -596,18 +595,6 @@ public final class GenerationRegistryContractFactory {
         return GenerationRegistryContract.fromDefinitions(captured);
     }
 
-    public static String requireGeneratedSource(
-            GenerationRegistryContract contract,
-            GenerationRegistryContract.PhysicalResourceKey key
-    ) throws IOException {
-        return requireGeneratedSource(
-                contract,
-                key,
-                DataVersion.getRuntime().get(),
-                IrisPlatforms.get().registries().generationRegistry()
-        );
-    }
-
     public static String renderGeneratedSource(
             GenerationRegistryContract contract,
             GenerationRegistryContract.PhysicalResourceKey key,
@@ -622,66 +609,7 @@ public final class GenerationRegistryContractFactory {
                     + requiredKey.registryKey() + " / " + requiredKey.resourceKey() + ".");
         }
         requireGeneratedSemanticFingerprint(requiredKey, source, requiredContract.definitions().get(requiredKey));
-        String sourceFingerprint = fingerprintDefinition(requiredKey,
-                PlatformGenerationRegistry.Definition.exactJson(source.sourceJson()), "generated");
-        if (!source.renderedDefinitionSha256().equals(sourceFingerprint)) {
-            throw new IOException("Historical generated registry source changed for "
-                    + requiredKey.registryKey() + " / " + requiredKey.resourceKey() + ".");
-        }
         return renderGeneratedSemantic(requiredKey, source, requiredFixer);
-    }
-
-    public static String requireGeneratedSource(
-            GenerationRegistryContract contract,
-            GenerationRegistryContract.PhysicalResourceKey key,
-            IDataFixer fixer
-    ) throws IOException {
-        return requireGeneratedSource(
-                contract,
-                key,
-                fixer,
-                IrisPlatforms.get().registries().generationRegistry()
-        );
-    }
-
-    public static String requireGeneratedSource(
-            GenerationRegistryContract contract,
-            GenerationRegistryContract.PhysicalResourceKey key,
-            PlatformGenerationRegistry generationRegistry
-    ) throws IOException {
-        return requireGeneratedSource(
-                contract,
-                key,
-                DataVersion.getRuntime().get(),
-                generationRegistry
-        );
-    }
-
-    public static String requireGeneratedSource(
-            GenerationRegistryContract contract,
-            GenerationRegistryContract.PhysicalResourceKey key,
-            IDataFixer fixer,
-            PlatformGenerationRegistry generationRegistry
-    ) throws IOException {
-        GenerationRegistryContract requiredContract = Objects.requireNonNull(contract, "contract");
-        GenerationRegistryContract.PhysicalResourceKey requiredKey = Objects.requireNonNull(key, "key");
-        IDataFixer requiredFixer = Objects.requireNonNull(fixer, "fixer");
-        PlatformGenerationRegistry registry = Objects.requireNonNull(
-                generationRegistry,
-                "generationRegistry"
-        );
-        GenerationRegistryContract.GeneratedSource source = requiredContract.generatedSources().get(requiredKey);
-        if (source == null) {
-            throw new IOException("Historical generated registry source is missing for "
-                    + requiredKey.registryKey() + " / " + requiredKey.resourceKey() + ".");
-        }
-        String expectedFingerprint = requiredContract.definitions().get(requiredKey);
-        if (expectedFingerprint == null) {
-            throw new IOException("Historical generated registry definition is missing for "
-                    + requiredKey.registryKey() + " / " + requiredKey.resourceKey() + ".");
-        }
-        requireGeneratedSemanticFingerprint(requiredKey, source, expectedFingerprint);
-        return canonicalGeneratedDefinition(requiredKey, source, requiredFixer, registry).value();
     }
 
     public static String fingerprintDefinition(
@@ -783,7 +711,7 @@ public final class GenerationRegistryContractFactory {
                 DIMENSION_TYPE_EFFECTIVE_SOURCE_SCHEMA,
                 GenerationEpochContractFactory.fingerprintDimensionType(dimension.getDimensionType()),
                 GenerationEpochContractFactory.dimensionTypeSemanticJson(dimension.getDimensionType()),
-                registry.generatedDefinitionRendererIdentity(),
+                rendererIdentity(fixer),
                 canonicalDefinition
         );
     }
@@ -833,7 +761,7 @@ public final class GenerationRegistryContractFactory {
                         CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA,
                         generated.semanticFingerprint(),
                         generated.semanticJson(),
-                        registry.generatedDefinitionRendererIdentity(),
+                        rendererIdentity(fixer),
                         generated.definition()
                 );
                 Set<String> tags = biomeTags.computeIfAbsent(generated.physicalKey().resourceKey(), ignored -> new TreeSet<>());
@@ -882,7 +810,7 @@ public final class GenerationRegistryContractFactory {
                     CUSTOM_BIOME_EFFECTIVE_SOURCE_SCHEMA,
                     generated.semanticFingerprint(),
                     generated.semanticJson(),
-                    registry.generatedDefinitionRendererIdentity(),
+                    rendererIdentity(fixer),
                     generated.definition()
             );
         }
@@ -1087,32 +1015,9 @@ public final class GenerationRegistryContractFactory {
         }
     }
 
-    private static GenerationRegistryContract.GeneratedSource preferredGeneratedSource(
-            GenerationRegistryContract.GeneratedSource previous,
-            GenerationRegistryContract.GeneratedSource candidate,
-            PlatformGenerationRegistry registry
-    ) {
-        if (previous == null) {
-            return candidate;
-        }
-        String currentRenderer = requireText(
-                registry.generatedDefinitionRendererIdentity(),
-                "Generated registry renderer identity"
-        );
-        boolean previousMatches = previous.rendererIdentity().equals(currentRenderer);
-        boolean candidateMatches = candidate.rendererIdentity().equals(currentRenderer);
-        if (previousMatches != candidateMatches) {
-            return candidateMatches ? candidate : previous;
-        }
-        return generatedSourceOrder(candidate).compareTo(generatedSourceOrder(previous)) < 0
-                ? candidate
-                : previous;
-    }
-
-    private static String generatedSourceOrder(GenerationRegistryContract.GeneratedSource source) {
-        return source.rendererIdentity() + '\u0000'
-                + source.renderedDefinitionSha256() + '\u0000'
-                + source.sourceJson();
+    // Recorded for diagnostics only. Validation always re-renders the semantics with the current fixer.
+    private static String rendererIdentity(IDataFixer fixer) {
+        return fixer.getClass().getName();
     }
 
     private static boolean sameGeneratedSemantic(
@@ -1130,36 +1035,19 @@ public final class GenerationRegistryContractFactory {
             IDataFixer fixer,
             PlatformGenerationRegistry registry
     ) throws IOException {
-        String currentRenderer = requireText(
-                registry.generatedDefinitionRendererIdentity(),
-                "Generated registry renderer identity"
-        );
-        String renderedSource;
-        if (source.rendererIdentity().equals(currentRenderer)) {
-            renderedSource = source.sourceJson();
-        } else {
-            renderedSource = renderGeneratedSemantic(key, source, fixer);
-        }
-        PlatformGenerationRegistry.Definition definition;
+        String renderedSource = renderGeneratedSemantic(key, source, fixer);
         try {
-            definition = registry.canonicalDefinition(
+            PlatformGenerationRegistry.Definition definition = registry.canonicalDefinition(
                     key.registryKey(),
                     key.resourceKey(),
                     renderedSource
             );
             requireGeneratedDefinition(definition, "historical generated registry definition");
+            return definition;
         } catch (RuntimeException failure) {
             throw new IOException("Historical generated registry source is incompatible for "
                     + key.registryKey() + " / " + key.resourceKey() + ".", failure);
         }
-        if (source.rendererIdentity().equals(currentRenderer)) {
-            String renderedFingerprint = fingerprintDefinition(key, definition, "generated");
-            if (!source.renderedDefinitionSha256().equals(renderedFingerprint)) {
-                throw new IOException("Historical generated registry source changed for "
-                        + key.registryKey() + " / " + key.resourceKey() + ".");
-            }
-        }
-        return definition;
     }
 
     private static String renderGeneratedSemantic(

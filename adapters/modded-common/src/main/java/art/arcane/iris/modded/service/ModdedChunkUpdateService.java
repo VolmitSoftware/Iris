@@ -30,6 +30,7 @@ import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockResolution;
@@ -38,6 +39,7 @@ import art.arcane.iris.modded.ModdedTileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockPlacement;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -47,6 +49,7 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterUpdate;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -149,7 +152,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             int centerZ = player.z() >> 4;
             for (int dx = -PLAYER_CHUNK_RADIUS; dx <= PLAYER_CHUNK_RADIUS; dx++) {
                 for (int dz = -PLAYER_CHUNK_RADIUS; dz <= PLAYER_CHUNK_RADIUS; dz++) {
-                    updateChunk(engine, level, centerX + dx, centerZ + dz);
+                    updatePassChunk(engine, level, centerX + dx, centerZ + dz);
                 }
             }
         });
@@ -157,15 +160,29 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
 
     private void updateForcedChunks(Engine engine, NativeWorld level) {
         new NativeWorldMaintenance(level).forEachForcedChunk(chunkKey ->
-                updateChunk(engine, level, (int) chunkKey, (int) (chunkKey >> 32)));
+                updatePassChunk(engine, level, (int) chunkKey, (int) (chunkKey >> 32)));
     }
 
     public void updateRegeneratedChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
         updateChunk(engine, level, chunkX, chunkZ, false);
     }
 
-    private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
-        updateChunk(engine, level, chunkX, chunkZ, true);
+    /**
+     * One chunk of a level pass. A failed chunk keeps its flags and retries on a later pass without stopping the
+     * chunks after it; only a closed engine ends the level's pass.
+     */
+    private void updatePassChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
+        try {
+            updateChunk(engine, level, chunkX, chunkZ, true);
+        } catch (Throwable failure) {
+            if (engine.isClosed() || engine.getMantle().getMantle().isClosed()) {
+                throw failure;
+            }
+            if (IrisLogging.errorOnce("chunk-update:" + level.name() + ":" + chunkX + "," + chunkZ + ":" + failure,
+                    "Iris chunk update failed at " + chunkX + "," + chunkZ + " in " + level.name() + ", retrying each pass: " + failure)) {
+                IrisLogging.reportError(failure);
+            }
+        }
     }
 
     private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ, boolean requireNeighbors) {
@@ -195,6 +212,11 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
                 chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, () -> runCustomPass(engine, level, chunkX, chunkZ, chunk));
                 chunk.raiseFlagUnchecked(MantleFlag.UPDATE, () -> runUpdatePass(engine, level, chunkX, chunkZ, chunk));
             });
+        } catch (SavedBiomeUnavailableException unavailable) {
+            if (!unavailable.isLoading() || unavailable.getSuppressed().length != 0) {
+                throw unavailable;
+            }
+            IrisLogging.debug("Iris chunk update deferred at " + chunkX + "," + chunkZ + ": saved biomes loading");
         } finally {
             chunk.release();
         }
@@ -315,13 +337,38 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             }
         }
 
-        chunk.iterate(MatterUpdate.class, (Integer x, Integer yf, Integer z, MatterUpdate v) -> {
-            if (v != null && v.isUpdate()) {
-                update(engine, level, x, yf + minHeight, z, baseX, baseZ, chunk);
-            }
-        });
+        IntArrayList completed = new IntArrayList();
+        try {
+            chunk.iterate(MatterUpdate.class, (Integer x, Integer yf, Integer z, MatterUpdate v) -> {
+                if (v != null && v.isUpdate()) {
+                    update(engine, level, x, yf + minHeight, z, baseX, baseZ, chunk);
+                    completed.add((yf << 8) | ((x & 15) << 4) | (z & 15));
+                }
+            });
+        } catch (RuntimeException | Error failure) {
+            forgetCompletedUpdates(chunk, completed, failure);
+            throw failure;
+        }
         chunk.deleteSlices(MatterUpdate.class);
         engine.getMetrics().getUpdates().put(stopwatch.getMilliseconds());
+    }
+
+    private static void forgetCompletedUpdates(MantleChunk<Matter> chunk, IntArrayList completed, Throwable failure) {
+        try {
+            for (int index = 0; index < completed.size(); index++) {
+                int position = completed.getInt(index);
+                int y = position >>> 8;
+                Matter section = chunk.get(y >> 4);
+                if (section != null && section.hasSlice(MatterUpdate.class)) {
+                    section.<MatterUpdate>getSlice(MatterUpdate.class)
+                            .set((position >> 4) & 15, y & 15, position & 15, null);
+                }
+            }
+        } catch (RuntimeException | Error cleanupFailure) {
+            if (cleanupFailure != failure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+        }
     }
 
     private void update(Engine engine, NativeWorld level, int x, int y, int z, int baseX, int baseZ, MantleChunk<Matter> chunk) {
@@ -337,7 +384,12 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             }
             try {
                 ModdedLootApplier.apply(engine, level, pos, state, chunk);
+            } catch (SavedBiomeUnavailableException unavailable) {
+                GenerationFailures.rethrowEngineFailure(unavailable);
+                IrisLogging.warnOnce("chunk-update-loot:" + level.name() + ":" + unavailable.getMessage(),
+                        "Iris left the container at " + pos + " in " + level.name() + " without loot: " + unavailable.getMessage());
             } catch (Throwable e) {
+                GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
             }
         } else {

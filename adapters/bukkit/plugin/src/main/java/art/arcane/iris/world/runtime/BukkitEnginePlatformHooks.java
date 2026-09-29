@@ -189,7 +189,7 @@ public final class BukkitEnginePlatformHooks implements EnginePlatformHooks {
     }
 
     @Override
-    public boolean shouldBypassMantleStages(Engine engine) {
+    public boolean shouldRefuseGeneration(Engine engine) {
         if (!J.isFolia() || !engine.getWorld().hasPlatformWorld()) {
             return false;
         }

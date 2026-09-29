@@ -37,7 +37,7 @@ public class AsyncPregenHistorySyncTest {
             method.close();
         }
         InOrder order = inOrder(admission, engine);
-        order.verify(admission).awaitDrain(anyLong(), any(), any());
+        order.verify(admission).awaitDrain(anyLong(), any(), anyLong(), any(), any());
         order.verify(engine).syncGenerationHistory();
     }
 
@@ -63,6 +63,8 @@ public class AsyncPregenHistorySyncTest {
         set(method, "world", world);
         set(method, "closing", new AtomicBoolean());
         set(method, "holdsWorkerBoost", new AtomicBoolean());
+        when(admission.awaitDrain(anyLong(), any(), anyLong(), any(), any()))
+                .thenReturn(new PregenAdmissionGate.Drain(true, false, 0));
         set(method, "admission", admission);
         set(method, "mantleCleanup", new PregenSerialWorker("Test Mantle Cleanup", "world"));
         set(method, "chunkFlush", new PregenSerialWorker("Test Chunk Flush", "world"));

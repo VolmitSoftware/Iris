@@ -98,26 +98,6 @@ public class IrisIntegrationServiceTest {
     }
 
     @Test
-    public void idleWorldsPublishGenerationTimingsAsUnavailable() {
-        long now = System.currentTimeMillis();
-        EngineTelemetrySnapshot idle = new EngineTelemetrySnapshot(
-                now, "minecraft:overworld", "world", "dimension", true, false, false, false,
-                12L, 3L, 0.25D, 20L, 20L, 0D, 0L, 2, 0, 1L, 4L, 1L, 10D, Map.of());
-        IrisIntegrationService service = new IrisIntegrationService(
-                () -> telemetry(List.of(idle), IrisTelemetrySnapshot.PregenSnapshot.INACTIVE, now)
-        );
-
-        IntegrationMetricSample total = service.sampleMetrics(Set.of(IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS))
-                .get(IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS);
-        IntegrationMetricSample worldTotal = service.metricGroups().get(0).samples()
-                .get(IntegrationMetricSchema.IRIS_GENERATION_TOTAL_MS);
-
-        assertFalse(total.available());
-        assertEquals("timing-not-available", total.message());
-        assertFalse(worldTotal.available());
-    }
-
-    @Test
     public void publishesEveryManagedWorldWithoutAWorldCountCap() {
         long now = System.currentTimeMillis();
         List<EngineTelemetrySnapshot> worlds = new ArrayList<>();

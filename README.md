@@ -23,9 +23,9 @@ Canonical English is defined in the typed Java catalogs under `core/src/main/jav
 | Paper / Purpur / Leaf / Canvas | plugin jar | 26.1.2 - 26.2 | Full feature set |
 | Folia | plugin jar | 26.1.2 - 26.2 | Region-safe scheduling throughout |
 | Spigot / CraftBukkit | plugin jar | 26.1.2 - 26.2 | Managed `iris:*` creation and generation; exact vanilla-slot `/iris replace` is unavailable |
-| Fabric | mod jar | 26.2 | Server worldgen + client HUD; requires Fabric Loader 0.19.3+ |
-| Forge | mod jar | 26.2 | Server worldgen + client HUD; current target is Forge 26.2-65.1.1 |
-| NeoForge | mod jar | 26.2 | Server worldgen + client HUD; current target is NeoForge 26.2.0.59 |
+| Fabric | mod jar | 26.3 | Server worldgen + client HUD; requires Fabric Loader 0.19.5+ |
+| Forge | mod jar | 26.3 | Server worldgen + client HUD; current target is Forge 26.3-66.0.8 |
+| NeoForge | mod jar | 26.3 | Server worldgen + client HUD; current target is NeoForge 26.3.0.33-beta |
 
 Java 25 is required on every platform.
 

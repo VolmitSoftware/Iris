@@ -1,7 +1,7 @@
 {
   "pack": {
     "description": "Iris client resources and mod data",
-    "min_format": [88, 0],
-    "max_format": [107, 1]
+    "min_format": [97, 1],
+    "max_format": [121, 0]
   }
 }

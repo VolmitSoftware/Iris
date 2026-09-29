@@ -49,16 +49,16 @@ multiverseCore = "5.8.0"
 craftengine = "26.8.2" # https://github.com/Xiao-MoMi/craft-engine/releases
 
 # Fabric API (net.fabricmc.fabric-api) - each module is independently versioned
-fabricApi-base = "2.0.4+ece063239e"
-fabricApi-registrySync = "7.1.0+c7bd5b8e9e"
-fabricApi-resourceLoader = "2.0.13+9edec1269e"
-fabricApi-lifecycleEvents = "4.1.3+4575b05f9e"
-fabricApi-commandApi = "3.1.0+00cb03469e"
-fabricApi-eventsInteraction = "5.2.6+8f57f7ee9e"
-fabricApi-networking = "6.3.3+72073ef09e"
-fabricApi-rendering = "25.3.1+6988455e9e"
-fabricApi-keyMapping = "2.0.5+e2bdee789e"
-fabricApi-permission = "1.0.3+b7020ca29e"
+fabricApi-base = "2.0.6+fcdff87f5d"
+fabricApi-registrySync = "8.0.1+fcdff87f5d"
+fabricApi-resourceLoader = "3.0.4+fcdff87f5d"
+fabricApi-lifecycleEvents = "4.1.9+ffef5f675d"
+fabricApi-commandApi = "3.1.2+fcdff87f5d"
+fabricApi-eventsInteraction = "5.3.6+3434d6d95d"
+fabricApi-networking = "6.3.8+fcdff87f5d"
+fabricApi-rendering = "27.0.14+901a437c5d"
+fabricApi-keyMapping = "2.0.8+3434d6d95d"
+fabricApi-permission = "1.0.8+fcdff87f5d"
 
 [libraries]
 # Core Libraries

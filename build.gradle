@@ -340,7 +340,6 @@ Closure<File> resolveLocalVolmLibDirectory = { ->
 List<Object> moddedSharedInputs = []
 [
     'adapters/modded-common/src',
-    'adapters/minecraft-common/src',
     'adapters/client-common/src',
     'core/src/main',
     'core/build.gradle',

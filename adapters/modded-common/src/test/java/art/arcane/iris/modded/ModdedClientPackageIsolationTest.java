@@ -17,7 +17,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Dist gate. The loader source sets fold modded-common, minecraft-common and client-common into one output, so
+ * Dist gate. The loader source sets fold modded-common and client-common into one output, so
  * nothing at compile time stops a server-side class from touching a client-only type. On a dedicated server
  * that is a NoClassDefFoundError at the first call, usually deep inside worldgen.
  *

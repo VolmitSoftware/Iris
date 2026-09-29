@@ -11,7 +11,6 @@ public final class GenerationRevisionScope {
             "core/src/main/java",
             "spi/src/main/java",
             "adapters/bukkit/plugin/src/main/java",
-            "adapters/minecraft-common/src/main/java",
             "adapters/modded-common/src/main/java",
             "adapters/client-common/src/main/java",
             "adapters/fabric/src/main/java",

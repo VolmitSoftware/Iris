@@ -298,9 +298,10 @@ properties:
 | `-PirisWorldCheck=<world>` | `iris.worldcheck` | Post-generation world integrity check |
 
 Fabric additionally takes `-PirisClientRunDir=<dir>` to relocate the `runClient` working directory.
-Shared code lives in `adapters/minecraft-common` (all adapters), `adapters/modded-common`
-(loaders + the shared test suite), and `adapters/client-common` (client HUD and world-type
-screens); every adapter adds those source directories, so one edit reaches all three loaders.
+Shared code lives in `adapters/modded-common` (loaders + the shared test suite) and
+`adapters/client-common` (client HUD and world-type screens); every adapter adds those source
+directories, so one edit reaches all three loaders. Shared Minecraft-native code lives in VolmLib
+(`native/minecraft-common`).
 
 For IDE import you can surface the three adapter builds in the root composite with
 `-PincludeModdedAdapters=true`. It is off by default: each adapter includes the root build back to

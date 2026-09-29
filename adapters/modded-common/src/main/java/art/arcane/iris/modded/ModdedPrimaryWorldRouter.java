@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -124,7 +123,7 @@ public final class ModdedPrimaryWorldRouter {
             try {
                 CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player,
                         new NativeWorldTeleport.Destination(server, target, player.x(), Double.MIN_VALUE, player.z(),
-                                System.nanoTime() + TimeUnit.SECONDS.toNanos(10)));
+                                ModdedTeleportDeadline.fromNow()));
                 teleport.whenComplete((success, failure) -> {
                     inFlight.remove(id);
                     if (Boolean.TRUE.equals(success) && failure == null) {

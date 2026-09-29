@@ -2,14 +2,21 @@ package art.arcane.iris.modded;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.MockedStatic;
+import org.mockito.invocation.InvocationOnMock;
 
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -180,6 +187,46 @@ public class ModdedPrimaryWorldRouterTest {
             verify(online).disconnect(contains(PRIMARY));
             assertTrue(ModdedPrimaryWorldRouter.refuseIfUnavailable(mock(NativeProtocolPlayer.class)));
         }
+    }
+
+    /**
+     * Routing waits on the primary world's first chunk, which on a cold world also loads the pack and binds the
+     * engine, so it gets the same bounded deadline as /iris tp instead of timing out and retrying every second.
+     */
+    @Test
+    public void routingWaitsForAColdPrimaryWorldWithinTheTeleportDeadline() {
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        NativeWorld overworld = mock(NativeWorld.class);
+        when(overworld.nativeHandle()).thenReturn(new Object());
+        NativeWorld primary = mock(NativeWorld.class);
+        when(primary.nativeHandle()).thenReturn(new Object());
+        when(server.overworld()).thenReturn(overworld);
+        NativeProtocolPlayer player = mock(NativeProtocolPlayer.class);
+        when(player.id()).thenReturn(UUID.randomUUID());
+        when(player.isInWorld(overworld)).thenReturn(true);
+        onlinePlayers(server, player);
+        ModdedModConfig routed = config(true, PRIMARY);
+        AtomicReference<NativeWorldTeleport.Destination> requested = new AtomicReference<>();
+
+        long before = System.nanoTime();
+        try (MockedStatic<ModdedModConfig> configs = mockStatic(ModdedModConfig.class);
+             MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
+             MockedStatic<NativeWorldTeleport> teleport = mockStatic(NativeWorldTeleport.class)) {
+            configs.when(ModdedModConfig::get).thenReturn(routed);
+            manager.when(() -> ModdedDimensionManager.level(server, PRIMARY)).thenReturn(primary);
+            teleport.when(() -> NativeWorldTeleport.teleport(any(), any())).thenAnswer((InvocationOnMock invocation) -> {
+                requested.set(invocation.getArgument(1));
+                return new CompletableFuture<Boolean>();
+            });
+
+            evaluate(server);
+        }
+        long after = System.nanoTime();
+
+        assertSame(primary, requested.get().world());
+        long deadline = requested.get().deadlineNanos();
+        assertTrue("deadline must outlast a cold first chunk", deadline - before >= TimeUnit.SECONDS.toNanos(60L));
+        assertTrue("deadline must be bounded", deadline - after <= TimeUnit.SECONDS.toNanos(120L));
     }
 
     private static ModdedDimensionRegistryStore.PersistentDimension persisted() {

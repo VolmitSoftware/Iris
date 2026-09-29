@@ -25,6 +25,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.modded.ModdedIrisLog;
+import art.arcane.iris.modded.ModdedTeleportDeadline;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Optional;
 import art.arcane.volmlib.nativelib.view.WorldView;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class ModdedVisionOverlay implements GuiOverlay {
@@ -63,8 +63,7 @@ public final class ModdedVisionOverlay implements GuiOverlay {
         world.execute(() -> {
             int surfaceY = engine.getMinHeight() + engine.getHeight(blockX, blockZ, false) + 2;
             Optional<WorldView.TeleportOperation> operation = world.teleport(opener,
-                    new WorldView.Destination(blockX + 0.5D, surfaceY, blockZ + 0.5D,
-                            System.nanoTime() + TimeUnit.SECONDS.toNanos(10L)));
+                    new WorldView.Destination(blockX + 0.5D, surfaceY, blockZ + 0.5D, ModdedTeleportDeadline.fromNow()));
             if (operation.isEmpty()) {
                 return;
             }

@@ -152,15 +152,21 @@ public final class IrisWorldRemovalService {
             boolean deleteFiles,
             AtomicBoolean terminal
     ) {
+        // Maintenance that forbids mantle stages refuses every chunk, and Folia treats a refused chunk as a chunk
+        // system failure, so it starts only once no player is left to request one.
+        AtomicBoolean maintenanceEntered = new AtomicBoolean(false);
         CompletableFuture<RemovalResult> operation = phase(
-                RemovalStatus.RESOLUTION_FAILED,
-                () -> backend.beginMaintenance(resolved).thenApply(ignored -> resolved),
+                RemovalStatus.TELEPORT_FAILED,
+                () -> backend.evacuatePlayers(resolved).thenApply(ignored -> resolved),
                 terminal
         )
                 .thenCompose(activeWorld -> phase(
-                        RemovalStatus.TELEPORT_FAILED,
-                        () -> backend.evacuatePlayers(activeWorld)
-                                .thenApply(ignored -> activeWorld),
+                        RemovalStatus.RESOLUTION_FAILED,
+                        () -> {
+                            CompletableFuture<Void> begun = backend.beginMaintenance(activeWorld);
+                            maintenanceEntered.set(true);
+                            return begun.thenApply(ignored -> activeWorld);
+                        },
                         terminal
                 ))
                 .thenCompose(activeWorld -> phase(
@@ -198,7 +204,7 @@ public final class IrisWorldRemovalService {
                     );
                 }));
 
-        return operation.handle((result, throwable) -> backend.endMaintenance(resolved)
+        return operation.handle((result, throwable) -> endMaintenance(resolved, maintenanceEntered.get())
                 .handle((ignored, cleanupFailure) -> {
                     if (cleanupFailure != null) {
                         Throwable unwrappedCleanup = unwrap(cleanupFailure);
@@ -214,6 +220,10 @@ public final class IrisWorldRemovalService {
                     }
                     return result;
                 })).thenCompose(result -> result);
+    }
+
+    private CompletableFuture<Void> endMaintenance(ResolvedWorld resolved, boolean entered) {
+        return entered ? backend.endMaintenance(resolved) : CompletableFuture.completedFuture(null);
     }
 
     private CompletableFuture<ResolvedWorld> validateResolvedWorld(ResolvedWorld resolvedWorld) {

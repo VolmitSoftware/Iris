@@ -67,9 +67,23 @@ public class IrisWorldRemovalServiceTest {
         assertTrue(result.succeeded());
         assertTrue(result.registryChanged());
         assertEquals(
-                List.of("resolve", "begin", "evacuate", "unload", "close", "unregister", "unregisterRegistry", "end"),
+                List.of("resolve", "evacuate", "begin", "unload", "close", "unregister", "unregisterRegistry", "end"),
                 backend.operations
         );
+        assertTrue(coordinator.isIdle());
+    }
+
+    @Test
+    public void mantleBypassMaintenanceStartsOnlyAfterPlayersLeave() throws Exception {
+        LifecycleOperationCoordinator coordinator = new LifecycleOperationCoordinator();
+        FakeBackend backend = new FakeBackend(target("evacuation-failed"));
+        backend.evacuation = CompletableFuture.failedFuture(new IllegalStateException("no destination world"));
+        IrisWorldRemovalService service = new IrisWorldRemovalService(coordinator, backend);
+
+        IrisWorldRemovalService.RemovalResult result = service.remove("evacuation-failed", true).join();
+
+        assertEquals(IrisWorldRemovalService.RemovalStatus.TELEPORT_FAILED, result.status());
+        assertEquals(List.of("resolve", "evacuate"), backend.operations);
         assertTrue(coordinator.isIdle());
     }
 

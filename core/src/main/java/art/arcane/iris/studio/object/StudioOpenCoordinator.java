@@ -459,12 +459,14 @@ public final class StudioOpenCoordinator {
     ) {
         AtomicBoolean unloadConfirmed = new AtomicBoolean(false);
         AtomicBoolean folderDeleted = new AtomicBoolean(!deleteFolder);
-        if (world != null) {
-            IrisToolbelt.beginWorldMaintenance(world, "studio-close", true);
-        }
 
         CompletableFuture<Void> sequence = sequenceStudioClose(
                 () -> evacuateWorldFamily(worldName, world),
+                () -> {
+                    if (world != null) {
+                        IrisToolbelt.beginWorldMaintenance(world, "studio-close", true);
+                    }
+                },
                 () -> unloadWorldFamily(worldName, world).thenRun(() -> unloadConfirmed.set(true)),
                 () -> provider == null ? CompletableFuture.completedFuture(null) : provider.closeAsync(),
                 () -> deleteFolder
@@ -491,14 +493,22 @@ public final class StudioOpenCoordinator {
                 });
     }
 
+    /**
+     * Maintenance that forbids mantle stages refuses every chunk, and Folia treats a refused chunk as a chunk
+     * system failure, so it is entered only once no player is left to request one.
+     */
     static CompletableFuture<Void> sequenceStudioClose(
             Supplier<CompletableFuture<Void>> evacuate,
+            Runnable enterMaintenance,
             Supplier<CompletableFuture<Void>> unload,
             Supplier<CompletableFuture<Void>> closeGenerator,
             Supplier<CompletableFuture<Void>> deleteFolders
     ) {
         return invokePhase(evacuate)
-                .thenCompose(ignored -> invokePhase(unload))
+                .thenCompose(ignored -> {
+                    enterMaintenance.run();
+                    return invokePhase(unload);
+                })
                 .thenCompose(ignored -> invokePhase(closeGenerator))
                 .thenCompose(ignored -> invokePhase(deleteFolders));
     }

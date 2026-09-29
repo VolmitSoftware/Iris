@@ -756,12 +756,17 @@ public class IrisCreator {
             }
         }
         if (activeWorld != null) {
-            IrisToolbelt.beginWorldMaintenance(activeWorld, "world-create-rollback", true);
+            boolean maintenanceEntered = false;
             try {
                 PlatformChunkGenerator generator = IrisToolbelt.access(activeWorld);
                 boolean evacuated = Boolean.TRUE.equals(IrisToolbelt.evacuateAsync(activeWorld)
                         .get(ROLLBACK_PHASE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-                if (!evacuated) {
+                if (evacuated) {
+                    // Maintenance that forbids mantle stages refuses every chunk, and Folia treats a refused chunk
+                    // as a chunk system failure, so it starts only once no player is left to request one.
+                    IrisToolbelt.beginWorldMaintenance(activeWorld, "world-create-rollback", true);
+                    maintenanceEntered = true;
+                } else {
                     safeToDelete = false;
                     failure.addSuppressed(new IllegalStateException(
                             "Rollback could not evacuate world \"" + name + "\"."));
@@ -789,7 +794,9 @@ public class IrisCreator {
                     ServerConfigurator.restart("World creation rollback timed out for \"" + name + "\".");
                 }
             } finally {
-                IrisToolbelt.endWorldMaintenance(activeWorld, "world-create-rollback", true);
+                if (maintenanceEntered) {
+                    IrisToolbelt.endWorldMaintenance(activeWorld, "world-create-rollback", true);
+                }
             }
         }
 

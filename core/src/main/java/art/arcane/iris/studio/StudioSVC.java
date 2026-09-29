@@ -1098,12 +1098,14 @@ public class StudioSVC implements IrisService {
     }
 
     private void destroyStudioWorld(World world, PlatformChunkGenerator generator) {
-        IrisToolbelt.beginWorldMaintenance(world, "studio-disable", true);
         try {
             IrisToolbelt.evacuate(world);
         } catch (Throwable e) {
             IrisLogging.reportError("Failed to evacuate studio world \"" + world.getName() + "\" during shutdown cleanup.", e);
         }
+        // Entered after the evacuation: maintenance that forbids mantle stages refuses every chunk, and Folia
+        // treats a refused chunk as a chunk system failure.
+        IrisToolbelt.beginWorldMaintenance(world, "studio-disable", true);
         try {
             WorldLifecycleService.get().unloadAsync(world, false)
                     .thenCompose(unloaded -> {

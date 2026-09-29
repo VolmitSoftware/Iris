@@ -144,6 +144,37 @@ public class GenerationHistoryAdmissionTest {
     }
 
     @Test
+    public void liveBoundaryCaptureLeavesHistoryReadableFromOtherThreads() throws Exception {
+        GenerationHistory history = history();
+        Path replacement = pack("replacement", "beta");
+        GenerationActivation pending = history.stageUpdate(replacement, fingerprint(replacement),
+                history.activeEpoch().dimensionContract(), GenerationRegistryContract.empty(), 32);
+        ExecutorService tickThread = Executors.newSingleThreadExecutor();
+        try (GenerationHistory.LiveCutover cutover = history.beginLiveCutover()) {
+            GenerationActivation promoted = cutover.promote(boundary -> new TerrainBoundarySignatureStore.SignatureSampler() {
+                @Override
+                public TerrainBoundarySignature sample(int blockX, int blockZ) {
+                    return null;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    try {
+                        assertEquals(pending.activationId(), tickThread.submit(history::pendingActivation)
+                                .get(1, TimeUnit.SECONDS).orElseThrow().activationId());
+                    } catch (InterruptedException | ExecutionException | TimeoutException failure) {
+                        throw new IOException("History was unreadable while the boundary checkpoint waited", failure);
+                    }
+                }
+            });
+            assertEquals(pending.activationId(), promoted.activationId());
+        } finally {
+            drain(tickThread);
+        }
+        assertEquals(pending.activationId(), history.activeActivation().activationId());
+    }
+
+    @Test
     public void failedMetadataReadReleasesItsStageAdmission() throws Exception {
         GenerationHistory history = history();
         GenerationAdmission.RuntimeLease runtime = history.retainRuntime();

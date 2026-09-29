@@ -457,9 +457,7 @@ public final class GenerationHistory {
                 "signatureCapture"
         );
         try (GenerationAdmission.CutoverLease ignored = admission.beginStartupCutover()) {
-            synchronized (this) {
-                return promotePendingLocked(requiredCapture, true, true);
-            }
+            return promoteCaptured(requiredCapture, true);
         }
     }
 
@@ -478,9 +476,7 @@ public final class GenerationHistory {
 
         GenerationActivation promote(BoundarySignatureCapture signatureCapture) throws IOException {
             requireOpen();
-            synchronized (GenerationHistory.this) {
-                return promotePendingLocked(Objects.requireNonNull(signatureCapture, "signature capture"), false, true);
-            }
+            return promoteCaptured(Objects.requireNonNull(signatureCapture, "signature capture"), false);
         }
 
         private void requireOpen() {
@@ -497,34 +493,67 @@ public final class GenerationHistory {
         }
     }
 
+    private GenerationActivation promoteCaptured(
+            BoundarySignatureCapture signatureCapture, boolean startupRecovery
+    ) throws IOException {
+        Optional<PreparedPromotion> prepared;
+        synchronized (this) {
+            prepared = preparePromotionLocked(startupRecovery, true);
+        }
+        if (prepared.isEmpty()) {
+            return activeActivation();
+        }
+        TerrainBoundarySignatureStore.Snapshot terrainSnapshot = publishTerrainSignatures(prepared.get(), signatureCapture);
+        synchronized (this) {
+            return completePromotionLocked(prepared.get(), terrainSnapshot);
+        }
+    }
+
     private GenerationActivation promotePendingLocked(
             BoundarySignatureCapture signatureCapture, boolean startupRecovery, boolean validateSemantics
+    ) throws IOException {
+        Optional<PreparedPromotion> prepared = preparePromotionLocked(startupRecovery, validateSemantics);
+        if (prepared.isEmpty()) {
+            return store.activeActivation();
+        }
+        return completePromotionLocked(prepared.get(), publishTerrainSignatures(prepared.get(), signatureCapture));
+    }
+
+    private Optional<PreparedPromotion> preparePromotionLocked(
+            boolean startupRecovery, boolean validateSemantics
     ) throws IOException {
         sync();
         WorldChunkInventory inventory = recoverUnstoredClaims(startupRecovery);
         validateReferencedState(Optional.empty(), validateSemantics);
         Optional<GenerationActivation> pending = store.pendingActivation();
         if (pending.isEmpty()) {
-            return store.activeActivation();
+            return Optional.empty();
         }
 
         long outgoingActivationId = store.activeActivation().activationId();
         ownership.assignUnassigned(inventory, outgoingActivationId);
         ownership.persist();
         requireExplicitOwnership(inventory);
-        GenerationBoundary boundary = boundaries.publishOwnership(
-                pending.get().activationId(),
-                ownership
-        );
-        TerrainBoundarySignatureStore.Snapshot terrainSnapshot;
+        long pendingActivationId = pending.get().activationId();
+        return Optional.of(new PreparedPromotion(pendingActivationId, boundaries.publishOwnership(pendingActivationId, ownership)));
+    }
+
+    private TerrainBoundarySignatureStore.Snapshot publishTerrainSignatures(
+            PreparedPromotion prepared, BoundarySignatureCapture signatureCapture
+    ) throws IOException {
         try (TerrainBoundarySignatureStore.SignatureSampler sampler = Objects.requireNonNull(
-                signatureCapture.capture(boundary), "boundary signature sampler"
+                signatureCapture.capture(prepared.boundary()), "boundary signature sampler"
         )) {
-            terrainSnapshot = terrainSignatures.publish(pending.get().activationId(), boundary, sampler);
+            return terrainSignatures.publish(prepared.activationId(), prepared.boundary(), sampler);
         }
+    }
+
+    private GenerationActivation completePromotionLocked(
+            PreparedPromotion prepared, TerrainBoundarySignatureStore.Snapshot terrainSnapshot
+    ) throws IOException {
         GenerationActivation completed = store.completePendingTransition(
-                pending.get().activationId(),
-                boundary.identity(),
+                prepared.activationId(),
+                prepared.boundary().identity(),
                 terrainSnapshot.identity()
         );
         GenerationActivation activated = store.activatePending(completed.activationId());
@@ -1395,6 +1424,9 @@ public final class GenerationHistory {
     @FunctionalInterface
     public interface BoundarySignatureCapture {
         TerrainBoundarySignatureStore.SignatureSampler capture(GenerationBoundary boundary) throws IOException;
+    }
+
+    private record PreparedPromotion(long activationId, GenerationBoundary boundary) {
     }
     public record FreshCreation(Path dimensionRoot, Path packSource, String packFingerprint, long worldSeed,
                                 GenerationEpoch.DimensionContract dimensionContract, GenerationRegistryContract registryContract) {

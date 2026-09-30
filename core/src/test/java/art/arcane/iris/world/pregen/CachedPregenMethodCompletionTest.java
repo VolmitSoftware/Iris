@@ -63,6 +63,13 @@ public class CachedPregenMethodCompletionTest {
     }
 
     @Test
+    public void inFlightChunksReportTheWrappedMethodsOutstandingRequests() {
+        underlying.inFlight.set(37);
+
+        assertEquals(37, method.inFlightChunks());
+    }
+
+    @Test
     public void generateChunkFailureIsNotCached() {
         method.generateChunk(6, 9, listener);
         underlying.capturedListener.get().onChunkFailed(6, 9);
@@ -186,9 +193,15 @@ public class CachedPregenMethodCompletionTest {
         private final AtomicInteger centerBlockX = new AtomicInteger();
         private final AtomicInteger centerBlockZ = new AtomicInteger();
         private final AtomicReference<PregenListener> capturedListener = new AtomicReference<>();
+        private final AtomicInteger inFlight = new AtomicInteger();
 
         @Override
         public void init() {
+        }
+
+        @Override
+        public int inFlightChunks() {
+            return inFlight.get();
         }
 
         @Override

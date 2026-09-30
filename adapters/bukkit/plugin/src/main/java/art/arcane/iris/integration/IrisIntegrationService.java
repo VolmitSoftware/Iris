@@ -319,6 +319,7 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
                     IntegrationMetricSchema.IRIS_PREGEN_GENERATED,
                     IntegrationMetricSchema.IRIS_PREGEN_TOTAL,
                     IntegrationMetricSchema.IRIS_PREGEN_QUEUE,
+                    IntegrationMetricSchema.IRIS_PREGEN_REMAINING,
                     IntegrationMetricSchema.IRIS_PREGEN_THROUGHPUT,
                     IntegrationMetricSchema.IRIS_PREGEN_ETA_MS,
                     IntegrationMetricSchema.IRIS_PREGEN_ELAPSED_MS,
@@ -332,7 +333,8 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
         put(samples, IntegrationMetricSchema.IRIS_PREGEN_PROGRESS, pregenerator.progressPercent(), sampledAtMs);
         put(samples, IntegrationMetricSchema.IRIS_PREGEN_GENERATED, pregenerator.generated(), sampledAtMs);
         put(samples, IntegrationMetricSchema.IRIS_PREGEN_TOTAL, pregenerator.total(), sampledAtMs);
-        put(samples, IntegrationMetricSchema.IRIS_PREGEN_QUEUE, pregenerator.remaining(), sampledAtMs);
+        put(samples, IntegrationMetricSchema.IRIS_PREGEN_QUEUE, pregenerator.inFlight(), sampledAtMs);
+        put(samples, IntegrationMetricSchema.IRIS_PREGEN_REMAINING, pregenerator.remaining(), sampledAtMs);
         put(samples, IntegrationMetricSchema.IRIS_PREGEN_THROUGHPUT, pregenerator.chunksPerSecond(), sampledAtMs);
         put(samples, IntegrationMetricSchema.IRIS_PREGEN_ETA_MS, pregenerator.etaMs(), sampledAtMs);
         put(samples, IntegrationMetricSchema.IRIS_PREGEN_ELAPSED_MS, pregenerator.elapsedMs(), sampledAtMs);

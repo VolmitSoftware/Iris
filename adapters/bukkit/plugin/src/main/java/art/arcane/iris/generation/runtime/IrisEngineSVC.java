@@ -460,8 +460,12 @@ public final class IrisEngineSVC implements IrisService {
                     continue;
                 }
 
-                double chunksPerSecond = registered.sampleChunksPerSecond(engine.getGenerated(), now);
-                worldSnapshots.add(EngineTelemetrySnapshot.capture(engine, chunksPerSecond, now));
+                double chunksPerSecond = registered.generationRate.sampleChunksPerSecond(engine.getGenerated(), now);
+                worldSnapshots.add(EngineTelemetrySnapshot.capture(
+                        engine,
+                        chunksPerSecond,
+                        registered.generationRate.generationTimingsFresh(now),
+                        now));
                 registered.clearMetricsFailure();
             } catch (Throwable exception) {
                 if (EngineMaintenance.isMantleClosed(exception)) {
@@ -552,6 +556,7 @@ public final class IrisEngineSVC implements IrisService {
                 progress.generated(),
                 progress.totalChunks(),
                 progress.chunksRemaining(),
+                progress.chunksInFlight(),
                 progress.chunksPerSecond(),
                 progress.eta(),
                 progress.elapsed(),
@@ -612,8 +617,7 @@ public final class IrisEngineSVC implements IrisService {
         private final AtomicReference<CompletableFuture<Void>> activeMaintenance = new AtomicReference<>();
         private volatile ScheduledFuture<?> maintenance;
         private volatile boolean closed;
-        private long lastGeneratedSampleAtMs;
-        private int lastGeneratedCount;
+        private final GenerationRateWindow generationRate = new GenerationRateWindow();
 
         private Registered(Registration registration, ScheduledThreadPoolExecutor executor) {
             name = registration.name();
@@ -694,19 +698,6 @@ public final class IrisEngineSVC implements IrisService {
 
         private boolean maintenanceInFlight() {
             return activeMaintenance.get() != null;
-        }
-
-        private double sampleChunksPerSecond(int generatedCount, long sampledAtMs) {
-            int safeGeneratedCount = Math.max(0, generatedCount);
-            long previousAt = lastGeneratedSampleAtMs;
-            int previousCount = lastGeneratedCount;
-            lastGeneratedSampleAtMs = sampledAtMs;
-            lastGeneratedCount = safeGeneratedCount;
-            if (previousAt <= 0L || sampledAtMs <= previousAt) {
-                return 0D;
-            }
-            int generatedDelta = Math.max(0, safeGeneratedCount - previousCount);
-            return generatedDelta * 1000D / (sampledAtMs - previousAt);
         }
 
         private void close() {

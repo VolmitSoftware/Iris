@@ -52,6 +52,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     private static final long UNLOAD_TIMEOUT_SECONDS = 120L;
     private final World world;
     private final KList<CompletableFuture<?>> futures;
+    private final AtomicInteger inFlight;
     private final Map<Chunk, Long> lastUse;
     private final int maxFutures;
     private final AtomicBoolean directAsyncDisabled;
@@ -67,6 +68,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         this.chunkFlush = new PregenSerialWorker("Iris Pregen Chunk Flush", world == null ? "unknown" : world.getName());
         this.chunkIoExecutor = chunkFlush.executor();
         futures = new KList<>();
+        this.inFlight = new AtomicInteger();
         this.lastUse = new ConcurrentHashMap<>();
         int configuredThreads = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism());
         this.maxFutures = J.isFolia() ? Math.max(2, Math.min(64, configuredThreads)) : Math.max(16, Math.min(128, configuredThreads * 4));
@@ -229,6 +231,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         }
 
         listener.onChunkGenerating(x, z);
+        inFlight.incrementAndGet();
         // Single choke point for failure accounting: without onChunkFailed a lossy run can
         // never satisfy allVisitsComplete, so a finished pregen reports as aborted forever.
         CompletableFuture<?> chunkFuture = J.isFolia()
@@ -247,6 +250,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
                 })
                 : scheduleChunkLoad(x, z, listener);
         futures.add(chunkFuture.whenComplete((r, err) -> {
+            inFlight.decrementAndGet();
             if (err != null) {
                 listener.onChunkFailed(x, z);
             }
@@ -356,6 +360,11 @@ public class MedievalPregenMethod implements PregeneratorMethod {
             // as failed through the whenComplete choke point.
             IrisLogging.reportError(e);
         }
+    }
+
+    @Override
+    public int inFlightChunks() {
+        return Math.max(0, inFlight.get());
     }
 
     @Override

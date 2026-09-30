@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class EngineTelemetrySnapshotTest {
     @Test
@@ -136,6 +139,33 @@ public class EngineTelemetrySnapshotTest {
         snapshots.add(null);
 
         assertEquals(1, EngineTelemetrySnapshot.aggregate(snapshots).worldCount());
+    }
+
+    @Test
+    public void captureLeavesOutGenerationTimingsOnceGenerationHasGoneIdle() {
+        Engine engine = engineWithTimings(Map.of("total", 12D, "terrain", 4D));
+
+        EngineTelemetrySnapshot snapshot = EngineTelemetrySnapshot.capture(engine, 0D, false, 5_000L);
+
+        assertEquals(Map.of(), snapshot.generationTimingsMs());
+    }
+
+    @Test
+    public void captureCarriesTheEngineTimingAveragesWhileGenerationIsFresh() {
+        Engine engine = engineWithTimings(Map.of("total", 12D, "terrain", 4D));
+
+        EngineTelemetrySnapshot snapshot = EngineTelemetrySnapshot.capture(engine, 3D, true, 5_000L);
+
+        assertEquals(Map.of("total", 12D, "terrain", 4D), snapshot.generationTimingsMs());
+        assertEquals(3D, snapshot.chunksPerSecond(), 0D);
+    }
+
+    private static Engine engineWithTimings(Map<String, Double> averages) {
+        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        when(engine.getWorld().identity()).thenReturn("minecraft:overworld");
+        when(engine.getWorld().name()).thenReturn("world");
+        when(engine.getMetrics().telemetryAverages()).thenReturn(averages);
+        return engine;
     }
 
     private static EngineTelemetrySnapshot snapshot(

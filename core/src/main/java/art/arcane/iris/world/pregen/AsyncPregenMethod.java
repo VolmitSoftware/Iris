@@ -1128,6 +1128,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public int inFlightChunks() {
+        return Math.max(0, inFlight.get());
+    }
+
+    @Override
     public Mantle getMantle() {
         if (IrisToolbelt.isIrisWorld(world)) {
             return IrisToolbelt.access(world).getEngine().getMantle().getMantle();

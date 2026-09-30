@@ -464,6 +464,10 @@ public class IrisPregenerator {
         return failed.get();
     }
 
+    public int getInFlightChunks() {
+        return generator.inFlightChunks();
+    }
+
     public PregenRates getRates() {
         return rates;
     }

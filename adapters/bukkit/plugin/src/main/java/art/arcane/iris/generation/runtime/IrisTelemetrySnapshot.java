@@ -101,6 +101,7 @@ public record IrisTelemetrySnapshot(
             long generated,
             long total,
             long remaining,
+            long inFlight,
             double chunksPerSecond,
             long etaMs,
             long elapsedMs,
@@ -112,6 +113,7 @@ public record IrisTelemetrySnapshot(
                 "",
                 false,
                 0D,
+                0L,
                 0L,
                 0L,
                 0L,
@@ -130,6 +132,7 @@ public record IrisTelemetrySnapshot(
             generated = Math.max(0L, generated);
             total = Math.max(0L, total);
             remaining = Math.max(0L, remaining);
+            inFlight = Math.max(0L, inFlight);
             chunksPerSecond = Double.isFinite(chunksPerSecond) ? Math.max(0D, chunksPerSecond) : 0D;
             etaMs = Math.max(0L, etaMs);
             elapsedMs = Math.max(0L, elapsedMs);

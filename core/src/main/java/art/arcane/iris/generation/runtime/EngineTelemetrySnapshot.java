@@ -52,7 +52,12 @@ public record EngineTelemetrySnapshot(
         generationTimingsMs = sanitizeTimings(generationTimingsMs);
     }
 
-    public static EngineTelemetrySnapshot capture(Engine engine, double chunksPerSecond, long sampledAtMs) {
+    public static EngineTelemetrySnapshot capture(
+            Engine engine,
+            double chunksPerSecond,
+            boolean generationTimingsFresh,
+            long sampledAtMs
+    ) {
         if (engine == null) {
             throw new IllegalArgumentException("Engine cannot be null");
         }
@@ -85,7 +90,7 @@ public record EngineTelemetrySnapshot(
                 engine.getMantle().getLoadedRegionCount(),
                 engine.getMantle().getUnloadRegionCount(),
                 engine.getMantle().getAdjustedIdleDuration(),
-                engine.getMetrics().telemetryAverages()
+                generationTimingsFresh ? engine.getMetrics().telemetryAverages() : Map.of()
         );
     }
 

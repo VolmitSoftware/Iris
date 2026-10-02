@@ -82,8 +82,7 @@ public class IrisDimensionCarvingEntry {
 
     public CNG getChildrenGenerator(long seed, IrisData data) {
         return childGenerators.computeIfAbsent(deriveChildrenGeneratorSeed(seed), key -> {
-            double scale = Math.max(0.0001D, getChildShrinkFactor());
-            return getChildStyle().create(deriveChildStyleSeed(key), data).bake().scale(scale).bake();
+            return scaleByShrinkFactor(getChildStyle().create(deriveChildStyleSeed(key), data));
         });
     }
 
@@ -93,6 +92,10 @@ public class IrisDimensionCarvingEntry {
 
     static RNG deriveChildStyleSeed(long childrenGeneratorSeed) {
         return new RNG(childrenGeneratorSeed).nextParallelRNG(2137);
+    }
+
+    private CNG scaleByShrinkFactor(CNG generator) {
+        return generator.bake().scale(Math.max(0.0001D, getChildShrinkFactor())).bake();
     }
 
     private long hashOfId() {

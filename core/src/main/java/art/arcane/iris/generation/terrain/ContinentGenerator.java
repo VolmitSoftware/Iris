@@ -11,10 +11,10 @@ public final class ContinentGenerator {
     }
 
     public static CNG create(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
-        return scaleByContinentZoom(takeSharedGenerator(dimension, parentSeedSource, packData), dimension);
+        return scaleByContinentZoom(createContinentalStyleGenerator(dimension, parentSeedSource, packData), dimension);
     }
 
-    private static CNG takeSharedGenerator(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
+    private static CNG createContinentalStyleGenerator(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
         return dimension.getContinentalStyle().createNoCache(deriveContinentSeed(parentSeedSource), packData);
     }
 

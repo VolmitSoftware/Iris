@@ -93,6 +93,7 @@ import java.util.Objects;
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements Rarity {
     private static final int BIOME_GENERATOR_CACHE_SIZE = 8;
+    private static final int CHILDREN_SEED_SALT = 2137;
 
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
@@ -515,7 +516,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     }
 
     static RNG deriveChildStyleSeed(RNG random, int signature) {
-        return random.nextParallelRNG(signature * 2137);
+        return random.nextParallelRNG(signature * CHILDREN_SEED_SALT);
     }
 
     public KList<NativeBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {

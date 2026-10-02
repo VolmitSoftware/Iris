@@ -351,7 +351,9 @@ public class AsyncPregenServerSaveOwnershipTest {
             }
         }, 10, 1_000_000, 0, 0, 127, 0);
         fixture.set("retention", retention);
-        try (SchedulingContext context = new SchedulingContext(fixture)) {
+        try (SchedulingContext context = new SchedulingContext(fixture);
+             MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
+            pressure.when(MantleHeapPressure::overHighWater).thenReturn(false);
             for (int region = 0; region < 128; region++) {
                 long key = (long) region << 32;
                 retention.retainAround(region << 5, 0);
@@ -376,7 +378,9 @@ public class AsyncPregenServerSaveOwnershipTest {
         Fixture fixture = new Fixture();
         AtomicInteger pendingChunks = new AtomicInteger(2);
         fixture.pendingRegions.put(0L, pendingChunks);
-        try (SchedulingContext context = new SchedulingContext(fixture)) {
+        try (SchedulingContext context = new SchedulingContext(fixture);
+             MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
+            pressure.when(MantleHeapPressure::overHighWater).thenReturn(false);
             CompletableFuture<?> eviction = (CompletableFuture<?>) invoke(fixture.method, "evictRegion", 0L);
             eviction.get(5L, TimeUnit.SECONDS);
             assertSame(pendingChunks, fixture.pendingRegions.get(0L));

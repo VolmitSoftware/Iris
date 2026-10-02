@@ -67,6 +67,12 @@ public class ContinentGeneratorTest {
         assertArrayEquals(sampleOverworldContinentMapAtWorldStart(), sampleContinentMapAfterRebuild(overworldStyleDimension), 0D);
     }
 
+    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
+    @Test
+    public void doesBuildingTheContinentMapLeaveTheSharedStyleGeneratorUnscaled() {
+        assertArrayEquals(sampleUntouchedSharedStyleGenerator(), sampleSharedStyleGeneratorAfterContinentMapBuilt(baseZoomDimension), 0D);
+    }
+
     private double[] sampleContinentMapAtWorldStart(IrisDimension dimension) {
         return sampleContinentMap(dimension, SAMPLE_BLOCKS);
     }
@@ -87,6 +93,19 @@ public class ContinentGeneratorTest {
 
     private double[] sampleOverworldContinentMapAtWorldStart() {
         return sampleContinentMapAtWorldStart(createDimensionWithOverworldContinentalStyle());
+    }
+
+    private double[] sampleSharedStyleGeneratorAfterContinentMapBuilt(IrisDimension dimension) {
+        sampleContinentMapAtWorldStart(dimension);
+        return sampleSharedStyleGenerator(dimension.getContinentalStyle());
+    }
+
+    private double[] sampleUntouchedSharedStyleGenerator() {
+        return sampleSharedStyleGenerator(createSimplexStyle());
+    }
+
+    private double[] sampleSharedStyleGenerator(IrisGeneratorStyle style) {
+        return sampleAtBlocks(style.create(ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), packData), SAMPLE_BLOCKS);
     }
 
     private double[] sampleContinentMap(IrisDimension dimension, double[][] blocks) {

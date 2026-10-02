@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Description("Dimension-level cave biome override with absolute world Y bounds.")
 @Data
 public class IrisDimensionCarvingEntry {
+    private static final int CHILDREN_SEED_SALT = 2137;
     private final transient AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
     private final transient Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
 
@@ -89,11 +90,11 @@ public class IrisDimensionCarvingEntry {
     }
 
     long deriveChildrenGeneratorSeed(long worldSeed) {
-        return worldSeed ^ (hashOfId() << 32) ^ 2137L;
+        return worldSeed ^ (hashOfId() << 32) ^ CHILDREN_SEED_SALT;
     }
 
     static RNG deriveChildStyleSeed(long childrenGeneratorSeed) {
-        return new RNG(childrenGeneratorSeed).nextParallelRNG(2137);
+        return new RNG(childrenGeneratorSeed).nextParallelRNG(CHILDREN_SEED_SALT);
     }
 
     private CNG scaleByShrinkFactor(CNG generator) {

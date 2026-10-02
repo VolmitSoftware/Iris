@@ -29,6 +29,7 @@ public final class CaveTerrainSnapshot {
     private final MatterCavern[][] caverns;
     private final HydrologyCaveCell[][] hydrology;
     private boolean hydrologyPresent;
+    private volatile long retainedBytes;
 
     private CaveTerrainSnapshot(int chunkX, int chunkZ, int sections) {
         this.chunkX = chunkX;
@@ -61,6 +62,36 @@ public final class CaveTerrainSnapshot {
 
     public boolean hasHydrology() {
         return hydrologyPresent;
+    }
+
+    public long estimatedRetainedBytes() {
+        long cached = retainedBytes;
+        if (cached != 0L) {
+            return cached;
+        }
+        long bytes = 80L + ((long) caverns.length + hydrology.length) * 8L;
+        for (MatterCavern[] section : caverns) {
+            if (section != null) {
+                bytes += 16L + (long) section.length * 8L;
+                for (MatterCavern cell : section) {
+                    if (cell != null) {
+                        bytes += 96L + (long) cell.getCustomBiome().length() * 2L;
+                    }
+                }
+            }
+        }
+        for (HydrologyCaveCell[] section : hydrology) {
+            if (section != null) {
+                bytes += 16L + (long) section.length * 8L;
+                for (HydrologyCaveCell cell : section) {
+                    if (cell != null) {
+                        bytes += 208L + ((long) cell.fluidProfileKey().length() + cell.floodedBiomeKey().length()) * 2L;
+                    }
+                }
+            }
+        }
+        retainedBytes = bytes;
+        return bytes;
     }
 
     public MatterCavern cavern(int x, int y, int z) {

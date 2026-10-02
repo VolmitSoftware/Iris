@@ -582,6 +582,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     public boolean isPrerequisiteCarved(int x, int y, int z) {
+        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
+        if (transformed != null) {
+            return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
+        }
         HydrologyCaveCell hydrology = getPrerequisiteDataIfPresent(x, y, z, HydrologyCaveCell.class);
         if (hydrology != null) {
             return hydrology.carves();
@@ -592,6 +596,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     public byte[] getPrerequisiteCarvedColumn(int x, int z, int height) {
         int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
+        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
+        if (transformed != null) {
+            return carvedColumn(transformed, cappedHeight);
+        }
         byte[] carvedColumn = new byte[cappedHeight];
         if (cappedHeight <= 0) {
             return carvedColumn;
@@ -961,6 +969,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
+        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
+        if (transformed != null) {
+            return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
+        }
         HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
         if (hydrology != null) {
             return hydrology.carves();
@@ -972,6 +984,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     public byte[] getCarvedColumn(int x, int z, int height) {
         int cappedHeight = Math.min(Math.max(height, 0), mantle.getWorldHeight());
+        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
+        if (transformed != null) {
+            return carvedColumn(transformed, cappedHeight);
+        }
         byte[] carvedColumn = new byte[cappedHeight];
         if (cappedHeight <= 0) {
             return carvedColumn;
@@ -1587,6 +1603,17 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
             return true;
         }
+    }
+
+    private static byte[] carvedColumn(Terrain3DColumn terrain, int height) {
+        byte[] result = new byte[height];
+        int maximumY = Math.min(height, terrain.topY());
+        for (int y = 0; y < maximumY; y++) {
+            if (!terrain.isSolid(y)) {
+                result[y] = 1;
+            }
+        }
+        return result;
     }
 
     public final class ObjectPlacementCapture implements AutoCloseable {

@@ -5,6 +5,8 @@ import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
 import art.arcane.iris.generation.decoration.IrisSurfaceDecorator;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.terrain.transform.TerrainTransformRuntime;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -162,6 +164,64 @@ public class IrisNaturalCaveScanTest {
         }
     }
 
+    @Test
+    public void transformedCavesDecorateOnlyTheirRemainingFloorAndCeiling() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.transform();
+        Hunk<NativeBlockState> output = fixture.cavity();
+        output.setRaw(0, 4, 0, fixture.stone);
+        output.setRaw(0, 5, 0, fixture.stone);
+        fixture.modifier.decorateNaturalCaves(-32, 48, output, null);
+        assertEquals(List.of("floor:0:0:5:1", "ceiling:0:0:8:1"), fixture.calls);
+        assertSame(fixture.stone, output.getRaw(0, 4, 0));
+        assertSame(fixture.stone, output.getRaw(0, 5, 0));
+        assertSame(fixture.floor, output.getRaw(0, 6, 0));
+        assertSame(fixture.ceiling, output.getRaw(0, 8, 0));
+    }
+
+    @Test
+    public void transformedFilledCavesAndRemovedBoundariesRemainUndecorated() throws Exception {
+        Fixture filled = new Fixture();
+        filled.transform();
+        Hunk<NativeBlockState> filledOutput = filled.cavity();
+        for (int y = 4; y <= 8; y++) {
+            filledOutput.setRaw(0, y, 0, filled.stone);
+        }
+        filled.modifier.decorateNaturalCaves(-32, 48, filledOutput, null);
+        assertTrue(filled.calls.isEmpty());
+        assertTrue(filled.markers.isEmpty());
+
+        Fixture openRoof = new Fixture();
+        openRoof.transform();
+        Hunk<NativeBlockState> openRoofOutput = openRoof.cavity();
+        for (int y = 9; y < 32; y++) {
+            openRoofOutput.setRaw(0, y, 0, openRoof.air);
+        }
+        openRoof.modifier.decorateNaturalCaves(-32, 48, openRoofOutput, null);
+        assertTrue(openRoof.calls.isEmpty());
+
+        Fixture openFloor = new Fixture();
+        openFloor.transform();
+        Hunk<NativeBlockState> openFloorOutput = openFloor.cavity();
+        for (int y = 0; y < 4; y++) {
+            openFloorOutput.setRaw(0, y, 0, openFloor.air);
+        }
+        openFloor.modifier.decorateNaturalCaves(-32, 48, openFloorOutput, null);
+        assertTrue(openFloor.calls.isEmpty());
+    }
+
+    @Test
+    public void transformKeepsNaturalTerrainOpeningsOutOfCaveDecoration() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.transform();
+        doReturn(true).when(fixture.complex).hasTerrain3D();
+        Terrain3DColumn natural = Terrain3DColumn.fromOccupancy(31, 32, y -> y < 4 || y > 8);
+        doReturn(natural).when(fixture.complex).terrainColumn(anyInt(), anyInt(), any());
+        fixture.modifier.decorateNaturalCaves(-32, 48, fixture.cavity(), null);
+        assertTrue(fixture.calls.isEmpty());
+        assertTrue(fixture.markers.isEmpty());
+    }
+
     private static void verifyScan(int width, int depth) throws Exception {
         Fixture fixture = new Fixture();
         Hunk<NativeBlockState> output = fixture.output(width, depth);
@@ -236,6 +296,7 @@ public class IrisNaturalCaveScanTest {
         private final NativeBlockState floor = block("minecraft:moss_block", true);
         private final NativeBlockState ceiling = block("minecraft:calcite", true);
         private final IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
+        private final IrisComplex complex = mock(IrisComplex.class);
         private final Mantle<Matter> mantle;
         private final MantleChunk<Matter> chunk;
         private final List<String> calls = new ArrayList<>();
@@ -252,7 +313,7 @@ public class IrisNaturalCaveScanTest {
             mantle = mock(Mantle.class);
             chunk = mock(MantleChunk.class);
             doReturn(engine).when(modifier).getEngine();
-            doReturn(mock(IrisComplex.class)).when(modifier).getComplex();
+            doReturn(complex).when(modifier).getComplex();
             doReturn(32).when(engine).getHeight();
             doReturn(new SeedManager(1337L)).when(engine).getSeedManager();
             doReturn(engineMantle).when(engine).getMantle();
@@ -313,6 +374,20 @@ public class IrisNaturalCaveScanTest {
                         }
                     }
                 }
+            }
+            return output;
+        }
+
+        private void transform() {
+            doReturn(mock(TerrainTransformRuntime.class)).when(complex).getTerrainTransform();
+            doReturn(true).when(complex).isTerrain3DOpening(anyInt(), anyInt(), anyInt());
+        }
+
+        private Hunk<NativeBlockState> cavity() {
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 32, 1);
+            output.fill(stone);
+            for (int y = 4; y <= 8; y++) {
+                output.setRaw(0, y, 0, air);
             }
             return output;
         }

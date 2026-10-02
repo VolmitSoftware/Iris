@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import java.util.Arrays;
+import java.util.function.IntPredicate;
 
 public final class Terrain3DColumn {
     private final double baseHeight;
@@ -18,6 +19,29 @@ public final class Terrain3DColumn {
     public static Terrain3DColumn unshaped(double baseHeight, int height) {
         int top = Math.clamp(Math.round(baseHeight), 0, height - 1);
         return new Terrain3DColumn(baseHeight, top + 1, false, new int[]{0, top});
+    }
+
+    public static Terrain3DColumn fromOccupancy(double baseHeight, int height, IntPredicate solid) {
+        if (height < 1) {
+            throw new IllegalArgumentException("Terrain column height must be positive");
+        }
+        int[] spans = new int[height + 1];
+        int count = 0;
+        boolean occupied = false;
+        for (int y = 0; y < height; y++) {
+            boolean next = solid.test(y);
+            if (next && !occupied) {
+                spans[count++] = y;
+            } else if (!next && occupied) {
+                spans[count++] = y - 1;
+            }
+            occupied = next;
+        }
+        if (occupied) {
+            spans[count++] = height - 1;
+        }
+        return new Terrain3DColumn(baseHeight, 0, true,
+                count == 0 ? new int[]{0, -1} : Arrays.copyOf(spans, count));
     }
 
     public double baseHeight() {

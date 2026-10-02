@@ -567,6 +567,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     /** The terrain slope at a column, answered from natural terrain when the server thread may not wait. */
     @BlockCoordinates
     default double getSlope(int x, int z) {
+        IrisComplex complex = getComplex();
+        if (complex != null && complex.getTerrainTransform() != null) {
+            return complex.getSlopeStream().getDouble(x, z);
+        }
         if (answersFromNaturalTerrain(x, z)) {
             return getComplex().naturalSlope(x, z);
         }
@@ -580,6 +584,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default int getHeight(int x, int z, boolean ignoreFluid) {
+        IrisComplex complex = getComplex();
+        int transformed = complex == null || complex.getTerrainTransform() == null ? Integer.MIN_VALUE
+                : complex.transformedHeight(x, z, ignoreFluid);
+        if (transformed != Integer.MIN_VALUE) {
+            return transformed;
+        }
         DimensionStackContext dimensionStackContext = getDimensionStackContext();
         if (dimensionStackContext != null) {
             return ignoreFluid
@@ -595,6 +605,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     static int hostHeight(Engine engine, int x, int z, boolean ignoreFluid) {
+        IrisComplex complex = engine.getComplex();
+        int transformed = complex == null || complex.getTerrainTransform() == null ? Integer.MIN_VALUE
+                : complex.transformedHeight(x, z, ignoreFluid);
+        if (transformed != Integer.MIN_VALUE) {
+            return transformed;
+        }
         EngineMantle mantle = engine.getMantle();
         if (mantle == null) {
             return engine.getHeight(x, z, ignoreFluid);

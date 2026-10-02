@@ -31,6 +31,7 @@ import art.arcane.iris.generation.stage.IrisDepositModifier;
 import art.arcane.iris.generation.stage.IrisFloatingChildBiomeModifier;
 import art.arcane.iris.generation.stage.IrisPerfectionModifier;
 import art.arcane.iris.generation.stage.IrisPostModifier;
+import art.arcane.iris.generation.context.ChunkContext;
 
 public class ModeOverworld extends IrisEngineMode implements EngineMode {
     public ModeOverworld(Engine engine) {
@@ -45,7 +46,7 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         IrisCustomModifier custom = new IrisCustomModifier(getEngine());
         IrisFloatingChildBiomeModifier floatingChildBiomes = new IrisFloatingChildBiomeModifier(getEngine());
         EngineStage sBiome = (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c);
-        EngineStage sGenMatter = (x, z, k, p, m, c) -> generateTerrainMatter(x >> 4, z >> 4, m || getEngine().isStudio(), c);
+        EngineStage sGenMatter = (x, z, k, p, m, c) -> generateTerrainMatterForChunk(x >> 4, z >> 4, m, c);
         EngineStage sTerrain = (x, z, k, p, m, c) -> terrain.actuate(x, z, k, m, c);
         EngineStage sDecorant = (x, z, k, p, m, c) -> decorant.actuate(x, z, k, m, c);
         EngineStage sCave = (x, z, k, p, m, c) -> cave.modify(x >> 4, z >> 4, k, m, c);
@@ -81,5 +82,11 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         if (getEngine().getDimensionStackContext() == null) {
             registerStage(sCustom);
         }
+    }
+
+    void generateTerrainMatterForChunk(int x, int z, boolean multicore, ChunkContext context) {
+        boolean studioParallel = getEngine().isStudio()
+                && !(context.isNaturalTerrain() && context.getComplex().getTerrainTransform() != null);
+        generateTerrainMatter(x, z, multicore || studioParallel, context);
     }
 }

@@ -9,6 +9,27 @@ import static org.junit.Assert.assertTrue;
 
 public class Terrain3DColumnTest {
     @Test
+    public void occupancyPreservesCavitiesAndIsolatedBlocks() {
+        Terrain3DColumn column = Terrain3DColumn.fromOccupancy(7, 9,
+                y -> y < 3 || y == 5 || y >= 7);
+        assertEquals(3, column.spanCount());
+        assertEquals(8, column.topY());
+        assertEquals(2, column.surfaceY(1));
+        assertEquals(5, column.surfaceY(5));
+        assertFalse(column.isSolid(3));
+        assertFalse(column.isSolid(6));
+        assertTrue(column.isSolid(8));
+    }
+
+    @Test
+    public void emptyOccupancyHasNoSurface() {
+        Terrain3DColumn column = Terrain3DColumn.fromOccupancy(3, 9, y -> false);
+        assertEquals(-1, column.topY());
+        assertEquals(-1, column.highestSolidY(8));
+        assertFalse(column.isSolid(0));
+    }
+
+    @Test
     public void displacementPreservesCavitiesAndUpperShelvesWhileKeepingBedrockGrounded() {
         Terrain3DColumn original = new Terrain3DColumn(40D, 25, true, new int[]{0, 30, 36, 42, 50, 54});
         Terrain3DColumn shifted = original.displaced(10, 128);

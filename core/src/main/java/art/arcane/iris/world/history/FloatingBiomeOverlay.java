@@ -64,6 +64,13 @@ public final class FloatingBiomeOverlay {
         return height;
     }
 
+    public FloatingBiomeOverlay copy() {
+        FloatingBiomeOverlay copy = new FloatingBiomeOverlay(height);
+        System.arraycopy(volume, 0, copy.volume, 0, volume.length);
+        System.arraycopy(surfaces, 0, copy.surfaces, 0, surfaces.length);
+        return copy;
+    }
+
     private int index(int localX, int y, int localZ) {
         return ((localX >> 2) * 4 + (localZ >> 2)) * quartHeight + (y >> 2);
     }

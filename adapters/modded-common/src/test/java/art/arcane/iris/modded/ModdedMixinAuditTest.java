@@ -42,6 +42,7 @@ public class ModdedMixinAuditTest {
             "\\[\\[mixins]]\\s*config\\s*=\\s*\"([^\"]+)\"");
     // One applied mixin per config proves the config was registered, which is all the audit detects.
     private static final Set<String> UNAUDITED = Set.of(
+            "volmlib.entity.mixins.json/ServerLevelStructureBootstrapMixin",
             "volmlib.entity.mixins.json/WorldGenerationWriteGuardMixin",
             "volmlib.entity.mixins.json/ChunkMapTerrainReceiptAccess",
             "volmlib.entity.mixins.json/ChunkTerrainReceiptMixin",

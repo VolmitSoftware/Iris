@@ -42,7 +42,7 @@ public class UpperDimensionTransitionTest {
         Terrain3DColumn terrain = Terrain3DColumnFixtures.spans(80, 0, 30, 40, 60, 100, 110);
         when(complex.naturalTerrainColumn(-17, 8)).thenReturn(terrain);
         when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 110D));
-        when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
+        when(complex.getRawHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getComplex()).thenReturn(complex);
@@ -63,7 +63,7 @@ public class UpperDimensionTransitionTest {
         when(dimension.getUpperDimensionGap()).thenReturn(32);
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 139D));
-        when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 75D + 4D * x));
+        when(complex.getRawHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 75D + 4D * x));
         TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
         when(complex.getTransitionGenerationPlan()).thenReturn(plan);
         Engine engine = mock(Engine.class);
@@ -86,7 +86,7 @@ public class UpperDimensionTransitionTest {
         when(dimension.getUpperDimensionGap()).thenReturn(32);
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 80D));
-        when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
+        when(complex.getRawHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
         TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
         when(complex.getTransitionGenerationPlan()).thenReturn(plan);
         Engine engine = mock(Engine.class);
@@ -124,6 +124,25 @@ public class UpperDimensionTransitionTest {
     public void rejectsInvalidCeilingLayouts() {
         assertThrows(IllegalArgumentException.class, () -> new UpperDimensionContext.CeilingLayout(0, 32));
         assertThrows(IllegalArgumentException.class, () -> new UpperDimensionContext.CeilingLayout(256, -1));
+    }
+
+    @Test
+    public void upperGapIgnoresTheFinalTransformedHostHeight() {
+        IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getLoadKey()).thenReturn("main");
+        when(dimension.getUpperDimensionGap()).thenReturn(32);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(complex.getNaturalHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 80D));
+        when(complex.getRawHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 64D));
+        when(complex.getHeightStream()).thenThrow(new AssertionError("Upper gap read final terrain height"));
+        Engine engine = mock(Engine.class);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getHeight()).thenReturn(256);
+
+        UpperDimensionContext context = UpperDimensionContext.create(engine, dimension);
+
+        assertEquals(175, context.getEffectiveSurfaceY(0, 0));
     }
 
 }

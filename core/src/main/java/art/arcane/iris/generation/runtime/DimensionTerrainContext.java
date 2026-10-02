@@ -125,8 +125,8 @@ public final class DimensionTerrainContext implements DataProvider {
                 engine.getDimension(),
                 engine.getData(),
                 engine.getHeight(),
-                natural ? complex.getNaturalHeightStream() : complex.getHeightStream(),
-                natural ? complex.getNaturalSlopeStream() : complex.getSlopeStream(),
+                natural ? complex.getNaturalHeightStream() : complex.getRawHeightStream(),
+                natural ? complex.getNaturalSlopeStream() : complex.getRawSlopeStream(),
                 fluidHeightStream,
                 natural ? complex.getNaturalTrueBiomeStream() : complex.getTrueBiomeStream(),
                 complex.getRegionStream(),
@@ -653,7 +653,7 @@ public final class DimensionTerrainContext implements DataProvider {
         if (selfReferencing) {
             return naturalSelf || naturalFallback
                     ? engine.getComplex().naturalTerrainColumn(x, z)
-                    : engine.getComplex().terrainColumn(x, z);
+                    : engine.getComplex().originalTerrainColumn(x, z);
         }
         if (terrain3D == null) {
             return null;

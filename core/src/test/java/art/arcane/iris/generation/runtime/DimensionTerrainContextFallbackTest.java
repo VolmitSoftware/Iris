@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -54,10 +56,10 @@ public class DimensionTerrainContextFallbackTest {
         when(engine.getHeight()).thenReturn(128);
         when(dimension.getLoadKey()).thenReturn("root");
         when(complex.hasTerrain3D()).thenReturn(true);
-        when(complex.getSlopeStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 40D));
-        when(complex.terrainColumn(-17, 8)).thenReturn(Terrain3DColumnFixtures.spans(20, 0, 5, 20, 40));
-        when(complex.terrainColumn(-14, 8)).thenReturn(Terrain3DColumnFixtures.spans(20, 0, 8, 20, 60));
-        when(complex.terrainColumn(-17, 11)).thenReturn(Terrain3DColumnFixtures.spans(20, 0, 9, 20, 80));
+        when(complex.getRawSlopeStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 40D));
+        when(complex.originalTerrainColumn(-17, 8)).thenReturn(Terrain3DColumnFixtures.spans(20, 0, 5, 20, 40));
+        when(complex.originalTerrainColumn(-14, 8)).thenReturn(Terrain3DColumnFixtures.spans(20, 0, 8, 20, 60));
+        when(complex.originalTerrainColumn(-17, 11)).thenReturn(Terrain3DColumnFixtures.spans(20, 0, 9, 20, 80));
         DimensionTerrainContext context = DimensionTerrainContext.forStack(engine, dimension);
 
         assertEquals(5D, context.getSurfaceSlopeStream(5).getDouble(-17, 8), 0D);
@@ -90,7 +92,7 @@ public class DimensionTerrainContextFallbackTest {
         when(dimension.getLoadKey()).thenReturn("root");
         when(dimension.getFluidHeight()).thenReturn(12);
         when(complex.getNaturalHeightStream()).thenReturn(naturalHeight);
-        when(complex.getHeightStream()).thenReturn(resolvedHeight);
+        when(complex.getRawHeightStream()).thenReturn(resolvedHeight);
         when(complex.getRiverWaterSurfaceStream()).thenReturn(resolvedFluidHeight);
         when(complex.getNaturalTrueBiomeStream()).thenReturn(naturalBiome);
         when(complex.getTrueBiomeStream()).thenReturn(resolvedBiome);
@@ -132,7 +134,7 @@ public class DimensionTerrainContextFallbackTest {
         Terrain3DColumn natural = Terrain3DColumnFixtures.spans(30, 0, 15, 25, 40);
         Terrain3DColumn resolved = Terrain3DColumnFixtures.spans(30, 0, 12, 28, 35);
         when(complex.naturalTerrainColumn(-17, 8)).thenReturn(natural);
-        when(complex.terrainColumn(-17, 8)).thenReturn(resolved);
+        when(complex.originalTerrainColumn(-17, 8)).thenReturn(resolved);
         DimensionTerrainContext context = DimensionTerrainContext.forStack(engine, dimension);
 
         assertSame(resolved, context.terrainColumn(-17, 8));
@@ -140,5 +142,35 @@ public class DimensionTerrainContextFallbackTest {
         assertSame(natural, context.terrainColumn(-17, 8));
         when(engine.answersFromNaturalTerrain(-17, 8)).thenReturn(false);
         assertSame(resolved, context.terrainColumn(-17, 8));
+    }
+
+    @Test
+    public void stackInputsRemainOriginalWhenTheCallingChunkBeginsContent() {
+        Engine engine = mock(Engine.class);
+        IrisDimension dimension = mock(IrisDimension.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        Terrain3DColumn original = Terrain3DColumnFixtures.spans(30, 0, 12, 28, 35);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getHeight()).thenReturn(128);
+        when(dimension.getLoadKey()).thenReturn("root");
+        when(complex.getRawHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 35D));
+        when(complex.getRawSlopeStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 4D));
+        when(complex.originalTerrainColumn(0, 0)).thenReturn(original);
+        when(complex.getHeightStream()).thenThrow(new AssertionError("Layout read final terrain height"));
+        when(complex.getSlopeStream()).thenThrow(new AssertionError("Layout read final terrain slope"));
+        when(complex.terrainColumn(0, 0)).thenThrow(new AssertionError("Layout read final terrain occupancy"));
+        DimensionTerrainContext terrain = DimensionTerrainContext.forStack(engine, dimension);
+        ChunkContext chunk = new ChunkContext(0, 0, complex, 7L, false, ChunkContext.PrefillPlan.NONE, null);
+
+        try (IrisContext.Scope ignored = IrisContext.open(engine, 7L, chunk)) {
+            assertEquals(35D, terrain.getNormalTerrainHeight(0, 0), 0D);
+            assertEquals(4D, terrain.getSlopeStream().getDouble(0, 0), 0D);
+            assertSame(original, terrain.terrainColumn(0, 0));
+            chunk.beginContent();
+            assertEquals(35D, terrain.getNormalTerrainHeight(0, 0), 0D);
+            assertEquals(4D, terrain.getSlopeStream().getDouble(0, 0), 0D);
+            assertSame(original, terrain.terrainColumn(0, 0));
+        }
     }
 }

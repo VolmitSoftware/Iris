@@ -242,6 +242,7 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         this.announced.set(false);
         resetRuntimeCaches();
         this.engineBinding.complete(replacement);
+        this.nativeGenerator.initializeStructureState(level);
         // Bind time: a feature-order cycle in the new pack is reported here, once, and degrades to features-off.
         // Never waits on a build owned by another thread: this method owns the generator monitor and the build
         // path can need it.
@@ -442,12 +443,14 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         }
         Engine current = engineIfBound();
         if (NativeDimensionRuntime.sameWorld(boundLevel, level) && current != null && current.getComplex() != null) {
+            nativeGenerator.initializeStructureState(level);
             return;
         }
         requireCompletedShutdown(engine);
         unloading = false;
         Engine bound = bindEngine(level);
         nativeGenerator.installVolumeIndex(level, bound);
+        nativeGenerator.initializeStructureState(level);
         // Bind time: a feature-order cycle is reported here, once, and degrades to features-off. Non-waiting for
         // the same reason as repointAndBind: this method owns the generator monitor.
         importedFeatures.prepareWithoutWaiting(bound);
@@ -1095,6 +1098,12 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
     @Override
     public boolean stacked(Engine current) {
         return current.getDimensionStackContext() != null;
+    }
+
+    @Override
+    public boolean terrainTransformed() {
+        Engine current = engine;
+        return current != null && current.getComplex().getTerrainTransform() != null;
     }
 
     @Override

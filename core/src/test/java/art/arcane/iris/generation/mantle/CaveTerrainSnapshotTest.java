@@ -81,6 +81,23 @@ public class CaveTerrainSnapshotTest {
         assertNull(snapshot.cavern(4, 22, 6));
     }
 
+    @Test
+    public void retainedEstimateCountsOnlyAllocatedSectionsAndTheirCells() {
+        Matter[] sections = new Matter[SECTIONS];
+        long emptyBytes = CaveTerrainSnapshot.capture(chunk(sections), 0, 0).estimatedRetainedBytes();
+        assertTrue(emptyBytes < 1024);
+        sections[1] = new IrisMatter(16, 16, 16);
+        sections[1].slice(MatterCavern.class).set(0, 0, 0, new MatterCavern(true, "cave", (byte) 0));
+        CaveTerrainSnapshot sparse = CaveTerrainSnapshot.capture(chunk(sections), 0, 0);
+        long sparseBytes = sparse.estimatedRetainedBytes();
+        assertTrue(sparseBytes >= emptyBytes + 4096L * 8L);
+        assertTrue(sparseBytes < emptyBytes + 4096L * 16L);
+        sections[1].slice(MatterCavern.class).set(1, 0, 0, new MatterCavern(true, "other", (byte) 0));
+        long moreCells = CaveTerrainSnapshot.capture(chunk(sections), 0, 0).estimatedRetainedBytes();
+        assertTrue(moreCells > sparseBytes);
+        assertEquals(sparseBytes, sparse.estimatedRetainedBytes());
+    }
+
     private static Map<String, String> legacyResolverInputs(MantleChunk<Matter> chunk) {
         Map<String, String> inputs = new HashMap<>();
         for (int x = 0; x < 16; x++) {

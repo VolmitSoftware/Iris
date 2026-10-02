@@ -39,6 +39,7 @@ import art.arcane.iris.generation.image.IrisImageMapBinding;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
+import art.arcane.iris.generation.terrain.transform.IrisTerrainTransform;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
@@ -218,6 +219,8 @@ public class IrisDimension extends IrisRegistrant {
     private IrisHydrology hydrology = new IrisHydrology();
     @Description("Dimension-level river placement, routing, profile, biome, and geometry policy.")
     private IrisRiverPolicy riverPolicy = new IrisRiverPolicy();
+    @Description("Optional external terrain transformation with an exact provider version and pack-owned settings.")
+    private IrisTerrainTransform terrainTransform;
     @Description("Refuse to place surface objects and trees over carved surface openings.")
     private boolean requireObjectSurfaceSupport = true;
     @MinNumber(0)

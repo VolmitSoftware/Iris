@@ -904,7 +904,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                             zone.setFloor(floor);
                             zone.setCeiling(y - 1);
                             if (zone.isValid(resolver.height)
-                                    && !getComplex().isTerrain3DOpening(worldX, floor, worldZ)) {
+                                    && !isNaturalTerrainOpening(getComplex(), worldX, floor, worldZ)) {
                                 if (markerRoll(worldX, zone.ceiling, worldZ, 0x9E3779B97F4A7C15L)) {
                                     mantle.set(worldX, zone.ceiling, worldZ, MarkerMatter.CAVE_CEILING);
                                 }
@@ -992,13 +992,25 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
     }
 
     IrisBiome resolveCaveBoundaryBiome(MatterCavern cavern, int worldX, int y, int worldZ, CaveInputs resolverState, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
-        if (resolverState.complex.isTerrain3DOpening(worldX, y, worldZ)) {
+        if (isNaturalTerrainOpening(resolverState.complex, worldX, y, worldZ)) {
             return resolverState.complex.getTrueBiomeStream().get(worldX, worldZ);
         }
         if (cavern != null && !cavern.getCustomBiome().isEmpty()) {
             return resolveCustomBiome(customBiomeCache, cavern.getCustomBiome());
         }
         return resolveCaveBiome(caveBiomeCache, worldX, y, worldZ, resolverState);
+    }
+
+    private boolean isNaturalTerrainOpening(IrisComplex complex, int x, int y, int z) {
+        if (complex.getTerrainTransform() == null) {
+            return complex.isTerrain3DOpening(x, y, z);
+        }
+        if (!complex.hasTerrain3D()) {
+            return false;
+        }
+        Terrain3DColumn column = complex.terrainColumn(x, z, complex.sampleHydrologyColumn(x, z));
+        return column != null && y >= column.minY() && y < column.topY() && !column.isSolid(y)
+                && !getEngine().isAdditionalTerrainOwned(x, y, z);
     }
 
     /** The dimension's underground river bed palette, or null when nothing paints. */

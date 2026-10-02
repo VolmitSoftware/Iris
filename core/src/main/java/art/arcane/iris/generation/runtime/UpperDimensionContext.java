@@ -36,7 +36,7 @@ public class UpperDimensionContext implements DataProvider {
     private UpperDimensionContext(DimensionTerrainContext terrainContext, Engine engine) {
         this.terrainContext = terrainContext;
         IrisComplex complex = engine.getComplex();
-        lowerHeightStream = complex.getHeightStream();
+        lowerHeightStream = complex.getRawHeightStream();
         ceilingLayout = new CeilingLayout(engine.getHeight(), engine.getDimension().getUpperDimensionGap());
     }
 

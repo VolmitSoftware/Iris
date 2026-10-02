@@ -420,7 +420,7 @@ public class IrisStructureLocatorContractTest {
 
         assertEquals(IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED, result.status());
         assertFalse(result.found());
-        verify(engine, times(8_192)).getComplex();
+        verify(engine, times(16_384)).getComplex();
     }
 
     @Test

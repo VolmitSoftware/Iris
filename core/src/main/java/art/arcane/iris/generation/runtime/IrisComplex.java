@@ -54,6 +54,10 @@ import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.terrain.transform.TerrainTransformRegistry;
+import art.arcane.iris.generation.terrain.transform.TerrainTransformRuntime;
+import art.arcane.iris.generation.terrain.transform.TerrainTransformer;
 import art.arcane.iris.generation.noise.IrisInterpolator;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -185,6 +189,20 @@ public class IrisComplex implements DataProvider {
     private final ProceduralTerrainHeightSampler proceduralTerrainHeight;
     @Getter(AccessLevel.NONE)
     private final transient Engine terrainEngine;
+    @Setter(AccessLevel.NONE)
+    private final transient TerrainTransformRuntime terrainTransform;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient ProceduralStream<Double> transformedHeightStream;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient ProceduralStream<Integer> transformedRoundedHeightStream;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient ProceduralStream<Double> transformedTopStream;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient ProceduralStream<Double> transformedSlopeStream;
     @Getter(AccessLevel.NONE)
     private transient Terrain3DRuntime terrain3D;
     private transient HydrologyBankTerrainRuntime hydrologyBanks3D;
@@ -494,6 +512,25 @@ public class IrisComplex implements DataProvider {
                             d.hashCode());
                 }), "", engine, cacheSize);
         //@done
+        TerrainTransformer transformer = engine.getDimension().getTerrainTransform() == null ? null
+                : TerrainTransformRegistry.discover().resolve(engine.getDimension().getTerrainTransform());
+        terrainTransform = transformer == null ? null
+                : new TerrainTransformRuntime(new TerrainTransformRuntime.Options(engine, this), transformer);
+        transformedHeightStream = transformer == null ? null : ProceduralStream.ofDouble((x, z) -> {
+            int transformed = transformedHeight((int) Math.floor(x), (int) Math.floor(z), true);
+            return transformed == Integer.MIN_VALUE ? heightStream.getDouble(x, z) : transformed;
+        });
+        transformedRoundedHeightStream = transformer == null ? null : ProceduralStream.ofDouble((x, z) -> {
+            int transformed = transformedHeight((int) Math.floor(x), (int) Math.floor(z), true);
+            return transformed == Integer.MIN_VALUE ? roundedHeighteightStream.get(x, z) : transformed;
+        }).round();
+        transformedTopStream = transformer == null ? null : ProceduralStream.ofDouble((x, z) -> {
+            int transformed = transformedHeight((int) Math.floor(x), (int) Math.floor(z), false);
+            return transformed == Integer.MIN_VALUE ? heightFluidStream.getDouble(x, z) : transformed;
+        });
+        ProceduralStream<Double> effectiveSlope = transformer == null ? null : transformedHeightStream.slope(3);
+        transformedSlopeStream = transformer == null ? null : ProceduralStream.ofDouble((x, z) ->
+                isNaturalTerrainContext() ? slopeStream.getDouble(x, z) : effectiveSlope.getDouble(x, z));
     }
 
     /**
@@ -689,6 +726,14 @@ public class IrisComplex implements DataProvider {
     }
 
     public Terrain3DColumn terrainColumn(int x, int z) {
+        Terrain3DColumn transformed = transformedColumn(x, z);
+        if (transformed != null) {
+            return transformed;
+        }
+        return originalTerrainColumn(x, z);
+    }
+
+    Terrain3DColumn originalTerrainColumn(int x, int z) {
         if (!hasTerrain3D()) {
             return null;
         }
@@ -1204,7 +1249,70 @@ public class IrisComplex implements DataProvider {
     }
 
     public ProceduralStream<Double> getHeightStream() {
-        return heightStream;
+        return terrainTransform == null ? heightStream : transformedHeightStream;
+    }
+
+    ProceduralStream<Double> getRawSlopeStream() {
+        return terrainEngine.getDimension().getTerrainTransform() == null ? slopeStream : heightStream.slope(3);
+    }
+
+    public ProceduralStream<Integer> getRoundedHeighteightStream() {
+        return terrainTransform == null ? roundedHeighteightStream : transformedRoundedHeightStream;
+    }
+
+    public ProceduralStream<Double> getHeightFluidStream() {
+        return terrainTransform == null ? heightFluidStream : transformedTopStream;
+    }
+
+    public ProceduralStream<Double> getSlopeStream() {
+        return terrainTransform == null ? slopeStream : transformedSlopeStream;
+    }
+
+    public int transformedHeight(int x, int z, boolean ignoreFluid) {
+        if (terrainTransform == null || isNaturalTerrainContext()) {
+            return Integer.MIN_VALUE;
+        }
+        return readsReadyTerrainOnly()
+                ? terrainTransform.readyHeight(x, z, ignoreFluid)
+                : terrainTransform.height(x, z, ignoreFluid);
+    }
+
+    public Terrain3DColumn transformedColumn(int x, int z) {
+        if (terrainTransform == null || isNaturalTerrainContext()) {
+            return null;
+        }
+        return readsReadyTerrainOnly()
+                ? terrainTransform.readyColumn(x, z) : terrainTransform.column(x, z);
+    }
+
+    public int transformedFluidHeight(int x, int z) {
+        if (terrainTransform == null || isNaturalTerrainContext()) {
+            return Integer.MIN_VALUE;
+        }
+        return readsReadyTerrainOnly()
+                ? terrainTransform.readyFluidHeight(x, z) : terrainTransform.fluidHeight(x, z);
+    }
+
+    private boolean readsReadyTerrainOnly() {
+        if (!terrainEngine.getPlatformHooks().isMainThread()) {
+            return false;
+        }
+        IrisContext context = IrisContext.get();
+        if (context == null || context.getEngine() != terrainEngine) {
+            return true;
+        }
+        ChunkContext chunk = context.getChunkContext();
+        if (chunk != null) {
+            return chunk.getComplex() != this || chunk.isNaturalTerrain();
+        }
+        if (context.getGenerationSessionId() == 0L || terrainEngine.getComplex() != this) {
+            return true;
+        }
+        if (terrainEngine instanceof IrisEngine irisEngine && irisEngine.threadState.assembly() != null
+                && irisEngine.threadState.assembly().mode == null) {
+            return true;
+        }
+        return terrainEngine.getMode() == null;
     }
 
     boolean isNaturalTerrainContext() {
@@ -2144,6 +2252,9 @@ public class IrisComplex implements DataProvider {
     }
 
     public void close() {
+        if (terrainTransform != null) {
+            terrainTransform.close();
+        }
         if (hydrologyBanks3D != null) {
             hydrologyBanks3D.clear();
         }

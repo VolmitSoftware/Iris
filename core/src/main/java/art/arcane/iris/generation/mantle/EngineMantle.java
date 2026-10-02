@@ -28,6 +28,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.iris.pack.value.IrisPosition;
@@ -108,6 +109,12 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
+        IrisComplex complex = getComplex();
+        int transformed = complex == null || complex.getTerrainTransform() == null ? Integer.MIN_VALUE
+                : complex.transformedHeight(x, z, ignoreFluid);
+        if (transformed != Integer.MIN_VALUE) {
+            return transformed;
+        }
         return ignoreFluid ? trueHeight(x, z) : Math.max(trueHeight(x, z), getFluidHeight(x, z));
     }
 
@@ -116,6 +123,10 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default boolean isCarved(int x, int h, int z) {
+        Terrain3DColumn transformed = getComplex().transformedColumn(x, z);
+        if (transformed != null) {
+            return h >= 0 && h < transformed.topY() && !transformed.isSolid(h);
+        }
         HydrologyCaveCell hydrology = HydrologyCaveStorage.getIfPresent(getMantle(), x, h, z);
         if (hydrology != null) {
             return hydrology.carves();
@@ -142,6 +153,12 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default int getFluidHeight(int x, int z) {
+        IrisComplex complex = getComplex();
+        int transformed = complex == null || complex.getTerrainTransform() == null ? Integer.MIN_VALUE
+                : complex.transformedFluidHeight(x, z);
+        if (transformed != Integer.MIN_VALUE) {
+            return transformed;
+        }
         return (int) Math.round(getComplex().getRiverWaterSurfaceStream().get(x, z));
     }
 

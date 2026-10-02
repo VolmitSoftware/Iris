@@ -213,7 +213,11 @@ public interface EngineMode extends Staged {
 
         EngineStage[] stages = getStages().toArray(new EngineStage[0]);
         try (IrisContext.Scope chunkScope = IrisContext.open(getEngine(), generationSessionId, ctx)) {
-            generateTerrain(x, z, blocks, biomes, multicore, ctx);
+            if (getComplex().getTerrainTransform() == null) {
+                generateTerrain(x, z, blocks, biomes, multicore, ctx);
+            } else {
+                getComplex().getTerrainTransform().generate(x, z, blocks, biomes, multicore, ctx);
+            }
             recordNaturalTerrain(x, z, blocks, biomes, ctx);
             IrisDimensionStackActuator.clearHostNaturalMetadata(getEngine(), x, z, biomes.getHeight(), ctx);
             ctx.beginContent();

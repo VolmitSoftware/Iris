@@ -373,8 +373,7 @@ public class IrisComplex implements DataProvider {
                 .convertAware2D(ProceduralStream::get), "shoreBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusedBiomes != null ? focusedBiomes.convert(IrisBiome::getInferredType) :
-                GenerationStreams.cache2D(engine.getDimension().getContinentalStyle().create(createContinentSeedSource(), getData())
-                        .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
+                GenerationStreams.cache2D(scaleByContinentZoom(engine.getDimension().getContinentalStyle().create(createContinentSeedSource(), getData()), engine.getDimension()).stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND), "bridgeStream", engine, cacheSize);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusedBiomes != null ? focusedBiomes :
                 GenerationStreams.cache2D(bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
@@ -499,6 +498,10 @@ public class IrisComplex implements DataProvider {
 
     private RNG createContinentSeedSource() {
         return rng.nextParallelRNG(CONTINENT_SEED_SALT);
+    }
+
+    private static CNG scaleByContinentZoom(CNG generator, IrisDimension dimension) {
+        return generator.bake().scale(1D / dimension.getContinentZoom()).bake();
     }
 
     /**

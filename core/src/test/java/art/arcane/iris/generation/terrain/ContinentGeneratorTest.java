@@ -4,11 +4,8 @@ import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.testsupport.ExpectedToFailUntilFixed;
-import art.arcane.iris.testsupport.ExpectedToFailUntilFixedRule;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
-import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -18,9 +15,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ContinentGeneratorTest {
-    private static final String SHARED_STYLE_GENERATOR_BUG =
-            "ContinentGenerator scales the shared style generator instead of a private one. "
-                    + "Ref.: https://github.com/VolmitSoftware/Iris/issues/1251";
     private static final long WORLD_SEED = 7L;
     private static final double POWER_OF_TWO_CONTINENT_ZOOM = 4D;
     private static final double SQUARED_CONTINENT_ZOOM = POWER_OF_TWO_CONTINENT_ZOOM * POWER_OF_TWO_CONTINENT_ZOOM;
@@ -35,9 +29,6 @@ public class ContinentGeneratorTest {
     private final IrisDimension squaredZoomDimension = createDimensionWithContinentZoom(SQUARED_CONTINENT_ZOOM);
     private final IrisDimension overworldStyleDimension = createDimensionWithOverworldContinentalStyle();
 
-    @Rule
-    public final ExpectedToFailUntilFixedRule expectedFailures = new ExpectedToFailUntilFixedRule();
-
     @Test
     public void doesTheContinentMapAtWorldStartMatchExistingWorlds() {
         assertArrayEquals(CONTINENT_MAP_OF_EXISTING_WORLDS, sampleContinentMapAtWorldStart(baseZoomDimension), 0D);
@@ -49,25 +40,21 @@ public class ContinentGeneratorTest {
                 sampleContinentMapAtWorldStart(squaredZoomDimension), 0D);
     }
 
-    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
     @Test
     public void doesRebuildingTheSameWorldZoomItsContinentMapOnlyOnce() {
         assertArrayEquals(CONTINENT_MAP_OF_EXISTING_WORLDS, sampleContinentMapAfterRebuild(baseZoomDimension), 0D);
     }
 
-    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
     @Test
     public void doesRebuildingTheSameWorldTwiceZoomItsContinentMapOnlyOnce() {
         assertArrayEquals(CONTINENT_MAP_OF_EXISTING_WORLDS, sampleContinentMapAfterSecondRebuild(baseZoomDimension), 0D);
     }
 
-    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
     @Test
     public void doesRebuildingAWorldWithTheOverworldContinentalStyleZoomItsContinentMapOnlyOnce() {
         assertArrayEquals(sampleOverworldContinentMapAtWorldStart(), sampleContinentMapAfterRebuild(overworldStyleDimension), 0D);
     }
 
-    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
     @Test
     public void doesBuildingTheContinentMapLeaveTheSharedStyleGeneratorUnscaled() {
         assertArrayEquals(sampleUntouchedSharedStyleGenerator(), sampleSharedStyleGeneratorAfterContinentMapBuilt(baseZoomDimension), 0D);

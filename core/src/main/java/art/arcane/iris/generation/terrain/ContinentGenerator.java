@@ -15,7 +15,7 @@ public final class ContinentGenerator {
     }
 
     private static CNG takeSharedGenerator(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
-        return dimension.getContinentalStyle().create(deriveContinentSeed(parentSeedSource), packData);
+        return dimension.getContinentalStyle().createNoCache(deriveContinentSeed(parentSeedSource), packData);
     }
 
     static RNG deriveContinentSeed(RNG parentSeedSource) {

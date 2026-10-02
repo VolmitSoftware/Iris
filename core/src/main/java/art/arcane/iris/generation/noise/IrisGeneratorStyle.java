@@ -102,6 +102,10 @@ public class IrisGeneratorStyle {
         return createNoCache(rng, data, 1, 0, false, resolveEngine(data));
     }
 
+    public CNG createScaledGenerator(RNG rng, IrisData data, double scaleFactor) {
+        return createNoCache(rng, data).bake().scale(scaleFactor).bake();
+    }
+
     public CNG createForLayer(RNG rng, IrisData data, int octaveMultiplier) {
         return createNoCache(rng, data, Math.clamp(octaveMultiplier, 1, 16), 0, false, resolveEngine(data));
     }

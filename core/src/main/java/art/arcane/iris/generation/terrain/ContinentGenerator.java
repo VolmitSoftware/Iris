@@ -11,18 +11,18 @@ public final class ContinentGenerator {
     }
 
     public static CNG create(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
-        return scaleByContinentZoom(createContinentalStyleGenerator(dimension, parentSeedSource, packData), dimension);
+        return createScaledContinentalStyleGenerator(dimension, deriveContinentSeed(parentSeedSource), packData);
     }
 
-    private static CNG createContinentalStyleGenerator(IrisDimension dimension, RNG parentSeedSource, IrisData packData) {
-        return dimension.getContinentalStyle().createNoCache(deriveContinentSeed(parentSeedSource), packData);
+    private static CNG createScaledContinentalStyleGenerator(IrisDimension dimension, RNG continentSeed, IrisData packData) {
+        return dimension.getContinentalStyle().createScaledGenerator(continentSeed, packData, inverseContinentZoom(dimension));
     }
 
     static RNG deriveContinentSeed(RNG parentSeedSource) {
         return parentSeedSource.nextParallelRNG(CONTINENT_SEED_SALT);
     }
 
-    private static CNG scaleByContinentZoom(CNG generator, IrisDimension dimension) {
-        return generator.bake().scale(1D / dimension.getContinentZoom()).bake();
+    private static double inverseContinentZoom(IrisDimension dimension) {
+        return 1D / dimension.getContinentZoom();
     }
 }

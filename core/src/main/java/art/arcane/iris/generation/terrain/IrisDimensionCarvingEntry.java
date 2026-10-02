@@ -87,7 +87,7 @@ public class IrisDimensionCarvingEntry {
     }
 
     private CNG createChildrenGenerator(long childrenGeneratorSeed, IrisData data) {
-        return scaleByShrinkFactor(getChildStyle().create(deriveChildStyleSeed(childrenGeneratorSeed), data));
+        return scaleByShrinkFactor(getChildStyle().createNoCache(deriveChildStyleSeed(childrenGeneratorSeed), data));
     }
 
     long deriveChildrenGeneratorSeed(long worldSeed) {

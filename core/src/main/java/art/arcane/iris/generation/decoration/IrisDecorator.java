@@ -158,8 +158,12 @@ public class IrisDecorator {
 
         return varianceGenerator.aquire(() ->
                 variance.create(
-                                rng.nextParallelRNG(getBlockData(data).size()), data)
+                                deriveVarianceSeed(rng, data), data)
                         .scale(1D / variance.getZoom()));
+    }
+
+    RNG deriveVarianceSeed(RNG rng, IrisData data) {
+        return rng.nextParallelRNG(getBlockData(data).size());
     }
 
     public KList<IrisBlockData> add(String b) {

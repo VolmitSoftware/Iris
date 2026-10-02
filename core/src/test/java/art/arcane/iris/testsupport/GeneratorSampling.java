@@ -5,6 +5,8 @@ import art.arcane.volmlib.util.noise.CNG;
 import java.util.Arrays;
 
 public final class GeneratorSampling {
+    public static final double[][] SAMPLE_BLOCKS = {{1000D, -2000D}, {12.5D, -7.25D}, {-517D, 333D}};
+
     private GeneratorSampling() {
     }
 

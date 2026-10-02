@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static art.arcane.iris.testsupport.GeneratorSampling.SAMPLE_BLOCKS;
 import static art.arcane.iris.testsupport.GeneratorSampling.sampleAtBlocks;
 import static org.junit.Assert.assertArrayEquals;
 
@@ -17,7 +18,6 @@ public class ContinentGeneratorTest {
     private static final double POWER_OF_TWO_CONTINENT_ZOOM = 4D;
     private static final double SQUARED_CONTINENT_ZOOM = POWER_OF_TWO_CONTINENT_ZOOM * POWER_OF_TWO_CONTINENT_ZOOM;
     private static final double OVERWORLD_STYLE_ZOOM = 6D;
-    private static final double[][] SAMPLE_BLOCKS = {{1000D, -2000D}, {12.5D, -7.25D}, {-517D, 333D}};
     private static final double[][] BLOCKS_SHRUNK_BY_CONTINENT_ZOOM = shrinkByContinentZoom(SAMPLE_BLOCKS);
     private static final double[] CONTINENT_MAP_OF_EXISTING_WORLDS =
             {0.21889892332042843D, 0.6984934456740721D, 0.2708759584352327D};

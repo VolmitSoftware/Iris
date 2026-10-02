@@ -81,9 +81,11 @@ public class IrisDimensionCarvingEntry {
     }
 
     public CNG getChildrenGenerator(long seed, IrisData data) {
-        return childGenerators.computeIfAbsent(deriveChildrenGeneratorSeed(seed), key -> {
-            return scaleByShrinkFactor(getChildStyle().create(deriveChildStyleSeed(key), data));
-        });
+        return childGenerators.computeIfAbsent(deriveChildrenGeneratorSeed(seed), key -> createChildrenGenerator(key, data));
+    }
+
+    private CNG createChildrenGenerator(long childrenGeneratorSeed, IrisData data) {
+        return scaleByShrinkFactor(getChildStyle().create(deriveChildStyleSeed(childrenGeneratorSeed), data));
     }
 
     long deriveChildrenGeneratorSeed(long worldSeed) {

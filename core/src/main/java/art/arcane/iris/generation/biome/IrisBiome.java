@@ -516,7 +516,7 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     }
 
     private CNG createChildrenGenerator(RNG random, int sig, double scale) {
-        return getChildStyle().create(deriveChildStyleSeed(random, sig), getLoader()).bake().scale(scale).bake();
+        return getChildStyle().createNoCache(deriveChildStyleSeed(random, sig), getLoader()).bake().scale(scale).bake();
     }
 
     static RNG deriveChildStyleSeed(RNG random, int signature) {

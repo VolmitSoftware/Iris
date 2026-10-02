@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Data
 public class IrisDimensionCarvingEntry {
     private static final int CHILDREN_SEED_SALT = 2137;
+    private static final double MINIMUM_CHILD_SHRINK_FACTOR = 0.0001D;
     private final transient AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
     private final transient Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
 
@@ -98,7 +99,7 @@ public class IrisDimensionCarvingEntry {
     }
 
     private CNG scaleByShrinkFactor(CNG generator) {
-        return generator.bake().scale(Math.max(0.0001D, getChildShrinkFactor())).bake();
+        return generator.bake().scale(Math.max(MINIMUM_CHILD_SHRINK_FACTOR, getChildShrinkFactor())).bake();
     }
 
     private long hashOfId() {

@@ -8,7 +8,7 @@ import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
 import static art.arcane.iris.testsupport.GeneratorSampling.SAMPLE_BLOCKS;
-import static art.arcane.iris.testsupport.GeneratorSampling.sampleAtBlocks;
+import static art.arcane.iris.testsupport.GeneratorSampling.sampleSharedGenerator;
 import static org.junit.Assert.assertArrayEquals;
 
 public class IrisBiomeChildrenGeneratorTest {
@@ -38,7 +38,7 @@ public class IrisBiomeChildrenGeneratorTest {
     }
 
     private double[] sampleSharedChildStyleGenerator(IrisGeneratorStyle childStyle) {
-        return sampleAtBlocks(childStyle.create(deriveSharedChildStyleSeed(), packData), SAMPLE_BLOCKS);
+        return sampleSharedGenerator(childStyle, deriveSharedChildStyleSeed(), packData);
     }
 
     private static RNG deriveSharedChildStyleSeed() {

@@ -11,6 +11,7 @@ import java.util.Arrays;
 
 import static art.arcane.iris.testsupport.GeneratorSampling.SAMPLE_BLOCKS;
 import static art.arcane.iris.testsupport.GeneratorSampling.sampleAtBlocks;
+import static art.arcane.iris.testsupport.GeneratorSampling.sampleSharedGenerator;
 import static org.junit.Assert.assertArrayEquals;
 
 public class ContinentGeneratorTest {
@@ -90,7 +91,7 @@ public class ContinentGeneratorTest {
     }
 
     private double[] sampleSharedStyleGenerator(IrisGeneratorStyle style) {
-        return sampleAtBlocks(style.create(ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), packData), SAMPLE_BLOCKS);
+        return sampleSharedGenerator(style, ContinentGenerator.deriveContinentSeed(new RNG(WORLD_SEED)), packData);
     }
 
     private double[] sampleContinentMap(IrisDimension dimension, double[][] blocks) {

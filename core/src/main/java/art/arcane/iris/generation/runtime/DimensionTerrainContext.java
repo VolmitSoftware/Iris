@@ -5,6 +5,7 @@ import art.arcane.iris.generation.stream.GenerationStreams;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
+import art.arcane.iris.generation.terrain.ContinentGenerator;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -258,9 +259,7 @@ public final class DimensionTerrainContext implements DataProvider {
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
 
         ProceduralStream<InferredType> bridgeStream = focusBiome == null
-                ? dimension.getContinentalStyle()
-                        .create(rng.nextParallelRNG(234234565), dimensionData)
-                        .bake().scale(1D / dimension.getContinentZoom()).bake().stream()
+                ? ContinentGenerator.create(dimension, rng, dimensionData).stream()
                         .convert(value -> value >= dimension.getLandChance()
                                 ? InferredType.SEA
                                 : InferredType.LAND)

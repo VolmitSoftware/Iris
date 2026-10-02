@@ -52,6 +52,7 @@ import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
+import art.arcane.iris.generation.terrain.ContinentGenerator;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -390,8 +391,7 @@ public class IrisComplex implements DataProvider {
                 .convertAware2D(ProceduralStream::get), "shoreBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusedBiomes != null ? focusedBiomes.convert(IrisBiome::getInferredType) :
-                GenerationStreams.cache2D(engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
-                        .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
+                GenerationStreams.cache2D(ContinentGenerator.create(engine.getDimension(), rng, getData()).stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND), "bridgeStream", engine, cacheSize);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusedBiomes != null ? focusedBiomes :
                 GenerationStreams.cache2D(bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))

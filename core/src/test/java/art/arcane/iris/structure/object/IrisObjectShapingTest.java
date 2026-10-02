@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -92,6 +94,27 @@ public class IrisObjectShapingTest {
 
         assertTrue(object.isSmartBored());
         assertTrue(object.getBlocks().isEmpty());
+    }
+
+    @Test
+    public void smartBoreVariantIsReusedAndInvalidatedBySourceEdits() {
+        IrisObject source = new IrisObject(3, 1, 1);
+        source.getBlocks().put(new IrisBlockVector(-1, 0, 0), IrisObject.States.stone());
+        source.getBlocks().put(new IrisBlockVector(1, 0, 0), IrisObject.States.stone());
+        long sourceRevision = source.getBlocks().modificationRevision();
+
+        IrisObject first = IrisObjectShaping.smartBoredVariant(source);
+
+        assertFalse(source.isSmartBored());
+        assertEquals(sourceRevision, source.getBlocks().modificationRevision());
+        assertEquals(2, source.getBlocks().size());
+        assertEquals(3, first.getBlocks().size());
+        assertSame(first, IrisObjectShaping.smartBoredVariant(source));
+        source.getBlocks().put(new IrisBlockVector(0, 0, 0), IrisObject.States.air());
+        IrisObject second = IrisObjectShaping.smartBoredVariant(source);
+        assertNotSame(first, second);
+        assertSame(IrisObject.States.air(), second.getBlocks().get(new IrisBlockVector(0, 0, 0)));
+        assertSame(second, IrisObjectShaping.smartBoredVariant(source));
     }
 
     private static void closeAxis(Map<Cell, NativeBlockState> blocks, int axis) {

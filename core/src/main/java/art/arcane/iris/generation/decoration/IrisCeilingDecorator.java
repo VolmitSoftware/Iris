@@ -60,13 +60,13 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                     return;
                 }
             }
-            DecoratorCore.placeSingleAt(decorator, x, z, realX, height, realZ, data, rng, getData(), true, getEngine().getMantle());
+            DecoratorCore.placeSingleAt(decorator, x, z, realX, height, realZ, data, partRNG, getData(), true, getEngine().getMantle());
             return;
         }
 
         DecoratorCore.PlaceOpts opts = DecoratorCore.SCRATCH_OPTS.get();
         opts.reset();
         opts.caveSkipFluid = caveSkipFluid;
-        DecoratorCore.placeStackDown(decorator, x, z, realX, realZ, height, 0, data, rng, getData(), max, opts, getEngine().getMantle());
+        DecoratorCore.placeStackDown(decorator, x, z, realX, realZ, height, 0, data, partRNG, getData(), max, opts, getEngine().getMantle());
     }
 }

@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 import art.arcane.iris.pack.loading.ResourceLoader;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -78,16 +79,16 @@ public class IrisDepositModifierParityTest {
     public void configuredShapesKeepRecordedBlocksAcrossScopesAndCavePolicies() {
         long[] seeds = {101L, -73L, 90181L};
         long[][] expected = {
-                {-4609692219192155345L, 784L, 2118L, 53L, 67L, 11L},
-                {-331296667371868787L, 818L, 2413L, 94L, 49L, 20L},
-                {-3365014205342608518L, 641L, 2340L, 58L, 45L, 27L}
+                {-681153659952315909L, 784L, 2118L, 53L, 67L, 10L},
+                {9111006654067022779L, 818L, 2414L, 93L, 49L, 20L},
+                {831979810025539302L, 641L, 2340L, 58L, 45L, 28L}
         };
+        long[][] actual = new long[seeds.length][];
         for (int i = 0; i < seeds.length; i++) {
-            for (boolean multicore : new boolean[]{false, true}) {
-                assertArrayEquals("seed=" + seeds[i] + ", multicore=" + multicore,
-                        expected[i], generateConfigured(seeds[i], multicore));
-            }
+            actual[i] = generateConfigured(seeds[i], false);
+            assertArrayEquals("seed=" + seeds[i], actual[i], generateConfigured(seeds[i], true));
         }
+        assertEquals(Arrays.deepToString(expected), Arrays.deepToString(actual));
     }
 
     @Test
@@ -104,9 +105,11 @@ public class IrisDepositModifierParityTest {
 
     @Test
     public void unmatchableSurfaceBiomeFiltersSkipClumpsWithoutChangingOutput() {
-        long[] expected = {-4609692219192155345L, 784L, 2118L, 53L, 67L, 11L};
+        long[] expected = {-681153659952315909L, 784L, 2118L, 53L, 67L, 10L};
         AtomicInteger clumps = new AtomicInteger();
-        assertArrayEquals(expected, generateConfigured(101L, false, true, false, new AtomicInteger(), clumps));
+        long[] filtered = generateConfigured(101L, false, true, false, new AtomicInteger(), clumps);
+        assertArrayEquals(generateConfigured(101L, false), filtered);
+        assertEquals(Arrays.toString(expected), Arrays.toString(filtered));
         assertEquals(0, clumps.get());
     }
 

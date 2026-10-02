@@ -537,7 +537,7 @@ final class RealPackProbeSupport {
     private static File clonePack(File source, File workRoot) throws Exception {
         File destination = new File(workRoot, "pack");
         if (System.getProperty("os.name").startsWith("Mac")) {
-            Process clone = new ProcessBuilder("/bin/cp", "-Rc", source.getAbsolutePath(), destination.getAbsolutePath())
+            Process clone = new ProcessBuilder("/bin/cp", "-RLc", source.getAbsolutePath(), destination.getAbsolutePath())
                     .inheritIO().start();
             if (clone.waitFor() == 0) {
                 return destination;

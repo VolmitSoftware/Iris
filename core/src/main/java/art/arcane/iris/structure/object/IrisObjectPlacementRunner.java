@@ -49,6 +49,7 @@ import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterMarker;
 
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -121,10 +122,6 @@ final class IrisObjectPlacementRunner {
                 config = config.toPlacement(config.getPlace().toArray(new String[0]));
                 config.setRotation(slopeRotation);
             }
-        }
-
-        if (config.isSmartBore()) {
-            IrisObjectShaping.ensureSmartBored(self);
         }
 
         boolean warped = !config.getWarp().isFlat();
@@ -902,7 +899,9 @@ final class IrisObjectPlacementRunner {
         if (heightmap != null) {
             RNG rngx = rng.nextParallelRNG(3468854);
 
-            for (Position2 i : heightmap.k()) {
+            KList<Position2> snowColumns = heightmap.k();
+            snowColumns.sort(Comparator.comparingInt(Position2::getX).thenComparingInt(Position2::getZ));
+            for (Position2 i : snowColumns) {
                 int vx = i.getX();
                 int vy = heightmap.get(i);
                 int vz = i.getZ();

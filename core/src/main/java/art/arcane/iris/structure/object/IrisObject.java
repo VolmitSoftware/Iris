@@ -138,6 +138,7 @@ public class IrisObject extends IrisRegistrant {
     @Getter
     @Setter
     protected transient volatile boolean smartBored = false;
+    transient volatile IrisObjectShaping.SmartBoreVariant smartBoreVariant;
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
@@ -335,7 +336,8 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult c, IrisData rdata) {
-        return new IrisObjectPlacementRunner(this).place(x, yv, z, oplacer, config, rng, listener, c, rdata);
+        IrisObject placedObject = config.isSmartBore() ? IrisObjectShaping.smartBoredVariant(this) : this;
+        return new IrisObjectPlacementRunner(placedObject).place(x, yv, z, oplacer, config, rng, listener, c, rdata);
     }
 
     KList<IrisBlockVector> getSurfaceSupportOffsets() {

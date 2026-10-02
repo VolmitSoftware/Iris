@@ -10,6 +10,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -19,6 +20,16 @@ import static org.mockito.Mockito.when;
 public class IrisGeneratorStyleCacheIsolationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void persistedCacheSignaturesUseStableStyleNames() {
+        assertEquals(-492944473, new IrisGeneratorStyle(NoiseStyle.SIMPLEX).prebakeSignature());
+        assertEquals(992324154, new IrisGeneratorStyle(NoiseStyle.FLAT).prebakeSignature());
+        assertEquals(-848988881, new IrisGeneratorStyle(NoiseStyle.STATIC).prebakeSignature());
+        assertEquals(990163649, new IrisGeneratorStyle().setStyle(null).prebakeSignature());
+        assertEquals(1067243926, new IrisGeneratorStyle(NoiseStyle.SIMPLEX)
+                .setFracture(new IrisGeneratorStyle(NoiseStyle.STATIC)).prebakeSignature());
+    }
 
     @Test
     public void cacheSeparatesSeedsAndEngineIdentity() throws Exception {

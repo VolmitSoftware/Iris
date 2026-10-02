@@ -10,7 +10,11 @@ import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.Required;
 import art.arcane.iris.pack.schema.annotation.Snippet;
-import art.arcane.volmlib.util.collection.KMap;
+import art.arcane.iris.generation.cache.LazyBoundedCache;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+
+import java.util.Objects;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -48,7 +52,10 @@ public class IrisExpressionFunction implements DynamicFunction {
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private transient final KMap<FunctionContext, Provider> cache = new KMap<>();
+    private transient final LazyBoundedCache<FunctionKey, Provider> providers = new LazyBoundedCache<>(8);
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile CachedProvider recentProvider;
     private transient IrisData data;
 
     public boolean isValid() {
@@ -74,19 +81,53 @@ public class IrisExpressionFunction implements DynamicFunction {
 
     @Override
     public double eval(@Nullable Context raw, double... args) {
-        return cache.computeIfAbsent((FunctionContext) raw, context -> {
-            assert context != null;
-            if (engineStreamValue != null) {
-                var stream = engineStreamValue.get(data.getEngine());
-                return d -> stream.get(d[0], d[1]);
-            }
+        FunctionContext context = Objects.requireNonNull((FunctionContext) raw, "Expression context");
+        IrisData currentData = data;
+        Engine engine = currentData == null ? null : currentData.getEngine();
+        long seed = context.rng.getSeed();
+        CachedProvider recent = recentProvider;
+        if (recent != null && recent.key.matches(seed, currentData, engine)) {
+            return recent.provider.eval(args);
+        }
+        FunctionKey key = new FunctionKey(seed, currentData, engine);
+        Provider provider = providers.computeIfAbsent(key, ignored -> createProvider(key));
+        recentProvider = new CachedProvider(key, provider);
+        return provider.eval(args);
+    }
 
-            if (styleValue != null) {
-                return styleValue.createNoCache(context.rng, data)::noise;
+    private Provider createProvider(FunctionKey key) {
+        if (engineStreamValue != null) {
+            if (key.engine == null) {
+                throw new IllegalStateException("Expression function '" + name + "' requires an active Iris engine.");
             }
+            ProceduralStream<Double> stream = engineStreamValue.get(key.engine);
+            return coordinates -> stream.get(coordinates[0], coordinates[1]);
+        }
+        if (styleValue != null) {
+            return styleValue.create(new RNG(key.seed), key.data, key.engine)::noise;
+        }
+        return coordinates -> Double.NaN;
+    }
 
-            return d -> Double.NaN;
-        }).eval(args);
+    private record FunctionKey(long seed, IrisData data, Engine engine) {
+        private boolean matches(long seed, IrisData data, Engine engine) {
+            return this.seed == seed && this.data == data && this.engine == engine;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            return object instanceof FunctionKey other && matches(other.seed, other.data, other.engine);
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = Long.hashCode(seed);
+            hash = 31 * hash + System.identityHashCode(data);
+            return 31 * hash + System.identityHashCode(engine);
+        }
+    }
+
+    private record CachedProvider(FunctionKey key, Provider provider) {
     }
 
     public record FunctionContext(@NonNull RNG rng) implements Context {

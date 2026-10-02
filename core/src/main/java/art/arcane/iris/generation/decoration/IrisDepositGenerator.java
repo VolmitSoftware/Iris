@@ -39,6 +39,8 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import lombok.AllArgsConstructor;
@@ -269,7 +271,7 @@ public class IrisDepositGenerator {
             return new IrisObject(1, 1, 1);
         }
 
-        KSet<BlockPosition> cells = new KSet<>();
+        Set<BlockPosition> cells = new LinkedHashSet<>();
         vanillaEllipsoidCells(rng, size, (x, y, z) -> cells.add(new BlockPosition(x, y, z)));
         return objectFromCells(cells, rng, rdata);
     }
@@ -407,7 +409,7 @@ public class IrisDepositGenerator {
     }
 
     IrisObject generateVanillaScattered(RNG rng, IrisData rdata, int size) {
-        KSet<BlockPosition> cells = new KSet<>();
+        Set<BlockPosition> cells = new LinkedHashSet<>();
         int candidates = rng.nextInt(Math.max(0, size) + 1);
         for (int i = 0; i < candidates; i++) {
             int magnitude = Math.min(i, 7);
@@ -419,7 +421,7 @@ public class IrisDepositGenerator {
         return objectFromCells(cells, rng, rdata);
     }
 
-    private IrisObject objectFromCells(KSet<BlockPosition> cells, RNG rng, IrisData rdata) {
+    private IrisObject objectFromCells(Set<BlockPosition> cells, RNG rng, IrisData rdata) {
         if (cells.isEmpty()) {
             return new IrisObject(1, 1, 1);
         }

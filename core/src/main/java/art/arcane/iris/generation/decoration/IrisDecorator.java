@@ -19,6 +19,8 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
@@ -50,9 +52,8 @@ import lombok.experimental.Accessors;
 @Description("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
 public class IrisDecorator {
-    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
+    private final transient LazyBoundedCache<GeneratorKey, Generators> generators = new LazyBoundedCache<>(32);
+    private transient volatile Generators recentGenerators;
     private final transient AtomicCache<KList<NativeBlockState>> blockData = new AtomicCache<>();
     private final transient AtomicCache<KList<NativeBlockState>> blockDataTops = new AtomicCache<>();
     private final transient AtomicCache<NativeBlockState[]> blockDataArray = new AtomicCache<>();
@@ -129,33 +130,34 @@ public class IrisDecorator {
     }
 
     public CNG getHeightGenerator(RNG rng, IrisData data) {
-        CNG cached = heightGenerator.getIfPresent();
-
-        if (cached != null) {
-            return cached;
-        }
-
-        return heightGenerator.aquire(() ->
+        AtomicCache<CNG> cache = generators(rng, data).height;
+        CNG cached = cache.getIfPresent();
+        return cached != null ? cached : cache.aquire(() ->
                 heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), data));
     }
 
     public CNG getGenerator(RNG rng, IrisData data) {
-        CNG cached = layerGenerator.getIfPresent();
-
-        if (cached != null) {
-            return cached;
-        }
-
-        return layerGenerator.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size()), data));
+        AtomicCache<CNG> cache = generators(rng, data).layer;
+        CNG cached = cache.getIfPresent();
+        return cached != null ? cached : cache.aquire(() -> style.create(rng.nextParallelRNG(getBlockData(data).size()), data));
     }
 
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
-        CNG cached = varianceGenerator.getIfPresent();
-        return cached != null ? cached : buildVarianceGeneratorOnce(rng, data);
+        AtomicCache<CNG> cache = generators(rng, data).variance;
+        CNG cached = cache.getIfPresent();
+        return cached != null ? cached : cache.aquire(() -> createVarianceGenerator(rng, data));
     }
 
-    private CNG buildVarianceGeneratorOnce(RNG rng, IrisData data) {
-        return varianceGenerator.aquire(() -> createVarianceGenerator(rng, data));
+    private Generators generators(RNG rng, IrisData data) {
+        long seed = rng.getSeed();
+        Engine engine = data == null ? null : data.getEngine();
+        Generators recent = recentGenerators;
+        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
+            return recent;
+        }
+        Generators selected = generators.computeIfAbsent(new GeneratorKey(seed, data, engine), Generators::new);
+        recentGenerators = selected;
+        return selected;
     }
 
     private CNG createVarianceGenerator(RNG rng, IrisData data) {
@@ -357,5 +359,30 @@ public class IrisDecorator {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isStacking() {
         return getStackMax() > 1;
+    }
+
+    private static final class Generators {
+        private final GeneratorKey key;
+        private final AtomicCache<CNG> layer = new AtomicCache<>();
+        private final AtomicCache<CNG> variance = new AtomicCache<>();
+        private final AtomicCache<CNG> height = new AtomicCache<>();
+
+        private Generators(GeneratorKey key) {
+            this.key = key;
+        }
+    }
+
+    private record GeneratorKey(long seed, IrisData data, Engine engine) {
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof GeneratorKey key
+                    && seed == key.seed && data == key.data && engine == key.engine;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * Long.hashCode(seed) + System.identityHashCode(data))
+                    + System.identityHashCode(engine);
+        }
     }
 }

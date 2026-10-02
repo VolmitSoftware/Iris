@@ -1,9 +1,11 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.testsupport.KeyedBlockState;
+import art.arcane.iris.testsupport.PlatformBinding;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -13,21 +15,30 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 public class IrisObjectIoPaletteTest {
     private static final int BLOCK_COUNT = 30_000;
     private static final int UNIQUE_KEYS = 3_000;
-    private static final String PINNED_DIGEST = "9fbd42fe7686cc725e0acab8595b0223d71c1a45762b78ac0e6146230dbb8849";
+    private static final String PINNED_DIGEST = "eee0bae5702dc3d8c79b5ba28d0782cdfa581662237629bb13a3adee6f757fc7";
+
+    @Rule
+    public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
     @Test
-    public void writesTheSameBytesAsTheOrderedPaletteScan() throws IOException {
+    public void pinsCanonicalPaletteAndBlockOrder() throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         IrisObjectIO.write(representativeObject(), out);
@@ -36,7 +47,7 @@ public class IrisObjectIoPaletteTest {
     }
 
     @Test
-    public void paletteKeepsFirstSeenInsertionOrder() throws IOException {
+    public void paletteKeepsFirstSeenCanonicalTraversalOrder() throws IOException {
         IrisObject object = representativeObject();
         List<String> firstSeen = new ArrayList<>();
         Set<String> seen = new HashSet<>();
@@ -51,6 +62,38 @@ public class IrisObjectIoPaletteTest {
         IrisObjectIO.write(object, out);
 
         assertEquals(firstSeen, writtenPalette(out.toByteArray()));
+    }
+
+    @Test
+    public void insertionPermutationsWriteIdenticalBytesAndReadBackEveryBlock() throws Throwable {
+        when(platform.registries().blockOrNull(anyString(), eq(false)))
+                .thenAnswer(invocation -> new KeyedBlockState(invocation.getArgument(0)));
+        IrisObject source = representativeObject();
+        ByteArrayOutputStream canonical = new ByteArrayOutputStream();
+        IrisObjectIO.write(source, canonical);
+        byte[] expected = canonical.toByteArray();
+        List<Map.Entry<IrisBlockVector, NativeBlockState>> blocks = new ArrayList<>();
+        source.blocks.forEach((position, state) -> blocks.add(Map.entry(position, state)));
+        for (int fixture = 0; fixture < 8; fixture++) {
+            Collections.shuffle(blocks, new Random(fixture));
+            IrisObject permuted = new IrisObject(source.w, source.h, source.d);
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
+                permuted.blocks.put(entry.getKey(), entry.getValue());
+            }
+            ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+            IrisObjectIO.write(permuted, encoded);
+            assertArrayEquals("fixture " + fixture, expected, encoded.toByteArray());
+            IrisObject decoded = new IrisObject();
+            IrisObjectIO.read(decoded, new ByteArrayInputStream(encoded.toByteArray()));
+            assertEquals(source.w, decoded.w);
+            assertEquals(source.h, decoded.h);
+            assertEquals(source.d, decoded.d);
+            assertEquals(source.blocks.size(), decoded.blocks.size());
+            assertEquals(source.states.size(), decoded.states.size());
+            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : blocks) {
+                assertEquals(entry.getValue().key(), decoded.blocks.get(entry.getKey()).key());
+            }
+        }
     }
 
     private static List<String> writtenPalette(byte[] bytes) throws IOException {

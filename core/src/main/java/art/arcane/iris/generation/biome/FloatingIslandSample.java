@@ -51,7 +51,7 @@ public final class FloatingIslandSample {
     private static final double CARVE_MAX_VERTICAL_RUN_FRACTION = 0.18D;
     private static final ThreadLocal<int[]> LAST_REJECT = ThreadLocal.withInitial(() -> new int[1]);
     private static final ThreadLocal<double[]> LAST_DENSITY = ThreadLocal.withInitial(() -> new double[2]);
-    private static final ThreadLocal<HashMap<Long, FloatingIslandSample>> CHUNK_MEMO = ThreadLocal.withInitial(HashMap::new);
+    private static final ThreadLocal<ChunkMemo> CHUNK_MEMO = ThreadLocal.withInitial(ChunkMemo::new);
     private static final ThreadLocal<IdentityHashMap<CNG, Long2DoubleOpenHashMap>> FOOTPRINT_MEMO = ThreadLocal.withInitial(IdentityHashMap::new);
     private static final AtomicBoolean NULL_CNG_WARNED = new AtomicBoolean(false);
 
@@ -68,21 +68,32 @@ public final class FloatingIslandSample {
     }
 
     public static void clearThreadCaches() {
+        CHUNK_MEMO.remove();
+        FOOTPRINT_MEMO.remove();
+        LAST_REJECT.remove();
+        LAST_DENSITY.remove();
     }
 
     public static void clearChunkMemo() {
-        CHUNK_MEMO.get().clear();
+        CHUNK_MEMO.get().samples.clear();
         FOOTPRINT_MEMO.get().clear();
     }
 
     public static FloatingIslandSample sampleMemoized(IrisBiome parent, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler) {
         long key = (((long) wx) << 32) ^ (wz & 0xFFFFFFFFL);
-        HashMap<Long, FloatingIslandSample> memo = CHUNK_MEMO.get();
-        if (memo.containsKey(key)) {
-            return memo.get(key);
+        ChunkMemo memo = CHUNK_MEMO.get();
+        if (memo.context == null || !memo.context.matches(wx >> 4, wz >> 4, chunkHeight, baseSeed,
+                data, engine, boundarySampler)) {
+            memo.samples.clear();
+            FOOTPRINT_MEMO.get().clear();
+            memo.context = new MemoContext(wx >> 4, wz >> 4, chunkHeight, baseSeed, data, engine, boundarySampler);
+        }
+        MemoizedSample cached = memo.samples.get(key);
+        if (cached != null && cached.parent == parent) {
+            return cached.sample;
         }
         FloatingIslandSample result = sample(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
-        memo.put(key, result);
+        memo.samples.put(key, new MemoizedSample(parent, result));
         return result;
     }
 
@@ -798,5 +809,22 @@ public final class FloatingIslandSample {
                 yield Math.min(maxTopHeight, rounded);
             }
         };
+    }
+
+    private static final class ChunkMemo {
+        private final HashMap<Long, MemoizedSample> samples = new HashMap<>(256);
+        private MemoContext context;
+    }
+
+    private record MemoContext(int chunkX, int chunkZ, int height, long seed, IrisData data, Engine engine,
+                               FloatingIslandBoundarySampler boundarySampler) {
+        private boolean matches(int chunkX, int chunkZ, int height, long seed, IrisData data, Engine engine,
+                                FloatingIslandBoundarySampler boundarySampler) {
+            return this.chunkX == chunkX && this.chunkZ == chunkZ && this.height == height && this.seed == seed
+                    && this.data == data && this.engine == engine && this.boundarySampler == boundarySampler;
+        }
+    }
+
+    private record MemoizedSample(IrisBiome parent, FloatingIslandSample sample) {
     }
 }

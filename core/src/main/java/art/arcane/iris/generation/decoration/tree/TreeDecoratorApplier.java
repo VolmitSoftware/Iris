@@ -23,6 +23,9 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -90,7 +93,7 @@ public final class TreeDecoratorApplier {
     private static void trunkSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         String[] facings = {"east", "west", "south", "north"};
-        for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
+        for (TreeBlockCanvas.Vec v : sortedPositions(canvas.getTrunk())) {
             for (int i = 0; i < sides.length; i++) {
                 int nx = v.x() + sides[i][0];
                 int nz = v.z() + sides[i][1];
@@ -105,7 +108,7 @@ public final class TreeDecoratorApplier {
     private static void leafSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         String[] facings = {"east", "west", "south", "north"};
-        for (TreeBlockCanvas.Vec v : new KList<>(canvas.getLeaf())) {
+        for (TreeBlockCanvas.Vec v : sortedPositions(canvas.getLeaf())) {
             for (int i = 0; i < sides.length; i++) {
                 int nx = v.x() + sides[i][0];
                 int nz = v.z() + sides[i][1];
@@ -118,7 +121,7 @@ public final class TreeDecoratorApplier {
     }
 
     private static void branchSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
-        for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
+        for (TreeBlockCanvas.Vec v : sortedPositions(canvas.getTrunk())) {
             int ay = v.y() + 1;
             if (canvas.has(v.x(), ay, v.z()) || rng.nextDouble() > dec.getChance()) {
                 continue;
@@ -136,7 +139,7 @@ public final class TreeDecoratorApplier {
                 colTop.put(key, v.y());
             }
         }
-        for (Map.Entry<Long, Integer> e : colTop.entrySet()) {
+        for (Map.Entry<Long, Integer> e : sortedColumns(colTop)) {
             int x = unpackX(e.getKey());
             int z = unpackZ(e.getKey());
             int aboveY = e.getValue() + 1;
@@ -149,7 +152,7 @@ public final class TreeDecoratorApplier {
 
     private static void canopyBottom(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         KMap<Long, Integer> colBottom = columnLeafBottoms(canvas);
-        for (Map.Entry<Long, Integer> e : colBottom.entrySet()) {
+        for (Map.Entry<Long, Integer> e : sortedColumns(colBottom)) {
             int x = unpackX(e.getKey());
             int z = unpackZ(e.getKey());
             int belowY = e.getValue() - 1;
@@ -163,7 +166,7 @@ public final class TreeDecoratorApplier {
     private static void canopyHang(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         int maxLen = Math.max(1, dec.getLength());
         KMap<Long, Integer> colBottom = columnLeafBottoms(canvas);
-        for (Map.Entry<Long, Integer> e : colBottom.entrySet()) {
+        for (Map.Entry<Long, Integer> e : sortedColumns(colBottom)) {
             if (rng.nextDouble() > dec.getChance()) {
                 continue;
             }
@@ -182,7 +185,7 @@ public final class TreeDecoratorApplier {
 
     private static void trunkBase(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
+        for (TreeBlockCanvas.Vec v : sortedPositions(canvas.getTrunk())) {
             if (v.y() != 0) {
                 continue;
             }
@@ -205,7 +208,7 @@ public final class TreeDecoratorApplier {
         if (maxY == Integer.MIN_VALUE) {
             return;
         }
-        for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
+        for (TreeBlockCanvas.Vec v : sortedPositions(canvas.getTrunk())) {
             if (v.y() != maxY) {
                 continue;
             }
@@ -267,6 +270,18 @@ public final class TreeDecoratorApplier {
             }
         }
         return colBottom;
+    }
+
+    private static List<TreeBlockCanvas.Vec> sortedPositions(Collection<TreeBlockCanvas.Vec> positions) {
+        List<TreeBlockCanvas.Vec> sorted = new ArrayList<>(positions);
+        sorted.sort(null);
+        return sorted;
+    }
+
+    private static List<Map.Entry<Long, Integer>> sortedColumns(Map<Long, Integer> columns) {
+        List<Map.Entry<Long, Integer>> sorted = new ArrayList<>(columns.entrySet());
+        sorted.sort(Comparator.comparingLong(Map.Entry::getKey));
+        return sorted;
     }
 
     private static String facingAway(int cx, int cz, int x, int z) {

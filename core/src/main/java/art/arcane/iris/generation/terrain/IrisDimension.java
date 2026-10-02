@@ -67,6 +67,7 @@ import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.IDataFixer;
 import art.arcane.iris.pack.datapack.IDataFixer.Dimension;
 import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -89,6 +90,9 @@ import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import lombok.Data;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -130,7 +134,12 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<IrisStaticObjectLayer> staticObjectLayer = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> coordFracture = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient LazyBoundedCache<Long, CNG> coordinateFractures = new LazyBoundedCache<>(8);
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile CachedCoordinateFracture recentCoordinateFracture;
     private final transient AtomicCache<Double> sinr = new AtomicCache<>();
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
@@ -537,12 +546,15 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public CNG getCoordFracture(RNG rng, int signature) {
-        return coordFracture.aquire(() ->
-        {
-            CNG coordFracture = CNG.signature(rng.nextParallelRNG(signature));
-            coordFracture.scale(0.012 / coordFractureZoom);
-            return coordFracture;
-        });
+        long seed = rng.getSeed() + signature;
+        CachedCoordinateFracture recent = recentCoordinateFracture;
+        if (recent != null && recent.seed == seed) {
+            return recent.generator;
+        }
+        CNG generator = coordinateFractures.computeIfAbsent(seed, ignored ->
+                CNG.signature(new RNG(seed)).scale(0.012 / coordFractureZoom));
+        recentCoordinateFracture = new CachedCoordinateFracture(seed, generator);
+        return generator;
     }
 
     public double getDimensionAngle() {
@@ -1300,5 +1312,8 @@ public class IrisDimension extends IrisRegistrant {
             dimTypeVanilla.getParentFile().mkdirs();
             IO.writeAll(dimTypeVanilla, json);
         }
+    }
+
+    private record CachedCoordinateFracture(long seed, CNG generator) {
     }
 }

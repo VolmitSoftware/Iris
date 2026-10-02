@@ -35,7 +35,7 @@ public class FloatingDecorator {
                                      int xf, int zf, int realX, int realZ,
                                      int height, int max, Hunk<NativeBlockState> data, RNG rng,
                                      Runnable candidatesNullCallback) {
-        RNG gRNG = new RNG(DecoratorCore.partSeed(engine.getSeedManager().getDecorator(), part));
+        RNG gRNG = new RNG(DecoratorCore.partSeed(engine.getSeedManager().getComponent(), part));
         IrisDecorator decorator = DecoratorCore.pickDecorator(target, part, gRNG, rng, engine.getData(), realX, realZ);
 
         if (decorator == null) {
@@ -45,11 +45,11 @@ public class FloatingDecorator {
 
         if (!decorator.isStacking()) {
             DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data,
-                    rng, engine.getData(), engine.getMantle());
+                    gRNG, engine.getData(), engine.getMantle());
             return max > 1 ? 1 : 0;
         }
 
         return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data,
-                rng, engine.getData(), engine.getMantle());
+                gRNG, engine.getData(), engine.getMantle());
     }
 }

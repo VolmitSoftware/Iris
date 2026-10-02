@@ -21,6 +21,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.decoration.IrisEngineDecorator;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisProceduralObjects;
@@ -47,8 +48,8 @@ public final class GenerationCacheWarmer {
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
         for (IrisBiome biome : biomes) {
             warmPlacements(biome.getObjects(), root, counter, data, engine);
-            warmDecorators(biome.getDecorators(), root, counter, data);
-            warmOres(biome.getOres(), root, counter, data);
+            warmDecorators(biome.getDecorators(), engine.getSeedManager().getComponent(), counter, data);
+            warmOres(biome.getOres(), engine.getSeedManager().getTerrain(), counter, data);
             warmProcedural(biome.getProceduralObjects(), root, counter, data);
         }
 
@@ -56,11 +57,11 @@ public final class GenerationCacheWarmer {
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
         for (IrisRegion region : regions) {
             warmPlacements(region.getObjects(), root, counter, data, engine);
-            warmOres(region.getOres(), root, counter, data);
+            warmOres(region.getOres(), engine.getSeedManager().getTerrain(), counter, data);
             warmProcedural(region.getProceduralObjects(), root, counter, data);
         }
 
-        warmOres(engine.getDimension().getOres(), root, counter, data);
+        warmOres(engine.getDimension().getOres(), engine.getSeedManager().getTerrain(), counter, data);
 
         IrisLogging.debug("[IrisEngine timing] cache warm " + counter[0] + " configs=" + (M.ms() - start) + "ms");
     }
@@ -80,7 +81,7 @@ public final class GenerationCacheWarmer {
         }
     }
 
-    private static void warmDecorators(KList<IrisDecorator> decorators, RNG root, int[] counter, IrisData data) {
+    private static void warmDecorators(KList<IrisDecorator> decorators, long componentSeed, int[] counter, IrisData data) {
         if (decorators == null) {
             return;
         }
@@ -88,14 +89,15 @@ public final class GenerationCacheWarmer {
             if (decorator == null) {
                 continue;
             }
-            RNG rng = root.nextParallelRNG(counter[0]++);
+            counter[0]++;
+            RNG rng = new RNG(IrisEngineDecorator.seedForPart(componentSeed, decorator.getPartOf()));
             decorator.getHeightGenerator(rng, data);
             decorator.getGenerator(rng, data);
             decorator.getVarianceGenerator(rng, data);
         }
     }
 
-    private static void warmOres(KList<IrisOreGenerator> ores, RNG root, int[] counter, IrisData data) {
+    private static void warmOres(KList<IrisOreGenerator> ores, long terrainSeed, int[] counter, IrisData data) {
         if (ores == null) {
             return;
         }
@@ -103,7 +105,8 @@ public final class GenerationCacheWarmer {
             if (ore == null) {
                 continue;
             }
-            ore.warm(root.nextParallelRNG(counter[0]++), data);
+            counter[0]++;
+            ore.warm(new RNG(terrainSeed), data);
         }
     }
 

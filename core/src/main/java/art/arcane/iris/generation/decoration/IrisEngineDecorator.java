@@ -34,6 +34,10 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
         this.part = part;
     }
 
+    public static long seedForPart(long baseSeed, IrisDecorationPart part) {
+        return DecoratorCore.partSeed(baseSeed, part);
+    }
+
     @BlockCoordinates
     protected RNG getRNG(int x, int z) {
         long seed = DecoratorCore.partSeed(getSeed(), part);

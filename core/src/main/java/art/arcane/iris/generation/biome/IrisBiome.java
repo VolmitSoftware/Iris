@@ -105,7 +105,12 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorLayerLoad = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDepositLoad = new AtomicCache<>();
-    private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient LazyBoundedCache<ChildGeneratorKey, CNG> childrenGenerators = new LazyBoundedCache<>(8);
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile CachedChildGenerator recentChildGenerator;
     @Getter(AccessLevel.NONE)
     private final transient LazyBoundedCache<Long, CNG> biomeGenerators =
             new LazyBoundedCache<>(BIOME_GENERATOR_CACHE_SIZE);
@@ -512,11 +517,18 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
-        return childrenCell.aquire(() -> createChildrenGenerator(random, sig, scale));
-    }
-
-    private CNG createChildrenGenerator(RNG random, int sig, double scale) {
-        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(random, sig), getLoader(), scale);
+        long seed = deriveChildStyleSeed(random, sig).getSeed();
+        IrisData data = getLoader();
+        Engine engine = data == null ? null : data.getEngine();
+        CachedChildGenerator recent = recentChildGenerator;
+        if (recent != null && recent.key.matches(seed, scale, data, engine)) {
+            return recent.generator;
+        }
+        ChildGeneratorKey key = new ChildGeneratorKey(seed, scale, data, engine);
+        CNG generator = childrenGenerators.computeIfAbsent(key,
+                ignored -> getChildStyle().createScaledGenerator(new RNG(seed), data, scale));
+        recentChildGenerator = new CachedChildGenerator(key, generator);
+        return generator;
     }
 
     static RNG deriveChildStyleSeed(RNG random, int signature) {
@@ -697,5 +709,28 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
             this.seed = seed;
             this.generator = generator;
         }
+    }
+
+    private record ChildGeneratorKey(long seed, double scale, IrisData data, Engine engine) {
+        private boolean matches(long seed, double scale, IrisData data, Engine engine) {
+            return this.seed == seed && Double.doubleToLongBits(this.scale) == Double.doubleToLongBits(scale)
+                    && this.data == data && this.engine == engine;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            return object instanceof ChildGeneratorKey other && matches(other.seed, other.scale, other.data, other.engine);
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = Long.hashCode(seed);
+            hash = 31 * hash + Double.hashCode(scale);
+            hash = 31 * hash + System.identityHashCode(data);
+            return 31 * hash + System.identityHashCode(engine);
+        }
+    }
+
+    private record CachedChildGenerator(ChildGeneratorKey key, CNG generator) {
     }
 }

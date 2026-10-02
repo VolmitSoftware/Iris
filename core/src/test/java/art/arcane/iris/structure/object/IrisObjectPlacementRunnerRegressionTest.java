@@ -1,6 +1,7 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.formation.FormationGenerator;
@@ -32,6 +33,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -216,6 +219,63 @@ public class IrisObjectPlacementRunnerRegressionTest {
         List<BlockWrite> snowWrites = placer.writesOf(IrisObject.States.snowLayer(0));
         assertEquals(1, snowWrites.size());
         assertEquals(ANCHOR_Y, snowWrites.get(0).y());
+    }
+
+    @Test
+    public void smartBorePlacementLeavesSharedObjectUnchangedForPlainPlacements() {
+        IrisObject object = new IrisObject(3, 1, 1);
+        object.setLoader(data);
+        object.setUnsigned(0, 0, 0, solid);
+        object.setUnsigned(2, 0, 0, solid);
+        RecordingPlacer before = new RecordingPlacer(null);
+        RecordingPlacer bored = new RecordingPlacer(null);
+        RecordingPlacer after = new RecordingPlacer(null);
+        IrisObjectPlacement plain = placement().setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+
+        object.place(0, ANCHOR_Y, 0, before, plain, new RNG(12L), data);
+        object.place(0, ANCHOR_Y, 0, bored, plain.toPlacement().setSmartBore(true), new RNG(12L), data);
+        object.place(0, ANCHOR_Y, 0, after, plain, new RNG(12L), data);
+
+        assertEquals(before.writes(), after.writes());
+        assertEquals(2, object.getBlocks().size());
+        assertEquals(3, bored.writes().size());
+        assertFalse(object.isSmartBored());
+    }
+
+    @Test
+    public void randomizedEditsAndSnowIgnoreHashCollisionInsertionOrder() {
+        NativeBlockState replacement = state("minecraft:calcite", true);
+        IrisObjectReplace edit = mock(IrisObjectReplace.class);
+        when(edit.getChance()).thenReturn(0.45F);
+        when(edit.getFind(data)).thenReturn(new KList<>(solid));
+        when(edit.getReplace(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                .thenReturn(replacement);
+        IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+        when(palette.getTile(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any(IrisData.class)))
+                .thenReturn(Optional.empty());
+        when(edit.getReplace()).thenReturn(palette);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.STRUCTURE_PIECE)
+                .setSnow(0.85D).setEdit(new KList<>(edit));
+        List<Integer> insertionOrder = new ArrayList<>();
+        for (int index = 0; index < 16; index++) {
+            insertionOrder.add(index);
+        }
+        Map<String, NativeBlockState> expected = null;
+        for (int fixture = 0; fixture < 64; fixture++) {
+            Collections.shuffle(insertionOrder, new Random(fixture));
+            IrisObject object = new IrisObject(1024, 1, 1);
+            for (int index : insertionOrder) {
+                object.getBlocks().put(new IrisBlockVector(index * 64, 0, 0), solid);
+            }
+            RecordingPlacer placer = new RecordingPlacer(null);
+            object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(123456L), data);
+            if (expected == null) {
+                expected = new HashMap<>(placer.world);
+            }
+            assertEquals("fixture " + fixture, expected, placer.world);
+        }
+        assertTrue(expected.containsValue(replacement));
+        assertTrue(expected.containsValue(solid));
     }
 
     @Test

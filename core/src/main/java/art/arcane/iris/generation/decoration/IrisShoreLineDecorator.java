@@ -102,7 +102,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                     || !DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
                 return;
             }
-            NativeBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
+            NativeBlockState block = decorator.getBlockData100(biome, partRNG, realX, height, realZ, getData());
             if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)
                     && IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 data.set(x, targetY, z, block);
@@ -111,7 +111,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             return;
         }
 
-        int stack = decorator.getHeight(rng, realX, realZ, getData());
+        int stack = decorator.getHeight(partRNG, realX, realZ, getData());
         if (decorator.isScaleStack()) {
             stack = (int) Math.ceil((double) (max - height) * ((double) stack / 100));
         } else {
@@ -124,7 +124,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                 return;
             }
 
-            NativeBlockState block = decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData());
+            NativeBlockState block = decorator.getBlockDataForTop(biome, partRNG, realX, height, realZ, getData());
             if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)
                     && IrisSugarCane.canPlace(block, data, x, targetY, z, realX, realZ, getEngine())) {
                 data.set(x, targetY, z, block);
@@ -142,8 +142,8 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             }
             double threshold = ((double) i) / (stack - 1);
             NativeBlockState block = threshold >= decorator.getTopThreshold()
-                    ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
-                    : decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
+                    ? decorator.getBlockDataForTop(biome, partRNG, realX, h, realZ, getData())
+                    : decorator.getBlockData100(biome, partRNG, realX, h, realZ, getData());
             if (block == null) {
                 break;
             }

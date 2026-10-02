@@ -24,6 +24,10 @@ import com.dfsek.paralithic.eval.parser.Parser;
 import com.dfsek.paralithic.eval.parser.Scope;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.iris.generation.cache.LazyBoundedCache;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import art.arcane.iris.generation.noise.IrisExpressionFunction.FunctionContext;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
 import art.arcane.volmlib.util.documentation.Description;
@@ -58,7 +62,9 @@ public class IrisExpression extends IrisRegistrant {
     private String expression;
 
     private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
-    private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient LazyBoundedCache<Long, ProceduralStream<Double>> streams = new LazyBoundedCache<>(8);
 
     private Expression expression() {
         return expressionCache.aquire(() -> {
@@ -94,8 +100,11 @@ public class IrisExpression extends IrisRegistrant {
     }
 
     public ProceduralStream<Double> stream(RNG rng) {
-        return streamCache.aquire(() -> ProceduralStream.of((x, z) -> evaluate(rng, x, z),
-                (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE));
+        return streams.computeIfAbsent(rng.getSeed(), seed -> {
+            RNG streamRng = new RNG(seed);
+            return ProceduralStream.of((x, z) -> evaluate(streamRng, x, z),
+                    (x, y, z) -> evaluate(streamRng, x, y, z), Interpolated.DOUBLE);
+        });
     }
 
     public double evaluate(RNG rng, double x, double z) {

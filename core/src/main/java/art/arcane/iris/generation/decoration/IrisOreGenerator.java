@@ -24,7 +24,8 @@ import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.value.IrisRange;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.iris.generation.cache.LazyBoundedCache;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
@@ -55,10 +56,11 @@ public class IrisOreGenerator {
     @Description("Vertical band (min, max) this ore can generate in, in engine-local Y where 0 is the bottom of the dimension, not world Y.")
     private IrisRange range = new IrisRange(30, 80);
 
-    private transient AtomicCache<OreChance> chanceCache = new AtomicCache<>();
+    private final transient LazyBoundedCache<ChanceKey, OreChance> chanceCache = new LazyBoundedCache<>(32);
+    private transient volatile CachedChance recentChance;
 
     public void warm(RNG rng, IrisData data) {
-        chanceCache.aquire(() -> OreChance.of(chanceStyle.create(rng, data)));
+        chance(rng, data);
         palette.getLayerGenerator(rng, data);
     }
 
@@ -71,16 +73,41 @@ public class IrisOreGenerator {
             return null;
         }
 
-        OreChance chance = chanceCache.getIfPresent();
-        if (chance == null) {
-            chance = chanceCache.aquire(() -> OreChance.of(chanceStyle.create(rng, data)));
-        }
-
-        if (chance.sample(x, y, z) > threshold) {
+        if (chance(rng, data).sample(x, y, z) > threshold) {
             return null;
         }
 
         return palette.get(rng, x, y, z, data);
+    }
+
+    private OreChance chance(RNG rng, IrisData data) {
+        long seed = rng.getSeed();
+        Engine engine = data == null ? null : data.getEngine();
+        CachedChance recent = recentChance;
+        if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
+            return recent.chance;
+        }
+        ChanceKey key = new ChanceKey(seed, data, engine);
+        OreChance selected = chanceCache.computeIfAbsent(key, ignored -> OreChance.of(chanceStyle.create(rng, data)));
+        recentChance = new CachedChance(key, selected);
+        return selected;
+    }
+
+    private record ChanceKey(long seed, IrisData data, Engine engine) {
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof ChanceKey key
+                    && seed == key.seed && data == key.data && engine == key.engine;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * Long.hashCode(seed) + System.identityHashCode(data))
+                    + System.identityHashCode(engine);
+        }
+    }
+
+    private record CachedChance(ChanceKey key, OreChance chance) {
     }
 
     /**

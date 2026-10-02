@@ -44,15 +44,13 @@ public final class TreeSupport {
                 int best = Integer.MAX_VALUE;
                 for (TreeBlockCanvas.Vec wood : canvas.getTrunk()) {
                     int cd = chebyshev(leaf, wood);
-                    if (cd < best) {
+                    if (cd < best || cd == best && nearest != null && wood.compareTo(nearest) < 0) {
                         best = cd;
                         nearest = wood;
-                        if (cd <= 1) {
-                            break;
-                        }
                     }
                 }
-                if (nearest != null && best > worstGap) {
+                if (nearest != null && (best > worstGap
+                        || best == worstGap && worstLeaf != null && leaf.compareTo(worstLeaf) < 0)) {
                     worstGap = best;
                     worstLeaf = leaf;
                     worstWood = nearest;

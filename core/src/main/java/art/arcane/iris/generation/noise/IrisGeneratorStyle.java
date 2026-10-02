@@ -58,6 +58,9 @@ public class IrisGeneratorStyle {
     @Setter(AccessLevel.NONE)
     private final transient LazyBoundedCache<GeneratorCacheKey, CNG> generatorCache =
             new LazyBoundedCache<>(GENERATOR_CACHE_SIZE);
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile CachedGenerator recentGenerator;
     @Description("The base noise style. Used when neither expression nor imageMap is set; a failed expression also falls back to this style.")
     private NoiseStyle style = NoiseStyle.FLAT;
 
@@ -124,7 +127,7 @@ public class IrisGeneratorStyle {
     }
 
     private int hash() {
-        return Objects.hash(expression, imageMapHash(), multiplier, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
+        return Objects.hash(expression, imageMapHash(), multiplier, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style == null ? null : style.name());
     }
 
     public int prebakeSignature() {
@@ -233,10 +236,24 @@ public class IrisGeneratorStyle {
         return create(rng, data, resolveEngine(data));
     }
 
+    public CNG create(long seed, IrisData data) {
+        return cachedGenerator(seed, data, resolveEngine(data));
+    }
+
     public CNG create(RNG rng, IrisData data, Engine engine) {
-        GeneratorCacheKey key = new GeneratorCacheKey(data, engine, rng.getSeed());
-        return generatorCache.computeIfAbsent(key,
-                ignored -> createNoCache(rng, data, 1, 0, false, engine));
+        return cachedGenerator(rng.getSeed(), data, engine);
+    }
+
+    private CNG cachedGenerator(long seed, IrisData data, Engine engine) {
+        CachedGenerator recent = recentGenerator;
+        if (recent != null && recent.key.matches(data, engine, seed)) {
+            return recent.generator;
+        }
+        GeneratorCacheKey key = new GeneratorCacheKey(data, engine, seed);
+        CNG generator = generatorCache.computeIfAbsent(key,
+                ignored -> createNoCache(new RNG(seed), data, 1, 0, false, engine));
+        recentGenerator = new CachedGenerator(key, generator);
+        return generator;
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -295,6 +312,10 @@ public class IrisGeneratorStyle {
             this.seed = seed;
         }
 
+        private boolean matches(IrisData data, Engine engine, long seed) {
+            return this.data == data && this.engine == engine && this.seed == seed;
+        }
+
         @Override
         public boolean equals(Object other) {
             if (this == other) {
@@ -312,5 +333,8 @@ public class IrisGeneratorStyle {
             result = 31 * result + System.identityHashCode(engine);
             return 31 * result + Long.hashCode(seed);
         }
+    }
+
+    private record CachedGenerator(GeneratorCacheKey key, CNG generator) {
     }
 }

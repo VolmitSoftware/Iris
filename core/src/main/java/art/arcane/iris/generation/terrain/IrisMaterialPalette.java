@@ -67,7 +67,6 @@ public class IrisMaterialPalette implements StructurePalette {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient AtomicReference<CachedLayerGenerator> recentLayerGenerator = new AtomicReference<>();
-    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
     @Description("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
     @MinNumber(0.0001)

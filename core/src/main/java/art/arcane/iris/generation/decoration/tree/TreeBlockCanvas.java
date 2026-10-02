@@ -24,7 +24,15 @@ import java.util.Map;
 import java.util.Set;
 
 public class TreeBlockCanvas {
-    public record Vec(int x, int y, int z) {
+    public record Vec(int x, int y, int z) implements Comparable<Vec> {
+        @Override
+        public int compareTo(Vec other) {
+            int comparison = Integer.compare(x, other.x);
+            if (comparison == 0) {
+                comparison = Integer.compare(y, other.y);
+            }
+            return comparison == 0 ? Integer.compare(z, other.z) : comparison;
+        }
     }
 
     public enum Role {

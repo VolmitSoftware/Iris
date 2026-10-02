@@ -86,13 +86,13 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             opts.fluidHeight = fluidHeight;
             opts.caveSkipFluid = caveSkipFluid;
             opts.mantle = getEngine().getMantle();
-            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, rng, getData(), opts);
+            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, partRNG, getData(), opts);
             aquaticSnapshot.restoreIfUnsupported(data, x, z);
             return;
         }
 
         DecoratorCore.placeSurfaceSingle(decorator, x, z, realX, height, realZ,
-                data, rng, getData(), underwater, caveSkipFluid, getEngine().getMantle());
+                data, partRNG, getData(), underwater, caveSkipFluid, getEngine().getMantle());
         aquaticSnapshot.restoreIfUnsupported(data, x, z);
     }
 

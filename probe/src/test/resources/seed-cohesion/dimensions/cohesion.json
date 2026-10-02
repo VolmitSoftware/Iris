@@ -1,0 +1,11 @@
+{
+  "name": "Seed cohesion fixture",
+  "version": 1,
+  "mode": {"type": "OVERWORLD"},
+  "regions": ["terrain"],
+  "environment": "NORMAL",
+  "dimensionHeight": {"min": 0, "max": 64},
+  "logicalHeight": 64,
+  "fluidHeight": 10,
+  "caveProfile": {"enabled": false}
+}

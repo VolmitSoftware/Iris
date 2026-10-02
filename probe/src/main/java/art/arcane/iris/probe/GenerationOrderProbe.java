@@ -326,7 +326,7 @@ public final class GenerationOrderProbe {
         );
     }
 
-    private static ProbeResult run(ProbeConfiguration configuration) throws Exception {
+    static ProbeResult run(ProbeConfiguration configuration) throws Exception {
         System.out.println(LOG_PREFIX + " pack: " + configuration.packSource().getAbsolutePath());
         System.out.println(LOG_PREFIX + " dimension: " + configuration.dimensionKey());
         System.out.println(LOG_PREFIX + " seed: " + configuration.seed());

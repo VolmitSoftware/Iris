@@ -4,11 +4,75 @@ import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 public class TreeDecoratorApplierTest {
+    @Test
+    public void allDecoratorTargetsKeepPinnedOutputAcrossHashCollisionInsertionOrders() {
+        long[] seeds = {101L, -73L, 90181L};
+        long[] actual = new long[seeds.length];
+        for (int i = 0; i < seeds.length; i++) {
+            long hash = 0xcbf29ce484222325L;
+            for (IrisTreeDecoratorTarget target : IrisTreeDecoratorTarget.values()) {
+                TreeBlockCanvas forward = collisionCanvas(false);
+                TreeBlockCanvas reverse = collisionCanvas(true);
+                IrisProceduralTree tree = surfaceTree(target, true);
+                tree.getDecorators().getFirst().setChance(0.41D).setLength(4);
+                TreeDecoratorApplier.apply(forward, tree, seeds[i], List.of());
+                TreeDecoratorApplier.apply(reverse, tree, seeds[i], List.of());
+                assertEquals(target + ":" + seeds[i], forward.getCells(), reverse.getCells());
+                List<TreeBlockCanvas.Vec> positions = new ArrayList<>(forward.getCells().keySet());
+                positions.sort(null);
+                for (TreeBlockCanvas.Vec position : positions) {
+                    TreeBlockCanvas.Cell cell = forward.getCells().get(position);
+                    hash = (hash ^ position.hashCode()) * 0x100000001b3L;
+                    hash = (hash ^ cell.role().ordinal()) * 0x100000001b3L;
+                    hash = (hash ^ cell.decoratorIndex()) * 0x100000001b3L;
+                    hash = (hash ^ (cell.facing() == null ? 0 : cell.facing().hashCode())) * 0x100000001b3L;
+                }
+            }
+            actual[i] = hash;
+        }
+        assertEquals(Arrays.toString(new long[]{4350422081939262412L, 3647024406982151043L, 7110665103288366817L}), Arrays.toString(actual));
+    }
+
+    @Test
+    public void supportTendrilsChooseTheSameEqualDistanceEndpointsAcrossInsertionOrders() {
+        TreeBlockCanvas forward = supportCanvas(false);
+        TreeBlockCanvas reverse = supportCanvas(true);
+        TreeSupport.ensureLeavesSupported(forward, 4);
+        TreeSupport.ensureLeavesSupported(reverse, 4);
+        assertEquals(forward.getCells(), reverse.getCells());
+    }
+
+    private static TreeBlockCanvas collisionCanvas(boolean reverse) {
+        TreeBlockCanvas canvas = new TreeBlockCanvas();
+        for (int index = 0; index < 24; index++) {
+            int position = reverse ? 23 - index : index;
+            int x = position - 12;
+            int y = -31 * x;
+            canvas.setTrunk(x, y, 0, TreeBlockCanvas.Role.TRUNK, TreeBlockCanvas.Axis.Y);
+            canvas.setLeaf(x, y, 1, TreeBlockCanvas.Role.LEAF);
+        }
+        return canvas;
+    }
+
+    private static TreeBlockCanvas supportCanvas(boolean reverse) {
+        TreeBlockCanvas canvas = new TreeBlockCanvas();
+        int[] coordinates = reverse ? new int[]{3, -3} : new int[]{-3, 3};
+        for (int x : coordinates) {
+            canvas.setTrunk(x, 0, 0, TreeBlockCanvas.Role.TRUNK, TreeBlockCanvas.Axis.Y);
+            canvas.setLeaf(x * 4, 0, 2, TreeBlockCanvas.Role.LEAF);
+            canvas.setLeaf(x * 4, 0, -2, TreeBlockCanvas.Role.LEAF);
+        }
+        return canvas;
+    }
+
     @Test
     public void trunkAttachmentsFaceAwayFromTheirWoodSupport() {
         TreeBlockCanvas canvas = new TreeBlockCanvas();

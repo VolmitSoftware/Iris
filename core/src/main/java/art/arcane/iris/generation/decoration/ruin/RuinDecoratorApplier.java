@@ -25,6 +25,7 @@ import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,8 @@ final class RuinDecoratorApplier {
             case BASE_SCATTER -> baseScatterCandidates(canvas, Math.max(1, decorator.getScatterRadius()));
         };
 
+        candidates.sort(Comparator.comparingInt(Vector3i::getX)
+                .thenComparingInt(Vector3i::getY).thenComparingInt(Vector3i::getZ));
         RNG paletteRng = new RNG(seed);
         for (Vector3i v : candidates) {
             if (!rng.chance(decorator.getChance())) {

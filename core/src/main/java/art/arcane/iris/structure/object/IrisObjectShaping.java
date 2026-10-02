@@ -39,6 +39,41 @@ final class IrisObjectShaping {
     private IrisObjectShaping() {
     }
 
+    static IrisObject smartBoredVariant(IrisObject self) {
+        SmartBoreVariant cached = self.smartBoreVariant;
+        if (cached != null && cached.matches(self)) {
+            return cached.object();
+        }
+        self.writeLock.lock();
+        try {
+            cached = self.smartBoreVariant;
+            if (cached != null && cached.matches(self)) {
+                return cached.object();
+            }
+            IrisObject variant = self.copy();
+            ensureSmartBored(variant);
+            self.smartBoreVariant = new SmartBoreVariant(self.blocks, self.states,
+                    self.blocks.modificationRevision(), self.states.modificationRevision(),
+                    self.w, self.h, self.d, self.center.getX(), self.center.getY(), self.center.getZ(), variant);
+            return variant;
+        } finally {
+            self.writeLock.unlock();
+        }
+    }
+
+    record SmartBoreVariant(VectorMap<NativeBlockState> blocks, VectorMap<TileData> states,
+                            long blockRevision, long stateRevision, int width, int height, int depth,
+                            int centerX, int centerY, int centerZ, IrisObject object) {
+        boolean matches(IrisObject source) {
+            return blocks == source.blocks && states == source.states
+                    && blockRevision == source.blocks.modificationRevision()
+                    && stateRevision == source.states.modificationRevision()
+                    && width == source.w && height == source.h && depth == source.d
+                    && centerX == source.center.getX() && centerY == source.center.getY()
+                    && centerZ == source.center.getZ();
+        }
+    }
+
     static void ensureSmartBored(IrisObject self) {
         if (self.smartBored) {
             return;

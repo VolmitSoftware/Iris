@@ -19,7 +19,7 @@
 package art.arcane.iris.generation.noise;
 
 import art.arcane.iris.pack.loading.IrisRegistrant;
-import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.iris.generation.cache.LazyBoundedCache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.schema.annotation.ArrayType;
@@ -54,7 +54,12 @@ public class IrisGenerator extends IrisRegistrant {
     private static final int SURFACE_CACHE_STRIPES = 16;
     private static final int SURFACE_CACHE_STRIPE_SIZE = 1024;
 
-    private final transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient LazyBoundedCache<Long, CellGenerator> cellGenerators = new LazyBoundedCache<>(8);
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile CachedCellGenerator recentCellGenerator;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient volatile SurfaceCache surfaceSamples;
@@ -115,7 +120,17 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public CellGenerator getCellGenerator(long seed) {
-        return cellGen.aquire(() -> new CellGenerator(new RNG(seed + 239466)));
+        CachedCellGenerator recent = recentCellGenerator;
+        if (recent != null && recent.seed == seed) {
+            return recent.generator;
+        }
+        CellGenerator generator = cellGenerators.computeIfAbsent(seed, ignored -> {
+            CellGenerator created = new CellGenerator(new RNG(seed + 239466));
+            created.setShuffle(getCellFractureShuffle());
+            return created;
+        });
+        recentCellGenerator = new CachedCellGenerator(seed, generator);
+        return generator;
     }
 
     public <T> T fit(T[] v, long superSeed, double rx, double rz) {
@@ -296,7 +311,6 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double cell(double rx, double rz, double v, double superSeed) {
-        getCellGenerator(getSeed() + 46222).setShuffle(getCellFractureShuffle());
         double fractureX = rx / getCellFractureZoom();
         double fractureZ = rz / getCellFractureZoom();
         return getCellGenerator(getSeed() + 46222).getDistance(fractureX, fractureZ) > getCellPercentSize() ? (v * getCellFractureHeight()) : v;
@@ -362,5 +376,8 @@ public class IrisGenerator extends IrisRegistrant {
         private void put(int slot, SurfaceSample sample) {
             entries.set(slot, sample);
         }
+    }
+
+    private record CachedCellGenerator(long seed, CellGenerator generator) {
     }
 }

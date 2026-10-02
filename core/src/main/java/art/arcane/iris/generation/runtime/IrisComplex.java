@@ -52,6 +52,7 @@ import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
+import art.arcane.iris.generation.terrain.ContinentGenerator;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.noise.IrisInterpolator;
@@ -123,7 +124,6 @@ public class IrisComplex implements DataProvider {
     private static final double SLOPE_RUN = 3D;
     /** A sheer coast would let shoreMinimumWidth buy unbounded height, so the shore band stops climbing here. */
     private static final double MAX_SHORE_BAND_GRADIENT = 3D;
-    private static final int CONTINENT_SEED_SALT = 234234565;
     private static final Comparator<IrisInterpolator> INTERPOLATOR_ORDER = Comparator
             .comparing((IrisInterpolator interpolator) -> interpolator.getFunction().name())
             .thenComparingDouble(IrisInterpolator::getHorizontalScale);
@@ -497,19 +497,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private CNG createContinentGenerator(IrisDimension dimension) {
-        return scaleByContinentZoom(takeSharedContinentGenerator(dimension), dimension);
-    }
-
-    private CNG takeSharedContinentGenerator(IrisDimension dimension) {
-        return dimension.getContinentalStyle().create(createContinentSeedSource(), getData());
-    }
-
-    private RNG createContinentSeedSource() {
-        return rng.nextParallelRNG(CONTINENT_SEED_SALT);
-    }
-
-    private static CNG scaleByContinentZoom(CNG generator, IrisDimension dimension) {
-        return generator.bake().scale(1D / dimension.getContinentZoom()).bake();
+        return ContinentGenerator.create(dimension, rng, getData());
     }
 
     /**

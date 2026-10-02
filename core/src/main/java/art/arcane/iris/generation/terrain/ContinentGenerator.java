@@ -18,7 +18,7 @@ public final class ContinentGenerator {
         return dimension.getContinentalStyle().create(deriveContinentSeed(parentSeedSource), packData);
     }
 
-    private static RNG deriveContinentSeed(RNG parentSeedSource) {
+    static RNG deriveContinentSeed(RNG parentSeedSource) {
         return parentSeedSource.nextParallelRNG(CONTINENT_SEED_SALT);
     }
 

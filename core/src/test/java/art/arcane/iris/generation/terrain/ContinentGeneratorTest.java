@@ -24,6 +24,7 @@ public class ContinentGeneratorTest {
     private static final long WORLD_SEED = 7L;
     private static final double POWER_OF_TWO_CONTINENT_ZOOM = 4D;
     private static final double SQUARED_CONTINENT_ZOOM = POWER_OF_TWO_CONTINENT_ZOOM * POWER_OF_TWO_CONTINENT_ZOOM;
+    private static final double OVERWORLD_STYLE_ZOOM = 6D;
     private static final double[][] SAMPLE_BLOCKS = {{1000D, -2000D}, {12.5D, -7.25D}, {-517D, 333D}};
     private static final double[][] BLOCKS_SHRUNK_BY_CONTINENT_ZOOM = shrinkByContinentZoom(SAMPLE_BLOCKS);
     private static final double[] CONTINENT_MAP_OF_EXISTING_WORLDS =
@@ -32,6 +33,7 @@ public class ContinentGeneratorTest {
     private final IrisData packData = createPackDataThatBelongsToOneRunningEngine();
     private final IrisDimension baseZoomDimension = createDimensionWithContinentZoom(POWER_OF_TWO_CONTINENT_ZOOM);
     private final IrisDimension squaredZoomDimension = createDimensionWithContinentZoom(SQUARED_CONTINENT_ZOOM);
+    private final IrisDimension overworldStyleDimension = createDimensionWithOverworldContinentalStyle();
 
     @Rule
     public final ExpectedToFailUntilFixedRule expectedFailures = new ExpectedToFailUntilFixedRule();
@@ -59,6 +61,12 @@ public class ContinentGeneratorTest {
         assertArrayEquals(CONTINENT_MAP_OF_EXISTING_WORLDS, sampleContinentMapAfterSecondRebuild(baseZoomDimension), 0D);
     }
 
+    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
+    @Test
+    public void doesRebuildingAWorldWithTheOverworldContinentalStyleZoomItsContinentMapOnlyOnce() {
+        assertArrayEquals(sampleOverworldContinentMapAtWorldStart(), sampleContinentMapAfterRebuild(overworldStyleDimension), 0D);
+    }
+
     private double[] sampleContinentMapAtWorldStart(IrisDimension dimension) {
         return sampleContinentMap(dimension, SAMPLE_BLOCKS);
     }
@@ -75,6 +83,10 @@ public class ContinentGeneratorTest {
     private double[] sampleContinentMapAfterSecondRebuild(IrisDimension dimension) {
         sampleContinentMapAtWorldStart(dimension);
         return sampleContinentMapAfterRebuild(dimension);
+    }
+
+    private double[] sampleOverworldContinentMapAtWorldStart() {
+        return sampleContinentMapAtWorldStart(createDimensionWithOverworldContinentalStyle());
     }
 
     private double[] sampleContinentMap(IrisDimension dimension, double[][] blocks) {
@@ -103,6 +115,18 @@ public class ContinentGeneratorTest {
 
     private static IrisGeneratorStyle createSimplexStyle() {
         return new IrisGeneratorStyle(NoiseStyle.SIMPLEX);
+    }
+
+    private static IrisDimension createDimensionWithOverworldContinentalStyle() {
+        return createDimensionWithContinentZoom(POWER_OF_TWO_CONTINENT_ZOOM).setContinentalStyle(createOverworldContinentalStyle());
+    }
+
+    private static IrisGeneratorStyle createOverworldContinentalStyle() {
+        return new IrisGeneratorStyle(NoiseStyle.NOWHERE_CELLULAR).setZoom(OVERWORLD_STYLE_ZOOM).setFracture(createSmokeFracture());
+    }
+
+    private static IrisGeneratorStyle createSmokeFracture() {
+        return new IrisGeneratorStyle(NoiseStyle.FRACTAL_SMOKE).setFracture(new IrisGeneratorStyle(NoiseStyle.STATIC));
     }
 
     private static IrisData createPackDataThatBelongsToOneRunningEngine() {

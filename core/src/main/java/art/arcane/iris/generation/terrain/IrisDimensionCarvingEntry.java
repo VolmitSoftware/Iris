@@ -81,13 +81,17 @@ public class IrisDimensionCarvingEntry {
     }
 
     public CNG getChildrenGenerator(long seed, IrisData data) {
-        String entryId = getId();
-        long idHash = entryId == null ? 0L : entryId.trim().hashCode();
+        long idHash = hashOfId();
         long generatorSeed = seed ^ (idHash << 32) ^ 2137L;
         return childGenerators.computeIfAbsent(generatorSeed, key -> {
             double scale = Math.max(0.0001D, getChildShrinkFactor());
             RNG random = new RNG(key);
             return getChildStyle().create(random.nextParallelRNG(2137), data).bake().scale(scale).bake();
         });
+    }
+
+    private long hashOfId() {
+        String entryId = getId();
+        return entryId == null ? 0L : entryId.trim().hashCode();
     }
 }

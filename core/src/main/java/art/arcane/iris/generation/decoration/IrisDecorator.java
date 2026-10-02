@@ -151,11 +151,10 @@ public class IrisDecorator {
 
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
         CNG cached = varianceGenerator.getIfPresent();
+        return cached != null ? cached : buildVarianceGeneratorOnce(rng, data);
+    }
 
-        if (cached != null) {
-            return cached;
-        }
-
+    private CNG buildVarianceGeneratorOnce(RNG rng, IrisData data) {
         return varianceGenerator.aquire(() -> createVarianceGenerator(rng, data));
     }
 

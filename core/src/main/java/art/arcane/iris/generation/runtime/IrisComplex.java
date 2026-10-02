@@ -123,6 +123,7 @@ public class IrisComplex implements DataProvider {
     private static final double SLOPE_RUN = 3D;
     /** A sheer coast would let shoreMinimumWidth buy unbounded height, so the shore band stops climbing here. */
     private static final double MAX_SHORE_BAND_GRADIENT = 3D;
+    private static final int CONTINENT_SEED_SALT = 234234565;
     private static final Comparator<IrisInterpolator> INTERPOLATOR_ORDER = Comparator
             .comparing((IrisInterpolator interpolator) -> interpolator.getFunction().name())
             .thenComparingDouble(IrisInterpolator::getHorizontalScale);
@@ -372,7 +373,7 @@ public class IrisComplex implements DataProvider {
                 .convertAware2D(ProceduralStream::get), "shoreBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusedBiomes != null ? focusedBiomes.convert(IrisBiome::getInferredType) :
-                GenerationStreams.cache2D(engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
+                GenerationStreams.cache2D(engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(CONTINENT_SEED_SALT), getData())
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND), "bridgeStream", engine, cacheSize);
         ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusedBiomes != null ? focusedBiomes :

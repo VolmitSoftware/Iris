@@ -31,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Description("Dimension-level cave biome override with absolute world Y bounds.")
 @Data
 public class IrisDimensionCarvingEntry {
+    private static final int CHILDREN_SEED_SALT = 2137;
+    private static final double MINIMUM_CHILD_SHRINK_FACTOR = 0.0001D;
     private final transient AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
     private final transient Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
 
@@ -81,13 +83,27 @@ public class IrisDimensionCarvingEntry {
     }
 
     public CNG getChildrenGenerator(long seed, IrisData data) {
+        return childGenerators.computeIfAbsent(deriveChildrenGeneratorSeed(seed), key -> createChildrenGenerator(key, data));
+    }
+
+    private CNG createChildrenGenerator(long childrenGeneratorSeed, IrisData data) {
+        return getChildStyle().createScaledGenerator(deriveChildStyleSeed(childrenGeneratorSeed), data, childShrinkFactor());
+    }
+
+    long deriveChildrenGeneratorSeed(long worldSeed) {
+        return worldSeed ^ (hashOfId() << 32) ^ CHILDREN_SEED_SALT;
+    }
+
+    static RNG deriveChildStyleSeed(long childrenGeneratorSeed) {
+        return new RNG(childrenGeneratorSeed).nextParallelRNG(CHILDREN_SEED_SALT);
+    }
+
+    private double childShrinkFactor() {
+        return Math.max(MINIMUM_CHILD_SHRINK_FACTOR, getChildShrinkFactor());
+    }
+
+    private long hashOfId() {
         String entryId = getId();
-        long idHash = entryId == null ? 0L : entryId.trim().hashCode();
-        long generatorSeed = seed ^ (idHash << 32) ^ 2137L;
-        return childGenerators.computeIfAbsent(generatorSeed, key -> {
-            double scale = Math.max(0.0001D, getChildShrinkFactor());
-            RNG random = new RNG(key);
-            return getChildStyle().create(random.nextParallelRNG(2137), data).bake().scale(scale).bake();
-        });
+        return entryId == null ? 0L : entryId.trim().hashCode();
     }
 }

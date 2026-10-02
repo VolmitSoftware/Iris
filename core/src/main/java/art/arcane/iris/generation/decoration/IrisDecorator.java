@@ -151,15 +151,19 @@ public class IrisDecorator {
 
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
         CNG cached = varianceGenerator.getIfPresent();
+        return cached != null ? cached : buildVarianceGeneratorOnce(rng, data);
+    }
 
-        if (cached != null) {
-            return cached;
-        }
+    private CNG buildVarianceGeneratorOnce(RNG rng, IrisData data) {
+        return varianceGenerator.aquire(() -> createVarianceGenerator(rng, data));
+    }
 
-        return varianceGenerator.aquire(() ->
-                variance.create(
-                                rng.nextParallelRNG(getBlockData(data).size()), data)
-                        .scale(1D / variance.getZoom()));
+    private CNG createVarianceGenerator(RNG rng, IrisData data) {
+        return variance.createNoCache(deriveVarianceSeed(rng, data), data).scale(1D / variance.getZoom());
+    }
+
+    RNG deriveVarianceSeed(RNG rng, IrisData data) {
+        return rng.nextParallelRNG(getBlockData(data).size());
     }
 
     public KList<IrisBlockData> add(String b) {

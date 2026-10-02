@@ -156,10 +156,11 @@ public class IrisDecorator {
             return cached;
         }
 
-        return varianceGenerator.aquire(() ->
-                variance.create(
-                                deriveVarianceSeed(rng, data), data)
-                        .scale(1D / variance.getZoom()));
+        return varianceGenerator.aquire(() -> createVarianceGenerator(rng, data));
+    }
+
+    private CNG createVarianceGenerator(RNG rng, IrisData data) {
+        return variance.create(deriveVarianceSeed(rng, data), data).scale(1D / variance.getZoom());
     }
 
     RNG deriveVarianceSeed(RNG rng, IrisData data) {

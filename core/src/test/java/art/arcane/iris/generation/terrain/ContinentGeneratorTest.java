@@ -53,6 +53,12 @@ public class ContinentGeneratorTest {
         assertArrayEquals(CONTINENT_MAP_OF_EXISTING_WORLDS, sampleContinentMapAfterRebuild(baseZoomDimension), 0D);
     }
 
+    @ExpectedToFailUntilFixed(SHARED_STYLE_GENERATOR_BUG)
+    @Test
+    public void doesRebuildingTheSameWorldTwiceZoomItsContinentMapOnlyOnce() {
+        assertArrayEquals(CONTINENT_MAP_OF_EXISTING_WORLDS, sampleContinentMapAfterSecondRebuild(baseZoomDimension), 0D);
+    }
+
     private double[] sampleContinentMapAtWorldStart(IrisDimension dimension) {
         return sampleContinentMap(dimension, SAMPLE_BLOCKS);
     }
@@ -64,6 +70,11 @@ public class ContinentGeneratorTest {
     private double[] sampleContinentMapAfterRebuild(IrisDimension dimension) {
         sampleContinentMapAtWorldStart(dimension);
         return sampleContinentMapAtWorldStart(dimension);
+    }
+
+    private double[] sampleContinentMapAfterSecondRebuild(IrisDimension dimension) {
+        sampleContinentMapAtWorldStart(dimension);
+        return sampleContinentMapAfterRebuild(dimension);
     }
 
     private double[] sampleContinentMap(IrisDimension dimension, double[][] blocks) {

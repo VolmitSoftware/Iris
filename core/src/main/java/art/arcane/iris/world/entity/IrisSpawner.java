@@ -43,6 +43,7 @@ import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -62,7 +63,7 @@ public class IrisSpawner extends IrisRegistrant {
     @Description("The entity spawns to add initially. EXECUTES PER CHUNK!")
     private KList<IrisEntitySpawn> initialSpawns = new KList<>();
 
-    @Description("This spawner will not spawn in a given chunk if that chunk has more than the defined amount of living entities.")
+    @Description("Maximum ambient entities of the selected entity's native spawn category in one chunk. Spawn groups are limited to the remaining capacity.")
     private int maxEntitiesPerChunk = 1;
 
     @Description("The block of 24 hour time to contain this spawn in.")
@@ -82,6 +83,21 @@ public class IrisSpawner extends IrisRegistrant {
 
     @Description("Where should these spawns be placed")
     private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;
+
+    public int remainingCapacity(IrisEntity entity, Map<String, Integer> counts) {
+        if (entity == null) {
+            return 0;
+        }
+        String category = entity.spawnCategory();
+        int count = counts.getOrDefault(category, 0);
+        if ("misc".equals(category)) {
+            count = 0;
+            for (int population : counts.values()) {
+                count += population;
+            }
+        }
+        return Math.max(0, maxEntitiesPerChunk - count);
+    }
 
     public boolean isValid(IrisBiome biome) {
         return switch (group) {

@@ -1,0 +1,12 @@
+{
+  "group": "NORMAL",
+  "maxEntitiesPerChunk": 16,
+  "spawns": [
+    {
+      "entity": "qa/frog",
+      "rarity": 1,
+      "minSpawns": 7,
+      "maxSpawns": 7
+    }
+  ]
+}

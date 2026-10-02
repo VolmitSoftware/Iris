@@ -61,11 +61,12 @@ public final class ModdedEntitySpawner {
         }
 
         double x = blockX + 0.5;
-        double y = blockY + 0.5;
+        double verticalOffset = irisEntity.getSurface().isFluid() ? 0.5 : 0;
+        double y = blockY + verticalOffset;
         double z = blockZ + 0.5;
         boolean riseEffectActive = irisEntity.isSpawnEffectRiseOutOfGround() && level.hasPlayersNearby(new NativeEntityRuntime.Position(x, y, z), PLAYER_EFFECT_RADIUS);
         int spawnBlockY = riseEffectActive ? blockY - 5 : blockY;
-        double spawnY = spawnBlockY + 0.5;
+        double spawnY = spawnBlockY + verticalOffset;
 
         NativeSpawnedEntity created = create(irisEntity, level, x, spawnY, z);
         if (created == null) {
@@ -98,8 +99,7 @@ public final class ModdedEntitySpawner {
         String customName = irisEntity.getCustomName();
         entity.applyBase(irisEntity, customName == null ? null : colorize(customName));
 
-        boolean persistent = irisEntity.isKeepEntity() || forcePersist();
-        applyPersistence(entity, persistent);
+        applyPersistence(irisEntity, entity, forcePersist());
 
         applyPassengers(engine, irisEntity, entity, level, blockX, blockY, blockZ, rng);
 
@@ -273,8 +273,8 @@ public final class ModdedEntitySpawner {
         return IrisSettings.get().getWorld().isForcePersistEntities();
     }
 
-    private static void applyPersistence(NativeSpawnedEntity entity, boolean persistent) {
-        if (!entity.persistence(persistent)) {
+    static void applyPersistence(IrisEntity options, NativeSpawnedEntity entity, boolean forcePersistence) {
+        if (!entity.persistence(options.isKeepEntity() || forcePersistence)) {
             String type = entity.typeKey();
             if (WARNED_PERSISTENCE_TYPES.add(type)) {
                 IrisLogging.warn("Iris entity: vanilla cannot persist non-serializable entity type '" + type + "'");

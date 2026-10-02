@@ -1,0 +1,16 @@
+{
+  "group": "CAVE",
+  "maxEntitiesPerChunk": 2,
+  "allowedLightLevels": {
+    "min": 0,
+    "max": 0
+  },
+  "spawns": [
+    {
+      "entity": "qa/zombie",
+      "rarity": 1,
+      "minSpawns": 7,
+      "maxSpawns": 7
+    }
+  ]
+}

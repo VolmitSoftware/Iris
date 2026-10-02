@@ -197,7 +197,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsWorld {
         public boolean postLoadBlockUpdates = true;
-        public boolean forcePersistEntities = true;
+        public boolean forcePersistEntities = false;
         public boolean ambientEntitySpawningSystem = true;
         public long asyncTickIntervalMS = 700;
         public double targetSpawnEntitiesPerChunk = 0.95;

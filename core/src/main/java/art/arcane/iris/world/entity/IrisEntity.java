@@ -19,6 +19,10 @@
 package art.arcane.iris.world.entity;
 
 import art.arcane.volmlib.nativelib.entity.NativeEntityOptions;
+import art.arcane.volmlib.nativelib.entity.NativeEntityType;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformRegistries;
 
 import art.arcane.iris.command.IrisCommand;
 import art.arcane.iris.generation.decoration.IrisSurface;
@@ -130,8 +134,8 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
     @Description("Should this entity be allowed to pickup items")
     private boolean pickupItems = false;
 
-    @Description("Should this entity be removed when far away")
-    private boolean removable = false;
+    @Description("Allow normal distance despawning. keepEntity and world.forcePersistEntities override this setting.")
+    private boolean removable = true;
 
     @Description("Entity helmet equipment")
     private IrisLoot helmet = null;
@@ -196,6 +200,25 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
     @ArrayType(min = 1, type = IrisCommand.class)
     @Description("Run raw commands when this entity is spawned. Use {x}, {y}, and {z} for location. /summon pig {x} {y} {z}")
     private KList<IrisCommand> rawCommands = new KList<>();
+
+    public String spawnCategory() {
+        IrisPlatform platform = IrisPlatforms.getOrNull();
+        if (platform == null || type == null || type.isBlank()) {
+            return "misc";
+        }
+        PlatformRegistries registries = platform.registries();
+        NativeEntityType resolved = registries == null ? null : registries.entity(type.trim().toLowerCase(Locale.ROOT));
+        String category = resolved == null ? null : resolved.spawnCategory();
+        return category == null || category.isBlank() ? "misc" : category;
+    }
+
+    void applyPersistence(Entity entity, boolean forcePersistence) {
+        boolean persistent = keepEntity || forcePersistence;
+        entity.setPersistent(true);
+        if (entity instanceof LivingEntity living) {
+            living.setRemoveWhenFarAway(removable && !persistent);
+        }
+    }
 
     public EntityType getBukkitType() {
         if (type == null || type.isBlank()) {
@@ -292,7 +315,7 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
         e.setGravity(isGravity());
         e.setInvulnerable(isInvulnerable());
         e.setSilent(isSilent());
-        e.setPersistent(isKeepEntity() || IrisSettings.get().getWorld().isForcePersistEntities());
+        applyPersistence(e, IrisSettings.get().getWorld().isForcePersistEntities());
 
         int gg = 0;
         for (IrisEntity i : passengers) {
@@ -332,8 +355,6 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
             if (getLeashHolder() != null) {
                 l.setLeashHolder(getLeashHolder().spawn(gen, at, rng.nextParallelRNG(234548)));
             }
-
-            l.setRemoveWhenFarAway(isRemovable());
 
             if (getHelmet() != null && LootResolver.oneIn(rng, getHelmet().getRarity())) {
                 l.getEquipment().setHelmet(getHelmet().get(gen.isStudio(), rng));

@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:zombie",
+  "reason": "NATURAL",
+  "surface": "LAND",
+  "ai": false,
+  "aware": false,
+  "gravity": false
+}

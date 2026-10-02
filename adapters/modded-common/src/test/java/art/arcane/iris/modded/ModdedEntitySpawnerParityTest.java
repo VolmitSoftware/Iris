@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ModdedEntitySpawnerParityTest {
     @Test
-    public void collisionCheckUsesPaperInclusiveIntegerDimensions() {
+    public void landBodyFitsTwoBlockCaveAndRejectsSecondBlockCeiling() {
         Set<BlockPos> checked = new HashSet<>();
 
         boolean clear = NativeEntityRuntime.isAreaClearForSpawn(
@@ -32,6 +32,36 @@ public class ModdedEntitySpawnerParityTest {
 
         assertTrue(clear);
         assertEquals(Set.of(new BlockPos(10, 64, 20), new BlockPos(10, 65, 20)), checked);
+        assertTrue(NativeEntityRuntime.isAreaClearForSpawn(10, 64, 20, 0.6F, 1.95F,
+                (x, y, z) -> y >= 64 && y < 66));
+        assertFalse(NativeEntityRuntime.isAreaClearForSpawn(10, 64, 20, 0.6F, 1.95F,
+                (x, y, z) -> y == 64));
+    }
+
+    @Test
+    public void fractionalWideLandBodiesIncludeAdjacentObstructions() {
+        Set<BlockPos> checked = new HashSet<>();
+        assertTrue(NativeEntityRuntime.isAreaClearForSpawn(-1, -49, -1, 1.3F, 1.95F,
+                (x, y, z) -> {
+                    checked.add(new BlockPos(x, y, z));
+                    return true;
+                }));
+        assertEquals(18, checked.size());
+        assertTrue(checked.contains(new BlockPos(-2, -48, -2)));
+        assertTrue(checked.contains(new BlockPos(0, -49, 0)));
+        assertFalse(NativeEntityRuntime.isAreaClearForSpawn(-1, -49, -1, 1.3F, 1.95F,
+                (x, y, z) -> !new BlockPos(x, y, z).equals(new BlockPos(0, -48, -1))));
+    }
+
+    @Test
+    public void exactLandBodyBoundariesExcludeUntouchedBlocks() {
+        Set<BlockPos> checked = new HashSet<>();
+        assertTrue(NativeEntityRuntime.isAreaClearForSpawn(0, -49, 0, 1F, 2F,
+                (x, y, z) -> {
+                    checked.add(new BlockPos(x, y, z));
+                    return true;
+                }));
+        assertEquals(Set.of(new BlockPos(0, -49, 0), new BlockPos(0, -48, 0)), checked);
     }
 
     @Test

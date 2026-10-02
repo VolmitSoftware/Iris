@@ -1,0 +1,12 @@
+name: IrisNaturalSpawningFixture
+version: 1.0.0
+main: art.arcane.iris.fixture.NaturalSpawningFixture
+api-version: '26.1.2'
+folia-supported: true
+depend: [Iris]
+commands:
+  irisspawnqa:
+    permission: irisspawnqa.run
+permissions:
+  irisspawnqa.run:
+    default: op

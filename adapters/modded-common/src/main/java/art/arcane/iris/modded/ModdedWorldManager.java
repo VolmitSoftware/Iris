@@ -55,6 +55,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 
+import java.util.Map;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
@@ -511,13 +512,16 @@ public final class ModdedWorldManager implements EngineWorldManager {
     }
 
     private void spawnAmbient(NativeWorld level, int chunkX, int chunkZ, boolean initial, BiomeEnvironment environment) {
+        if (!NativeSpawnQueries.ambientAllowed(level, chunkX, chunkZ, initial)) {
+            return;
+        }
         IrisComplex complex = engine.getComplex();
         if (complex == null) {
             return;
         }
 
         IrisBiome biome = environment.biome();
-        int chunkMobs = countChunkLivingEntities(level, chunkX, chunkZ);
+        Map<String, Integer> chunkMobs = NativeSpawnQueries.livingEntityCategories(level, chunkX, chunkZ);
 
         KList<IrisEntitySpawn> pool = new KList<>();
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()), biome, chunkX, chunkZ, chunkMobs, initial);
@@ -535,18 +539,16 @@ public final class ModdedWorldManager implements EngineWorldManager {
         if (!canSpawn(spawner, chunkX, chunkZ)) {
             return;
         }
-        int spawned = spawnEntry(level, chosen, spawner, chunkX, chunkZ);
+        int spawned = spawnEntry(level, chosen, spawner, chunkX, chunkZ,
+                remainingCapacity(chosen, spawner, chunkMobs));
         if (spawned > 0) {
             spawner.spawn(engine, chunkX, chunkZ);
         }
     }
 
-    private void collectSpawns(KList<IrisEntitySpawn> pool, KList<IrisSpawner> spawners, IrisBiome biomeFilter, int chunkX, int chunkZ, int chunkMobs, boolean initial) {
+    private void collectSpawns(KList<IrisEntitySpawn> pool, KList<IrisSpawner> spawners, IrisBiome biomeFilter, int chunkX, int chunkZ, Map<String, Integer> chunkMobs, boolean initial) {
         for (IrisSpawner spawner : spawners) {
             if (spawner == null) {
-                continue;
-            }
-            if (spawner.getMaxEntitiesPerChunk() <= chunkMobs) {
                 continue;
             }
             if (biomeFilter != null && !spawner.isValid(biomeFilter)) {
@@ -559,12 +561,19 @@ public final class ModdedWorldManager implements EngineWorldManager {
             for (IrisEntitySpawn entry : spawns) {
                 entry.setReferenceSpawner(spawner);
                 entry.setReferenceMarker(spawner.getReferenceMarker());
-                pool.add(entry);
+                if (remainingCapacity(entry, spawner, chunkMobs) > 0) {
+                    pool.add(entry);
+                }
             }
         }
     }
 
-    private int spawnEntry(NativeWorld level, IrisEntitySpawn entry, IrisSpawner spawner, int chunkX, int chunkZ) {
+    private int remainingCapacity(IrisEntitySpawn entry, IrisSpawner spawner, Map<String, Integer> counts) {
+        IrisEntity entity = entry.getRealEntity(engine);
+        return spawner.remainingCapacity(entity, counts);
+    }
+
+    private int spawnEntry(NativeWorld level, IrisEntitySpawn entry, IrisSpawner spawner, int chunkX, int chunkZ, int remainingCapacity) {
         IrisEntity irisEntity = entry.getRealEntity(engine);
         if (irisEntity == null) {
             return 0;
@@ -572,7 +581,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
 
         int min = entry.getMinSpawns();
         int max = entry.getMaxSpawns();
-        int count = LootResolver.inclusive(RNG.r, min, max);
+        int count = Math.min(Math.max(0, remainingCapacity), LootResolver.inclusive(RNG.r, min, max));
         if (count <= 0) {
             return 0;
         }
@@ -593,7 +602,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
                 }
                 IrisPosition caveFloor = caveFloors.getRandom(RNG.r);
                 worldX = caveFloor.getX();
-                worldY = caveFloor.getY() + 1;
+                worldY = caveFloor.getY();
                 worldZ = caveFloor.getZ();
             } else {
                 worldX = (chunkX << 4) + RNG.r.i(16);
@@ -706,10 +715,6 @@ public final class ModdedWorldManager implements EngineWorldManager {
         return worldY + 2 >= level.maxHeight() - 1
                 || NativeSpawnQueries.solid(level.getBlock(worldX, worldY + 1, worldZ))
                 || NativeSpawnQueries.solid(level.getBlock(worldX, worldY + 2, worldZ));
-    }
-
-    private int countChunkLivingEntities(NativeWorld level, int chunkX, int chunkZ) {
-        return NativeSpawnQueries.livingEntities(level, chunkX, chunkZ);
     }
 
     /**

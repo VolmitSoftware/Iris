@@ -51,6 +51,7 @@ import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
 @Snippet("entity-spawn")
@@ -60,6 +61,8 @@ import org.bukkit.entity.Entity;
 @Description("Represents an entity spawn during initial chunk generation")
 @Data
 public class IrisEntitySpawn implements Rarity {
+    private static final int CAVE_COLUMN_ATTEMPTS = 8;
+    private static final int CAVE_VERTICAL_ATTEMPTS = 128;
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
     @RegistryListResource(IrisEntity.class)
@@ -78,25 +81,32 @@ public class IrisEntitySpawn implements Rarity {
     private transient IrisSpawner referenceSpawner;
     private transient IrisMarker referenceMarker;
 
-    public int spawn(Engine gen, Chunk c, RNG rng) {
+    public int spawn(Engine gen, Chunk c, RNG rng, int remainingCapacity) {
+        if (remainingCapacity <= 0) {
+            return 0;
+        }
         IrisEntity definition = getRealEntity(gen);
         if (definition == null) {
             return 0;
         }
-        int spawns = LootResolver.inclusive(rng, minSpawns, maxSpawns);
+        int spawns = Math.min(remainingCapacity, LootResolver.inclusive(rng, minSpawns, maxSpawns));
         int s = 0;
 
         if (spawns > 0) {
             for (int id = 0; id < spawns; id++) {
-                int x = (c.getX() * 16) + rng.i(16);
-                int z = (c.getZ() * 16) + rng.i(16);
-                World world = c.getWorld();
-                int h = world.getHighestBlockYAt(x, z, HeightMap.OCEAN_FLOOR);
-                int hf = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
                 IrisSpawnGroup group = getReferenceSpawner().getGroup();
-                Integer y = selectSurfaceSpawnY(group, definition.getSurface(), h, hf, rng);
-                Location l = group == IrisSpawnGroup.CAVE ? findCaveSpawnLocation(gen, c, rng)
-                        : y == null ? null : new Location(world, x, y, z);
+                Location l;
+                if (group == IrisSpawnGroup.CAVE) {
+                    l = findCaveSpawnLocation(gen, c, rng, definition.getSurface());
+                } else {
+                    int x = (c.getX() << 4) + rng.i(16);
+                    int z = (c.getZ() << 4) + rng.i(16);
+                    World world = c.getWorld();
+                    int h = world.getHighestBlockYAt(x, z, HeightMap.OCEAN_FLOOR);
+                    int hf = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
+                    Integer y = selectSurfaceSpawnY(group, definition.getSurface(), h, hf, rng);
+                    l = y == null ? null : new Location(world, x, y, z);
+                }
 
                 if (l != null) {
                     if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
@@ -193,16 +203,50 @@ public class IrisEntitySpawn implements Rarity {
         return null;
     }
 
-    static Location findCaveSpawnLocation(Engine engine, Chunk chunk, RNG rng) {
+    static Location findCaveSpawnLocation(Engine engine, Chunk chunk, RNG rng, IrisSurface surface) {
         if (J.isFolia()) {
-            return null;
+            if (!J.isOwnedByCurrentRegion(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+                return null;
+            }
+            return findLiveCaveSpawnLocation(chunk, rng, surface);
         }
         KList<IrisPosition> markers = engine.getMantle().findMarkers(chunk.getX(), chunk.getZ(), MarkerMatter.CAVE_FLOOR);
         return selectCaveSpawnLocation(markers, chunk.getWorld(), rng);
     }
 
+    static Location findLiveCaveSpawnLocation(Chunk chunk, RNG rng, IrisSurface surface) {
+        boolean fluid = surface.isFluid();
+        World world = chunk.getWorld();
+        int minimumY = world.getMinHeight() + 1;
+        for (int attempt = 0; attempt < CAVE_COLUMN_ATTEMPTS; attempt++) {
+            int localX = rng.i(1, 15);
+            int localZ = rng.i(1, 15);
+            int worldX = (chunk.getX() << 4) + localX;
+            int worldZ = (chunk.getZ() << 4) + localZ;
+            int maximumY = Math.min(world.getMaxHeight() - 3,
+                    world.getHighestBlockYAt(worldX, worldZ, HeightMap.OCEAN_FLOOR) - 1);
+            if (maximumY < minimumY) {
+                continue;
+            }
+            int span = maximumY - minimumY + 1;
+            int startY = LootResolver.inclusive(rng, minimumY, maximumY);
+            int samples = Math.min(span, CAVE_VERTICAL_ATTEMPTS);
+            for (int sample = 0; sample < samples; sample++) {
+                int y = minimumY + Math.floorMod(startY - minimumY - sample, span);
+                Block block = chunk.getBlock(localX, y, localZ);
+                if (fluid ? surface.matches(block) : isAir(block.getType())
+                        && chunk.getBlock(localX, y - 1, localZ).isSolid()
+                        && isAir(chunk.getBlock(localX, y + 1, localZ).getType())) {
+                    return new Location(world, worldX, y, worldZ);
+                }
+            }
+        }
+        return null;
+    }
+
     static Location selectCaveSpawnLocation(KList<IrisPosition> markers, World world, RNG rng) {
-        return markers.convert((marker) -> BukkitPlatform.toLocation(marker, world).add(0, 1, 0)).getRandom(rng);
+        IrisPosition marker = markers.getRandom(rng);
+        return marker == null ? null : BukkitPlatform.toLocation(marker, world);
     }
 
     private Entity spawn100(Engine g, Location at) {
@@ -217,6 +261,9 @@ public class IrisEntitySpawn implements Rarity {
                 return null;
             }
 
+            if (J.isFolia() && !J.isOwnedByCurrentRegion(at.getWorld(), at.getBlockX() >> 4, at.getBlockZ() >> 4)) {
+                return null;
+            }
             IrisSurface surface = irisEntity.getSurface();
             boolean checkPosition = !ignoreSurfaces || surface.isFluid();
             if (checkPosition && !surface.matches(at.clone().subtract(0, surface.isFluid() ? 0 : 1, 0).getBlock())) {
@@ -231,7 +278,7 @@ public class IrisEntitySpawn implements Rarity {
                 }
             }
 
-            Entity e = irisEntity.spawn(g, at.clone().add(0.5, 0.5, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
+            Entity e = irisEntity.spawn(g, at.clone().add(0.5, surface.isFluid() ? 0.5 : 0, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
             if (e != null) {
                 IrisLogging.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
@@ -244,26 +291,38 @@ public class IrisEntitySpawn implements Rarity {
         }
     }
 
+    private static boolean isAir(Material material) {
+        return material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR;
+    }
+
     private boolean isAreaClearForSpawn(Location center, Vector3d boundingBox, IrisSurface surface) {
         World world = center.getWorld();
         boolean fluid = surface.isFluid();
-        int startX = fluid ? (int) Math.floor(center.getX() + 0.5 - boundingBox.x / 2)
-                : center.getBlockX() - (int) (boundingBox.x / 2);
-        int endX = fluid ? (int) Math.floor(Math.nextDown(center.getX() + 0.5 + boundingBox.x / 2))
-                : center.getBlockX() + (int) (boundingBox.x / 2);
-        int startY = fluid ? (int) Math.floor(center.getY() + 0.5) : center.getBlockY();
-        int endY = fluid ? (int) Math.floor(Math.nextDown(center.getY() + 0.5 + boundingBox.y))
-                : center.getBlockY() + (int) boundingBox.y;
-        int startZ = fluid ? (int) Math.floor(center.getZ() + 0.5 - boundingBox.z / 2)
-                : center.getBlockZ() - (int) (boundingBox.z / 2);
-        int endZ = fluid ? (int) Math.floor(Math.nextDown(center.getZ() + 0.5 + boundingBox.z / 2))
-                : center.getBlockZ() + (int) (boundingBox.z / 2);
+        int startX = (int) Math.floor(center.getX() + 0.5 - boundingBox.x / 2);
+        int endX = (int) Math.floor(Math.nextDown(center.getX() + 0.5 + boundingBox.x / 2));
+        double baseY = center.getY() + (fluid ? 0.5 : 0);
+        int startY = (int) Math.floor(baseY);
+        int endY = (int) Math.floor(Math.nextDown(baseY + boundingBox.y));
+        int startZ = (int) Math.floor(center.getZ() + 0.5 - boundingBox.z / 2);
+        int endZ = (int) Math.floor(Math.nextDown(center.getZ() + 0.5 + boundingBox.z / 2));
 
+        if (startY < world.getMinHeight() || endY >= world.getMaxHeight()) {
+            return false;
+        }
+        if (J.isFolia()) {
+            for (int chunkX = startX >> 4; chunkX <= endX >> 4; chunkX++) {
+                for (int chunkZ = startZ >> 4; chunkZ <= endZ >> 4; chunkZ++) {
+                    if (!J.isOwnedByCurrentRegion(world, chunkX, chunkZ)) {
+                        return false;
+                    }
+                }
+            }
+        }
         for (int x = startX; x <= endX; x++) {
             for (int y = startY; y <= endY; y++) {
                 for (int z = startZ; z <= endZ; z++) {
                     if (fluid ? !surface.matches(world.getBlockAt(x, y, z))
-                            : world.getBlockAt(x, y, z).getType() != Material.AIR) {
+                            : !isAir(world.getBlockAt(x, y, z).getType())) {
                         return false;
                     }
                 }

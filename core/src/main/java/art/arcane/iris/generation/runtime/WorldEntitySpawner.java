@@ -28,6 +28,8 @@ import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.world.entity.IrisSpawner;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
+import art.arcane.iris.platform.bukkit.BukkitEntityType;
+import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.platform.bukkit.plugin.Chunks;
 import art.arcane.iris.world.task.J;
@@ -37,13 +39,16 @@ import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
-import lombok.Data;
 import org.bukkit.Chunk;
+import org.bukkit.GameRules;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import art.arcane.iris.generation.runtime.MarkerSpawnScanner.PreparedMarkerSpawn;
 import java.util.concurrent.CompletableFuture;
@@ -381,6 +386,9 @@ final class WorldEntitySpawner {
     }
 
     private void spawnAmbient(Chunk c, boolean initial, BiomeEnvironment environment) {
+        if (!ambientAllowed(c, initial)) {
+            return;
+        }
         //@builder
         // Excluded spawners cannot spawn anything on this Minecraft version, so they never enter the selection pool.
         Predicate<IrisSpawner> filter = i -> !i.isCompatExcluded() && i.canSpawn(manager.getEngine(), c.getX(), c.getZ());
@@ -404,20 +412,25 @@ final class WorldEntitySpawner {
                                         .shuffleCopy(RNG.r)
                                         .stream()
                                         .filter(filter)))
-                .filter(counter)
                 .flatMap((i) -> stream(i, initial))
+                .filter(entry -> counter.remainingCapacity(entry, manager.getEngine()) > 0)
                 .collect(Collectors.toList()))
                 .getRandom();
         //@done
         if (v == null || v.getReferenceSpawner() == null)
             return;
 
-        spawn(c, v);
+        spawn(c, v, counter.remainingCapacity(v, manager.getEngine()));
     }
 
-    private void spawn(Chunk c, IrisEntitySpawn i) {
+    static boolean ambientAllowed(Chunk chunk, boolean initial) {
+        return Boolean.TRUE.equals(chunk.getWorld().getGameRuleValue(GameRules.SPAWN_MOBS))
+                && (initial || chunk.getLoadLevel() == Chunk.LoadLevel.ENTITY_TICKING);
+    }
+
+    private void spawn(Chunk c, IrisEntitySpawn i, int remainingCapacity) {
         IrisSpawner ref = i.getReferenceSpawner();
-        int s = i.spawn(manager.getEngine(), c, RNG.r);
+        int s = i.spawn(manager.getEngine(), c, RNG.r, remainingCapacity);
         actuallySpawned.addAndGet(s);
         if (s > 0) {
             ref.spawn(manager.getEngine(), c.getX(), c.getZ());
@@ -469,26 +482,20 @@ final class WorldEntitySpawner {
         return Rarity.expandWeighted(types);
     }
 
-    @Data
-    private static class ChunkCounter implements Predicate<IrisSpawner> {
-        private final Entity[] entities;
-        private transient int index = 0;
-        private transient int count = 0;
+    static final class ChunkCounter {
+        private final Map<String, Integer> counts = new HashMap<>();
 
-        @Override
-        public boolean test(IrisSpawner spawner) {
-            int max = spawner.getMaxEntitiesPerChunk();
-            if (max <= count)
-                return false;
-
-            while (index < entities.length) {
-                if (entities[index++] instanceof LivingEntity) {
-                    if (++count >= max)
-                        return false;
+        ChunkCounter(Entity[] entities) {
+            for (Entity entity : entities) {
+                if (entity instanceof LivingEntity && !(entity instanceof Player)) {
+                    counts.merge(BukkitEntityType.of(entity.getType()).spawnCategory(), 1, Integer::sum);
                 }
             }
+        }
 
-            return true;
+        int remainingCapacity(IrisEntitySpawn entry, Engine engine) {
+            IrisEntity entity = entry.getRealEntity(engine);
+            return entry.getReferenceSpawner().remainingCapacity(entity, counts);
         }
     }
 }

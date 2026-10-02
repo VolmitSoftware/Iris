@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:frog",
+  "reason": "NATURAL",
+  "surface": "LAND",
+  "ai": false,
+  "aware": false,
+  "gravity": false
+}

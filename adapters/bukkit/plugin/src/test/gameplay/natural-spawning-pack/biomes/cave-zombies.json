@@ -1,0 +1,26 @@
+{
+  "name": "Cave Zombies",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [
+    {
+      "minHeight": 1,
+      "maxHeight": 1,
+      "palette": [
+        {
+          "block": "minecraft:grass_block"
+        }
+      ]
+    }
+  ],
+  "generators": [
+    {
+      "generator": "flat",
+      "min": 64,
+      "max": 64
+    }
+  ],
+  "entitySpawners": [
+    "qa/cave-zombies"
+  ]
+}

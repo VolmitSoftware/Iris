@@ -31,6 +31,9 @@ import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.generation.locator.Locator;
+import art.arcane.iris.generation.locator.BiomeLocator;
+import art.arcane.iris.generation.subterrain.SubterrainPosition;
+import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
 import art.arcane.iris.structure.placement.StructureReachability;
 import art.arcane.iris.generation.runtime.WrongEngineBroException;
@@ -82,7 +85,7 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_UNKNOWN_BIOME_2, MessageArgument.untrusted("key", key)));
             return 0;
         }
-        locate(source, level, engine, player, Locator.surfaceBiome(biome.getLoadKey()), "biome " + biome.getLoadKey());
+        locate(source, level, engine, player, BiomeLocator.forBiome(engine, biome.getLoadKey(), player.blockY()), "biome " + biome.getLoadKey());
         return 1;
     }
 
@@ -545,12 +548,12 @@ final class ModdedLocateCommands {
             previous.cancel(true);
         }
         search.whenComplete((Position2 at, Throwable error) -> completeLocate(
-                source, level, engine, player, label, server, playerId, search, at, error));
+                source, level, engine, player, label, server, playerId, search, locator, at, error));
     }
 
     private static void completeLocate(NativeCommandSource source, NativeWorld level, Engine engine,
                                        NativeProtocolPlayer player, String label, NativeModdedServer server, UUID playerId,
-                                       CompletableFuture<Position2> search, Position2 at, Throwable error) {
+                                       CompletableFuture<Position2> search, Locator<?> locator, Position2 at, Throwable error) {
         if (ACTIVE_LOCATE_REQUESTS.get(playerId) != search) {
             return;
         }
@@ -576,15 +579,77 @@ final class ModdedLocateCommands {
             });
             return;
         }
+        if (locator instanceof BiomeLocator caveLocator) {
+            prepareCaveLocate(new CaveLocateRequest(source, level, engine, player, label, server, playerId,
+                    search, caveLocator, at));
+            return;
+        }
         server.execute(() -> {
             if (ACTIVE_LOCATE_REQUESTS.remove(playerId, search)) {
-                teleportToLocateResult(source, level, engine, player, label, at);
+                teleportToLocateResult(source, level, engine, player, label, locator, at, Optional.empty());
             }
         });
     }
 
-    private static void teleportToLocateResult(NativeCommandSource source, NativeWorld level, Engine engine,
-                                                NativeProtocolPlayer player, String label, Position2 at) {
+    private static void prepareCaveLocate(CaveLocateRequest request) {
+        CompletableFuture.supplyAsync(() -> resolveCavePosition(request))
+                .whenComplete((target, error) -> request.server().execute(() -> loadCaveDestination(request, target, error)));
+    }
+
+    private static SubterrainPosition resolveCavePosition(CaveLocateRequest request) {
+        try (GenerationSessionLease lease = request.engine().acquireGenerationLease("modded_cave_position");
+             IrisContext.Scope ignored = IrisContext.open(request.engine(), lease.sessionId(), null)) {
+            return request.locator().position(request.engine(), request.at());
+        } catch (GenerationSessionException error) {
+            throw new CompletionException(error);
+        }
+    }
+
+    private static void loadCaveDestination(CaveLocateRequest request, SubterrainPosition target, Throwable error) {
+        if (ACTIVE_LOCATE_REQUESTS.get(request.playerId()) != request.search()) {
+            return;
+        }
+        if (error != null) {
+            failCaveLocate(request, error);
+            return;
+        }
+        if (target == null || !request.player().connected() || !request.player().inWorld(request.level())) {
+            if (ACTIVE_LOCATE_REQUESTS.remove(request.playerId(), request.search())) {
+                IrisModdedCommands.fail(request.source(), "The cave destination is no longer available.");
+            }
+            return;
+        }
+        try {
+            request.level().getBlock(target.x(), target.y(), target.z());
+            request.locator().prepareRead(request.engine(), new Position2(target.x() >> 4, target.z() >> 4))
+                    .whenComplete((read, failure) -> request.server().execute(() -> finishCaveLocate(request, target, read, failure)));
+        } catch (RuntimeException failure) {
+            failCaveLocate(request, failure);
+        }
+    }
+
+    private static void finishCaveLocate(CaveLocateRequest request, SubterrainPosition target,
+                                         Optional<SavedBiomeRuntime.ReadSession> read, Throwable error) {
+        if (error != null) {
+            failCaveLocate(request, error);
+            return;
+        }
+        if (ACTIVE_LOCATE_REQUESTS.remove(request.playerId(), request.search())) {
+            teleportToLocateResult(request.source(), request.level(), request.engine(), request.player(),
+                    request.label(), request.locator(), request.at(), Optional.of(new CaveDestination(target, read)));
+        }
+    }
+
+    private static void failCaveLocate(CaveLocateRequest request, Throwable error) {
+        ModdedIrisLog.error("Iris cave locate failed for {}", request.label(), error);
+        if (ACTIVE_LOCATE_REQUESTS.remove(request.playerId(), request.search())) {
+            IrisModdedCommands.fail(request.source(), "Could not prepare the cave destination. See the server log for details.");
+        }
+    }
+
+    static void teleportToLocateResult(NativeCommandSource source, NativeWorld level, Engine engine,
+                                                NativeProtocolPlayer player, String label, Locator<?> locator, Position2 at,
+                                        Optional<CaveDestination> caveDestination) {
         // Same liveness guards the structure completion path has: the search can take up to
         // two minutes, and the captured NativeProtocolPlayer may be gone or elsewhere by then.
         if (!player.connected()) {
@@ -600,6 +665,17 @@ final class ModdedLocateCommands {
         try (GenerationSessionLease lease = engine.acquireGenerationLease("modded_locator_teleport");
             IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             int blockY = engine.getMinHeight() + engine.getHeight(blockX, blockZ, false) + 2;
+            if (locator instanceof BiomeLocator caveLocator) {
+                CaveDestination prepared = caveDestination.orElseThrow();
+                SubterrainPosition landing = caveLocator.landing(engine, level, prepared.target(), prepared.read());
+                if (landing == null) {
+                    IrisModdedCommands.fail(source, "No safe cave landing found for " + label + ".");
+                    return;
+                }
+                blockX = landing.x();
+                blockY = landing.y();
+                blockZ = landing.z();
+            }
             boolean teleported = player.teleport(level, blockX + 0.5D, blockY, blockZ + 0.5D);
             if (!teleported) {
                 IrisModdedCommands.fail(source, IrisLanguage.plain(
@@ -611,7 +687,8 @@ final class ModdedLocateCommands {
                 return;
             }
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_TELEPORTED_AT_2, MessageArgument.untrusted("label", label), MessageArgument.untrusted("blockX", blockX), MessageArgument.untrusted("blockY", blockY), MessageArgument.untrusted("blockZ", blockZ)));
-        } catch (GenerationSessionException e) {
+        } catch (GenerationSessionException | RuntimeException e) {
+            ModdedIrisLog.error("Iris locate teleport failed for {}", label, e);
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_ENGINE_CHANGED_WHILE_LOCATING_TRY_AGAIN, MessageArgument.untrusted("label", label)));
         }
     }
@@ -633,6 +710,14 @@ final class ModdedLocateCommands {
         EMPTY_BIOME_FILTER,
         BIOME_UNREACHABLE,
         NO_PLACEMENT
+    }
+
+    record CaveDestination(SubterrainPosition target, Optional<SavedBiomeRuntime.ReadSession> read) {
+    }
+
+    private record CaveLocateRequest(NativeCommandSource source, NativeWorld level, Engine engine,
+                                     NativeProtocolPlayer player, String label, NativeModdedServer server,
+                                     UUID playerId, CompletableFuture<Position2> search, BiomeLocator locator, Position2 at) {
     }
 
     private record NativeStructureTarget(String key, NativeStructureQueries.Reference holder,

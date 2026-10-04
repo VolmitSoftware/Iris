@@ -7,6 +7,7 @@ import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.subterrain.SubterrainPosition;
+import art.arcane.iris.pack.value.IrisRange;
 import org.junit.Test;
 
 import java.util.List;
@@ -21,6 +22,39 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class SavedSubterrainQueriesTest {
+    @Test
+    public void dryShoreUsesRetainedPlannerAndRejectsAnotherActivationsChunks() throws Exception {
+        IrisEngine engine = mock(IrisEngine.class);
+        GenerationHistory history = mock(GenerationHistory.class);
+        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+        SavedBiomeRuntime saved = mock(SavedBiomeRuntime.class);
+        GenerationActivation old = GenerationActivation.initial("a".repeat(64), 1L);
+        GenerationActivation active = GenerationActivation.next(2L, "b".repeat(64), 1L, 2L, 64);
+        IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("old-basin").setProbability(1D)
+                .setBiome("retired-cave").setRadius(28).setHeight(40).setFluidDepth(8)
+                .setWorldYRange(new IrisRange(-100, 100)).setFormationFraction(0).setPillarSpacing(0);
+        SubterrainPlanner historical = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -128, 256));
+        SubterrainPlan plan = historical.plansForBounds(0, 0, 511, 511).getFirst();
+        SubterrainPosition anchor = plan.anchor();
+        SubterrainLocator.Result target = new SubterrainLocator.Result(plan.id(), plan.family(), plan.biome(),
+                anchor.x(), anchor.y(), anchor.z());
+        when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(router.history()).thenReturn(history);
+        when(router.biomes()).thenReturn(saved);
+        when(saved.subterrainPlanner(old.activationId())).thenReturn(historical);
+        when(history.resolveActivation(anyInt(), anyInt())).thenReturn(old);
+        SubterrainLocator.Result dry = GenerationSemanticQueries.drySubterrainLanding(engine, target, () -> true).orElseThrow();
+        assertTrue(target.x() >> 4 != dry.x() >> 4 || target.z() >> 4 != dry.z() >> 4);
+        assertTrue(historical.sample(dry.x(), dry.y() - 1, dry.z()).solid());
+        verify(engine, never()).getComplex();
+        verify(engine, never()).getActiveGenerationRuntimeBinding();
+        verify(saved, never()).subterrainPlanner(active.activationId());
+        when(history.resolveActivation(anyInt(), anyInt())).thenReturn(active);
+        when(history.resolveActivation(target.x() >> 4, target.z() >> 4)).thenReturn(old);
+        assertTrue(GenerationSemanticQueries.drySubterrainLanding(engine, target, () -> true).isEmpty());
+        assertTrue(GenerationSemanticQueries.drySubterrainLanding(engine, target, () -> false).isEmpty());
+    }
+
     @Test
     public void locateUsesRetainedDefinitionOnlyInsideItsOwnedChunks() throws Exception {
         IrisEngine engine = mock(IrisEngine.class);

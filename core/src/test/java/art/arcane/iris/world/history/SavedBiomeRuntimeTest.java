@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -366,6 +367,59 @@ public class SavedBiomeRuntimeTest {
             assertEquals(false, unavailable.isLoading());
             assertTrue(unavailable.getMessage().contains("missing-region"));
         }
+    }
+
+    @Test
+    public void asynchronousChunkSessionWaitsForDiskAndConsumesTheCompletedRead() throws Exception {
+        allowUnownedChunks();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(store.get(0, 0)).thenAnswer(invocation -> {
+            entered.countDown();
+            assertTrue(release.await(5L, TimeUnit.SECONDS));
+            return Optional.empty();
+        });
+        try (SavedBiomeRuntime runtime = new SavedBiomeRuntime(engine, history)) {
+            CompletableFuture<SavedBiomeRuntime.ReadSession> reading = runtime.readChunkAsync(0, 0);
+            try {
+                assertTrue(entered.await(5L, TimeUnit.SECONDS));
+                assertFalse(reading.isDone());
+                assertEquals(1, runtime.pendingQueryCount());
+                assertThrows(TimeoutException.class, () -> reading.get(100L, TimeUnit.MILLISECONDS));
+            } finally {
+                release.countDown();
+            }
+            SavedBiomeRuntime.ReadSession session = reading.get(5L, TimeUnit.SECONDS);
+            awaitIdle(runtime);
+            assertEquals(Optional.empty(), session.resolve(0, 0, 0, true));
+            assertEquals(Optional.empty(), session.resolve(15, -32, 15, false));
+            assertEquals(0, runtime.pendingQueryCount());
+            verify(store).get(0, 0);
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
+    public void asynchronousChunkSessionSurvivesQueryEvictionAndRejectsClosedOrOtherChunks() throws Exception {
+        allowUnownedChunks();
+        SavedBiomeRuntime.ReadSession session;
+        try (SavedBiomeRuntime runtime = new SavedBiomeRuntime(engine, history)) {
+            session = runtime.readChunkAsync(0, 0).get(5L, TimeUnit.SECONDS);
+            for (int chunkX = 1; chunkX <= 130; chunkX++) {
+                runtime.readChunkAsync(chunkX, 0).get(5L, TimeUnit.SECONDS);
+            }
+            awaitIdle(runtime);
+            assertEquals(128, runtime.cachedQueryCount());
+            assertEquals(Optional.empty(), session.resolve(0, 0, 0, true));
+            assertEquals(Optional.empty(), session.resolve(15, 32, 15, false));
+            assertThrows(IllegalArgumentException.class, () -> session.resolve(16, 0, 0, true));
+            assertThrows(IllegalArgumentException.class, () -> session.resolve(-1, 0, 0, false));
+            assertEquals(0, runtime.pendingQueryCount());
+            verify(store).get(0, 0);
+        }
+        assertThrows(IllegalStateException.class, () -> session.resolve(0, 0, 0, true));
+        verify(store).get(0, 0);
     }
 
     @Test

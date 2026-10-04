@@ -74,7 +74,7 @@ import java.util.Set;
 
 @Director(name = "find", origin = DirectorOrigin.PLAYER, description = "Iris Find commands", descriptionKey = "iris.director.commandfind.director.iris_find_commands", aliases = "goto")
 public class CommandFind implements DirectorExecutor {
-    @Director(description = "Find a biome", descriptionKey = "iris.director.commandfind.director.find_biome")
+    @Director(description = "Find a biome", sync = true, descriptionKey = "iris.director.commandfind.director.find_biome")
     public void biome(
             @Param(description = "The biome to look for", descriptionKey = "iris.director.commandfind.param.biome_look", customHandler = ReachableBiomeHandler.class)
             IrisBiome biome,

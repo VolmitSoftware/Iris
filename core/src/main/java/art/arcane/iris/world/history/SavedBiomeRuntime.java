@@ -120,6 +120,15 @@ public final class SavedBiomeRuntime implements AutoCloseable {
         }
     }
 
+    public CompletableFuture<ReadSession> readChunkAsync(int chunkX, int chunkZ) {
+        return queryAsync(chunkX, chunkZ).thenApply(prepared -> {
+            if (prepared.failure() != null) {
+                throw prepared.failure();
+            }
+            return new ReadSession(new ReadOptions(this, prepared, chunkX, chunkZ));
+        });
+    }
+
     public boolean mayHaveBlockDropRules(String material) {
         if (engine.getData().hasBlockDropRules(material)) {
             return true;
@@ -571,6 +580,32 @@ public final class SavedBiomeRuntime implements AutoCloseable {
 
     private static long key(int chunkX, int chunkZ) {
         return ((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL);
+    }
+
+    public static final class ReadSession {
+        private final ReadOptions options;
+
+        private ReadSession(ReadOptions options) {
+            this.options = options;
+        }
+
+        public Optional<BiomeEnvironment> resolve(int blockX, int worldY, int blockZ, boolean surface) {
+            if (blockX >> 4 != options.chunkX() || blockZ >> 4 != options.chunkZ()) {
+                throw new IllegalArgumentException("Saved biome read coordinates must remain inside the prepared chunk");
+            }
+            SavedBiomeRuntime runtime = options.runtime();
+            runtime.consumption.readLock().lock();
+            try {
+                runtime.requireOpen();
+                return runtime.resolve(options.query(), blockX, worldY, blockZ,
+                        surface ? QueryKind.SURFACE : QueryKind.VOLUME);
+            } finally {
+                runtime.consumption.readLock().unlock();
+            }
+        }
+    }
+
+    private record ReadOptions(SavedBiomeRuntime runtime, PreparedQuery query, int chunkX, int chunkZ) {
     }
 
     private record PreparedQuery(Optional<SavedBiomeChunk> chunk,

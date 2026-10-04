@@ -27,6 +27,9 @@ import art.arcane.iris.integration.ExternalDataSVC;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.locator.Locator;
+import art.arcane.iris.generation.locator.BiomeLocator;
+import art.arcane.iris.generation.subterrain.SubterrainPosition;
+import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.iris.structure.placement.PlacedObject;
 import art.arcane.iris.generation.runtime.WrongEngineBroException;
@@ -600,7 +603,7 @@ public final class EngineBukkitOps {
     }
 
     public static void gotoBiome(Engine engine, IrisBiome biome, Player player, boolean teleport) {
-        find(engine, Locator.surfaceBiome(biome.getLoadKey()), player, teleport, "Biome " + biome.getName());
+        find(engine, BiomeLocator.forBiome(engine, biome.getLoadKey(), player.getLocation().getBlockY()), player, teleport, "Biome " + biome.getName());
     }
 
     public static void gotoObject(Engine engine, String s, Player player, boolean teleport) {
@@ -625,12 +628,14 @@ public final class EngineBukkitOps {
     }
 
     private static void find(Engine engine, Locator<?> locator, Player player, boolean teleport, String message) {
-        find(engine, locator, player, 120_000, location -> {
+        find(engine, locator, player, 120_000, teleport, location -> {
             if (location == null) {
                 ComponentMessenger.sendSection(player, IrisLanguage.text(BukkitRuntimeMessages.ENGINE_BUKKIT_OPS_COULD_NOT_FIND_WITHIN_SEARCH_RANGE, MessageArgument.untrusted("message", String.valueOf(message))));
                 return;
             }
-            if (teleport) {
+            if (teleport && locator instanceof BiomeLocator) {
+                teleportToCave(player, location, message);
+            } else if (teleport) {
                 J.runEntity(player, () -> teleportAsyncSafely(player, location));
                 ComponentMessenger.sendSection(player, IrisLanguage.text(BukkitRuntimeMessages.ENGINE_BUKKIT_OPS_TELEPORTING, MessageArgument.untrusted("message", String.valueOf(message))));
             } else {
@@ -639,7 +644,7 @@ public final class EngineBukkitOps {
         });
     }
 
-    private static void find(Engine engine, Locator<?> locator, Player player, long timeout, Consumer<Location> consumer) {
+    private static void find(Engine engine, Locator<?> locator, Player player, long timeout, boolean resolveLanding, Consumer<Location> consumer) {
         AtomicLong checks = new AtomicLong();
         long ms = M.ms();
         World world = player.getWorld();
@@ -667,8 +672,15 @@ public final class EngineBukkitOps {
                     try (GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_locator_result");
                          IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
                         int by = engine.getMinHeight() + engine.getHeight(bx, bz, false) + 2;
+                        Location destination = new Location(world, bx, by, bz);
+                        if (locator instanceof BiomeLocator caveLocator) {
+                            SubterrainPosition target = caveLocator.position(engine, at);
+                            destination = target == null ? null : resolveLanding
+                                    ? caveDestination(engine, caveLocator, world, target).get()
+                                    : new Location(world, target.x(), target.y(), target.z());
+                        }
                         resultDispatched = dispatchLocateResult(
-                                player, world, consumer, new Location(world, bx, by, bz), playerId, search);
+                                player, world, consumer, destination, playerId, search);
                     }
                 } else {
                     resultDispatched = dispatchLocateResult(player, world, consumer, null, playerId, search);
@@ -678,6 +690,14 @@ public final class EngineBukkitOps {
                 Thread.currentThread().interrupt();
             } catch (WrongEngineBroException | ExecutionException e) {
                 IrisLogging.reportError(e);
+                if (search != null) {
+                    resultDispatched = dispatchLocateFailure(player, world, playerId, search);
+                }
+            } catch (RuntimeException e) {
+                IrisLogging.reportError(e);
+                if (search != null) {
+                    resultDispatched = dispatchLocateFailure(player, world, playerId, search);
+                }
             } finally {
                 if (search != null && !resultDispatched) {
                     ACTIVE_LOCATE_REQUESTS.remove(playerId, search);
@@ -704,6 +724,43 @@ public final class EngineBukkitOps {
         }.execute(new VolmitSender(player));
     }
 
+    static CompletableFuture<Location> caveDestination(Engine engine, BiomeLocator locator, World world,
+                                                                SubterrainPosition target) {
+        CompletableFuture<Location> destination = new CompletableFuture<>();
+        BukkitPlatform.chunkAtAsync(world, target.x() >> 4, target.z() >> 4, true)
+                .thenCompose(chunk -> locator.prepareRead(engine, new Position2(target.x() >> 4, target.z() >> 4)))
+                .whenComplete((read, error) -> {
+            if (error != null) {
+                destination.completeExceptionally(error);
+                return;
+            }
+            boolean scheduled = J.runRegion(world, target.x() >> 4, target.z() >> 4, () -> {
+                try (GenerationSessionLease lease = engine.acquireGenerationLease("bukkit_cave_landing");
+                     IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
+                    SubterrainPosition landing = locator.landing(engine, engine.getWorld().platformWorld(), target, read);
+                    destination.complete(landing == null ? null
+                            : new Location(world, landing.x() + 0.5, landing.y(), landing.z() + 0.5));
+                } catch (Throwable failure) {
+                    destination.completeExceptionally(failure);
+                }
+            });
+            if (!scheduled) {
+                destination.completeExceptionally(new IllegalStateException("Could not schedule cave landing lookup"));
+            }
+        });
+        return destination;
+    }
+
+    private static boolean dispatchLocateFailure(Player player, World world, UUID playerId,
+                                                  CompletableFuture<Position2> search) {
+        return J.runEntity(player, () -> {
+            if (!ACTIVE_LOCATE_REQUESTS.remove(playerId, search) || !player.isOnline() || !world.equals(player.getWorld())) {
+                return;
+            }
+            ComponentMessenger.sendSection(player, "Could not complete the search. See the server console for details.");
+        });
+    }
+
     private static boolean dispatchLocateResult(Player player, World world, Consumer<Location> consumer,
                                                 Location location, UUID playerId,
                                                 CompletableFuture<Position2> search) {
@@ -720,6 +777,30 @@ public final class EngineBukkitOps {
             IrisLogging.warn("Could not schedule an Iris locator result for " + player.getName() + ".");
         }
         return scheduled;
+    }
+
+    static void teleportToCave(Player player, Location location, String message) {
+        try {
+            player.teleportAsync(location).whenComplete((teleported, error) -> {
+                if (error != null) {
+                    IrisLogging.reportError(error);
+                }
+                J.runEntity(player, () -> {
+                    if (!player.isOnline()) {
+                        return;
+                    }
+                    if (error != null || !Boolean.TRUE.equals(teleported)) {
+                        ComponentMessenger.sendSection(player, "Could not teleport to " + message + ".");
+                    } else {
+                        ComponentMessenger.sendSection(player, IrisLanguage.text(BukkitRuntimeMessages.ENGINE_BUKKIT_OPS_TELEPORTING,
+                                MessageArgument.untrusted("message", message)));
+                    }
+                });
+            });
+        } catch (Throwable error) {
+            IrisLogging.reportError(error);
+            ComponentMessenger.sendSection(player, "Could not teleport to " + message + ".");
+        }
     }
 
     private static void teleportAsyncSafely(Player player, Location location) {

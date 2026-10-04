@@ -30,6 +30,14 @@ public final class GenerationFindCatalog {
         return find(biomes(engine), key);
     }
 
+    public static boolean hasRetainedCaveBiome(Engine engine, String key) {
+        return containsKey(retained(engine).caveBiomes, normalizeKey(key));
+    }
+
+    public static boolean hasRetainedSurfaceBiome(Engine engine, String key) {
+        return containsKey(retained(engine).surfaceBiomes, normalizeKey(key));
+    }
+
     public static KList<IrisRegion> regions(Engine engine) {
         return merge(engine.getDimension().getAllRegions(engine), retained(engine).regions);
     }
@@ -96,9 +104,11 @@ public final class GenerationFindCatalog {
             return;
         }
         for (String key : semantics.surfaceBiomeKeys()) {
+            catalog.surfaceBiomes.add(normalizeKey(key));
             addBiome(catalog, key);
         }
         for (String key : semantics.caveBiomeKeys()) {
+            catalog.caveBiomes.add(normalizeKey(key));
             addBiome(catalog, key);
         }
         for (String key : semantics.regionKeys()) {
@@ -181,6 +191,8 @@ public final class GenerationFindCatalog {
     private static final class RetainedCatalog {
         private final long activeActivationId;
         private final Map<String, IrisBiome> biomes = new LinkedHashMap<>();
+        private final Set<String> surfaceBiomes = new LinkedHashSet<>();
+        private final Set<String> caveBiomes = new LinkedHashSet<>();
         private final Map<String, IrisRegion> regions = new LinkedHashMap<>();
         private final Set<String> objects = new LinkedHashSet<>();
         private final Set<String> structures = new LinkedHashSet<>();

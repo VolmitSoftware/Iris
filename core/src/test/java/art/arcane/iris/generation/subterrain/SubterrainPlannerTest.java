@@ -8,6 +8,8 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,9 +25,6 @@ public class SubterrainPlannerTest {
         for (IrisSubterrainFluid fluid : IrisSubterrainFluid.values()) {
             IrisSubterrainFeature feature = compactFeature(IrisSubterrainFamily.TRAVERTINE_TERRACES).setFluid(fluid);
             SubterrainPlan pillar = direct(feature);
-            for (int y = pillar.bounds().minY(); y <= pillar.bounds().maxY(); y++) {
-                assertFalse(pillar.sample(0, y, 0).occupied());
-            }
             SubterrainPosition pillarAnchor = pillar.anchor();
             assertTrue(pillar.sample(pillarAnchor.x(), pillarAnchor.y(), pillarAnchor.z()).occupied());
             assertTrue(pillar.sample(pillarAnchor.x(), pillarAnchor.y(), pillarAnchor.z()).room().reservedPassage());
@@ -173,17 +172,81 @@ public class SubterrainPlannerTest {
     }
 
     @Test
-    public void faultWallsRemainParallelBeyondTwoHundredBlocksAndHaveShelves() {
-        SubterrainPlan plan = direct(feature(IrisSubterrainFamily.TECTONIC_FAULT));
-        for (int x = -110; x <= 110; x++) {
-            assertTrue(plan.sample(x, 0, 0).occupied());
-            assertTrue(plan.sample(x, 0, 32).solid());
-            assertTrue(plan.sample(x, 0, -32).solid());
+    public void faultsAndTerracesHaveTaperedIrregularWallsAndVaultedCeilings() {
+        for (IrisSubterrainFamily family : List.of(IrisSubterrainFamily.TECTONIC_FAULT,
+                IrisSubterrainFamily.TRAVERTINE_TERRACES)) {
+            SubterrainPlan plan = direct(feature(family));
+            Set<Integer> widths = new HashSet<>();
+            Set<Integer> ceilings = new HashSet<>();
+            for (int x = -100; x <= 100; x += 5) {
+                int width = 0;
+                for (int z = -32; z <= 32; z++) {
+                    SubterrainCell cell = plan.sample(x, 0, z);
+                    if (cell.occupied()) {
+                        width++;
+                        ceilings.add(cell.room().ceilingY());
+                    }
+                }
+                widths.add(width);
+            }
+            assertTrue(family.toString(), widths.size() > 4);
+            assertTrue(family.toString(), ceilings.size() > 5);
+            assertFalse(plan.sample(120, 0, 28).occupied());
+            assertFalse(plan.sample(-120, 0, -28).occupied());
+            assertTrue(plan.sample(0, 0, 0).room().ceilingY() > plan.sample(0, 0, 20).room().ceilingY());
         }
-        int centralFloor = plan.sample(0, 0, 0).room().floorY();
-        int ledgeFloor = plan.sample(0, 0, 28).room().floorY();
-        assertTrue(ledgeFloor > centralFloor);
-        assertTrue(plan.sample(0, ledgeFloor, 28).solid());
+    }
+
+    @Test
+    public void organicShapesRemainSealedInsideMaximumBoundsAcrossSeedsAndRotation() {
+        for (IrisSubterrainFamily family : List.of(IrisSubterrainFamily.TECTONIC_FAULT,
+                IrisSubterrainFamily.TRAVERTINE_TERRACES, IrisSubterrainFamily.LAVA_TUBE)) {
+            IrisSubterrainFeature feature = feature(family).setLength(2048).setRadius(256).setSpacing(4096);
+            for (int seed = 0; seed < 4; seed++) {
+                for (boolean rotated : List.of(false, true)) {
+                    SubterrainPlan plan = new SubterrainPlan(new SubterrainPlan.Options(
+                            SubterrainPlanner.Definition.from(feature), 0, 0, 0, rotated, feature.getId() + ":" + seed));
+                    SubterrainBounds bounds = plan.bounds();
+                    for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
+                        for (int x = bounds.minX(); x <= bounds.maxX(); x += 13) {
+                            assertFalse(plan.sample(x, y, bounds.minZ()).occupied());
+                            assertFalse(plan.sample(x, y, bounds.maxZ()).occupied());
+                        }
+                        for (int z = bounds.minZ(); z <= bounds.maxZ(); z += 13) {
+                            assertFalse(plan.sample(bounds.minX(), y, z).occupied());
+                            assertFalse(plan.sample(bounds.maxX(), y, z).occupied());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void organicGeometryVariesPerPlanAndRotatesWithoutChangingOccupancy() {
+        IrisSubterrainFeature feature = feature(IrisSubterrainFamily.TRAVERTINE_TERRACES);
+        SubterrainPlanner.Definition definition = SubterrainPlanner.Definition.from(feature);
+        SubterrainPlan original = new SubterrainPlan(new SubterrainPlan.Options(definition, 0, 0, 0, false, "terrace:one"));
+        SubterrainPlan rotated = new SubterrainPlan(new SubterrainPlan.Options(definition, 0, 0, 0, true, "terrace:one"));
+        SubterrainPlan another = new SubterrainPlan(new SubterrainPlan.Options(definition, 0, 0, 0, false, "terrace:two"));
+        int changed = 0;
+        for (int x = -120; x <= 120; x += 4) {
+            for (int z = -30; z <= 30; z += 3) {
+                for (int y = -16; y <= 16; y += 4) {
+                    SubterrainCell cell = original.sample(x, y, z);
+                    SubterrainCell turned = rotated.sample(z, y, x);
+                    assertEquals(cell.kind(), turned.kind());
+                    if (cell.owned()) {
+                        assertEquals(cell.room().floorY(), turned.room().floorY());
+                        assertEquals(cell.room().ceilingY(), turned.room().ceilingY());
+                    }
+                    if (cell.kind() != another.sample(x, y, z).kind()) {
+                        changed++;
+                    }
+                }
+            }
+        }
+        assertTrue(changed > 100);
     }
 
     @Test
@@ -217,9 +280,17 @@ public class SubterrainPlannerTest {
         assertTrue(plan.sample(90, 0, 0).room().floorY() > plan.sample(-90, 0, 0).room().floorY());
         SubterrainPlanner planner = planner(feature(IrisSubterrainFamily.TRAVERTINE_TERRACES));
         assertTrue(assertRetained(planner, List.of(plan), SubterrainCell.Kind.WATER) > 1000);
-        int rimX = -128 + 42;
-        assertTrue(plan.sample(rimX, -10, 0).solid());
-        assertTrue(plan.sample(0, 0, 28).room().floorY() > plan.sample(0, 0, 28).room().fluidHeadY());
+        Set<Integer> rimLocations = new HashSet<>();
+        for (int z = -16; z <= 16; z += 4) {
+            for (int x = -90; x < -35; x++) {
+                SubterrainCell cell = plan.sample(x, -10, z);
+                if (cell.owned() && cell.room().floorY() > cell.room().fluidHeadY()) {
+                    rimLocations.add(x);
+                    break;
+                }
+            }
+        }
+        assertTrue(rimLocations.size() > 2);
     }
 
     @Test
@@ -227,8 +298,21 @@ public class SubterrainPlannerTest {
         IrisSubterrainFeature feature = feature(IrisSubterrainFamily.CENOTE).setPillarSpacing(12).setFormationFraction(0.3);
         SubterrainPlan plan = direct(feature);
         SubterrainRoom room = plan.sample(12, 0, 12).room();
-        for (int y = room.floorY(); y <= room.ceilingY(); y++) {
-            assertTrue("pillar y=" + y, plan.sample(12, y, 12).solid());
+        Set<SubterrainPosition> previous = new HashSet<>();
+        for (int y = room.floorY() + 1; y < room.ceilingY(); y++) {
+            Set<SubterrainPosition> layer = new HashSet<>();
+            for (int x = 7; x <= 17; x++) {
+                for (int z = 7; z <= 17; z++) {
+                    if (plan.sample(x, y, z).solid()) {
+                        layer.add(new SubterrainPosition(x, 0, z));
+                    }
+                }
+            }
+            assertFalse("pillar layer y=" + y, layer.isEmpty());
+            if (!previous.isEmpty()) {
+                assertTrue("pillar connected y=" + y, layer.stream().anyMatch(previous::contains));
+            }
+            previous = layer;
         }
         assertTrue(plan.sample(0, 0, 0).room().reservedPassage());
         assertFalse(plan.sample(0, 0, 0).solid());

@@ -5,6 +5,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFluid;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.pack.value.IrisRange;
 import org.junit.Test;
@@ -20,6 +21,31 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class SubterrainLocatorTest {
+    @Test
+    public void wetCenoteSelectsDryOwnedBankOutsideCenterChunk() {
+        SubterrainPlanner water = wetCenote(IrisSubterrainFluid.WATER);
+        SubterrainLocator.Result center = SubterrainLocator.nearest(water,
+                new SubterrainLocator.Query("basin", null, "wet-cave"), 0, 0, 0, 4096, ignored -> true).orElseThrow();
+        SubterrainCell centerAir = water.sample(center.x(), center.y(), center.z());
+        assertEquals(SubterrainCell.Kind.WATER, water.sample(center.x(), centerAir.room().fluidHeadY(), center.z()).kind());
+        SubterrainLocator.Result bank = SubterrainLocator.dryLanding(water, center, () -> true).orElseThrow();
+        assertTrue(center.x() >> 4 != bank.x() >> 4 || center.z() >> 4 != bank.z() >> 4);
+        assertEquals(SubterrainCell.Kind.AIR, water.sample(bank.x(), bank.y(), bank.z()).kind());
+        assertEquals(SubterrainCell.Kind.AIR, water.sample(bank.x(), bank.y() + 1, bank.z()).kind());
+        assertTrue(water.sample(bank.x(), bank.y() - 1, bank.z()).solid());
+        assertEquals(center.featureId(), water.sample(bank.x(), bank.y(), bank.z()).room().featureId());
+        SubterrainPlanner lava = wetCenote(IrisSubterrainFluid.LAVA);
+        assertEquals(bank, SubterrainLocator.dryLanding(lava, center, () -> true).orElseThrow());
+        assertFalse(SubterrainLocator.dryLanding(water, center, () -> false).isPresent());
+    }
+
+    private static SubterrainPlanner wetCenote(IrisSubterrainFluid fluid) {
+        IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("basin").setBiome("wet-cave")
+                .setProbability(1).setWorldYRange(new IrisRange(-100, 100)).setRadius(28).setHeight(40)
+                .setFluidDepth(8).setFluid(fluid).setPillarSpacing(0).setFormationFraction(0);
+        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 74119L, -128, 256));
+    }
+
     @Test
     public void wideDistanceSearchReturnsOwnedAbsolutePositionWithoutGenerating() {
         SubterrainPlanner planner = planner();
@@ -48,6 +74,12 @@ public class SubterrainLocatorTest {
                 new SubterrainLocator.Query("", null, ""), 0, 10_000, 0, 1024).isPresent());
         assertFalse(SubterrainLocator.nearest(engine,
                 new SubterrainLocator.Query("", null, ""), 0, 0, 0, 1024, ignored -> false).isPresent());
+    }
+
+    @Test
+    public void cancelledSearchStopsBeforeInspectingPlans() {
+        assertFalse(SubterrainLocator.nearest(planner(), new SubterrainLocator.Query("", null, "wet-cave"),
+                0, 0, 0, 32768, ignored -> true, () -> false).isPresent());
     }
 
     @Test

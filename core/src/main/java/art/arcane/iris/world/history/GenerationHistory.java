@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.function.Predicate;
 
 public final class GenerationHistory {
     private static final int MAXIMUM_CACHED_BOUNDARIES = 4;
@@ -846,6 +847,12 @@ public final class GenerationHistory {
             GenerationSemanticIndex.Query query
     ) {
         return semantics.findNearest(query, ChunkGenerationSemantics::sealed);
+    }
+
+    public synchronized Optional<GenerationSemanticIndex.Match> findRecorded(
+            GenerationSemanticIndex.Query query, Predicate<ChunkGenerationSemantics> eligibility
+    ) {
+        return semantics.findNearest(query, record -> record.sealed() && eligibility.test(record));
     }
 
     public synchronized Optional<GenerationSemanticIndex.RiverMatch> findRecordedRiver(

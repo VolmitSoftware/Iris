@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
+import java.util.function.BooleanSupplier;
 
 public final class GenerationSemanticQueries {
     private GenerationSemanticQueries() {
@@ -25,12 +26,25 @@ public final class GenerationSemanticQueries {
 
     public static Optional<SubterrainLocator.Result> nearestSubterrain(
             Engine engine, SubterrainLocator.Query query, int x, int worldY, int z, int maximumDistance) {
+        return nearestSubterrain(engine, query, x, worldY, z, maximumDistance, () -> true);
+    }
+
+    public static Optional<SubterrainLocator.Result> nearestSubterrain(
+            Engine engine, SubterrainLocator.Query query, int x, int worldY, int z, int maximumDistance,
+            BooleanSupplier running) {
+        return nearestSubterrain(engine, query, x, worldY, z, maximumDistance, running, ignored -> true);
+    }
+
+    public static Optional<SubterrainLocator.Result> nearestSubterrain(
+            Engine engine, SubterrainLocator.Query query, int x, int worldY, int z, int maximumDistance,
+            BooleanSupplier running, Predicate<SubterrainLocator.Result> allowed) {
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
         Objects.requireNonNull(query, "query");
         GenerationHistoryRuntimeRouter router = requiredEngine instanceof IrisEngine irisEngine
                 ? irisEngine.getGenerationHistoryRuntimeRouter().orElse(null) : null;
         if (router == null) {
-            return SubterrainLocator.nearest(requiredEngine, query, x, worldY, z, maximumDistance);
+            return SubterrainLocator.nearest(requiredEngine.getComplex().getSubterrainPlanner(), query, x, worldY, z,
+                    maximumDistance, allowed, running);
         }
         GenerationHistory history = router.history();
         SubterrainLocator.Result nearest = null;
@@ -43,7 +57,7 @@ public final class GenerationSemanticQueries {
                 SubterrainPlanner planner = router.biomes().subterrainPlanner(activation.activationId());
                 SubterrainLocator.Result candidate = SubterrainLocator.nearest(planner, query, x, worldY, z,
                         maximumDistance, result -> allowsSubterrainPrediction(requiredEngine, history,
-                                activation.activationId(), result)).orElse(null);
+                                activation.activationId(), result) && allowed.test(result), running).orElse(null);
                 if (candidate != null && (nearest == null || distanceSquared(x, worldY, z, candidate)
                         .compareTo(distanceSquared(x, worldY, z, nearest)) < 0)) {
                     nearest = candidate;
@@ -53,6 +67,24 @@ public final class GenerationSemanticQueries {
             throw new UncheckedIOException("Unable to locate saved subterrain features", failure);
         }
         return Optional.ofNullable(nearest);
+    }
+
+    public static Optional<SubterrainLocator.Result> drySubterrainLanding(
+            Engine engine, SubterrainLocator.Result target, BooleanSupplier running) {
+        GenerationHistoryRuntimeRouter router = engine instanceof IrisEngine irisEngine
+                ? irisEngine.getGenerationHistoryRuntimeRouter().orElse(null) : null;
+        if (router == null) {
+            return SubterrainLocator.dryLanding(engine.getComplex().getSubterrainPlanner(), target, running);
+        }
+        GenerationHistory history = router.history();
+        GenerationActivation owner = history.resolveActivation(target.x() >> 4, target.z() >> 4);
+        try {
+            SubterrainPlanner planner = router.biomes().subterrainPlanner(owner.activationId());
+            return SubterrainLocator.dryLanding(planner, target, running,
+                    landing -> allowsSubterrainPrediction(engine, history, owner.activationId(), landing));
+        } catch (IOException failure) {
+            throw new UncheckedIOException("Unable to resolve saved subterrain landing", failure);
+        }
     }
 
     private static boolean allowsSubterrainPrediction(Engine engine, GenerationHistory history,

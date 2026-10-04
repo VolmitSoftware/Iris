@@ -1,6 +1,9 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.locator.BiomeLocator;
+import art.arcane.iris.generation.locator.Locator;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -31,6 +34,34 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class GenerationFindCatalogTest {
+    @Test
+    public void retainedCaveRolesSelectCaveSearchWithoutActiveDefinitions() throws Exception {
+        Fixture fixture = new Fixture();
+        when(fixture.engine.getDimension().getCarving()).thenReturn(new KList<>());
+        when(fixture.engine.getDimension().getSubterrainFeatures()).thenReturn(new KList<>());
+        doAnswer(invocation -> {
+            GenerationSemanticIndex.RecordConsumer consumer = invocation.getArgument(0);
+            consumer.accept(ChunkGenerationSemantics.builder(0, 0, 1L)
+                    .addCaveBiome("old-cave").addCaveBiome("shared")
+                    .addSurfaceBiome("old-surface").addSurfaceBiome("shared").seal().build());
+            consumer.accept(ChunkGenerationSemantics.builder(1, 0, 1L).addCaveBiome("unsealed").build());
+            consumer.accept(ChunkGenerationSemantics.builder(2, 0, 2L).addCaveBiome("current").seal().build());
+            return null;
+        }).when(fixture.history).forEachRecordedSemantic(any());
+        assertTrue(GenerationFindCatalog.hasRetainedCaveBiome(fixture.engine, "OLD-CAVE"));
+        assertFalse(GenerationFindCatalog.hasRetainedSurfaceBiome(fixture.engine, "old-cave"));
+        assertTrue(BiomeLocator.forBiome(fixture.engine, "old-cave", -30) instanceof BiomeLocator);
+        assertFalse(BiomeLocator.forBiome(fixture.engine, "old-surface", -30) instanceof BiomeLocator);
+        assertFalse(GenerationFindCatalog.hasRetainedCaveBiome(fixture.engine, "unsealed"));
+        assertFalse(GenerationFindCatalog.hasRetainedCaveBiome(fixture.engine, "current"));
+        IrisBiome shared = new IrisBiome();
+        shared.setLoadKey("shared");
+        when(fixture.engine.getSurfaceBiome(8, 8)).thenReturn(shared);
+        Locator<IrisBiome> locator = BiomeLocator.forBiome(fixture.engine, "shared", -30);
+        assertTrue(locator.matches(fixture.engine, new Position2(0, 0)));
+        verify(fixture.history, never()).packRoot(anyLong());
+    }
+
     @Test
     public void findsRecordedNamesWithoutLoadingArchivedPacksOrRuntimes() throws Exception {
         Fixture fixture = new Fixture();

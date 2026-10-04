@@ -49,36 +49,33 @@ import java.util.Map;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Description("Represents an entity spawn during initial chunk generation")
+@Description("Configures initial inhabitants and ongoing entity spawning")
 @Data
 public class IrisSpawner extends IrisRegistrant {
-
-    private transient IrisMarker referenceMarker;
-
     @ArrayType(min = 1, type = IrisEntitySpawn.class)
     @Description("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();
 
     @ArrayType(min = 1, type = IrisEntitySpawn.class)
-    @Description("The entity spawns to add initially. EXECUTES PER CHUNK!")
+    @Description("The seeded entity pool used once per chunk or marker for initial inhabitants. Live time, weather, light, population, and cooldowns do not restrict this pool.")
     private KList<IrisEntitySpawn> initialSpawns = new KList<>();
 
-    @Description("Maximum ambient entities of the selected entity's native spawn category in one chunk. Spawn groups are limited to the remaining capacity.")
+    @Description("Maximum ambient entities of the selected entity's native spawn category in one chunk. Ongoing groups use remaining capacity; initial groups use this limit independently of existing mobs.")
     private int maxEntitiesPerChunk = 1;
 
-    @Description("The block of 24 hour time to contain this spawn in.")
+    @Description("The 24-hour time window for ongoing spawns.")
     private IrisTimeBlock timeBlock = new IrisTimeBlock();
 
-    @Description("The weather condition required for this spawner to fire.")
+    @Description("The weather condition required for ongoing spawns.")
     private IrisWeather weather = IrisWeather.ANY;
 
-    @Description("The maximum rate this spawner can fire")
+    @Description("The maximum ongoing spawn rate")
     private IrisRate maximumRate = new IrisRate();
 
-    @Description("The maximum rate this spawner can fire on a specific chunk")
+    @Description("The maximum ongoing spawn rate in a specific chunk")
     private IrisRate maximumRatePerChunk = new IrisRate();
 
-    @Description("The light levels this spawn is allowed to run in (0-15 inclusive)")
+    @Description("The light levels allowed for ongoing spawns (0-15 inclusive). Initial inhabitants ignore light.")
     private IrisRange allowedLightLevels = new IrisRange(0, 15);
 
     @Description("Where should these spawns be placed")

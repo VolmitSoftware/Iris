@@ -35,15 +35,15 @@ public class WorldEntitySpawnerPopulationTest {
         IrisEntity definition = mock(IrisEntity.class);
         when(definition.spawnCategory()).thenReturn("monster");
         when(entry.getRealEntity(engine)).thenReturn(definition);
-        when(entry.getReferenceSpawner()).thenReturn(new IrisSpawner().setMaxEntitiesPerChunk(2));
+        IrisSpawner spawner = new IrisSpawner().setMaxEntitiesPerChunk(2);
         try (MockedStatic<BukkitEntityType> types = mockStatic(BukkitEntityType.class)) {
             types.when(() -> BukkitEntityType.of(EntityType.FROG)).thenReturn(creatureType);
             types.when(() -> BukkitEntityType.of(EntityType.ZOMBIE)).thenReturn(monsterType);
             WorldEntitySpawner.ChunkCounter counter = new WorldEntitySpawner.ChunkCounter(
                     new Entity[]{frog, frog, frog, zombie, player});
-            assertEquals(1, counter.remainingCapacity(entry, engine));
+            assertEquals(1, counter.remainingCapacity(entry, spawner, engine));
             when(definition.spawnCategory()).thenReturn("creature");
-            assertEquals(0, counter.remainingCapacity(entry, engine));
+            assertEquals(0, counter.remainingCapacity(entry, spawner, engine));
         }
     }
 

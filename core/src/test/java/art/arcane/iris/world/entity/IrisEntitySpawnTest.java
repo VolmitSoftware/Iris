@@ -2,6 +2,7 @@ package art.arcane.iris.world.entity;
 
 import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.iris.pack.value.IrisPosition;
+import art.arcane.iris.pack.value.IrisRange;
 
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
@@ -29,12 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
@@ -381,9 +384,8 @@ public class IrisEntitySpawnTest {
                         IrisPosition position = invocation.getArgument(0);
                         return new Location(fixture.world, position.getX(), position.getY(), position.getZ());
                     });
-            fixture.entry.setReferenceSpawner(new IrisSpawner());
-            assertEquals(0, fixture.entry.spawn(fixture.engine, new IrisPosition(0, 78, 0), new RNG(1L)));
-            assertEquals(3, fixture.entry.spawn(fixture.engine, new IrisPosition(0, 77, 0), new RNG(1L)));
+            assertEquals(0, fixture.entry.spawn(fixture.engine, new IrisPosition(0, 78, 0), new RNG(1L), new IrisEntitySpawn.SpawnContext(new IrisSpawner(), null, false)));
+            assertEquals(3, fixture.entry.spawn(fixture.engine, new IrisPosition(0, 77, 0), new RNG(1L), new IrisEntitySpawn.SpawnContext(new IrisSpawner(), null, false)));
         }
     }
 
@@ -399,6 +401,96 @@ public class IrisEntitySpawnTest {
         }
     }
 
+    @Test
+    public void failedFirstSiblingDoesNotChangeLaterPositionsOrCustomizationSeeds() {
+        try (SpawnFixture fixture = new SpawnFixture(new SpawnOptions(IrisSurface.LAND, Material.WATER, 78, 78))) {
+            assertEquals(3, fixture.spawn(IrisSpawnGroup.NORMAL));
+            List<Location> expectedPositions = new ArrayList<>(fixture.positions.subList(1, 3));
+            List<Long> expectedSeeds = new ArrayList<>(fixture.customizationSeeds.subList(1, 3));
+            Location rejected = fixture.positions.getFirst();
+            Block obstruction = mock(Block.class);
+            when(obstruction.getType()).thenReturn(Material.STONE);
+            when(obstruction.isSolid()).thenReturn(true);
+            when(fixture.world.getBlockAt(rejected.getBlockX(), rejected.getBlockY(), rejected.getBlockZ()))
+                    .thenReturn(obstruction);
+            fixture.positions.clear();
+            fixture.customizationSeeds.clear();
+            assertEquals(2, fixture.spawn(IrisSpawnGroup.NORMAL));
+            assertEquals(expectedPositions, fixture.positions);
+            assertEquals(expectedSeeds, fixture.customizationSeeds);
+        }
+    }
+
+    @Test
+    public void initialCavePopulationDoesNotDependOnMarkerStorageOrder() {
+        try (SpawnFixture fixture = new SpawnFixture(new SpawnOptions(IrisSurface.LAND, Material.WATER, 78, 78));
+             MockedStatic<J> scheduler = mockStatic(J.class)) {
+            scheduler.when(J::isFolia).thenReturn(false);
+            EngineMantle mantle = mock(EngineMantle.class);
+            when(fixture.engine.getMantle()).thenReturn(mantle);
+            IrisPosition first = new IrisPosition(7, 79, 9);
+            IrisPosition second = new IrisPosition(3, 79, 5);
+            when(mantle.findMarkers(0, 0, MarkerMatter.CAVE_FLOOR))
+                    .thenReturn(new KList<>(first, second), new KList<>(second, first));
+            fixture.platform.when(() -> BukkitPlatform.toLocation(any(IrisPosition.class), eq(fixture.world)))
+                    .thenAnswer(invocation -> {
+                        IrisPosition position = invocation.getArgument(0);
+                        return new Location(fixture.world, position.getX(), position.getY(), position.getZ());
+                    });
+            IrisEntitySpawn.SpawnContext context = new IrisEntitySpawn.SpawnContext(
+                    new IrisSpawner().setGroup(IrisSpawnGroup.CAVE), null, true);
+            assertEquals(3, fixture.entry.spawn(fixture.engine, fixture.chunk, new RNG(1337L), 3, context));
+            List<Location> expected = new ArrayList<>(fixture.positions);
+            List<Long> expectedSeeds = new ArrayList<>(fixture.customizationSeeds);
+            fixture.positions.clear();
+            fixture.customizationSeeds.clear();
+            assertEquals(3, fixture.entry.spawn(fixture.engine, fixture.chunk, new RNG(1337L), 3, context));
+            assertEquals(expected, fixture.positions);
+            assertEquals(expectedSeeds, fixture.customizationSeeds);
+            verify(mantle, times(2)).findMarkers(0, 0, MarkerMatter.CAVE_FLOOR);
+        }
+    }
+
+    @Test
+    public void initialPopulationIgnoresLiveLightButRecurringPopulationHonorsIt() {
+        try (SpawnFixture fixture = new SpawnFixture(new SpawnOptions(IrisSurface.LAND, Material.WATER, 78, 78))) {
+            fixture.lightLevel = 15;
+            IrisSpawner spawner = new IrisSpawner().setAllowedLightLevels(new IrisRange(0, 0));
+            assertEquals(0, fixture.entry.spawn(fixture.engine, fixture.chunk, new RNG(1337L), 3,
+                    new IrisEntitySpawn.SpawnContext(spawner, null, false)));
+            assertEquals(3, fixture.entry.spawn(fixture.engine, fixture.chunk, new RNG(1337L), 3,
+                    new IrisEntitySpawn.SpawnContext(spawner, null, true)));
+        }
+    }
+
+    @Test
+    public void markerExhaustionUsesOnlyTheProvidedSeed() {
+        IrisMarker marker = new IrisMarker().setExhaustionChance(0.5D);
+        for (long seed = 0; seed < 32; seed++) {
+            assertEquals(marker.shouldExhaust(new RNG(seed)), marker.shouldExhaust(new RNG(seed)));
+        }
+        assertTrue(marker.setExhaustionChance(1D).shouldExhaust(new RNG(1337L)));
+        assertFalse(marker.setExhaustionChance(-1D).shouldExhaust(new RNG(1337L)));
+    }
+
+    @Test
+    public void directEntitySeedDoesNotDependOnWorldObjectIdentity() {
+        Engine engine = mock(Engine.class);
+        SeedManager seeds = mock(SeedManager.class);
+        when(engine.getSeedManager()).thenReturn(seeds);
+        when(seeds.getEntity()).thenReturn(1337L);
+        IrisEntity entity = spy(new IrisEntity());
+        List<Long> captured = new ArrayList<>();
+        doAnswer(invocation -> {
+            RNG rng = invocation.getArgument(2);
+            captured.add(rng.getSeed());
+            return null;
+        }).when(entity).spawn(eq(engine), any(Location.class), any(RNG.class));
+        entity.spawn(engine, new Location(mock(World.class), -31.5, -63.5, 48.5));
+        entity.spawn(engine, new Location(mock(World.class), -31.5, -63.5, 48.5));
+        assertEquals(List.of(8373759002518926811L, 8373759002518926811L), captured);
+    }
+
     private record SpawnOptions(IrisSurface surface, Material fluid, int floor, int top) {
     }
 
@@ -408,6 +500,8 @@ public class IrisEntitySpawnTest {
         private final Chunk chunk = mock(Chunk.class);
         private final IrisEntitySpawn entry = spy(new IrisEntitySpawn());
         private final List<Location> positions = new ArrayList<>();
+        private final List<Long> customizationSeeds = new ArrayList<>();
+        private int lightLevel;
         private final MockedStatic<BukkitPlatform> platform = mockStatic(BukkitPlatform.class);
         private Material airMaterial = Material.AIR;
         private int remainingCapacity = Integer.MAX_VALUE;
@@ -430,6 +524,7 @@ public class IrisEntitySpawnTest {
                 Block block = mock(Block.class);
                 when(block.getType()).thenReturn(y <= floor ? Material.STONE : y <= top ? fluid : airMaterial);
                 when(block.isSolid()).thenReturn(y <= floor);
+                when(block.getLightLevel()).thenReturn((byte) lightLevel);
                 return block;
             });
             when(world.getBlockAt(any(Location.class))).thenAnswer(invocation -> {
@@ -439,6 +534,8 @@ public class IrisEntitySpawnTest {
             when(definition.spawn(eq(engine), any(Location.class), any(RNG.class))).thenAnswer(invocation -> {
                 Location location = invocation.getArgument(1);
                 positions.add(location.clone());
+                RNG customization = invocation.getArgument(2);
+                customizationSeeds.add(customization.getSeed());
                 Entity spawned = mock(Entity.class);
                 when(spawned.getLocation()).thenReturn(location.clone());
                 when(spawned.getType()).thenReturn(EntityType.TADPOLE);
@@ -451,8 +548,8 @@ public class IrisEntitySpawnTest {
         }
 
         private int spawn(IrisSpawnGroup group) {
-            entry.setReferenceSpawner(new IrisSpawner().setGroup(group));
-            return entry.spawn(engine, chunk, new RNG(1337L), remainingCapacity);
+            return entry.spawn(engine, chunk, new RNG(1337L), remainingCapacity,
+                    new IrisEntitySpawn.SpawnContext(new IrisSpawner().setGroup(group), null, false));
         }
 
         @Override

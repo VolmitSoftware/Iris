@@ -67,6 +67,7 @@ final class MarkerSpawnScanner {
         J.a(manager.managedTask("bukkit_world_manager_marker_scan", () -> {
             try {
                 if (initialOnly && manager.getMantle().hasFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER)) {
+                    manager.chunkMaintenance.recordInitialSpawnCompletion(chunkX, chunkZ);
                     markerScanQueue.remove(key);
                     return;
                 }
@@ -91,7 +92,7 @@ final class MarkerSpawnScanner {
                                         continue;
                                     }
                                     prepared.add(new PreparedMarkerSpawn(new IrisPosition(position.getX(),
-                                            position.getY() + minimumY, position.getZ()), data.spawners, data.environment));
+                                            position.getY() + minimumY, position.getZ()), data.spawners, data.environment, data.marker));
                                 }
                                 consumer.accept(List.copyOf(prepared));
                             } finally {
@@ -137,7 +138,7 @@ final class MarkerSpawnScanner {
             }
 
             IrisPosition position = new IrisPosition((chunkX << 4) + x, y, (chunkZ << 4) + z);
-            MarkerSpawnData data = markerData.computeIfAbsent(position, k -> new MarkerSpawnData(environment));
+            MarkerSpawnData data = markerData.computeIfAbsent(position, k -> new MarkerSpawnData(environment, mark));
             data.requiresEmptyAbove = data.requiresEmptyAbove || mark.isEmptyAbove();
 
             for (String i : mark.getSpawners()) {
@@ -149,7 +150,6 @@ final class MarkerSpawnScanner {
                 if (spawner.isCompatExcluded()) {
                     continue;
                 }
-                spawner.setReferenceMarker(mark);
                 data.spawners.add(spawner);
             }
         });
@@ -184,16 +184,18 @@ final class MarkerSpawnScanner {
         }));
     }
 
-    record PreparedMarkerSpawn(IrisPosition position, KSet<IrisSpawner> spawners, BiomeEnvironment environment) {
+    record PreparedMarkerSpawn(IrisPosition position, KSet<IrisSpawner> spawners, BiomeEnvironment environment, IrisMarker marker) {
     }
 
     private static final class MarkerSpawnData {
         private final KSet<IrisSpawner> spawners = new KSet<>();
         private final BiomeEnvironment environment;
+        private final IrisMarker marker;
         private boolean requiresEmptyAbove;
 
-        private MarkerSpawnData(BiomeEnvironment environment) {
+        private MarkerSpawnData(BiomeEnvironment environment, IrisMarker marker) {
             this.environment = environment;
+            this.marker = marker;
         }
     }
 }

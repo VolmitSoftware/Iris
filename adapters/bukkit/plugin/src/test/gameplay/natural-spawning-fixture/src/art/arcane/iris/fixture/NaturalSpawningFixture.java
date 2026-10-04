@@ -6,6 +6,11 @@ import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.IrisCreator;
 import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.iris.world.entity.IrisMarker;
+import art.arcane.iris.world.entity.EntitySpawnSeed;
+import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.iris.pack.value.IrisPosition;
+import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
@@ -28,6 +33,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -38,9 +44,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
@@ -83,7 +93,7 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] arguments) {
         if (arguments.length != 1) {
-            notifySender(sender, "Use /irisspawnqa setup|frogs|zombies|stress|check|surface|cave");
+            notifySender(sender, "Use /irisspawnqa setup|frogs|zombies|stress|check|seeded|completion|surface|cave");
             return true;
         }
         try {
@@ -93,6 +103,8 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
                 case "zombies" -> runRegion(sender, () -> spawnZombies(sender));
                 case "stress" -> runRegion(sender, () -> stress(sender));
                 case "check" -> runRegion(sender, () -> check(sender));
+                case "seeded" -> seeded(sender);
+                case "completion" -> completion(sender);
                 case "surface" -> view(sender, 67D);
                 case "cave" -> view(sender, -46D);
                 default -> throw new IllegalArgumentException("Unknown spawning operation");
@@ -147,6 +159,9 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
     private void configureWorld(CommandSender sender, World world) {
         try {
             world.setDifficulty(Difficulty.NORMAL);
+            world.setTime(6000L);
+            world.setStorm(false);
+            world.setThundering(false);
             world.setGameRule(GameRules.SPAWN_MOBS, true);
             List<CompletableFuture<Void>> chunks = new ArrayList<>();
             for (int chunkX = -1; chunkX <= 1; chunkX++) {
@@ -176,6 +191,11 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
             Bukkit.getRegionScheduler().execute(this, world, chunkX, chunkZ, () -> {
                 try {
                     chunk.addPluginChunkTicket(this);
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity instanceof LivingEntity && !(entity instanceof Player)) {
+                            entity.remove();
+                        }
+                    }
                     retained.complete(null);
                 } catch (Throwable error) {
                     retained.completeExceptionally(error);
@@ -244,12 +264,218 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
         }
     }
 
+    private void completion(CommandSender sender) {
+        World world = requireWorld();
+        Bukkit.getGlobalRegionScheduler().execute(this, () -> {
+            world.setGameRule(GameRules.SPAWN_MOBS, false);
+            runRegion(sender, () -> beginCompletion(sender, world));
+        });
+    }
+
+    private void beginCompletion(CommandSender sender, World world) {
+        try {
+            Engine engine = IrisToolbelt.access(world).getEngine();
+            Object manager = engine.getWorldManager();
+            Field field = manager.getClass().getDeclaredField("chunkMaintenance");
+            field.setAccessible(true);
+            Object maintenance = field.get(manager);
+            Method run = maintenance.getClass().getDeclaredMethod("runInitialSpawn", World.class, int.class, int.class, Runnable.class);
+            run.setAccessible(true);
+            Field pending = maintenance.getClass().getDeclaredField("markerFlagQueue");
+            pending.setAccessible(true);
+            AtomicInteger callbacks = new AtomicInteger();
+            Runnable callback = () -> {
+                require(Bukkit.isOwnedByCurrentRegion(world, 0, 0), "Initial callback ran outside its owning region");
+                callbacks.incrementAndGet();
+                Chunk chunk = world.getChunkAt(0, 0);
+                invokeAmbient(runtimeSpawn(chunk, "seeded"), chunk, true);
+            };
+            run.invoke(maintenance, world, 0, 0, callback);
+            awaitSkippedInitial(sender, world, new CompletionRun(engine, maintenance, run, pending, callback, callbacks), 0);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Could not start initial completion test", failure);
+        }
+    }
+
+    private void awaitSkippedInitial(CommandSender sender, World world, CompletionRun state, int attempt) {
+        Bukkit.getRegionScheduler().runDelayed(this, world, 0, 0, task -> {
+            try {
+                require(state.callbacks().get() == 0, "Disabled mob spawning consumed the initial pass");
+                if (!((Set<?>) state.pending().get(state.maintenance())).isEmpty()) {
+                    require(attempt < 100, "Skipped initial pass did not release its pending state");
+                    awaitSkippedInitial(sender, world, state, attempt + 1);
+                    return;
+                }
+                Bukkit.getGlobalRegionScheduler().execute(this, () -> {
+                    world.setGameRule(GameRules.SPAWN_MOBS, true);
+                    runRegion(sender, () -> retryInitialCompletion(sender, world, state));
+                });
+            } catch (Throwable failure) {
+                fail(sender, failure);
+            }
+        }, 2L);
+    }
+
+    private void retryInitialCompletion(CommandSender sender, World world, CompletionRun state) {
+        try {
+            state.run().invoke(state.maintenance(), world, 0, 0, state.callback());
+            state.run().invoke(state.maintenance(), world, 0, 0, state.callback());
+            awaitInitialCompletion(sender, world, state, 0);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Could not retry initial spawning", failure);
+        }
+    }
+
+    private void awaitInitialCompletion(CommandSender sender, World world, CompletionRun state, int attempt) {
+        Bukkit.getRegionScheduler().runDelayed(this, world, 0, 0, task -> {
+            try {
+                if (state.callbacks().get() == 0 || !((Set<?>) state.pending().get(state.maintenance())).isEmpty()) {
+                    require(attempt < 100, "Initial spawning did not complete after retry");
+                    awaitInitialCompletion(sender, world, state, attempt + 1);
+                    return;
+                }
+                require(state.callbacks().get() == 1, "Concurrent initial requests spawned duplicate populations");
+                state.run().invoke(state.maintenance(), world, 0, 0, state.callback());
+                Bukkit.getAsyncScheduler().runNow(this, ignored -> {
+                    try {
+                        require(state.engine().getMantle().getMantle().hasFlag(0, 0, MantleFlag.INITIAL_SPAWNED_MARKER), "Initial completion was not persisted");
+                        require(state.callbacks().get() == 1, "Completed initial pass ran again");
+                        evidence(sender, "SPAWN_QA_COMPLETION retry=true callbacks=1 persisted=true owned=true");
+                    } catch (Throwable failure) {
+                        fail(sender, failure);
+                    }
+                });
+            } catch (Throwable failure) {
+                fail(sender, failure);
+            }
+        }, 2L);
+    }
+
+    private void seeded(CommandSender sender) {
+        requireWorld();
+        List<List<String>> baseline = new ArrayList<>();
+        sampleInitial(0, false).thenCompose(first -> {
+            baseline.add(first);
+            return sampleInitial(1, false);
+        }).thenCompose(second -> {
+            baseline.add(second);
+            return sampleInitial(1, false);
+        }).thenCompose(repeated -> {
+            require(baseline.get(1).equals(repeated), "Second chunk changed after reversed generation order");
+            return sampleInitial(0, false);
+        }).thenCompose(repeated -> {
+            require(baseline.get(0).equals(repeated), "First chunk changed after reversed generation order");
+            return sampleInitial(0, true);
+        }).thenCompose(marker -> {
+            baseline.add(marker);
+            return sampleInitial(1, true);
+        }).thenCompose(marker -> {
+            baseline.add(marker);
+            return sampleInitial(1, true);
+        }).thenCompose(repeated -> {
+            require(baseline.get(3).equals(repeated), "Second marker changed after reversed generation order");
+            return sampleInitial(0, true);
+        }).whenComplete((repeated, failure) -> {
+            if (failure != null) {
+                fail(sender, failure);
+                return;
+            }
+            try {
+                require(baseline.get(2).equals(repeated), "First marker changed after reversed generation order");
+                evidence(sender, "SPAWN_QA_SEEDED chunks=2 markers=2 repeats=2 equipment=true attributes=true");
+            } catch (Throwable error) {
+                fail(sender, error);
+            }
+        });
+    }
+
+    private CompletableFuture<List<String>> sampleInitial(int chunkX, boolean marker) {
+        CompletableFuture<List<String>> result = new CompletableFuture<>();
+        World world = requireWorld();
+        Bukkit.getRegionScheduler().execute(this, world, chunkX, 0, () -> {
+            try {
+                Chunk chunk = world.getChunkAt(chunkX, 0);
+                for (Entity entity : chunk.getEntities()) {
+                    if (entity instanceof LivingEntity && !(entity instanceof Player)) {
+                        entity.remove();
+                    }
+                }
+                for (int x = 0; x < 16; x++) {
+                    for (int z = 0; z < 16; z++) {
+                        chunk.getBlock(x, 64, z).setType(Material.GRASS_BLOCK, false);
+                        for (int y = 65; y <= 68; y++) {
+                            chunk.getBlock(x, y, z).setType(Material.AIR, false);
+                        }
+                    }
+                }
+                RuntimeSpawn spawn = runtimeSpawn(chunk, "seeded");
+                IrisSpawner definition = spawn.environment().data().getSpawnerLoader().load("qa/seeded");
+                require(!definition.canSpawn(spawn.engine(), chunkX, 0), "Ongoing weather/time gate unexpectedly allowed spawning");
+                for (int i = 0; i < 100 + chunkX; i++) {
+                    RNG.r.nextLong();
+                }
+                ambientInvocation.set(true);
+                try {
+                    for (int i = 0; i < 5; i++) {
+                        LivingEntity witness = (LivingEntity) world.spawnEntity(new Location(world, (chunkX << 4) + 8.5, 65, 8.5), EntityType.ZOMBIE);
+                        witness.setCustomName("Population witness");
+                        witness.setAI(false);
+                        witness.setGravity(false);
+                    }
+                } finally {
+                    ambientInvocation.remove();
+                }
+                if (marker) {
+                    invokeInitialMarker(spawn, definition, new IrisPosition((chunkX << 4) + 5, 64, 5));
+                } else {
+                    invokeAmbient(spawn, chunk, true);
+                }
+                List<String> snapshot = new ArrayList<>();
+                for (Entity entity : chunk.getEntities()) {
+                    String name = entity.getCustomName();
+                    if (!(entity instanceof LivingEntity living) || name == null || !name.startsWith("Seeded ")) {
+                        continue;
+                    }
+                    ItemStack hand = living.getEquipment().getItemInMainHand();
+                    ItemStack helmet = living.getEquipment().getHelmet();
+                    require(hand.hasItemMeta() && hand.getItemMeta().hasAttributeModifiers(), "Spawned gear has no authored attributes");
+                    require(helmet != null && helmet.getType() == Material.IRON_HELMET, "Spawned helmet was not authored equipment");
+                    Location at = entity.getLocation();
+                    snapshot.add(entity.getType() + ":" + at.getX() + ":" + at.getY() + ":" + at.getZ()
+                            + ":" + HexFormat.of().formatHex(hand.serializeAsBytes())
+                            + ":" + HexFormat.of().formatHex(helmet.serializeAsBytes()));
+                }
+                require(snapshot.size() >= 2 && snapshot.size() <= 4, "Initial population was blocked by runtime gates or cap: " + snapshot.size());
+                Collections.sort(snapshot);
+                result.complete(List.copyOf(snapshot));
+            } catch (Throwable failure) {
+                result.completeExceptionally(failure);
+            }
+        });
+        return result;
+    }
+
+    private void invokeInitialMarker(RuntimeSpawn spawn, IrisSpawner definition, IrisPosition position) {
+        ambientInvocation.set(true);
+        try (BiomeEnvironment.Scope ignored = spawn.engine().openBiomeEnvironmentScope(spawn.environment())) {
+            Method method = spawn.spawner().getClass().getDeclaredMethod("spawnMarker", IrisPosition.class, IrisSpawner.class, IrisMarker.class, RNG.class, boolean.class);
+            method.setAccessible(true);
+            method.invoke(spawn.spawner(), position, definition, null, EntitySpawnSeed.marker(spawn.engine().getSeedManager().getEntity(), position.getX(), position.getY(), position.getZ()), true);
+        } catch (InvocationTargetException failure) {
+            throw new IllegalStateException("Initial marker spawning failed", failure.getCause());
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Could not invoke initial marker spawning", failure);
+        } finally {
+            ambientInvocation.remove();
+        }
+    }
+
     private void spawnFrogs(CommandSender sender) {
         Chunk chunk = requireWorld().getChunkAt(0, 0);
         RuntimeSpawn spawn = runtimeSpawn(chunk, "frogs");
         getLogger().info(spawnDiagnostics(spawn, chunk));
         for (int attempt = 0; attempt < 12; attempt++) {
-            invokeAmbient(spawn, chunk);
+            invokeAmbient(spawn, chunk, false);
             require(count(chunk, EntityType.FROG) <= FROG_CAPACITY, "Frog batch exceeded its category capacity");
         }
         require(count(chunk, EntityType.FROG) == FROG_CAPACITY,
@@ -266,7 +492,7 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
         require(count(chunk, EntityType.ZOMBIE) == 0, "Cave phase already ran");
         RuntimeSpawn spawn = runtimeSpawn(chunk, "cave-zombies");
         getLogger().info(spawnDiagnostics(spawn, chunk));
-        invokeAmbient(spawn, chunk);
+        invokeAmbient(spawn, chunk, false);
         firstZombieBatch = count(chunk, EntityType.ZOMBIE);
         require(firstZombieBatch == ZOMBIE_CAPACITY,
                 "Authored seven-zombie batch was not clamped to capacity two: " + spawnDiagnostics(spawn, chunk));
@@ -280,7 +506,7 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
         Chunk chunk = requireWorld().getChunkAt(0, 0);
         RuntimeSpawn spawn = runtimeSpawn(chunk, "cave-zombies");
         for (int attempt = 0; attempt < 50; attempt++) {
-            invokeAmbient(spawn, chunk);
+            invokeAmbient(spawn, chunk, false);
             require(count(chunk, EntityType.ZOMBIE) == ZOMBIE_CAPACITY, "Saturated zombie category exceeded capacity");
         }
         evidence(sender, "SPAWN_QA_STRESS attempts=50 zombies=" + count(chunk, EntityType.ZOMBIE));
@@ -371,10 +597,10 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
         return diagnostics.toString();
     }
 
-    private void invokeAmbient(RuntimeSpawn spawn, Chunk chunk) {
+    private void invokeAmbient(RuntimeSpawn spawn, Chunk chunk, boolean initial) {
         ambientInvocation.set(true);
         try (BiomeEnvironment.Scope ignored = spawn.engine().openBiomeEnvironmentScope(spawn.environment())) {
-            spawn.method().invoke(spawn.spawner(), chunk, false, spawn.environment());
+            spawn.method().invoke(spawn.spawner(), chunk, initial, spawn.environment());
         } catch (InvocationTargetException failure) {
             throw new IllegalStateException("Iris ambient spawning failed", failure.getCause());
         } catch (ReflectiveOperationException failure) {
@@ -465,6 +691,9 @@ public final class NaturalSpawningFixture extends JavaPlugin implements Listener
         if (!condition) {
             throw new IllegalStateException(message);
         }
+    }
+
+    private record CompletionRun(Engine engine, Object maintenance, Method run, Field pending, Runnable callback, AtomicInteger callbacks) {
     }
 
     private record RuntimeSpawn(Engine engine, Object spawner, Method method, BiomeEnvironment environment) {

@@ -20,7 +20,6 @@ import org.mockito.MockedStatic;
 import java.lang.reflect.Proxy;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -35,18 +34,7 @@ public class LinkedTerrainChunkTest {
     @BeforeClass
     public static void initializeBiomes() throws Exception {
         BukkitTestServer.install();
-        AtomicReference<Object> registered = new AtomicReference<>();
-        RegistryAccess access = mock(RegistryAccess.class, invocation -> {
-            if (invocation.getMethod().getName().equals("getRegistry")) {
-                if (registered.get() == null) {
-                    registered.set(Proxy.newProxyInstance(Registry.class.getClassLoader(), new Class<?>[]{Registry.class},
-                            (proxy, method, arguments) -> method.getName().equals("getOrThrow")
-                                    ? biome((Key) arguments[0]) : null));
-                }
-                return registered.get();
-            }
-            return RETURNS_DEFAULTS.answer(invocation);
-        });
+        RegistryAccess access = BukkitTestServer.registryAccess();
         InternalAPIBridge bridge = mock(InternalAPIBridge.class, invocation ->
                 invocation.getMethod().getName().equals("constructLegacyCustomBiome")
                         ? biome(Key.key("minecraft:custom")) : RETURNS_DEFAULTS.answer(invocation));

@@ -4,20 +4,15 @@ import art.arcane.iris.testsupport.BukkitTestServer;
 import io.papermc.paper.InternalAPIBridge;
 import io.papermc.paper.registry.RegistryAccess;
 import org.bukkit.Chunk;
-import org.bukkit.GameRule;
 import org.bukkit.GameRules;
-import org.bukkit.Registry;
 import org.bukkit.World;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
-import java.lang.reflect.Proxy;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEFAULTS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -26,19 +21,7 @@ public class WorldEntitySpawnerAdmissionTest {
     @BeforeClass
     public static void initializeGameRules() throws Exception {
         BukkitTestServer.install();
-        AtomicReference<Object> registered = new AtomicReference<>();
-        RegistryAccess access = mock(RegistryAccess.class, invocation -> {
-            if (invocation.getMethod().getName().equals("getRegistry")) {
-                if (registered.get() == null) {
-                    registered.set(Proxy.newProxyInstance(Registry.class.getClassLoader(),
-                            new Class<?>[]{Registry.class},
-                            (proxy, method, arguments) -> method.getName().equals("getOrThrow")
-                                    ? mock(GameRule.class) : null));
-                }
-                return registered.get();
-            }
-            return RETURNS_DEFAULTS.answer(invocation);
-        });
+        RegistryAccess access = BukkitTestServer.registryAccess();
         InternalAPIBridge bridge = mock(InternalAPIBridge.class);
         try (MockedStatic<RegistryAccess> registries = mockStatic(RegistryAccess.class);
              MockedStatic<InternalAPIBridge> internals = mockStatic(InternalAPIBridge.class)) {

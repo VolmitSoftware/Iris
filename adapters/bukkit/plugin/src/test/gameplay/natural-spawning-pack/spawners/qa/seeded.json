@@ -1,0 +1,33 @@
+{
+  "group": "NORMAL",
+  "maxEntitiesPerChunk": 4,
+  "allowedLightLevels": {
+    "min": 0,
+    "max": 0
+  },
+  "weather": "DOWNFALL",
+  "timeBlock": {
+    "startHour": 20,
+    "endHour": 3
+  },
+  "maximumRate": {
+    "amount": 1,
+    "per": {
+      "days": 1
+    }
+  },
+  "initialSpawns": [
+    {
+      "entity": "qa/seeded-zombie",
+      "rarity": 1,
+      "minSpawns": 2,
+      "maxSpawns": 4
+    },
+    {
+      "entity": "qa/seeded-husk",
+      "rarity": 2,
+      "minSpawns": 2,
+      "maxSpawns": 4
+    }
+  ]
+}

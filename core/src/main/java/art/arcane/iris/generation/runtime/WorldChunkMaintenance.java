@@ -20,6 +20,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.cache.Cache;
+import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter.SavedChunkMantle;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
@@ -35,6 +36,7 @@ import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.Chunk;
+import org.bukkit.GameRules;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -44,6 +46,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
@@ -59,10 +62,12 @@ final class WorldChunkMaintenance {
     private static final int MAX_FORCED_CHUNK_UPDATES = 128;
     private static final int MAX_PENDING_MATERIALIZATIONS = 128;
     private static final int MAX_COMPLETED_MATERIALIZATIONS = 8192;
+    private static final int MAX_COMPLETED_INITIAL_SPAWNS = 8192;
 
     private final IrisWorldManager manager;
     private final Set<Long> mantleWarmupQueue = ConcurrentHashMap.newKeySet();
     private final Set<Long> markerFlagQueue = ConcurrentHashMap.newKeySet();
+    private final Set<Long> completedInitialSpawns = Collections.synchronizedSet(new LinkedHashSet<>());
     private final Set<Long> discoveredFlagQueue = ConcurrentHashMap.newKeySet();
     private final Set<Long> chunkUpdateQueue = ConcurrentHashMap.newKeySet();
     private final Map<Long, RoutedMaterialization> materializations = new ConcurrentHashMap<>();
@@ -85,6 +90,7 @@ final class WorldChunkMaintenance {
             }
         }
         completedMaterializations.clear();
+        completedInitialSpawns.clear();
     }
 
     void invalidateMaterialization(int chunkX, int chunkZ) {
@@ -375,46 +381,107 @@ final class WorldChunkMaintenance {
         }
     }
 
-    void raiseInitialSpawnMarkerFlag(World world, int chunkX, int chunkZ, Runnable onFirstRaise) {
-        if (world == null || onFirstRaise == null) {
+    boolean isInitialSpawnComplete(int chunkX, int chunkZ) {
+        return completedInitialSpawns.contains(Cache.key(chunkX, chunkZ));
+    }
+
+    void recordInitialSpawnCompletion(int chunkX, int chunkZ) {
+        rememberInitialSpawn(Cache.key(chunkX, chunkZ));
+    }
+
+    void runInitialSpawn(World world, int chunkX, int chunkZ, Runnable initialSpawn) {
+        if (world == null || initialSpawn == null || closed) {
             return;
         }
-
-        if (!J.isFolia()) {
-            manager.getMantle().raiseFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, onFirstRaise);
-            return;
-        }
-
         long key = Cache.key(chunkX, chunkZ);
-        if (!markerFlagQueue.add(key)) {
+        if (completedInitialSpawns.contains(key) || !markerFlagQueue.add(key)) {
             return;
         }
+        J.a(manager.managedTask("bukkit_world_manager_initial_spawn_prepare",
+                () -> prepareInitialSpawnFlag(world, chunkX, chunkZ, key, initialSpawn),
+                () -> markerFlagQueue.remove(key)));
+    }
 
-        J.a(manager.managedTask("bukkit_world_manager_spawn_marker_flag", () -> {
-            boolean raised = false;
-            try {
-                Mantle<Matter> mantle = manager.getMantle();
-                if (!mantle.hasFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER)) {
-                    mantle.flag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, true);
-                    raised = true;
-                }
-            } catch (Throwable e) {
-                IrisLogging.reportError(e);
-            } finally {
+    private void prepareInitialSpawnFlag(World world, int chunkX, int chunkZ, long key, Runnable initialSpawn) {
+        try {
+            if (manager.getMantle().hasFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER)) {
+                rememberInitialSpawn(key);
                 markerFlagQueue.remove(key);
-            }
-
-            if (!raised) {
                 return;
             }
+            boolean accepted = J.runRegion(world, chunkX, chunkZ,
+                    manager.managedTask("bukkit_world_manager_initial_spawn_apply",
+                            () -> applyInitialSpawn(world, chunkX, chunkZ, key, initialSpawn),
+                            () -> markerFlagQueue.remove(key)));
+            if (!accepted) {
+                markerFlagQueue.remove(key);
+            }
+        } catch (Throwable failure) {
+            markerFlagQueue.remove(key);
+            IrisLogging.reportError("Failed to prepare initial Iris entities in chunk " + chunkX + "," + chunkZ + ".", failure);
+        }
+    }
 
-            J.runRegion(world, chunkX, chunkZ, manager.managedTask("bukkit_world_manager_spawn_marker_callback", () -> {
-                if (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
-                    return;
-                }
-                onFirstRaise.run();
-            }));
-        }, () -> markerFlagQueue.remove(key)));
+    private void applyInitialSpawn(World world, int chunkX, int chunkZ, long key, Runnable initialSpawn) {
+        GenerationSessionLease completionLease = null;
+        try {
+            if (closed || !world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)
+                    || !Boolean.TRUE.equals(world.getGameRuleValue(GameRules.SPAWN_MOBS))) {
+                markerFlagQueue.remove(key);
+                return;
+            }
+            Optional<GenerationSessionLease> admitted = initialCompletionLease();
+            if (admitted.isEmpty()) {
+                markerFlagQueue.remove(key);
+                return;
+            }
+            completionLease = admitted.get();
+            initialSpawn.run();
+            rememberInitialSpawn(key);
+            completionLease.detachThread();
+            GenerationSessionLease transferred = completionLease;
+            J.a(() -> persistInitialSpawnFlag(chunkX, chunkZ, key, transferred));
+            completionLease = null;
+        } catch (Throwable failure) {
+            markerFlagQueue.remove(key);
+            IrisLogging.reportError("Failed to apply initial Iris entities in chunk " + chunkX + "," + chunkZ + ".", failure);
+        } finally {
+            if (completionLease != null) {
+                completionLease.close();
+            }
+        }
+    }
+
+    private Optional<GenerationSessionLease> initialCompletionLease() throws GenerationSessionException {
+        Engine engine = manager.getEngine();
+        GenerationSessionManager sessions = engine.getGenerationSessions();
+        if (sessions == null) {
+            return Optional.of(GenerationSessionLease.noop());
+        }
+        IrisContext context = IrisContext.get();
+        if (context != null && context.getEngine() == engine && context.getGenerationSessionId() != 0L) {
+            return Optional.of(sessions.continueSession("bukkit_world_manager_initial_spawn_complete", context.getGenerationSessionId()));
+        }
+        return sessions.tryAcquireForEngine(engine, "bukkit_world_manager_initial_spawn_complete");
+    }
+
+    private void persistInitialSpawnFlag(int chunkX, int chunkZ, long key, GenerationSessionLease lease) {
+        try (lease; IrisContext.Scope ignored = IrisContext.open(manager.getEngine(), lease.sessionId(), null)) {
+            manager.getMantle().flag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, true);
+        } catch (Throwable failure) {
+            IrisLogging.reportError("Failed to save initial Iris entity completion in chunk " + chunkX + "," + chunkZ + ".", failure);
+        } finally {
+            markerFlagQueue.remove(key);
+        }
+    }
+
+    private void rememberInitialSpawn(long key) {
+        synchronized (completedInitialSpawns) {
+            completedInitialSpawns.add(key);
+            if (completedInitialSpawns.size() > MAX_COMPLETED_INITIAL_SPAWNS) {
+                completedInitialSpawns.remove(completedInitialSpawns.iterator().next());
+            }
+        }
     }
 
     void warmupMantleChunkAsync(int chunkX, int chunkZ) {

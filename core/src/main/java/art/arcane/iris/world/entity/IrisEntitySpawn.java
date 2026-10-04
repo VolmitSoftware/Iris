@@ -54,6 +54,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
+import java.util.Objects;
+import java.util.Comparator;
+
 @Snippet("entity-spawn")
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -63,7 +66,6 @@ import org.bukkit.entity.Entity;
 public class IrisEntitySpawn implements Rarity {
     private static final int CAVE_COLUMN_ATTEMPTS = 8;
     private static final int CAVE_VERTICAL_ATTEMPTS = 128;
-    private final transient AtomicCache<RNG> rng = new AtomicCache<>();
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
     @RegistryListResource(IrisEntity.class)
     @Required
@@ -78,10 +80,8 @@ public class IrisEntitySpawn implements Rarity {
     @MinNumber(1)
     @Description("The max of this entity to spawn")
     private int maxSpawns = 1;
-    private transient IrisSpawner referenceSpawner;
-    private transient IrisMarker referenceMarker;
 
-    public int spawn(Engine gen, Chunk c, RNG rng, int remainingCapacity) {
+    public int spawn(Engine gen, Chunk chunk, RNG rng, int remainingCapacity, SpawnContext context) {
         if (remainingCapacity <= 0) {
             return 0;
         }
@@ -89,42 +89,39 @@ public class IrisEntitySpawn implements Rarity {
         if (definition == null) {
             return 0;
         }
-        int spawns = Math.min(remainingCapacity, LootResolver.inclusive(rng, minSpawns, maxSpawns));
-        int s = 0;
-
-        if (spawns > 0) {
-            for (int id = 0; id < spawns; id++) {
-                IrisSpawnGroup group = getReferenceSpawner().getGroup();
-                Location l;
-                if (group == IrisSpawnGroup.CAVE) {
-                    l = findCaveSpawnLocation(gen, c, rng, definition.getSurface());
-                } else {
-                    int x = (c.getX() << 4) + rng.i(16);
-                    int z = (c.getZ() << 4) + rng.i(16);
-                    World world = c.getWorld();
-                    int h = world.getHighestBlockYAt(x, z, HeightMap.OCEAN_FLOOR);
-                    int hf = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
-                    Integer y = selectSurfaceSpawnY(group, definition.getSurface(), h, hf, rng);
-                    l = y == null ? null : new Location(world, x, y, z);
-                }
-
-                if (l != null) {
-                    if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
-                        if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                            if (spawn100(gen, l) != null) {
-                                s++;
-                            }
-                        }
-                    } else {
-                        if (spawn100(gen, l) != null) {
-                            s++;
-                        }
-                    }
-                }
+        long batchSeed = rng.getSeed();
+        int count = Math.min(remainingCapacity, LootResolver.inclusive(rng, minSpawns, maxSpawns));
+        IrisSpawnGroup group = context.spawner().getGroup();
+        KList<IrisPosition> caveMarkers = null;
+        if (context.initial() && group == IrisSpawnGroup.CAVE && !J.isFolia()) {
+            caveMarkers = gen.getMantle().findMarkers(chunk.getX(), chunk.getZ(), MarkerMatter.CAVE_FLOOR);
+            caveMarkers.sort(Comparator.comparingInt(IrisPosition::getX)
+                    .thenComparingInt(IrisPosition::getY).thenComparingInt(IrisPosition::getZ));
+        }
+        int spawned = 0;
+        for (int ordinal = 0; ordinal < count; ordinal++) {
+            RNG attemptRng = EntitySpawnSeed.entity(batchSeed, ordinal);
+            RNG positionRng = attemptRng.nextParallelRNG(0x632BE59BD9B4E019L);
+            Location location;
+            if (group == IrisSpawnGroup.CAVE) {
+                location = caveMarkers == null
+                        ? findCaveSpawnLocation(gen, chunk, positionRng, definition.getSurface())
+                        : selectCaveSpawnLocation(caveMarkers, chunk.getWorld(), positionRng);
+            } else {
+                int x = (chunk.getX() << 4) + positionRng.i(16);
+                int z = (chunk.getZ() << 4) + positionRng.i(16);
+                World world = chunk.getWorld();
+                int floor = world.getHighestBlockYAt(x, z, HeightMap.OCEAN_FLOOR);
+                int top = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
+                Integer y = selectSurfaceSpawnY(group, definition.getSurface(), floor, top, positionRng);
+                location = y == null ? null : new Location(world, x, y, z);
+            }
+            if (location != null && lightAllowed(location, context)
+                    && spawn100(gen, location, attemptRng, false) != null) {
+                spawned++;
             }
         }
-
-        return s;
+        return spawned;
     }
 
     public static Integer selectSurfaceSpawnY(IrisSpawnGroup group, IrisSurface surface,
@@ -138,43 +135,41 @@ public class IrisEntitySpawn implements Rarity {
         return top > floor ? LootResolver.inclusive(rng, floor + 1, top) : null;
     }
 
-    public int spawn(Engine gen, IrisPosition c, RNG rng) {
-        int spawns = LootResolver.inclusive(rng, minSpawns, maxSpawns);
-        int s = 0;
-
-        if (!BukkitWorldBinding.tryBind(gen.getWorld())) {
+    public int spawn(Engine gen, IrisPosition position, RNG rng, SpawnContext context) {
+        long batchSeed = rng.getSeed();
+        int count = LootResolver.inclusive(rng, minSpawns, maxSpawns);
+        if (count <= 0 || !BukkitWorldBinding.tryBind(gen.getWorld())) {
             return 0;
         }
-
         World world = BukkitWorldBinding.world(gen.getWorld());
-        if (spawns > 0) {
-
-            if (referenceMarker != null && referenceMarker.shouldExhaust()) {
-                if (J.isFolia()) {
-                    J.a(() -> gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class));
-                } else {
-                    gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class);
-                }
-            }
-
-            for (int id = 0; id < spawns; id++) {
-                Location l = BukkitPlatform.toLocation(c, world).add(0, 1, 0);
-
-                if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
-                    if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                        if (spawn100(gen, l, true) != null) {
-                            s++;
-                        }
-                    }
-                } else {
-                    if (spawn100(gen, l, true) != null) {
-                        s++;
-                    }
-                }
+        if (context.marker() != null && context.marker().shouldExhaust(EntitySpawnSeed.entity(batchSeed, -1))) {
+            if (J.isFolia()) {
+                J.a(() -> gen.getMantle().getMantle().remove(position.getX(),
+                        position.getY() - gen.getWorld().minHeight(), position.getZ(), MatterMarker.class));
+            } else {
+                gen.getMantle().getMantle().remove(position.getX(),
+                        position.getY() - gen.getWorld().minHeight(), position.getZ(), MatterMarker.class);
             }
         }
+        int spawned = 0;
+        for (int ordinal = 0; ordinal < count; ordinal++) {
+            Location location = BukkitPlatform.toLocation(position, world).add(0, 1, 0);
+            if (lightAllowed(location, context)
+                    && spawn100(gen, location, EntitySpawnSeed.entity(batchSeed, ordinal), true) != null) {
+                spawned++;
+            }
+        }
+        return spawned;
+    }
 
-        return s;
+    private static boolean lightAllowed(Location location, SpawnContext context) {
+        if (context.initial()) {
+            return true;
+        }
+        IrisSpawner spawner = context.spawner();
+        return spawner.getAllowedLightLevels().getMin() <= 0
+                && spawner.getAllowedLightLevels().getMax() >= 15
+                || spawner.getAllowedLightLevels().contains(location.getBlock().getLightLevel());
     }
 
     public IrisEntity getRealEntity(Engine g) {
@@ -191,16 +186,13 @@ public class IrisEntitySpawn implements Rarity {
         return entity == null || entity.isCompatExcluded() ? null : entity;
     }
 
-    public Entity spawn(Engine g, Location at) {
-        if (getRealEntity(g) == null) {
+    public Entity spawn(Engine engine, Location at) {
+        if (getRealEntity(engine) == null) {
             return null;
         }
-
-        if (LootResolver.oneIn(rng.aquire(() -> new RNG(g.getSeedManager().getEntity())), getRarity())) {
-            return spawn100(g, at);
-        }
-
-        return null;
+        RNG rng = EntitySpawnSeed.marker(engine.getSeedManager().getEntity(),
+                at.getBlockX(), at.getBlockY(), at.getBlockZ());
+        return LootResolver.oneIn(rng, getRarity()) ? spawn100(engine, at, rng, false) : null;
     }
 
     static Location findCaveSpawnLocation(Engine engine, Chunk chunk, RNG rng, IrisSurface surface) {
@@ -249,11 +241,7 @@ public class IrisEntitySpawn implements Rarity {
         return marker == null ? null : BukkitPlatform.toLocation(marker, world);
     }
 
-    private Entity spawn100(Engine g, Location at) {
-        return spawn100(g, at, false);
-    }
-
-    private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
+    private Entity spawn100(Engine g, Location at, RNG rng, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
             if (irisEntity == null) { // No entity
@@ -278,7 +266,7 @@ public class IrisEntitySpawn implements Rarity {
                 }
             }
 
-            Entity e = irisEntity.spawn(g, at.clone().add(0.5, surface.isFluid() ? 0.5 : 0, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
+            Entity e = irisEntity.spawn(g, at.clone().add(0.5, surface.isFluid() ? 0.5 : 0, 0.5), rng);
             if (e != null) {
                 IrisLogging.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
@@ -288,6 +276,12 @@ public class IrisEntitySpawn implements Rarity {
             IrisLogging.reportError(e);
             IrisLogging.error("      Failed to retrieve real entity @ " + at + " (entity: " + getEntity() + ")");
             return null;
+        }
+    }
+
+    public record SpawnContext(IrisSpawner spawner, IrisMarker marker, boolean initial) {
+        public SpawnContext {
+            Objects.requireNonNull(spawner, "spawner");
         }
     }
 

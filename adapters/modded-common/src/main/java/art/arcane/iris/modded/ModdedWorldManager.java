@@ -44,6 +44,8 @@ import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.world.entity.IrisSpawnGroup;
 import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.iris.world.entity.EntitySpawnSeed;
+import art.arcane.iris.world.entity.IrisEntitySpawn.SpawnContext;
 import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
@@ -61,6 +63,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Comparator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -235,6 +238,10 @@ public final class ModdedWorldManager implements EngineWorldManager {
     }
 
     boolean initialSpawnChunk(NativeWorld level, int chunkX, int chunkZ) {
+        if (!isEntitySpawningEnabledForCurrentWorld()
+                || !NativeSpawnQueries.ambientAllowed(level, chunkX, chunkZ, true)) {
+            return false;
+        }
         if (!ModdedEntitySpawner.chunksSafe(entityRuntime(level), chunkX, chunkZ)) {
             return false;
         }
@@ -249,52 +256,23 @@ public final class ModdedWorldManager implements EngineWorldManager {
         MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
         try {
             List<PreparedMarkerSpawn> markers = markerSystemEnabled()
-                    ? prepareMarkerSpawns(level, chunkX, chunkZ, chunk) : List.of();
+                    ? prepareMarkerSpawns(level, chunkX, chunkZ, chunk, true) : List.of();
             Optional<BiomeEnvironment> environment = ambientSystemEnabled()
                     ? resolveSurfaceEnvironment(chunkX, chunkZ) : Optional.empty();
-            chunk.raiseFlagUnchecked(INITIAL_SPAWN_COMPLETION_FLAG, () -> {
-                spawnPreparedMarkers(level, markers, true);
-                if (environment.isPresent()) {
-                    scheduleInitialFollowUp(level, chunkX, chunkZ, environment.get());
+            if (ambientSystemEnabled() && engine.getComplex() == null) {
+                return false;
+            }
+            spawnPreparedMarkers(level, markers, true);
+            if (environment.isPresent()) {
+                try (BiomeEnvironment.Scope ignored = engine.openBiomeEnvironmentScope(environment.get())) {
+                    spawnAmbient(level, chunkX, chunkZ, true, environment.get());
                 }
-            });
+            }
+            chunk.raiseFlagUnchecked(INITIAL_SPAWN_COMPLETION_FLAG, () -> {});
         } finally {
             chunk.release();
         }
         return true;
-    }
-
-    private void scheduleInitialFollowUp(NativeWorld level, int chunkX, int chunkZ, BiomeEnvironment environment) {
-        ModdedScheduler scheduler = ModdedEngineBootstrap.schedulerOrNull();
-        if (scheduler == null) {
-            IrisLogging.error("Iris could not schedule the initial entity-spawn follow-up because the modded scheduler is unavailable.");
-            return;
-        }
-        scheduler.laterGlobal(
-                () -> EngineLifecycleTasks.run(
-                        engine,
-                        "modded_world_manager_initial_spawn_followup",
-                        () -> runInitialFollowUp(level, chunkX, chunkZ, environment)),
-                RNG.r.i(5, 200));
-    }
-
-    private void runInitialFollowUp(NativeWorld level, int chunkX, int chunkZ, BiomeEnvironment environment) {
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
-        if (closed || engine.isClosed() || mantle.isClosed() || !isEntitySpawningEnabledForCurrentWorld()) {
-            return;
-        }
-        if (!level.isChunkLoaded(chunkX, chunkZ) || !mantle.isChunkLoaded(chunkX, chunkZ)) {
-            return;
-        }
-        if (engine.getComplex() == null) {
-            return;
-        }
-
-        if (ambientSystemEnabled()) {
-            try (BiomeEnvironment.Scope ignored = engine.openBiomeEnvironmentScope(environment)) {
-                spawnAmbient(level, chunkX, chunkZ, true, environment);
-            }
-        }
     }
 
     private void warmupMantleChunkAsync(long key, int chunkX, int chunkZ) {
@@ -380,11 +358,14 @@ public final class ModdedWorldManager implements EngineWorldManager {
         if (!mantle.isChunkLoaded(chunkX, chunkZ)) {
             return;
         }
+        if (!mantle.hasFlag(chunkX, chunkZ, INITIAL_SPAWN_COMPLETION_FLAG)) {
+            return;
+        }
 
         MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
         try {
             if (markerSystemEnabled()) {
-                spawnPreparedMarkers(level, prepareMarkerSpawns(level, chunkX, chunkZ, chunk), false);
+                spawnPreparedMarkers(level, prepareMarkerSpawns(level, chunkX, chunkZ, chunk, false), false);
             }
             if (ambientSystemEnabled()) {
                 spawnAmbient(level, chunkX, chunkZ, false);
@@ -394,7 +375,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
         }
     }
 
-    private List<PreparedMarkerSpawn> prepareMarkerSpawns(NativeWorld level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
+    private List<PreparedMarkerSpawn> prepareMarkerSpawns(NativeWorld level, int chunkX, int chunkZ, MantleChunk<Matter> chunk, boolean initial) {
         int minHeight = engine.getWorld().minHeight();
         KList<IrisPosition> obstructed = new KList<>();
         List<PreparedMarkerSpawn> prepared = new ArrayList<>();
@@ -429,29 +410,41 @@ public final class ModdedWorldManager implements EngineWorldManager {
             if (spawners.isEmpty()) {
                 return;
             }
-            IrisSpawner chosen = spawners.getRandom();
+            if (initial) {
+                spawners.sort(Comparator.comparing(IrisSpawner::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
+            }
+            RNG markerRng = initial ? EntitySpawnSeed.marker(engine.getSeedManager().getEntity(), worldX, worldY, worldZ)
+                    : new RNG(RNG.r.nextLong());
+            IrisSpawner chosen = spawners.getRandom(markerRng);
             if (chosen == null) {
                 return;
             }
-            prepared.add(new PreparedMarkerSpawn(new IrisPosition(worldX, worldY, worldZ), chosen, environment));
+            prepared.add(new PreparedMarkerSpawn(new IrisPosition(worldX, worldY, worldZ), chosen, resolved, markerRng, environment));
         });
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         for (IrisPosition position : obstructed) {
             mantle.remove(position.getX(), position.getY(), position.getZ(), MatterMarker.class);
+        }
+        if (initial) {
+            prepared.sort(Comparator.comparingInt((PreparedMarkerSpawn marker) -> marker.position().getX())
+                    .thenComparingInt(marker -> marker.position().getY())
+                    .thenComparingInt(marker -> marker.position().getZ()));
         }
         return List.copyOf(prepared);
     }
 
     private KList<IrisSpawner> resolveMarkerSpawners(IrisMarker marker, BiomeEnvironment environment) {
         KList<IrisSpawner> spawners = new KList<>();
+        Set<IrisSpawner> seen = new HashSet<>();
         for (String key : marker.getSpawners()) {
             IrisSpawner spawner = environment.data().getSpawnerLoader().load(key);
             if (spawner == null) {
                 IrisLogging.error("Cannot load spawner: " + key + " for marker on " + engine.getName());
                 continue;
             }
-            spawner.setReferenceMarker(marker);
-            spawners.add(spawner);
+            if (!spawner.isCompatExcluded() && seen.add(spawner)) {
+                spawners.add(spawner);
+            }
         }
         return spawners;
     }
@@ -459,32 +452,29 @@ public final class ModdedWorldManager implements EngineWorldManager {
     private void spawnPreparedMarkers(NativeWorld level, List<PreparedMarkerSpawn> markers, boolean initial) {
         for (PreparedMarkerSpawn marker : markers) {
             try (BiomeEnvironment.Scope ignored = engine.openBiomeEnvironmentScope(marker.environment())) {
-                spawnFromSpawner(level, marker.position(), marker.spawner(), initial);
+                spawnFromSpawner(level, marker.position(), marker.rng(), new SpawnContext(marker.spawner(), marker.marker(), initial));
             }
         }
     }
 
-    private void spawnFromSpawner(NativeWorld level, IrisPosition position, IrisSpawner spawner, boolean initial) {
-        KList<IrisEntitySpawn> spawns = initial ? spawner.getInitialSpawns() : spawner.getSpawns();
+    private void spawnFromSpawner(NativeWorld level, IrisPosition position, RNG rng, SpawnContext context) {
+        IrisSpawner spawner = context.spawner();
+        KList<IrisEntitySpawn> spawns = context.initial() ? spawner.getInitialSpawns() : spawner.getSpawns();
         if (spawns.isEmpty()) {
             return;
         }
-        for (IrisEntitySpawn entry : spawns) {
-            entry.setReferenceSpawner(spawner);
-            entry.setReferenceMarker(spawner.getReferenceMarker());
-        }
-        IrisEntitySpawn chosen = rarityPick(spawns);
+        IrisEntitySpawn chosen = rarityPick(spawns, rng);
         if (chosen == null) {
             return;
         }
 
         int chunkX = position.getX() >> 4;
         int chunkZ = position.getZ() >> 4;
-        if (!canSpawn(spawner, chunkX, chunkZ)) {
+        if (!canSpawn(spawner, chunkX, chunkZ, context.initial())) {
             return;
         }
-        int spawned = spawnEntryAt(level, chosen, spawner, position);
-        if (spawned > 0) {
+        int spawned = spawnEntryAt(level, chosen, position, rng, context);
+        if (spawned > 0 && !context.initial()) {
             spawner.spawn(engine, chunkX, chunkZ);
         }
     }
@@ -521,9 +511,11 @@ public final class ModdedWorldManager implements EngineWorldManager {
         }
 
         IrisBiome biome = environment.biome();
-        Map<String, Integer> chunkMobs = NativeSpawnQueries.livingEntityCategories(level, chunkX, chunkZ);
+        Map<String, Integer> chunkMobs = initial ? Map.of() : NativeSpawnQueries.livingEntityCategories(level, chunkX, chunkZ);
+        RNG rng = initial ? EntitySpawnSeed.chunk(engine.getSeedManager().getEntity(), chunkX, chunkZ)
+                : new RNG(RNG.r.nextLong());
 
-        KList<IrisEntitySpawn> pool = new KList<>();
+        KList<SpawnCandidate> pool = new KList<>();
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()), biome, chunkX, chunkZ, chunkMobs, initial);
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.region().getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(biome.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
@@ -531,22 +523,22 @@ public final class ModdedWorldManager implements EngineWorldManager {
             return;
         }
 
-        IrisEntitySpawn chosen = rarityPick(pool);
-        if (chosen == null || chosen.getReferenceSpawner() == null) {
+        SpawnCandidate chosen = rarityPick(pool, rng);
+        if (chosen == null) {
             return;
         }
-        IrisSpawner spawner = chosen.getReferenceSpawner();
-        if (!canSpawn(spawner, chunkX, chunkZ)) {
+        IrisSpawner spawner = chosen.spawner();
+        if (!canSpawn(spawner, chunkX, chunkZ, initial)) {
             return;
         }
-        int spawned = spawnEntry(level, chosen, spawner, chunkX, chunkZ,
-                remainingCapacity(chosen, spawner, chunkMobs));
-        if (spawned > 0) {
+        int spawned = spawnEntry(level, chosen.entry(), chunkX, chunkZ,
+                remainingCapacity(chosen.entry(), spawner, chunkMobs), rng, new SpawnContext(spawner, null, initial));
+        if (spawned > 0 && !initial) {
             spawner.spawn(engine, chunkX, chunkZ);
         }
     }
 
-    private void collectSpawns(KList<IrisEntitySpawn> pool, KList<IrisSpawner> spawners, IrisBiome biomeFilter, int chunkX, int chunkZ, Map<String, Integer> chunkMobs, boolean initial) {
+    private void collectSpawns(KList<SpawnCandidate> pool, KList<IrisSpawner> spawners, IrisBiome biomeFilter, int chunkX, int chunkZ, Map<String, Integer> chunkMobs, boolean initial) {
         for (IrisSpawner spawner : spawners) {
             if (spawner == null) {
                 continue;
@@ -554,15 +546,13 @@ public final class ModdedWorldManager implements EngineWorldManager {
             if (biomeFilter != null && !spawner.isValid(biomeFilter)) {
                 continue;
             }
-            if (!canSpawn(spawner, chunkX, chunkZ)) {
+            if (!canSpawn(spawner, chunkX, chunkZ, initial)) {
                 continue;
             }
             KList<IrisEntitySpawn> spawns = initial ? spawner.getInitialSpawns() : spawner.getSpawns();
             for (IrisEntitySpawn entry : spawns) {
-                entry.setReferenceSpawner(spawner);
-                entry.setReferenceMarker(spawner.getReferenceMarker());
                 if (remainingCapacity(entry, spawner, chunkMobs) > 0) {
-                    pool.add(entry);
+                    pool.add(new SpawnCandidate(entry, spawner));
                 }
             }
         }
@@ -573,7 +563,8 @@ public final class ModdedWorldManager implements EngineWorldManager {
         return spawner.remainingCapacity(entity, counts);
     }
 
-    private int spawnEntry(NativeWorld level, IrisEntitySpawn entry, IrisSpawner spawner, int chunkX, int chunkZ, int remainingCapacity) {
+    private int spawnEntry(NativeWorld level, IrisEntitySpawn entry, int chunkX, int chunkZ,
+                           int remainingCapacity, RNG rng, SpawnContext context) {
         IrisEntity irisEntity = entry.getRealEntity(engine);
         if (irisEntity == null) {
             return 0;
@@ -581,18 +572,24 @@ public final class ModdedWorldManager implements EngineWorldManager {
 
         int min = entry.getMinSpawns();
         int max = entry.getMaxSpawns();
-        int count = Math.min(Math.max(0, remainingCapacity), LootResolver.inclusive(RNG.r, min, max));
+        int count = Math.min(Math.max(0, remainingCapacity), LootResolver.inclusive(rng, min, max));
         if (count <= 0) {
             return 0;
         }
 
-        RNG entityRng = entry.getRng().aquire(() -> new RNG(engine.getSeedManager().getEntity()));
+        IrisSpawner spawner = context.spawner();
         IrisSpawnGroup group = spawner.getGroup();
         KList<IrisPosition> caveFloors = group == IrisSpawnGroup.CAVE
                 ? engine.getMantle().findMarkers(chunkX, chunkZ, MarkerMatter.CAVE_FLOOR)
                 : new KList<>();
+        if (context.initial()) {
+            caveFloors.sort(Comparator.comparingInt(IrisPosition::getX)
+                    .thenComparingInt(IrisPosition::getY).thenComparingInt(IrisPosition::getZ));
+        }
         int spawned = 0;
         for (int i = 0; i < count; i++) {
+            RNG entityRng = EntitySpawnSeed.entity(rng.getSeed(), i);
+            RNG positionRng = entityRng.nextParallelRNG(0x632BE59BD9B4E019L);
             int worldX;
             int worldY;
             int worldZ;
@@ -600,16 +597,16 @@ public final class ModdedWorldManager implements EngineWorldManager {
                 if (caveFloors.isEmpty()) {
                     continue;
                 }
-                IrisPosition caveFloor = caveFloors.getRandom(RNG.r);
+                IrisPosition caveFloor = caveFloors.getRandom(positionRng);
                 worldX = caveFloor.getX();
                 worldY = caveFloor.getY();
                 worldZ = caveFloor.getZ();
             } else {
-                worldX = (chunkX << 4) + RNG.r.i(16);
-                worldZ = (chunkZ << 4) + RNG.r.i(16);
+                worldX = (chunkX << 4) + positionRng.i(16);
+                worldZ = (chunkZ << 4) + positionRng.i(16);
                 int surfaceY = NativeSpawnQueries.surfaceHeight(level, worldX, worldZ, false);
                 int solidY = NativeSpawnQueries.surfaceHeight(level, worldX, worldZ, true);
-                Integer selectedY = IrisEntitySpawn.selectSurfaceSpawnY(group, irisEntity.getSurface(), solidY, surfaceY, RNG.r);
+                Integer selectedY = IrisEntitySpawn.selectSurfaceSpawnY(group, irisEntity.getSurface(), solidY, surfaceY, positionRng);
                 if (selectedY == null) {
                     continue;
                 }
@@ -619,7 +616,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
                 continue;
             }
             // Rarity is applied exactly once, as pool weighting in rarityPick - never re-rolled per position (Bukkit parity).
-            if (!lightAllowed(spawner, level, worldX, worldY, worldZ)) {
+            if (!context.initial() && !lightAllowed(spawner, level, worldX, worldY, worldZ)) {
                 continue;
             }
             if (!surfaceMatches(irisEntity.getSurface(), level, worldX, worldY, worldZ)) {
@@ -635,7 +632,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
         return spawned;
     }
 
-    private int spawnEntryAt(NativeWorld level, IrisEntitySpawn entry, IrisSpawner spawner, IrisPosition position) {
+    private int spawnEntryAt(NativeWorld level, IrisEntitySpawn entry, IrisPosition position, RNG rng, SpawnContext context) {
         IrisEntity irisEntity = entry.getRealEntity(engine);
         if (irisEntity == null) {
             return 0;
@@ -643,21 +640,21 @@ public final class ModdedWorldManager implements EngineWorldManager {
 
         int min = entry.getMinSpawns();
         int max = entry.getMaxSpawns();
-        int count = LootResolver.inclusive(RNG.r, min, max);
+        int count = LootResolver.inclusive(rng, min, max);
         if (count <= 0) {
             return 0;
         }
 
-        exhaustMarker(spawner, position);
+        exhaustMarker(context.marker(), position, EntitySpawnSeed.entity(rng.getSeed(), -1));
 
-        RNG entityRng = entry.getRng().aquire(() -> new RNG(engine.getSeedManager().getEntity()));
         int worldX = position.getX();
         int worldY = position.getY() + 1;
         int worldZ = position.getZ();
         int spawned = 0;
         for (int i = 0; i < count; i++) {
+            RNG entityRng = EntitySpawnSeed.entity(rng.getSeed(), i);
             // Rarity is applied exactly once, as pool weighting in rarityPick - never re-rolled per position (Bukkit parity).
-            if (!lightAllowed(spawner, level, worldX, worldY, worldZ)) {
+            if (!context.initial() && !lightAllowed(context.spawner(), level, worldX, worldY, worldZ)) {
                 continue;
             }
             if (irisEntity.getSurface().isFluid()
@@ -672,16 +669,15 @@ public final class ModdedWorldManager implements EngineWorldManager {
         return spawned;
     }
 
-    private void exhaustMarker(IrisSpawner spawner, IrisPosition position) {
-        IrisMarker marker = spawner.getReferenceMarker();
-        if (marker == null || !marker.shouldExhaust()) {
+    private void exhaustMarker(IrisMarker marker, IrisPosition position, RNG rng) {
+        if (marker == null || !marker.shouldExhaust(rng)) {
             return;
         }
         engine.getMantle().getMantle().remove(position.getX(), position.getY() - engine.getWorld().minHeight(), position.getZ(), MatterMarker.class);
     }
 
-    private boolean canSpawn(IrisSpawner spawner, int chunkX, int chunkZ) {
-        return spawner.canSpawn(engine, chunkX, chunkZ);
+    private boolean canSpawn(IrisSpawner spawner, int chunkX, int chunkZ, boolean initial) {
+        return !spawner.isCompatExcluded() && (initial || spawner.canSpawn(engine, chunkX, chunkZ));
     }
 
     private boolean lightAllowed(IrisSpawner spawner, NativeWorld level, int worldX, int worldY, int worldZ) {
@@ -796,9 +792,9 @@ public final class ModdedWorldManager implements EngineWorldManager {
         return !studio || studioSetting;
     }
 
-    private IrisEntitySpawn rarityPick(KList<IrisEntitySpawn> entries) {
-        KList<IrisEntitySpawn> weighted = Rarity.expandWeighted(entries);
-        return weighted.isEmpty() ? entries.getRandom() : weighted.getRandom();
+    private static <T extends Rarity> T rarityPick(KList<T> entries, RNG rng) {
+        KList<T> weighted = Rarity.expandWeighted(entries);
+        return weighted.isEmpty() ? entries.getRandom(rng) : weighted.getRandom(rng);
     }
 
     private static long pack(int x, int z) {
@@ -893,7 +889,14 @@ public final class ModdedWorldManager implements EngineWorldManager {
         return failure;
     }
 
-    private record PreparedMarkerSpawn(IrisPosition position, IrisSpawner spawner, BiomeEnvironment environment) {
+    private record PreparedMarkerSpawn(IrisPosition position, IrisSpawner spawner, IrisMarker marker, RNG rng, BiomeEnvironment environment) {
+    }
+
+    private record SpawnCandidate(IrisEntitySpawn entry, IrisSpawner spawner) implements Rarity {
+        @Override
+        public int getRarity() {
+            return entry.getRarity();
+        }
     }
 
     private NativeEntityRuntime entityRuntime(NativeWorld level) {

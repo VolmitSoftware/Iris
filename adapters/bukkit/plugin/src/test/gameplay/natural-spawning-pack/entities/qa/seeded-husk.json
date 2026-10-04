@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:husk",
+  "reason": "NATURAL",
+  "surface": "LAND",
+  "ai": false,
+  "aware": false,
+  "gravity": false,
+  "customName": "Seeded husk",
+  "invulnerable": true,
+  "helmet": {
+    "type": "IRON_HELMET",
+    "minDurability": 0.1,
+    "maxDurability": 0.9
+  },
+  "mainHand": {
+    "type": "IRON_SWORD",
+    "minDurability": 0.1,
+    "maxDurability": 0.9,
+    "attributes": [
+      {
+        "name": "seeded_damage",
+        "attribute": "minecraft:attack_damage",
+        "minAmount": 1.25,
+        "maxAmount": 6.75,
+        "chance": 1
+      }
+    ]
+  }
+}

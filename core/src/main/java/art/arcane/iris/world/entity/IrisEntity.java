@@ -268,7 +268,8 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
     }
 
     public Entity spawn(Engine gen, Location at) {
-        return spawn(gen, at, new RNG(at.hashCode()));
+        return spawn(gen, at, EntitySpawnSeed.marker(gen.getSeedManager().getEntity(),
+                at.getBlockX(), at.getBlockY(), at.getBlockZ()));
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
@@ -531,17 +532,19 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
         return specialType != null && !specialType.equals("");
     }
 
-    private static final class BukkitOps {
+    static final class BukkitOps {
         private static void persistVillager(Villager villager) {
             villager.setPersistent(true);
         }
 
-        private static void bindLoot(IrisEntity entity, Engine gen, Lootable l, Location finalAt, RNG rng) {
+        static void bindLoot(IrisEntity entity, Engine gen, Lootable l, Location finalAt, RNG rng) {
             IrisData definitions = gen.getData();
+            long lootSeed = EntitySpawnSeed.entity(rng.getSeed(), -2).getSeed();
+            NamespacedKey lootKey = new NamespacedKey("iris", "loot-" + Long.toUnsignedString(lootSeed, 16));
             l.setLootTable(new LootTable() {
                 @Override
                 public NamespacedKey getKey() {
-                    return new NamespacedKey("iris", "loot-" + entity.hashCode());
+                    return lootKey;
                 }
 
                 @Override

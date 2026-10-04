@@ -7,6 +7,7 @@ import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
+import art.arcane.iris.world.entity.IrisEntitySpawn.SpawnContext;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.world.entity.IrisSpawner;
@@ -54,9 +55,9 @@ public class WorldEntitySpawnerBiomeTest {
             configured.when(IrisSettings::get).thenReturn(settings);
             WorldEntitySpawner spawner = new WorldEntitySpawner(manager);
             spawner.prepareInitialSpawn(chunk, List.of());
-            verify(maintenance, never()).raiseInitialSpawnMarkerFlag(any(), anyInt(), anyInt(), any());
+            verify(maintenance, never()).runInitialSpawn(any(), anyInt(), anyInt(), any());
             spawner.prepareInitialSpawn(chunk, List.of());
-            verify(maintenance).raiseInitialSpawnMarkerFlag(eq(world), eq(2), eq(-1), any());
+            verify(maintenance).runInitialSpawn(eq(world), eq(2), eq(-1), any());
         }
     }
 
@@ -76,11 +77,10 @@ public class WorldEntitySpawnerBiomeTest {
         when(definition.getInitialSpawns()).thenReturn(new KList<>(entity));
         when(definition.canSpawn(engine, 0, 0)).thenReturn(true);
         when(entity.getRarity()).thenReturn(1);
-        when(entity.getReferenceSpawner()).thenReturn(definition);
-        when(entity.spawn(eq(engine), eq(position), any(RNG.class))).thenReturn(1);
+        when(entity.spawn(eq(engine), eq(position), any(RNG.class), any(SpawnContext.class))).thenReturn(1);
         KSet<IrisSpawner> definitions = new KSet<>();
         definitions.add(definition);
-        PreparedMarkerSpawn marker = new PreparedMarkerSpawn(position, definitions, environment);
+        PreparedMarkerSpawn marker = new PreparedMarkerSpawn(position, definitions, environment, null);
         IrisSettings settings = new IrisSettings();
         settings.getWorld().setAmbientEntitySpawningSystem(false);
 
@@ -88,11 +88,11 @@ public class WorldEntitySpawnerBiomeTest {
             configured.when(IrisSettings::get).thenReturn(settings);
             new WorldEntitySpawner(manager).prepareInitialSpawn(chunk, List.of(marker));
             ArgumentCaptor<Runnable> callback = ArgumentCaptor.forClass(Runnable.class);
-            verify(manager.chunkMaintenance).raiseInitialSpawnMarkerFlag(eq(world), eq(0), eq(0), callback.capture());
+            verify(manager.chunkMaintenance).runInitialSpawn(eq(world), eq(0), eq(0), callback.capture());
             doThrow(new SavedBiomeUnavailableException("Evicted", true)).when(engine)
                     .getBiomeEnvironment(anyInt(), anyInt(), anyInt());
             callback.getValue().run();
-            verify(entity).spawn(eq(engine), eq(position), any(RNG.class));
+            verify(entity).spawn(eq(engine), eq(position), any(RNG.class), any(SpawnContext.class));
             verify(engine).openBiomeEnvironmentScope(environment);
             verify(scope).close();
             verify(engine, never()).getBiomeEnvironment(anyInt(), anyInt(), anyInt());
@@ -102,6 +102,7 @@ public class WorldEntitySpawnerBiomeTest {
     private static IrisWorldManager manager(Engine engine) throws Exception {
         IrisWorldManager manager = mock(IrisWorldManager.class);
         when(manager.getEngine()).thenReturn(engine);
+        when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
         Field field = IrisWorldManager.class.getDeclaredField("chunkMaintenance");
         field.setAccessible(true);
         field.set(manager, mock(WorldChunkMaintenance.class));

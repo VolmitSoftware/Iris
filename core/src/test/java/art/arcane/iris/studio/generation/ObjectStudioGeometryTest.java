@@ -1,6 +1,7 @@
 package art.arcane.iris.studio.generation;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.studio.object.ObjectStudioLayout;
 import art.arcane.iris.studio.object.ObjectStudioSaveService;
@@ -38,7 +39,6 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -59,19 +59,9 @@ public class ObjectStudioGeometryTest {
     public final TemporaryFolder temporary = new TemporaryFolder();
 
     @BeforeClass
-    @SuppressWarnings("unchecked")
     public static void initializeBukkit() throws Exception {
         PreObjectMatterTest.setUpBukkit();
-        AtomicReference<Registry<Biome>> registered = new AtomicReference<>();
-        RegistryAccess access = mock(RegistryAccess.class, invocation -> {
-            if (invocation.getMethod().getName().equals("getRegistry")) {
-                if (registered.get() == null) {
-                    registered.set(biomeRegistry());
-                }
-                return registered.get();
-            }
-            return RETURNS_DEFAULTS.answer(invocation);
-        });
+        RegistryAccess access = BukkitTestServer.registryAccess();
         InternalAPIBridge bridge = mock(InternalAPIBridge.class, invocation -> {
             if (invocation.getMethod().getName().equals("constructLegacyCustomBiome")) {
                 return biome(Key.key("minecraft:custom"));
@@ -89,20 +79,6 @@ public class ObjectStudioGeometryTest {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Registry<Biome> biomeRegistry() {
-        return (Registry<Biome>) Proxy.newProxyInstance(Registry.class.getClassLoader(),
-                new Class<?>[]{Registry.class},
-                (proxy, method, arguments) -> switch (method.getName()) {
-                    case "getOrThrow" -> biome((Key) arguments[0]);
-                    case "hashCode" -> System.identityHashCode(proxy);
-                    case "equals" -> proxy == arguments[0];
-                    case "toString" -> "iris-object-studio-biome-registry";
-                    case "size" -> 0;
-                    case "hasTag" -> false;
-                    default -> null;
-                });
-    }
 
     @Test
     public void jungleClutterSignedBoundsStayInsideTheEditableCellAboveTheFloor() throws Exception {

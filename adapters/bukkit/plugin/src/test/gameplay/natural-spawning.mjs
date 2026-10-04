@@ -8,7 +8,8 @@ export default {
       context.expect(response.includes(expected) && !response.includes('SPAWN_QA_FAILED'), response)
       return response
     }
-    const entities = name => Object.values(context.bot.entities).filter(entity => entity.name === name)
+    const entities = name => Object.values(context.bot.entities).filter(entity => entity.name === name
+      && entity.position.x >= 0 && entity.position.x < 16 && entity.position.z >= 0 && entity.position.z < 16)
     await context.step('prepare the synthetic Iris world and dark cave', async () => {
       await command('setup', 'SPAWN_QA_SETUP world=iris:spawn_qa seed=78264193', 180000)
       await wait(() => Math.abs(context.bot.entity.position.y - 67) < 1, 'Fixture world teleport')

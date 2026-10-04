@@ -5,11 +5,17 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeSpawnQueries;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -72,6 +78,15 @@ public class ModdedSavedBiomeConsumersTest {
         when(mantle.isChunkLoaded(2, -1)).thenReturn(true);
         when(mantle.useChunk(2, -1)).thenReturn(chunk);
         BiomeEnvironment environment = environment();
+        ResourceLoader<IrisSpawner> spawners = mock(ResourceLoader.class);
+        when(environment.data().getSpawnerLoader()).thenReturn(spawners);
+        when(spawners.loadAll(any(KList.class))).thenReturn(new KList<>());
+        when(environment.dimension().getEntitySpawners()).thenReturn(new KList<>());
+        when(environment.region().getEntitySpawners()).thenReturn(new KList<>());
+        when(environment.biome().getEntitySpawners()).thenReturn(new KList<>());
+        when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
+        when(engine.getComplex()).thenReturn(mock(IrisComplex.class));
+        when(engine.openBiomeEnvironmentScope(environment)).thenReturn(mock(BiomeEnvironment.Scope.class));
         when(engine.getSurfaceBiomeEnvironment(40, -8))
                 .thenThrow(new SavedBiomeUnavailableException("Loading", true))
                 .thenReturn(environment);
@@ -81,8 +96,10 @@ public class ModdedSavedBiomeConsumersTest {
         ModdedWorldManager manager = new ModdedWorldManager(engine);
 
         try (MockedStatic<IrisSettings> configured = mockStatic(IrisSettings.class);
-             MockedStatic<ModdedEntitySpawner> spawns = mockStatic(ModdedEntitySpawner.class)) {
+             MockedStatic<ModdedEntitySpawner> spawns = mockStatic(ModdedEntitySpawner.class);
+             MockedStatic<NativeSpawnQueries> queries = mockStatic(NativeSpawnQueries.class)) {
             configured.when(IrisSettings::get).thenReturn(settings);
+            queries.when(() -> NativeSpawnQueries.ambientAllowed(any(NativeWorld.class), eq(2), eq(-1), eq(true))).thenReturn(true);
             spawns.when(() -> ModdedEntitySpawner.chunksSafe(any(NativeEntityRuntime.class), eq(2), eq(-1))).thenReturn(true);
             assertThrows(SavedBiomeUnavailableException.class, () -> manager.initialSpawnChunk(new ModdedPlatformWorld(level), 2, -1));
             verify(chunk, never()).raiseFlagUnchecked(eq(ModdedWorldManager.INITIAL_SPAWN_COMPLETION_FLAG), any());

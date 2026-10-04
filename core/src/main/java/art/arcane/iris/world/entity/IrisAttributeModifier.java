@@ -40,7 +40,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Snippet("attribute-modifier")
@@ -134,12 +133,12 @@ public class IrisAttributeModifier {
         }
     }
 
-    private AttributeModifier createModifier(RNG rng) {
-        NamespacedKey key = NamespacedKey.minecraft(generateModifierKey());
+    AttributeModifier createModifier(RNG rng) {
+        NamespacedKey key = NamespacedKey.minecraft(generateModifierKey(rng));
         return new AttributeModifier(key, getAmount(rng), resolveOperation(), EquipmentSlotGroup.ANY);
     }
 
-    private String generateModifierKey() {
+    private String generateModifierKey(RNG rng) {
         String source = getName() == null ? "modifier" : getName();
         String normalized = source.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9/._-]", "_");
         if (normalized.isBlank()) {
@@ -148,7 +147,8 @@ public class IrisAttributeModifier {
         if (normalized.length() > 32) {
             normalized = normalized.substring(0, 32);
         }
-        String random = UUID.randomUUID().toString().replace("-", "");
+        String random = Long.toUnsignedString(rng.nextLong(), 16)
+                + "_" + Long.toUnsignedString(rng.nextLong(), 16);
         return normalized + "_" + random;
     }
 }

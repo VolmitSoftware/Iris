@@ -14,6 +14,7 @@ import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.world.entity.IrisSpawnGroup;
 import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.iris.world.entity.IrisEntitySpawn.SpawnContext;
 import art.arcane.iris.generation.decoration.IrisSurface;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.collection.KList;
@@ -196,7 +197,7 @@ public class ModdedWaterEntitySpawnTest {
         doReturn(entity).when(entry).getRealEntity(engine);
         IrisSpawner spawner = new IrisSpawner().setGroup(IrisSpawnGroup.CAVE);
         Method spawn = ModdedWorldManager.class.getDeclaredMethod("spawnEntry", NativeWorld.class,
-                IrisEntitySpawn.class, IrisSpawner.class, int.class, int.class, int.class);
+                IrisEntitySpawn.class, int.class, int.class, int.class, RNG.class, SpawnContext.class);
         spawn.setAccessible(true);
         ModdedWorldManager manager = new ModdedWorldManager(engine);
         try (MockedStatic<ModdedEntitySpawner> entities = mockStatic(ModdedEntitySpawner.class)) {
@@ -205,7 +206,7 @@ public class ModdedWaterEntitySpawnTest {
             entities.when(() -> ModdedEntitySpawner.spawn(eq(engine), eq(entity), any(NativeEntityRuntime.class),
                     eq(-25), eq(-49), eq(57), any(RNG.class))).thenReturn(mock(NativeSpawnedEntity.class));
 
-            assertEquals(1, spawn.invoke(manager, world, entry, spawner, -2, 3, 1));
+            assertEquals(1, spawn.invoke(manager, world, entry, -2, 3, 1, new RNG(1L), new SpawnContext(spawner, null, false)));
 
             entities.verify(() -> ModdedEntitySpawner.spawn(eq(engine), eq(entity), any(NativeEntityRuntime.class),
                     eq(-25), eq(-49), eq(57), any(RNG.class)));

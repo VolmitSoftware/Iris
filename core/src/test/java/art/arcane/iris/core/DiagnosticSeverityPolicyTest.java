@@ -193,6 +193,6 @@ public class DiagnosticSeverityPolicyTest {
     }
 
     private static Path defaultModuleSources() {
-        return Path.of(System.getProperty("iris.defaultModuleSources", "../modules/default/src/main/java"));
+        return Path.of(System.getProperty("iris.defaultModuleSources", "../../IrisModule/src/main/java"));
     }
 }

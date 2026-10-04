@@ -468,7 +468,7 @@ tasks.register('bukkitPurityRatchet') {
     description = 'Checks host and default module Bukkit imports against the existing purity ceiling.'
     File allowlistFile = project.file('purity-allowlist.txt')
     File sourceRoot = project.file('src/main/java')
-    File defaultModuleSourceRoot = rootProject.file('modules/default/src/main/java')
+    File defaultModuleSourceRoot = rootProject.file('../IrisModule/src/main/java')
     inputs.file(allowlistFile)
     inputs.dir(sourceRoot)
     inputs.dir(defaultModuleSourceRoot)

@@ -2,7 +2,7 @@ import org.gradle.api.tasks.bundling.Jar
 
 // The first extraction keeps the legacy host/feature dependency cycle intact. Compile both
 // source roots together until the built-ins have been ported to the public IrisApi contracts.
-File defaultModuleDirectory = rootProject.file('modules/default')
+File defaultModuleDirectory = rootProject.file('../IrisModule')
 File defaultModuleSources = new File(defaultModuleDirectory, 'src/main/java')
 File sourcePatternsFile = new File(defaultModuleDirectory, 'source-patterns.txt')
 List<String> featureSourcePatterns = sourcePatternsFile.readLines().findAll { !it.isBlank() }
@@ -20,7 +20,7 @@ def verifyDefaultModuleOwnership = tasks.register('verifyDefaultModuleOwnership'
             include(featureSourcePatterns)
         }.files
         if (!coreFeatureSources.isEmpty()) {
-            throw new GradleException("Built-in sources must live in modules/default: ${coreFeatureSources}")
+            throw new GradleException("Built-in sources must live in IrisModule: ${coreFeatureSources}")
         }
 
         Set<File> unexpectedSources = fileTree(defaultModuleSources) {

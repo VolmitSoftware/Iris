@@ -1,6 +1,8 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
@@ -87,7 +89,7 @@ public class SavedBiomeCaptureTest {
 
     @Test
     public void retainsFloatingChildIdentityWhenItSharesTheHostDerivative() throws Exception {
-        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        Engine engine = captureEngine();
         when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         GenerationHistory.GenerationStage stage = mock(GenerationHistory.GenerationStage.class);
         SavedBiomeRuntime historical = mock(SavedBiomeRuntime.class);
@@ -129,7 +131,7 @@ public class SavedBiomeCaptureTest {
 
     @Test
     public void recordsExactSurfaceColumnsAndIndependentCaveAndVerticalIdentities() throws Exception {
-        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        Engine engine = captureEngine();
         when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         GenerationHistory.GenerationStage stage = mock(GenerationHistory.GenerationStage.class);
         SavedBiomeRuntime historical = mock(SavedBiomeRuntime.class);
@@ -170,15 +172,15 @@ public class SavedBiomeCaptureTest {
 
     @Test
     public void preservesHostFeatureBiomeAndRegionAgainstStackAndFloatingOverlay() throws Exception {
-        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        Engine engine = captureEngine();
         when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         IrisBiome upper = biome("upper-biome");
         IrisBiome authored = biome("authored-biome");
         IrisRegion upperRegion = region("upper-region");
         IrisRegion hostRegion = region("host-region");
-        DimensionStackContext stack = mock(DimensionStackContext.class);
-        DimensionStackLayout layout = mock(DimensionStackLayout.class);
-        DimensionStackLayout.Layer layer = mock(DimensionStackLayout.Layer.class);
+        DimensionStackContext stack = mock(DimensionStackContext.class, withSettings().stubOnly());
+        DimensionStackLayout layout = mock(DimensionStackLayout.class, withSettings().stubOnly());
+        DimensionStackLayout.Layer layer = mock(DimensionStackLayout.Layer.class, withSettings().stubOnly());
         when(engine.getDimensionStackContext()).thenReturn(stack);
         when(stack.getLayout(anyInt(), anyInt())).thenReturn(layout);
         when(layout.layerAt(anyInt())).thenReturn(layer);
@@ -220,15 +222,14 @@ public class SavedBiomeCaptureTest {
         }
         int chunkX = Math.floorDiv(edgeX, 16);
         int chunkZ = Math.floorDiv(anchor.z(), 16);
-        Engine engine = mock(Engine.class, withSettings().defaultAnswer(RETURNS_DEEP_STUBS)
-                .mockMaker(MockMakers.SUBCLASS));
+        Engine engine = captureEngine();
         IrisBiome fallback = biome("base-biome");
         IrisBiome authored = biome("authored-biome");
         IrisRegion host = region("host-region");
         IrisRegion stacked = region("stacked-region");
-        DimensionStackContext stack = mock(DimensionStackContext.class);
-        DimensionStackLayout layout = mock(DimensionStackLayout.class);
-        DimensionStackLayout.Layer layer = mock(DimensionStackLayout.Layer.class);
+        DimensionStackContext stack = mock(DimensionStackContext.class, withSettings().stubOnly());
+        DimensionStackLayout layout = mock(DimensionStackLayout.class, withSettings().stubOnly());
+        DimensionStackLayout.Layer layer = mock(DimensionStackLayout.Layer.class, withSettings().stubOnly());
         when(engine.getDimensionStackContext()).thenReturn(stack);
         when(stack.getLayout(anyInt(), anyInt())).thenReturn(layout);
         when(layout.layerAt(anyInt())).thenReturn(layer);
@@ -272,8 +273,21 @@ public class SavedBiomeCaptureTest {
         assertTrue(outsideOccupiedVolume);
     }
 
+    @SuppressWarnings("unchecked")
+    private static Engine captureEngine() {
+        Engine engine = mock(Engine.class, withSettings().stubOnly().mockMaker(MockMakers.PROXY));
+        IrisComplex complex = mock(IrisComplex.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
+        ProceduralStream<IrisRegion> regions = mock(ProceduralStream.class, withSettings().stubOnly());
+        ProceduralStream<IrisBiome> caves = mock(ProceduralStream.class, withSettings().stubOnly());
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getSubterrainCell(anyInt(), anyInt(), anyInt())).thenReturn(SubterrainCell.OUTSIDE);
+        when(complex.getRegionStream()).thenReturn(regions);
+        when(complex.getCaveBiomeStream()).thenReturn(caves);
+        return engine;
+    }
+
     private static Engine caveCaptureEngine(IrisBiome surface, IrisBiome cave) {
-        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        Engine engine = captureEngine();
         when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         IrisRegion region = region("flat-region");
         when(engine.getMinHeight()).thenReturn(-64);

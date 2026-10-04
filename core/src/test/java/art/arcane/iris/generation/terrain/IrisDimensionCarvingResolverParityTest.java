@@ -18,6 +18,7 @@ import art.arcane.volmlib.util.collection.KList;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.MockMakers;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
@@ -47,6 +48,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -348,7 +350,7 @@ public class IrisDimensionCarvingResolverParityTest {
         Fixture replacement = createMixedDepthFixture();
         AtomicReference<IrisDimension> dimension = new AtomicReference<>(first.engine.getDimension());
         AtomicReference<IrisData> data = new AtomicReference<>(first.engine.getData());
-        Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
+        Engine engine = mock(Engine.class, withSettings().defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.PROXY));
         doAnswer((InvocationOnMock invocation) -> dimension.get()).when(engine).getDimension();
         doAnswer((InvocationOnMock invocation) -> data.get()).when(engine).getData();
 
@@ -601,7 +603,7 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(carvingEntries).when(dimension).getCarving();
         doReturn(index).when(dimension).getCarvingEntryIndex();
 
-        Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
+        Engine engine = mock(Engine.class, withSettings().defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.PROXY));
         doReturn(dimension).when(engine).getDimension();
         doReturn(data).when(engine).getData();
         doReturn(new SeedManager(913_531_771L)).when(engine).getSeedManager();
@@ -689,7 +691,7 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(carvingEntries).when(dimension).getCarving();
         doReturn(index).when(dimension).getCarvingEntryIndex();
 
-        Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
+        Engine engine = mock(Engine.class, withSettings().defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.PROXY));
         doReturn(dimension).when(engine).getDimension();
         doReturn(data).when(engine).getData();
         doReturn(new SeedManager(4_627_991_643L)).when(engine).getSeedManager();

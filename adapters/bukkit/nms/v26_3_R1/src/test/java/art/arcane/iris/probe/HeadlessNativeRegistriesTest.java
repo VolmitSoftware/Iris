@@ -7,12 +7,16 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 
 import static org.junit.Assert.assertTrue;
 
 public final class HeadlessNativeRegistriesTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     @Test
     public void nativeStructureBiomeTagsUseTheLoadedBiomeHolders() throws Exception {
         RegistryAccess registries = HeadlessNativeTestRegistries.get();

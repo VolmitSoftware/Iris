@@ -29,6 +29,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.bukkit.craftbukkit.generator.CustomChunkGenerator;
@@ -49,6 +50,9 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 public class HeadlessChunkGeneratorTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     @Rule
     public TemporaryFolder temporary = new TemporaryFolder();
 

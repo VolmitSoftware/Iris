@@ -121,7 +121,7 @@ public final class TransitionProbe {
             }
             require(historicalBiomes.equals(router.biomes().snapshot(0, 0).orElseThrow()),
                     "Historical biome data changed after generation");
-            for (Throwable failure : RealPackProbeSupport.settleAndDrain()) {
+            for (Throwable failure : RealPackProbeSupport.settleAndDrain(engine)) {
                 throw new IllegalStateException("Generation reported a failure", failure);
             }
             require(bindings.captures > 0, "Promotion did not capture historical terrain");

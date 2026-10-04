@@ -15,39 +15,43 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
+import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.util.List;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.util.Random;
 
 import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class EngineBiomeColumnTest {
     private static final int SAMPLES = 96;
+    private static MantleDataAdapter<Matter> chunkAdapter;
+    private static final EnginePlatformHooks PLATFORM_HOOKS = new EnginePlatformHooks() {};
 
     @BeforeClass
     public static void initializeMantleBlockState() throws Exception {
-        NativeBlockState air = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class, withSettings().stubOnly());
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState("AIR")).thenReturn(air);
             Class.forName(EngineMantle.class.getName());
+            chunkAdapter = IrisEngineMantle.createRuntimeDataAdapter(null);
         }
     }
 
@@ -79,20 +83,18 @@ public class EngineBiomeColumnTest {
         IrisBiome custom = biome("iris:custom_cave", 0);
         IrisBiome configured = biome("iris:configured_cave", 0);
 
-        ProceduralStream<IrisBiome> surfaceStream = mock(ProceduralStream.class);
-        when(surfaceStream.get(anyDouble(), anyDouble())).thenAnswer(call ->
-                surfaces[pick(salt, call.getArgument(0), call.getArgument(1), 1, surfaces.length)]);
-        ProceduralStream<IrisBiome> caveStream = mock(ProceduralStream.class);
-        when(caveStream.get(anyDouble(), anyDouble())).thenAnswer(call ->
-                caves[pick(salt, call.getArgument(0), call.getArgument(1), 2, caves.length)]);
-        ProceduralStream<IrisRegion> regionStream = mock(ProceduralStream.class);
-        when(regionStream.get(anyDouble(), anyDouble())).thenAnswer(call ->
-                regions[pick(salt, call.getArgument(0), call.getArgument(1), 3, regions.length)]);
-        ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
-        when(heightStream.get(anyDouble(), anyDouble())).thenAnswer(call ->
-                (double) (40 + pick(salt, call.getArgument(0), call.getArgument(1), 4, 300)));
+        Interpolated<IrisBiome> biomeInterpolation = Interpolated.of(biome -> 0D, value -> null);
+        Interpolated<IrisRegion> regionInterpolation = Interpolated.of(region -> 0D, value -> null);
+        ProceduralStream<IrisBiome> surfaceStream = ProceduralStream.of((x, z) ->
+                surfaces[pick(salt, x, z, 1, surfaces.length)], biomeInterpolation);
+        ProceduralStream<IrisBiome> caveStream = ProceduralStream.of((x, z) ->
+                caves[pick(salt, x, z, 2, caves.length)], biomeInterpolation);
+        ProceduralStream<IrisRegion> regionStream = ProceduralStream.of((x, z) ->
+                regions[pick(salt, x, z, 3, regions.length)], regionInterpolation);
+        ProceduralStream<Double> heightStream = ProceduralStream.of((x, z) ->
+                (double) (40 + pick(salt, x, z, 4, 300)), Interpolated.DOUBLE);
 
-        IrisComplex complex = mock(IrisComplex.class);
+        IrisComplex complex = mock(IrisComplex.class, withSettings().stubOnly());
         when(complex.getTrueBiomeStream()).thenReturn(surfaceStream);
         when(complex.getCaveBiomeStream()).thenReturn(caveStream);
         when(complex.getRegionStream()).thenReturn(regionStream);
@@ -100,27 +102,23 @@ public class EngineBiomeColumnTest {
         when(complex.isTerrain3DSurface(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
                 pick(salt, (int) call.getArgument(0) * 31 + (int) call.getArgument(1), (int) call.getArgument(2), 5, 9) == 0);
 
-        Mantle<Matter> mantle = mock(Mantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class, withSettings().stubOnly());
         when(mantle.getWorldHeight()).thenReturn(384);
         when(mantle.getLoadedRegions()).thenReturn(new KMap<>());
         when(mantle.hasTectonicPlate(anyInt(), anyInt())).thenReturn(true);
         when(mantle.get(anyInt(), anyInt(), anyInt(), eq(MatterCavern.class))).thenAnswer(call ->
                 cavern(salt, call.getArgument(0), call.getArgument(1), call.getArgument(2)));
-        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call -> {
-            int chunkX = call.getArgument(0);
-            int chunkZ = call.getArgument(1);
-            MantleChunk<Matter> chunk = mock(MantleChunk.class);
-            when(chunk.get(anyInt(), anyInt(), anyInt(), eq(MatterCavern.class))).thenAnswer(read -> cavern(salt,
-                    chunkX * 16 + (int) read.getArgument(0), read.getArgument(1), chunkZ * 16 + (int) read.getArgument(2)));
-            return chunk;
-        });
-        EngineMantle engineMantle = mock(EngineMantle.class);
-        when(engineMantle.getMantle()).thenReturn(mantle);
-        doAnswer(call -> 20 + pick(salt, (int) call.getArgument(0), (int) call.getArgument(1), 7, 330))
-                .when(engineMantle).getHighest(anyInt(), anyInt(), any(IrisData.class), anyBoolean());
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(call ->
+                new CoordinateChunk(salt, new Position2(call.getArgument(0), call.getArgument(1))).use());
+        EngineMantle engineMantle = (EngineMantle) Proxy.newProxyInstance(EngineMantle.class.getClassLoader(),
+                new Class<?>[]{EngineMantle.class}, (proxy, method, arguments) -> switch (method.getName()) {
+                    case "getMantle" -> mantle;
+                    case "getHighest" -> 20 + pick(salt, (int) arguments[0], (int) arguments[1], 7, 330);
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
 
-        IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisBiome> loader = mock(ResourceLoader.class);
+        IrisData data = mock(IrisData.class, withSettings().stubOnly());
+        ResourceLoader<IrisBiome> loader = mock(ResourceLoader.class, withSettings().stubOnly());
         when(data.getBiomeLoader()).thenReturn(loader);
         when(loader.load(anyString())).thenReturn(null);
         when(loader.load("iris:custom_cave")).thenReturn(custom);
@@ -136,15 +134,35 @@ public class EngineBiomeColumnTest {
             dimension.setCarving(new KList<>(List.of(root)));
         }
 
-        EnginePlatformHooks hooks = mock(EnginePlatformHooks.class);
-        Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
-        doReturn(complex).when(engine).getComplex();
-        doReturn(engineMantle).when(engine).getMantle();
-        doReturn(hooks).when(engine).getPlatformHooks();
-        doReturn(data).when(engine).getData();
-        doReturn(dimension).when(engine).getDimension();
-        doReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build()).when(engine).getWorld();
-        return engine;
+        IrisWorld world = IrisWorld.builder().minHeight(-64).maxHeight(320).build();
+        return (Engine) Proxy.newProxyInstance(Engine.class.getClassLoader(), new Class<?>[]{Engine.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "getComplex" -> complex;
+                    case "getMantle" -> engineMantle;
+                    case "getPlatformHooks" -> PLATFORM_HOOKS;
+                    case "getData" -> data;
+                    case "getDimension" -> dimension;
+                    case "getWorld" -> world;
+                    default -> InvocationHandler.invokeDefault(proxy, method, arguments);
+                });
+    }
+
+    private static final class CoordinateChunk extends MantleChunk<Matter> {
+        private final long salt;
+        private final Position2 coordinates;
+
+        private CoordinateChunk(long salt, Position2 coordinates) {
+            super(24, coordinates.getX(), coordinates.getZ(), chunkAdapter, null);
+            this.salt = salt;
+            this.coordinates = coordinates;
+        }
+
+        @Override
+        public <T> T get(int x, int y, int z, Class<T> type) {
+            return type == MatterCavern.class
+                    ? type.cast(cavern(salt, coordinates.getX() * 16 + x, y, coordinates.getZ() * 16 + z))
+                    : null;
+        }
     }
 
     private static MatterCavern cavern(long salt, int x, int y, int z) {

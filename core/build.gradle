@@ -170,12 +170,8 @@ dependencies {
     testImplementation(libs.multiverseCore)
 }
 
-int coreTestForks = Math.max(1, Integer.parseInt(providers.gradleProperty('testForks')
-    .getOrElse(String.valueOf(Math.max(1, (int) (Runtime.runtime.availableProcessors() / 2))))))
-
 tasks.named('test').configure {
     maxHeapSize = '1g'
-    maxParallelForks = coreTestForks
     jvmArgs('-XX:+ExitOnOutOfMemoryError')
 }
 

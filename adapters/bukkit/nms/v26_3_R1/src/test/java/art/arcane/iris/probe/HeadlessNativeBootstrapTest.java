@@ -9,6 +9,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.Map;
 import net.minecraft.world.level.block.Blocks;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.bukkit.Bukkit;
 
@@ -18,6 +19,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public final class HeadlessNativeBootstrapTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     @Test
     public void bindsNativeItemComponentsWithoutStartingServer() throws Exception {
         HeadlessNativeBootstrap.bindComponents(HeadlessNativeTestRegistries.get());

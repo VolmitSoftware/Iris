@@ -3,6 +3,8 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.testsupport.KeyedBlockState;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
 import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
@@ -17,6 +19,9 @@ import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.ChunkedDataCache;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -50,6 +55,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class IrisDepositModifierOrderingTest {
     @ClassRule
@@ -58,10 +64,10 @@ public class IrisDepositModifierOrderingTest {
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformRegistries registries = mock(PlatformRegistries.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class, withSettings().stubOnly());
         NativeBlockState stone = state("stone");
         when(registries.block(anyString())).thenReturn(stone);
-        IrisPlatform platform = mock(IrisPlatform.class);
+        IrisPlatform platform = mock(IrisPlatform.class, withSettings().stubOnly());
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);
     }
@@ -274,8 +280,8 @@ public class IrisDepositModifierOrderingTest {
         private final List<String> samples = Collections.synchronizedList(new ArrayList<>());
         private final CountDownLatch biomeReady = new CountDownLatch(1);
         private final CountDownLatch regionReady = new CountDownLatch(1);
-        private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
-        private final ChunkContext context = mock(ChunkContext.class, RETURNS_DEEP_STUBS);
+        private final Engine engine = mock(Engine.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
+        private final ChunkContext context = mock(ChunkContext.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
         private final NativeBlockState stone = state("stone");
         private final NativeBlockState granite = state("granite");
         private final NativeBlockState diorite = state("diorite");
@@ -289,15 +295,23 @@ public class IrisDepositModifierOrderingTest {
         private Fixture(boolean parallel, int attempts) {
             this.parallel = parallel;
             this.attempts = attempts;
+            IrisBiome biome = mock(IrisBiome.class, withSettings().stubOnly());
+            IrisRegion region = mock(IrisRegion.class, withSettings().stubOnly());
+            ChunkedDataCache<IrisBiome> biomes = new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> null)), 0, 0);
+            ChunkedDataCache<IrisRegion> regions = new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> null)), 0, 0);
+            when(context.getBiome()).thenReturn(biomes);
+            when(context.getRegion()).thenReturn(regions);
             when(engine.getHeight()).thenReturn(16);
             when(engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any())).thenReturn(null);
             when(engine.getDimension().getDepositVariants()).thenReturn(new KList<>());
-            when(context.getRegion().get(anyInt(), anyInt()).getDepositVariants()).thenReturn(new KList<>());
+            when(region.getDepositVariants()).thenReturn(new KList<>());
             when(context.getGenerationSessionId()).thenReturn(11L);
             chunk = mock(MantleChunk.class);
             Mantle<Matter> mantle = engine.getMantle().getMantle();
             doReturn(chunk).when(mantle).useChunk(0, 0);
-            MultiBurst pool = mock(MultiBurst.class);
+            MultiBurst pool = mock(MultiBurst.class, withSettings().stubOnly());
             BurstExecutor burst = new BurstExecutor(executor, 3);
             burst.setMulticore(parallel);
             when(engine.burst()).thenReturn(pool);
@@ -306,8 +320,8 @@ public class IrisDepositModifierOrderingTest {
             IrisDepositGenerator regionDeposit = generator("region", granite, diorite);
             IrisDepositGenerator biomeDeposit = generator("biome", diorite, diamond);
             when(engine.getDimension().getDeposits()).thenReturn(new KList<>(dimensionDeposit));
-            when(context.getRegion().get(7, 7).getDeposits()).thenReturn(new KList<>(regionDeposit));
-            when(context.getBiome().get(7, 7).getDeposits()).thenReturn(new KList<>(biomeDeposit));
+            when(region.getDeposits()).thenReturn(new KList<>(regionDeposit));
+            when(biome.getDeposits()).thenReturn(new KList<>(biomeDeposit));
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
                     output.set(x, 4, z, stone);
@@ -316,7 +330,7 @@ public class IrisDepositModifierOrderingTest {
         }
 
         private IrisDepositGenerator generator(String name, NativeBlockState requiredHost, NativeBlockState replacement) {
-            IrisDepositGenerator generator = mock(IrisDepositGenerator.class);
+            IrisDepositGenerator generator = mock(IrisDepositGenerator.class, withSettings().stubOnly());
             when(generator.getSpawnChance()).thenReturn(1D);
             when(generator.getPerClumpSpawnChance()).thenReturn(1D);
             when(generator.getMinPerChunk()).thenReturn(attempts);
@@ -355,7 +369,7 @@ public class IrisDepositModifierOrderingTest {
         }
 
         private void generate() {
-            try (MockedStatic<B> blocks = mockStatic(B.class, CALLS_REAL_METHODS)) {
+            try (MockedStatic<B> blocks = mockStatic(B.class, withSettings().stubOnly().defaultAnswer(CALLS_REAL_METHODS))) {
                 blocks.when(() -> B.toDeepSlateOre(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
                 new IrisDepositModifier(engine).generateDeposits(output, 0, 0, parallel, context);
             }

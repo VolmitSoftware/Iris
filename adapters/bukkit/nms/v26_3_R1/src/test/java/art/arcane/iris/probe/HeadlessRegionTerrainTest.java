@@ -17,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
 import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.spigotmc.SpigotWorldConfig;
@@ -36,6 +37,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public final class HeadlessRegionTerrainTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     @Rule
     public TemporaryFolder temporary = new TemporaryFolder();
 

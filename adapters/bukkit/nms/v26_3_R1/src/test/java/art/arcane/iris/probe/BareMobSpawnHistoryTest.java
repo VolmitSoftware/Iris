@@ -13,6 +13,7 @@ import com.google.gson.JsonParser;
 import org.bukkit.Bukkit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
@@ -26,6 +27,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 public final class BareMobSpawnHistoryTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     private static final String LEGACY_RENDERER_IDENTITY = "bukkit-v26_3_R1-generated-registry-json-v1";
     private static final String NATURAL_MOB_SPAWNS = "minecraft:gameplay/natural_mob_spawns";
     private static final GenerationRegistryContract.PhysicalResourceKey INSTALLED =

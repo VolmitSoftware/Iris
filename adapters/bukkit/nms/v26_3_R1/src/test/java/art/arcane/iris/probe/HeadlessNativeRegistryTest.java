@@ -4,6 +4,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeRegistryAccess;
 import net.minecraft.core.registries.Registries;
 import org.bukkit.Bukkit;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.Map;
@@ -17,6 +18,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
 public final class HeadlessNativeRegistryTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     @BeforeClass
     public static void bootstrap() {
         HeadlessNativeBootstrap.initialize();

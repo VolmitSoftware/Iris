@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class CaveTerrainSnapshotTest {
     private static final int SECTIONS = 5;
@@ -176,7 +177,7 @@ public class CaveTerrainSnapshotTest {
 
     @SuppressWarnings("unchecked")
     private static MantleChunk<Matter> chunk(Matter[] sections) {
-        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        MantleChunk<Matter> chunk = mock(MantleChunk.class, withSettings().stubOnly());
         when(chunk.sectionCount()).thenReturn(sections.length);
         when(chunk.exists(anyInt())).thenAnswer(call -> {
             int section = call.getArgument(0);

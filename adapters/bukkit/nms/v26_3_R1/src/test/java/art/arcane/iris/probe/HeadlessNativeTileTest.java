@@ -11,6 +11,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeTileReader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.data.registries.VanillaRegistries;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -23,6 +24,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 public final class HeadlessNativeTileTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     @BeforeClass
     public static void bootstrap() {
         HeadlessNativeBootstrap.initialize();

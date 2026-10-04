@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HexFormat;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -27,7 +28,7 @@ public class HydrologyPlanHashTest {
 
     @Test
     public void fullTilePlansAreByteIdentical() {
-        StringBuilder canonical = new StringBuilder();
+        MessageDigest canonical = sha256();
         int courses = 0;
         int columns = 0;
         for (long seed : new long[]{77L, 19L}) {
@@ -37,16 +38,16 @@ public class HydrologyPlanHashTest {
                 HydrologyTile tile = planner.plan(key);
                 courses += tile.courses().size();
                 columns += tile.footprint().columns().size();
-                canonical.append(render(tile));
+                render(tile, canonical);
             }
         }
         assertTrue("planned courses: " + courses, courses > 0);
         assertTrue("planned columns: " + columns, columns > 0);
-        assertEquals(EXPECTED_PLAN_DIGEST, digest(canonical.toString()));
+        assertEquals(EXPECTED_PLAN_DIGEST, HexFormat.of().formatHex(canonical.digest()));
     }
 
-    private static String render(HydrologyTile tile) {
-        StringBuilder out = new StringBuilder();
+    private static void render(HydrologyTile tile, MessageDigest digest) {
+        CanonicalDigest out = new CanonicalDigest(digest);
         out.append("tile ").append(tile.key()).append('\n');
         out.append("seed ").append(tile.worldSeed()).append('\n');
         out.append("fingerprint ").append(tile.settingsFingerprint()).append('\n');
@@ -78,23 +79,14 @@ public class HydrologyPlanHashTest {
         for (Map.Entry<Long, HydrologyColumnSample> column : columns) {
             out.append("column ").append(column.getKey()).append(' ').append(column.getValue()).append('\n');
         }
-        return out.toString();
     }
 
-    private static String digest(String value) {
-        MessageDigest sha256;
+    private static MessageDigest sha256() {
         try {
-            sha256 = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException(failure);
         }
-        byte[] hash = sha256.digest(value.getBytes(StandardCharsets.UTF_8));
-        StringBuilder hex = new StringBuilder(hash.length * 2);
-        for (byte b : hash) {
-            hex.append(Character.forDigit((b >> 4) & 0xF, 16));
-            hex.append(Character.forDigit(b & 0xF, 16));
-        }
-        return hex.toString();
     }
 
     private static HydrologyTerrainSampler rollingCoast(int coastX) {
@@ -229,5 +221,23 @@ public class HydrologyPlanHashTest {
                 HydrologyPlannerSettings.SeaCaves.disabled(),
                 HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
+    }
+
+    private static final class CanonicalDigest {
+        private final MessageDigest digest;
+
+        private CanonicalDigest(MessageDigest digest) {
+            this.digest = digest;
+        }
+
+        private CanonicalDigest append(Object value) {
+            digest.update(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
+            return this;
+        }
+
+        private CanonicalDigest append(char value) {
+            digest.update((byte) value);
+            return this;
+        }
     }
 }

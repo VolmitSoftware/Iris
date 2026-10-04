@@ -34,6 +34,7 @@ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.structures.IglooPieces;
 import net.minecraft.world.level.levelgen.structure.structures.SwampHutPiece;
 import net.minecraft.world.level.levelgen.structure.structures.SwampHutStructure;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -66,6 +67,11 @@ public class WorldgenTerrainHeightmapsTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         NativeBlockTags.bindHeightmapFixtures();
+    }
+
+    @AfterClass
+    public static void restoreBlockTags() {
+        NativeBlockTags.restoreTags();
     }
 
     @Test

@@ -1,9 +1,11 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.ProbeBackgroundTasks;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedComponent;
 import art.arcane.iris.generation.runtime.EngineEffects;
@@ -39,6 +41,7 @@ import java.util.EnumSet;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -46,6 +49,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Stream;
 
 final class RealPackProbeSupport {
@@ -79,6 +89,7 @@ final class RealPackProbeSupport {
             validatePack(pack, logPrefix);
             return new Workspace(workRoot, pack, dimensionKey, logPrefix, false, bindings);
         } catch (Throwable failure) {
+            clearRuntime();
             Throwable cleanupFailure = deleteWorkRoot(workRoot);
             if (cleanupFailure != null) {
                 failure.addSuppressed(cleanupFailure);
@@ -103,6 +114,7 @@ final class RealPackProbeSupport {
             configureRuntime(new File(workRoot, "platform-validation"), hydrologyGeneratedVerification, null);
             return new Workspace(workRoot, pack, dimensionKey, logPrefix, hydrologyGeneratedVerification, null);
         } catch (Throwable failure) {
+            clearRuntime();
             Throwable cleanupFailure = deleteWorkRoot(workRoot);
             if (cleanupFailure != null) {
                 failure.addSuppressed(cleanupFailure);
@@ -120,7 +132,12 @@ final class RealPackProbeSupport {
         }
     }
 
-    static List<Throwable> settleAndDrain() throws InterruptedException {
+    static List<Throwable> settleAndDrain(Engine engine) throws InterruptedException {
+        if (IrisPlatforms.isBound() && IrisPlatforms.get() instanceof StubPlatform) {
+            ProbeBackgroundTasks.await(engine);
+            awaitGenerationWorkers();
+            return drainReported();
+        }
         List<Throwable> drained = new ArrayList<>();
         long quietSince = System.currentTimeMillis();
         long start = quietSince;
@@ -137,6 +154,54 @@ final class RealPackProbeSupport {
             Thread.sleep(50L);
         }
         return drained;
+    }
+
+    private static void awaitGenerationWorkers() throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        List<ForkJoinPool> pools = new ArrayList<>(3);
+        for (MultiBurst burst : List.of(MultiBurst.hydrology, MultiBurst.ioBurst, MultiBurst.burst)) {
+            try {
+                ForkJoinPool pool = burst.submit((Callable<ForkJoinPool>) ForkJoinTask::getPool)
+                        .get(Math.max(1L, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+                if (pool != null) {
+                    pools.add(pool);
+                }
+            } catch (ExecutionException | TimeoutException failure) {
+                throw new IllegalStateException("Probe generation worker barrier failed", failure);
+            }
+        }
+        long[] previous = quietWorkerSnapshot(pools, deadline);
+        while (true) {
+            long[] current = quietWorkerSnapshot(pools, deadline);
+            if (Arrays.equals(previous, current)) {
+                return;
+            }
+            previous = current;
+        }
+    }
+
+    private static long[] quietWorkerSnapshot(List<ForkJoinPool> pools, long deadline) throws InterruptedException {
+        long[] counts = new long[pools.size()];
+        for (int index = 0; index < pools.size(); index++) {
+            ForkJoinPool pool = pools.get(index);
+            while (true) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException("Probe generation worker barrier interrupted");
+                }
+                if (System.nanoTime() >= deadline) {
+                    throw new IllegalStateException("Probe generation workers did not settle within 15 seconds");
+                }
+                long count = pool.getStealCount();
+                boolean quiet = pool.isQuiescent();
+                long settledCount = pool.getStealCount();
+                if (quiet && count == settledCount) {
+                    counts[index] = settledCount;
+                    break;
+                }
+                LockSupport.parkNanos(TimeUnit.MICROSECONDS.toNanos(100));
+            }
+        }
+        return counts;
     }
 
     static void printReports(String logPrefix, String label, List<Throwable> reports) {
@@ -305,7 +370,7 @@ final class RealPackProbeSupport {
                     router.preloadActiveRuntimes();
                 }
                 long readyNanos = System.nanoTime() - started;
-                List<Throwable> initializationReports = settleAndDrain();
+                List<Throwable> initializationReports = settleAndDrain(engine);
                 printReports(logPrefix, runLabel + " engine-init reports", initializationReports);
                 if (bindings != null && !initializationReports.isEmpty()) {
                     IllegalStateException failure = new IllegalStateException("Native engine initialization reported failures");
@@ -317,6 +382,7 @@ final class RealPackProbeSupport {
                 return new EngineSession(this, data, engine, readyNanos);
             } catch (Throwable failure) {
                 Throwable cleanupFailure = closeResources(engine, data);
+                clearRuntime();
                 sessionOpen = false;
                 if (cleanupFailure != null) {
                     failure.addSuppressed(cleanupFailure);
@@ -347,8 +413,7 @@ final class RealPackProbeSupport {
                     failure = bindingFailure;
                 }
             }
-            IrisPlatforms.unbind();
-            StubPlatform.errorSink(null);
+            clearRuntime();
             Throwable cleanupFailure = deleteWorkRoot(workRoot);
             if (cleanupFailure != null) {
                 failure = appendFailure(failure, cleanupFailure);
@@ -492,6 +557,15 @@ final class RealPackProbeSupport {
         public boolean shouldGenerateMantleComponent(Engine engine, MantleComponent component) {
             return !hydrologyGeneratedVerification || !(component instanceof MantleObjectComponent);
         }
+    }
+
+    private static void clearRuntime() {
+        IrisPlatforms.unbind();
+        IrisServices.remove(PreservationRegistry.class);
+        IrisServices.remove(EngineWorldManagerProvider.class);
+        IrisServices.remove(EngineEffectsProvider.class);
+        IrisServices.remove(EnginePlatformHooks.class);
+        StubPlatform.errorSink(null);
     }
 
     private static void configureRuntime(File platformRoot, boolean hydrologyGeneratedVerification, RuntimeBindings bindings) {

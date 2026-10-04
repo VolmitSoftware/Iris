@@ -3156,7 +3156,7 @@ public final class HydrologyPackProbe {
             }
             hydrologySeed = engine.getSeedManager().getBodies();
             engineReadyNanos = session.readyNanos();
-            List<Throwable> reports = RealPackProbeSupport.settleAndDrain();
+            List<Throwable> reports = RealPackProbeSupport.settleAndDrain(engine);
             if (!reports.isEmpty()) {
                 RealPackProbeSupport.printReports(LOG_PREFIX, "seed " + seed + " planning reports", reports);
                 throw reportedFailure("Hydrology coverage scan", reports);
@@ -4153,7 +4153,7 @@ public final class HydrologyPackProbe {
                     System.out.println(new GeneratedProcessResult(
                             witness.selector(), verification).machineLine());
                 }
-                List<Throwable> reports = RealPackProbeSupport.settleAndDrain();
+                List<Throwable> reports = RealPackProbeSupport.settleAndDrain(engine);
                 if (!reports.isEmpty()) {
                     RealPackProbeSupport.printReports(LOG_PREFIX, "generated chunk reports", reports);
                     throw reportedFailure("Hydrology generated chunk process", reports);

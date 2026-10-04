@@ -35,6 +35,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -589,8 +590,14 @@ public class SavedBiomeRuntimeTest {
     }
 
     private static void awaitIdle(SavedBiomeRuntime runtime) {
-        Await.reached("the runtime to drain its pending queries", Duration.ofSeconds(5L),
-                () -> runtime.pendingQueryCount() == 0);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+        while (runtime.pendingQueryCount() != 0 && System.nanoTime() - deadline < 0L) {
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1L));
+            if (Thread.interrupted()) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted while waiting for the runtime to drain its pending queries");
+            }
+        }
         assertEquals(0, runtime.pendingQueryCount());
     }
 

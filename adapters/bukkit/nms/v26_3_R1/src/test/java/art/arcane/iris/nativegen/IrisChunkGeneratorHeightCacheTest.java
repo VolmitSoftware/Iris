@@ -14,6 +14,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.levelgen.Heightmap;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +44,11 @@ public final class IrisChunkGeneratorHeightCacheTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         NativeBlockTags.bindHeightmapFixtures();
+    }
+
+    @AfterClass
+    public static void restoreBlockTags() {
+        NativeBlockTags.restoreTags();
     }
 
     @Test

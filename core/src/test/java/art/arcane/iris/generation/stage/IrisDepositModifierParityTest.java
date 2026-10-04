@@ -21,6 +21,9 @@ import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.ChunkedDataCache;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -53,6 +56,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class IrisDepositModifierParityTest {
     @ClassRule
@@ -63,9 +67,9 @@ public class IrisDepositModifierParityTest {
     @Before
     public void bindPlatform() {
         IrisPlatforms.unbind();
-        PlatformRegistries registries = mock(PlatformRegistries.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class, withSettings().stubOnly());
         when(registries.block(anyString())).thenAnswer(invocation -> state(invocation.getArgument(0)));
-        IrisPlatform platform = mock(IrisPlatform.class);
+        IrisPlatform platform = mock(IrisPlatform.class, withSettings().stubOnly());
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);
     }
@@ -125,8 +129,8 @@ public class IrisDepositModifierParityTest {
     @SuppressWarnings("unchecked")
     private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
                                       AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps) {
-        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
-        ChunkContext context = mock(ChunkContext.class, RETURNS_DEEP_STUBS);
+        Engine engine = mock(Engine.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
+        ChunkContext context = mock(ChunkContext.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
         IrisDimension dimension = new IrisDimension();
         IrisRegion region = new IrisRegion();
         IrisBiome surface = new IrisBiome();
@@ -170,9 +174,9 @@ public class IrisDepositModifierParityTest {
         when(engine.getSeedManager().getDeposit()).thenReturn(seed);
         when(engine.getDimension()).thenReturn(dimension);
         if (enumerablePack) {
-            IrisData data = mock(IrisData.class);
-            ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
-            ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+            IrisData data = mock(IrisData.class, withSettings().stubOnly());
+            ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class, withSettings().stubOnly());
+            ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class, withSettings().stubOnly());
             when(data.getBiomeLoader()).thenReturn(biomes);
             when(data.getRegionLoader()).thenReturn(regions);
             when(biomes.getPossibleKeys()).thenReturn(new String[]{"allowed", "denied", "surface"});
@@ -192,9 +196,13 @@ public class IrisDepositModifierParityTest {
             return ((Math.floorDiv(x, 8) + Math.floorDiv(z, 8) + Math.floorDiv(y, 8)) & 1) == 0 ? cave : denied;
         });
         when(context.getRoundedHeight(anyInt(), anyInt())).thenReturn(40);
-        when(context.getBiome().get(anyInt(), anyInt())).thenReturn(surface);
-        when(context.getRegion().get(anyInt(), anyInt())).thenReturn(region);
-        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        ChunkedDataCache<IrisBiome> biomes = new ChunkedDataCache<>(
+                ProceduralStream.of((x, z) -> surface, Interpolated.of(value -> 0D, value -> null)), 0, 0);
+        ChunkedDataCache<IrisRegion> regions = new ChunkedDataCache<>(
+                ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> null)), 0, 0);
+        when(context.getBiome()).thenReturn(biomes);
+        when(context.getRegion()).thenReturn(regions);
+        MantleChunk<Matter> chunk = mock(MantleChunk.class, withSettings().stubOnly());
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         doReturn(chunk).when(mantle).useChunk(-3, 5);
         MatterCavern cavern = new MatterCavern(true, "allowed", (byte) 0);
@@ -215,7 +223,7 @@ public class IrisDepositModifierParityTest {
         }
         MultiBurst burst = new MultiBurst("Deposit parity", () -> 4);
         when(engine.burst()).thenReturn(burst);
-        try (MockedStatic<B> blocks = mockStatic(B.class, CALLS_REAL_METHODS)) {
+        try (MockedStatic<B> blocks = mockStatic(B.class, withSettings().stubOnly().defaultAnswer(CALLS_REAL_METHODS))) {
             blocks.when(() -> B.getStateOrNull(anyString(), anyBoolean()))
                     .thenAnswer(invocation -> state(invocation.getArgument(0)));
             blocks.when(() -> B.toDeepSlateOre(any(), any())).thenAnswer(invocation -> {

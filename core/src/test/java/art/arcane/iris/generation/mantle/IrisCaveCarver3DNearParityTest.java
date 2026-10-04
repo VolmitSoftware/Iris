@@ -20,6 +20,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.matter.slices.CavernMatter;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -52,6 +53,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 
 public class IrisCaveCarver3DNearParityTest {
     private static final long CARVE_SEED = -54_777_863_784_492_918L;
@@ -136,7 +138,7 @@ public class IrisCaveCarver3DNearParityTest {
                 createProfile(false, false).setDetailWeight(0D).setAllowFluid(false));
         AtomicInteger calls = new AtomicInteger();
         Set<Integer> sampledY = new HashSet<>();
-        CNG density = mock(CNG.class);
+        CNG density = mock(CNG.class, withSettings().stubOnly());
         doAnswer(invocation -> {
             calls.incrementAndGet();
             double x = invocation.getArgument(0);
@@ -193,14 +195,14 @@ public class IrisCaveCarver3DNearParityTest {
 
     @Test
     public void expressionStylesKeepTheOriginalSamplingAndCarvingBehavior() throws Exception {
-        CNG density = mock(CNG.class);
+        CNG density = mock(CNG.class, withSettings().stubOnly());
         AtomicInteger calls = new AtomicInteger();
         doAnswer(invocation -> {
             calls.incrementAndGet();
             double y = invocation.getArgument(1);
             return Math.sin(y * 0.2D);
         }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
-        IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
+        IrisGeneratorStyle style = mock(IrisGeneratorStyle.class, withSettings().stubOnly());
         doReturn("density_expression").when(style).getExpression();
         doReturn(density).when(style).create(any(RNG.class), any(IrisData.class));
         IrisCaveProfile profile = createProfile(false, false).setBaseDensityStyle(style)
@@ -240,10 +242,10 @@ public class IrisCaveCarver3DNearParityTest {
                     .setModules(new KList<>(new IrisCaveFieldModule(new IrisGeneratorStyle(NoiseStyle.FLAT),
                             1D, 0D, new IrisRange(5D, 6D), false)));
             IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
-            CNG base = mock(CNG.class);
+            CNG base = mock(CNG.class, withSettings().stubOnly());
             doReturn(1D).when(base).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
             baseDensityField.set(carver, base);
-            CNG module = mock(CNG.class);
+            CNG module = mock(CNG.class, withSettings().stubOnly());
             doReturn(-1D).when(module).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
             moduleDensityField.set(((CaveFieldModuleState[]) modulesField.get(carver))[0], module);
             WriterCapture capture = createWriterCapture(128);
@@ -307,7 +309,7 @@ public class IrisCaveCarver3DNearParityTest {
             WriterCapture capture = createWriterCapture(128);
             if (fail) {
                 AtomicInteger samples = new AtomicInteger();
-                CNG density = mock(CNG.class);
+                CNG density = mock(CNG.class, withSettings().stubOnly());
                 doAnswer(invocation -> {
                     if (samples.incrementAndGet() > 300) {
                         throw new IllegalStateException("Density sample failed");
@@ -380,7 +382,7 @@ public class IrisCaveCarver3DNearParityTest {
                 .setDetailWeight(0D)
                 .setDensityThreshold(new IrisStyledRange(-2D, -2D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
         IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
-        CNG detail = mock(CNG.class);
+        CNG detail = mock(CNG.class, withSettings().stubOnly());
         doAnswer(invocation -> {
             throw new AssertionError("Rejected voxel sampled an aquifer");
         }).when(detail).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
@@ -1343,10 +1345,10 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     private Engine createEngine(int worldHeight, int sampledHeight) {
-        Engine engine = mock(Engine.class);
-        IrisData data = mock(IrisData.class);
-        IrisDimension dimension = mock(IrisDimension.class);
-        SeedManager seedManager = mock(SeedManager.class);
+        Engine engine = mock(Engine.class, withSettings().stubOnly());
+        IrisData data = mock(IrisData.class, withSettings().stubOnly());
+        IrisDimension dimension = mock(IrisDimension.class, withSettings().stubOnly());
+        SeedManager seedManager = mock(SeedManager.class, withSettings().stubOnly());
         EngineMetrics metrics = new EngineMetrics(16);
         IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(worldHeight).build();
 
@@ -1467,15 +1469,15 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     private WriterCapture createWriterCapture(int worldHeight) {
-        MantleWriter writer = mock(MantleWriter.class);
+        MantleWriter writer = mock(MantleWriter.class, withSettings().stubOnly());
         @SuppressWarnings("unchecked")
-        Mantle<Matter> mantle = mock(Mantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class, withSettings().stubOnly());
         @SuppressWarnings("unchecked")
-        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        MantleChunk<Matter> chunk = mock(MantleChunk.class, withSettings().stubOnly());
         Map<Integer, Matter> sections = new HashMap<>();
-        Map<Integer, Map<Integer, MatterCavern>> sectionCells = new HashMap<>();
         Set<String> carvedCells = new HashSet<>();
         Map<String, Byte> carvedLiquids = new HashMap<>();
+        WriterCapture capture = new WriterCapture(writer, carvedCells, carvedLiquids);
 
         doReturn(mantle).when(writer).getMantle();
         doReturn(worldHeight).when(mantle).getWorldHeight();
@@ -1488,41 +1490,19 @@ public class IrisCaveCarver3DNearParityTest {
                 return section;
             }
 
-            Matter created = createSection(sectionIndex, sectionCells, carvedCells, carvedLiquids);
+            Matter created = createSection(sectionIndex, capture);
             sections.put(sectionIndex, created);
             return created;
         }).when(chunk).getOrCreate(anyInt());
 
-        return new WriterCapture(writer, carvedCells, carvedLiquids);
+        return capture;
     }
 
-    private Matter createSection(int sectionIndex, Map<Integer, Map<Integer, MatterCavern>> sectionCells, Set<String> carvedCells, Map<String, Byte> carvedLiquids) {
-        Matter matter = mock(Matter.class);
-        @SuppressWarnings("unchecked")
-        MatterSlice<MatterCavern> slice = mock(MatterSlice.class);
-        Map<Integer, MatterCavern> localCells = sectionCells.computeIfAbsent(sectionIndex, key -> new HashMap<>());
-
+    private Matter createSection(int sectionIndex, WriterCapture capture) {
+        Matter matter = mock(Matter.class, withSettings().stubOnly());
+        MatterSlice<MatterCavern> slice = new CapturingCavernMatter(sectionIndex, capture);
         doReturn(slice).when(matter).slice(MatterCavern.class);
         doReturn(slice).when(matter).getSlice(MatterCavern.class);
-        doAnswer(invocation -> {
-            int localX = invocation.getArgument(0);
-            int localY = invocation.getArgument(1);
-            int localZ = invocation.getArgument(2);
-            return localCells.get(packLocal(localX, localY, localZ));
-        }).when(slice).get(anyInt(), anyInt(), anyInt());
-        doAnswer(invocation -> {
-            int localX = invocation.getArgument(0);
-            int localY = invocation.getArgument(1);
-            int localZ = invocation.getArgument(2);
-            MatterCavern value = invocation.getArgument(3);
-            localCells.put(packLocal(localX, localY, localZ), value);
-            int worldY = (sectionIndex << 4) + localY;
-            String cellKey = cellKey(localX, worldY, localZ);
-            carvedCells.add(cellKey);
-            carvedLiquids.put(cellKey, value.getLiquid());
-            return null;
-        }).when(slice).set(anyInt(), anyInt(), anyInt(), any(MatterCavern.class));
-
         return matter;
     }
 
@@ -1649,10 +1629,6 @@ public class IrisCaveCarver3DNearParityTest {
         return (value * 2D) - 1D;
     }
 
-    private int packLocal(int x, int y, int z) {
-        return (x << 8) | (y << 4) | z;
-    }
-
     private String cellKey(int x, int y, int z) {
         return x + ":" + y + ":" + z;
     }
@@ -1749,6 +1725,25 @@ public class IrisCaveCarver3DNearParityTest {
             String coordinate = (int) x + ":" + (int) y + ":" + (int) z;
             sampledCoordinates.add(coordinate);
             return densityByCoordinate.getOrDefault(coordinate, 1D);
+        }
+    }
+
+    private final class CapturingCavernMatter extends CavernMatter {
+        private final int sectionIndex;
+        private final WriterCapture capture;
+
+        private CapturingCavernMatter(int sectionIndex, WriterCapture capture) {
+            super(16, 16, 16);
+            this.sectionIndex = sectionIndex;
+            this.capture = capture;
+        }
+
+        @Override
+        public void set(int x, int y, int z, MatterCavern value) {
+            super.set(x, y, z, value);
+            String cell = cellKey(x, (sectionIndex << 4) + y, z);
+            capture.carvedCells.add(cell);
+            capture.carvedLiquids.put(cell, value.getLiquid());
         }
     }
 

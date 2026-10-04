@@ -1,21 +1,30 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagLoader;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class NativeBlockTags {
+    private static Map<TagKey<Block>, List<Holder<Block>>> originalTags;
+
     private NativeBlockTags() {
     }
 
     public static void bindHeightmapFixtures() {
+        originalTags = new HashMap<>();
+        for (HolderSet.Named<Block> tag : BuiltInRegistries.BLOCK.getTags().toList()) {
+            originalTags.put(tag.key(), tag.stream().toList());
+        }
         List<Holder<Block>> solid = List.of(Blocks.STONE.builtInRegistryHolder(),
                 Blocks.OAK_LOG.builtInRegistryHolder(), Blocks.SPRUCE_LOG.builtInRegistryHolder());
         List<Holder<Block>> canopy = List.of(Blocks.STONE.builtInRegistryHolder(),
@@ -24,5 +33,13 @@ public final class NativeBlockTags {
         BuiltInRegistries.BLOCK.prepareTagReload(new TagLoader.LoadResult<>(Registries.BLOCK, Map.of(
                 BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP, canopy,
                 BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP_NO_LEAVES, solid))).apply();
+    }
+
+    public static void restoreTags() {
+        if (originalTags == null) {
+            return;
+        }
+        BuiltInRegistries.BLOCK.prepareTagReload(new TagLoader.LoadResult<>(Registries.BLOCK, originalTags)).apply();
+        originalTags = null;
     }
 }

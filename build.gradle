@@ -96,7 +96,7 @@ String forgeArtifactName = irisArtifactName('Forge', "${minecraftVersion}+${load
 String neoForgeArtifactName = irisArtifactName('NeoForge', "${minecraftVersion}+${loaderDisplayVersion(neoForgeVersion)}")
 Map<String, String> runtimeDownloadRelocations = (Map<String, String>) ext.runtimeDownloadRelocations
 List<String> runtimeDownloadedPrefixes = (List<String>) ext.runtimeDownloadedPrefixes
-File pluginOutDirectory = layout.projectDirectory.dir('../PluginOuts').asFile
+File pluginOutDirectory = file(providers.gradleProperty('pluginOutDirectory').getOrElse('../PluginOuts'))
 File legacyBukkitJar = layout.buildDirectory.file("libs/Iris-${project.version}.jar").get().asFile
 File bukkitArtifact = layout.buildDirectory.file("libs/${bukkitArtifactName}").get().asFile
 File consumerBukkitArtifact = layout.buildDirectory.file("consumer/${bukkitArtifactName}").get().asFile
@@ -327,6 +327,9 @@ if (localVolmLibCheckout != null) {
 // moves. Without a local checkout the Exec tasks always run and the nested build decides what is stale.
 Closure<Void> declareVolmLibInputs = { Exec task ->
     task.inputs.property('volmLibStamp', volmLibStamp)
+    String nativeBillow = providers.gradleProperty('includeNativeBillow').getOrElse('false')
+    task.inputs.property('includeNativeBillow', nativeBillow)
+    task.environment('ORG_GRADLE_PROJECT_includeNativeBillow', nativeBillow)
     if (localVolmLibCheckout == null) {
         task.outputs.upToDateWhen { false }
     }
@@ -781,8 +784,19 @@ tasks.register('irisDev', Copy) {
     dependsOn(':core:javadocJar')
 }
 
+int defaultTestForks = Math.min(8, Math.max(1, Runtime.runtime.availableProcessors().intdiv(2)))
+int testForks = Math.max(1, Integer.parseInt(providers.gradleProperty('testForks')
+    .getOrElse(String.valueOf(defaultTestForks))))
+
 allprojects {
     apply plugin: 'java'
+
+    tasks.withType(Test).configureEach {
+        int moduleForks = project.path.startsWith(':adapters:bukkit:') ? Math.min(2, testForks)
+            : project.path == ':probe' ? Math.min(4, testForks) : testForks
+        maxParallelForks = Math.min(gradle.startParameter.maxWorkerCount, moduleForks)
+        jvmArgs('-XX:ParallelGCThreads=2', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=2')
+    }
 
     java {
         toolchain {
@@ -979,9 +993,6 @@ project(':adapters:bukkit:nms:v26_3_R1') {
     }
     sourceSets.test.compileClasspath += sourceSets.offline.output
     sourceSets.test.runtimeClasspath += sourceSets.offline.output
-    tasks.named('test', Test).configure {
-        forkEvery = 1
-    }
 
     TaskProvider<Jar> offlineJar = tasks.register('offlineJar', Jar) {
         dependsOn(offlineClasses)

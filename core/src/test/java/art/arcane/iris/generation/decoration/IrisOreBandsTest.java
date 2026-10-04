@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -17,11 +19,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class IrisOreBandsTest {
     private static final RNG RNG_SOURCE = new RNG(77L);
@@ -69,10 +66,8 @@ public class IrisOreBandsTest {
     @Test
     public void constantChanceMatchesSamplingTheFlatField() {
         IrisOreGenerator flat = new IrisOreGenerator();
-        IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-        NativeBlockState ore = mock(NativeBlockState.class);
-        when(palette.getPalette()).thenReturn(new KList<>(mock(IrisBlockData.class)));
-        when(palette.get(any(), anyDouble(), anyDouble(), anyDouble(), isNull())).thenReturn(ore);
+        NativeBlockState ore = new KeyedBlockState("minecraft:iron_ore");
+        IrisMaterialPalette palette = new FixedPalette(ore);
         IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.FLAT).setZoom(2.5D).setExponent(1.3D)
                 .setFracture(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).setMultiplier(9D));
         flat.setPalette(palette).setChanceStyle(style).setRange(new IrisRange(0, 100));
@@ -101,20 +96,9 @@ public class IrisOreBandsTest {
 
     private static IrisOreGenerator generator(double min, double max, double threshold, long seed) {
         IrisOreGenerator generator = new IrisOreGenerator();
-        IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-        NativeBlockState state = mock(NativeBlockState.class);
-        when(palette.getPalette()).thenReturn(new KList<>(mock(IrisBlockData.class)));
-        when(palette.get(any(), anyDouble(), anyDouble(), anyDouble(), isNull())).thenReturn(state);
-        CNG chance = mock(CNG.class);
-        when(chance.noise(anyDouble(), anyDouble(), anyDouble())).thenAnswer(invocation -> {
-            long hash = seed;
-            hash = hash * 31 + Double.doubleToLongBits(invocation.getArgument(0));
-            hash = hash * 31 + Double.doubleToLongBits(invocation.getArgument(1));
-            hash = hash * 31 + Double.doubleToLongBits(invocation.getArgument(2));
-            return new Random(hash).nextDouble();
-        });
-        IrisGeneratorStyle style = mock(IrisGeneratorStyle.class);
-        when(style.create(any(), isNull())).thenReturn(chance);
+        NativeBlockState state = new KeyedBlockState("minecraft:iron_ore");
+        IrisMaterialPalette palette = new FixedPalette(state);
+        IrisGeneratorStyle style = new FixedChanceStyle(new CoordinateChance(seed));
         return generator.setPalette(palette).setChanceStyle(style).setThreshold(threshold)
                 .setRange(new IrisRange(min, max));
     }
@@ -131,4 +115,49 @@ public class IrisOreBandsTest {
         assertSame(scan(ores, 0, 58, 0), bands.generate(0, 58, 0, RNG_SOURCE, null));
         assertNull(bands.contains(59) ? bands.generate(0, 59, 0, RNG_SOURCE, null) : null);
     }
+    private static final class FixedPalette extends IrisMaterialPalette {
+        private final NativeBlockState state;
+
+        private FixedPalette(NativeBlockState state) {
+            this.state = state;
+            setPalette(new KList<>(new IrisBlockData()));
+        }
+
+        @Override
+        public NativeBlockState get(RNG rng, double x, double y, double z, IrisData data) {
+            return state;
+        }
+    }
+
+    private static final class FixedChanceStyle extends IrisGeneratorStyle {
+        private final CNG chance;
+
+        private FixedChanceStyle(CNG chance) {
+            this.chance = chance;
+        }
+
+        @Override
+        public CNG create(RNG rng, IrisData data) {
+            return chance;
+        }
+    }
+
+    private static final class CoordinateChance extends CNG {
+        private final long seed;
+
+        private CoordinateChance(long seed) {
+            super(new RNG(seed));
+            this.seed = seed;
+        }
+
+        @Override
+        public double noise(double x, double y, double z) {
+            long hash = seed;
+            hash = hash * 31 + Double.doubleToLongBits(x);
+            hash = hash * 31 + Double.doubleToLongBits(y);
+            hash = hash * 31 + Double.doubleToLongBits(z);
+            return new Random(hash).nextDouble();
+        }
+    }
+
 }

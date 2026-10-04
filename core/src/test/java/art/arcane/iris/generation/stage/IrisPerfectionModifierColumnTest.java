@@ -30,7 +30,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -245,24 +244,147 @@ public class IrisPerfectionModifierColumnTest {
             if (existing != null) {
                 return existing;
             }
-            NativeBlockState block = mock(NativeBlockState.class, withSettings().stubOnly());
+            NativeBlockState block = new TestBlockState(this, key);
             states.put(key, block);
-            when(block.key()).thenReturn(key);
-            when(block.isAir()).thenReturn(key.equals("minecraft:air"));
-            when(block.isFluid()).thenReturn(key.equals("minecraft:water"));
-            when(block.isWater()).thenReturn(key.equals("minecraft:water"));
-            when(block.isWaterLogged()).thenReturn(key.contains("waterlogged=true"));
-            when(block.isDecorant()).thenReturn(key.equals("minecraft:poppy") || key.startsWith("minecraft:tall_grass"));
-            when(block.canPlaceOnto(any())).thenAnswer(call -> "minecraft:tall_grass[half=lower]".equals(call.<NativeBlockState>getArgument(0).key()));
-            BlockData handle = mock(BlockData.class, withSettings().stubOnly());
-            when(block.nativeHandle()).thenReturn(handle);
-            when(handle.isFaceSturdy(any(), any())).thenReturn(key.equals("minecraft:stone"));
-            when(block.withProperty(anyString(), anyString())).thenAnswer(call -> {
-                String property = call.getArgument(0);
-                String value = call.getArgument(1);
-                return state(key.replaceAll(property + "=[^,\\]]+", property + "=" + value));
-            });
             return block;
+        }
+    }
+
+    private static final class TestBlockState implements NativeBlockState {
+        private final Fixture fixture;
+        private final String key;
+        private final BlockData handle;
+
+        private TestBlockState(Fixture fixture, String key) {
+            this.fixture = fixture;
+            this.key = key;
+            handle = mock(BlockData.class, withSettings().stubOnly());
+            when(handle.isFaceSturdy(any(), any())).thenReturn(key.equals("minecraft:stone"));
+        }
+
+        @Override
+        public String key() {
+            return key;
+        }
+
+        @Override
+        public String namespace() {
+            return null;
+        }
+
+        @Override
+        public boolean isAir() {
+            return key.equals("minecraft:air");
+        }
+
+        @Override
+        public boolean isFluid() {
+            return key.equals("minecraft:water");
+        }
+
+        @Override
+        public boolean isWater() {
+            return key.equals("minecraft:water");
+        }
+
+        @Override
+        public boolean isWaterLogged() {
+            return key.contains("waterlogged=true");
+        }
+
+        @Override
+        public boolean isDecorant() {
+            return key.equals("minecraft:poppy") || key.startsWith("minecraft:tall_grass");
+        }
+
+        @Override
+        public boolean canPlaceOnto(NativeBlockState onto) {
+            return "minecraft:tall_grass[half=lower]".equals(onto.key());
+        }
+
+        @Override
+        public Object nativeHandle() {
+            return handle;
+        }
+
+        @Override
+        public NativeBlockState withProperty(String property, String value) {
+            return fixture.state(key.replaceAll(property + "=[^,\\]]+", property + "=" + value));
+        }
+
+        @Override
+        public boolean isSolid() {
+            return false;
+        }
+
+        @Override
+        public boolean isOccluding() {
+            return false;
+        }
+
+        @Override
+        public boolean isCustom() {
+            return false;
+        }
+
+        @Override
+        public boolean isLit() {
+            return false;
+        }
+
+        @Override
+        public boolean isUpdatable() {
+            return false;
+        }
+
+        @Override
+        public boolean isFoliage() {
+            return false;
+        }
+
+        @Override
+        public boolean isTreeBlock() {
+            return false;
+        }
+
+        @Override
+        public boolean isFoliagePlantable() {
+            return false;
+        }
+
+        @Override
+        public boolean isStorage() {
+            return false;
+        }
+
+        @Override
+        public boolean isStorageChest() {
+            return false;
+        }
+
+        @Override
+        public boolean isOre() {
+            return false;
+        }
+
+        @Override
+        public boolean isDeepSlate() {
+            return false;
+        }
+
+        @Override
+        public boolean isVineBlock() {
+            return false;
+        }
+
+        @Override
+        public boolean hasTileEntity() {
+            return false;
+        }
+
+        @Override
+        public boolean matches(NativeBlockState state) {
+            return false;
         }
     }
 

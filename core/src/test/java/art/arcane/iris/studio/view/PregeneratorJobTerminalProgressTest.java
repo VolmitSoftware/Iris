@@ -2,6 +2,7 @@ package art.arcane.iris.studio.view;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.pregen.PregenApiPhase;
+import art.arcane.iris.world.pregen.MantleHeapPressure;
 import art.arcane.iris.world.pregen.PregenApiSink;
 import art.arcane.iris.world.pregen.PregenListener;
 import art.arcane.iris.world.pregen.PregenTask;
@@ -9,11 +10,13 @@ import art.arcane.iris.world.pregen.PregeneratorMethod;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.util.math.Position2;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class PregeneratorJobTerminalProgressTest {
@@ -89,6 +93,7 @@ public class PregeneratorJobTerminalProgressTest {
         PregeneratorMethod method = mock(PregeneratorMethod.class);
         when(method.getMethod(anyInt(), anyInt())).thenReturn("terminal-progress-test");
         ArrayList<PregenListener> pending = new ArrayList<>();
+        AtomicReference<MockedStatic<MantleHeapPressure>> heapPressure = new AtomicReference<>();
         doAnswer(invocation -> {
             pending.add(invocation.getArgument(2));
             if (completion.cancel()) {
@@ -97,12 +102,19 @@ public class PregeneratorJobTerminalProgressTest {
             return null;
         }).when(method).generateChunk(anyInt(), anyInt(), any(PregenListener.class));
         doAnswer(invocation -> {
-            for (int index = 0; index < pending.size(); index++) {
-                PregenListener listener = pending.get(index);
-                if (completion.failLast() && index == pending.size() - 1) {
-                    listener.onChunkFailed(0, 0);
-                } else {
-                    listener.onChunkGenerated(0, 0, completion.cached());
+            try {
+                for (int index = 0; index < pending.size(); index++) {
+                    PregenListener listener = pending.get(index);
+                    if (completion.failLast() && index == pending.size() - 1) {
+                        listener.onChunkFailed(0, 0);
+                    } else {
+                        listener.onChunkGenerated(0, 0, completion.cached());
+                    }
+                }
+            } finally {
+                MockedStatic<MantleHeapPressure> pressure = heapPressure.getAndSet(null);
+                if (pressure != null) {
+                    pressure.close();
                 }
             }
             return null;
@@ -112,7 +124,8 @@ public class PregeneratorJobTerminalProgressTest {
         Thread worker = null;
         try {
             assertNull(PregeneratorJob.getInstance());
-            PregeneratorJob job = new PregeneratorJob(new PregeneratorJob.Configuration(task, method, null, () -> {}));
+            PregeneratorJob job = new PregeneratorJob(new PregeneratorJob.Configuration(task, method, null,
+                    () -> heapPressure.set(mockStatic(MantleHeapPressure.class))));
             Field workerField = PregeneratorJob.class.getDeclaredField("worker");
             workerField.setAccessible(true);
             worker = (Thread) workerField.get(job);

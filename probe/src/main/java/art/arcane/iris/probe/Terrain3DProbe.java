@@ -328,7 +328,7 @@ public final class Terrain3DProbe {
                 sections.addAll(renderer.write());
             }
             topology = terrainTopology.inspect();
-            failReported("generation", RealPackProbeSupport.settleAndDrain());
+            failReported("generation", RealPackProbeSupport.settleAndDrain(engine));
         }
         List<String> failures = coverageFailures(evidence, configuration.requiredBiomes(), configuration.strictGeometry());
         Result result = new Result(failures.isEmpty() ? "PASS" : "FAIL", configuration, generatedChunks,

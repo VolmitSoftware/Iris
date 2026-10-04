@@ -414,7 +414,7 @@ public final class GenerationOrderProbe {
                     ? generateParallel(session.engine(), scheduled, configuration)
                     : generateSequential(session.engine(), scheduled, configuration);
             long generationNanos = System.nanoTime() - started;
-            List<Throwable> reports = RealPackProbeSupport.settleAndDrain();
+            List<Throwable> reports = RealPackProbeSupport.settleAndDrain(session.engine());
             if (!reports.isEmpty()) {
                 RealPackProbeSupport.printReports(LOG_PREFIX, order + " generation reports", reports);
                 throw reportedFailure(order + " generation", reports);

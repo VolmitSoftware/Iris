@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.levelgen.Heightmap;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,6 +45,11 @@ public final class NativeTransitionColumnTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         NativeBlockTags.bindHeightmapFixtures();
+    }
+
+    @AfterClass
+    public static void restoreBlockTags() {
+        NativeBlockTags.restoreTags();
     }
 
     @Test

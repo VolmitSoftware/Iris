@@ -211,7 +211,7 @@ public final class ObjectContinuationProbeTest {
                     assertArrayEquals(oldReceipt, SavedTerrainChunk.readReceipt(world.worldFolder().toPath(), 0, 0));
                     assertEquals(originalActivation, reopened.resolveActivation(0, 0).activationId());
                     assertTrue(reopened.semantics(1, 0).orElseThrow().objectKeys().contains(fixture.objectKey()));
-                    assertTrue("Generation must not report swallowed errors", RealPackProbeSupport.settleAndDrain().isEmpty());
+                    assertTrue("Generation must not report swallowed errors", RealPackProbeSupport.settleAndDrain(engine).isEmpty());
                 } finally {
                     engine.close();
                 }

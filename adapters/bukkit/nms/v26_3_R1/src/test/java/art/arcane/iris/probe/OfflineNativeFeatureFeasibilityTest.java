@@ -26,6 +26,7 @@ import net.minecraft.world.level.material.Fluids;
 import org.bukkit.Bukkit;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -40,6 +41,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public final class OfflineNativeFeatureFeasibilityTest {
+    @ClassRule
+    public static final PaperRegistryIsolation registryIsolation = new PaperRegistryIsolation();
+
     private static HeadlessNativeRegistries loaded;
     private static RegistryAccess registries;
     private static DimensionType dimension;

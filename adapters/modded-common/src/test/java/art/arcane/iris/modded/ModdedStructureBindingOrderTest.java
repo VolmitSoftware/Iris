@@ -37,7 +37,7 @@ public class ModdedStructureBindingOrderTest {
     }
 
     @Test
-    public void initialBindingPublishesReadyEngineBeforeStartingStructureSearches() throws Exception {
+    public void disabledStructuresAllowInitialBindingBeforeStartingStructureSearches() throws Exception {
         NativeModdedChunkGenerator<?, ?, ?> nativeGenerator = mock(NativeModdedChunkGenerator.class);
         ModdedEngineBinding<Engine> binding = new ModdedEngineBinding<>(1L, TimeUnit.MILLISECONDS);
         IrisModdedChunkGenerator generator = generator(nativeGenerator, binding);
@@ -45,7 +45,7 @@ public class ModdedStructureBindingOrderTest {
         NativeModdedServer server = mock(NativeModdedServer.class);
         Engine engine = readyEngine();
         when(nativeGenerator.represents(world)).thenReturn(true);
-        when(server.generateStructures()).thenReturn(true);
+        when(server.generateStructures()).thenReturn(false);
         doAnswer(invocation -> {
             assertSame(engine, generator.awaitStructureEngine());
             assertSame(engine, binding.await("overworld"));
@@ -88,7 +88,7 @@ public class ModdedStructureBindingOrderTest {
     }
 
     @Test
-    public void repointPublishesReplacementBindingBeforeStartingStructureSearches() throws Exception {
+    public void disabledStructuresAllowReplacementBindingBeforeStartingStructureSearches() throws Exception {
         NativeModdedChunkGenerator<?, ?, ?> nativeGenerator = mock(NativeModdedChunkGenerator.class);
         ModdedEngineBinding<Engine> binding = new ModdedEngineBinding<>(1L, TimeUnit.MILLISECONDS);
         IrisModdedChunkGenerator generator = generator(nativeGenerator, binding);
@@ -96,7 +96,7 @@ public class ModdedStructureBindingOrderTest {
         NativeModdedServer server = mock(NativeModdedServer.class);
         Engine replacement = readyEngine();
         when(nativeGenerator.represents(world)).thenReturn(true);
-        when(server.generateStructures()).thenReturn(true);
+        when(server.generateStructures()).thenReturn(false);
         doAnswer(invocation -> {
             assertSame(replacement, generator.awaitStructureEngine());
             assertSame(replacement, binding.await("overworld"));

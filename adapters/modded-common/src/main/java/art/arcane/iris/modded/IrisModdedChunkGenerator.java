@@ -195,8 +195,6 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         if (!nativeGenerator.represents(level)) {
             throw new IllegalArgumentException("NativeWorld does not use Iris generator '" + dimensionKey + "'");
         }
-        requireGlobalStructureGeneration(
-                NativeModdedServer.forWorld(level).generateStructures(), dimensionKey);
         Engine activeEngine = engineIfBound();
         Engine replacement = ModdedWorldEngines.prepareReplacement(
                 level,
@@ -462,13 +460,6 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         // A recorded failure stands until repoint or unbind resets the binding; re-running the bind would repeat the
         // history verification on every chunk call and fail the same way.
         engineBinding.throwIfFailed(dimensionKey);
-        try {
-            requireGlobalStructureGeneration(
-                    NativeModdedServer.forWorld(level).generateStructures(), dimensionKey);
-        } catch (RuntimeException error) {
-            recordBindFailure(level, error);
-            throw error;
-        }
         // Cache the owning level so hot paths never scan the level map to find themselves.
         boundLevel = level;
         Engine cached = engine;
@@ -572,29 +563,6 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
     private void requireBindingAllowed() {
         if (unloading) {
             throw new IllegalStateException("Iris generator '" + dimensionKey + "' is unloading and cannot bind an engine");
-        }
-    }
-
-    static void requireGlobalStructureGeneration(boolean enabled, String dimensionKey) {
-        if (enabled) {
-            return;
-        }
-        String remedy = integratedEnvironment()
-                ? "enable 'Generate Structures' for this world; Iris requires it, then deny families through "
-                        + "importedStructures.disabled or complete keys through importedStructures.disabledExact"
-                : "set generate-structures=true in server.properties, restart the server, "
-                        + "then deny families through importedStructures.disabled or complete keys through "
-                        + "importedStructures.disabledExact";
-        throw new IllegalStateException("Iris generator '" + dimensionKey
-                + "' cannot bind while generate-structures=false; " + remedy);
-    }
-
-    private static boolean integratedEnvironment() {
-        try {
-            return ModdedEngineBootstrap.loader().clientEnvironment();
-        } catch (Throwable e) {
-            // No loader bound (unit tests, very early boot): assume dedicated wording.
-            return false;
         }
     }
 

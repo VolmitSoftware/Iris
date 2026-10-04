@@ -57,8 +57,11 @@ public class ModdedBindFailureTest {
         when(server.generateStructures()).thenReturn(false);
 
         try (MockedStatic<NativeModdedServer> servers = mockStatic(NativeModdedServer.class);
+             MockedStatic<ModdedWorldEngines> engines = mockStatic(ModdedWorldEngines.class);
              MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
             servers.when(() -> NativeModdedServer.forWorld(level)).thenReturn(server);
+            engines.when(() -> ModdedWorldEngines.get(eq(level), any(), any(), anyLong(), any()))
+                    .thenThrow(new IllegalStateException("broken world binding"));
 
             IllegalStateException recorded = assertThrows(IllegalStateException.class, () -> generator.bindLevel(level));
             IllegalStateException second = assertThrows(IllegalStateException.class, generator::engine);
@@ -66,9 +69,9 @@ public class ModdedBindFailureTest {
 
             assertSame(recorded, second.getCause());
             assertSame(recorded, third.getCause());
-            servers.verify(() -> NativeModdedServer.forWorld(level), times(1));
+            engines.verify(() -> ModdedWorldEngines.get(eq(level), any(), any(), anyLong(), any()), times(1));
             log.verify(() -> ModdedIrisLog.error(argThat((String line) -> line != null && line.startsWith("Cause: ")
-                    && line.contains("generate-structures=false"))), times(1));
+                    && line.contains("broken world binding"))), times(1));
         }
     }
 
@@ -117,13 +120,15 @@ public class ModdedBindFailureTest {
              MockedStatic<ModdedWorldEngines> engines = mockStatic(ModdedWorldEngines.class);
              MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
             servers.when(() -> NativeModdedServer.forWorld(level)).thenReturn(server);
+            engines.when(() -> ModdedWorldEngines.get(eq(level), any(), any(), anyLong(), any()))
+                    .thenAnswer(invocation -> { throw new IllegalStateException("broken world binding"); });
 
             IllegalStateException first = assertThrows(IllegalStateException.class, () -> generator.bindLevel(level));
             generator.unbindEngine(level);
             IllegalStateException second = assertThrows(IllegalStateException.class, () -> generator.bindLevel(level));
 
             assertNotSame(first, second.getCause());
-            servers.verify(() -> NativeModdedServer.forWorld(level), times(2));
+            engines.verify(() -> ModdedWorldEngines.get(eq(level), any(), any(), anyLong(), any()), times(2));
             engines.verify(() -> ModdedWorldEngines.evictOrThrow(level));
         }
     }

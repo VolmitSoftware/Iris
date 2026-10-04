@@ -119,14 +119,6 @@ public final class BukkitStructureStagePolicy implements StructureStagePolicy<
     }
 
     @Override
-    public RuntimeException structuresDisabled(int chunkX, int chunkZ) {
-        return new IllegalStateException("Iris cannot generate native structures in chunk "
-                + chunkX + "," + chunkZ
-                + " because structure generation is disabled outside the pack; enable native structure generation "
-                + "and deny families through importedStructures.disabled or complete keys through importedStructures.disabledExact");
-    }
-
-    @Override
     public String generationLabel(String structureId) {
         return "Iris native structure " + structureId;
     }

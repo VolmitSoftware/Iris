@@ -123,17 +123,6 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
     }
 
     @Override
-    public RuntimeException structuresDisabled(int chunkX, int chunkZ) {
-        return new IllegalStateException("Iris cannot generate native structures in chunk "
-                + chunkX + "," + chunkZ
-                + " because generate-structures=false disables them outside the pack. That flag is fixed when "
-                + "the world is created (server.properties generate-structures, or the Generate Structures "
-                + "toggle in singleplayer), so it cannot be changed for this world: create a new world with "
-                + "structures enabled, then deny families through importedStructures.disabled or complete keys "
-                + "through importedStructures.disabledExact");
-    }
-
-    @Override
     public String generationLabel(String structureId) {
         return "Iris native structure " + structureId;
     }

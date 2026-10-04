@@ -7,7 +7,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class NativeStructureFailureContractTest {
@@ -15,21 +14,6 @@ public class NativeStructureFailureContractTest {
     public static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-    }
-
-    @Test
-    public void globalStructureDisableRefusesGeneratorBinding() {
-        IrisModdedChunkGenerator.requireGlobalStructureGeneration(true, "overworld:overworld");
-
-        IllegalStateException error = assertThrows(
-                IllegalStateException.class,
-                () -> IrisModdedChunkGenerator.requireGlobalStructureGeneration(
-                        false, "overworld:overworld"));
-
-        assertTrue(error.getMessage().contains("overworld:overworld"));
-        assertTrue(error.getMessage().contains("generate-structures=false"));
-        assertTrue(error.getMessage().contains("importedStructures.disabled"));
-        assertTrue(error.getMessage().contains("importedStructures.disabledExact"));
     }
 
     @Test

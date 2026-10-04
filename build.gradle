@@ -324,6 +324,8 @@ List<Object> moddedSharedInputs = []
     'adapters/client-common/src',
     'core/src/main',
     'core/build.gradle',
+    'modules/default',
+    'gradle/default-module.gradle',
     'spi/src/main',
     'spi/build.gradle',
     'build.gradle',

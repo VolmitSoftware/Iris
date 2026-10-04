@@ -1,0 +1,56 @@
+import org.gradle.api.tasks.bundling.Jar
+
+// The first extraction keeps the legacy host/feature dependency cycle intact. Compile both
+// source roots together until the built-ins have been ported to the public IrisApi contracts.
+File defaultModuleDirectory = rootProject.file('modules/default')
+File defaultModuleSources = new File(defaultModuleDirectory, 'src/main/java')
+File sourcePatternsFile = new File(defaultModuleDirectory, 'source-patterns.txt')
+List<String> featureSourcePatterns = sourcePatternsFile.readLines().findAll { !it.isBlank() }
+
+sourceSets.main.java.srcDir(defaultModuleSources)
+
+def verifyDefaultModuleOwnership = tasks.register('verifyDefaultModuleOwnership') {
+    group = 'verification'
+    description = 'Checks that extracted built-ins have one source owner outside core.'
+    inputs.file(sourcePatternsFile)
+    inputs.dir(defaultModuleSources)
+    inputs.dir(project.file('src/main/java'))
+    doLast {
+        Set<File> coreFeatureSources = fileTree(project.file('src/main/java')) {
+            include(featureSourcePatterns)
+        }.files
+        if (!coreFeatureSources.isEmpty()) {
+            throw new GradleException("Built-in sources must live in modules/default: ${coreFeatureSources}")
+        }
+
+        Set<File> unexpectedSources = fileTree(defaultModuleSources) {
+            include('**/*.java')
+            exclude(featureSourcePatterns)
+        }.files
+        if (!unexpectedSources.isEmpty()) {
+            throw new GradleException("Default module sources need declared ownership: ${unexpectedSources}")
+        }
+
+        featureSourcePatterns.each { String pattern ->
+            if (fileTree(defaultModuleSources) { include(pattern) }.isEmpty()) {
+                throw new GradleException("Missing default module source family: ${pattern}")
+            }
+        }
+    }
+}
+
+tasks.named('compileJava').configure {
+    dependsOn(verifyDefaultModuleOwnership)
+}
+
+tasks.named('test').configure {
+    systemProperty('iris.defaultModuleSources', defaultModuleSources.absolutePath)
+}
+
+tasks.register('defaultModuleSourcesJar', Jar) {
+    group = 'build'
+    description = 'Packages the extracted built-in sources without the host implementation.'
+    archiveBaseName.set('iris-default-module')
+    archiveClassifier.set('sources')
+    from(defaultModuleSources)
+}

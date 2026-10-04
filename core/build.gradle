@@ -461,26 +461,32 @@ sourceSets {
     }
 }
 
+apply from: rootProject.file('gradle/default-module.gradle')
+
 tasks.register('bukkitPurityRatchet') {
     group = 'verification'
-    description = 'Fails if files outside core/purity-allowlist.txt import org.bukkit (the allowlist only shrinks).'
+    description = 'Checks host and default module Bukkit imports against the existing purity ceiling.'
     File allowlistFile = project.file('purity-allowlist.txt')
     File sourceRoot = project.file('src/main/java')
+    File defaultModuleSourceRoot = rootProject.file('modules/default/src/main/java')
     inputs.file(allowlistFile)
     inputs.dir(sourceRoot)
+    inputs.dir(defaultModuleSourceRoot)
     doLast {
         Set<String> allowed = allowlistFile.readLines().findAll { String line -> !line.isBlank() }.toSet()
         List<String> offenders = new ArrayList<>()
         List<String> coupled = new ArrayList<>()
-        sourceRoot.eachFileRecurse { File f ->
-            if (!f.name.endsWith('.java')) {
-                return
-            }
-            if (f.text.contains('org.bukkit')) {
-                String rel = sourceRoot.toPath().relativize(f.toPath()).toString()
-                coupled.add(rel)
-                if (!allowed.contains(rel)) {
-                    offenders.add(rel)
+        [sourceRoot, defaultModuleSourceRoot].each { File root ->
+            root.eachFileRecurse { File f ->
+                if (!f.name.endsWith('.java')) {
+                    return
+                }
+                if (f.text.contains('org.bukkit')) {
+                    String rel = root.toPath().relativize(f.toPath()).toString()
+                    coupled.add(rel)
+                    if (!allowed.contains(rel)) {
+                        offenders.add(rootProject.projectDir.toPath().relativize(f.toPath()).toString())
+                    }
                 }
             }
         }

@@ -29,6 +29,11 @@ Canonical English is defined in the typed Java catalogs under `core/src/main/jav
 
 Java 25 is required on every platform.
 
+Built-in feature implementations and their pack settings live in
+[`modules/default`](modules/default/README.md). During the extraction stage they retain their
+engine dependencies and compile together with the host; the existing platform artifacts still
+bundle them. Core owns lifecycle, loading, scheduling, storage and platform integration.
+
 The modded feature set matches the plugin wherever the operation is not Bukkit-bound: worldgen
 from Iris packs, authoring with mod blocks/items/entities (with validation suggestions), studio
 workspaces with schema autocomplete over the server's live registries, entity spawning parity

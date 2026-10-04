@@ -30,8 +30,8 @@ public class DiagnosticSeverityPolicyTest {
         assertLoggedWith("util/project/hunk/Hunk.java", "OUT OF BOUNDS ", "debug");
         assertLoggedWith("engine/mantle/MantleWriter.java", "No set? ", "debug");
         assertLoggedWith("engine/mantle/MantleWriter.java", "Mantle Writer Accessed chunk out of bounds", "debug");
-        assertLoggedWith("engine/object/IrisDecorator.java", "Empty Block Data for ", "warnOnce");
-        assertLoggedWith("engine/object/IrisCompat.java", "Can't find block data for ", "warnOnce");
+        assertLoggedWith("engine/object/decoration/IrisDecorator.java", "Empty Block Data for ", "warnOnce");
+        assertLoggedWith("engine/object/compatibility/IrisCompat.java", "Can't find block data for ", "warnOnce");
         assertLoggedWith("engine/data/cache/AtomicCache.java", "Atomic cache supplier failed: %s: %s", "warnOnce");
         assertLoggedWith("engine/IrisComplex.java", "Failed to sample interpolated biome bounds", "warnOnce");
         assertLoggedWith("engine/framework/placer/WorldObjectPlacer.java", "Tried to place custom block at", "warnOnce");
@@ -59,7 +59,12 @@ public class DiagnosticSeverityPolicyTest {
 
     @Test
     public void coreProductionDoesNotWriteDirectlyToProcessStreams() throws IOException {
-        try (Stream<Path> files = Files.walk(Path.of("src/main/java"))) {
+        assertNoProcessStreamWrites(Path.of("src/main/java"));
+        assertNoProcessStreamWrites(defaultModuleSources());
+    }
+
+    private static void assertNoProcessStreamWrites(Path sourceRoot) throws IOException {
+        try (Stream<Path> files = Files.walk(sourceRoot)) {
             List<Path> bypasses = files
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> {
@@ -118,7 +123,7 @@ public class DiagnosticSeverityPolicyTest {
      */
     @Test
     public void theUnusedDebugImageWriterIsGone() throws IOException {
-        assertFalse(read("engine/object/IrisImage.java").contains("writeDebug"));
+        assertFalse(read("engine/object/image/IrisImage.java").contains("writeDebug"));
     }
 
     /**
@@ -180,6 +185,14 @@ public class DiagnosticSeverityPolicyTest {
     }
 
     private static String read(String relativePath) throws IOException {
-        return Files.readString(Path.of("src/main/java/art/arcane/iris").resolve(relativePath)).replace("\r\n", "\n");
+        Path source = Path.of("src/main/java/art/arcane/iris").resolve(relativePath);
+        if (!Files.isRegularFile(source)) {
+            source = defaultModuleSources().resolve("art/arcane/iris").resolve(relativePath);
+        }
+        return Files.readString(source).replace("\r\n", "\n");
+    }
+
+    private static Path defaultModuleSources() {
+        return Path.of(System.getProperty("iris.defaultModuleSources", "../modules/default/src/main/java"));
     }
 }

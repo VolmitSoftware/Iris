@@ -306,6 +306,10 @@ public final class GenerationSemanticCapture {
                 snapshot = IrisDimensionCarvingResolver.snapshot(engine);
                 minimumY = engine.getWorld().minHeight();
             }
+            IrisBiome featureBiome = engine.getSubterrainBiome(x, y, z);
+            if (featureBiome != null) {
+                return featureBiome;
+            }
             IrisBiome configured = snapshot.resolveBiome(x, y + minimumY, z);
             if (configured != null) {
                 return configured;

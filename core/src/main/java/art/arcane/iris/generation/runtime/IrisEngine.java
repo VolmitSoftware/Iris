@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.runtime.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.pack.loading.IrisData;
@@ -589,6 +590,31 @@ public class IrisEngine implements Engine {
         }
         IrisContext context = IrisContext.get();
         return context == null || context.getEngine() != this || context.getChunkContext() == null;
+    }
+
+    @BlockCoordinates
+    @Override
+    public SubterrainCell getSubterrainCell(int x, int y, int z) {
+        if (!hasGenerationRuntimeScope() && generationHistoryRuntimeRouter != null) {
+            Optional<SubterrainCell> saved = generationHistoryRuntimeRouter.biomes()
+                    .subterrainCell(x, y + getWorld().minHeight(), z);
+            if (saved.isPresent()) {
+                return saved.get();
+            }
+        }
+        return Engine.super.getSubterrainCell(x, y, z);
+    }
+
+    @BlockCoordinates
+    @Override
+    public IrisBiome getSubterrainBiome(int x, int y, int z) {
+        SubterrainCell cell = getSubterrainCell(x, y, z);
+        if (!cell.occupied() || cell.room().biome().isEmpty()) {
+            return null;
+        }
+        Optional<BiomeEnvironment> saved = resolveSavedBiomeEnvironment(x, y, z, false);
+        IrisData data = saved.isPresent() ? saved.get().data() : getData();
+        return data.getBiomeLoader().load(cell.room().biome());
     }
 
     @BlockCoordinates

@@ -38,6 +38,8 @@ import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.function.Function3;
@@ -364,10 +366,13 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         MantleChunk<Matter> chunk = acquireChunk(cx, cz);
         if (chunk == null) return;
 
+        if (protectsSubterrainPlacement(x, y, z)) {
+            return;
+        }
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
             if ((t instanceof NativeBlockState || t instanceof MatterCavern)
-                    && hasProtectedHydrology(matter, x, y, z)) {
+                    && (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z))) {
                 return;
             }
             if (t instanceof NativeBlockState) {
@@ -399,7 +404,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
-            if (hasProtectedHydrology(matter, x, y, z)) {
+            if (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z)) {
                 return false;
             }
             MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
@@ -432,7 +437,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
-            if (hasProtectedHydrology(matter, x, y, z)) {
+            if (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z)) {
                 return false;
             }
             MatterSlice<NativeBlockState> blockSlice = matter.getSlice(NativeBlockState.class);
@@ -467,7 +472,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
-            if (hasProtectedHydrology(matter, x, y, z)) {
+            if (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z)) {
                 return;
             }
             capturePreObjectOriginal(matter, x, y, z, NativeBlockState.class);
@@ -497,7 +502,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (matter == null) {
                 return;
             }
-            if (hasProtectedHydrology(matter, x, y, z)) {
+            if (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z)) {
                 return;
             }
             MatterSlice<NativeBlockState> blockSlice = matter.getSlice(NativeBlockState.class);
@@ -578,10 +583,14 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     public NativeBlockState getPrerequisiteBlock(int x, int y, int z) {
         NativeBlockState block = getPrerequisiteDataIfPresent(x, y, z, NativeBlockState.class);
-        return block == null ? AIR.get() : block;
+        return block == null ? subterrainFallback(x, y, z) : block;
     }
 
     public boolean isPrerequisiteCarved(int x, int y, int z) {
+        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
+        if (feature != null && feature.owned()) {
+            return feature.carve();
+        }
         Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
         if (transformed != null) {
             return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
@@ -729,7 +738,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     public void clearData(int x, int y, int z, Class<?> type) {
-        if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight()) {
+        if (!allowsWrite(x, z) || y < 0 || y >= mantle.getWorldHeight() || protectsSubterrainPlacement(x, y, z)) {
             return;
         }
 
@@ -745,13 +754,19 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 return;
             }
             if ((type == NativeBlockState.class || type == MatterCavern.class)
-                    && hasProtectedHydrology(matter, x, y, z)) {
+                    && (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z))) {
                 return;
             }
             capturePreObjectOriginal(matter, x, y, z, type);
             matter.getSlice(type).set(x & 15, y & 15, z & 15, null);
             recordObjectValue(x, y, z, type, null);
         }
+    }
+
+    private boolean protectsSubterrainPlacement(int x, int y, int z) {
+        Integer priority = activeComponentPriority.get();
+        return priority != null && priority >= OBJECT_COMPONENT_PRIORITY
+                && SubterrainRasterizer.protectsPlacement(getEngine().getSubterrainCell(x, y, z));
     }
 
     private static boolean hasProtectedHydrology(Matter matter, int x, int y, int z) {
@@ -785,7 +800,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
-            if (hasProtectedHydrology(matter, x, y, z)) {
+            if (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z)) {
                 return;
             }
             MatterSlice<NativeBlockState> blockSlice = matter.slice(NativeBlockState.class);
@@ -957,9 +972,12 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         // Read-only probe: getDataIfPresent returns the identical answer without materializing
         // a 16^3 section + slice on a miss the way getData's getOrCreate path does.
         NativeBlockState block = getDataIfPresent(x, y, z, NativeBlockState.class);
-        if (block == null)
-            return AIR.get();
-        return block;
+        return block == null ? subterrainFallback(x, y, z) : block;
+    }
+
+    private NativeBlockState subterrainFallback(int x, int y, int z) {
+        SubterrainCell cell = getEngine().getSubterrainCell(x, y, z);
+        return cell != null && cell.owned() ? SubterrainRasterizer.state(cell) : AIR.get();
     }
 
     @Override
@@ -969,6 +987,10 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
+        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
+        if (feature != null && feature.owned()) {
+            return feature.carve();
+        }
         Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
         if (transformed != null) {
             return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);

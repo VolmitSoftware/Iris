@@ -24,6 +24,9 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFluid;
 import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.generation.noise.IrisExpression;
 import art.arcane.iris.generation.noise.IrisGenerator;
@@ -59,6 +62,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -70,6 +74,7 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,7 +83,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "d77cc4ea8255cbfdc4f8c49e04a3c422ca3e094399a514799ec703217f7797da";
+    private static final String EXPECTED_SCHEMA_DIGEST = "6f6dae0cd1077c45fe3f5ba512c1da4b0ab43bc8516f2d759bc8f7a798eb1c58";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,
@@ -125,6 +130,59 @@ public class SchemaBuilderIdentityTest {
             canonical.append('\n');
         }
         assertEquals(EXPECTED_SCHEMA_DIGEST, digest(canonical.toString()));
+    }
+
+    @Test
+    public void dimensionParsesAndSerializesNestedSubterrainFeatures() {
+        Gson gson = new Gson();
+        IrisDimension dimension = gson.fromJson("""
+                {"subterrainFeatures":[{"id":"flooded-vault","family":"CENOTE",
+                "biome":"pack/cavern","fluid":"LAVA","worldYRange":{"min":-40,"max":24},
+                "spacing":384,"probability":0.75,"radius":28,"fluidDepth":6}]}
+                """, IrisDimension.class);
+        assertEquals(1, dimension.getSubterrainFeatures().size());
+        IrisSubterrainFeature feature = dimension.getSubterrainFeatures().get(0);
+        assertEquals("flooded-vault", feature.getId());
+        assertEquals(IrisSubterrainFamily.CENOTE, feature.getFamily());
+        assertEquals("pack/cavern", feature.getBiome());
+        assertEquals(IrisSubterrainFluid.LAVA, feature.getFluid());
+        assertEquals(-40D, feature.getWorldYRange().getMin(), 0D);
+        assertEquals(24D, feature.getWorldYRange().getMax(), 0D);
+        assertEquals(384, feature.getSpacing());
+        assertEquals(0.75D, feature.getProbability(), 0D);
+        assertEquals(28, feature.getRadius());
+        assertEquals(6, feature.getFluidDepth());
+        IrisDimension restored = gson.fromJson(gson.toJson(dimension), IrisDimension.class);
+        assertEquals(feature, restored.getSubterrainFeatures().get(0));
+        assertTrue(new IrisDimension().getSubterrainFeatures().isEmpty());
+    }
+
+    @Test
+    public void dimensionSchemaExposesNestedSubterrainFeatureConfiguration() {
+        JSONObject schema = new SchemaBuilder(IrisDimension.class, schemaData()).construct();
+        JSONObject features = schema.getJSONObject("properties").getJSONObject("subterrainFeatures");
+        assertEquals("array", features.getString("type"));
+        assertEquals(1, features.getInt("minItems"));
+        String reference = features.getJSONObject("items").getString("$ref");
+        JSONObject featureSchema = schema.getJSONObject("definitions")
+                .getJSONObject(reference.substring("#/definitions/".length()));
+        JSONArray alternatives = featureSchema.getJSONArray("anyOf");
+        assertEquals(2, alternatives.length());
+        assertEquals("object", alternatives.getJSONObject(0).getString("type"));
+        assertEquals("string", alternatives.getJSONObject(1).getString("type"));
+        assertEquals("#/definitions/enum-snippet-subterrain-feature",
+                alternatives.getJSONObject(1).getString("$ref"));
+        JSONObject properties = alternatives.getJSONObject(0).getJSONObject("properties");
+        assertTrue(properties.has("id"));
+        assertTrue(properties.has("family"));
+        assertTrue(properties.has("biome"));
+        assertTrue(properties.has("fluid"));
+        assertTrue(properties.has("worldYRange"));
+        assertEquals(32, properties.getJSONObject("spacing").getInt("minimum"));
+        assertEquals(8192, properties.getJSONObject("spacing").getInt("maximum"));
+        assertEquals(0D, properties.getJSONObject("probability").getDouble("minimum"), 0D);
+        assertEquals(1D, properties.getJSONObject("probability").getDouble("maximum"), 0D);
+        assertEquals(32, properties.getJSONObject("fluidDepth").getInt("maximum"));
     }
 
     private static String digest(String value) {

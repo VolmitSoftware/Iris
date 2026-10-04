@@ -3,6 +3,10 @@ package art.arcane.iris.world.history;
 import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -10,6 +14,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -17,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,6 +45,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     private final GenerationHistory history;
     private final SavedBiomeStore store;
     private final Map<String, Definitions> definitions = new ConcurrentHashMap<>();
+    private final Map<Long, SubterrainPlanner> subterrainPlanners = new ConcurrentHashMap<>();
     private final LinkedHashMap<Long, PreparedQuery> queries = new LinkedHashMap<>(32, 0.75F, true);
     private final Map<Long, PendingQuery> pending = new HashMap<>();
     private final ReentrantReadWriteLock consumption = new ReentrantReadWriteLock();
@@ -133,6 +140,41 @@ public final class SavedBiomeRuntime implements AutoCloseable {
 
     public Optional<BiomeEnvironment> resolveCaveBase(int blockX, int blockZ) {
         return resolve(blockX, 0, blockZ, QueryKind.CAVE_BASE);
+    }
+
+    public Optional<SubterrainCell> subterrainCell(int blockX, int worldY, int blockZ) {
+        int chunkX = Math.floorDiv(blockX, 16);
+        int chunkZ = Math.floorDiv(blockZ, 16);
+        if (history.isActiveUnowned(chunkX, chunkZ) && history.semantics(chunkX, chunkZ).isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            long activationId = history.resolveActivation(chunkX, chunkZ).activationId();
+            return Optional.of(subterrainPlanner(activationId).sample(blockX, worldY, blockZ));
+        } catch (IOException failure) {
+            throw new UncheckedIOException("Unable to read saved subterrain definitions", failure);
+        }
+    }
+
+    public SubterrainPlanner subterrainPlanner(long activationId) throws IOException {
+        consumption.readLock().lock();
+        try {
+            requireOpen();
+            SubterrainPlanner cached = subterrainPlanners.get(activationId);
+            if (cached != null) {
+                return cached;
+            }
+            GenerationActivation activation = history.manifest().activation(activationId).orElseThrow(() ->
+                    new IOException("Saved subterrain generation is missing: " + activationId));
+            TransitionGenerationPlan transition = activation.isInitial() ? null : history.transitionPlan(activationId);
+            SubterrainPlanner planner = definitions(activationId).subterrainPlanner().restrictTo(bounds ->
+                    transition == null || transition.allowsNewFootprint(
+                            bounds.minX(), bounds.minZ(), bounds.maxX(), bounds.maxZ()));
+            SubterrainPlanner existing = subterrainPlanners.putIfAbsent(activationId, planner);
+            return existing == null ? planner : existing;
+        } finally {
+            consumption.readLock().unlock();
+        }
     }
 
     private Optional<BiomeEnvironment> resolve(int blockX, int worldY, int blockZ, QueryKind kind) {
@@ -254,6 +296,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
                     }
                 }
                 definitions.clear();
+                subterrainPlanners.clear();
             } finally {
                 consumption.writeLock().unlock();
             }
@@ -466,8 +509,14 @@ public final class SavedBiomeRuntime implements AutoCloseable {
                 if (dimension == null) {
                     throw new IOException("Historical dimension is no longer supported: " + epoch.dimensionContract().dimensionKey());
                 }
+                if (dimension.allowsSubterrainFeatures()) {
+                    SubterrainRasterizer.validateMaterials(dimension.getSubterrainFeatures());
+                }
                 Definitions loaded = new Definitions(data, dimension, NativeBiomeSpawnSelection.retainedDerivatives(data),
-                        resolveFocusRegions(data, dimension));
+                        resolveFocusRegions(data, dimension), new SubterrainPlanner(new SubterrainPlanner.Options(
+                        dimension.allowsSubterrainFeatures() ? dimension.getSubterrainFeatures() : List.of(),
+                        new SeedManager(epoch.worldSeed()).getBodies(),
+                        dimension.getMinHeight(), dimension.getMaxHeight())));
                 data.prepareBlockDropRules();
                 definitions.put(epochId, loaded);
                 return loaded;
@@ -540,7 +589,7 @@ public final class SavedBiomeRuntime implements AutoCloseable {
     }
 
     private record Definitions(IrisData data, IrisDimension dimension, Map<String, String> nativeDerivatives,
-                               Map<String, IrisRegion> focusRegions) {
+                               Map<String, IrisRegion> focusRegions, SubterrainPlanner subterrainPlanner) {
         private BiomeEnvironment environment(SavedBiomeChunk.Cell cell) {
             IrisBiome biome = data.getBiomeLoader().load(cell.biomeKey());
             IrisRegion region = data.getRegionLoader().load(cell.regionKey());

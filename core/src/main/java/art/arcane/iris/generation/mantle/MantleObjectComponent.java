@@ -37,6 +37,8 @@ import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.structure.object.IrisObjectPlacementAlignment;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.structure.object.IrisObjectTranslate;
 import art.arcane.iris.structure.object.IrisObjectVacuum;
@@ -46,6 +48,10 @@ import art.arcane.iris.generation.decoration.tree.IrisProceduralTree;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
+import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -69,9 +75,11 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 
 @ComponentFlag(ReservedFlag.OBJECT)
 public class MantleObjectComponent extends IrisMantleComponent {
@@ -250,7 +258,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     + " regionCavePlacers=" + region.getCarvingObjects().size());
         }
         ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, complex, traceRegen);
-        placeProceduralObjects(writer, rng, x, z, surfaceBiome, caveBiome, region);
+        placeProceduralObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, complex);
         UpperDimensionContext upperCtx = getEngineMantle().getEngine().getUpperContext();
         IrisDimension dimension = getDimension();
         if (upperCtx != null && dimension.isUpperDimensionObjects()) {
@@ -603,7 +611,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private void placeProceduralObjects(ObjectPassPlacer writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region) {
+    private void placeProceduralObjects(ObjectPassPlacer writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region, IrisComplex complex) {
         IrisCaveProfile surfaceCaveProfile = resolveCaveProfile(surfaceBiome.getCaveProfile(), region.getCaveProfile());
         IrisCaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome == null ? null : caveBiome.getCaveProfile());
         placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceCaveProfile, surfaceBiome.getLoadKey());
@@ -611,6 +619,23 @@ public class MantleObjectComponent extends IrisMantleComponent {
         if (caveBiome != null && caveBiome != surfaceBiome) {
             IrisCaveProfile caveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
             placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveProfile, caveBiome.getLoadKey());
+        }
+        if (complex.getSubterrainPlanner() != null && !complex.getSubterrainPlanner().isEmpty()) {
+            Set<String> placed = new HashSet<>();
+            placed.add(surfaceBiome.getLoadKey());
+            if (caveBiome != null) {
+                placed.add(caveBiome.getLoadKey());
+            }
+            for (SubterrainPlan plan : complex.getSubterrainPlanner().plansForBounds(x << 4, z << 4, (x << 4) + 15, (z << 4) + 15)) {
+                if (plan.biome().isEmpty() || !placed.add(plan.biome())) {
+                    continue;
+                }
+                IrisBiome featureBiome = getData().getBiomeLoader().load(plan.biome());
+                if (featureBiome != null) {
+                    placeProceduralFrom(writer, rng, x, z, featureBiome.getProceduralObjects(), featureBiome.getName(),
+                            resolveCaveProfile(featureBiome.getCaveProfile(), region.getCaveProfile()), featureBiome.getLoadKey());
+                }
+            }
         }
     }
 
@@ -660,16 +685,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
             IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName()) : basePlacer;
             int density = Math.max(1, p.getDensity());
             for (int i = 0; i < density; i++) {
-                IrisObject variant = placement.scaleObject(rng, p.getVariantObject(getData(), rng), getDimension());
-                if (variant == null) {
-                    if (golden) {
-                        IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
-                                + " placement=" + p.getName()
-                                + " densityIndex=" + i
-                                + " variant=null");
-                    }
-                    continue;
-                }
                 CavePlacementAnchor caveAnchor = null;
                 if (carving) {
                     caveAnchor = findCavePlacementAnchor(
@@ -691,6 +706,16 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         IrisLogging.debug("Goldendebug procedural cave anchor rejected: chunk=" + x + "," + z
                                 + " placement=" + p.getName()
                                 + " minDepthBelowSurface=" + minDepthBelowSurface);
+                    }
+                    continue;
+                }
+                IrisObject variant = placement.scaleObject(rng, p.getVariantObject(getData(), rng, proceduralRoom(caveAnchor)), getDimension());
+                if (variant == null) {
+                    if (golden) {
+                        IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
+                                + " placement=" + p.getName()
+                                + " densityIndex=" + i
+                                + " variant=null");
                     }
                     continue;
                 }
@@ -730,6 +755,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
                                 caveFloorY,
                                 zz,
                                 effectivePlacement,
+                                anchorMode == IrisCaveAnchorMode.FLOOR && effectivePlacement.getMode() != ObjectPlaceMode.CEILING_HANG
+                                        ? IrisObjectPlacementAlignment.FLOOR : IrisObjectPlacementAlignment.CENTER,
                                 minDepthBelowSurface,
                                 id,
                                 "procedural",
@@ -771,6 +798,14 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }
             }
         }
+    }
+
+    private SubterrainRoom proceduralRoom(CavePlacementAnchor anchor) {
+        if (anchor == null) {
+            return null;
+        }
+        SubterrainCell cell = getEngineMantle().getEngine().getSubterrainCell(anchor.x(), anchor.y(), anchor.z());
+        return cell == null ? null : cell.room();
     }
 
     static boolean passesProceduralChance(RNG rng, double chance) {
@@ -827,6 +862,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     private boolean acceptsCaveAnchorAt(int x, int y, int z, boolean underwater,
                                         MatterCavern cavern, HydrologyCaveCell hydrology) {
+        SubterrainCell feature = getEngineMantle().getEngine().getSubterrainCell(x, y, z);
+        if (feature != null && feature.owned()) {
+            return !SubterrainRasterizer.protectsPlacement(feature)
+                    && (underwater ? feature.fluid() : feature.kind() == SubterrainCell.Kind.AIR);
+        }
         return acceptsCaveAnchorFluid(underwater, hydrology == null ? cavern : hydrology.asCavern(),
                 hydrology, y, getDimension().getCaveLavaHeight());
     }
@@ -862,6 +902,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int anchorY,
             int z,
             IrisObjectPlacement placement,
+            IrisObjectPlacementAlignment alignment,
             int minDepthBelowSurface,
             int id,
             String markerContext,
@@ -875,12 +916,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     CaveObjectPlacementTransaction.CommitResult.REJECTED_TRANSITION);
         }
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(placer, anchorY, minDepthBelowSurface);
-        int placeY = anchorY;
+        int placeY = alignment == IrisObjectPlacementAlignment.FLOOR
+                ? proceduralFloorY(placer, x, anchorY, z) : anchorY;
         if (placement.getMode() == ObjectPlaceMode.CEILING_HANG) {
             placeY = Math.max(1, transaction.getCaveCeiling(x, z) - 1 - Math.floorDiv(object.getH(), 2));
         }
         String marker = placementMarker(object, id, markerContext);
-        int result = object.place(x, placeY, z, transaction, placement, rng, (block, data) -> {
+        BiConsumer<BlockPosition, NativeBlockState> listener = (block, data) -> {
             if (marker != null) {
                 transaction.setData(block.getX(), block.getY(), block.getZ(), marker);
             }
@@ -890,7 +932,10 @@ public class MantleObjectComponent extends IrisMantleComponent {
             if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
                 transaction.setData(block.getX(), block.getY(), block.getZ(), MatterStructurePOI.BURIED_TREASURE);
             }
-        }, null, getData());
+        };
+        int result = alignment == IrisObjectPlacementAlignment.FLOOR
+                ? object.placeOnFloor(x, placeY, z, transaction, placement, rng, listener, getData())
+                : object.place(x, placeY, z, transaction, placement, rng, listener, null, getData());
         if (result < 0) {
             transaction.discard();
             return new ContainedPlacementResult(result, CaveObjectPlacementTransaction.CommitResult.EMPTY);
@@ -1147,6 +1192,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         y,
                         z,
                         effectivePlacement,
+                        IrisObjectPlacementAlignment.CENTER,
                         objectMinDepthBelowSurface,
                         id,
                         "cave",
@@ -1500,6 +1546,17 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
         resolvedPlacement.setMode(profileMode);
         return resolvedPlacement;
+    }
+
+    static int proceduralFloorY(IObjectPlacer placer, int x, int scannedY, int z) {
+        int floorY = scannedY;
+        for (int depth = 0; depth < 3 && floorY > 1; depth++) {
+            if (!placer.isCarved(x, floorY - 1, z)) {
+                break;
+            }
+            floorY--;
+        }
+        return floorY;
     }
 
     static int caveAnchorScanUpperBound(int worldHeight, int surfaceY, int minDepthBelowSurface) {

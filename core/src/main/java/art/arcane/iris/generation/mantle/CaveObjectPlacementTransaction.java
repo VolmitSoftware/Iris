@@ -19,6 +19,8 @@
 package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -78,6 +80,11 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
             if (!isWithinBounds(mutation.x(), mutation.y(), mutation.z())) {
                 discard();
                 return CommitResult.REJECTED_BOUNDS;
+            }
+            SubterrainCell feature = engine.getSubterrainCell(mutation.x(), mutation.y(), mutation.z());
+            if (SubterrainRasterizer.protectsPlacement(feature)) {
+                discard();
+                return CommitResult.REJECTED_SUBTERRAIN;
             }
             HydrologyCaveCell hydrology = delegate.getData(
                     mutation.x(), mutation.y(), mutation.z(), HydrologyCaveCell.class);
@@ -174,6 +181,15 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     @Override
+    public int getFluidHeight(int x, int z) {
+        SubterrainCell feature = engine == null ? null : engine.getSubterrainCell(x, anchorY, z);
+        if (feature != null && feature.fluid()) {
+            return feature.room().fluidHeadY() + 1 - engine.getMinHeight();
+        }
+        return delegate.getFluidHeight(x, z);
+    }
+
+    @Override
     public boolean isDebugSmartBore() {
         return delegate.isDebugSmartBore();
     }
@@ -261,7 +277,8 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         EMPTY,
         REJECTED_TRANSITION,
         REJECTED_BOUNDS,
-        REJECTED_HYDROLOGY
+        REJECTED_HYDROLOGY,
+        REJECTED_SUBTERRAIN
     }
 
     private interface BufferedMutation {

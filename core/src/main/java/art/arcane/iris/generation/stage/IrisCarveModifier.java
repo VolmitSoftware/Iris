@@ -19,6 +19,12 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainPlan;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
+import java.util.List;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
+import art.arcane.iris.generation.subterrain.SubterrainSurfaceMaterials;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
@@ -144,7 +150,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     worldHeightSpan,
                     caveLavaHeight,
                     chunkBlockX,
-                    chunkBlockZ
+                    chunkBlockZ,
+                    getComplex().getSubterrainPlanner(),
+                    getComplex().getSubterrainPlanner() == null ? List.of() : getComplex().getSubterrainPlanner().plansForBounds(chunkBlockX - 1, chunkBlockZ - 1, chunkBlockX + 16, chunkBlockZ + 16)
             );
             CarveResolver carveResolver = new CarveResolver(resolutionContext);
             terrain.forEachCell(carveResolver::apply);
@@ -161,7 +169,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                 IrisData wallData = getData();
                 walls.forEach((rx, yy, rz, cavern) -> {
                     HydrologyCaveCell hydrology = terrain.hydrology(rx, yy, rz);
-                    if (hydrology != null && hydrology.protectsPlacement()) {
+                    if (hydrology != null && hydrology.protectsPlacement()
+                            || subterrainCell(rx + chunkBlockX, yy, rz + chunkBlockZ).owned()) {
                         return;
                     }
                     int worldX = rx + chunkBlockX;
@@ -233,6 +242,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                         output.setRaw(localX, surfaceY, localZ, AIR);
                     }
                 }
+                restoreSubterrainSolids(output, x, z);
             } finally {
                 getEngine().getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
             }
@@ -240,6 +250,58 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             getEngine().getMetrics().getCave().put(caveStopwatch.getMilliseconds());
             mantleChunk.release();
         }
+    }
+
+    private SubterrainCell subterrainCell(int x, int y, int z) {
+        SubterrainCell cell = getEngine().getSubterrainCell(x, y, z);
+        return cell == null ? SubterrainCell.OUTSIDE : cell;
+    }
+
+    public void preserveSubterrain(int blockX, int blockZ, Hunk<NativeBlockState> output) {
+        SubterrainPlanner planner = getComplex().getSubterrainPlanner();
+        if (planner == null || planner.isEmpty()) {
+            return;
+        }
+        int minimumY = getEngine().getWorld().minHeight();
+        SubterrainSurfaceMaterials materials = subterrainMaterials(planner, blockX >> 4, blockZ >> 4);
+        SubterrainRasterizer.rasterize(planner, blockX >> 4, blockZ >> 4, (worldX, worldY, worldZ, cell) -> {
+            int y = worldY - minimumY;
+            if (y <= 0 || y >= output.getHeight()) {
+                return;
+            }
+            int x = worldX & 15;
+            int z = worldZ & 15;
+            NativeBlockState existing = output.getRaw(x, y, z);
+            NativeBlockState planned = materials.state(worldX, worldY, worldZ, cell);
+            if (cell.solid() || cell.room().reservedPassage() || cell.fluid() && (existing == null || B.isAir(existing) || B.isFluid(existing))) {
+                output.setRaw(x, y, z, planned);
+            } else {
+                output.setRaw(x, y, z, IrisProceduralBlocks.normalizeWaterlogging(existing, cell.kind() == SubterrainCell.Kind.WATER ? planned : null, true));
+            }
+        });
+    }
+
+    private void restoreSubterrainSolids(Hunk<NativeBlockState> output, int chunkX, int chunkZ) {
+        SubterrainPlanner planner = getComplex().getSubterrainPlanner();
+        if (planner == null || planner.isEmpty()) {
+            return;
+        }
+        int minimumY = getEngine().getWorld().minHeight();
+        SubterrainSurfaceMaterials materials = subterrainMaterials(planner, chunkX, chunkZ);
+        SubterrainRasterizer.rasterize(planner, chunkX, chunkZ, (worldX, worldY, worldZ, cell) -> {
+            int y = worldY - minimumY;
+            if (cell.solid() && y > 0 && y < output.getHeight()) {
+                output.setRaw(worldX & 15, y, worldZ & 15, materials.state(worldX, worldY, worldZ, cell));
+            }
+        });
+    }
+
+    private SubterrainSurfaceMaterials subterrainMaterials(SubterrainPlanner planner, int chunkX, int chunkZ) {
+        int blockX = chunkX << 4;
+        int blockZ = chunkZ << 4;
+        return new SubterrainSurfaceMaterials(planner,
+                planner.plansForBounds(blockX - 1, blockZ - 1, blockX + 16, blockZ + 16),
+                getEngine().getDimension(), getComplex(), getData(), rng, getEngine().getWorld().minHeight());
     }
 
     static boolean hasExplicitCarveIntent(MatterCavern cavern) {
@@ -357,6 +419,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             int localX = x & 15;
             int localZ = z & 15;
             int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
+            SubterrainCell feature = context.subterrainPlanner() == null ? SubterrainCell.OUTSIDE : context.subterrainPlanner().sample(context.subterrainPlans(),
+                    context.chunkBlockX() + localX, y + getEngine().getWorld().minHeight(), context.chunkBlockZ() + localZ);
+            if (feature.owned()) {
+                context.output().setRaw(localX, y, localZ, SubterrainRasterizer.state(feature));
+                if (feature.carve()) {
+                    context.columnMasks()[columnIndex].add(y);
+                    if (!feature.room().biome().isEmpty()) {
+                        context.scratch().customCaveBiomePresent = true;
+                    }
+                }
+                return;
+            }
+
             if (context.upperSurfaceHeights() != null && y >= context.upperSurfaceHeights()[columnIndex]) {
                 return;
             }
@@ -432,7 +507,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             int worldHeightSpan,
             int caveLavaHeight,
             int chunkBlockX,
-            int chunkBlockZ
+            int chunkBlockZ,
+            SubterrainPlanner subterrainPlanner,
+            List<SubterrainPlan> subterrainPlans
     ) {
     }
 
@@ -904,7 +981,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                             zone.setFloor(floor);
                             zone.setCeiling(y - 1);
                             if (zone.isValid(resolver.height)
-                                    && !isNaturalTerrainOpening(getComplex(), worldX, floor, worldZ)) {
+                                    && (subterrainCell(worldX, floor, worldZ).occupied()
+                                    || !isNaturalTerrainOpening(getComplex(), worldX, floor, worldZ))) {
                                 if (markerRoll(worldX, zone.ceiling, worldZ, 0x9E3779B97F4A7C15L)) {
                                     mantle.set(worldX, zone.ceiling, worldZ, MarkerMatter.CAVE_CEILING);
                                 }
@@ -929,10 +1007,15 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                 }
             }
         }
+        restoreSubterrainSolids(output, blockX >> 4, blockZ >> 4);
     }
 
     private void decorateZone(Hunk<NativeBlockState> output, CaveZone zone,
                               int rx, int rz, int xx, int zz, IrisBiome floorBiome, IrisBiome ceilingBiome) {
+        SubterrainCell feature = subterrainCell(xx, zone.getFloor(), zz);
+        if (feature.owned() && feature.room().reservedPassage()) {
+            return;
+        }
         int maxY = output.getHeight();
         IrisDecorator[] surfaceDecorators = floorBiome == null
                 ? new IrisDecorator[0]

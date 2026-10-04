@@ -9,13 +9,19 @@ import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.world.entity.IrisEntitySpawn.SpawnContext;
 import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.iris.world.entity.IrisSpawnGroup;
+import art.arcane.iris.generation.decoration.IrisSurface;
+import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.GameRules;
 import org.bukkit.World;
 import org.junit.Test;
 import org.junit.BeforeClass;
+import org.mockito.MockedStatic;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -31,6 +37,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.mockStatic;
 
 public class WorldEntitySpawnerInitialSeedTest {
     @BeforeClass
@@ -50,6 +58,38 @@ public class WorldEntitySpawnerInitialSeedTest {
         verify(fixture.definition, never()).canSpawn(any(Engine.class), anyInt(), anyInt());
         verify(fixture.definition, never()).spawn(any(Engine.class), anyInt(), anyInt());
         verify(fixture.lastChunk, never()).getEntities();
+    }
+
+    @Test
+    public void successfulUndergroundPopulationReducesSurfaceCapacityWithoutCountingFailures() throws Exception {
+        for (int undergroundSuccesses : new int[]{0, 2, 4}) {
+            Fixture fixture = new Fixture();
+            IrisEntitySpawn undergroundEntry = mock(IrisEntitySpawn.class);
+            IrisEntity entity = mock(IrisEntity.class);
+            when(entity.getSurface()).thenReturn(IrisSurface.LAND);
+            when(entity.spawnCategory()).thenReturn("creature");
+            when(undergroundEntry.getRealEntity(fixture.engine)).thenReturn(entity);
+            when(undergroundEntry.getRarity()).thenReturn(1);
+            IrisSpawner cave = new IrisSpawner().setGroup(IrisSpawnGroup.CAVE)
+                    .setMaxEntitiesPerChunk(4).setInitialSpawns(new KList<>(undergroundEntry));
+            when(fixture.environment.data().getSpawnerLoader().loadAll(fixture.environment.biome().getEntitySpawners()))
+                    .thenReturn(new KList<>(fixture.definition, cave));
+            when(fixture.environment.dimension().hasUndergroundSpawners(fixture.engine)).thenReturn(true);
+            when(fixture.engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build());
+            when(fixture.engine.getBiomeOrMantleEnvironment(anyInt(), anyInt(), anyInt())).thenReturn(fixture.environment);
+            when(fixture.engine.openBiomeEnvironmentScope(fixture.environment)).thenReturn(mock(BiomeEnvironment.Scope.class));
+            Location candidate = new Location(fixture.world, 35, -20, -45);
+            when(undergroundEntry.spawn(eq(fixture.engine), eq(candidate), any(RNG.class), eq(4), any(SpawnContext.class)))
+                    .thenReturn(undergroundSuccesses);
+            try (MockedStatic<J> scheduler = mockStatic(J.class);
+                 MockedStatic<IrisEntitySpawn> positions = mockStatic(IrisEntitySpawn.class)) {
+                positions.when(() -> IrisEntitySpawn.findLiveCaveSpawnLocation(any(Chunk.class), any(RNG.class), eq(IrisSurface.LAND)))
+                        .thenReturn(candidate);
+                fixture.spawn(2, -3);
+            }
+            assertEquals(4 - undergroundSuccesses, fixture.observed.get("2,-3").capacity());
+            verify(fixture.lastChunk, never()).getEntities();
+        }
     }
 
     @Test
@@ -86,7 +126,7 @@ public class WorldEntitySpawnerInitialSeedTest {
         private final Engine engine = mock(Engine.class);
         private final IrisWorldManager manager = mock(IrisWorldManager.class);
         private final World world = mock(World.class);
-        private final IrisSpawner definition = mock(IrisSpawner.class);
+        private final IrisSpawner definition = spy(new IrisSpawner().setMaxEntitiesPerChunk(4));
         private final IrisEntitySpawn entry = mock(IrisEntitySpawn.class);
         private final Map<String, Observation> observed = new HashMap<>();
         private final BiomeEnvironment environment;
@@ -114,7 +154,9 @@ public class WorldEntitySpawnerInitialSeedTest {
             when(definition.getInitialSpawns()).thenReturn(new KList<>(entry));
             when(definition.getMaxEntitiesPerChunk()).thenReturn(4);
             when(entry.getRarity()).thenReturn(1);
-            when(entry.getRealEntity(engine)).thenReturn(mock(IrisEntity.class));
+            IrisEntity entity = mock(IrisEntity.class);
+            when(entity.spawnCategory()).thenReturn("creature");
+            when(entry.getRealEntity(engine)).thenReturn(entity);
             when(world.getGameRuleValue(GameRules.SPAWN_MOBS)).thenReturn(true);
             when(entry.spawn(eq(engine), any(Chunk.class), any(RNG.class), anyInt(), any(SpawnContext.class)))
                     .thenAnswer(invocation -> {
@@ -123,7 +165,7 @@ public class WorldEntitySpawnerInitialSeedTest {
                         int capacity = invocation.getArgument(3);
                         SpawnContext context = invocation.getArgument(4);
                         observed.put(chunk.getX() + "," + chunk.getZ(), new Observation(rng.getSeed(), capacity, context.initial()));
-                        return 4;
+                        return capacity;
                     });
             environment = new BiomeEnvironment(1L, biome, region, dimension, data);
             spawner = new WorldEntitySpawner(manager);

@@ -2,6 +2,11 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.generation.runtime.GenerationSessionException;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -11,20 +16,54 @@ import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class ModdedBiomePolicyTest {
+    @Test
+    public void authoredBiomeWinsAboveSurfaceGateAndBeforeStackOwnership() throws Exception {
+        Engine engine = mock(Engine.class);
+        IrisBiome feature = mock(IrisBiome.class);
+        IrisDimension host = new IrisDimension().setSubterrainFeatures(new KList<>(
+                new IrisSubterrainFeature().setId("room")));
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(new File("synthetic-pack"));
+        when(engine.getData()).thenReturn(data);
+        when(engine.getDimension()).thenReturn(host);
+        when(engine.getComplex()).thenReturn(mock(IrisComplex.class));
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getSubterrainBiome(12, 224, -20)).thenReturn(feature);
+        assertFalse(ModdedBiomePolicy.isGuaranteedSurfaceBiome(engine, 40));
+        ModdedBiomePolicy<BiomeToken, Object> policy = boundTo(engine);
+        DimensionStackLayout stack = mock(DimensionStackLayout.class);
+        Method method = ModdedBiomePolicy.class.getDeclaredMethod("resolveBiomeResolution", Engine.class,
+                int.class, int.class, int.class, boolean.class, DimensionStackLayout.class);
+        method.setAccessible(true);
+        Object resolution = method.invoke(policy, engine, 3, 40, -5, true, stack);
+        Field biome = resolution.getClass().getDeclaredField("irisBiome");
+        biome.setAccessible(true);
+        assertSame(feature, biome.get(resolution));
+        Field dimension = resolution.getClass().getDeclaredField("dimension");
+        dimension.setAccessible(true);
+        assertSame(host, dimension.get(resolution));
+        verifyNoInteractions(stack);
+    }
+
     @Test
     public void registryOrderAndHolderIdentitySurviveThePolicyBoundaryAndRefreshOnRepoint() {
         BiomeToken ocean = new BiomeToken("minecraft:ocean");

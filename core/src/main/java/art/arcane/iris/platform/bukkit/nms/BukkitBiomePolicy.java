@@ -538,6 +538,10 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         if (engine == null || engine.isClosed() || engine.getComplex() == null) {
             return false;
         }
+        if (engine.getDimension().allowsSubterrainFeatures()
+                && engine.getDimension().getSubterrainFeatures() != null && !engine.getDimension().getSubterrainFeatures().isEmpty()) {
+            return false;
+        }
         int worldMinHeight = engine.getWorld().minHeight();
         int internalY = (quartY << 2) - worldMinHeight;
         int caveSwitchInternalY = Math.max(-8 - worldMinHeight, 40);
@@ -888,6 +892,10 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         int worldMinHeight = engine.getWorld().minHeight();
         int internalY = blockY - worldMinHeight;
         int caveSwitchInternalY = Math.max(-8 - worldMinHeight, 40);
+        IrisBiome featureBiome = engine.getSubterrainBiome(blockX, internalY, blockZ);
+        if (featureBiome != null) {
+            return createBiomeResolution(featureBiome, true, engine.getDimension(), blockX, blockY, blockZ);
+        }
         DimensionStackLayout.Layer stackLayer = includeDimensionStack
                 ? stackLayout == null
                         ? resolveDimensionStackLayer(engine, blockX, internalY, blockZ)

@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.structure.object.IrisObject;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -43,7 +44,7 @@ public interface IrisProceduralPlacement {
 
     IrisObjectPlacement asPlacement();
 
-    IrisObject getVariantObject(IrisData data, RNG rng);
+    IrisObject getVariantObject(IrisData data, RNG rng, SubterrainRoom room);
 
     KList<IrisObject> getVariantObjects(IrisData data);
 }

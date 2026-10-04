@@ -6,6 +6,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -228,7 +229,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     private void setData(int x, int y, int z, Object data, SetMutation replayed) {
-        if (data == null || y < 0 || y >= worldHeight) {
+        if (data == null || y < 0 || y >= worldHeight
+                || protectsSubterrain(x, y, z)) {
             return;
         }
         if (data instanceof NativeBlockState && !canSetBlock(x, y, z)) {
@@ -351,7 +353,13 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         if (y == 0 && writer.getEngine().getDimension().isBedrock()) {
             return false;
         }
-        return !hasProtectedHydrology(x, y, z);
+        return !hasProtectedHydrology(x, y, z)
+                && !protectsSubterrain(x, y, z);
+    }
+
+    private boolean protectsSubterrain(int x, int y, int z) {
+        Engine engine = getEngine();
+        return engine != null && SubterrainRasterizer.protectsPlacement(engine.getSubterrainCell(x, y, z));
     }
 
     private boolean hasProtectedHydrology(int x, int y, int z) {

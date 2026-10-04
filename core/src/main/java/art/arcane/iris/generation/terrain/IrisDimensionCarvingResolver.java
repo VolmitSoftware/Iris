@@ -40,7 +40,7 @@ public final class IrisDimensionCarvingResolver {
         if (root == null) {
             return null;
         }
-        IrisDimensionCarvingEntry resolved = resolveBoundFromRoot(engine, root, worldX, worldZ, data, resolvedState);
+        IrisDimensionCarvingEntry resolved = resolveBoundFromRoot(engine, root, worldX, worldY, worldZ, data, resolvedState);
         return resolved == null ? null : resolveBoundEntryBiome(data, resolved, resolvedState);
     }
 
@@ -54,14 +54,14 @@ public final class IrisDimensionCarvingResolver {
         return resolveBoundRootEntry(engine, worldY, data, resolvedState);
     }
 
-    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ) {
-        return resolveFromRoot(engine, rootEntry, worldX, worldZ, threadState());
+    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldY, int worldZ) {
+        return resolveFromRoot(engine, rootEntry, worldX, worldY, worldZ, threadState());
     }
 
-    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ, State state) {
+    public static IrisDimensionCarvingEntry resolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldY, int worldZ, State state) {
         State resolvedState = state == null ? threadState() : state;
         IrisData data = resolvedState.bind(engine);
-        return resolveBoundFromRoot(engine, rootEntry, worldX, worldZ, data, resolvedState);
+        return resolveBoundFromRoot(engine, rootEntry, worldX, worldY, worldZ, data, resolvedState);
     }
 
     public static IrisBiome resolveEntryBiome(Engine engine, IrisDimensionCarvingEntry entry) {
@@ -109,7 +109,7 @@ public final class IrisDimensionCarvingResolver {
         return resolved;
     }
 
-    private static IrisDimensionCarvingEntry resolveBoundFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ, IrisData data, State resolvedState) {
+    private static IrisDimensionCarvingEntry resolveBoundFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldY, int worldZ, IrisData data, State resolvedState) {
         if (rootEntry == null) {
             return null;
         }
@@ -127,7 +127,7 @@ public final class IrisDimensionCarvingResolver {
         ColumnResolutions columns = resolvedState.columns;
         int slot = ((worldX & 31) << 5) | (worldZ & 31);
         long coordinate = ((long) worldX << 32) | (worldZ & 0xffffffffL);
-        if (columns != null && columns.roots[slot] == rootEntry && columns.coordinates[slot] == coordinate) {
+        if (columns != null && columns.roots[slot] == rootEntry && columns.coordinates[slot] == coordinate && columns.worldYs[slot] == worldY) {
             return columns.entries[slot];
         }
 
@@ -138,7 +138,8 @@ public final class IrisDimensionCarvingResolver {
         while (depth > 0) {
             cacheable &= fixedChildStyle(current);
             IrisDimensionCarvingEntry selected = selectChild(engine, data, current, worldX, worldZ, entryIndex, resolvedState);
-            if (selected == null || selected == current) {
+            if (selected == null || selected == current || selected.getWorldYRange() != null
+                    && !selected.getWorldYRange().contains(worldY)) {
                 break;
             }
 
@@ -156,6 +157,7 @@ public final class IrisDimensionCarvingResolver {
                 resolvedState.columns = columns;
             }
             columns.coordinates[slot] = coordinate;
+            columns.worldYs[slot] = worldY;
             columns.entries[slot] = current;
             columns.roots[slot] = rootEntry;
         }
@@ -332,7 +334,7 @@ public final class IrisDimensionCarvingResolver {
             if (root == null) {
                 return null;
             }
-            IrisDimensionCarvingEntry resolved = resolveBoundFromRoot(engine, root, worldX, worldZ, data, state);
+            IrisDimensionCarvingEntry resolved = resolveBoundFromRoot(engine, root, worldX, worldY, worldZ, data, state);
             return resolved == null ? null : resolveBoundEntryBiome(data, resolved, state);
         }
     }
@@ -399,6 +401,7 @@ public final class IrisDimensionCarvingResolver {
 
     private static final class ColumnResolutions {
         private final long[] coordinates = new long[1024];
+        private final int[] worldYs = new int[1024];
         private final IrisDimensionCarvingEntry[] roots = new IrisDimensionCarvingEntry[1024];
         private final IrisDimensionCarvingEntry[] entries = new IrisDimensionCarvingEntry[1024];
     }

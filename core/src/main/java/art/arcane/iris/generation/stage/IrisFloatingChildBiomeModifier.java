@@ -26,6 +26,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.decoration.FloatingDecorator;
 import art.arcane.iris.generation.decoration.IrisSeaSurfaceDecorator;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
 import art.arcane.iris.generation.runtime.EngineDecorator;
 import art.arcane.iris.generation.biome.FloatingBottomPaletteMode;
@@ -244,7 +245,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                         continue;
                     }
                     int y = sample.islandBaseY + k;
-                    if (y < 0 || y >= chunkHeight) {
+                    if (y < 0 || y >= chunkHeight || featureOwns(wx, y, wz)) {
                         continue;
                     }
                     IrisFloatingChildBiomes entry = sample.entryAt(k);
@@ -275,7 +276,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                             continue;
                         }
                         int y = sample.islandBaseY + k;
-                        if (y < 0 || y >= chunkHeight) {
+                        if (y < 0 || y >= chunkHeight || featureOwns(wx, y, wz)) {
                             continue;
                         }
                         boolean hasSolidBelow = false;
@@ -340,7 +341,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
 
                 int topY = sample.topY();
                 int max = Math.max(1, chunkHeight - topY);
-                if (topY + 1 < chunkHeight) {
+                if (topY + 1 < chunkHeight && !featureOwns(wx, topY, wz) && !featureOwns(wx, topY + 1, wz)) {
                     NativeBlockState above = output.get(xf, topY + 1, zf);
                     if (above == null || above.isAir()) {
                         try {
@@ -362,7 +363,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                             continue;
                         }
                         int y = sample.islandBaseY + k;
-                        if (y < 0 || y >= chunkHeight) {
+                        if (y < 0 || y >= chunkHeight || featureOwns(wx, y, wz)) {
                             continue;
                         }
                         boolean hasSolidBelow = false;
@@ -376,7 +377,9 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                             fluidTopY = y;
                         }
                     }
-                    if (fluidTopY > 0 && fluidTopY + 1 < chunkHeight && B.isAir(output.get(xf, fluidTopY + 1, zf))) {
+                    if (fluidTopY > 0 && fluidTopY + 1 < chunkHeight
+                            && !featureOwns(wx, fluidTopY, wz) && !featureOwns(wx, fluidTopY + 1, wz)
+                            && B.isAir(output.get(xf, fluidTopY + 1, zf))) {
                         try {
                             seaSurfaceDecorator.decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, output, target, fluidTopY, chunkHeight);
                         } catch (Throwable e) {
@@ -387,6 +390,11 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 }
             }
         }
+    }
+
+    private boolean featureOwns(int x, int y, int z) {
+        SubterrainCell cell = getEngine().getSubterrainCell(x, y, z);
+        return cell != null && cell.owned();
     }
 
     private void writeIslandSkyBiomes(
@@ -406,7 +414,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                     continue;
                 }
                 int y = sample.islandBaseY + k;
-                if (y < 0 || y >= chunkHeight) {
+                if (y < 0 || y >= chunkHeight || featureOwns(wx, y, wz)) {
                     continue;
                 }
                 if (!shouldWriteHostBiomeMarker(stackLayout, y)) {

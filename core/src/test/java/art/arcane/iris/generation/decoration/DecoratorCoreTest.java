@@ -507,7 +507,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void sulfurStalagmiteKeepsSulfurMaterialAndTapersToOneTip() {
-        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, true, false);
+        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, true, false, false);
 
         assertSpikeColumn(output, "minecraft:sulfur_spike", true, false,
                 "base", "middle", "middle", "frustum", "tip");
@@ -515,7 +515,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void sulfurStalactiteKeepsWaterloggingAndPointsDown() {
-        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, false, true);
+        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:sulfur_spike", 5, false, true, true);
 
         assertSpikeColumn(output, "minecraft:sulfur_spike", false, true,
                 "base", "middle", "middle", "frustum", "tip");
@@ -524,8 +524,8 @@ public class DecoratorCoreTest {
     @Test
     public void shortSulfurSpikesHaveCorrectTipsInBothDirections() {
         for (boolean upward : new boolean[]{true, false}) {
-            Hunk<NativeBlockState> single = placeSpikeColumn("minecraft:sulfur_spike", 1, upward, false);
-            Hunk<NativeBlockState> pair = placeSpikeColumn("minecraft:sulfur_spike", 2, upward, false);
+            Hunk<NativeBlockState> single = placeSpikeColumn("minecraft:sulfur_spike", 1, upward, false, false);
+            Hunk<NativeBlockState> pair = placeSpikeColumn("minecraft:sulfur_spike", 2, upward, false, false);
 
             assertSpikeColumn(single, "minecraft:sulfur_spike", upward, false, "tip");
             assertSpikeColumn(pair, "minecraft:sulfur_spike", upward, false, "frustum", "tip");
@@ -533,8 +533,17 @@ public class DecoratorCoreTest {
     }
 
     @Test
+    public void authoredWaterloggedSpikesBecomeDryInAirInBothDirections() {
+        for (boolean upward : new boolean[]{true, false}) {
+            Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:pointed_dripstone", 4, upward, true, false);
+            assertSpikeColumn(output, "minecraft:pointed_dripstone", upward, false,
+                    "base", "middle", "frustum", "tip");
+        }
+    }
+
+    @Test
     public void pointedDripstoneRetainsWaterloggingWhenStacked() {
-        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:pointed_dripstone", 4, true, true);
+        Hunk<NativeBlockState> output = placeSpikeColumn("minecraft:pointed_dripstone", 4, true, true, true);
 
         assertSpikeColumn(output, "minecraft:pointed_dripstone", true, true,
                 "base", "middle", "frustum", "tip");
@@ -738,7 +747,7 @@ public class DecoratorCoreTest {
         return air;
     }
 
-    private Hunk<NativeBlockState> placeSpikeColumn(String material, int height, boolean upward, boolean waterlogged) {
+    private Hunk<NativeBlockState> placeSpikeColumn(String material, int height, boolean upward, boolean waterlogged, boolean submerged) {
         IrisDecorator decorator = mock(IrisDecorator.class);
         IrisData data = mock(IrisData.class);
         NativeBlockState spike = spikeState(material, Map.of(
@@ -750,12 +759,21 @@ public class DecoratorCoreTest {
         when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(spike);
 
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, height + 2, 1);
+        NativeBlockState target = airState();
+        if (submerged) {
+            target = mock(NativeBlockState.class);
+            when(target.key()).thenReturn("minecraft:water");
+            when(target.isWater()).thenReturn(true);
+            when(target.isFluid()).thenReturn(true);
+        }
         for (int y = 1; y <= height; y++) {
-            output.set(0, y, 0, airState());
+            output.set(0, y, 0, target);
         }
         NativeBlockState support = sturdyState();
         output.set(0, upward ? 0 : height + 1, 0, support);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
+        opts.underwater = submerged;
+        opts.fluidHeight = height;
         if (upward) {
             DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 0, height, output, new RNG(1L), data, opts);
         } else {

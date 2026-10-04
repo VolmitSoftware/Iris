@@ -81,10 +81,7 @@ public final class IrisSpeleothems {
     }
 
     static NativeBlockState orient(NativeBlockState state, NativeBlockState existing, boolean upward) {
-        if (existing != null && existing.isWater() && !state.isWaterLogged()) {
-            state = state.withProperty("waterlogged", "true");
-        }
-        return spikeBlock(state, upward, 0);
+        return spikeBlock(IrisProceduralBlocks.normalizeWaterlogging(state, existing, true), upward, 0);
     }
 
     static boolean isSturdy(NativeBlockState surface, boolean upward) {

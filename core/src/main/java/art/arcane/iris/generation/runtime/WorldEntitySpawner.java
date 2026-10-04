@@ -24,6 +24,9 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.volmlib.util.math.Rarity;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.decoration.IrisSurface;
+import art.arcane.iris.world.entity.IrisSpawnGroup;
+import org.bukkit.Location;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.world.entity.EntitySpawnSeed;
 import art.arcane.iris.world.entity.IrisMarker;
@@ -404,41 +407,94 @@ final class WorldEntitySpawner {
         if (!ambientAllowed(chunk, initial)) {
             return;
         }
-        ChunkCounter counter = initial ? null : new ChunkCounter(chunk.getEntities());
+        ChunkCounter counter = new ChunkCounter(initial ? new Entity[0] : chunk.getEntities());
         List<SpawnSelection> pool = new ArrayList<>();
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()),
-                environment.biome(), chunk, initial, counter);
+                environment.biome(), chunk, initial, counter, false);
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.region().getEntitySpawners()),
-                null, chunk, initial, counter);
+                null, chunk, initial, counter, false);
         collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.biome().getEntitySpawners()),
-                null, chunk, initial, counter);
+                null, chunk, initial, counter, false);
         RNG random = initial ? EntitySpawnSeed.chunk(manager.getEngine().getSeedManager().getEntity(),
                 chunk.getX(), chunk.getZ()) : new RNG(RNG.r.nextLong());
+        if (environment.dimension().hasUndergroundSpawners(manager.getEngine())) {
+            spawnUnderground(chunk, initial, counter, random.nextParallelRNG(0x5A17D3B48269C0EFL));
+        }
         SpawnSelection selected = selectSpawn(pool, random);
         if (selected == null) {
             return;
         }
-        int capacity = initial ? Math.max(0, selected.spawner().getMaxEntitiesPerChunk())
-                : counter.remainingCapacity(selected.entry(), selected.spawner(), manager.getEngine());
+        int capacity = counter.remainingCapacity(selected.entry(), selected.spawner(), manager.getEngine());
         int spawned = selected.entry().spawn(manager.getEngine(), chunk, random, capacity,
                 new SpawnContext(selected.spawner(), null, initial));
         actuallySpawned.addAndGet(spawned);
+        counter.recordSpawned(selected.entry(), manager.getEngine(), spawned);
         if (spawned > 0 && !initial) {
             selected.spawner().spawn(manager.getEngine(), chunk.getX(), chunk.getZ());
         }
     }
 
+    private static boolean matchesUndergroundSurface(IrisEntitySpawn entry, Engine engine, IrisSurface surface) {
+        IrisEntity entity = entry.getRealEntity(engine);
+        return entity != null && entity.getSurface().isFluid() == surface.isFluid()
+                && (!surface.isFluid() || entity.getSurface() == surface);
+    }
+
+    private void spawnUnderground(Chunk chunk, boolean initial, ChunkCounter counter, RNG random) {
+        if (J.isFolia() && !J.isOwnedByCurrentRegion(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+            return;
+        }
+        for (IrisSurface surface : List.of(IrisSurface.LAND, IrisSurface.WATER, IrisSurface.LAVA)) {
+            Location candidate = IrisEntitySpawn.findLiveCaveSpawnLocation(
+                    chunk, random.nextParallelRNG(surface.ordinal()), surface);
+            if (candidate == null) {
+                continue;
+            }
+            Engine engine = manager.getEngine();
+            BiomeEnvironment environment;
+            try {
+                environment = engine.getBiomeOrMantleEnvironment(candidate.getBlockX(),
+                        candidate.getBlockY() - engine.getWorld().minHeight(), candidate.getBlockZ());
+            } catch (SavedBiomeUnavailableException unavailable) {
+                continue;
+            }
+            try (BiomeEnvironment.Scope ignored = engine.openBiomeEnvironmentScope(environment)) {
+                List<SpawnSelection> pool = new ArrayList<>();
+                collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()),
+                        environment.biome(), chunk, initial, counter, true);
+                collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.region().getEntitySpawners()),
+                        null, chunk, initial, counter, true);
+                collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.biome().getEntitySpawners()),
+                        null, chunk, initial, counter, true);
+                pool.removeIf(selection -> !matchesUndergroundSurface(selection.entry(), engine, surface));
+                SpawnSelection selected = selectSpawn(pool, random);
+                if (selected == null) {
+                    continue;
+                }
+                int capacity = counter.remainingCapacity(selected.entry(), selected.spawner(), engine);
+                int spawned = selected.entry().spawn(engine, candidate, random, capacity,
+                        new SpawnContext(selected.spawner(), null, initial));
+                actuallySpawned.addAndGet(spawned);
+                counter.recordSpawned(selected.entry(), engine, spawned);
+                if (spawned > 0 && !initial) {
+                    selected.spawner().spawn(engine, chunk.getX(), chunk.getZ());
+                }
+                return;
+            }
+        }
+    }
+
     private void collectSpawns(List<SpawnSelection> pool, KList<IrisSpawner> spawners, IrisBiome biome,
-                               Chunk chunk, boolean initial, ChunkCounter counter) {
+                               Chunk chunk, boolean initial, ChunkCounter counter, boolean underground) {
         for (IrisSpawner spawner : spawners) {
-            if (!spawnerAllowed(spawner, manager.getEngine(), chunk.getX(), chunk.getZ(), initial)
+            if ((spawner.getGroup() == IrisSpawnGroup.CAVE) != underground
+                    || !spawnerAllowed(spawner, manager.getEngine(), chunk.getX(), chunk.getZ(), initial)
                     || biome != null && !spawner.isValid(biome)) {
                 continue;
             }
             for (IrisEntitySpawn entry : initial ? spawner.getInitialSpawns() : spawner.getSpawns()) {
                 IrisEntity entity = entry.getRealEntity(manager.getEngine());
-                int capacity = initial ? Math.max(0, spawner.getMaxEntitiesPerChunk())
-                        : counter.remainingCapacity(entry, spawner, manager.getEngine());
+                int capacity = counter.remainingCapacity(entry, spawner, manager.getEngine());
                 if (entity != null && capacity > 0) {
                     pool.add(new SpawnSelection(entry, spawner));
                 }
@@ -500,6 +556,13 @@ final class WorldEntitySpawner {
                 if (entity instanceof LivingEntity && !(entity instanceof Player)) {
                     counts.merge(BukkitEntityType.of(entity.getType()).spawnCategory(), 1, Integer::sum);
                 }
+            }
+        }
+
+        void recordSpawned(IrisEntitySpawn entry, Engine engine, int spawned) {
+            IrisEntity entity = entry.getRealEntity(engine);
+            if (spawned > 0 && entity != null) {
+                counts.merge(entity.spawnCategory(), spawned, Integer::sum);
             }
         }
 

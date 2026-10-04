@@ -325,7 +325,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
 
     private H getNoiseBiome(Engine engine, int quartX, int quartY, int quartZ,
                                         S sampler) {
-        if (isGuaranteedSurfaceBiome(quartY, engine.getMinHeight())) {
+        if (isGuaranteedSurfaceBiome(engine, quartY)) {
             return getSurfaceStructureBiome(engine, quartX, quartZ, sampler);
         }
         boolean cacheable = isBiomeCacheable(
@@ -512,7 +512,7 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
                 }
                 boolean monumentQuery = isMonumentSurfaceBiomeQuery(
                         y, radius, engine.getMinHeight(), engine.getDimension().getFluidHeight());
-                surfaceQuery = monumentQuery || isGuaranteedSurfaceBiome(minQuartY, engine.getMinHeight());
+                surfaceQuery = monumentQuery || isGuaranteedSurfaceBiome(engine, minQuartY);
             }
             if (!surfaceQuery) {
                 return query.fallback().get();
@@ -701,6 +701,11 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         int blockZ = quartZ << 2;
         int internalY = blockY - engine.getMinHeight();
         int caveSwitchY = Math.max(-8 - engine.getMinHeight(), 40);
+        IrisBiome featureBiome = engine.getSubterrainBiome(blockX, internalY, blockZ);
+        if (featureBiome != null) {
+            return createBiomeResolution(engine, featureBiome, true, engine.getDimension(), engine.getData(),
+                    blockX, blockY, blockZ);
+        }
         DimensionStackLayout.Layer stackLayer = includeDimensionStack
                 ? stackLayout == null
                         ? resolveDimensionStackLayer(engine, blockX, internalY, blockZ)
@@ -846,7 +851,13 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
         return configuredBiomeKeys;
     }
 
-    static boolean isGuaranteedSurfaceBiome(int quartY, int minHeight) {
+    static boolean isGuaranteedSurfaceBiome(Engine engine, int quartY) {
+        IrisDimension dimension = engine.getDimension();
+        if (dimension != null && dimension.allowsSubterrainFeatures()
+                && !dimension.getSubterrainFeatures().isEmpty()) {
+            return false;
+        }
+        int minHeight = engine.getMinHeight();
         int internalY = (quartY << 2) - minHeight;
         int caveSwitchY = Math.max(-8 - minHeight, 40);
         return internalY > caveSwitchY;

@@ -22,6 +22,8 @@ import art.arcane.iris.generation.stream.GenerationStreams;
 import art.arcane.iris.generation.stream.CachedDoubleStream2D;
 import art.arcane.iris.generation.stream.CachedStream2D;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
+import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 
 
 import art.arcane.iris.configuration.IrisSettings;
@@ -243,6 +245,8 @@ public class IrisComplex implements DataProvider {
     private Map<IrisInterpolator, IdentityHashMap<IrisBiome, GeneratorBounds>> generatorBounds;
     private Set<IrisBiome> generatorBiomes;
     private IrisHydrologyRuntime hydrologyRuntime;
+    @Setter(AccessLevel.NONE)
+    private final transient SubterrainPlanner subterrainPlanner;
     private transient IrisImageMapRuntime imageMapRuntime;
     // Copy-on-write: reads happen per column on every burst thread; the synchronizedMap
     // monitor was taken on every HIT. Writes are once per biome and bounded, so a fresh map
@@ -264,6 +268,15 @@ public class IrisComplex implements DataProvider {
 
     IrisComplex(Engine engine, boolean simple, TransitionGenerationPlan transitionGenerationPlan, boolean detached) {
         terrainEngine = engine;
+        if (engine.getDimension().allowsSubterrainFeatures()) {
+            SubterrainRasterizer.validateMaterials(engine.getDimension().getSubterrainFeatures());
+        }
+        subterrainPlanner = new SubterrainPlanner(new SubterrainPlanner.Options(
+                engine.getDimension().allowsSubterrainFeatures() ? engine.getDimension().getSubterrainFeatures() : List.of(),
+                engine.getSeedManager().getBodies(),
+                engine.getDimension().getMinHeight(), engine.getDimension().getMaxHeight()),
+                bounds -> transitionGenerationPlan == null || transitionGenerationPlan.allowsNewFootprint(
+                        bounds.minX(), bounds.minZ(), bounds.maxX(), bounds.maxZ()));
         biomeBoundsSamplingStep = engine.getDimension().getBiomeBoundsSamplingStep();
         this.detached = detached;
         this.transitionGenerationPlan = transitionGenerationPlan;

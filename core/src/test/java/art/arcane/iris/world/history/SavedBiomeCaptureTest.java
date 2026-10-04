@@ -1,10 +1,20 @@
 package art.arcane.iris.world.history;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
+import art.arcane.iris.generation.subterrain.SubterrainPlan;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
+import art.arcane.iris.generation.subterrain.SubterrainPosition;
+
+import java.util.List;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import org.junit.Test;
+import org.mockito.MockMakers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -20,6 +30,7 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class SavedBiomeCaptureTest {
     @Test
@@ -77,6 +88,7 @@ public class SavedBiomeCaptureTest {
     @Test
     public void retainsFloatingChildIdentityWhenItSharesTheHostDerivative() throws Exception {
         Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         GenerationHistory.GenerationStage stage = mock(GenerationHistory.GenerationStage.class);
         SavedBiomeRuntime historical = mock(SavedBiomeRuntime.class);
         IrisBiome host = biome("host");
@@ -118,6 +130,7 @@ public class SavedBiomeCaptureTest {
     @Test
     public void recordsExactSurfaceColumnsAndIndependentCaveAndVerticalIdentities() throws Exception {
         Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         GenerationHistory.GenerationStage stage = mock(GenerationHistory.GenerationStage.class);
         SavedBiomeRuntime historical = mock(SavedBiomeRuntime.class);
         IrisBiome left = biome("left");
@@ -155,12 +168,118 @@ public class SavedBiomeCaptureTest {
         verifyNoInteractions(historical);
     }
 
+    @Test
+    public void preservesHostFeatureBiomeAndRegionAgainstStackAndFloatingOverlay() throws Exception {
+        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
+        IrisBiome upper = biome("upper-biome");
+        IrisBiome authored = biome("authored-biome");
+        IrisRegion upperRegion = region("upper-region");
+        IrisRegion hostRegion = region("host-region");
+        DimensionStackContext stack = mock(DimensionStackContext.class);
+        DimensionStackLayout layout = mock(DimensionStackLayout.class);
+        DimensionStackLayout.Layer layer = mock(DimensionStackLayout.Layer.class);
+        when(engine.getDimensionStackContext()).thenReturn(stack);
+        when(stack.getLayout(anyInt(), anyInt())).thenReturn(layout);
+        when(layout.layerAt(anyInt())).thenReturn(layer);
+        when(layer.region()).thenReturn(upperRegion);
+        when(engine.getComplex().getRegionStream().get(anyDouble(), anyDouble())).thenReturn(hostRegion);
+        when(engine.getComplex().getTransitionGenerationPlan()).thenReturn(null);
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getHeight()).thenReturn(16);
+        when(engine.getRegion(anyInt(), anyInt())).thenReturn(upperRegion);
+        doCallRealMethod().when(engine).getRegion(anyInt(), anyInt(), anyInt());
+        when(engine.getSubterrainCell(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                (int) call.getArgument(1) == 8 ? new SubterrainCell(SubterrainCell.Kind.AIR, "", null) : SubterrainCell.OUTSIDE);
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(upper);
+        when(engine.getCaveBiome(anyInt(), anyInt())).thenReturn(upper);
+        when(engine.getBiomeOrMantle(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                (int) call.getArgument(1) == 8 ? authored : upper);
+        columnsFromPointLookups(engine);
+        FloatingBiomeOverlay floating = new FloatingBiomeOverlay(16);
+        floating.record(0, 8, 0, new FloatingBiomeOverlay.Identity("upper-biome", "upper-region"));
+
+        SavedBiomeChunk chunk = SavedBiomeCapture.capture(engine, stage(), mock(SavedBiomeRuntime.class), floating);
+
+        assertEquals("authored-biome", chunk.biomeAt(0, -56, 0).biomeKey());
+        assertEquals("host-region", chunk.biomeAt(0, -56, 0).regionKey());
+        assertEquals("upper-region", chunk.biomeAt(0, -60, 0).regionKey());
+        assertEquals("upper-region", chunk.surfaceAt(0, 0).regionKey());
+    }
+
+    @Test
+    public void capturesFeatureBoundariesAtExactBlockCoordinates() throws Exception {
+        IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("exact-basin").setBiome("authored-biome")
+                .setProbability(1).setPillarSpacing(0).setFormationFraction(0);
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320));
+        SubterrainPlan plan = planner.plansForBounds(0, 0, 512, 512).getFirst();
+        SubterrainPosition anchor = plan.anchor();
+        int edgeX = plan.bounds().minX();
+        while (!planner.sample(edgeX, anchor.y(), anchor.z()).occupied()) {
+            edgeX++;
+        }
+        int chunkX = Math.floorDiv(edgeX, 16);
+        int chunkZ = Math.floorDiv(anchor.z(), 16);
+        Engine engine = mock(Engine.class, withSettings().defaultAnswer(RETURNS_DEEP_STUBS)
+                .mockMaker(MockMakers.SUBCLASS));
+        IrisBiome fallback = biome("base-biome");
+        IrisBiome authored = biome("authored-biome");
+        IrisRegion host = region("host-region");
+        IrisRegion stacked = region("stacked-region");
+        DimensionStackContext stack = mock(DimensionStackContext.class);
+        DimensionStackLayout layout = mock(DimensionStackLayout.class);
+        DimensionStackLayout.Layer layer = mock(DimensionStackLayout.Layer.class);
+        when(engine.getDimensionStackContext()).thenReturn(stack);
+        when(stack.getLayout(anyInt(), anyInt())).thenReturn(layout);
+        when(layout.layerAt(anyInt())).thenReturn(layer);
+        when(layer.region()).thenReturn(stacked);
+        when(engine.getComplex().getRegionStream().get(anyDouble(), anyDouble())).thenReturn(host);
+        when(engine.getComplex().getSubterrainPlanner()).thenReturn(planner);
+        when(engine.getComplex().getTransitionGenerationPlan()).thenReturn(null);
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getHeight()).thenReturn(384);
+        when(engine.getRegion(anyInt(), anyInt())).thenReturn(stacked);
+        when(engine.getSubterrainCell(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                planner.sample(call.getArgument(0), (int) call.getArgument(1) - 64, call.getArgument(2)));
+        doCallRealMethod().when(engine).getRegion(anyInt(), anyInt(), anyInt());
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(fallback);
+        when(engine.getCaveBiome(anyInt(), anyInt())).thenReturn(fallback);
+        when(engine.getBiomeOrMantle(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                planner.sample(call.getArgument(0), (int) call.getArgument(1) - 64, call.getArgument(2)).occupied()
+                        ? authored : fallback);
+        columnsFromPointLookups(engine);
+        GenerationHistory.GenerationStage stage = stage();
+        when(stage.chunkX()).thenReturn(chunkX);
+        when(stage.chunkZ()).thenReturn(chunkZ);
+
+        SavedBiomeChunk chunk = SavedBiomeCapture.capture(engine, stage, mock(SavedBiomeRuntime.class), null);
+
+        boolean nonQuartOccupied = false;
+        boolean outsideOccupiedVolume = false;
+        for (int localX = 0; localX < 16; localX++) {
+            for (int localZ = 0; localZ < 16; localZ++) {
+                for (int y = plan.bounds().minY(); y <= plan.bounds().maxY(); y++) {
+                    boolean occupied = planner.sample(chunkX * 16 + localX, y, chunkZ * 16 + localZ).occupied();
+                    SavedBiomeChunk.Cell recorded = chunk.biomeAt(localX, y, localZ);
+                    assertEquals(occupied ? "authored-biome" : "base-biome", recorded.biomeKey());
+                    assertEquals(occupied ? "host-region" : "stacked-region", recorded.regionKey());
+                    nonQuartOccupied |= occupied && (localX % 4 != 0 || localZ % 4 != 0 || Math.floorMod(y, 4) != 0);
+                    outsideOccupiedVolume |= !occupied;
+                }
+            }
+        }
+        assertTrue(nonQuartOccupied);
+        assertTrue(outsideOccupiedVolume);
+    }
+
     private static Engine caveCaptureEngine(IrisBiome surface, IrisBiome cave) {
         Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        when(engine.getComplex().getSubterrainPlanner()).thenReturn(null);
         IrisRegion region = region("flat-region");
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(16);
         when(engine.getHeight(anyInt(), anyInt())).thenReturn(8);
+        when(engine.getSubterrainBiome(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(engine.getDimensionStackContext()).thenReturn(null);
         when(engine.getComplex().getTransitionGenerationPlan()).thenReturn(null);
         when(engine.getComplex().getCaveBiomeStream().get(anyDouble(), anyDouble())).thenReturn(cave);

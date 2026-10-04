@@ -1,6 +1,9 @@
 package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
@@ -48,6 +51,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ObjectDestinationTransactionTest {
+    @Test
+    public void sourceCaptureCannotReplaceAuthoredRoomSolids() {
+        MantleWriter writer = writer();
+        SubterrainRoom room = new SubterrainRoom("cenote", "wet-cave", IrisSubterrainFamily.CENOTE,
+                4, 35, 7, 4, 21, 7, 19, 61, 8, 24, false, true, SubterrainCell.Kind.SOLID);
+        when(writer.getEngine().getSubterrainCell(4, 30, 7))
+                .thenReturn(new SubterrainCell(SubterrainCell.Kind.SOLID, "minecraft:stone", room));
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+        int checkpoint = transaction.mutationCheckpoint();
+        transaction.set(4, 30, 7, mock(NativeBlockState.class));
+        transaction.setData(4, 30, 7, "object@1");
+        transaction.setData(4, 30, 7, new MatterCavern(true, "", (byte) 3));
+        assertEquals(checkpoint, transaction.mutationCheckpoint());
+    }
+
     @Test
     public void commonAndGenericMetadataSurviveBlockReplacementAndSourceReplay() {
         MantleWriter writer = writer();

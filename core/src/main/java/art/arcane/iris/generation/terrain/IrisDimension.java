@@ -18,6 +18,7 @@
 
 package art.arcane.iris.generation.terrain;
 
+import art.arcane.iris.world.entity.IrisSpawnGroup;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.biome.IrisCustomBiomeAliasResolver;
@@ -30,6 +31,7 @@ import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.tree.IrisTreeSettings;
 import art.arcane.iris.generation.hydrology.IrisDeepFluidConfig;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
 import art.arcane.iris.generation.hydrology.IrisHydrology;
 import art.arcane.iris.generation.hydrology.IrisRiverHydrology;
 import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
@@ -86,6 +88,7 @@ import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
+import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
@@ -143,6 +146,7 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> sinr = new AtomicCache<>();
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
+    private final transient AtomicCache<Boolean> undergroundSpawnTables = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
     private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
@@ -222,6 +226,9 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(type = IrisDimensionCarvingEntry.class, min = 1)
     @Description("Dimension-level cave biome carving overrides with absolute world Y ranges")
     private KList<IrisDimensionCarvingEntry> carving = new KList<>();
+    @ArrayType(type = IrisSubterrainFeature.class, min = 1)
+    @Description("Deterministic bounded underground features with owned geometry, biome, fluids and room formations.")
+    private KList<IrisSubterrainFeature> subterrainFeatures = new KList<>();
     @Description("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
     @Description("Dimension-owned surface, underground, grotto, and deep-fluid hydrology configuration.")
@@ -733,6 +740,14 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
+        if (getSubterrainFeatures() != null) {
+            for (IrisSubterrainFeature feature : getSubterrainFeatures()) {
+                if (feature != null && feature.isEnabled()) {
+                    addReachableBiomeKey(pending, feature.getBiome());
+                }
+            }
+        }
+
         Set<String> visited = new HashSet<>();
         Map<String, IrisDimensionCarvingEntry> carvingEntryIndex = getCarvingEntryIndex();
         while (!pending.isEmpty()) {
@@ -1185,6 +1200,44 @@ public class IrisDimension extends IrisRegistrant {
             options = options.copy().ambientLight(1.0f);
         }
         return new IrisDimensionType(getBaseDimension(), options, getLogicalHeight(), getMaxHeight() - getMinHeight(), getMinHeight());
+    }
+
+    public boolean hasUndergroundSpawners(DataProvider provider) {
+        return undergroundSpawnTables.aquire(() -> {
+            IrisData data = provider.getData();
+            if (hasCaveSpawners(data, entitySpawners)) {
+                return true;
+            }
+            for (IrisRegion region : getAllRegions(provider)) {
+                if (region != null && hasCaveSpawners(data, region.getEntitySpawners())) {
+                    return true;
+                }
+            }
+            for (IrisBiome biome : getReachableBiomes(provider)) {
+                if (biome != null && hasCaveSpawners(data, biome.getEntitySpawners())) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    private static boolean hasCaveSpawners(IrisData data, KList<String> keys) {
+        if (keys == null || keys.isEmpty() || data.getSpawnerLoader() == null) {
+            return false;
+        }
+        KList<IrisSpawner> spawners = data.getSpawnerLoader().loadAll(keys);
+        for (IrisSpawner spawner : spawners) {
+            if (spawner != null && !spawner.isCompatExcluded() && spawner.getGroup() == IrisSpawnGroup.CAVE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean allowsSubterrainFeatures() {
+        return useMantle && carvingEnabled && mode != null && mode.getType() == IrisDimensionModeType.OVERWORLD
+                && !disabledComponents.contains(ReservedFlag.CARVED);
     }
 
     public boolean hasUpperDimension() {

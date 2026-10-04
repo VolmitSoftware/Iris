@@ -19,6 +19,8 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.world.history.ChunkGenerationSemantics;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 
 import art.arcane.iris.structure.nativegen.NativeStructureOwnershipStore;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
@@ -328,6 +330,9 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisRegion getRegion(int x, int y, int z) {
+        if (getSubterrainCell(x, y, z).occupied()) {
+            return getComplex().getRegionStream().get(x, z);
+        }
         DimensionStackContext dimensionStackContext = getDimensionStackContext();
         if (dimensionStackContext != null) {
             DimensionStackLayout.Layer layer = dimensionStackContext.getLayout(x, z).layerAt(y);
@@ -341,7 +346,29 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     void generateMatter(int x, int z, boolean multicore, ChunkContext context);
 
     @BlockCoordinates
+    default SubterrainCell getSubterrainCell(int x, int y, int z) {
+        if (getComplex() == null || getDimension() == null
+                || !getDimension().allowsSubterrainFeatures()
+                || getDimension().getSubterrainFeatures() == null || getDimension().getSubterrainFeatures().isEmpty()) {
+            return SubterrainCell.OUTSIDE;
+        }
+        SubterrainPlanner planner = getComplex().getSubterrainPlanner();
+        return planner == null ? SubterrainCell.OUTSIDE : planner.sample(x, y + getWorld().minHeight(), z);
+    }
+
+    @BlockCoordinates
+    default IrisBiome getSubterrainBiome(int x, int y, int z) {
+        SubterrainCell cell = getSubterrainCell(x, y, z);
+        return cell.occupied() && !cell.room().biome().isEmpty()
+                ? getData().getBiomeLoader().load(cell.room().biome()) : null;
+    }
+
+    @BlockCoordinates
     default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        if (featureBiome != null) {
+            return featureBiome;
+        }
         IrisBiome mantleBiome = mantleCaveBiome(x, y, z);
         return mantleBiome != null ? mantleBiome : getCaveBiome(x, y, z);
     }
@@ -401,6 +428,11 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             for (int index = 0; index < biomes.length; index++) {
                 int y = index * step;
                 regions[index] = region;
+                IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+                if (featureBiome != null) {
+                    biomes[index] = featureBiome;
+                    continue;
+                }
                 if (y > caveTop || complex.isTerrain3DSurface(x, y, z)) {
                     if (surface == null) {
                         surface = getSurfaceBiome(x, z);
@@ -458,6 +490,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        if (featureBiome != null) {
+            return featureBiome;
+        }
         IrisBiome configuredBiome = resolveConfiguredCaveBiome(x, y, z, state);
         if (configuredBiome != null) {
             return configuredBiome;
@@ -490,6 +526,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             IrisBiome surfaceBiome,
             int surfaceY
     ) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        if (featureBiome != null) {
+            return featureBiome;
+        }
         IrisBiome configuredBiome = resolveConfiguredCaveBiome(x, y, z, state);
         if (configuredBiome != null) {
             return configuredBiome;
@@ -719,6 +759,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     boolean isStudio();
 
     default IrisBiome getBiome(int x, int y, int z) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        if (featureBiome != null) {
+            return featureBiome;
+        }
         DimensionStackContext dimensionStackContext = getDimensionStackContext();
         if (dimensionStackContext != null) {
             DimensionStackLayout layout = dimensionStackContext.getLayout(x, z);
@@ -743,6 +787,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     }
 
     default IrisBiome getBiomeOrMantle(int x, int y, int z) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        if (featureBiome != null) {
+            return featureBiome;
+        }
         DimensionStackContext dimensionStackContext = getDimensionStackContext();
         if (dimensionStackContext != null) {
             DimensionStackLayout layout = dimensionStackContext.getLayout(x, z);

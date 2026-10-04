@@ -12,6 +12,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.hydrology.IrisDeepFluidConfig;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.hydrology.IrisHydrology;
@@ -765,15 +766,31 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         }
         for (Map.Entry<CavePosition, NativeBlockState> entry : resolvedSurfaceWrites.entrySet()) {
             CavePosition position = entry.getKey();
+            if (featureOwns(writer, context, position)) {
+                continue;
+            }
             writer.setData(position.x(), position.y(), position.z(), entry.getValue());
         }
         for (CavePosition position : sortedPositions(publication.fluidUpdates())) {
+            if (featureOwns(writer, context, position)) {
+                continue;
+            }
             writer.setData(position.x(), position.y(), position.z(), UpdateMatter.ON);
         }
         for (Map.Entry<CavePosition, HydrologyCaveCell> entry : sortedEntries(publication.caveCells())) {
             CavePosition position = entry.getKey();
+            if (featureOwns(writer, context, position)) {
+                continue;
+            }
             writer.setData(position.x(), position.y(), position.z(), entry.getValue());
         }
+    }
+
+    private static boolean featureOwns(MantleWriter writer, ChunkContext context, CavePosition position) {
+        IrisComplex complex = context.getComplex();
+        SubterrainPlanner planner = complex.getSubterrainPlanner();
+        return planner != null && !planner.isEmpty()
+                && planner.sample(position.x(), position.y() + writer.getEngine().getWorld().minHeight(), position.z()).owned();
     }
 
     private static void validateLayer(HydrologyColumnLayer layer, int worldHeight) {

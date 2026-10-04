@@ -68,9 +68,11 @@ final class IrisObjectPlacementRunner {
     private static final ConcurrentHashMap<String, Long> IMPLAUSIBLE_BEDROCK_WARNS = new ConcurrentHashMap<>();
 
     private final IrisObject self;
+    private final IrisObjectPlacementAlignment alignment;
 
-    IrisObjectPlacementRunner(IrisObject self) {
+    IrisObjectPlacementRunner(IrisObject self, IrisObjectPlacementAlignment alignment) {
         this.self = self;
+        this.alignment = Objects.requireNonNull(alignment);
     }
 
     int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult c, IrisData rdata) {
@@ -169,7 +171,19 @@ final class IrisObjectPlacementRunner {
         TransformedBounds placementBounds = transformedBounds(spin, translating, translateOffset, ceilingHang, warpMargin);
         boolean bail = false;
 
-        if (config.isFromBottom()) {
+        if (alignment == IrisObjectPlacementAlignment.FLOOR) {
+            if (yv < 0 || ceilingHang || rawStructurePiece) {
+                throw new IllegalArgumentException("Floor alignment requires an explicit floor Y and a floor placement mode.");
+            }
+            int minimumY = minimumOccupiedY(spin);
+            if (minimumY == Integer.MAX_VALUE) {
+                return -1;
+            }
+            y = yv - minimumY;
+            if (!config.isForcePlace() && shouldBailForCarvingAnchor(placer, config, x, yv, z)) {
+                bail = true;
+            }
+        } else if (config.isFromBottom()) {
             // todo Convert this to a dedicated mode.
             y = (self.getH() + 1) + rty;
             if (!config.isForcePlace()) {
@@ -290,7 +304,7 @@ final class IrisObjectPlacementRunner {
             }
         }
 
-        if (yv >= 0 && config.isBottom() && !rawStructurePiece) {
+        if (yv >= 0 && config.isBottom() && !rawStructurePiece && alignment != IrisObjectPlacementAlignment.FLOOR) {
             y += Math.floorDiv(self.h, 2);
             CarvingMode carvingMode = config.getCarvingSupport();
             if (!config.isForcePlace() && !carvingMode.equals(CarvingMode.CARVING_ONLY)) {
@@ -608,9 +622,7 @@ final class IrisObjectPlacementRunner {
                     continue;
                 }
 
-                if (waterlogCandidate && IrisProceduralBlocks.hasProperty(data, "waterlogged") && shouldAutoWaterlogBlock(placer, config, yv, xx, yy, zz)) {
-                    data = data.withProperty("waterlogged", "true");
-                }
+                data = IrisProceduralBlocks.normalizeWaterlogging(data, placer.get(xx, yy, zz), waterlogCandidate);
 
                 if (!rawStructurePiece && B.isVineBlock(data)) {
                     data = attachVineFaces(placer, data, xx, yy, zz);
@@ -810,7 +822,7 @@ final class IrisObjectPlacementRunner {
                                         }
                                     }
                                 }
-                                placer.set(xx, j, zz, d);
+                                placer.set(xx, j, zz, IrisProceduralBlocks.normalizeWaterlogging(d, placer.get(xx, j, zz), waterlogCandidate));
                             }
                         } else {
                             int scan = 0;
@@ -832,7 +844,7 @@ final class IrisObjectPlacementRunner {
                                         }
                                     }
                                 }
-                                placer.set(xx, j, zz, d);
+                                placer.set(xx, j, zz, IrisProceduralBlocks.normalizeWaterlogging(d, placer.get(xx, j, zz), waterlogCandidate));
                             }
                         }
                         continue;
@@ -840,9 +852,7 @@ final class IrisObjectPlacementRunner {
 
                     int highest = placer.getHighest(xx, zz, self.getLoader(), true);
 
-                    if (IrisProceduralBlocks.hasProperty(d, "waterlogged") && shouldAutoWaterlogBlock(placer, config, yv, xx, highest, zz)) {
-                        d = d.withProperty("waterlogged", "true");
-                    }
+
 
                     int lowerBound = highest - 1;
                     if (settings != null) {
@@ -882,7 +892,7 @@ final class IrisObjectPlacementRunner {
                         if (B.isVineBlock(d)) {
                             d = attachVineFaces(placer, d, xx, j, zz);
                         }
-                        placer.set(xx, j, zz, d);
+                        placer.set(xx, j, zz, IrisProceduralBlocks.normalizeWaterlogging(d, placer.get(xx, j, zz), waterlogCandidate));
                     }
 
                 }
@@ -938,6 +948,26 @@ final class IrisObjectPlacementRunner {
             offsets.add(new IrisBlockVector(worldX - x, 0, worldZ - z));
         }
         return offsets;
+    }
+
+    private int minimumOccupiedY(SpinKernel spin) {
+        int minimumY = Integer.MAX_VALUE;
+        self.readLock.lock();
+        try {
+            VectorMap<NativeBlockState>.Cursor cursor = self.blocks.cursor();
+            while (cursor.next()) {
+                NativeBlockState state = cursor.value();
+                if (state == null || state.isAir()) {
+                    continue;
+                }
+                IrisBlockVector position = cursor.key().clone();
+                spin.rotate(position);
+                minimumY = Math.min(minimumY, (int) Math.round(position.getY()));
+            }
+        } finally {
+            self.readLock.unlock();
+        }
+        return minimumY;
     }
 
     private TransformedBounds transformedBounds(SpinKernel spin, boolean translating, IrisBlockVector translateOffset,
@@ -1216,23 +1246,6 @@ final class IrisObjectPlacementRunner {
                 || placer.isCarved(x, y - 1, z)
                 || placer.isCarved(x, y - 2, z)
                 || placer.isCarved(x, y - 3, z);
-    }
-
-    private boolean shouldAutoWaterlogBlock(IObjectPlacer placer, IrisObjectPlacement placement, int yv, int x, int y, int z) {
-        if (!(placement.isWaterloggable() || placement.isUnderwater())) {
-            return false;
-        }
-
-        if (yv >= 0 && placement.getCarvingSupport().equals(CarvingMode.CARVING_ONLY)) {
-            return false;
-        }
-
-        NativeBlockState existing = placer.get(x, y, z);
-        if (existing == null) {
-            return false;
-        }
-
-        return B.isWater(existing) || B.isWaterLogged(existing);
     }
 
     private static NativeBlockState attachVineFaces(IObjectPlacer placer, NativeBlockState data, int x, int y, int z) {

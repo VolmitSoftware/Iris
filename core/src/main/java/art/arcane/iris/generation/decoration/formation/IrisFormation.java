@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.decoration.formation;
 
 import art.arcane.iris.generation.cave.CarvingMode;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
 import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.decoration.IrisVacuumSettings;
@@ -255,6 +256,26 @@ public class IrisFormation implements IrisProceduralPlacement {
     @Description("How many blocks the tip of an OVERHANG curls downward.")
     private int overhangDrop = 3;
 
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Description("For cave placements in an authored subterrain room, size the formation to this fraction of the room vault. Zero uses heightMin and heightMax.")
+    private double roomHeightFraction = 0;
+
+    @Override
+    public IrisObject getVariantObject(IrisData data, RNG rng, SubterrainRoom room) {
+        if (room == null || roomHeightFraction <= 0) {
+            KList<IrisObject> baked = getVariantObjects(data);
+            return baked == null || baked.isEmpty() ? null : baked.get(rng.i(baked.size()));
+        }
+        IrisObject object = FormationGenerator.generate(this, rng.i(Math.max(1, variants)), rng, data,
+                Math.max(1, (int) Math.floor(room.vaultHeight() * Math.min(1D, roomHeightFraction))));
+        if (object != null) {
+            object.setLoadKey("procedural/" + name + "/" + room.featureId());
+            object.setLoader(data);
+        }
+        return object;
+    }
+
     public KList<IrisObject> getVariantObjects(IrisData data) {
         return variantCache.aquire(() -> {
             KList<IrisObject> baked = new KList<>();
@@ -272,14 +293,6 @@ public class IrisFormation implements IrisProceduralPlacement {
 
             return baked;
         });
-    }
-
-    public IrisObject getVariantObject(IrisData data, RNG rng) {
-        KList<IrisObject> baked = getVariantObjects(data);
-        if (baked == null || baked.isEmpty()) {
-            return null;
-        }
-        return baked.get(rng.i(baked.size()));
     }
 
     public IrisObjectPlacement asPlacement() {

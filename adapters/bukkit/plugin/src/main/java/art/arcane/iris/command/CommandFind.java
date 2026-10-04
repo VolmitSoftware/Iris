@@ -25,6 +25,8 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.studio.object.ObjectStudioSaveService;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.locator.SubterrainLocator;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
 import art.arcane.iris.structure.placement.StructureReachability;
@@ -87,6 +89,78 @@ public class CommandFind implements DirectorExecutor {
         }
 
         EngineBukkitOps.gotoBiome(e, biome, player(), teleport);
+    }
+
+    @Director(description = "Find an authored underground feature by id or geometry family", sync = true)
+    public void subterrain(
+            @Param(description = "Feature definition id or family: tectonic_fault, cenote, lava_tube, travertine_terraces")
+            String feature,
+            @Param(description = "Search radius in blocks", defaultValue = "8192")
+            int radius,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
+    ) {
+        String key = feature.trim();
+        IrisSubterrainFamily family = null;
+        try {
+            family = IrisSubterrainFamily.valueOf(key.toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException ignored) {
+        }
+        locateSubterrain(new SubterrainLocator.Query(family == null ? key : "", family, ""), radius, teleport);
+    }
+
+    @Director(name = "underground-biome", description = "Find a bounded authored underground biome", sync = true)
+    public void undergroundBiome(
+            @Param(description = "The underground biome to look for", customHandler = ReachableBiomeHandler.class)
+            IrisBiome biome,
+            @Param(description = "Search radius in blocks", defaultValue = "8192")
+            int radius,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
+    ) {
+        locateSubterrain(new SubterrainLocator.Query("", null, biome.getLoadKey()), radius, teleport);
+    }
+
+    private void locateSubterrain(SubterrainLocator.Query query, int radius, boolean teleport) {
+        Engine activeEngine = engine();
+        VolmitSender commandSender = sender();
+        Player target = player();
+        if (activeEngine == null || commandSender == null || target == null) {
+            if (commandSender != null) {
+                commandSender.sendMessage(C.RED + "Run this command from an Iris world.");
+            }
+            return;
+        }
+        if (radius < 0 || radius > 32768) {
+            commandSender.sendMessage(C.RED + "Search radius must be between 0 and 32768 blocks.");
+            return;
+        }
+        Location origin = target.getLocation();
+        World world = origin.getWorld();
+        commandSender.sendMessage(C.GRAY + "Searching authored underground plans...");
+        J.a(() -> {
+            try {
+                SubterrainLocator.Result found = GenerationSemanticQueries.nearestSubterrain(activeEngine, query,
+                        origin.getBlockX(), origin.getBlockY(), origin.getBlockZ(), radius).orElse(null);
+                if (found == null) {
+                    sendStructureMessage(target, commandSender,
+                            C.YELLOW + "No matching authored underground volume found within " + radius + " blocks.");
+                    return;
+                }
+                String label = found.family().name().toLowerCase(Locale.ROOT) + " " + found.featureId();
+                if (!teleport) {
+                    sendStructureMessage(target, commandSender, C.GREEN + "Found " + label + " at "
+                            + found.x() + ", " + found.y() + ", " + found.z() + ".");
+                    return;
+                }
+                prepareStructureTeleport(target, world, commandSender, label,
+                        new Location(world, found.x(), found.y(), found.z()), true);
+            } catch (Throwable error) {
+                sendStructureMessage(target, commandSender,
+                        C.RED + "Could not locate authored underground volume: " + error.getMessage());
+                Iris.reportError("Could not locate authored underground volume.", error);
+            }
+        });
     }
 
     @Director(description = "Find a region", descriptionKey = "iris.director.commandfind.director.find_region")

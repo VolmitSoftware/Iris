@@ -118,7 +118,7 @@ public final class GenerationCacheWarmer {
             if (placement == null) {
                 continue;
             }
-            placement.getVariantObject(data, root.nextParallelRNG(counter[0]++));
+            placement.getVariantObject(data, root.nextParallelRNG(counter[0]++), null);
         }
     }
 }

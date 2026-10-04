@@ -58,6 +58,7 @@ import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 
 import java.util.Map;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
@@ -511,14 +512,18 @@ public final class ModdedWorldManager implements EngineWorldManager {
         }
 
         IrisBiome biome = environment.biome();
-        Map<String, Integer> chunkMobs = initial ? Map.of() : NativeSpawnQueries.livingEntityCategories(level, chunkX, chunkZ);
+        Map<String, Integer> chunkMobs = new HashMap<>(initial ? Map.of()
+                : NativeSpawnQueries.livingEntityCategories(level, chunkX, chunkZ));
         RNG rng = initial ? EntitySpawnSeed.chunk(engine.getSeedManager().getEntity(), chunkX, chunkZ)
                 : new RNG(RNG.r.nextLong());
 
         KList<SpawnCandidate> pool = new KList<>();
-        collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()), biome, chunkX, chunkZ, chunkMobs, initial);
-        collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.region().getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
-        collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(biome.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
+        collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()), biome, chunkX, chunkZ, chunkMobs, initial, false);
+        collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.region().getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial, false);
+        collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(biome.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial, false);
+        if (environment.dimension().hasUndergroundSpawners(engine)) {
+            spawnUnderground(level, chunkX, chunkZ, initial, chunkMobs, rng.nextParallelRNG(0x5A17D3B48269C0EFL));
+        }
         if (pool.isEmpty()) {
             return;
         }
@@ -533,14 +538,111 @@ public final class ModdedWorldManager implements EngineWorldManager {
         }
         int spawned = spawnEntry(level, chosen.entry(), chunkX, chunkZ,
                 remainingCapacity(chosen.entry(), spawner, chunkMobs), rng, new SpawnContext(spawner, null, initial));
+        recordSpawned(chosen.entry(), chunkMobs, spawned);
         if (spawned > 0 && !initial) {
             spawner.spawn(engine, chunkX, chunkZ);
         }
     }
 
-    private void collectSpawns(KList<SpawnCandidate> pool, KList<IrisSpawner> spawners, IrisBiome biomeFilter, int chunkX, int chunkZ, Map<String, Integer> chunkMobs, boolean initial) {
+    private void spawnUnderground(NativeWorld level, int chunkX, int chunkZ, boolean initial,
+                                  Map<String, Integer> chunkMobs, RNG random) {
+        for (IrisSurface surface : List.of(IrisSurface.LAND, IrisSurface.WATER, IrisSurface.LAVA)) {
+            IrisPosition candidate = findUndergroundCandidate(level, chunkX, chunkZ,
+                    random.nextParallelRNG(surface.ordinal()), surface);
+            if (candidate == null) {
+                continue;
+            }
+            BiomeEnvironment environment;
+            try {
+                environment = engine.getBiomeOrMantleEnvironment(candidate.getX(),
+                        candidate.getY() - engine.getWorld().minHeight(), candidate.getZ());
+            } catch (SavedBiomeUnavailableException unavailable) {
+                continue;
+            }
+            try (BiomeEnvironment.Scope ignored = engine.openBiomeEnvironmentScope(environment)) {
+                KList<SpawnCandidate> pool = new KList<>();
+                collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.dimension().getEntitySpawners()),
+                        environment.biome(), chunkX, chunkZ, chunkMobs, initial, true);
+                collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.region().getEntitySpawners()),
+                        null, chunkX, chunkZ, chunkMobs, initial, true);
+                collectSpawns(pool, environment.data().getSpawnerLoader().loadAll(environment.biome().getEntitySpawners()),
+                        null, chunkX, chunkZ, chunkMobs, initial, true);
+                pool.removeIf(selection -> !matchesUndergroundSurface(selection.entry(), surface));
+                SpawnCandidate selected = rarityPick(pool, random);
+                if (selected == null) {
+                    continue;
+                }
+                int capacity = remainingCapacity(selected.entry(), selected.spawner(), chunkMobs);
+                int spawned = spawnUndergroundEntry(level, candidate, selected, capacity, random, initial);
+                recordSpawned(selected.entry(), chunkMobs, spawned);
+                if (spawned > 0 && !initial) {
+                    selected.spawner().spawn(engine, chunkX, chunkZ);
+                }
+                return;
+            }
+        }
+    }
+
+    private boolean matchesUndergroundSurface(IrisEntitySpawn entry, IrisSurface surface) {
+        IrisEntity entity = entry.getRealEntity(engine);
+        return entity != null && entity.getSurface().isFluid() == surface.isFluid()
+                && (!surface.isFluid() || entity.getSurface() == surface);
+    }
+
+    static IrisPosition findUndergroundCandidate(NativeWorld level, int chunkX, int chunkZ, RNG random, IrisSurface surface) {
+        int minimumY = level.minHeight() + 1;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            int x = (chunkX << 4) + random.i(1, 15);
+            int z = (chunkZ << 4) + random.i(1, 15);
+            int maximumY = Math.min(level.maxHeight() - 3, NativeSpawnQueries.surfaceHeight(level, x, z, true) - 1);
+            if (maximumY < minimumY) {
+                continue;
+            }
+            int span = maximumY - minimumY + 1;
+            int startY = LootResolver.inclusive(random, minimumY, maximumY);
+            for (int sample = 0; sample < Math.min(span, 128); sample++) {
+                int y = minimumY + Math.floorMod(startY - minimumY - sample, span);
+                NativeBlockState state = level.getBlock(x, y, z);
+                boolean acceptable = surface.isFluid() ? matchesSurface(surface, state)
+                        : state != null && state.isAir() && NativeSpawnQueries.solid(level.getBlock(x, y - 1, z))
+                        && level.getBlock(x, y + 1, z).isAir();
+                if (acceptable) {
+                    return new IrisPosition(x, y, z);
+                }
+            }
+        }
+        return null;
+    }
+
+    private int spawnUndergroundEntry(NativeWorld level, IrisPosition candidate, SpawnCandidate selection,
+                                      int capacity, RNG random, boolean initial) {
+        IrisEntity entity = selection.entry().getRealEntity(engine);
+        if (entity == null) {
+            return 0;
+        }
+        int x = candidate.getX();
+        int y = candidate.getY();
+        int z = candidate.getZ();
+        int count = Math.min(Math.max(0, capacity), LootResolver.inclusive(random,
+                selection.entry().getMinSpawns(), selection.entry().getMaxSpawns()));
+        int spawned = 0;
+        for (int ordinal = 0; ordinal < count; ordinal++) {
+            if (!initial && !lightAllowed(selection.spawner(), level, x, y, z)
+                    || !surfaceMatches(entity.getSurface(), level, x, y, z)
+                    || !ModdedEntitySpawner.isAreaClearForSpawn(entityRuntime(level), entity, x, y, z)) {
+                continue;
+            }
+            if (ModdedEntitySpawner.spawn(engine, entity, entityRuntime(level), x, y, z,
+                    EntitySpawnSeed.entity(random.getSeed(), ordinal)) != null) {
+                spawned++;
+            }
+        }
+        return spawned;
+    }
+
+    private void collectSpawns(KList<SpawnCandidate> pool, KList<IrisSpawner> spawners, IrisBiome biomeFilter, int chunkX, int chunkZ, Map<String, Integer> chunkMobs, boolean initial, boolean underground) {
         for (IrisSpawner spawner : spawners) {
-            if (spawner == null) {
+            if (spawner == null || (spawner.getGroup() == IrisSpawnGroup.CAVE) != underground) {
                 continue;
             }
             if (biomeFilter != null && !spawner.isValid(biomeFilter)) {
@@ -555,6 +657,13 @@ public final class ModdedWorldManager implements EngineWorldManager {
                     pool.add(new SpawnCandidate(entry, spawner));
                 }
             }
+        }
+    }
+
+    private void recordSpawned(IrisEntitySpawn entry, Map<String, Integer> counts, int spawned) {
+        IrisEntity entity = entry.getRealEntity(engine);
+        if (spawned > 0 && entity != null) {
+            counts.merge(entity.spawnCategory(), spawned, Integer::sum);
         }
     }
 

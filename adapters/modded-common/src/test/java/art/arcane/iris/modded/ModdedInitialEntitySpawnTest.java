@@ -18,6 +18,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
 import art.arcane.iris.world.entity.IrisSpawner;
+import art.arcane.iris.world.entity.IrisSpawnGroup;
 import art.arcane.iris.world.entity.IrisMarker;
 import art.arcane.iris.world.entity.EntitySpawnSeed;
 import art.arcane.iris.structure.placement.LootResolver;
@@ -94,6 +95,33 @@ public class ModdedInitialEntitySpawnTest {
                 assertTrue(batch.size() >= 2 && batch.size() <= 3);
             }
             fixture.verifyInitialPolicy();
+        }
+    }
+
+    @Test
+    public void undergroundAndSurfacePassesShareTheSuccessfulPopulationBudget() {
+        try (Fixture fixture = new Fixture()) {
+            BiomeEnvironment environment = fixture.engine.getSurfaceBiomeEnvironment(0, 0);
+            when(environment.dimension().hasUndergroundSpawners(fixture.engine)).thenReturn(true);
+            when(fixture.engine.getBiomeOrMantleEnvironment(anyInt(), anyInt(), anyInt())).thenReturn(environment);
+            NativeBlockState stone = mock(NativeBlockState.class);
+            NativeBlockState air = mock(NativeBlockState.class);
+            when(air.isAir()).thenReturn(true);
+            when(fixture.world.getBlock(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {
+                int y = invocation.getArgument(1);
+                return y <= -21 || y == 50 ? stone : air;
+            });
+            fixture.queries.when(() -> NativeSpawnQueries.solid(stone)).thenReturn(true);
+            IrisEntity entity = new IrisEntity().setType("minecraft:cow");
+            IrisEntitySpawn entry = spy(new IrisEntitySpawn().setMinSpawns(2).setMaxSpawns(2));
+            doReturn(entity).when(entry).getRealEntity(fixture.engine);
+            fixture.definitions.add(new IrisSpawner().setGroup(IrisSpawnGroup.CAVE)
+                    .setInitialSpawns(new KList<>(entry)).setMaxEntitiesPerChunk(3));
+            assertTrue(fixture.manager.initialSpawnChunk(fixture.world, -2, 3));
+            assertEquals(3, fixture.spawned.size());
+            assertEquals(2, fixture.spawned.stream().filter(spawn -> spawn.y() == -20).count());
+            assertEquals(1, fixture.spawned.stream().filter(spawn -> spawn.y() == 51).count());
+            fixture.queries.verify(() -> NativeSpawnQueries.livingEntityCategories(eq(fixture.world), anyInt(), anyInt()), never());
         }
     }
 

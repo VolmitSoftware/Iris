@@ -123,6 +123,9 @@ public final class IrisProceduralBlocks {
      * rather than building the search needles, and prefers a "[" match over a "," match.
      */
     private static int propertyStart(String key, String property) {
+        if (key == null) {
+            return -1;
+        }
         int bracket = key.indexOf('[');
         if (bracket < 0) {
             return -1;
@@ -140,6 +143,16 @@ public final class IrisProceduralBlocks {
             }
         }
         return -1;
+    }
+
+    public static NativeBlockState normalizeWaterlogging(NativeBlockState state, NativeBlockState existing, boolean enabled) {
+        if (state == null || !hasProperty(state, "waterlogged")) {
+            return state;
+        }
+        boolean authored = "true".equals(propertyValue(state, "waterlogged"));
+        boolean submerged = existing != null && (existing.isWater() || "true".equals(propertyValue(existing, "waterlogged")));
+        String value = submerged && (enabled || authored) ? "true" : "false";
+        return value.equals(propertyValue(state, "waterlogged")) ? state : state.withProperty("waterlogged", value);
     }
 
     public static IrisObject assemble(Map<Vector3i, NativeBlockState> blocks) {

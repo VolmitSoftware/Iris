@@ -2,6 +2,8 @@ package art.arcane.iris.world.history;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.locator.SubterrainLocator;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
@@ -9,6 +11,8 @@ import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 
 import java.math.BigInteger;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -17,6 +21,57 @@ import java.util.function.Predicate;
 
 public final class GenerationSemanticQueries {
     private GenerationSemanticQueries() {
+    }
+
+    public static Optional<SubterrainLocator.Result> nearestSubterrain(
+            Engine engine, SubterrainLocator.Query query, int x, int worldY, int z, int maximumDistance) {
+        Engine requiredEngine = Objects.requireNonNull(engine, "engine");
+        Objects.requireNonNull(query, "query");
+        GenerationHistoryRuntimeRouter router = requiredEngine instanceof IrisEngine irisEngine
+                ? irisEngine.getGenerationHistoryRuntimeRouter().orElse(null) : null;
+        if (router == null) {
+            return SubterrainLocator.nearest(requiredEngine, query, x, worldY, z, maximumDistance);
+        }
+        GenerationHistory history = router.history();
+        SubterrainLocator.Result nearest = null;
+        try {
+            for (GenerationActivation activation : history.manifest().activations()) {
+                if (history.manifest().pendingActivation().map(pending ->
+                        pending.activationId() == activation.activationId()).orElse(false)) {
+                    continue;
+                }
+                SubterrainPlanner planner = router.biomes().subterrainPlanner(activation.activationId());
+                SubterrainLocator.Result candidate = SubterrainLocator.nearest(planner, query, x, worldY, z,
+                        maximumDistance, result -> allowsSubterrainPrediction(requiredEngine, history,
+                                activation.activationId(), result)).orElse(null);
+                if (candidate != null && (nearest == null || distanceSquared(x, worldY, z, candidate)
+                        .compareTo(distanceSquared(x, worldY, z, nearest)) < 0)) {
+                    nearest = candidate;
+                }
+            }
+        } catch (IOException failure) {
+            throw new UncheckedIOException("Unable to locate saved subterrain features", failure);
+        }
+        return Optional.ofNullable(nearest);
+    }
+
+    private static boolean allowsSubterrainPrediction(Engine engine, GenerationHistory history,
+                                                      long activationId, SubterrainLocator.Result result) {
+        int chunkX = Math.floorDiv(result.x(), 16);
+        int chunkZ = Math.floorDiv(result.z(), 16);
+        GenerationActivation owner = history.resolveActivation(chunkX, chunkZ);
+        if (owner.activationId() != activationId) {
+            return false;
+        }
+        if (history.isActiveUnowned(chunkX, chunkZ)) {
+            return engine.getComplex().allowsNewDiscreteContentAt(result.x(), result.z());
+        }
+        return true;
+    }
+
+    private static BigInteger distanceSquared(int x, int y, int z, SubterrainLocator.Result result) {
+        BigInteger deltaY = BigInteger.valueOf((long) y - result.y());
+        return horizontalDistanceSquared(x, z, result.x(), result.z()).add(deltaY.multiply(deltaY));
     }
 
     public static IrisStructureLocator.LocateResult nearestStructure(

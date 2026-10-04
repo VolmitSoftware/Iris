@@ -82,6 +82,7 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         if (getEngine().getDimensionStackContext() == null) {
             registerStage(sCustom);
         }
+        registerStage((x, z, k, p, m, c) -> cave.preserveSubterrain(x, z, k));
     }
 
     void generateTerrainMatterForChunk(int x, int z, boolean multicore, ChunkContext context) {

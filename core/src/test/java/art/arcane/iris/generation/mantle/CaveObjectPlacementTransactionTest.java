@@ -19,6 +19,9 @@
 package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
@@ -110,6 +113,74 @@ public class CaveObjectPlacementTransactionTest {
         assertEquals(CaveObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
         assertEquals(71, MantleObjectComponent.caveAnchorScanUpperBound(128, 80, 10));
         assertEquals(61, MantleObjectComponent.caveAnchorScanUpperBound(128, 80, 20));
+    }
+
+    @Test
+    public void ownedDryAndWetRoomDecorationCanCommitWithoutWeakeningSolidGuards() {
+        for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.AIR, SubterrainCell.Kind.WATER}) {
+            IObjectPlacer delegate = createPlacer(128, 80, 20, 60);
+            SubterrainRoom room = new SubterrainRoom("cenote", "wet-cave", IrisSubterrainFamily.CENOTE,
+                    4, 35, 7, 4, 21, 7, 19, 61, 8, 34, false, false, kind);
+            when(delegate.getEngine().getSubterrainCell(4, 30, 7))
+                    .thenReturn(new SubterrainCell(kind, kind == SubterrainCell.Kind.WATER ? "minecraft:water" : "minecraft:cave_air", room));
+            NativeBlockState decoration = mock(NativeBlockState.class);
+            CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
+            transaction.set(4, 30, 7, decoration);
+            assertEquals(CaveObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
+            verify(delegate).set(4, 30, 7, decoration);
+        }
+    }
+
+    @Test
+    public void ownedWaterAndLavaUseTheirExclusiveAbsoluteFluidHeadAtTheOriginalAnchor() {
+        for (int minimumY : new int[]{-64, 32}) {
+            for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.WATER, SubterrainCell.Kind.LAVA}) {
+                IObjectPlacer delegate = createPlacer(256, 220, 120, 160);
+                Engine engine = delegate.getEngine();
+                when(engine.getMinHeight()).thenReturn(minimumY);
+                when(delegate.getFluidHeight(4, 7)).thenReturn(16);
+                SubterrainRoom room = new SubterrainRoom("raised-room", "wet-cave", IrisSubterrainFamily.CENOTE,
+                        4, minimumY + 130, 7, 4, minimumY + 121, 7, minimumY + 119,
+                        minimumY + 161, 8, minimumY + 126, false, false, kind);
+                when(engine.getSubterrainCell(4, 123, 7)).thenReturn(new SubterrainCell(kind,
+                        kind == SubterrainCell.Kind.WATER ? "minecraft:water" : "minecraft:lava", room));
+                CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 123, 10);
+                assertEquals(127, transaction.getFluidHeight(4, 7));
+                verify(engine).getSubterrainCell(4, 123, 7);
+                verify(delegate, never()).getFluidHeight(4, 7);
+            }
+        }
+    }
+
+    @Test
+    public void nonFluidAnchorsPreserveTheDelegateCoordinateFluidHeight() {
+        for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.AIR, SubterrainCell.Kind.SOLID, SubterrainCell.Kind.OUTSIDE}) {
+            IObjectPlacer delegate = createPlacer(128, 80, 20, 60);
+            when(delegate.getFluidHeight(4, 7)).thenReturn(51);
+            SubterrainRoom room = new SubterrainRoom("dry-room", "dry-cave", IrisSubterrainFamily.CENOTE,
+                    4, 35, 7, 4, 21, 7, 19, 61, 8, 24, false, false, kind);
+            SubterrainCell cell = kind == SubterrainCell.Kind.OUTSIDE ? SubterrainCell.OUTSIDE
+                    : new SubterrainCell(kind, kind == SubterrainCell.Kind.AIR ? "minecraft:cave_air" : "minecraft:stone", room);
+            when(delegate.getEngine().getSubterrainCell(4, 20, 7)).thenReturn(cell);
+            CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
+            assertEquals(51, transaction.getFluidHeight(4, 7));
+            verify(delegate).getFluidHeight(4, 7);
+        }
+    }
+
+    @Test
+    public void featurePillarRejectsAllObjectMutations() {
+        IObjectPlacer delegate = createPlacer(128, 80, 20, 60);
+        SubterrainRoom room = new SubterrainRoom("cenote", "wet-cave", IrisSubterrainFamily.CENOTE,
+                4, 35, 7, 4, 21, 7, 19, 61, 8, 24, false, true, SubterrainCell.Kind.SOLID);
+        when(delegate.getEngine().getSubterrainCell(4, 30, 7))
+                .thenReturn(new SubterrainCell(SubterrainCell.Kind.SOLID, "minecraft:stone", room));
+        CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
+        transaction.set(4, 30, 7, mock(NativeBlockState.class));
+        transaction.setData(5, 30, 7, "decoration");
+        assertEquals(CaveObjectPlacementTransaction.CommitResult.REJECTED_SUBTERRAIN, transaction.commit());
+        verify(delegate, never()).set(anyInt(), anyInt(), anyInt(), any());
+        verify(delegate, never()).setData(anyInt(), anyInt(), anyInt(), any());
     }
 
     @Test

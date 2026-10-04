@@ -124,6 +124,22 @@ public class IrisEntitySpawn implements Rarity {
         return spawned;
     }
 
+    public int spawn(Engine engine, Location candidate, RNG random, int remainingCapacity, SpawnContext context) {
+        if (remainingCapacity <= 0) {
+            return 0;
+        }
+        int count = Math.min(remainingCapacity, LootResolver.inclusive(random, minSpawns, maxSpawns));
+        long batchSeed = random.getSeed();
+        int spawned = 0;
+        for (int ordinal = 0; ordinal < count; ordinal++) {
+            if (lightAllowed(candidate, context)
+                    && spawn100(engine, candidate, EntitySpawnSeed.entity(batchSeed, ordinal), false) != null) {
+                spawned++;
+            }
+        }
+        return spawned;
+    }
+
     public static Integer selectSurfaceSpawnY(IrisSpawnGroup group, IrisSurface surface,
                                              int floor, int top, RNG rng) {
         if (group == IrisSpawnGroup.CAVE) {
@@ -206,7 +222,7 @@ public class IrisEntitySpawn implements Rarity {
         return selectCaveSpawnLocation(markers, chunk.getWorld(), rng);
     }
 
-    static Location findLiveCaveSpawnLocation(Chunk chunk, RNG rng, IrisSurface surface) {
+    public static Location findLiveCaveSpawnLocation(Chunk chunk, RNG rng, IrisSurface surface) {
         boolean fluid = surface.isFluid();
         World world = chunk.getWorld();
         int minimumY = world.getMinHeight() + 1;

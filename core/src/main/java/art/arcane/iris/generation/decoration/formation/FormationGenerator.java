@@ -37,6 +37,10 @@ public final class FormationGenerator {
         int hi = Math.max(f.getHeightMin(), f.getHeightMax());
         int height = Math.max(3, rng.i(lo, hi + 1));
 
+        return generate(f, variantIndex, rng, data, height);
+    }
+
+    public static IrisObject generate(IrisFormation f, int variantIndex, RNG rng, IrisData data, int height) {
         int wLo = Math.min(f.getBaseWidthMin(), f.getBaseWidthMax());
         int wHi = Math.max(f.getBaseWidthMin(), f.getBaseWidthMax());
         double baseRadius = Math.max(1, rng.i(wLo, wHi + 1));

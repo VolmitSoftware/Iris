@@ -248,6 +248,7 @@ public class DimensionTerrain3DCompositionTest {
         Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         IrisComplex complex = mock(IrisComplex.class);
         doReturn(complex).when(engine).getComplex();
+        doReturn(new IrisDimension()).when(engine).getDimension();
         DimensionStackContext stack = mock(DimensionStackContext.class);
         doReturn(stack).when(engine).getDimensionStackContext();
         DimensionStackLayout.LayerInput bottom = input(24, 0,

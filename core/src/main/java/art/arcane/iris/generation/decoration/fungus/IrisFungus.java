@@ -20,6 +20,7 @@ package art.arcane.iris.generation.decoration.fungus;
 
 import art.arcane.iris.generation.cave.CarvingMode;
 import art.arcane.iris.generation.decoration.IrisProceduralPlacement;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.generation.decoration.IrisVacuumSettings;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -233,7 +234,7 @@ public class IrisFungus implements IrisProceduralPlacement {
         });
     }
 
-    public IrisObject getVariantObject(IrisData data, RNG rng) {
+    public IrisObject getVariantObject(IrisData data, RNG rng, SubterrainRoom room) {
         KList<IrisObject> baked = getVariantObjects(data);
         if (baked == null || baked.isEmpty()) {
             return null;

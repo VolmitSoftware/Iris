@@ -163,7 +163,7 @@ final class DecoratorCore {
                         bd.withProperty("half", bottomHalfValue(half)),
                         data, x, z, realX, lowerY, realZ, mantle);
                 data.set(x, lowerY, z, lower);
-                data.set(x, upperY, z, upper);
+                data.set(x, upperY, z, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(x, upperY, z), true));
             } catch (Throwable e) {
                 GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
@@ -210,7 +210,7 @@ final class DecoratorCore {
         if (applyFixFaces) {
             bd = fixFacesForHunk(bd, data, x, z, realX, height, realZ, mantle);
         }
-        data.set(x, height, z, bd);
+        data.set(x, height, z, IrisProceduralBlocks.normalizeWaterlogging(bd, data.get(x, height, z), true));
     }
 
     static void placeStackUp(IrisDecorator decorator, int x, int z, int realX, int realZ,
@@ -258,7 +258,7 @@ final class DecoratorCore {
             } else if (i == 0 && !opts.underwater && !canGoOn(block, support)) {
                 break;
             }
-            data.set(x, y, z, stackedVineBlock(block, stack, i));
+            data.set(x, y, z, IrisProceduralBlocks.normalizeWaterlogging(stackedVineBlock(block, stack, i), existing, true));
             placed++;
         }
         if (placed > 0 && placed < stack) {
@@ -356,8 +356,8 @@ final class DecoratorCore {
             try {
                 NativeBlockState upper = bd.withProperty("half", topHalfValue(half));
                 NativeBlockState lower = bd.withProperty("half", bottomHalfValue(half));
-                data.set(xf, lowerY, zf, lower);
-                data.set(xf, upperY, zf, upper);
+                data.set(xf, lowerY, zf, IrisProceduralBlocks.normalizeWaterlogging(lower, data.get(xf, lowerY, zf), true));
+                data.set(xf, upperY, zf, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(xf, upperY, zf), true));
             } catch (Throwable e) {
                 GenerationFailures.rethrowEngineFailure(e);
                 IrisLogging.reportError(e);
@@ -366,7 +366,7 @@ final class DecoratorCore {
         }
 
         if (max > 1 && height + 1 < data.getHeight()) {
-            data.set(xf, height + 1, zf, bd);
+            data.set(xf, height + 1, zf, IrisProceduralBlocks.normalizeWaterlogging(bd, data.get(xf, height + 1, zf), true));
         }
     }
 
@@ -411,7 +411,7 @@ final class DecoratorCore {
                 hasSpikes = true;
             }
             bd = stackedVineBlock(bd, stack, i);
-            data.set(xf, h, zf, bd);
+            data.set(xf, h, zf, IrisProceduralBlocks.normalizeWaterlogging(bd, data.get(xf, h, zf), true));
             placed++;
         }
         if (placed > 0 && placed < stack) {
@@ -433,6 +433,7 @@ final class DecoratorCore {
 
     static NativeBlockState fixFacesForHunk(NativeBlockState b, Hunk<NativeBlockState> hunk, int rX, int rZ,
                                               int x, int y, int z, EngineMantle mantle) {
+        b = IrisProceduralBlocks.normalizeWaterlogging(b, hunk.get(rX, y, rZ), true);
         if (!B.isVineBlock(b)) {
             return b;
         }
@@ -539,7 +540,8 @@ final class DecoratorCore {
         if (!IrisSpeleothems.canPlace(spike, data, x, z, y, upward, allowWater)) {
             return;
         }
-        data.set(x, y, z, IrisSpeleothems.orient(spike, data.get(x, y, z), upward));
+        NativeBlockState existing = data.get(x, y, z);
+        data.set(x, y, z, IrisProceduralBlocks.normalizeWaterlogging(IrisSpeleothems.orient(spike, existing, upward), existing, true));
         IrisSpeleothems.finishColumn(data, x, z, y, 1, upward);
     }
 

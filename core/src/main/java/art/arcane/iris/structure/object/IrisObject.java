@@ -337,7 +337,14 @@ public class IrisObject extends IrisRegistrant {
 
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult c, IrisData rdata) {
         IrisObject placedObject = config.isSmartBore() ? IrisObjectShaping.smartBoredVariant(this) : this;
-        return new IrisObjectPlacementRunner(placedObject).place(x, yv, z, oplacer, config, rng, listener, c, rdata);
+        return new IrisObjectPlacementRunner(placedObject, IrisObjectPlacementAlignment.CENTER).place(x, yv, z, oplacer, config, rng, listener, c, rdata);
+    }
+
+    public int placeOnFloor(int x, int firstAirY, int z, IObjectPlacer placer, IrisObjectPlacement config,
+                            RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, IrisData data) {
+        IrisObject placedObject = config.isSmartBore() ? IrisObjectShaping.smartBoredVariant(this) : this;
+        return new IrisObjectPlacementRunner(placedObject, IrisObjectPlacementAlignment.FLOOR)
+                .place(x, firstAirY, z, placer, config, rng, listener, null, data);
     }
 
     KList<IrisBlockVector> getSurfaceSupportOffsets() {

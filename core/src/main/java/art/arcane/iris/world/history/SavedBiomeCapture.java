@@ -3,6 +3,7 @@ package art.arcane.iris.world.history;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,9 +31,12 @@ public final class SavedBiomeCapture {
                 stage.chunkX(), stage.chunkZ(), activationId, minimumY, height));
         TransitionGenerationPlan transition = engine.getComplex().getTransitionGenerationPlan();
         Map<Long, Optional<SavedBiomeChunk>> historical = new HashMap<>();
-        Map<Integer, List<SavedBiomeChunk.Span>> vertical = new HashMap<>(16);
+        SubterrainPlanner planner = engine.getComplex().getSubterrainPlanner();
+        boolean exactVolume = planner != null && !planner.plansForBounds(startX, startZ,
+                Math.addExact(startX, 15), Math.addExact(startZ, 15)).isEmpty();
+        Map<Integer, List<SavedBiomeChunk.Span>> vertical = new HashMap<>(exactVolume ? 256 : 16);
         Cells cells = new Cells(activationId);
-        Column column = new Column(engine, minimumY, height);
+        Column column = new Column(engine, minimumY, height, exactVolume ? 1 : 4);
         for (int localX = 0; localX < 16; localX++) {
             for (int localZ = 0; localZ < 16; localZ++) {
                 int blockX = startX + localX;
@@ -51,13 +55,13 @@ public final class SavedBiomeCapture {
                 if (transition != null) {
                     surfaceCell = historicalCell(new Sample(blockX, surfaceY, blockZ, true), surfaceCell, transition, saved, historical);
                 }
-                int quartX = localX & ~3;
-                int quartZ = localZ & ~3;
-                int quartKey = quartX * 16 + quartZ;
-                List<SavedBiomeChunk.Span> spans = vertical.get(quartKey);
+                int sampleX = exactVolume ? localX : localX & ~3;
+                int sampleZ = exactVolume ? localZ : localZ & ~3;
+                int columnKey = sampleX * 16 + sampleZ;
+                List<SavedBiomeChunk.Span> spans = vertical.get(columnKey);
                 if (spans == null) {
-                    spans = captureVertical(column, startX + quartX, startZ + quartZ, cells, transition, saved, historical, floating);
-                    vertical.put(quartKey, spans);
+                    spans = captureVertical(column, startX + sampleX, startZ + sampleZ, cells, transition, saved, historical, floating);
+                    vertical.put(columnKey, spans);
                 }
                 SavedBiomeChunk.Cell caveBase = cells.cell(engine.getCaveBiome(blockX, blockZ), region);
                 result.column(localX, localZ, new SavedBiomeChunk.Column(surfaceCell, caveBase, spans));
@@ -69,16 +73,16 @@ public final class SavedBiomeCapture {
     private static List<SavedBiomeChunk.Span> captureVertical(Column column, int blockX, int blockZ, Cells cells,
                                                              TransitionGenerationPlan transition, SavedBiomeRuntime saved,
                                                              Map<Long, Optional<SavedBiomeChunk>> historical, FloatingBiomeOverlay floating) throws IOException {
-        column.engine().getBiomeOrMantleColumn(blockX, blockZ, 4, column.biomes(), column.regions());
+        column.engine().getBiomeOrMantleColumn(blockX, blockZ, column.step(), column.biomes(), column.regions());
         int minimumY = column.minimumY();
         int maximumY = minimumY + column.height();
         List<SavedBiomeChunk.Span> spans = new ArrayList<>();
         SavedBiomeChunk.Cell previous = null;
         int startY = minimumY;
         for (int index = 0; index < column.biomes().length; index++) {
-            int worldY = minimumY + index * 4;
+            int worldY = minimumY + index * column.step();
             SavedBiomeChunk.Cell current = cells.cell(column.biomes()[index], column.regions()[index]);
-            if (floating != null) {
+            if (floating != null && !column.engine().getSubterrainCell(blockX, index * column.step(), blockZ).occupied()) {
                 current = overlay(current, floating.volumeAt(blockX & 15, worldY - minimumY, blockZ & 15));
             }
             if (transition != null) {
@@ -135,9 +139,10 @@ public final class SavedBiomeCapture {
                 Objects.requireNonNull(region, "region").getLoadKey());
     }
 
-    private record Column(Engine engine, int minimumY, int height, IrisBiome[] biomes, IrisRegion[] regions) {
-        private Column(Engine engine, int minimumY, int height) {
-            this(engine, minimumY, height, new IrisBiome[(height + 3) / 4], new IrisRegion[(height + 3) / 4]);
+    private record Column(Engine engine, int minimumY, int height, int step, IrisBiome[] biomes, IrisRegion[] regions) {
+        private Column(Engine engine, int minimumY, int height, int step) {
+            this(engine, minimumY, height, step, new IrisBiome[(height + step - 1) / step],
+                    new IrisRegion[(height + step - 1) / step]);
         }
     }
 

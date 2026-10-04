@@ -38,12 +38,18 @@ public class IrisModdedStructureParityTest {
         Bootstrap.bootStrap();
     }
 
+    private static Engine surfaceEngine(int minHeight) {
+        Engine engine = mock(Engine.class);
+        when(engine.getMinHeight()).thenReturn(minHeight);
+        return engine;
+    }
+
     @Test
     public void surfaceBiomeFastPathBeginsAboveTheCaveSwitch() {
-        assertFalse(ModdedBiomePolicy.isGuaranteedSurfaceBiome(-2, -256));
-        assertTrue(ModdedBiomePolicy.isGuaranteedSurfaceBiome(-1, -256));
-        assertFalse(ModdedBiomePolicy.isGuaranteedSurfaceBiome(10, 0));
-        assertTrue(ModdedBiomePolicy.isGuaranteedSurfaceBiome(11, 0));
+        assertFalse(ModdedBiomePolicy.isGuaranteedSurfaceBiome(surfaceEngine(-256), -2));
+        assertTrue(ModdedBiomePolicy.isGuaranteedSurfaceBiome(surfaceEngine(-256), -1));
+        assertFalse(ModdedBiomePolicy.isGuaranteedSurfaceBiome(surfaceEngine(0), 10));
+        assertTrue(ModdedBiomePolicy.isGuaranteedSurfaceBiome(surfaceEngine(0), 11));
     }
 
     @Test

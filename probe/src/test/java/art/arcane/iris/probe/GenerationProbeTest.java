@@ -24,7 +24,8 @@ public final class GenerationProbeTest {
                 "2048",
                 "-2048",
                 "true",
-                "true"
+                "true",
+                "-1"
         });
 
         assertEquals(new File("/tmp/pack"), configuration.packSource());
@@ -35,6 +36,7 @@ public final class GenerationProbeTest {
         assertEquals(-2048, configuration.centerChunkZ());
         assertTrue(configuration.multicore());
         assertTrue(configuration.studio());
+        assertEquals(-1L, configuration.seed());
     }
 
     @Test
@@ -42,11 +44,25 @@ public final class GenerationProbeTest {
         assertThrows(IllegalArgumentException.class,
                 () -> GenerationProbe.ProbeConfiguration.parse(new String[]{"/tmp/pack"}));
         assertThrows(IllegalArgumentException.class,
-                () -> new GenerationProbe.ProbeConfiguration(new File("/tmp/pack"), " ", 1, 1, 0, 0, false, false));
+                () -> new GenerationProbe.ProbeConfiguration(new File("/tmp/pack"), " ", 1, 1, 0, 0, false, false, 1337L));
         assertThrows(IllegalArgumentException.class,
-                () -> new GenerationProbe.ProbeConfiguration(new File("/tmp/pack"), "overworld", 0, 1, 0, 0, false, false));
+                () -> new GenerationProbe.ProbeConfiguration(new File("/tmp/pack"), "overworld", 0, 1, 0, 0, false, false, 1337L));
         assertThrows(IllegalArgumentException.class,
-                () -> new GenerationProbe.ProbeConfiguration(new File("/tmp/pack"), "overworld", 1, 0, 0, 0, false, false));
+                () -> new GenerationProbe.ProbeConfiguration(new File("/tmp/pack"), "overworld", 1, 0, 0, 0, false, false, 1337L));
+    }
+
+    @Test
+    public void parsesSignedBorderCoordinatesAndFullWidthSeeds() {
+        GenerationProbe.ProbeConfiguration configuration = GenerationProbe.ProbeConfiguration.parse(new String[]{
+                "/tmp/pack", "overworld", "32", "96", "1874000", "-1874000", "false", "false",
+                Long.toString(Long.MIN_VALUE)
+        });
+        assertEquals(Long.MIN_VALUE, configuration.seed());
+        assertEquals(-1874000, configuration.centerChunkZ());
+        assertThrows(NumberFormatException.class,
+                () -> GenerationProbe.ProbeConfiguration.parse(new String[]{
+                        "/tmp/pack", "overworld", "32", "96", "0", "0", "false", "false", "invalid"
+                }));
     }
 
     @Test

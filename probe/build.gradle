@@ -154,10 +154,24 @@ tasks.register('terrain3DProbe', JavaExec) {
 
 tasks.register('genProbe', JavaExec) {
     group = 'verification'
-    description = 'Constructs a real Iris engine over a real pack and generates chunks into buffers on a Bukkit-free JVM.'
+    description = 'Constructs a real Iris engine over a real pack and verifies generation hashes and optional native backend usage.'
     mainClass = 'art.arcane.iris.probe.GenerationProbe'
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs('--add-modules', 'jdk.incubator.vector')
+    minHeapSize = '2g'
+    maxHeapSize = '6g'
+    if (providers.gradleProperty('probeNativeAccess').orElse('false').get().toBoolean()) {
+        jvmArgs('--enable-native-access=ALL-UNNAMED')
+    }
+    if (providers.gradleProperty('probeNativeBillow').isPresent()) {
+        systemProperty('volmlib.noise.nativeBillow', providers.gradleProperty('probeNativeBillow').get())
+    }
+    systemProperty('volmlib.noise.nativeBillowDiagnostics', providers.gradleProperty('probeNativeDiagnostics').orElse('false').get())
+    systemProperty('iris.probe.expectedBackend', providers.gradleProperty('probeExpectedBackend').orElse('').get())
+    systemProperty('iris.probe.requireNativeSamples', providers.gradleProperty('probeRequireNativeSamples').orElse('false').get())
+    if (providers.gradleProperty('probeNativeLibrary').isPresent()) {
+        systemProperty('volmlib.noise.nativeBillowLibrary', providers.gradleProperty('probeNativeLibrary').get())
+    }
     dependsOn(':core:compileJava')
     doFirst {
         if (!probePack.isPresent() || probePack.get().isBlank()) {
@@ -174,7 +188,8 @@ tasks.register('genProbe', JavaExec) {
             probeCenterChunkX.get(),
             probeCenterChunkZ.get(),
             probeMulticore.get(),
-            probeStudio.get())
+            probeStudio.get(),
+            probeSeed.orElse('1337').get())
     }
 }
 

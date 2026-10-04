@@ -54,6 +54,7 @@ import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.M;
+import art.arcane.volmlib.util.noise.FractalBillowSimplexNoise;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -312,7 +313,8 @@ public class IrisEngine implements Engine {
             } catch (Throwable e) {
                 IrisLogging.reportError(e);
             }
-            IrisLogging.notice("Engine init: " + requiredTarget.getWorld().name() + "/" + requiredTarget.getDimension().getLoadKey() + " seed=" + getSeedManager().getSeed());
+            IrisLogging.notice("Engine init: " + requiredTarget.getWorld().name() + "/" + requiredTarget.getDimension().getLoadKey()
+                    + " seed=" + getSeedManager().getSeed() + " billow2D=" + FractalBillowSimplexNoise.nativeBackendStatus());
             _t0 = M.ms();
             phaseStartedAt = System.nanoTime();
             EngineRuntime initialRuntime = runtimeBuilder.buildRuntime(cacheIdentity);

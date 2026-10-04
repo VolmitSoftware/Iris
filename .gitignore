@@ -76,3 +76,8 @@ BUILDS/
 .compatwt/
 
 .worktrees/
+
+/VolmLib/
+/docs/
+/.perf/
+/.codegraph/

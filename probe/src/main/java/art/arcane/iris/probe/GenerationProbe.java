@@ -39,6 +39,7 @@ import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
+import art.arcane.volmlib.util.noise.FractalBillowSimplexNoise;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -58,7 +59,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
 public final class GenerationProbe {
-    private static final long SEED = 1337L;
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
 
     private static final class InertPreservation implements PreservationRegistry {
@@ -126,7 +126,7 @@ public final class GenerationProbe {
     }
 
     record ProbeConfiguration(File packSource, String dimensionKey, int warmupChunks, int measuredChunks,
-                              int centerChunkX, int centerChunkZ, boolean multicore, boolean studio) {
+                              int centerChunkX, int centerChunkZ, boolean multicore, boolean studio, long seed) {
         ProbeConfiguration {
             if (packSource == null) {
                 throw new IllegalArgumentException("Pack folder is required.");
@@ -143,8 +143,8 @@ public final class GenerationProbe {
         }
 
         static ProbeConfiguration parse(String[] args) {
-            if (args.length != 8) {
-                throw new IllegalArgumentException("Expected: <pack> <dimension> <warmupChunks> <measuredChunks> <centerChunkX> <centerChunkZ> <multicore> <studio>");
+            if (args.length != 9) {
+                throw new IllegalArgumentException("Expected: <pack> <dimension> <warmupChunks> <measuredChunks> <centerChunkX> <centerChunkZ> <multicore> <studio> <seed>");
             }
             return new ProbeConfiguration(
                     new File(args[0]),
@@ -154,7 +154,8 @@ public final class GenerationProbe {
                     Integer.parseInt(args[4]),
                     Integer.parseInt(args[5]),
                     Boolean.parseBoolean(args[6]),
-                    Boolean.parseBoolean(args[7]));
+                    Boolean.parseBoolean(args[7]),
+                    Long.parseLong(args[8]));
         }
     }
 
@@ -277,7 +278,9 @@ public final class GenerationProbe {
             throw new IllegalArgumentException("Pack folder not found: " + configuration.packSource().getAbsolutePath());
         }
 
-        File workRoot = Files.createTempDirectory("iris-genprobe-").toFile();
+        Path temporaryRoot = Path.of("build", "generation-probe").toAbsolutePath();
+        Files.createDirectories(temporaryRoot);
+        File workRoot = Files.createTempDirectory(temporaryRoot, "iris-genprobe-").toFile();
         IrisData data = null;
         Engine engine = null;
         Throwable executionFailure = null;
@@ -288,6 +291,7 @@ public final class GenerationProbe {
 
             System.out.println("[genprobe] pack: " + configuration.packSource().getAbsolutePath());
             System.out.println("[genprobe] dimension: " + configuration.dimensionKey());
+            System.out.println("[genprobe] seed: " + configuration.seed());
             System.out.println("[genprobe] warmup chunks: " + configuration.warmupChunks());
             System.out.println("[genprobe] measured chunks: " + configuration.measuredChunks());
             System.out.println("[genprobe] center chunk: " + configuration.centerChunkX() + "," + configuration.centerChunkZ());
@@ -304,7 +308,7 @@ public final class GenerationProbe {
             IrisWorld world = IrisWorld.builder()
                     .platformIdentity("iris:probe")
                     .name("probe")
-                    .seed(SEED)
+                    .seed(configuration.seed())
                     .worldFolder(new File(workRoot, "world"))
                     .minHeight(dimension.getMinHeight())
                     .maxHeight(dimension.getMaxHeight())
@@ -323,7 +327,9 @@ public final class GenerationProbe {
                     + " seed=" + engine.getSeedManager().getSeed()
                     + " minY=" + engine.getMinHeight() + " maxY=" + engine.getMaxHeight()
                     + " timeMs=" + String.format(Locale.ROOT, "%.3f", nanosToMillis(engineReadyNanos)));
+            long nativeSamplesBefore = FractalBillowSimplexNoise.nativeSampleCount();
             GenerationResult generation = generate(engine, configuration);
+            verifyBackend(nativeSamplesBefore);
             String status = generation.failedChunks() == 0 ? "PASS" : "FAIL";
             printGenerationFailures(generation);
             return new ProbeResult(
@@ -351,6 +357,20 @@ public final class GenerationProbe {
                     throw cleanupFailure;
                 }
             }
+        }
+    }
+
+    private static void verifyBackend(long nativeSamplesBefore) {
+        String backend = FractalBillowSimplexNoise.nativeBackendStatus();
+        long nativeSamples = FractalBillowSimplexNoise.nativeSampleCount() - nativeSamplesBefore;
+        System.out.println("IRIS_GENPROBE_BACKEND status=" + backend + " native_samples=" + nativeSamples
+                + " diagnostics=" + Boolean.getBoolean("volmlib.noise.nativeBillowDiagnostics"));
+        String expected = System.getProperty("iris.probe.expectedBackend", "");
+        if (!expected.isEmpty() && !expected.equals(backend)) {
+            throw new IllegalStateException("Expected backend " + expected + ", received " + backend);
+        }
+        if (Boolean.getBoolean("iris.probe.requireNativeSamples") && nativeSamples <= 0L) {
+            throw new IllegalStateException("Real chunk generation did not report native Billow samples.");
         }
     }
 

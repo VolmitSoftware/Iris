@@ -49,6 +49,21 @@ class PackModulesTest {
         return TestModuleJar.compileClass(pack, SHARED_CLASS, SHARED_SOURCE);
     }
 
+    /** A jar of empty public classes, for modules to compile against without shipping it. */
+    private static Path library(Path build, String jarName, String... classNames) {
+        var library = new TestModuleJar();
+        for (var className : classNames) {
+            int dot = className.lastIndexOf('.');
+            library.source(className, "package %s; public final class %s {}".formatted(className.substring(0, dot), className.substring(dot + 1)));
+        }
+        return library.writeInto(build, jarName);
+    }
+
+    /** Module members that use each class, so its class file references them. */
+    private static String using(String... classNames) {
+        return "static Object[] used() { return new Object[] {" + String.join(".class, ", classNames) + ".class}; }";
+    }
+
     private static String failure(Executable load) {
         return assertThrows(IllegalArgumentException.class, load).getMessage();
     }
@@ -292,6 +307,70 @@ class PackModulesTest {
         var message = failure(() -> PackModules.load(pack));
         assertMentions(message, "pack.user.User -> org.junit.jupiter.api.Test");
         assertFalse(message.contains(OPTIONAL_CLASS), message);
+    }
+
+    @Test
+    void missingClassesInDeclaredOptionalPackagesDoNotWarn(@TempDir Path build) {
+        module("pack.user.User", "user:core", List.of("org.optional", "org.other."), using(OPTIONAL_CLASS, "org.other.deep.Thing"), NO_STAGES)
+                .compileAgainst(library(build, "optional.jar", OPTIONAL_CLASS, "org.other.deep.Thing"))
+                .writeInto(pack, "user.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(List.of(), packModules.missingClasses());
+        }
+    }
+
+    @Test
+    void missingClassesOutsideDeclaredOptionalPackagesStillWarn(@TempDir Path build) {
+        module("pack.user.User", "user:core", List.of("org.optional"), using(OPTIONAL_CLASS, "org.optionalx.Other", "org.slf4j.Logger"), NO_STAGES)
+                .compileAgainst(library(build, "optional.jar", OPTIONAL_CLASS, "org.optionalx.Other", "org.slf4j.Logger"))
+                .writeInto(pack, "user.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(List.of(new MissingClasses(origin("user.jar"), List.of("org.optionalx.Other", "org.slf4j.Logger"))),
+                    packModules.missingClasses());
+        }
+    }
+
+    @Test
+    void optionalPackagesExcuseOnlyTheirOwnJar(@TempDir Path build) {
+        var optionalLibrary = library(build, "optional.jar", OPTIONAL_CLASS);
+        module("pack.alpha.Alpha", "alpha:core", List.of("org.optional"), using(OPTIONAL_CLASS), NO_STAGES)
+                .compileAgainst(optionalLibrary)
+                .writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", using(OPTIONAL_CLASS), NO_STAGES)
+                .compileAgainst(optionalLibrary)
+                .writeInto(pack, "beta.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(List.of(new MissingClasses(origin("beta.jar"), List.of(OPTIONAL_CLASS))), packModules.missingClasses());
+        }
+    }
+
+    @Test
+    void optionalPackagesNeverExcuseALoadError(@TempDir Path build) {
+        var hidden = pack.resolve("hidden");
+        module("pack.user.User", "user:core", List.of("org.junit"), using("org.junit.jupiter.api.Test"), NO_STAGES)
+                .compileAgainstHostOf(Test.class)
+                .writeInto(hidden, "user.jar");
+        assertMentions(failure(() -> PackModules.load(hidden)),
+                "uses classes that exist in Iris but are hidden from modules:\n  pack.user.User -> org.junit.jupiter.api.Test");
+
+        var newerApi = pack.resolve("newer-api");
+        module("pack.user.User", "user:core", List.of("com.volmit"), using("com.volmit.Newer"), NO_STAGES)
+                .compileAgainst(library(build, "newer-api.jar", "com.volmit.Newer"))
+                .writeInto(newerApi, "user.jar");
+        assertMentions(failure(() -> PackModules.load(newerApi)),
+                "uses classes that this Iris does not have, in packages Iris provides to modules:\n  pack.user.User -> com.volmit.Newer");
+    }
+
+    @Test
+    void invalidOptionalPackageFailsNamingTheJar() {
+        module("pack.user.User", "user:core", List.of("org.*"), NO_MEMBERS, NO_STAGES).writeInto(pack, "user.jar");
+
+        assertMentions(failure(() -> PackModules.load(pack)),
+                "Module jar " + origin("user.jar") + " has a broken entry point pack.user.User: info() failed",
+                "Optional package 'org.*' of module user:core is not a package name");
     }
 
     @Test

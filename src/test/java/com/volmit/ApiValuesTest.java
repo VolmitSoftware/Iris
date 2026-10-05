@@ -42,6 +42,23 @@ class ApiValuesTest {
     }
 
     @Test
+    void moduleInfoDeclaresOptionalPackagesWithTheirSubpackages() {
+        var plain = ModuleInfo.of("example:moss", "Moss", "1.0.0");
+        var info = plain.withOptionalPackages("org.slf4j", "org.apache.logging.");
+
+        assertEquals(List.of(), plain.optionalPackages());
+        assertEquals(List.of(new PackageName("org.slf4j"), new PackageName("org.apache.logging")), info.optionalPackages());
+        assertEquals(List.of(), info.withOptionalPackages().optionalPackages());
+        assertTrue(info.optionalPackages().getFirst().contains("org.slf4j.spi.LocationAwareLogger"));
+        assertFalse(info.optionalPackages().getFirst().contains("org.slf4jx.Logger"));
+        for (var invalid : List.of("", "org.*", "org..slf4j", "1org")) {
+            var failure = assertThrows(IllegalArgumentException.class, () -> plain.withOptionalPackages(invalid));
+            assertTrue(failure.getMessage().startsWith("Optional package '" + invalid + "' of module example:moss is not a package name"),
+                    failure.getMessage());
+        }
+    }
+
+    @Test
     void moduleInfoTextFitsOnOneLogLine() {
         for (var broken : List.of("Moss\nINFO forged line", "Moss\r", "Moss\tTabbed", "Moss\u2028Next")) {
             var failure = assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("example:moss", broken, "1.0.0"));

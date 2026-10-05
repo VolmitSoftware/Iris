@@ -39,7 +39,13 @@ public final class TestModuleJar {
 
     /** An entry class with the given module id whose install body may use {@code graph}. */
     public static TestModuleJar module(String className, String moduleId, String members, String install) {
-        return new TestModuleJar().source(className, moduleSource(className, moduleId, members, install)).entryPoint(className);
+        return module(className, moduleId, List.of(), members, install);
+    }
+
+    /** Like {@link #module(String, String, String, String)}, with {@code info()} declaring {@code optionalPackages}. */
+    public static TestModuleJar module(String className, String moduleId, List<String> optionalPackages, String members, String install) {
+        var info = moduleInfo(moduleId, optionalPackages);
+        return new TestModuleJar().source(className, moduleSource(className, info, members, install)).entryPoint(className);
     }
 
     /** Compiles one class on its own and returns its class file, for raw entries such as versioned classes. */
@@ -147,7 +153,14 @@ public final class TestModuleJar {
         output.closeEntry();
     }
 
-    private static String moduleSource(String className, String moduleId, String members, String install) {
+    private static String moduleInfo(String moduleId, List<String> optionalPackages) {
+        var info = "ModuleInfo.of(\"%s\", \"%s\", \"1.0.0\")".formatted(moduleId, displayName(moduleId));
+        if (optionalPackages.isEmpty()) return info;
+        var packages = optionalPackages.stream().map(name -> '"' + name + '"').collect(Collectors.joining(", "));
+        return info + ".withOptionalPackages(" + packages + ")";
+    }
+
+    private static String moduleSource(String className, String info, String members, String install) {
         int dot = className.lastIndexOf('.');
         return """
                 package %s;
@@ -159,11 +172,11 @@ public final class TestModuleJar {
                 public final class %s implements IrisModule {
                     %s
 
-                    public ModuleInfo info() { return ModuleInfo.of("%s", "%s", "1.0.0"); }
+                    public ModuleInfo info() { return %s; }
 
                     public void install(StageGraph graph) { %s }
                 }
-                """.formatted(className.substring(0, dot), className.substring(dot + 1), members, moduleId, displayName(moduleId), install);
+                """.formatted(className.substring(0, dot), className.substring(dot + 1), members, info, install);
     }
 
     /** The display name test modules get, so assertions can predict it from the id. */

@@ -12,6 +12,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /** The module jars of one pack: every {@code <pack>/modules/*.jar}, one module per jar, ordered
  * by file name so the result never depends on directory listing order.
@@ -24,7 +26,8 @@ import java.util.Objects;
  * fails if a jar holds classes of an exposed package, if a class is in two jars, or if a class uses
  * a class that Iris hides from modules or that is missing from an exposed package.
  * Classes that nobody has are not an error, because the JVM only needs them when code that uses
- * them runs; they are reported as {@link #missingClasses()}.
+ * them runs; they are reported as {@link #missingClasses()}, except those in the optional packages
+ * the jar's module declares in its {@link com.volmit.ModuleInfo}.
  *
  * <p>A successful load logs one INFO summary of the pack's modules through {@link System.Logger},
  * which the host can route to its own logging, and one WARNING listing the missing classes, if any.
@@ -78,7 +81,8 @@ public final class PackModules implements AutoCloseable {
     }
 
     /** Per jar that uses any, in jar file name order, the classes that neither the pack, Iris nor the
-     * JDK has. Empty when every class the jars use exists.
+     * JDK has and that are outside the optional packages the jar's module declares. Empty when every
+     * class the jars use exists or is declared optional.
      */
     public List<MissingClasses> missingClasses() {
         return missingClasses;
@@ -114,7 +118,8 @@ public final class PackModules implements AutoCloseable {
             Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host) {
         var loader = newPackClassLoader(packRoot, jars, host);
         try {
-            return new PackModules(createModules(jars, loader), missingClasses, loader);
+            var modules = createModules(jars, loader);
+            return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), loader);
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(loader, failure);
             throw failure;
@@ -139,6 +144,19 @@ public final class PackModules implements AutoCloseable {
 
     private static List<DiscoveredModule> createModules(List<ModuleJar> jars, ClassLoader loader) {
         return jars.stream().map(jar -> jar.createModule(loader)).toList();
+    }
+
+    /** A module's optional packages excuse only its own jar's missing classes. They are read from
+     * {@code info()}, so this runs after the entry classes exist; errors were decided before that and
+     * never depend on them.
+     */
+    private static List<MissingClasses> withoutDeclaredOptional(List<MissingClasses> missingClasses, List<DiscoveredModule> modules) {
+        var optionalPackages = modules.stream()
+                .collect(Collectors.toMap(DiscoveredModule::origin, found -> found.module().info().optionalPackages()));
+        return missingClasses.stream()
+                .map(jar -> jar.outside(optionalPackages.get(jar.origin())))
+                .filter(Predicate.not(MissingClasses::isEmpty))
+                .toList();
     }
 
     private static void closeAfterFailure(URLClassLoader loader, Throwable failure) {

@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -22,7 +23,9 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
 /** One jar in a pack's modules directory, the entry class it names and the classes it holds,
- * each with the classes it links against.
+ * each with the classes it links against. {@code path} is the load's copy of the jar
+ * ({@link JarSnapshot}); {@code origin} is the original's path relative to the pack, which every
+ * message names.
  *
  * <p>The entry point is the jar's own {@code META-INF/services/com.volmit.IrisModule} file, in
  * the format {@link java.util.ServiceLoader} reads. The host reads that file from this jar only:
@@ -51,11 +54,12 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         }
     }
 
-    /** Reads the single entry class a jar names and the classes it holds. The origin is the jar
-     * path relative to its pack. Fails if a class file cannot be parsed.
+    /** Reads the single entry class a jar names and the classes it holds. Fails if a class file
+     * cannot be parsed.
      */
-    static ModuleJar read(Path packRoot, Path jar) {
-        var origin = packRoot.relativize(jar).toString();
+    static ModuleJar read(JarSnapshot.CopiedJar copied) {
+        var origin = copied.origin();
+        var jar = copied.copy();
         try (var file = openAsClassLoaderSeesIt(jar)) {
             var entryClass = requireSingleEntryClass(origin, readEntryClasses(file));
             var classEntries = findClassEntries(file);
@@ -80,9 +84,9 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
     /** Loads and instantiates the entry class through the pack's class loader. The class must come
      * from this jar, so a copy on the host classpath cannot silently replace the jar's module.
      */
-    DiscoveredModule createModule(ClassLoader packLoader) {
+    DiscoveredModule createModule(ClassLoader packLoader, JarSnapshot snapshot) {
         var type = loadEntryClass(packLoader);
-        requireDefinedHere(type);
+        requireDefinedHere(type, snapshot);
         var module = instantiate(type);
         return DiscoveredModule.fromJar(module, readIdentity(module), origin);
     }
@@ -177,11 +181,21 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         return type.asSubclass(IrisModule.class);
     }
 
-    private void requireDefinedHere(Class<?> type) {
+    private void requireDefinedHere(Class<?> type, JarSnapshot snapshot) {
         var source = type.getProtectionDomain().getCodeSource();
         var location = source == null ? null : source.getLocation();
-        if (location == null || !location.toExternalForm().equals(url().toExternalForm())) {
-            throw brokenEntryPoint("class is loaded from " + location + ", not from this jar", null);
+        if (location != null && location.toExternalForm().equals(url().toExternalForm())) return;
+        throw brokenEntryPoint("class is loaded from " + describeLocation(location, snapshot) + ", not from this jar", null);
+    }
+
+    /** Another jar of the pack by its origin, never by the path of its copy. */
+    private static String describeLocation(URL location, JarSnapshot snapshot) {
+        if (location == null) return "an unknown location";
+        try {
+            var origin = snapshot.originOf(Path.of(location.toURI()));
+            return origin == null ? location.toString() : origin;
+        } catch (URISyntaxException | IllegalArgumentException | java.nio.file.FileSystemNotFoundException exception) {
+            return location.toString();
         }
     }
 

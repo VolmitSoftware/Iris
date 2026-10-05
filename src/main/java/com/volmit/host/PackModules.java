@@ -16,7 +16,14 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /** The module jars of one pack: every {@code <pack>/modules/*.jar}, one module per jar, ordered
- * by file name so the result never depends on directory listing order.
+ * by file name so the result never depends on directory listing order. Hosts normally load packs
+ * through {@link LoadedPack}, which uses this.
+ *
+ * <p>The load first copies the jars into a fresh temporary directory ({@link JarSnapshot}) and works
+ * only on the copies, so the originals stay free to be replaced, even on Windows, and the load sees one
+ * consistent set of jars. Messages and origins name the originals ({@code modules/moss.jar}). Copies
+ * are deleted when the pack closes or its load fails; copies a crashed process left behind are removed
+ * by a later load ({@link StaleJarSnapshots}).
  *
  * <p>All jars of a pack share one class loader. A pack jar can therefore name another pack jar's
  * stage constants in {@code requires(...)}. Besides the pack's own classes, that loader sees only
@@ -38,16 +45,20 @@ import java.util.stream.Collectors;
 public final class PackModules implements AutoCloseable {
     public static final String MODULES_DIRECTORY = "modules";
     static final String JAR_EXTENSION = ".jar";
+    private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
     private static final System.Logger LOGGER = System.getLogger(PackModules.class.getName());
 
     private final List<DiscoveredModule> modules;
     private final List<MissingClasses> missingClasses;
     private final URLClassLoader loader;
+    private final JarSnapshot snapshot;
 
-    private PackModules(List<DiscoveredModule> modules, List<MissingClasses> missingClasses, URLClassLoader loader) {
+    private PackModules(
+            List<DiscoveredModule> modules, List<MissingClasses> missingClasses, URLClassLoader loader, JarSnapshot snapshot) {
         this.modules = List.copyOf(modules);
         this.missingClasses = List.copyOf(missingClasses);
         this.loader = loader;
+        this.snapshot = snapshot;
     }
 
     /** Loads the modules of the pack at {@code packRoot}, exposing only the Iris API. */
@@ -64,15 +75,23 @@ public final class PackModules implements AutoCloseable {
      *     trailing dot is accepted; blank names and wildcards are rejected.
      */
     public static PackModules load(Path packRoot, Collection<String> exposedHostPackages) {
+        return load(packRoot, exposedHostPackages, systemTemporaryDirectory());
+    }
+
+    /** Like {@link #load(Path, Collection)}, copying the jars below {@code temporaryRoot}. */
+    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, Path temporaryRoot) {
         Objects.requireNonNull(packRoot, "packRoot");
         var host = new ExposedHostClassLoader(IrisModule.class.getClassLoader(), ExposedPackages.apiAnd(exposedHostPackages));
-        var jars = findModuleJars(packRoot).stream()
-                .map(jar -> ModuleJar.read(packRoot, jar))
-                .toList();
-        var missingClasses = PackClassCheck.requireLinkable(jars, host);
-        var packModules = defineModules(packRoot, jars, missingClasses, host);
-        logLoad(packName(packRoot), packModules);
-        return packModules;
+        StaleJarSnapshots.remove(temporaryRoot);
+        var snapshot = JarSnapshot.take(packRoot, findModuleJars(packRoot), temporaryRoot);
+        try {
+            var packModules = loadSnapshot(packRoot, snapshot, host);
+            logLoad(packName(packRoot), packModules);
+            return packModules;
+        } catch (RuntimeException | Error failure) {
+            snapshot.deleteAfterFailure(failure);
+            throw failure;
+        }
     }
 
     /** One module per jar, in jar file name order. */
@@ -88,13 +107,27 @@ public final class PackModules implements AutoCloseable {
         return missingClasses;
     }
 
+    /** Closes the class loader, then deletes the jar copies, which an open loader would keep locked on Windows. */
     @Override
     public void close() {
         try {
             loader.close();
         } catch (IOException exception) {
-            throw new UncheckedIOException("Cannot close module class loader " + loader.getName(), exception);
+            var failure = new UncheckedIOException("Cannot close module class loader " + loader.getName(), exception);
+            snapshot.deleteAfterFailure(failure);
+            throw failure;
         }
+        snapshot.delete();
+    }
+
+    private static Path systemTemporaryDirectory() {
+        return Path.of(System.getProperty(TEMPORARY_DIRECTORY_PROPERTY));
+    }
+
+    private static PackModules loadSnapshot(Path packRoot, JarSnapshot snapshot, ExposedHostClassLoader host) {
+        var jars = snapshot.jars().stream().map(ModuleJar::read).toList();
+        var missingClasses = PackClassCheck.requireLinkable(jars, host);
+        return defineModules(packRoot, jars, missingClasses, host, snapshot);
     }
 
     private static List<Path> findModuleJars(Path packRoot) {
@@ -115,11 +148,11 @@ public final class PackModules implements AutoCloseable {
     }
 
     private static PackModules defineModules(
-            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host) {
+            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host, JarSnapshot snapshot) {
         var loader = newPackClassLoader(packRoot, jars, host);
         try {
-            var modules = createModules(jars, loader);
-            return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), loader);
+            var modules = createModules(jars, loader, snapshot);
+            return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), loader, snapshot);
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(loader, failure);
             throw failure;
@@ -142,8 +175,8 @@ public final class PackModules implements AutoCloseable {
         return name == null ? packRoot.toString() : name.toString();
     }
 
-    private static List<DiscoveredModule> createModules(List<ModuleJar> jars, ClassLoader loader) {
-        return jars.stream().map(jar -> jar.createModule(loader)).toList();
+    private static List<DiscoveredModule> createModules(List<ModuleJar> jars, ClassLoader loader, JarSnapshot snapshot) {
+        return jars.stream().map(jar -> jar.createModule(loader, snapshot)).toList();
     }
 
     /** A module's optional packages excuse only its own jar's missing classes. They are read from

@@ -16,7 +16,8 @@ import java.util.Objects;
  *
  * A load either returns a complete pack or throws with nothing left open. Close the pack when it
  * unloads, after the host has stopped using its graphs, catalog and runners: closing releases the
- * pack's class loader.
+ * pack's class loader and deletes its copies of the module jars. The original jars are never held
+ * open, so a module author can rebuild them while the pack is loaded.
  */
 public final class LoadedPack implements AutoCloseable {
     private final PackModules packModules;

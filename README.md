@@ -56,8 +56,16 @@ modules/moss.jar
 ```
 
 `info()` gives the module id, display name and version. The id's namespace is the namespace of
-every stage the module defines; the name is what logs show. A class may appear in only one jar of
-a pack, so shaded libraries need relocating.
+every stage the module defines; the name is what logs show. Names and versions must fit on one
+line: line breaks and other control characters are rejected.
+
+A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
+Iris provides the API at runtime. At runtime a module can use only the Iris API (`com.volmit.*`),
+the JDK and the classes in its pack's module jars. Iris internals and the libraries Iris bundles
+are hidden, so a library the module needs goes inside one of the pack's jars. A class may appear
+in only one jar of a pack, so two jars that shade the same library must relocate it. The
+`com.volmit.` package prefix belongs to the API: module classes, and the libraries they shade,
+must not use it.
 
 Iris never downloads modules and does not check which API version a jar was built for. A pack
 ships its module jars, and keeping them compatible with the Iris version it targets is the pack
@@ -81,9 +89,20 @@ try (var pack = PackModules.load(packRoot)) {
 
 `PackModules.load` reads one entry point per jar, in jar file name order, and loads every jar
 of the pack through one class loader. Closing it closes that loader. A pack without a `modules`
-directory has no modules. Errors name the jar: no entry point, several entry points, a class that
-is also in another jar of the pack (both jars are named), or an entry class that cannot be loaded,
-is not an `IrisModule`, is not in that jar, or fails to construct.
+directory has no modules. Errors name the jar: no entry point, several entry points, a
+`com.volmit.` class in the jar, a class that is also in another jar of the pack (both jars are
+named), a class that uses a class outside the API, the JDK and the pack's jars, or an entry class
+that cannot be loaded, is not an `IrisModule`, is not in that jar, or fails to construct. All
+checks before the last run before any class of the pack is defined:
+
+```
+Module jar modules/alpha.jar contains Iris API class com.volmit.FeatureAttachment and 130 more; Iris provides the API at runtime, so mark the Iris API dependency compileOnly (Maven: provided) and keep module classes out of com.volmit.*
+
+Module jar modules/moss.jar uses classes that are not in the Iris API, the JDK or the pack's module jars:
+  com.example.moss.MossModule -> com.google.gson.Gson
+  com.example.moss.MossSettings -> art.arcane.iris.engine.object.IrisBiome
+A module can use only the Iris API, the JDK and the classes in its pack's module jars; ship any library it needs inside a module jar of the pack.
+```
 
 A successful load logs one INFO summary through `System.Logger`:
 
@@ -98,7 +117,9 @@ A pack without jars logs `Pack overworld uses no modules: no jars in its modules
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
 together with geometry and mantle registrations, and resolves both pipelines. Graph errors
 (missing requirement, cycle, foreign namespace, duplicate, cross-pipeline edge) fail here, at
-pack load. Duplicate module ids and foreign namespaces also name the jar or "host classpath".
+pack load. Duplicate module ids and foreign namespaces also name the jar or "host classpath", and
+so does a module that fails to link a class while installing, such as a jar built against an API
+whose methods have since changed.
 `describe()` prints the order, owners, edge kinds, fused block passes and the stage pairs that
 have no path between them.
 
@@ -128,8 +149,11 @@ invocations and must not keep views or mutable state.
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
-jars into a temporary pack and loads them, including every jar error and duplicate classes in
-plain and multi-release jars. `PackModulesSummaryTest` checks the log text. The example ports in
+jars into a temporary pack and loads them, including every jar error, duplicate classes in plain
+and multi-release jars, API classes in a jar, references outside the pack, references that must
+still load (arrays, the JDK, other pack jars, missing annotation types) and linkage errors during
+install. `ApiAndJdkClassLoaderTest` checks what the pack loader's parent shows.
+`PackModulesSummaryTest` checks the log text. The example ports in
 `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and snow
 as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There is
 no Minecraft integration or production storage in these tests.

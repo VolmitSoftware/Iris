@@ -52,20 +52,23 @@ which jar a broken provider came from. The rejected alternatives:
 
 1. Lists regular files ending in `.jar` in `<pack>/modules`, sorted by file name. A missing
    directory means no modules.
-2. Reads each jar's entry point file and its class names. Comments (`#`) and blank lines are
-   ignored; zero or more than one entry class name fails.
-3. Fails if a class is in two jars, naming the class and both jars. Nothing has been defined yet.
-4. Creates one `URLClassLoader` for all jars of the pack, parent = the loader of `IrisModule`.
-5. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
+2. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
+   ignored; zero or more than one entry class name fails. A class in a `com.volmit.` package
+   fails, naming the jar and the first such class.
+3. Fails if a class is in two jars, naming the class and both jars.
+4. Fails if a class uses a class that is not in the API, the JDK or a jar of the pack, listing
+   each referencing and referenced class per jar. Nothing has been defined up to here.
+5. Creates one `URLClassLoader` for all jars of the pack, parent = `ApiAndJdkClassLoader`.
+6. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
    instantiates it with the public no-argument constructor and calls `info()`.
-6. Logs one INFO summary of the pack's modules.
+7. Logs one INFO summary of the pack's modules.
 
 One loader per pack, not per jar, because `requires(...)` takes another module's stage constant.
 A pack jar that requires a stage of another pack jar must see its classes. Packs stay isolated
-from each other, and built-in modules visible to the API's loader are visible to every pack. The
-cost is a shared class namespace: with two copies of a class, the loader would silently use the
-one first in file name order. Step 3 turns that into a load error, so two jars that shade the same
-library must relocate it, and shared code belongs in one module that the others require.
+from each other. The cost is a shared class namespace: with two copies of a class, the loader
+would silently use the one first in file name order. Step 3 turns that into a load error, so two
+jars that shade the same library must relocate it, and shared code belongs in one module that the
+others require.
 
 The class check reads jars the way the loader does. `module-info.class` is ignored. A
 multi-release jar (`Multi-Release: true`) contributes each class once, under its base name, from
@@ -73,9 +76,50 @@ the highest `META-INF/versions/N` that the running JDK selects; a versioned copy
 jar therefore clashes with the plain class in another. In a jar without that manifest attribute the
 loader never reads `META-INF/versions`, so those entries are skipped.
 
+### What a module can see
+
+Modules depend only on the Iris API. They compile against it `compileOnly` and never ship it,
+because Iris provides it at runtime; in production it is shaded into the Iris plugin jar. The
+loader that defines the API therefore also sees Iris internals and the libraries Iris bundles, so
+it is not the pack loader's parent. `ApiAndJdkClassLoader` is: it delegates every class in a
+package starting with `com.volmit.` (`API_PACKAGE_PREFIX`) to the API's loader and everything else
+to the platform class loader, which holds the JDK. A module can use only the API, the JDK and the
+classes of its own pack's jars. The api/host split is deferred, so `com.volmit.host` is visible
+too.
+
+Resources follow the same rule by path: `com/volmit/...` from the API's loader, everything else
+from the platform loader, then the pack's jars. A class and its class file come from the same
+place, and a pack never sees Iris's own resources such as `plugin.yml` or its service files.
+
+The pack loader asks its parent first, so a packaged copy of an API class would be silently
+replaced by the host's, and a module class in a `com.volmit.` package could be replaced by a
+later API class of the same name. Step 2 rejects both; the prefix belongs to the API. A module
+class that shares a name with an Iris internal is harmless, because the pack loader cannot see
+Iris internals. A module class that shares a name with a JDK class is replaced by the JDK's; that
+is not checked.
+
+Step 4 reads every class file with the JDK's `java.lang.classfile` API. A class uses every class
+in its constant pool (supertypes, and instantiated, cast, caught, called-on and class-literal
+types) and every type in the descriptors of its own fields and methods and of the members and
+call sites it uses. Arrays count as their element type; primitives do not count. A class counts
+as present when the pack has it or the parent has its class file, so nothing is loaded or
+initialized by the check. Annotations and generic signatures are left out: the JVM never resolves
+them while linking, and reflection skips an annotation whose type is missing, so a `compileOnly`
+annotation library such as JetBrains annotations needs nothing at runtime.
+
+The check is stricter than the JVM, which resolves a class only when code first uses it. A
+shaded library with optional dependencies that are absent from the pack is therefore rejected,
+even if those code paths would never run; the jar must leave such classes out or ship the
+dependency. In exchange, a missing class shows up at load, with the jar and both class names,
+instead of as a `NoClassDefFoundError` during install or generation. A missing `com.volmit.`
+class means the jar was built against a different API, and the error says so.
+
 There is no version gating. Packs ship their module jars and Iris never downloads any, so whether
-a jar works with the running Iris is the pack publisher's responsibility. An incompatible jar
-fails with a linkage error at load, install or run time.
+a jar works with the running Iris is the pack publisher's responsibility. The class check catches
+API classes that no longer exist. It does not check methods and fields: a jar built against an API
+whose methods have changed fails with a linkage error, which `LoadedModules.load` reports with the
+module's jar when it happens during install, and which surfaces at generation time when it
+happens only in a stage body.
 
 Closing `PackModules` closes the loader. Classes loaded before that keep working, so the host
 must drop `LoadedModules` and everything else built from the pack first.

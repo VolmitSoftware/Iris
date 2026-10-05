@@ -28,6 +28,10 @@ types that carry them and lists what the Iris adapter still owes.
 Stage bodies hold no invocation state. Everything per placement or chunk travels through the
 context, outputs and accumulators.
 
+Modules compile against the API `compileOnly` and never ship it. At runtime they can use only the
+API (`com.volmit.*`), the JDK and the classes in their own pack's jars; anything else fails the
+pack load, naming the jar and the classes.
+
 There is no API version gating. Packs ship their module jars, so their compatibility with the
 running Iris is the pack publisher's responsibility.
 
@@ -47,8 +51,10 @@ running Iris is the pack publisher's responsibility.
   `LoadedModules.load`, and close `PackModules` only after nothing built from it is in use.
 - Route `System.Logger` output (logger `com.volmit.host.PackModules`) to the server log, so the
   per-pack module summary is visible.
-- Make built-in modules visible to the loader that defines the API, or pack jars cannot require
-  their stages.
+- Provide the API at runtime from the plugin's class loader, for example by shading it into the
+  Iris plugin jar. Pack jars must not ship it.
+- Pack jars see only `com.volmit.` classes of that loader. Built-in modules whose stages packs may
+  require must be in such a package on that loader, or pack jars cannot require their stages.
 
 ## Open
 

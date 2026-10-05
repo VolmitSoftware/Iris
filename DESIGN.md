@@ -34,7 +34,7 @@ flowchart TD
 ## Module loading
 
 The `IrisModule` implementation is the module's entry point. `info()` returns its id, display
-name and version; there is no separate descriptor. A pack keeps its modules in
+name, version and optional packages; there is no separate descriptor. A pack keeps its modules in
 `<pack>/modules/*.jar`, one module per jar.
 
 A jar names its entry class in `META-INF/services/com.volmit.IrisModule`, the provider format of
@@ -58,13 +58,16 @@ API):
    ignored; zero or more than one entry class name fails.
 4. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
 5. Fails if a class is in two jars, naming the class and both jars.
-6. Resolves every class each class uses (see below). A class that Iris has but hides, or that is
-   missing from an exposed package, fails the load, listing each referencing and referenced class
-   per jar. Classes that nobody has are collected per jar. Nothing has been defined up to here.
+6. Resolves every class each class uses (see below). A class that Iris has but hides, a class of a
+   JDK module packs cannot see, or a class missing from an exposed package fails the load, listing
+   each referencing and referenced class per jar and kind. Classes that nobody has are collected
+   per jar. Nothing has been defined up to here.
 7. Creates one `URLClassLoader` for all jars of the pack, parent = `ExposedHostClassLoader`.
 8. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
    instantiates it with the public no-argument constructor and calls `info()`.
-9. Logs one INFO summary of the pack's modules, and one WARNING if any classes are missing.
+9. Drops each jar's missing classes that lie in the optional packages its module declares in
+   `info()`.
+10. Logs one INFO summary of the pack's modules, and one WARNING if any missing classes remain.
 
 One loader per pack, not per jar, because `requires(...)` takes another module's stage constant.
 A pack jar that requires a stage of another pack jar must see its classes. Packs stay isolated
@@ -88,6 +91,11 @@ holds Iris internals and the libraries Iris bundles, so it is not the pack loade
 to the host's loader (the loader that defines the API) and everything else to the platform class
 loader, which holds the JDK. The api/host split is deferred, so `com.volmit.host` is visible too.
 
+The platform loader provides the JDK modules defined to it and to the boot loader: `java.base`,
+`java.sql`, `java.net.http`, `java.compiler` and the other standard modules. JDK modules defined to
+the application loader, such as `jdk.compiler`, `jdk.jshell` and `jdk.attach`, are not available
+to modules, and neither are JDK modules the runtime did not resolve.
+
 The exposed packages (`ExposedPackages`) are the API's package, `com.volmit` (the package of
 `IrisModule`), plus whatever the host passes to `PackModules.load`. The host decides those; the
 intended use is the packages that hold built-in modules' stage constants, so that a pack jar can
@@ -95,7 +103,7 @@ intended use is the packages that hold built-in modules' stage constants, so tha
 the host's class and the same stage constant, which resolution requires: a copy would be a second
 definition of the id. Names match whole packages: `com.volmit` does not expose `com.volmitx`. A
 trailing dot is accepted; anything that is not a package name, such as a blank string or a
-wildcard, is rejected.
+wildcard, is rejected. `PackageName` holds these rules; module optional packages use them too.
 
 A module may use any library, but it ships that library itself, inside its own jar or as another
 jar of the pack. It never borrows Iris's copy: Iris's libraries can change with any Iris update,
@@ -126,8 +134,16 @@ file, so nothing is loaded or initialized:
 | --- | --- |
 | in a jar of the pack, an exposed package of the host, or the JDK | resolves |
 | in an exposed package, but the host does not have it | load error: the jar was built against a different Iris API or Iris version |
+| in a JDK module the platform loader does not provide, such as `jdk.compiler` | load error: names the JDK module, which is not available to modules |
 | not exposed, but the host's loader has it (Iris internals, Iris's copy of a library) | load error: modules cannot use Iris's classes; ship the library in the pack or use the API |
-| nowhere | the pack loads, with a warning |
+| nowhere | the pack loads, with a warning unless the module declares the package optional |
+
+The rows are checked in that order. The JDK row comes before the host row because the host's loader
+can usually load application-loader JDK classes, which would otherwise be reported as hidden Iris
+classes. Whether a class belongs to such a module is decided by its package, from the JDK's module
+descriptors (`ModuleFinder.ofSystem()`) and the loader the boot layer gives each module, so nothing
+is loaded. When a jar uses several kinds of unusable class, the error has one group per kind and
+jar, each with its own advice.
 
 The JVM resolves a class only when code first needs it, so a class that nobody has is usually an
 optional dependency of a bundled library, used only when present. Rejecting those would be stricter
@@ -137,6 +153,28 @@ logs one WARNING for the pack, one line per jar with at most five class names
 (`MissingClassesWarning`), so a large shaded library cannot flood the log. Code that needs a missing
 class throws `NoClassDefFoundError` when it runs; the verifier may also need it while linking a
 class that uses it, which then fails when that class is first used.
+
+A module that knows its jar uses such classes declares their packages as optional in `info()`:
+
+```java
+public ModuleInfo info() {
+    return ModuleInfo.of("example:moss", "Moss", "1.0.0")
+            .withOptionalPackages("org.slf4j", "org.apache.logging.log4j");
+}
+```
+
+Each package covers its subpackages. Missing classes of that jar inside them are dropped from the
+warning and from `missingClasses()`; the rest still warn, and other jars of the pack are not
+affected. `ModuleInfo.of(id, name, version)` declares none. Invalid names fail in `info()`, which the
+load reports as a broken entry point of the jar.
+
+The declaration lives in the entry point because all module metadata does. That fixes its timing:
+`info()` exists only once the entry class is defined, after the reference check. This is safe
+because the declaration only removes warnings. Every load error is decided in step 6, without it,
+so a declared package can never turn a hidden Iris class, an unavailable JDK class or a class
+missing from an exposed package into a pass. `missingClasses()` drops the excused classes instead
+of flagging them: it then says exactly what the warning says, and a class the author declared
+expected is not a problem to show in studio.
 
 A class the host hides fails, even though the pack might never run that code, because it exists:
 the module was written against Iris's copy, and the error says to ship the library or use the API

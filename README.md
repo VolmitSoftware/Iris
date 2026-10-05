@@ -55,9 +55,10 @@ modules/moss.jar
   com/example/moss/MossSettings.class
 ```
 
-`info()` gives the module id, display name and version. The id's namespace is the namespace of
-every stage the module defines; the name is what logs show. Names and versions must fit on one
-line: line breaks and other control characters are rejected.
+`info()` gives the module id, display name and version, and optionally the packages whose classes
+the module expects may be missing (see below). The id's namespace is the namespace of every stage
+the module defines; the name is what logs show. Names and versions must fit on one line: line
+breaks and other control characters are rejected.
 
 A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
 Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the
@@ -73,6 +74,23 @@ to Iris: module classes, and the libraries they shade, must not use them.
 Libraries often reference optional integrations they only use when present. A class that neither
 the pack, Iris nor the JDK has therefore does not fail the load: the pack loads, logs one warning
 listing such classes per jar, and code that needs one throws `NoClassDefFoundError` when it runs.
+A module that expects such classes to be absent declares their packages in `info()`, and the
+warning leaves them out:
+
+```java
+public ModuleInfo info() {
+    return ModuleInfo.of("example:moss", "Moss", "1.0.0")
+            .withOptionalPackages("org.slf4j", "org.apache.logging.log4j");   // with subpackages
+}
+```
+
+A declaration covers only that module's own jar. It never excuses a load error: a class Iris hides,
+a JDK class modules cannot see or a class missing from an exposed package fails even inside a
+declared package. Package names follow the rules of exposed packages (whole packages, trailing dot
+accepted, wildcards rejected).
+
+Modules see the JDK through the platform class loader. JDK modules outside it, such as
+`jdk.compiler` and `jdk.jshell`, are not available to modules.
 
 Iris never downloads modules and does not check which API version a jar was built for. A pack
 ships its module jars, and keeping them compatible with the Iris version it targets is the pack
@@ -100,10 +118,12 @@ those packages, such as the ones that hold built-in modules' stage constants. It
 point per jar, in jar file name order, and loads every jar of the pack through one class loader.
 Closing it closes that loader. A pack without a `modules` directory has no modules. Errors name the
 jar: no entry point, several entry points, a class of an exposed package in the jar, a class that is
-also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides
-or a class missing from an exposed package, or an entry class that cannot be loaded, is not an
-`IrisModule`, is not in that jar, or fails to construct. All checks before the last run before any
-class of the pack is defined:
+also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides,
+a class of a JDK module modules cannot see or a class missing from an exposed package, or an entry
+class that cannot be loaded, is not an `IrisModule`, is not in that jar, fails to construct or whose
+`info()` fails (an invalid optional package, for example). All checks before the last run before any
+class of the pack is defined. The last error below lists every kind of unusable class the jar
+uses, one group per kind:
 
 ```
 Module jar modules/alpha.jar contains Iris API class com.volmit.FeatureAttachment and 130 more; Iris provides the API at runtime, so mark the Iris API dependency compileOnly (Maven: provided) and keep module classes out of com.volmit.*
@@ -114,13 +134,16 @@ Module jar modules/moss.jar uses classes that exist in Iris but are hidden from 
   com.example.moss.MossModule -> com.google.gson.Gson
   com.example.moss.MossSettings -> art.arcane.iris.engine.object.IrisBiome
 Modules cannot use Iris's own classes or its copies of libraries; ship the library in a module jar of the pack, or use the Iris API.
-
+Module jar modules/moss.jar uses classes of JDK modules that are not available to modules:
+  com.example.moss.Scripts -> com.sun.source.tree.Tree (JDK module jdk.compiler)
+Modules can use only the JDK modules of the platform class loader, such as java.base, java.sql and java.net.http.
 Module jar modules/moss.jar uses classes that this Iris does not have, in packages Iris provides to modules:
   com.example.moss.MossModule -> com.volmit.stage.NewerStage
 The jar was built against a different Iris API or Iris version.
 ```
 
-Classes that nobody has only produce a warning, also available as `pack.missingClasses()`:
+Classes that nobody has only produce a warning, also available as `pack.missingClasses()`. Classes
+in the optional packages a jar's module declares appear in neither:
 
 ```
 Pack overworld: module jars use classes that neither the pack, Iris nor the JDK has, usually optional dependencies of a bundled library. The jars load, but code that needs these classes throws NoClassDefFoundError when it runs:
@@ -174,13 +197,15 @@ invocations and must not keep views or mutable state.
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
 jars into a temporary pack and loads them, including every jar error, duplicate classes in plain
-and multi-release jars, API and other exposed classes in a jar, hidden host classes, classes missing
-from an exposed package, optional dependencies that only warn, references that must still load
+and multi-release jars, API and other exposed classes in a jar, hidden host classes, JDK classes
+outside the platform loader, several kinds of unusable class in one error, classes missing from an
+exposed package, optional dependencies that only warn, declared optional packages (fully and partly
+excused, per jar, never excusing an error, invalid names), references that must still load
 (arrays, the JDK, other pack jars, missing annotation types), linkage errors during install, and a
 pack jar that requires a stage of a built-in module in `example.builtin`, outside `com.volmit`,
 which loads only when the host exposes that package. `ExposedHostClassLoaderTest` checks what the
-pack loader's parent shows and `ExposedPackagesTest` which package names it accepts and how they
-match. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
+pack loader's parent shows, `ExposedPackagesTest` which package names it accepts and how they
+match, and `UnavailableJdkModulesTest` which JDK modules packs cannot see. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
 ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
 snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There
 is no Minecraft integration or production storage in these tests.

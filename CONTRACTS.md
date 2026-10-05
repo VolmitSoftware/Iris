@@ -7,7 +7,7 @@ types that carry them and lists what the Iris adapter still owes.
 
 | Requirement | Contract |
 | --- | --- |
-| Module identity and composition | `IrisModule`, `ModuleInfo`, `StageGraph` |
+| Module identity and composition | `IrisModule`, `ModuleInfo` (with optional packages), `StageGraph` |
 | Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules`, `DiscoveredModule`, `MissingClasses` |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
 | Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` |
@@ -30,9 +30,12 @@ context, outputs and accumulators.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
-own pack's jars. They may use any library they ship in the pack, never Iris's copy. A class Iris has
-but hides, or one missing from an exposed package, fails the pack load, naming the jar and the
-classes. A class nobody has (an optional dependency) only warns.
+own pack's jars. They may use any library they ship in the pack, never Iris's copy. JDK modules
+outside the platform class loader, such as `jdk.compiler`, are not available. A class Iris has but
+hides, a class of an unavailable JDK module, or one missing from an exposed package fails the pack
+load, naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
+its package is one the module declares optional with `ModuleInfo.withOptionalPackages(...)`
+(`PackageName`). That declaration never excuses a load error.
 
 There is no API version gating. Packs ship their module jars, so their compatibility with the
 running Iris is the pack publisher's responsibility.

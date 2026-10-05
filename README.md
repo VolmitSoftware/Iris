@@ -32,16 +32,23 @@ public final class MossModule implements IrisModule {
 - `Stage.placement`, `Stage.placementBlock` and `Stage.chunk` create stages for the placement
   pipeline (once per attempt), the placement pipeline (once per object block) and the chunk
   pipeline. Pass an output class to give a stage a typed output.
-- A stage id uses the namespace of the module that defines it. Defining an id twice fails.
+- A stage id starts with the id of the module that defines it and `/`: module `example:moss`
+  defines `example:moss/spread`, never `example:other/...`. Module ids therefore contain no `/`.
+  Defining an id twice fails.
 - `requires(...)` takes another module's stage constant. It orders, makes the output readable
   and deactivates this stage wherever the requirement is inactive.
 - `softAfter` and `softBefore` take ids and only order. There is no hard "before".
 - `run(...)` ends a stage without output, `produce(...)` a stage with output and
   `accumulate(initial, collector)` a block stage whose accumulator becomes its output.
 - `ctx.output(stage)` works only for stages the current stage transitively requires.
+- `ctx.random()` is the stage's own random stream, derived from the invocation seed and the stage
+  id. Installing or removing other modules, or how much they draw, never changes what a stage
+  draws. A block stage has one stream per placement, drawn across the blocks of its pass.
 
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators
-and mantle layers.
+and mantle layers. Their feature ids and mantle keys use the module's namespace. A settings type
+named in `when(...)` needs a feature id in the namespace of a module that names it, so another
+module may still condition its stages on it.
 
 ## Module jars
 
@@ -56,9 +63,17 @@ modules/moss.jar
 ```
 
 `info()` gives the module id, display name and version, and optionally the packages whose classes
-the module expects may be missing (see below). The id's namespace is the namespace of every stage
-the module defines; the name is what logs show. Names and versions must fit on one line: line
-breaks and other control characters are rejected.
+the module expects may be missing (see below). The host reads it once, when it finds the module.
+Every stage id of the module starts with the module id and `/`; the name is what logs show. Names
+and versions must fit on one line: line breaks and other control characters are rejected.
+
+The host reserves namespaces for its own modules, such as `iris`. A pack module whose id uses a
+reserved namespace fails the load, and because stages, settings ids and mantle keys follow the
+module's namespace, none of them can use it either:
+
+```
+Module iris:stilt from modules/stilt.jar uses reserved namespace 'iris', which only modules that ship with the host may use; give the module a namespace of its own, which its stages, settings ids and mantle keys then use too
+```
 
 A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
 Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the
@@ -102,24 +117,48 @@ publisher's job.
 ## Host side
 
 ```java
-try (var pack = PackModules.load(packRoot, builtInPackages)) {   // exposed besides the API
-    var modules = new ArrayList<>(builtIns);           // DiscoveredModule.builtIn(...)
-    modules.addAll(pack.modules());
-    var loaded = LoadedModules.load(modules, reservedHostFields);
-    System.out.println(loaded.placement().describe());
+// Once, at startup: the same for every pack.
+var host = ModuleHost.of(builtInModules)
+        .exposing("art.arcane.iris.engine.modules")     // besides the API
+        .reservingNamespaces("iris")
+        .reservingFields(reservedHostFields);
 
-    var placer = new PlacementRunner(loaded.placement());
-    PlacementOutcome outcome = placer.place(request, edit, inputs, ConfiguredSettings.of(stilt, snow));
+// Per pack.
+try (var pack = LoadedPack.load(packRoot, host)) {
+    System.out.println(pack.placement().describe());
 
-    new ChunkRunner(loaded.chunk()).generate(generationContext, chunkSettings);
-}   // drop everything built from the pack before it closes
+    var placer = new PlacementRunner(pack.placement());
+    PlacementOutcome outcome = placer.place(request, edit, inputs, placementSeed, ConfiguredSettings.of(stilt, snow));
+
+    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed, chunkSettings);
+}   // stop using the runners before the pack closes
 ```
 
-`PackModules.load(packRoot, exposedHostPackages)` exposes the API plus the given host packages,
-each with its subpackages; `PackModules.load(packRoot)` exposes only the API. The host chooses
-those packages, such as the ones that hold built-in modules' stage constants. It reads one entry
-point per jar, in jar file name order, and loads every jar of the pack through one class loader.
-Closing it closes that loader. A pack without a `modules` directory has no modules. Errors name the
+`ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
+once, here), the host packages pack modules may use, the JSON fields the host itself uses and the
+reserved namespaces. Package names and namespaces are checked when it is built. `LoadedPack.load`
+loads the pack's jars, installs them after the built-ins, catalogs settings and registrations and
+resolves both pipelines. It returns a complete pack or throws with nothing left open. `close()`
+releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
+uses, stay available for tests and special cases.
+
+The host derives one seed per placement or chunk, from the world seed and the placement's stable
+identity or the chunk position, and passes it to the runner. Each stage's stream comes from that
+seed and the stage id (`StageRandom` documents the derivation). Stages cannot reach a shared stream.
+
+The load copies the pack's jars into a fresh temporary directory (`iris-pack-modules-*`) and reads,
+checks and loads classes only from the copies. The originals are never held open, so a module author
+can rebuild a jar while studio has the pack loaded, also on Windows, and a load sees one consistent
+set of jars even if one is rebuilt meanwhile. Messages still name `modules/moss.jar`. The copies are
+deleted when the pack closes or its load fails. A later load removes copies a crashed process left
+behind, but only directories with this prefix and an owner file naming a process that has exited,
+holding nothing but that file and jars.
+
+Pack modules see the API plus the packages given to `ModuleHost.exposing(...)`, each with its
+subpackages. The host chooses those packages, such as the ones that hold built-in modules' stage
+constants. The load (`PackModules`, under `LoadedPack`) reads one entry point per jar, in jar file
+name order, and loads every jar of the pack through one class loader. A pack without a `modules`
+directory has no modules. Errors name the
 jar: no entry point, several entry points, a class of an exposed package in the jar, a class that is
 also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides,
 a class of a JDK module modules cannot see, a class of a JDK package not exported to modules, a
@@ -170,10 +209,16 @@ A pack without jars logs `Pack overworld uses no modules: no jars in its modules
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
 together with geometry and mantle registrations, and resolves both pipelines. Graph errors
-(missing requirement, cycle, foreign namespace, duplicate, cross-pipeline edge) fail here, at
-pack load. Duplicate module ids and foreign namespaces also name the jar or "host classpath", and
-so does a module that fails to link a class while installing, such as a jar built against an API
-whose methods have since changed.
+(missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
+here, at pack load, and so do reserved namespaces and feature ids or mantle keys outside the
+module's namespace. Errors about one module name its jar or "host classpath", and so does a module
+that fails to link a class while installing, such as a jar built against an API whose methods have
+since changed:
+
+```
+Stage iris:anchor/height must start with example:moss/, the id of its defining module example:moss from modules/moss.jar
+Mantle layer iris:depth must use namespace 'example' of its registering module example:moss from modules/moss.jar
+```
 `describe()` prints the order, owners, edge kinds, fused block passes and the stage pairs that
 have no path between them.
 
@@ -192,8 +237,8 @@ and closes the edit in every case. Stages get buffered `PlacementAccess` without
 - The `mantle` package keeps namespaced typed layers, codecs, lifetimes and buffered edits.
 - `IrisFeature`, `@Feature`, the config annotations and `OptionsMetadata` describe settings.
 
-Invocation views expire when the invocation ends. Stage bodies are shared by concurrent
-invocations and must not keep views or mutable state.
+Invocation views and random streams expire when the invocation ends. Stage bodies are shared by
+concurrent invocations and must not keep views, streams or mutable state.
 
 ## Validation
 
@@ -202,7 +247,15 @@ invocations and must not keep views or mutable state.
 ```
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
-rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
+rejection and rollback, install-order determinism, stage-id prefixes and settings, object and mantle
+namespaces (`StageGraphTest`, `ModuleRegistryTest`), and per-stage random streams: inserting a module
+that draws leaves the other stages' draws unchanged, block stages draw one stream across their pass,
+and the derivation is pinned to values computed from its specification (`StageRandomTest`).
+`DiscoveredModuleTest` checks that `info()` is read once. `LoadedPackTest` loads a pack with
+built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
+that classes come from the copies, that the original can be replaced while loaded, that copies go
+away on close and on failure, that errors name the original jar, and which leftover directories a
+load removes. `PackModulesTest` compiles real module
 jars into a temporary pack and loads them, including every jar error, duplicate classes in plain
 and multi-release jars, API and other exposed classes in a jar, hidden host classes, JDK classes
 outside the platform loader, non-exported JDK packages (`sun.misc.Unsafe` and `java.lang` still

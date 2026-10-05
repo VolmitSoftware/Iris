@@ -1,7 +1,8 @@
 # Iris API design
 
-Status: pack module loading, the stage graph, both pipelines' reference executors, settings
-catalog, geometry, resources and typed storage contracts exist and are tested without the Iris
+Status: pack module loading (`LoadedPack`), the stage graph, per-stage random streams, both
+pipelines' reference executors, settings catalog, geometry, resources and typed storage contracts
+exist and are tested without the Iris
 engine. Provider and runtime families at the end are design notes, not Java interfaces.
 
 ## Model
@@ -37,6 +38,13 @@ The `IrisModule` implementation is the module's entry point. `info()` returns it
 name, version and optional packages; there is no separate descriptor. A pack keeps its modules in
 `<pack>/modules/*.jar`, one module per jar.
 
+The host loads a pack with `LoadedPack.load(packRoot, host)`. `ModuleHost` is the host's fixed
+configuration, built once and the same for every pack: built-in modules, exposed host packages,
+reserved JSON fields and reserved namespaces. `LoadedPack` runs `PackModules.load` (below), then
+`LoadedModules.load` on the built-ins followed by the pack's modules. If the second step fails it
+closes the first before rethrowing, so a failed load leaves no class loader or jar copy behind.
+`close()` closes the pack's class loader, then deletes its jar copies.
+
 A jar names its entry class in `META-INF/services/com.volmit.IrisModule`, the provider format of
 `ServiceLoader`. The host reads that file from the jar itself rather than calling
 `ServiceLoader`, which would also return providers of parent class loaders and could not say
@@ -54,28 +62,56 @@ API):
 1. Validates the exposed packages. The API's package is always one of them.
 2. Lists regular files ending in `.jar` in `<pack>/modules`, sorted by file name. A missing
    directory means no modules.
-3. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
+3. Copies them into a fresh temporary directory (see "Jar copies"). Every later step reads the
+   copies; messages name the originals.
+4. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
    ignored; zero or more than one entry class name fails.
-4. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
-5. Fails if a class is in two jars, naming the class and both jars.
-6. Resolves every class each class uses (see below). A class that Iris has but hides, a class of a
+5. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
+6. Fails if a class is in two jars, naming the class and both jars.
+7. Resolves every class each class uses (see below). A class that Iris has but hides, a class of a
    JDK module packs cannot see or of a JDK package packs may not use, or a class missing from an
    exposed package fails the load, listing
    each referencing and referenced class per jar and kind. Classes that nobody has are collected
    per jar. Nothing has been defined up to here.
-7. Creates one `URLClassLoader` for all jars of the pack, parent = `ExposedHostClassLoader`.
-8. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
-   instantiates it with the public no-argument constructor and calls `info()`.
-9. Drops each jar's missing classes that lie in the optional packages its module declares in
+8. Creates one `URLClassLoader` for all copies, parent = `ExposedHostClassLoader`.
+9. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
+   instantiates it with the public no-argument constructor and calls `info()`, once.
+10. Drops each jar's missing classes that lie in the optional packages its module declares in
    `info()`.
-10. Logs one INFO summary of the pack's modules, and one WARNING if any missing classes remain.
+11. Logs one INFO summary of the pack's modules, and one WARNING if any missing classes remain.
+
+Any failure after step 3 closes the loader, if it exists, and deletes the copies.
 
 One loader per pack, not per jar, because `requires(...)` takes another module's stage constant.
 A pack jar that requires a stage of another pack jar must see its classes. Packs stay isolated
 from each other. The cost is a shared class namespace: with two copies of a class, the loader
-would silently use the one first in file name order. Step 5 turns that into a load error, so two
+would silently use the one first in file name order. Step 6 turns that into a load error, so two
 jars that shade the same library must relocate it, and shared code belongs in one module that the
 others require.
+
+### Jar copies
+
+A `URLClassLoader` keeps every jar it reads open until it closes. On Windows an open file cannot be
+replaced, so a loaded pack would stop its module author from rebuilding a jar while studio runs.
+The load therefore copies the jars first (`JarSnapshot`) and gives the class check and the loader
+only the copies. The originals are closed again as soon as they are copied. This also means a load
+works on one consistent set of jars: a jar rebuilt during the load affects the next load, not half
+of this one.
+
+Copies live in a new directory `iris-pack-modules-*` under `java.io.tmpdir`, named by their
+original file name, next to an owner file holding a fixed header and the id of the process that made
+it. Origins and messages always use the original path relative to the pack: the copy's path would
+mean nothing to the author. When an entry class turns out to come from another jar of the pack, the
+message names that jar's origin too.
+
+A process that crashes never closes its packs, so its copies stay. A later load removes such a
+directory only when it can show that this code made it and that nobody uses it: the name has the
+prefix, the owner file has the header, its process no longer runs
+(`ProcessHandle.of(pid)` finds no live process), and the directory holds nothing but the owner file
+and `.jar` files. Directories of a process that still runs, including another server sharing the
+temporary directory, are left alone; a reused process id can only keep a stale directory, never
+remove a live one. A crash between creating the directory and writing the owner file leaves an
+empty directory that is never removed, because nothing proves who made it.
 
 The class check reads jars the way the loader does. `module-info.class` is ignored. A
 multi-release jar (`Multi-Release: true`) contributes each class once, under its base name, from
@@ -106,7 +142,7 @@ exports) count as not exported. The supported way to use Unsafe is `sun.misc.Uns
 exports that package to every unnamed module, and then modules may use it.
 
 The exposed packages (`ExposedPackages`) are the API's package, `com.volmit` (the package of
-`IrisModule`), plus whatever the host passes to `PackModules.load`. The host decides those; the
+`IrisModule`), plus whatever the host passes to `ModuleHost.exposing` (and so to `PackModules.load`). The host decides those; the
 intended use is the packages that hold built-in modules' stage constants, so that a pack jar can
 `requires(...)` a stage of the core engine or a built-in feature. A pack jar then links against
 the host's class and the same stage constant, which resolution requires: a copy would be a second
@@ -125,12 +161,12 @@ and its class file come from the same place, and a pack never sees Iris's own re
 
 The pack loader asks its parent first, so a packaged copy of a host class would be silently
 replaced by the host's, and a module class in an exposed package could be replaced by a later host
-class of the same name. Step 4 rejects both; exposed packages belong to the host. For the API the
+class of the same name. Step 5 rejects both; exposed packages belong to the host. For the API the
 message points at `compileOnly`, the usual cause. A module class that shares a name with a hidden
 Iris internal is harmless, because the pack loader cannot see it. A module class that shares a name
 with a JDK class is replaced by the JDK's; that is not checked.
 
-Step 6 reads every class file with the JDK's `java.lang.classfile` API. A class uses every class
+Step 7 reads every class file with the JDK's `java.lang.classfile` API. A class uses every class
 in its constant pool (supertypes, and instantiated, cast, caught, called-on and class-literal
 types) and every type in the descriptors of its own fields and methods and of the members and
 call sites it uses. Arrays count as their element type; primitives do not count. Annotations and
@@ -186,7 +222,7 @@ load reports as a broken entry point of the jar.
 
 The declaration lives in the entry point because all module metadata does. That fixes its timing:
 `info()` exists only once the entry class is defined, after the reference check. This is safe
-because the declaration only removes warnings. Every load error is decided in step 6, without it,
+because the declaration only removes warnings. Every load error is decided in step 7, without it,
 so a declared package can never turn a hidden Iris class, an unavailable or non-exported JDK class
 or a class missing from an exposed package into a pass. `missingClasses()` drops the excused classes instead
 of flagging them: it then says exactly what the warning says, and a class the author declared
@@ -203,12 +239,33 @@ against an API whose methods have changed fails with a linkage error, which `Loa
 reports with the module's jar when it happens during install, and which surfaces at generation
 time when it happens only in a stage body.
 
-Closing `PackModules` closes the loader. Classes loaded before that keep working, so the host
-must drop `LoadedModules` and everything else built from the pack first.
+Closing `PackModules` closes the loader and then deletes the copies. Classes loaded before that
+keep working, so the host must drop everything built from the pack first.
 
-Each module reaches `LoadedModules.load` as a `DiscoveredModule`: the module and its origin, the
-jar path relative to the pack or "host classpath" for built-ins. Duplicate module ids and foreign
-stage namespaces name the origin. Every jar error names the jar.
+Each module reaches `LoadedModules.load` as a `DiscoveredModule`: the module, its `ModuleInfo` and
+its origin, the jar path relative to the pack or "host classpath" for built-ins. `info()` is called
+exactly once, when the module is discovered (`DiscoveredModule.builtIn`, or step 9 for a jar), and
+everything afterwards uses the stored value, so a module whose `info()` changes between calls cannot
+give the host two answers. Errors about a module name its origin. Every jar error names the jar.
+
+### Namespaces
+
+A module owns its id: `ns:name`, with no `/` in the name. It may define only stages whose ids start
+with its id and `/` (`iris:stilt/fill`), so no module can define stages under another module's
+path, and a stage id names exactly one possible owner. A `/` in a module id would let `iris:stilt/x`
+define stages under `iris:stilt`, so `ModuleInfo` rejects it.
+
+Feature ids of geometry generators and mantle keys a module registers must use its namespace.
+A settings type named in `when(...)` must have a feature id in the namespace of at least one module
+that names it: its owner. Other modules may name it too, to run only where that setting is
+configured. Checking against the module that names it alone would forbid that; checking nothing
+would let any module claim a settings id in another namespace.
+
+The host reserves namespaces for its own modules (`ModuleHost.reservingNamespaces("iris")`). A
+module from a pack jar whose id uses a reserved namespace fails the load, naming the jar and the
+namespace. Its stages, settings ids and mantle keys follow its namespace, so this one check keeps
+pack modules out of reserved namespaces everywhere. Built-in modules, discovered with
+`DiscoveredModule.builtIn`, may use them.
 
 The load summary and the missing-classes warning go through
 `System.getLogger(PackModules.class.getName())`, so the host can route them with a
@@ -231,8 +288,8 @@ resolve time.
 
 Rules enforced by `StageGraphBuilder` and the resolver:
 
-1. The stage namespace must equal the defining module's namespace. A second definition of an id
-   fails and names both modules. Two modules with the same id fail.
+1. The stage id must start with the defining module's id and `/`. A second definition of an id
+   fails. Two modules with the same id fail.
 2. `requires(stage...)` adds a REQUIRED edge. If the stage is not installed, loading fails with
    both stage ids, the requiring module and the namespace the missing module should have.
 3. `softAfter(ref...)` and `softBefore(ref...)` add SOFT edges only when the referenced id is
@@ -307,18 +364,50 @@ are ordered only by the tie-break, so they are where two modules can silently co
 
 ## Placement attempts
 
-`PlacementRunner.place(request, edit, inputs, settings)` owns the edit. It runs active stages in
+`PlacementRunner.place(request, edit, inputs, invocationSeed, settings)` owns the edit. It runs active stages in
 order, stops after the current stage or block once a stage calls `reject(reason)`, commits only
 when nothing rejected or threw, and closes the edit in every case. Stages receive a buffered
 `PlacementAccess` view of the edit without commit or close, and it expires with the attempt.
 
-All stages of one attempt share the host's `PlacementContext`, including one RNG, consumed in
-resolved order. Adding a module therefore changes what later stages draw unless modules derive
-their own streams. The example ports use the shared RNG like Iris does today.
+## Random streams
+
+Every stage has its own random stream per invocation, `StageContext.random()`. There is no shared
+stream: `InvocationContext` has no `random()`, and the host passes a `long` invocation seed to
+`PlacementRunner.place` and `ChunkRunner.generate` instead of a generator stages could see. With one
+shared stream, every draw of an earlier stage shifts what later stages get, so installing a module
+would change other modules' output for the same seed.
+
+The stream depends only on the invocation seed and the stage id (`StageRandom`):
+
+1. `idHash` = 64-bit FNV-1a of the UTF-8 bytes of `namespace:path`, computed once per pack load;
+2. `streamSeed` = `mix(mix(invocationSeed) ^ idHash)`, `mix` being the SplitMix64 finalizer
+   (Stafford variant 13);
+3. the stream is `new java.util.Random(streamSeed)`, created when the stage first draws.
+
+`mix` is a bijection, so a stage gets a different stream for every invocation seed, and in one
+invocation stages with different id hashes get different streams. The hash and the mixer are written
+out in IrisApi, not taken from `String.hashCode` or a JDK class whose output may change.
+
+`java.util.Random` is the only JDK generator whose algorithm the Java SE specification fixes:
+`nextInt()`, `nextInt(bound)`, `nextLong()`, `nextBoolean()`, `nextFloat()`, `nextDouble()`,
+`nextGaussian()` and `nextBytes` give the same values on every JDK. `SplittableRandom` and the named
+`RandomGeneratorFactory` algorithms such as `L64X128MixRandom` promise identical sequences only within
+one program, so a JDK update could change worlds. The methods `Random` inherits from
+`RandomGenerator`, such as `nextInt(origin, bound)` and `nextDouble(bound)`, and `nextExponential()`,
+are not fixed either. `Random`'s 48-bit state and its synchronized updates are fine for world
+generation, which Minecraft has done with it for years. A test pins the derivation to values
+computed outside Java from this description.
+
+A block stage gets one stream per placement and draws from it across the blocks of its pass in block
+order. Fused block stages interleave per block, but each still draws only from its own stream. A
+stage that never draws never creates its stream.
+
+Object generators are not stages. `ObjectGenerationContext.random()` stays, seeded from the variant
+seed the host chooses.
 
 ## Chunk invocations
 
-`ChunkRunner.generate(inputs, settings)` runs active chunk stages once each in resolved order.
+`ChunkRunner.generate(inputs, invocationSeed, settings)` runs active chunk stages once each in resolved order.
 `GenerationContext.hunk(type)` returns the host-owned local volume of that value type, shared by
 all stages of the invocation. Hunk coordinates are local; samples and mantle coordinates are
 world blocks. The runner does no neighbor scheduling or rollback. A failed invocation must stop
@@ -327,7 +416,8 @@ the host from publishing the chunk.
 ## Settings, geometry and storage
 
 Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, JSON
-field, attachment targets). `when(type)` validates the annotation while the module installs.
+field, attachment targets). `when(type)` validates the annotation while the module installs. The id's
+namespace must be that of a module naming the type (see Namespaces).
 `LoadedModules.load` catalogs those types with geometry generator settings and rejects duplicate
 ids and JSON field collisions per attachment target, including reserved host fields.
 `OptionsMetadata` reads field metadata; it does not decode JSON.
@@ -346,8 +436,9 @@ Unknown persisted layers must be preserved or fail explicitly.
   block adapters, storage and codecs.
 - Reach. The old per-modifier `writeRadius` and `mantleRadius` are gone with the modifiers. The
   host must prepare the whole area a pipeline may touch. Per-stage reach is an open question.
-- Legacy random compatibility. Seed offsets and draw order must be matched by the adapter where
-  existing worlds are promised to stay the same.
+- Legacy random compatibility. Existing Iris features draw from shared, positional generators in a
+  fixed order. Where existing worlds are promised to stay the same, the adapter has to reproduce
+  those draws inside the ported stages; per-stage streams will not match them on their own.
 - Real feature ports. The test examples are simplified slices, not parity ports.
 
 ## Feature-family migration map

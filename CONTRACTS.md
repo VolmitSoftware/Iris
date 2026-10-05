@@ -8,7 +8,10 @@ types that carry them and lists what the Iris adapter still owes.
 | Requirement | Contract |
 | --- | --- |
 | Module identity and composition | `IrisModule`, `ModuleInfo` (with optional packages), `StageGraph` |
-| Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules`, `DiscoveredModule`, `MissingClasses` |
+| Loading and unloading a pack | host `LoadedPack`, `ModuleHost` |
+| Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules` (jar copies), `DiscoveredModule`, `MissingClasses` |
+| Namespace ownership | module-prefixed stage ids, `ModuleInfo.ownsStage`, `ModuleHost.reservingNamespaces` |
+| Randomness independent of other modules | `StageContext.random()`, host `StageRandom`, invocation seed passed to the runners |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
 | Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` |
 | Typed results between modules | stage outputs, `StageContext.output` |
@@ -26,7 +29,14 @@ types that carry them and lists what the Iris adapter still owes.
 | Typed generation and persistent storage | `mantle` package |
 
 Stage bodies hold no invocation state. Everything per placement or chunk travels through the
-context, outputs and accumulators.
+context, outputs and accumulators. Each stage draws only from its own stream, derived from the
+invocation seed and its id, so other modules never change its draws.
+
+A module owns its id (`ns:name`, no `/`) and the stage ids below it (`ns:name/...`). Feature ids and
+mantle keys it registers use its namespace; a settings type in `when(...)` uses the namespace of a
+module that names it. Pack modules cannot use the namespaces the host reserves.
+
+A pack load works on copies of the module jars, so the originals are never held open.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
@@ -50,19 +60,24 @@ running Iris is the pack publisher's responsibility.
 - Build `ConfiguredSettings` per placement and per chunk from decoded pack JSON, with explicit
   precedence between dimension, region, biome and placement declarations.
 - Preserve pack field names and defaults, seed derivation, RNG draw order, coordinate
-  conventions and iteration order where existing worlds must not change.
+  conventions and iteration order where existing worlds must not change. Per-stage streams do not
+  reproduce Iris's current shared draws; matching them where worlds must stay the same is adapter
+  work inside the ported stages.
+- Derive one seed per placement (world seed and the placement's stable identity) and per chunk
+  (world seed and chunk position) and pass it to `PlacementRunner.place` / `ChunkRunner.generate`.
 - Prepare the full area a placement or chunk may read or write, including neighbors. Never clip.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
-- Load each pack's jars with `PackModules`, pass them with the built-in modules to
-  `LoadedModules.load`, and close `PackModules` only after nothing built from it is in use.
+- Build one `ModuleHost` at startup with the built-in modules, exposed packages, reserved JSON
+  fields and `reservingNamespaces("iris")`. Load each pack with `LoadedPack.load(packRoot, host)`
+  and close it only after nothing built from it is in use.
 - Route `System.Logger` output (logger `com.volmit.host.PackModules`) to the server log, so the
   per-pack module summary and missing-classes warning are visible.
 - Provide the API at runtime from the plugin's class loader, for example by shading it into the
   Iris plugin jar. Pack jars must not ship it.
 - Pass the packages of built-in modules whose stages packs may require to
-  `PackModules.load(packRoot, exposedHostPackages)`. They must be on the loader that defines the
+  `ModuleHost.exposing(...)`. They must be on the loader that defines the
   API. Keep them narrow: everything in an exposed package and its subpackages becomes visible to
   packs and is part of what packs can break on. Stage output types and settings types that pack
   code uses through those stages must be in exposed packages too. The API is always exposed.
@@ -71,5 +86,4 @@ running Iris is the pack publisher's responsibility.
 ## Open
 
 - Per-stage reach declarations, replacing the removed modifier radii.
-- Per-stage RNG streams, so adding a module does not shift other modules' random draws.
 - Terrain/biome providers, pack transformations, structure assembly and the runtime family.

@@ -24,10 +24,23 @@ public record LoadedModules(FeatureCatalog catalog, ResolvedGraph placement, Res
         var registry = new ModuleRegistry(reservedHostFields);
         var stages = new StageGraphBuilder();
         for (var discovered : modules) {
-            stages.install(discovered);
-            discovered.module().register(registry);
+            installModule(discovered, stages, registry);
         }
         stages.settingsTypes().forEach(registry::registerSettings);
         return new LoadedModules(registry.freeze(), stages.resolve(Pipeline.PLACEMENT), stages.resolve(Pipeline.CHUNK));
+    }
+
+    /** The pack load checks that every class a module uses exists, not that every method or field
+     * it uses does, so a jar built against another Iris API can still fail to link here.
+     */
+    private static void installModule(DiscoveredModule discovered, StageGraphBuilder stages, ModuleRegistry registry) {
+        try {
+            stages.install(discovered);
+            discovered.module().register(registry);
+        } catch (LinkageError error) {
+            throw new IllegalArgumentException("Module " + discovered.module().info().id() + " from "
+                    + discovered.origin() + " failed to link or initialize a class while installing: " + error
+                    + "; a missing method or field means the jar was built against a different Iris API", error);
+        }
     }
 }

@@ -9,17 +9,17 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
 /** The module jars of one pack: every {@code <pack>/modules/*.jar}, one module per jar, ordered
  * by file name so the result never depends on directory listing order.
  *
- * <p>All jars of a pack share one class loader whose parent is the loader of the API. A pack jar
- * can therefore name another pack jar's stage constants in {@code requires(...)}, as well as
- * those of built-in modules visible to the API. Packs do not see each other's classes, and no class
- * may appear in two jars of one pack.
+ * <p>All jars of a pack share one class loader. A pack jar can therefore name another pack jar's
+ * stage constants in {@code requires(...)}. Besides the pack's own classes, that loader sees only
+ * the Iris API and the JDK ({@link ApiAndJdkClassLoader}); packs do not see each other or Iris
+ * internals. Before the loader exists, the load fails if a jar holds API classes, if a class is in
+ * two jars, or if a class uses a class the loader would not find.
  *
  * <p>A successful load logs one INFO summary of the pack's modules through {@link System.Logger},
  * which the host can route to its own logging.
@@ -48,8 +48,9 @@ public final class PackModules implements AutoCloseable {
         var jars = findModuleJars(packRoot).stream()
                 .map(jar -> ModuleJar.read(packRoot, jar))
                 .toList();
-        requireDistinctClasses(jars);
-        var packModules = defineModules(packRoot, jars);
+        var apiAndJdk = new ApiAndJdkClassLoader(IrisModule.class.getClassLoader());
+        PackClassCheck.requireLinkable(jars, apiAndJdk);
+        var packModules = defineModules(packRoot, jars, apiAndJdk);
         LOGGER.log(Level.INFO, () -> PackModulesSummary.describe(packName(packRoot), packModules.modules()));
         return packModules;
     }
@@ -85,27 +86,8 @@ public final class PackModules implements AutoCloseable {
         return Files.isRegularFile(path) && path.getFileName().toString().endsWith(JAR_EXTENSION);
     }
 
-    /** Fails before any class is defined when two jars hold the same class. The shared loader would
-     * otherwise silently use whichever copy comes first in file name order.
-     */
-    private static void requireDistinctClasses(List<ModuleJar> jars) {
-        var owners = new HashMap<String, ModuleJar>();
-        for (var jar : jars) {
-            for (var className : jar.classNames()) {
-                var owner = owners.putIfAbsent(className, jar);
-                if (owner != null) throw duplicateClass(className, owner, jar);
-            }
-        }
-    }
-
-    private static IllegalArgumentException duplicateClass(String className, ModuleJar first, ModuleJar second) {
-        return new IllegalArgumentException("Class " + className + " is in both module jars " + first.origin()
-                + " and " + second.origin() + "; every class of a pack must come from one jar, so relocate"
-                + " shaded libraries or keep shared classes in one module");
-    }
-
-    private static PackModules defineModules(Path packRoot, List<ModuleJar> jars) {
-        var loader = newPackClassLoader(packRoot, jars);
+    private static PackModules defineModules(Path packRoot, List<ModuleJar> jars, ClassLoader apiAndJdk) {
+        var loader = newPackClassLoader(packRoot, jars, apiAndJdk);
         try {
             return new PackModules(createModules(jars, loader), loader);
         } catch (RuntimeException | Error failure) {
@@ -114,9 +96,9 @@ public final class PackModules implements AutoCloseable {
         }
     }
 
-    private static URLClassLoader newPackClassLoader(Path packRoot, List<ModuleJar> jars) {
+    private static URLClassLoader newPackClassLoader(Path packRoot, List<ModuleJar> jars, ClassLoader apiAndJdk) {
         var urls = jars.stream().map(ModuleJar::url).toArray(URL[]::new);
-        return new URLClassLoader("pack:" + packName(packRoot), urls, IrisModule.class.getClassLoader());
+        return new URLClassLoader("pack:" + packName(packRoot), urls, apiAndJdk);
     }
 
     private static String packName(Path packRoot) {

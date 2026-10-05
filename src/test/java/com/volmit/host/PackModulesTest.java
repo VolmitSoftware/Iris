@@ -1,5 +1,7 @@
 package com.volmit.host;
 
+import com.volmit.IrisModule;
+import com.volmit.example.placement.AnchorModule;
 import com.volmit.example.placement.PlacementModules;
 import com.volmit.support.TestModuleJar;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ class PackModulesTest {
     private static final String SHARED_CLASS = "pack.shared.Util";
     private static final String SHARED_SOURCE = "package pack.shared; public final class Util {}";
     private static final byte[] UNUSED_CLASS_BYTES = {(byte) 0xCA, (byte) 0xFE};
+    private static final String VERSIONED_SHARED_CLASS = "META-INF/versions/9/pack/shared/Util.class";
     private static final String DEFINED_PROPERTY = "irisapi.test.packModuleConstructed";
 
     @TempDir
@@ -34,6 +37,11 @@ class PackModulesTest {
         var modules = new ArrayList<>(PlacementModules.builtIns());
         modules.addAll(packModules.modules());
         return LoadedModules.load(modules, Map.of());
+    }
+
+    /** Versioned entries of a multi-release jar are read like any class, so they must be real class files. */
+    private byte[] sharedClassFile() {
+        return TestModuleJar.compileClass(pack, SHARED_CLASS, SHARED_SOURCE);
     }
 
     private static String failure(Executable load) {
@@ -54,7 +62,8 @@ class PackModulesTest {
     @Test
     void loadsOneModulePerJarInFileNameOrderAndResolvesThemWithBuiltIns(@TempDir Path build) throws Exception {
         var alpha = module("pack.alpha.AlphaModule", "alpha:core", ALPHA_MEMBERS,
-                "graph.define(MARK).requires(com.volmit.example.placement.AnchorModule.HEIGHT).run(context -> {});");
+                "graph.define(MARK).requires(com.volmit.example.placement.AnchorModule.HEIGHT).run(context -> {});")
+                .compileAgainstHostOf(AnchorModule.class);
         var alphaJar = alpha.writeInto(build, "alpha.jar");
         module("pack.beta.BetaModule", "beta:core", NO_MEMBERS,
                 "graph.define(Stage.placement(\"beta:core/use\")).requires(pack.alpha.AlphaModule.MARK).run(context -> {});")
@@ -74,6 +83,18 @@ class PackModulesTest {
                     .map(stage -> stage.stage().id().toString()).toList();
             assertTrue(order.indexOf("iris:anchor/height") < order.indexOf("alpha:core/mark"), order.toString());
             assertTrue(order.indexOf("alpha:core/mark") < order.indexOf("beta:core/use"), order.toString());
+        }
+    }
+
+    @Test
+    void packClassLoaderSeesOnlyTheApiTheJdkAndThePack() throws Exception {
+        module("pack.gamma.GammaModule", "gamma:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "gamma.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            var loader = packModules.modules().getFirst().module().getClass().getClassLoader();
+            assertSame(IrisModule.class, loader.loadClass(IrisModule.class.getName()));
+            assertSame(List.class, loader.loadClass(List.class.getName()));
+            assertThrows(ClassNotFoundException.class, () -> loader.loadClass(Test.class.getName()));
         }
     }
 
@@ -172,7 +193,7 @@ class PackModulesTest {
                 .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "alpha.jar");
         module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
                 .multiRelease()
-                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .resource(VERSIONED_SHARED_CLASS, sharedClassFile())
                 .writeInto(pack, "beta.jar");
 
         assertMentions(failure(() -> PackModules.load(pack)),
@@ -183,10 +204,10 @@ class PackModulesTest {
     void versionedEntriesOutsideAMultiReleaseJarAreNotClasses() {
         module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
                 .source(SHARED_CLASS, SHARED_SOURCE)
-                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .resource(VERSIONED_SHARED_CLASS, UNUSED_CLASS_BYTES)
                 .writeInto(pack, "alpha.jar");
         module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
-                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .resource(VERSIONED_SHARED_CLASS, UNUSED_CLASS_BYTES)
                 .writeInto(pack, "beta.jar");
 
         try (var packModules = PackModules.load(pack)) {
@@ -199,11 +220,111 @@ class PackModulesTest {
         module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
                 .source(SHARED_CLASS, SHARED_SOURCE)
                 .multiRelease()
-                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .resource(VERSIONED_SHARED_CLASS, sharedClassFile())
                 .writeInto(pack, "alpha.jar");
 
         try (var packModules = PackModules.load(pack)) {
             assertEquals(1, packModules.modules().size());
+        }
+    }
+
+    @Test
+    void apiClassInAJarFailsNamingTheJarAndTheClass() {
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source("com.volmit.extra.Helper", "package com.volmit.extra; public final class Helper {}")
+                .source("com.volmit.extra.Other", "package com.volmit.extra; public final class Other {}")
+                .writeInto(pack, "alpha.jar");
+
+        assertEquals("Module jar " + origin("alpha.jar") + " contains Iris API class com.volmit.extra.Helper and 1 more;"
+                        + " Iris provides the API at runtime, so mark the Iris API dependency compileOnly (Maven: provided)"
+                        + " and keep module classes out of com.volmit.*",
+                failure(() -> PackModules.load(pack)));
+    }
+
+    @Test
+    void referenceToAHostLibraryFailsNamingTheJarAndBothClasses() {
+        module("pack.user.User", "user:core", "static Object probe() { return org.junit.jupiter.api.Test.class; }", NO_STAGES)
+                .compileAgainstHostOf(Test.class)
+                .writeInto(pack, "user.jar");
+
+        assertEquals("Module jar " + origin("user.jar") + " uses classes that are not in the Iris API, the JDK or the"
+                        + " pack's module jars:\n  pack.user.User -> org.junit.jupiter.api.Test\n"
+                        + "A module can use only the Iris API, the JDK and the classes in its pack's module jars;"
+                        + " ship any library it needs inside a module jar of the pack.",
+                failure(() -> PackModules.load(pack)));
+    }
+
+    @Test
+    void referenceToAMissingApiClassPointsAtADifferentApiBuild(@TempDir Path build) {
+        var newerApi = new TestModuleJar()
+                .source("com.volmit.Newer", "package com.volmit; public final class Newer {}")
+                .writeInto(build, "newer-api.jar");
+        module("pack.user.User", "user:core", "static Object probe() { return com.volmit.Newer.class; }", NO_STAGES)
+                .compileAgainst(newerApi)
+                .writeInto(pack, "user.jar");
+
+        assertMentions(failure(() -> PackModules.load(pack)),
+                "pack.user.User -> com.volmit.Newer", "the jar was built against a different Iris API");
+    }
+
+    @Test
+    void referencesToTheJdkTheApiAndOtherPackJarsLoad(@TempDir Path build) throws Exception {
+        var marker = new TestModuleJar()
+                .source("pack.marker.Marker", """
+                        package pack.marker;
+                        @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+                        public @interface Marker {}
+                        """)
+                .writeInto(build, "marker.jar");
+        var alpha = module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source("pack.alpha.Shared", """
+                        package pack.alpha;
+                        public record Shared(int[] values, String[][] names) {
+                            public enum Kind { SMALL, LARGE }
+                        }
+                        """);
+        var alphaJar = alpha.writeInto(build, "alpha.jar");
+        alpha.writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", """
+                @pack.marker.Marker
+                static final pack.alpha.Shared[] SHARED = { new pack.alpha.Shared(new int[] {1}, new String[][] {{"a"}}) };
+
+                static int size(pack.alpha.Shared.Kind kind) {
+                    return switch (kind) { case SMALL -> 1; case LARGE -> 2; };
+                }
+                """, """
+                java.util.function.IntSupplier size = () -> size(pack.alpha.Shared.Kind.LARGE) + SHARED[0].values().length;
+                graph.define(Stage.placement("beta:core/size")).run(context -> java.util.List.of(size).forEach(java.util.function.IntSupplier::getAsInt));
+                """)
+                .compileAgainst(alphaJar)
+                .compileAgainst(marker)
+                .writeInto(pack, "beta.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            var loaded = LoadedModules.load(packModules.modules(), Map.of());
+            assertTrue(loaded.placement().stages().stream().anyMatch(stage -> stage.stage().id().toString().equals("beta:core/size")));
+            var beta = packModules.modules().getLast().module().getClass();
+            assertEquals(0, beta.getDeclaredField("SHARED").getAnnotations().length,
+                    "the annotation type is not in the pack, so the JVM skips it");
+        }
+    }
+
+    @Test
+    void methodMissingAtInstallFailsNamingTheJar(@TempDir Path build) {
+        var libraryWithMethod = new TestModuleJar()
+                .source("pack.lib.Lib", "package pack.lib; public final class Lib { public static void added() {} }")
+                .writeInto(build, "lib.jar");
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source("pack.lib.Lib", "package pack.lib; public final class Lib {}")
+                .writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, "pack.lib.Lib.added();")
+                .compileAgainst(libraryWithMethod)
+                .writeInto(pack, "beta.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of())),
+                    "Module beta:core from " + origin("beta.jar") + " failed to link or initialize a class while installing",
+                    "java.lang.NoSuchMethodError", "pack.lib.Lib.added()");
         }
     }
 

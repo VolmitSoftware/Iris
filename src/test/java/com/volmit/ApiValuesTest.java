@@ -42,6 +42,16 @@ class ApiValuesTest {
     }
 
     @Test
+    void moduleInfoTextFitsOnOneLogLine() {
+        for (var broken : List.of("Moss\nINFO forged line", "Moss\r", "Moss\tTabbed", "Moss\u2028Next")) {
+            var failure = assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("example:moss", broken, "1.0.0"));
+            assertEquals("Module name of example:moss contains a line break or other control character", failure.getMessage());
+        }
+        assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("example:moss", "Moss", "1.0\n"));
+        assertEquals("Mosß é", ModuleInfo.of("example:moss", "Mosß é", "1.0.0").name());
+    }
+
+    @Test
     void sparseObjectsCopySortAndRejectDuplicateOrOutOfBoundsBlocks() {
         var a = new ObjectBlock(new BlockPosition(-1, 0, 0), new BlockState("minecraft:stone"));
         var b = new ObjectBlock(new BlockPosition(1, 0, 0), new BlockState("minecraft:stone"));

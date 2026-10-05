@@ -1,7 +1,6 @@
 package com.volmit.support;
 
 import com.volmit.IrisModule;
-import com.volmit.example.placement.AnchorModule;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -25,7 +24,9 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
 
 /** Builds a real module jar from Java source at test time. Its classes are not on the test
- * classpath, so only a pack class loader can define them.
+ * classpath, so only a pack class loader can define them. Sources compile against the API's main
+ * classes only, like a real module; built-in example modules and host libraries must be added with
+ * {@link #compileAgainstHostOf}, so a jar cannot depend on test support classes by accident.
  */
 public final class TestModuleJar {
     private static final String SERVICES_FILE = "META-INF/services/" + IrisModule.class.getName();
@@ -34,11 +35,21 @@ public final class TestModuleJar {
     private final Map<String, byte[]> resources = new LinkedHashMap<>();
     private boolean multiRelease;
     private final List<String> entryPoints = new ArrayList<>();
-    private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class), classesOf(AnchorModule.class)));
+    private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class)));
 
     /** An entry class with the given module id whose install body may use {@code graph}. */
     public static TestModuleJar module(String className, String moduleId, String members, String install) {
         return new TestModuleJar().source(className, moduleSource(className, moduleId, members, install)).entryPoint(className);
+    }
+
+    /** Compiles one class on its own and returns its class file, for raw entries such as versioned classes. */
+    public static byte[] compileClass(Path workDirectory, String className, String code) {
+        try {
+            var classes = new TestModuleJar().source(className, code).compile(Files.createTempDirectory(workDirectory, "classes"));
+            return Files.readAllBytes(classes.resolve(className.replace('.', '/') + ".class"));
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
     }
 
     public TestModuleJar source(String className, String code) {
@@ -64,9 +75,15 @@ public final class TestModuleJar {
         return this;
     }
 
-    public TestModuleJar compileAgainst(Path jar) {
-        classpath.add(jar);
+    /** Puts a jar or class directory on the compile classpath only; it is not packaged. */
+    public TestModuleJar compileAgainst(Path classes) {
+        classpath.add(classes);
         return this;
+    }
+
+    /** Compiles against wherever {@code type} was loaded from, such as a host library jar. */
+    public TestModuleJar compileAgainstHostOf(Class<?> type) {
+        return compileAgainst(classesOf(type));
     }
 
     /** Writes {@code <packRoot>/modules/<jarName>} and returns its path. */

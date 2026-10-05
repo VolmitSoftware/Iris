@@ -288,6 +288,30 @@ class PackModulesTest {
     }
 
     @Test
+    void referenceToANonExportedJdkPackageFailsNamingThePackageAndModule() {
+        module("pack.user.User", "user:core", using("jdk.internal.misc.Unsafe", "java.lang.String"), NO_STAGES)
+                .compileWithAccessTo("java.base", "jdk.internal.misc")
+                .writeInto(pack, "user.jar");
+
+        assertEquals("Module jar " + origin("user.jar") + " uses classes of JDK packages that are not exported to modules:\n"
+                        + "  pack.user.User -> jdk.internal.misc.Unsafe (package jdk.internal.misc of java.base is not exported)\n"
+                        + "Use the supported alternative where there is one, such as sun.misc.Unsafe from jdk.unsupported"
+                        + " instead of jdk.internal.misc.Unsafe. Otherwise the server must be started with"
+                        + " --add-exports <module>/<package>=ALL-UNNAMED.",
+                failure(() -> PackModules.load(pack)));
+    }
+
+    @Test
+    void supportedUnsafeFromJdkUnsupportedIsUsable() {
+        module("pack.user.User", "user:core", using("sun.misc.Unsafe", "java.lang.String"), NO_STAGES)
+                .writeInto(pack, "user.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(List.of(), packModules.missingClasses());
+        }
+    }
+
+    @Test
     void oneFailureReportsEveryKindOfUnusableClass() {
         module("pack.user.User", "user:core", using("org.junit.jupiter.api.Test", "com.sun.source.tree.Tree"), NO_STAGES)
                 .compileAgainstHostOf(Test.class)

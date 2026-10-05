@@ -14,8 +14,8 @@ import java.util.function.Predicate;
  *
  * <p>The JVM resolves a class only when code first needs it, so a class nobody has is not an
  * error: bundled libraries reference optional dependencies they only use when present. A class
- * that Iris has but hides, a class of a JDK module packs cannot see, or a class missing from a
- * package Iris exposes always fails the load.
+ * that Iris has but hides, a class of a JDK module packs cannot see or of a JDK package packs may
+ * not use, or a class missing from a package Iris exposes always fails the load.
  */
 final class PackReferenceCheck {
     private static final int MAX_REPORTED_REFERENCES_PER_JAR = 10;
@@ -36,6 +36,12 @@ final class PackReferenceCheck {
                 "uses classes of JDK modules that are not available to modules:",
                 "Modules can use only the JDK modules of the platform class loader, such as java.base, java.sql and"
                         + " java.net.http."),
+        /** A package of an available JDK module that it does not export to packs, such as jdk.internal.misc. */
+        NOT_EXPORTED_JDK_CLASS(
+                "uses classes of JDK packages that are not exported to modules:",
+                "Use the supported alternative where there is one, such as sun.misc.Unsafe from jdk.unsupported instead"
+                        + " of jdk.internal.misc.Unsafe. Otherwise the server must be started with"
+                        + " --add-exports <module>/<package>=ALL-UNNAMED."),
         MISSING_HOST_CLASS(
                 "uses classes that this Iris does not have, in packages Iris provides to modules:",
                 "The jar was built against a different Iris API or Iris version.");
@@ -66,8 +72,8 @@ final class PackReferenceCheck {
         jars.forEach(jar -> packClasses.addAll(jar.classNames()));
     }
 
-    /** Fails when a jar uses a class Iris hides, a class of a JDK module packs cannot see, or a class
-     * missing from a package Iris exposes.
+    /** Fails when a jar uses a class Iris hides, a class of a JDK module packs cannot see or of a JDK
+     * package packs may not use, or a class missing from a package Iris exposes.
      * Returns the classes nobody has, per jar, for jars that use any.
      */
     static List<MissingClasses> requireResolvable(List<ModuleJar> jars, ExposedHostClassLoader host) {
@@ -93,7 +99,9 @@ final class PackReferenceCheck {
         return outsidePack.computeIfAbsent(className, this::resolveOutsidePack);
     }
 
+    /** Access comes first: whichever loader finds a JDK class, its module still decides who may use it. */
     private Resolution resolveOutsidePack(String className) {
+        if (NonExportedJdkPackages.packageOf(className).isPresent()) return Resolution.NOT_EXPORTED_JDK_CLASS;
         if (host.hasClass(className)) return Resolution.PROVIDED;
         if (host.exposed().exposes(className)) return Resolution.MISSING_HOST_CLASS;
         if (UnavailableJdkModules.moduleOf(className).isPresent()) return Resolution.UNAVAILABLE_JDK_CLASS;
@@ -121,8 +129,15 @@ final class PackReferenceCheck {
     private record Reference(String source, String target, Resolution resolution) {
         String describe() {
             var text = source + " -> " + target;
-            if (resolution != Resolution.UNAVAILABLE_JDK_CLASS) return text;
-            return text + " (JDK module " + UnavailableJdkModules.moduleOf(target).orElseThrow() + ")";
+            return switch (resolution) {
+                case UNAVAILABLE_JDK_CLASS -> text + " (JDK module " + UnavailableJdkModules.moduleOf(target).orElseThrow() + ")";
+                case NOT_EXPORTED_JDK_CLASS -> text + " (" + describeNotExported(NonExportedJdkPackages.packageOf(target).orElseThrow()) + ")";
+                default -> text;
+            };
+        }
+
+        private static String describeNotExported(NonExportedJdkPackages.JdkPackage jdkPackage) {
+            return "package " + jdkPackage.name() + " of " + jdkPackage.module() + " is not exported";
         }
     }
 

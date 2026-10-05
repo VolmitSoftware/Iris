@@ -26,8 +26,13 @@ final class UnavailableJdkModules {
 
     private static boolean platformLoaderProvides(String moduleName) {
         return ModuleLayer.boot().findModule(moduleName)
-                .filter(module -> isPlatformOrBootLoader(module.getClassLoader()))
+                .filter(UnavailableJdkModules::platformLoaderProvides)
                 .isPresent();
+    }
+
+    /** Whether packs see the module's classes, which they do through the platform class loader. */
+    static boolean platformLoaderProvides(Module module) {
+        return isPlatformOrBootLoader(module.getClassLoader());
     }
 
     /** The boot loader is {@code null}; the platform loader delegates to it. */

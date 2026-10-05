@@ -36,6 +36,7 @@ public final class TestModuleJar {
     private boolean multiRelease;
     private final List<String> entryPoints = new ArrayList<>();
     private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class)));
+    private final List<String> compilerExports = new ArrayList<>();
 
     /** An entry class with the given module id whose install body may use {@code graph}. */
     public static TestModuleJar module(String className, String moduleId, String members, String install) {
@@ -92,6 +93,14 @@ public final class TestModuleJar {
         return compileAgainst(classesOf(type));
     }
 
+    /** Lets the sources use a JDK package its module does not export, as javac's
+     * {@code --add-exports <module>/<package>=ALL-UNNAMED} does. Only compiling is affected.
+     */
+    public TestModuleJar compileWithAccessTo(String module, String packageName) {
+        compilerExports.addAll(List.of("--add-exports", module + "/" + packageName + "=ALL-UNNAMED"));
+        return this;
+    }
+
     /** Writes {@code <packRoot>/modules/<jarName>} and returns its path. */
     public Path writeInto(Path packRoot, String jarName) {
         try {
@@ -113,8 +122,9 @@ public final class TestModuleJar {
         var compiler = ToolProvider.getSystemJavaCompiler();
         var diagnostics = new DiagnosticCollector<JavaFileObject>();
         var units = sources.entrySet().stream().map(source -> new StringSource(source.getKey(), source.getValue())).toList();
-        var options = List.of("-d", classes.toString(), "-proc:none", "-classpath",
-                classpath.stream().map(Path::toString).collect(Collectors.joining(File.pathSeparator)));
+        var options = new ArrayList<>(List.of("-d", classes.toString(), "-proc:none", "-classpath",
+                classpath.stream().map(Path::toString).collect(Collectors.joining(File.pathSeparator))));
+        options.addAll(compilerExports);
         if (!compiler.getTask(null, null, diagnostics, options, null, units).call()) {
             throw new IllegalStateException("Test module does not compile: " + diagnostics.getDiagnostics());
         }

@@ -31,9 +31,12 @@ context, outputs and accumulators.
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
 own pack's jars. They may use any library they ship in the pack, never Iris's copy. JDK modules
-outside the platform class loader, such as `jdk.compiler`, are not available. A class Iris has but
-hides, a class of an unavailable JDK module, or one missing from an exposed package fails the pack
-load, naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
+outside the platform class loader, such as `jdk.compiler`, are not available, and neither are JDK
+packages not exported to unnamed modules, such as `jdk.internal.misc`, unless the server is started
+with `--add-exports <module>/<package>=ALL-UNNAMED`. `sun.misc.Unsafe` from `jdk.unsupported` is the
+supported way for modules to use Unsafe. A class Iris has but hides, a class of an unavailable JDK
+module or non-exported JDK package, or one missing from an exposed package fails the pack load,
+naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
 its package is one the module declares optional with `ModuleInfo.withOptionalPackages(...)`
 (`PackageName`). That declaration never excuses a load error.
 

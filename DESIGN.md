@@ -59,7 +59,8 @@ API):
 4. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
 5. Fails if a class is in two jars, naming the class and both jars.
 6. Resolves every class each class uses (see below). A class that Iris has but hides, a class of a
-   JDK module packs cannot see, or a class missing from an exposed package fails the load, listing
+   JDK module packs cannot see or of a JDK package packs may not use, or a class missing from an
+   exposed package fails the load, listing
    each referencing and referenced class per jar and kind. Classes that nobody has are collected
    per jar. Nothing has been defined up to here.
 7. Creates one `URLClassLoader` for all jars of the pack, parent = `ExposedHostClassLoader`.
@@ -95,6 +96,14 @@ The platform loader provides the JDK modules defined to it and to the boot loade
 `java.sql`, `java.net.http`, `java.compiler` and the other standard modules. JDK modules defined to
 the application loader, such as `jdk.compiler`, `jdk.jshell` and `jdk.attach`, are not available
 to modules, and neither are JDK modules the runtime did not resolve.
+
+Seeing a class is not enough to use it. Pack classes live in their loader's unnamed module, and a
+JDK module lets an unnamed module use only the packages it exports to all unnamed modules. Internal
+packages such as `jdk.internal.misc` (`jdk.internal.misc.Unsafe`) are not, so code using them would
+fail with `IllegalAccessError` when it runs. Packages exported only to named JDK modules (qualified
+exports) count as not exported. The supported way to use Unsafe is `sun.misc.Unsafe`, which
+`jdk.unsupported` exports. A server started with `--add-exports <module>/<package>=ALL-UNNAMED`
+exports that package to every unnamed module, and then modules may use it.
 
 The exposed packages (`ExposedPackages`) are the API's package, `com.volmit` (the package of
 `IrisModule`), plus whatever the host passes to `PackModules.load`. The host decides those; the
@@ -132,13 +141,20 @@ file, so nothing is loaded or initialized:
 
 | The class is | Result |
 | --- | --- |
+| in a package of a JDK module the platform loader provides, not exported to unnamed modules, such as `jdk.internal.misc` | load error: names the package and module; points to `sun.misc.Unsafe` and `--add-exports` |
 | in a jar of the pack, an exposed package of the host, or the JDK | resolves |
 | in an exposed package, but the host does not have it | load error: the jar was built against a different Iris API or Iris version |
 | in a JDK module the platform loader does not provide, such as `jdk.compiler` | load error: names the JDK module, which is not available to modules |
 | not exposed, but the host's loader has it (Iris internals, Iris's copy of a library) | load error: modules cannot use Iris's classes; ship the library in the pack or use the API |
 | nowhere | the pack loads, with a warning unless the module declares the package optional |
 
-The rows are checked in that order. The JDK row comes before the host row because the host's loader
+The rows are checked in that order. The export row comes first because access does not depend on
+which loader finds the class: whoever loads `jdk.internal.misc.Unsafe`, `java.base` decides who may
+use it. It asks the boot layer's `Module` objects whether they export the package to an unnamed
+module that no export names (`Module.isExported(package, unnamedModule)`), so exports added with
+`--add-exports ...=ALL-UNNAMED` count, exactly as they do at run time, and qualified exports do not.
+Modules the platform loader does not provide are left to the unavailable-module row, so the two
+never overlap. The unavailable-module row comes before the host row because the host's loader
 can usually load application-loader JDK classes, which would otherwise be reported as hidden Iris
 classes. Whether a class belongs to such a module is decided by its package, from the JDK's module
 descriptors (`ModuleFinder.ofSystem()`) and the loader the boot layer gives each module, so nothing
@@ -171,8 +187,8 @@ load reports as a broken entry point of the jar.
 The declaration lives in the entry point because all module metadata does. That fixes its timing:
 `info()` exists only once the entry class is defined, after the reference check. This is safe
 because the declaration only removes warnings. Every load error is decided in step 6, without it,
-so a declared package can never turn a hidden Iris class, an unavailable JDK class or a class
-missing from an exposed package into a pass. `missingClasses()` drops the excused classes instead
+so a declared package can never turn a hidden Iris class, an unavailable or non-exported JDK class
+or a class missing from an exposed package into a pass. `missingClasses()` drops the excused classes instead
 of flagging them: it then says exactly what the warning says, and a class the author declared
 expected is not a problem to show in studio.
 

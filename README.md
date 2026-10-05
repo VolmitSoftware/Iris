@@ -85,12 +85,15 @@ public ModuleInfo info() {
 ```
 
 A declaration covers only that module's own jar. It never excuses a load error: a class Iris hides,
-a JDK class modules cannot see or a class missing from an exposed package fails even inside a
-declared package. Package names follow the rules of exposed packages (whole packages, trailing dot
+a JDK class modules cannot see or use, or a class missing from an exposed package fails even inside
+a declared package. Package names follow the rules of exposed packages (whole packages, trailing dot
 accepted, wildcards rejected).
 
 Modules see the JDK through the platform class loader. JDK modules outside it, such as
-`jdk.compiler` and `jdk.jshell`, are not available to modules.
+`jdk.compiler` and `jdk.jshell`, are not available to modules. Of the available modules, modules
+can use only the packages exported to them: `jdk.internal.misc.Unsafe` fails the load, while
+`sun.misc.Unsafe` from `jdk.unsupported` is the supported way to use Unsafe. A server started with
+`--add-exports <module>/<package>=ALL-UNNAMED` makes that package usable.
 
 Iris never downloads modules and does not check which API version a jar was built for. A pack
 ships its module jars, and keeping them compatible with the Iris version it targets is the pack
@@ -119,7 +122,8 @@ point per jar, in jar file name order, and loads every jar of the pack through o
 Closing it closes that loader. A pack without a `modules` directory has no modules. Errors name the
 jar: no entry point, several entry points, a class of an exposed package in the jar, a class that is
 also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides,
-a class of a JDK module modules cannot see or a class missing from an exposed package, or an entry
+a class of a JDK module modules cannot see, a class of a JDK package not exported to modules, a
+class missing from an exposed package, or an entry
 class that cannot be loaded, is not an `IrisModule`, is not in that jar, fails to construct or whose
 `info()` fails (an invalid optional package, for example). All checks before the last run before any
 class of the pack is defined. The last error below lists every kind of unusable class the jar
@@ -137,6 +141,9 @@ Modules cannot use Iris's own classes or its copies of libraries; ship the libra
 Module jar modules/moss.jar uses classes of JDK modules that are not available to modules:
   com.example.moss.Scripts -> com.sun.source.tree.Tree (JDK module jdk.compiler)
 Modules can use only the JDK modules of the platform class loader, such as java.base, java.sql and java.net.http.
+Module jar modules/moss.jar uses classes of JDK packages that are not exported to modules:
+  com.example.moss.FastBuffer -> jdk.internal.misc.Unsafe (package jdk.internal.misc of java.base is not exported)
+Use the supported alternative where there is one, such as sun.misc.Unsafe from jdk.unsupported instead of jdk.internal.misc.Unsafe. Otherwise the server must be started with --add-exports <module>/<package>=ALL-UNNAMED.
 Module jar modules/moss.jar uses classes that this Iris does not have, in packages Iris provides to modules:
   com.example.moss.MossModule -> com.volmit.stage.NewerStage
 The jar was built against a different Iris API or Iris version.
@@ -198,14 +205,19 @@ The tests cover graph resolution and every error path, fusion, activation cascad
 rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
 jars into a temporary pack and loads them, including every jar error, duplicate classes in plain
 and multi-release jars, API and other exposed classes in a jar, hidden host classes, JDK classes
-outside the platform loader, several kinds of unusable class in one error, classes missing from an
+outside the platform loader, non-exported JDK packages (`sun.misc.Unsafe` and `java.lang` still
+load), several kinds of unusable class in one error, classes missing from an
 exposed package, optional dependencies that only warn, declared optional packages (fully and partly
 excused, per jar, never excusing an error, invalid names), references that must still load
 (arrays, the JDK, other pack jars, missing annotation types), linkage errors during install, and a
 pack jar that requires a stage of a built-in module in `example.builtin`, outside `com.volmit`,
 which loads only when the host exposes that package. `ExposedHostClassLoaderTest` checks what the
 pack loader's parent shows, `ExposedPackagesTest` which package names it accepts and how they
-match, and `UnavailableJdkModulesTest` which JDK modules packs cannot see. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
+match, `UnavailableJdkModulesTest` which JDK modules packs cannot see, and `NonExportedJdkPackagesTest`
+which JDK packages they may not use. `PackModulesAddExportsTest` runs in its own JVM, the
+`addExportsTest` task that `check` runs, started with
+`--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`; it checks that the exported package then
+loads and that other internal packages are still reported. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
 ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
 snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There
 is no Minecraft integration or production storage in these tests.

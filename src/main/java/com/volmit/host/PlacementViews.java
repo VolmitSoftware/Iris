@@ -13,7 +13,7 @@ import com.volmit.placement.PlacementAccess;
 import com.volmit.placement.PlacementEdit;
 import java.util.Objects;
 
-/** Internal hook views: limit horizontal reach and hide transaction ownership. */
+/** Internal stage views: bound access to an area and hide transaction ownership. */
 final class PlacementViews {
     private PlacementViews() {}
 

@@ -3,16 +3,11 @@ package com.volmit.host;
 import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
-import com.volmit.config.Feature;
-import com.volmit.config.OptionsMetadata;
-import com.volmit.generation.ModifierFactory;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
-import com.volmit.placement.PlacementModifierFactory;
 import com.volmit.resource.ResourceId;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,9 +21,8 @@ import java.util.Set;
  * This does not decode JSON, discover modules or instantiate settings.
  */
 public final class ModuleRegistry implements FeatureRegistry {
-    private final Map<Class<?>, GenerationRegistration<?, ?>> generation = new HashMap<>();
+    private final Map<Class<?>, FeatureDescriptor<?>> settings = new HashMap<>();
     private final Map<Class<?>, ObjectRegistration<?>> objects = new HashMap<>();
-    private final Map<Class<?>, PlacementRegistration<?>> placement = new HashMap<>();
     private final Map<String, MantleRegistration<?>> mantle = new HashMap<>();
     private final Set<ResourceId> featureIds = new HashSet<>();
     private final Set<Class<?>> featureTypes = new HashSet<>();
@@ -44,39 +38,14 @@ public final class ModuleRegistry implements FeatureRegistry {
     }
 
     @Override
-    public <F extends IrisFeature, T> void register(
-            Class<F> featureType,
-            Class<T> outputType,
-            ModifierFactory<F, T> factory) {
-        var descriptor = describe(featureType);
-        var registration = new GenerationRegistration<>(descriptor, outputType, factory);
-        claim(descriptor);
-        generation.put(featureType, registration);
-    }
-
-    @Override
     public <F extends IrisFeature> void registerObject(
             Class<F> featureType,
             ObjectGeneratorFactory<F> factory) {
-        var descriptor = describe(featureType);
+        checkOpen();
+        var descriptor = FeatureDescriptor.of(featureType);
         var registration = new ObjectRegistration<>(descriptor, factory);
         claim(descriptor);
         objects.put(featureType, registration);
-    }
-
-    @Override
-    public <F extends IrisFeature> void registerPlacement(
-            Class<F> featureType,
-            PlacementModifierFactory<F> factory) {
-        var descriptor = describe(featureType);
-        if (!isPlacementFeature(descriptor)) {
-            throw new IllegalArgumentException(
-                    "Placement modifiers must attach only to OBJECT_PLACEMENT: " + descriptor.id());
-        }
-
-        var registration = new PlacementRegistration<>(descriptor, factory);
-        claim(descriptor);
-        placement.put(featureType, registration);
     }
 
     @Override
@@ -91,9 +60,20 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
+    /** Claims a settings type named by a stage's when(...). Several stages may share one type. */
+    public void registerSettings(Class<? extends IrisFeature> settingsType) {
+        checkOpen();
+        if (settings.containsKey(settingsType)) {
+            return;
+        }
+        var descriptor = FeatureDescriptor.of(settingsType);
+        claim(descriptor);
+        settings.put(settingsType, descriptor);
+    }
+
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(generation, objects, placement, mantle);
+            catalog = new FeatureCatalog(settings, objects, mantle);
         }
         return catalog;
     }
@@ -109,37 +89,6 @@ public final class ModuleRegistry implements FeatureRegistry {
     private void reserveHostField(FeatureAttachment.Target target, String name) {
         new FeatureAttachment(name, Set.of(target));
         fields.put(new Field(target, name), "host");
-    }
-
-    private <F extends IrisFeature> FeatureDescriptor<F> describe(Class<F> type) {
-        checkOpen();
-        Objects.requireNonNull(type, "featureType");
-        validateFeatureType(type);
-
-        var annotation = type.getDeclaredAnnotation(Feature.class);
-        if (annotation == null) {
-            throw new IllegalArgumentException("Missing @Feature: " + type.getName());
-        }
-
-        return new FeatureDescriptor<>(
-                ResourceId.parse(annotation.id()),
-                annotation.name(),
-                type,
-                new FeatureAttachment(annotation.field(), Set.of(annotation.targets())),
-                OptionsMetadata.inspect(type));
-    }
-
-    private static void validateFeatureType(Class<? extends IrisFeature> type) {
-        if (!IrisFeature.class.isAssignableFrom(type)
-                || type.isInterface()
-                || Modifier.isAbstract(type.getModifiers())) {
-            throw new IllegalArgumentException(
-                    "Feature type must be a concrete IrisFeature: " + type.getName());
-        }
-    }
-
-    private static boolean isPlacementFeature(FeatureDescriptor<?> descriptor) {
-        return descriptor.attachment().targets().equals(Set.of(FeatureAttachment.Target.OBJECT_PLACEMENT));
     }
 
     private void claim(FeatureDescriptor<?> descriptor) {

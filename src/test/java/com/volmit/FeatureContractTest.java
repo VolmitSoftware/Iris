@@ -1,12 +1,8 @@
 package com.volmit;
 
 import com.volmit.config.*;
-import com.volmit.generation.*;
-import com.volmit.hunk.Hunk;
-import com.volmit.host.ArrayHunk;
-import com.volmit.host.ModuleRegistry;
+import com.volmit.host.FeatureDescriptor;
 import com.volmit.resource.ResourceId;
-import com.volmit.support.TestContexts;
 import org.junit.jupiter.api.Test;
 
 
@@ -40,25 +36,12 @@ class FeatureContractTest {
     }
 
     @Test
-    void registryBindsDecodedOptionsToTheCorrectModifier() {
-        var host = new ModuleRegistry();
-        host.register(FillOptions.class, Integer.class, FillModifier::new);
-        var registration = host.freeze().generation(FillOptions.class, Integer.class);
-        var modifier = registration.configure(ResourceId.parse("test:fill/0"), new FillOptions());
-        var output = new ArrayHunk<>(Integer.class, 1, 1, 1, 0);
-        modifier.modify(TestContexts.generation(), output);
-        assertEquals(12, output.get(0, 0, 0));
-    }
-
-    private static class FillModifier extends GenerationModifier<Integer> {
-        private final FillOptions options;
-        FillModifier(FillOptions options) {
-            this.options = options;
-        }
-        public String id() { return "example:fill-modifier"; }
-        public void modify(GenerationContext context, Hunk<Integer> volume) {
-            volume.set(0, 0, 0, options.value);
-        }
+    void descriptorReadsFeatureIdentityAndAttachment() {
+        var descriptor = FeatureDescriptor.of(FillOptions.class);
+        assertEquals(ResourceId.parse("example:fill"), descriptor.id());
+        assertEquals("fill", descriptor.attachment().field());
+        assertEquals(java.util.Set.of(FeatureAttachment.Target.BIOME), descriptor.attachment().targets());
+        assertEquals(1, descriptor.options().options().size());
     }
 
     static class InvalidOptions {

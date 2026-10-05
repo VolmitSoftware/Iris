@@ -2,10 +2,10 @@ package com.volmit.host;
 
 import com.volmit.*;
 import com.volmit.config.Feature;
-import com.volmit.generation.*;
-import com.volmit.hunk.Hunk;
 import com.volmit.mantle.*;
-import com.volmit.placement.PlacementModifier;
+import com.volmit.stage.PlacementStage;
+import com.volmit.stage.Stage;
+import com.volmit.stage.StageGraph;
 import org.junit.jupiter.api.Test;
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -23,54 +23,34 @@ class ModuleRegistryTest {
     static class Collision implements IrisFeature {}
     @Feature(id = "test:one", name = "Duplicate", field = "different", targets = FeatureAttachment.Target.REGION)
     static class Duplicate implements IrisFeature {}
-    @Feature(id = "test:placement", name = "Placement", field = "foundation", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
-    static class Placement implements IrisFeature {}
     static class MissingAnnotation implements IrisFeature {}
     @Feature(id = "test:abstract", name = "Abstract", field = "abstract", targets = FeatureAttachment.Target.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
-    private static GenerationModifier<String> modifier(IrisFeature ignored) {
-        return new GenerationModifier<>() {
-            public String id() { return "test:modifier"; }
-            public void modify(GenerationContext context, Hunk<String> output) {}
-        };
-    }
-
     @Test
     void validatesIdsTypesAndFieldsAcrossFeatureKindsWithoutPartialRegistration() {
         var registry = new ModuleRegistry();
-        registry.register(One.class, String.class, ModuleRegistryTest::modifier);
-        assertThrows(IllegalArgumentException.class, () -> registry.register(Collision.class, String.class, ModuleRegistryTest::modifier));
-        registry.register(Two.class, String.class, ModuleRegistryTest::modifier);
+        registry.registerSettings(One.class);
+        registry.registerSettings(One.class);
+        assertThrows(IllegalArgumentException.class, () -> registry.registerObject(Collision.class, ignored -> context -> null));
+        registry.registerObject(Two.class, ignored -> context -> null);
         assertThrows(IllegalArgumentException.class, () -> registry.registerObject(Duplicate.class, ignored -> context -> null));
-        assertThrows(IllegalArgumentException.class, () -> registry.register(One.class, String.class, ModuleRegistryTest::modifier));
+        assertThrows(IllegalArgumentException.class, () -> registry.registerObject(One.class, ignored -> context -> null));
         var catalog = registry.freeze();
-        assertEquals(List.of("test:one", "test:two"), catalog.generation().stream().map(value -> value.descriptor().id().toString()).toList());
-        assertThrows(IllegalArgumentException.class, () -> catalog.generation(One.class, Integer.class));
+        assertEquals(List.of("test:one"), catalog.settings().stream().map(value -> value.id().toString()).toList());
+        assertEquals(List.of("test:two"), catalog.objects().stream().map(value -> value.descriptor().id().toString()).toList());
     }
 
     @Test
     void reservesHostFieldsAndRejectsInvalidFeaturesOrFactories() {
         var registry = new ModuleRegistry(Map.of(FeatureAttachment.Target.BIOME, Set.of("shared")));
-        assertThrows(IllegalArgumentException.class, () -> registry.register(One.class, String.class, ModuleRegistryTest::modifier));
-        assertThrows(IllegalArgumentException.class, () -> registry.register(MissingAnnotation.class, String.class, ModuleRegistryTest::modifier));
-        assertThrows(IllegalArgumentException.class, () -> registry.register(AbstractFeature.class, String.class, ModuleRegistryTest::modifier));
-        assertThrows(NullPointerException.class, () -> registry.register(Two.class, String.class, null));
-        registry.register(Two.class, String.class, ModuleRegistryTest::modifier);
-    }
-
-    @Test
-    void placementMustAttachToPlacementAndFreezeEndsRegistration() {
-        var registry = new ModuleRegistry();
-        assertThrows(IllegalArgumentException.class, () -> registry.registerPlacement(One.class, ignored -> new PlacementModifier() {
-            public String id() { return "test:placement"; }
-        }));
-        registry.registerPlacement(Placement.class, ignored -> new PlacementModifier() {
-            public String id() { return "test:placement"; }
-        });
-        assertEquals(1, registry.freeze().placement().size());
+        assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(One.class));
+        assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(MissingAnnotation.class));
+        assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(AbstractFeature.class));
+        assertThrows(NullPointerException.class, () -> registry.registerObject(Two.class, null));
+        registry.registerObject(Two.class, ignored -> context -> null);
         assertSame(registry.freeze(), registry.freeze());
-        assertThrows(IllegalStateException.class, () -> registry.register(One.class, String.class, ModuleRegistryTest::modifier));
+        assertThrows(IllegalStateException.class, () -> registry.registerSettings(One.class));
     }
 
     @Test
@@ -83,6 +63,24 @@ class ModuleRegistryTest {
         assertThrows(IllegalArgumentException.class, () -> registry.registerMantle(new MantleKey<>("test:bad", String.class), MantleLifetime.GENERATION, codec(-1)));
         assertEquals(3, registry.freeze().mantle().getFirst().version());
         assertEquals(1, registry.freeze().mantle().size());
+    }
+
+    @Test
+    void loadingModulesCatalogsStageSettingsAndRegistrationsTogether() {
+        var conditioned = new IrisModule() {
+            static final PlacementStage<Void> WORK = Stage.placement("test:conditioned/work");
+            public ModuleInfo info() { return ModuleInfo.of("test:conditioned", "1"); }
+            public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
+            public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
+        };
+        var loaded = LoadedModules.load(List.of(conditioned), Map.of());
+        assertEquals(List.of("test:one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
+        assertEquals(1, loaded.catalog().objects().size());
+        assertEquals(1, loaded.placement().stages().size());
+        assertTrue(loaded.chunk().stages().isEmpty());
+
+        var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("shared"));
+        assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(conditioned), reserved));
     }
 
     private static MantleCodec<String> codec(int version) {

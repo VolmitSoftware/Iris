@@ -78,7 +78,7 @@ class StageGraphTest {
     }
 
     private static PlacementOutcome place(ResolvedGraph graph, MemoryEdit edit, ConfiguredSettings settings) {
-        return new PlacementRunner(graph).place(twoBlockRequest(), edit, TestContexts.placement(), settings);
+        return new PlacementRunner(graph).place(twoBlockRequest(), edit, TestContexts.placement(), TestContexts.SEED, settings);
     }
 
     @Test

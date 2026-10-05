@@ -10,6 +10,7 @@ import com.volmit.host.LoadedModules;
 import com.volmit.host.PlacementRunner;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.StageGraphBuilder;
+import com.volmit.host.StageRandom;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
@@ -110,14 +111,16 @@ class PlacementLifecyclePortTest {
     private static MemoryEdit place(ResolvedGraph graph, ConfiguredSettings settings) {
         var terrain = terrain();
         var edit = new MemoryEdit(terrain);
-        var outcome = new PlacementRunner(graph).place(request(), edit, TestContexts.placement(terrain), settings);
+        var outcome = new PlacementRunner(graph).place(request(), edit, TestContexts.placement(terrain), TestContexts.SEED, settings);
         assertTrue(outcome.isPlaced());
         return edit;
     }
 
-    /** World position of a local block after the seeded rotation and surface anchoring. */
+    /** World position of a local block after the seeded rotation and surface anchoring. The rotation
+     * is the first draw of the transforms stage's own stream.
+     */
     private static BlockPosition placed(int x, int y, int z) {
-        var transforms = new Transforms(new Random(TestContexts.SEED).nextInt(4));
+        var transforms = new Transforms(StageRandom.stream(TestContexts.SEED, PrepareModule.TRANSFORMS.id()).nextInt(4));
         var rotated = transforms.rotate(new BlockPosition(x, y, z), new BlockPosition(0, 0, 0));
         return rotated.add(SURFACE_ANCHOR);
     }

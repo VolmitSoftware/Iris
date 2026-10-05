@@ -18,8 +18,11 @@ public final class ChunkRunner {
         }
     }
 
-    public void generate(GenerationContext inputs, ConfiguredSettings settings) {
-        var chunk = new ChunkInvocation(new StageInvocation(graph, settings), inputs);
+    /** Runs one chunk. The host derives {@code invocationSeed} from the world seed and the chunk
+     * position; each stage draws from its own stream of that seed ({@link StageRandom}).
+     */
+    public void generate(GenerationContext inputs, long invocationSeed, ConfiguredSettings settings) {
+        var chunk = new ChunkInvocation(new StageInvocation(graph, invocationSeed, settings), inputs);
         for (int position = 0; position < graph.size(); position++) {
             chunk.stages().runInvocationStage(position, chunk);
         }

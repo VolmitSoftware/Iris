@@ -5,13 +5,15 @@ import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.random.RandomGenerator;
 import java.util.stream.IntStream;
 
-/** Pipeline-independent state of one invocation: activation, settings and stage outputs, all
- * indexed by resolved position. Activation is computed once up front in resolved order: a stage
- * is active when its settings are configured (or it has no condition) and every stage it
- * requires is active, so inactivity cascades to dependents. Cost is one pass over stages and
- * requirement edges plus one settings lookup per distinct settings type.
+/** Pipeline-independent state of one invocation: activation, settings, stage outputs and stage
+ * random streams, all indexed by resolved position. Activation is computed once up front in resolved
+ * order: a stage is active when its settings are configured (or it has no condition) and every
+ * stage it requires is active, so inactivity cascades to dependents. Cost is one pass over stages
+ * and requirement edges plus one settings lookup per distinct settings type. A stage's stream is
+ * created when it first draws and depends only on the invocation seed and the stage id.
  */
 final class StageInvocation {
     private static final Object PENDING = new Object();
@@ -21,14 +23,18 @@ final class StageInvocation {
     private final Object[] settingsBySlot;
     private final boolean[] active;
     private final Object[] outputs;
+    private final long invocationSeed;
+    private final RandomGenerator[] streams;
     private int current = NO_STAGE;
 
-    StageInvocation(ResolvedGraph graph, ConfiguredSettings settings) {
+    StageInvocation(ResolvedGraph graph, long invocationSeed, ConfiguredSettings settings) {
         this.graph = graph;
         settingsBySlot = lookUpSettings(graph, Objects.requireNonNull(settings, "settings"));
         active = activation(graph, settingsBySlot);
         outputs = new Object[graph.size()];
         Arrays.fill(outputs, PENDING);
+        this.invocationSeed = invocationSeed;
+        streams = new RandomGenerator[graph.size()];
     }
 
     boolean isActive(int position) {
@@ -88,6 +94,17 @@ final class StageInvocation {
                     + " before it completed; block stage outputs are available after their block pass");
         }
         return (O) outputs[position];
+    }
+
+    /** The running stage's own stream. A block stage keeps one stream across every block of its pass. */
+    RandomGenerator random() {
+        if (current == NO_STAGE) {
+            throw new IllegalStateException("A stage's random stream is only available while the stage runs");
+        }
+        if (streams[current] == null) {
+            streams[current] = StageRandom.stream(invocationSeed, graph.executable(current).idHash());
+        }
+        return streams[current];
     }
 
     private ExecutableStage currentStage() {

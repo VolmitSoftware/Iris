@@ -22,17 +22,20 @@ public final class PlacementRunner {
     }
 
     /** Takes ownership of a fresh edit and closes it on success, rejection or exception.
-     * The host prepares the edit area, the read-only inputs (with a dedicated RNG) and the
-     * settings configured for this placement. Stages never receive commit/close rights.
+     * The host prepares the edit area, the read-only inputs and the settings configured for this
+     * placement, and derives {@code invocationSeed} from the world seed and the placement's stable
+     * identity. Each stage draws from its own stream of that seed ({@link StageRandom}). Stages never
+     * receive commit/close rights.
      */
     public PlacementOutcome place(
             PlacementRequest request,
             PlacementEdit edit,
             PlacementContext inputs,
+            long invocationSeed,
             ConfiguredSettings settings) {
         Objects.requireNonNull(edit, "edit");
         try (edit) {
-            var stages = new StageInvocation(graph, settings);
+            var stages = new StageInvocation(graph, invocationSeed, settings);
             var access = PlacementViews.restrict(edit, edit.bounds());
             var placement = new PlacementInvocation(stages, request, inputs, access);
             runSegments(placement);

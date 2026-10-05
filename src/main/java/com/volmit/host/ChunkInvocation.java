@@ -77,6 +77,6 @@ final class ChunkInvocation implements ChunkStageContext {
 
     @Override
     public RandomGenerator random() {
-        return inputs.random();
+        return stages.random();
     }
 }

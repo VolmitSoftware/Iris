@@ -1,14 +1,13 @@
 package com.volmit.generation;
 
 import com.volmit.resource.PackResources;
-import java.util.random.RandomGenerator;
 
-/** Host-owned invocation inputs. RNG and views must not be retained or used by detached tasks.
- * The host derives streams from world seed, stable feature/occurrence identity and position;
- * module discovery order must not affect them. Keeping legacy random behavior is adapter work.
+/** Host-owned invocation inputs. Views must not be retained or used by detached tasks.
+ *
+ * <p>There is no shared random stream. A stage draws from {@link com.volmit.stage.StageContext#random()},
+ * a stream of its own, and an object generator from {@link com.volmit.object.ObjectGenerationContext#random()}.
  */
 public interface InvocationContext {
     long worldSeed();
     PackResources resources();
-    RandomGenerator random();
 }

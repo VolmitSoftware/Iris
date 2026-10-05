@@ -37,7 +37,7 @@ class ChunkPipelineTest {
 
     private static Hunk<BlockState> generate(ConfiguredSettings settings) {
         var blocks = new ArrayHunk<>(BlockState.class, SIZE, HEIGHT, SIZE, AIR);
-        runner().generate(TestContexts.generation(Map.of(BlockState.class, blocks)), settings);
+        runner().generate(TestContexts.generation(Map.of(BlockState.class, blocks)), TestContexts.SEED, settings);
         return blocks;
     }
 

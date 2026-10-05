@@ -118,7 +118,7 @@ final class PlacementInvocation implements BlockStageContext {
 
     @Override
     public RandomGenerator random() {
-        return inputs.random();
+        return stages.random();
     }
 
     @Override

@@ -10,8 +10,6 @@ import com.volmit.resource.PackResources;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.BlockView;
 import java.util.Map;
-import java.util.Random;
-import java.util.random.RandomGenerator;
 
 /** Tests needing no platform facilities fail loudly if code starts using one. */
 public final class TestContexts {
@@ -21,12 +19,10 @@ public final class TestContexts {
 
     public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks) {
         return new GenerationContext() {
-            private final RandomGenerator random = new Random(SEED);
             public int originX() { return 0; }
             public int originY() { return -64; }
             public int originZ() { return 0; }
             public long worldSeed() { return SEED; }
-            public RandomGenerator random() { return random; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { throw new AssertionError("Unused settings"); }
@@ -46,9 +42,7 @@ public final class TestContexts {
 
     public static PlacementContext placement(BlockView blocks) {
         return new PlacementContext() {
-            private final RandomGenerator random = new Random(SEED);
             public long worldSeed() { return SEED; }
-            public RandomGenerator random() { return random; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { throw new AssertionError("Unused settings"); }

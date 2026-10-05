@@ -5,7 +5,7 @@ import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementRequest;
 
 /** One placement attempt. Writes go to a buffered edit committed only if no stage rejects
- * and none throws. All stages of an attempt share its inputs, including the RNG, in resolved order.
+ * and none throws. All stages of an attempt share its inputs; each draws from its own random stream.
  */
 public interface PlacementStageContext extends PlacementContext, StageContext {
     PlacementRequest request();

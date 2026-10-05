@@ -43,23 +43,48 @@ public final class MossModule implements IrisModule {
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators
 and mantle layers.
 
+## Module jars
+
+A pack loads its modules from `<pack>/modules/*.jar`. One jar holds one module. Its entry point
+is the `IrisModule` class, named in the jar's `META-INF/services/com.volmit.IrisModule`:
+
+```
+modules/moss.jar
+  META-INF/services/com.volmit.IrisModule    contains: com.example.moss.MossModule
+  com/example/moss/MossModule.class           public, public no-argument constructor
+  com/example/moss/MossSettings.class
+```
+
+`info()` gives the module id and version. The id's namespace is the namespace of every stage the
+module defines.
+
 ## Host side
 
 ```java
-var loaded = LoadedModules.load(acceptedModules, reservedHostFields);
-System.out.println(loaded.placement().describe());
+try (var pack = PackModules.load(packRoot)) {
+    var modules = new ArrayList<>(builtIns);           // DiscoveredModule.builtIn(...)
+    modules.addAll(pack.modules());
+    var loaded = LoadedModules.load(modules, reservedHostFields);
+    System.out.println(loaded.placement().describe());
 
-var placer = new PlacementRunner(loaded.placement());
-PlacementOutcome outcome = placer.place(request, edit, inputs, ConfiguredSettings.of(stilt, snow));
+    var placer = new PlacementRunner(loaded.placement());
+    PlacementOutcome outcome = placer.place(request, edit, inputs, ConfiguredSettings.of(stilt, snow));
 
-new ChunkRunner(loaded.chunk()).generate(generationContext, chunkSettings);
+    new ChunkRunner(loaded.chunk()).generate(generationContext, chunkSettings);
+}   // drop everything built from the pack before it closes
 ```
+
+`PackModules.load` reads one entry point per jar, in jar file name order, and loads every jar
+of the pack through one class loader. Closing it closes that loader. A pack without a `modules`
+directory has no modules. Errors name the jar: no entry point, several entry points, or an entry
+class that cannot be loaded, is not an `IrisModule`, is not in that jar, or fails to construct.
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
 together with geometry and mantle registrations, and resolves both pipelines. Graph errors
 (missing requirement, cycle, foreign namespace, duplicate, cross-pipeline edge) fail here, at
-pack load. `describe()` prints the order, owners, edge kinds, fused block passes and the stage
-pairs that have no path between them.
+pack load. Duplicate module ids and foreign namespaces also name the jar or "host classpath".
+`describe()` prints the order, owners, edge kinds, fused block passes and the stage pairs that
+have no path between them.
 
 `PlacementRunner` owns the edit for one attempt. It commits once if no stage rejects or throws
 and closes the edit in every case. Stages get buffered `PlacementAccess` without commit rights.
@@ -86,7 +111,8 @@ invocations and must not keep views or mutable state.
 ```
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
-rejection and rollback, and install-order determinism. The example ports in
+rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
+jars into a temporary pack and loads them, including every jar error. The example ports in
 `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and snow
 as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There is
 no Minecraft integration or production storage in these tests.

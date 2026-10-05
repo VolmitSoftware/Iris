@@ -8,6 +8,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Requirement | Contract |
 | --- | --- |
 | Module identity and composition | `IrisModule`, `ModuleInfo`, `StageGraph` |
+| Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules`, `DiscoveredModule` |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
 | Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` |
 | Typed results between modules | stage outputs, `StageContext.output` |
@@ -39,9 +40,15 @@ context, outputs and accumulators.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
+- Load each pack's jars with `PackModules`, pass them with the built-in modules to
+  `LoadedModules.load`, and close `PackModules` only after nothing built from it is in use.
+- Make built-in modules visible to the loader that defines the API, or pack jars cannot require
+  their stages.
 
 ## Open
 
 - Per-stage reach declarations, replacing the removed modifier radii.
 - Per-stage RNG streams, so adding a module does not shift other modules' random draws.
 - Terrain/biome providers, pack transformations, structure assembly and the runtime family.
+- Version gating: modules do not declare which API version they target, so an incompatible jar
+  fails with a linkage error at load or later at install or run time.

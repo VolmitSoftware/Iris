@@ -1,8 +1,8 @@
 # Iris API design
 
-Status: the stage graph, both pipelines' reference executors, settings catalog, geometry,
-resources and typed storage contracts exist and are tested without the Iris engine. Provider and
-runtime families at the end are design notes, not Java interfaces.
+Status: pack module loading, the stage graph, both pipelines' reference executors, settings
+catalog, geometry, resources and typed storage contracts exist and are tested without the Iris
+engine. Provider and runtime families at the end are design notes, not Java interfaces.
 
 ## Model
 
@@ -30,6 +30,46 @@ flowchart TD
     Edit --> Publish[Host publication]
     Hunk --> Publish
 ```
+
+## Module loading
+
+The `IrisModule` implementation is the module's entry point. `info()` returns its id and
+version; there is no separate descriptor. A pack keeps its modules in `<pack>/modules/*.jar`,
+one module per jar.
+
+A jar names its entry class in `META-INF/services/com.volmit.IrisModule`, the provider format of
+`ServiceLoader`. The host reads that file from the jar itself rather than calling
+`ServiceLoader`, which would also return providers of parent class loaders and could not say
+which jar a broken provider came from. The rejected alternatives:
+
+- A manifest attribute such as `Iris-Module: com.example.MossModule`. It needs the same reading
+  code but is not a Java convention, IDEs do not check it, and fat-jar tools tend to rewrite
+  manifests.
+- A descriptor file with id and version. It duplicates `info()`, so the two can disagree, and
+  parsing it needs a format the JDK does not ship.
+
+`PackModules.load(packRoot)`:
+
+1. Lists regular files ending in `.jar` in `<pack>/modules`, sorted by file name. A missing
+   directory means no modules.
+2. Reads each jar's entry point file. Comments (`#`) and blank lines are ignored; zero or more
+   than one class name fails.
+3. Creates one `URLClassLoader` for all jars of the pack, parent = the loader of `IrisModule`.
+4. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
+   instantiates it with the public no-argument constructor and calls `info()`.
+
+One loader per pack, not per jar, because `requires(...)` takes another module's stage constant.
+A pack jar that requires a stage of another pack jar must see its classes. Packs stay isolated
+from each other, and built-in modules visible to the API's loader are visible to every pack. The
+cost: two jars of one pack that contain the same class name share the first one in file name
+order. The entry-class check catches this for entry classes only.
+
+Closing `PackModules` closes the loader. Classes loaded before that keep working, so the host
+must drop `LoadedModules` and everything else built from the pack first.
+
+Each module reaches `LoadedModules.load` as a `DiscoveredModule`: the module and its origin, the
+jar path relative to the pack or "host classpath" for built-ins. Duplicate module ids and foreign
+stage namespaces name the origin. Every jar error names the jar.
 
 ## Stages
 
@@ -157,8 +197,8 @@ Unknown persisted layers must be preserved or fail explicitly.
 
 ## Not implemented
 
-- Iris host wiring: module discovery and version gating, JSON decoding and validation, schema
-  generation, resource loaders, platform block adapters, storage and codecs.
+- Iris host wiring: version gating, JSON decoding and validation, schema generation, resource
+  loaders, platform block adapters, storage and codecs.
 - Reach. The old per-modifier `writeRadius` and `mantleRadius` are gone with the modifiers. The
   host must prepare the whole area a pipeline may touch. Per-stage reach is an open question.
 - Legacy random compatibility. Seed offsets and draw order must be matched by the adapter where

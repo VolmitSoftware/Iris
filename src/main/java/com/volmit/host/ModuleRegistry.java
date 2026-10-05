@@ -18,8 +18,8 @@ import java.util.Set;
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
  * immutable. IDs are unique across feature kinds; JSON fields are unique per attachment target.
  * Pass existing host JSON fields to reserve them before modules register. Modules register through
- * {@link #register(DiscoveredModule)}; object feature ids and mantle keys must use the registering
- * module's namespace. A failed registration leaves the registry unchanged. A failed module callback
+ * {@link #register(DiscoveredModule)}; object feature ids and mantle keys must be the registering
+ * module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}). A failed registration leaves the registry unchanged. A failed module callback
  * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
  * settings.
  */
@@ -62,7 +62,7 @@ public final class ModuleRegistry implements FeatureRegistry {
             ObjectGeneratorFactory<F> factory) {
         checkOpen();
         var descriptor = FeatureDescriptor.of(featureType);
-        requireModuleNamespace("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
+        requireOwnedId("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
         var registration = new ObjectRegistration<>(descriptor, factory);
         claim(descriptor);
         objects.put(featureType, registration);
@@ -73,7 +73,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(codec, "codec");
-        requireModuleNamespace("Mantle layer", ResourceId.parse(key.id()));
+        requireOwnedId("Mantle layer", ResourceId.parse(key.id()));
 
         var registration = new MantleRegistration<>(key, lifetime, codec, codec.version());
         if (mantle.putIfAbsent(key.id(), registration) != null) {
@@ -99,14 +99,14 @@ public final class ModuleRegistry implements FeatureRegistry {
         return catalog;
     }
 
-    private void requireModuleNamespace(String registration, ResourceId id) {
+    private void requireOwnedId(String registration, ResourceId id) {
         if (registering == null) {
             throw new IllegalStateException(registration + " " + id + " registered outside IrisModule.register");
         }
-        var namespace = registering.info().id().namespace();
-        if (id.namespace().equals(namespace)) return;
-        throw new IllegalArgumentException(registration + " " + id + " must use namespace '" + namespace
-                + "' of its registering module " + registering);
+        var info = registering.info();
+        if (info.ownsId(id)) return;
+        throw new IllegalArgumentException(registration + " " + id + " must be " + info.id() + " or start with "
+                + info.idPrefix() + ", the id of its registering module " + registering);
     }
 
     private void reserveHostFields(Map<FeatureAttachment.Target, Set<String>> reservedFields) {

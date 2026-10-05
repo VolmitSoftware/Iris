@@ -4,7 +4,7 @@ import com.volmit.resource.ResourceId;
 import java.util.Objects;
 
 /** A unit of pipeline work, declared as a constant by the module that defines it.
- * The id is namespaced and its namespace must match the defining module. Identity is this
+ * The id starts with the defining module's id and '/', such as {@code iris:stilt/fill}. Identity is this
  * declaration object: other modules require or read the owner's constant, never a copy.
  * The output type is Void for stages that only act; otherwise dependents read it through
  * {@link StageContext#output(Stage)}. Block stages accumulate their output across the pass.

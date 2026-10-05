@@ -16,16 +16,16 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModuleRegistryTest {
-    @Feature(id = "test:one", name = "One", field = "shared", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/one", name = "One", field = "shared", targets = FeatureAttachment.Target.BIOME)
     static class One implements IrisFeature {}
-    @Feature(id = "test:two", name = "Two", field = "shared", targets = FeatureAttachment.Target.DIMENSION)
+    @Feature(id = "test:core/two", name = "Two", field = "shared", targets = FeatureAttachment.Target.DIMENSION)
     static class Two implements IrisFeature {}
-    @Feature(id = "test:collision", name = "Collision", field = "shared", targets = {FeatureAttachment.Target.DIMENSION, FeatureAttachment.Target.BIOME})
+    @Feature(id = "test:core/collision", name = "Collision", field = "shared", targets = {FeatureAttachment.Target.DIMENSION, FeatureAttachment.Target.BIOME})
     static class Collision implements IrisFeature {}
-    @Feature(id = "test:one", name = "Duplicate", field = "different", targets = FeatureAttachment.Target.REGION)
+    @Feature(id = "test:core/one", name = "Duplicate", field = "different", targets = FeatureAttachment.Target.REGION)
     static class Duplicate implements IrisFeature {}
     static class MissingAnnotation implements IrisFeature {}
-    @Feature(id = "test:abstract", name = "Abstract", field = "abstract", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/abstract", name = "Abstract", field = "abstract", targets = FeatureAttachment.Target.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
     /** Runs {@code registrations} as the register(...) of a built-in module with the given id. */
@@ -42,15 +42,15 @@ class ModuleRegistryTest {
         var registry = new ModuleRegistry();
         registry.registerSettings(One.class);
         registry.registerSettings(One.class);
-        registerAs(registry, "test:objects", objects -> {
+        registerAs(registry, "test:core", objects -> {
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Collision.class, ignored -> context -> null));
             objects.registerObject(Two.class, ignored -> context -> null);
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Duplicate.class, ignored -> context -> null));
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(One.class, ignored -> context -> null));
         });
         var catalog = registry.freeze();
-        assertEquals(List.of("test:one"), catalog.settings().stream().map(value -> value.id().toString()).toList());
-        assertEquals(List.of("test:two"), catalog.objects().stream().map(value -> value.descriptor().id().toString()).toList());
+        assertEquals(List.of("test:core/one"), catalog.settings().stream().map(value -> value.id().toString()).toList());
+        assertEquals(List.of("test:core/two"), catalog.objects().stream().map(value -> value.descriptor().id().toString()).toList());
     }
 
     @Test
@@ -59,7 +59,7 @@ class ModuleRegistryTest {
         assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(One.class));
         assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(MissingAnnotation.class));
         assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(AbstractFeature.class));
-        registerAs(registry, "test:objects", objects -> {
+        registerAs(registry, "test:core", objects -> {
             assertThrows(NullPointerException.class, () -> objects.registerObject(Two.class, null));
             objects.registerObject(Two.class, ignored -> context -> null);
         });
@@ -70,29 +70,34 @@ class ModuleRegistryTest {
     @Test
     void mantleIdsAreUniqueAndCodecVersionIsSnapshotted() {
         var registry = new ModuleRegistry();
-        var key = new MantleKey<>("test:layer", String.class);
+        var key = new MantleKey<>("test:core/layer", String.class);
         var codec = codec(3);
-        registerAs(registry, "test:layers", layers -> {
+        registerAs(registry, "test:core", layers -> {
             layers.registerMantle(key, MantleLifetime.GENERATION, codec);
             assertThrows(IllegalArgumentException.class, () -> layers.registerMantle(key, MantleLifetime.PERSISTENT, codec));
-            assertThrows(IllegalArgumentException.class, () -> layers.registerMantle(new MantleKey<>("test:bad", String.class), MantleLifetime.GENERATION, codec(-1)));
+            assertThrows(IllegalArgumentException.class, () -> layers.registerMantle(new MantleKey<>("test:core/bad", String.class), MantleLifetime.GENERATION, codec(-1)));
         });
         assertEquals(3, registry.freeze().mantle().getFirst().version());
         assertEquals(1, registry.freeze().mantle().size());
     }
 
     @Test
-    void objectFeatureIdsAndMantleKeysUseTheRegisteringModulesNamespace() {
+    void objectFeatureIdsAndMantleKeysAreTheRegisteringModulesIdOrBelowIt() {
         var registry = new ModuleRegistry();
         var object = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "other:objects",
                 objects -> objects.registerObject(Two.class, ignored -> context -> null)));
-        assertEquals("Object generator settings " + Two.class.getName() + " with feature id test:two must use namespace "
-                + "'other' of its registering module other:objects from host classpath", object.getMessage());
+        assertEquals("Object generator settings " + Two.class.getName() + " with feature id test:core/two must be "
+                + "other:objects or start with other:objects/, the id of its registering module other:objects from host classpath",
+                object.getMessage());
 
-        var mantle = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "other:layers",
-                layers -> layers.registerMantle(new MantleKey<>("iris:depth", String.class), MantleLifetime.GENERATION, codec(1))));
-        assertEquals("Mantle layer iris:depth must use namespace 'other' of its registering module other:layers from host classpath",
-                mantle.getMessage());
+        var sameNamespace = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:other",
+                objects -> objects.registerObject(Two.class, ignored -> context -> null)));
+        assertTrue(sameNamespace.getMessage().contains("must be test:other or start with test:other/"), sameNamespace.getMessage());
+
+        var mantle = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "iris:snow",
+                layers -> layers.registerMantle(new MantleKey<>("iris:snowdepth", String.class), MantleLifetime.GENERATION, codec(1))));
+        assertEquals("Mantle layer iris:snowdepth must be iris:snow or start with iris:snow/, the id of its registering module "
+                + "iris:snow from host classpath", mantle.getMessage());
 
         assertThrows(IllegalStateException.class, () -> registry.registerMantle(new MantleKey<>("test:loose", String.class),
                 MantleLifetime.GENERATION, codec(1)));
@@ -101,15 +106,27 @@ class ModuleRegistryTest {
     }
 
     @Test
+    void moduleMayRegisterItsOwnIdAndIdsBelowIt() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "iris:snow", layers -> {
+            layers.registerMantle(new MantleKey<>("iris:snow", String.class), MantleLifetime.GENERATION, codec(1));
+            layers.registerMantle(new MantleKey<>("iris:snow/depth/deep", String.class), MantleLifetime.GENERATION, codec(1));
+        });
+
+        assertEquals(List.of("iris:snow", "iris:snow/depth/deep"),
+                registry.freeze().mantle().stream().map(layer -> layer.key().id()).sorted().toList());
+    }
+
+    @Test
     void loadingModulesCatalogsStageSettingsAndRegistrationsTogether() {
         var conditioned = new IrisModule() {
-            static final PlacementStage<Void> WORK = Stage.placement("test:conditioned/work");
-            public ModuleInfo info() { return ModuleInfo.of("test:conditioned", "Conditioned", "1"); }
+            static final PlacementStage<Void> WORK = Stage.placement("test:core/work");
+            public ModuleInfo info() { return ModuleInfo.of("test:core", "Conditioned", "1"); }
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
             public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
         };
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of());
-        assertEquals(List.of("test:one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
+        assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
         assertEquals(1, loaded.catalog().objects().size());
         assertEquals(1, loaded.placement().stages().size());
         assertTrue(loaded.chunk().stages().isEmpty());

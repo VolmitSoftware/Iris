@@ -69,19 +69,26 @@ class ApiValuesTest {
     }
 
     @Test
-    void moduleIdsAreOneSegmentAndOwnTheStageIdsBelowThem() {
+    void moduleIdsAreOneSegmentAndOwnTheIdsBelowThem() {
         var nested = assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("iris:stilt/extra", "Extra", "1"));
         assertEquals("Module id iris:stilt/extra must not contain '/': stage ids are a module id, '/' and a name, "
                 + "so iris:stilt/extra would name stages under another module's id", nested.getMessage());
 
         var stilt = ModuleInfo.of("iris:stilt", "Stilt", "1");
-        assertEquals("iris:stilt/", stilt.stageIdPrefix());
+        assertEquals("iris:stilt/", stilt.idPrefix());
         assertTrue(stilt.ownsStage(ResourceId.parse("iris:stilt/fill")));
         assertTrue(stilt.ownsStage(ResourceId.parse("iris:stilt/fill/deep")));
         assertFalse(stilt.ownsStage(ResourceId.parse("iris:stilt")));
         assertFalse(stilt.ownsStage(ResourceId.parse("iris:stilts/fill")));
         assertFalse(stilt.ownsStage(ResourceId.parse("iris:anchor/height")));
         assertFalse(stilt.ownsStage(ResourceId.parse("other:stilt/fill")));
+
+        assertTrue(stilt.ownsId(ResourceId.parse("iris:stilt")));
+        assertTrue(stilt.ownsId(ResourceId.parse("iris:stilt/depth")));
+        assertFalse(stilt.ownsId(ResourceId.parse("iris:stilts")));
+        assertFalse(stilt.ownsId(ResourceId.parse("iris:stilt-depth")));
+        assertFalse(stilt.ownsId(ResourceId.parse("iris:anchor")));
+        assertFalse(stilt.ownsId(ResourceId.parse("other:stilt")));
     }
 
     @Test

@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
  * discard the whole builder: it may hold a partial module. Errors about one module name its origin.
  *
  * <p>A module defines only stages whose ids start with its own id and '/', and a settings type
- * named in {@code when(...)} must have a feature id in the namespace of a module that names it.
+ * named in {@code when(...)} must have a feature id that at least one module naming it owns: that
+ * module's id, or one starting with it and '/'.
  */
 public final class StageGraphBuilder implements StageGraph {
     private final Map<ResourceId, StageDeclaration> declarations = new HashMap<>();
@@ -65,8 +66,8 @@ public final class StageGraphBuilder implements StageGraph {
         return GraphResolver.resolve(pipeline, declarations.values());
     }
 
-    /** Settings types named by when(...), ordered by feature id. Fails if a type's feature id is not
-     * in the namespace of any module that names it: some module of that namespace must own it.
+    /** Settings types named by when(...), ordered by feature id. Fails if no module that names a type
+     * owns its feature id ({@link com.volmit.ModuleInfo#ownsId}).
      */
     public List<Class<? extends IrisFeature>> settingsTypes() {
         var uses = settingsUses();
@@ -104,17 +105,22 @@ public final class StageGraphBuilder implements StageGraph {
 
     private void requireSettingsOwner(SettingsUse use) {
         var settings = use.settings();
-        var namers = use.namers();
-        var namespace = settings.id().namespace();
-        if (namers.stream().anyMatch(module -> module.namespace().equals(namespace))) return;
+        var namers = use.namers().stream().map(modules::get).toList();
+        if (namers.stream().anyMatch(module -> module.info().ownsId(settings.id()))) return;
+        var example = namers.getFirst().info();
         throw new IllegalArgumentException("Settings type " + settings.type().getName() + " has feature id "
-                + settings.id() + ", but no module of namespace '" + namespace + "' names it in when(...); it is named by "
-                + describeModules(namers) + ". A feature id uses the namespace of the module that owns the settings");
+                + settings.id() + ", which none of the modules naming it in when(...) owns: " + describeModules(namers)
+                + ". A feature id is the id of the module that owns the settings, such as " + example.id()
+                + ", or starts with it and '/', such as " + example.idPrefix() + lastSegment(settings.id()));
     }
 
-    private String describeModules(SortedSet<ResourceId> moduleIds) {
-        return moduleIds.stream()
-                .map(modules::get)
+    private static String lastSegment(ResourceId id) {
+        var path = id.path();
+        return path.substring(path.lastIndexOf('/') + 1);
+    }
+
+    private static String describeModules(List<DiscoveredModule> modules) {
+        return modules.stream()
                 .map(DiscoveredModule::toString)
                 .collect(Collectors.joining(", "));
     }
@@ -144,7 +150,7 @@ public final class StageGraphBuilder implements StageGraph {
     private static void requireOwnedStageId(Stage<?> stage, DiscoveredModule discovered) {
         var info = discovered.info();
         if (info.ownsStage(stage.id())) return;
-        throw new IllegalArgumentException("Stage " + stage + " must start with " + info.stageIdPrefix()
+        throw new IllegalArgumentException("Stage " + stage + " must start with " + info.idPrefix()
                 + ", the id of its defining module " + discovered);
     }
 

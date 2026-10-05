@@ -8,7 +8,8 @@ import java.util.Objects;
 /** Module identity. Every stage a module defines has an id that starts with the module id and
  * {@code /}, such as {@code iris:stilt/fill} for module {@code iris:stilt}, so a module id has no
  * {@code /} of its own: {@code iris:stilt/extra} would own stages under {@code iris:stilt}'s path.
- * Settings ids and mantle keys the module registers use its namespace. The name is for
+ * Settings ids, object feature ids and mantle keys the module owns are its id or start with it and
+ * {@code /}, such as {@code iris:stilt} or {@code iris:stilt/depth}. The name is for
  * people, for example in load logs; the id is what the host and other modules match on. Name and
  * version must fit on one log line, so they reject control characters such as line breaks.
  *
@@ -51,15 +52,22 @@ public record ModuleInfo(ResourceId id, String name, String version, List<Packag
 
     /** Whether {@code stageId} may name a stage of this module: it starts with this module's id and '/'. */
     public boolean ownsStage(ResourceId stageId) {
-        return stageId.namespace().equals(id.namespace()) && stageId.path().startsWith(stagePrefix());
+        return stageId.namespace().equals(id.namespace()) && stageId.path().startsWith(childPathPrefix());
     }
 
-    /** What every stage id of this module starts with, such as {@code iris:stilt/}. */
-    public String stageIdPrefix() {
-        return id.namespace() + ":" + stagePrefix();
+    /** Whether {@code featureId} may name settings, an object generator or a mantle layer of this
+     * module: it is this module's id or starts with it and '/'.
+     */
+    public boolean ownsId(ResourceId featureId) {
+        return featureId.equals(id) || ownsStage(featureId);
     }
 
-    private String stagePrefix() {
+    /** What every stage id of this module, and every other id below it, starts with, such as {@code iris:stilt/}. */
+    public String idPrefix() {
+        return id.namespace() + ":" + childPathPrefix();
+    }
+
+    private String childPathPrefix() {
         return id.path() + STAGE_SEPARATOR;
     }
 

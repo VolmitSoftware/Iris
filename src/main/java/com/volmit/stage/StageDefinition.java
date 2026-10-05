@@ -14,7 +14,10 @@ public interface StageDefinition<C extends StageContext, O> {
 
     StageDefinition<C, O> softBefore(StageRef... stages);
 
-    /** Activates the stage only where the given feature settings are configured. */
+    /** Activates the stage only where the given feature settings are configured. At least one module
+     * naming the type must own its feature id: the id is that module's id or starts with it and '/'.
+     * Other modules may name it too, such as moss conditioning on {@code iris:snow}.
+     */
     <S extends IrisFeature> ConditionalStageDefinition<C, S, O> when(Class<S> settingsType);
 
     /** Body for a stage without output. */

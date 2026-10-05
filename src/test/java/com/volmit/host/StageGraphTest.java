@@ -24,6 +24,8 @@ import com.volmit.support.MemoryEdit;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestTerrain;
 import com.volmit.world.BlockPosition;
+import com.volmit.example.placement.SnowModule;
+import com.volmit.example.placement.SnowSettings;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StageGraphTest {
     private static final BlockState STONE = new BlockState("minecraft:stone");
 
-    @Feature(id = "test:toggle", name = "Toggle", field = "toggle", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
+    @Feature(id = "test:owner/toggle", name = "Toggle", field = "toggle", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
     static final class Toggle implements IrisFeature {}
 
     static final class Unannotated implements IrisFeature {}
@@ -227,17 +229,26 @@ class StageGraphTest {
     }
 
     @Test
-    void settingsMustBeOwnedByAModuleOfTheirNamespace() {
+    void settingsMustBeOwnedByAModuleThatNamesThem() {
         var foreign = assertThrows(IllegalArgumentException.class, () -> resolveSettings(
                 module("other:user", stages -> stages.define(Stage.placement("other:user/work")).when(Toggle.class).run((context, toggle) -> {}))));
-        assertEquals("Settings type " + Toggle.class.getName() + " has feature id test:toggle, but no module of namespace 'test' "
-                + "names it in when(...); it is named by other:user from host classpath. A feature id uses the namespace "
-                + "of the module that owns the settings", foreign.getMessage());
+        assertEquals("Settings type " + Toggle.class.getName() + " has feature id test:owner/toggle, which none of the modules "
+                + "naming it in when(...) owns: other:user from host classpath. A feature id is the id of the module that owns "
+                + "the settings, such as other:user, or starts with it and '/', such as other:user/toggle", foreign.getMessage());
+
+        var sameNamespace = assertThrows(IllegalArgumentException.class, () -> resolveSettings(
+                module("test:user", stages -> stages.define(Stage.placement("test:user/work")).when(Toggle.class).run((context, toggle) -> {}))));
+        assertTrue(sameNamespace.getMessage().contains("none of the modules naming it in when(...) owns: test:user from host classpath"),
+                sameNamespace.getMessage());
 
         var shared = resolveSettings(
                 module("test:owner", stages -> stages.define(Stage.placement("test:owner/work")).when(Toggle.class).run((context, toggle) -> {})),
                 module("other:user", stages -> stages.define(Stage.placement("other:user/work")).when(Toggle.class).run((context, toggle) -> {})));
         assertEquals(List.of(Toggle.class), shared);
+
+        var snowOnMoss = resolveSettings(new SnowModule(), module("example:moss", stages ->
+                stages.define(Stage.placement("example:moss/on-snow")).when(SnowSettings.class).run((context, snow) -> {})));
+        assertTrue(snowOnMoss.contains(SnowSettings.class), "moss may condition on iris:snow, which iris:snow owns");
     }
 
     @Test

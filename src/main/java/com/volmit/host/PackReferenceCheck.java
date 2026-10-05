@@ -14,7 +14,8 @@ import java.util.function.Predicate;
  *
  * <p>The JVM resolves a class only when code first needs it, so a class nobody has is not an
  * error: bundled libraries reference optional dependencies they only use when present. A class
- * that Iris has but hides, or that is missing from a package Iris exposes, always fails the load.
+ * that Iris has but hides, a class of a JDK module packs cannot see, or a class missing from a
+ * package Iris exposes always fails the load.
  */
 final class PackReferenceCheck {
     private static final int MAX_REPORTED_REFERENCES_PER_JAR = 10;
@@ -30,6 +31,11 @@ final class PackReferenceCheck {
                 "uses classes that exist in Iris but are hidden from modules:",
                 "Modules cannot use Iris's own classes or its copies of libraries; ship the library in a module jar"
                         + " of the pack, or use the Iris API."),
+        /** A JDK module outside the platform class loader, such as jdk.compiler. */
+        UNAVAILABLE_JDK_CLASS(
+                "uses classes of JDK modules that are not available to modules:",
+                "Modules can use only the JDK modules of the platform class loader, such as java.base, java.sql and"
+                        + " java.net.http."),
         MISSING_HOST_CLASS(
                 "uses classes that this Iris does not have, in packages Iris provides to modules:",
                 "The jar was built against a different Iris API or Iris version.");
@@ -60,7 +66,8 @@ final class PackReferenceCheck {
         jars.forEach(jar -> packClasses.addAll(jar.classNames()));
     }
 
-    /** Fails when a jar uses a class Iris hides or a class missing from a package Iris exposes.
+    /** Fails when a jar uses a class Iris hides, a class of a JDK module packs cannot see, or a class
+     * missing from a package Iris exposes.
      * Returns the classes nobody has, per jar, for jars that use any.
      */
     static List<MissingClasses> requireResolvable(List<ModuleJar> jars, ExposedHostClassLoader host) {
@@ -89,6 +96,7 @@ final class PackReferenceCheck {
     private Resolution resolveOutsidePack(String className) {
         if (host.hasClass(className)) return Resolution.PROVIDED;
         if (host.exposed().exposes(className)) return Resolution.MISSING_HOST_CLASS;
+        if (UnavailableJdkModules.moduleOf(className).isPresent()) return Resolution.UNAVAILABLE_JDK_CLASS;
         if (host.hostHasClass(className)) return Resolution.HIDDEN_HOST_CLASS;
         return Resolution.ABSENT;
     }
@@ -110,7 +118,13 @@ final class PackReferenceCheck {
         return text.append(failure.advice).toString();
     }
 
-    private record Reference(String source, String target, Resolution resolution) {}
+    private record Reference(String source, String target, Resolution resolution) {
+        String describe() {
+            var text = source + " -> " + target;
+            if (resolution != Resolution.UNAVAILABLE_JDK_CLASS) return text;
+            return text + " (JDK module " + UnavailableJdkModules.moduleOf(target).orElseThrow() + ")";
+        }
+    }
 
     /** The references of one jar the pack loader would not resolve. */
     private record JarReferences(ModuleJar jar, List<Reference> unresolved) {
@@ -128,8 +142,8 @@ final class PackReferenceCheck {
             var references = with(failure);
             if (references.isEmpty()) return;
             text.append("Module jar ").append(jar.origin()).append(' ').append(failure.header).append('\n');
-            references.stream().limit(MAX_REPORTED_REFERENCES_PER_JAR).forEach(reference -> text.append(INDENT)
-                    .append(reference.source()).append(" -> ").append(reference.target()).append('\n'));
+            references.stream().limit(MAX_REPORTED_REFERENCES_PER_JAR)
+                    .forEach(reference -> text.append(INDENT).append(reference.describe()).append('\n'));
             int hidden = references.size() - MAX_REPORTED_REFERENCES_PER_JAR;
             if (hidden > 0) text.append(INDENT).append("and ").append(hidden).append(" more\n");
         }

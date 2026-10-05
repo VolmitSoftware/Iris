@@ -276,6 +276,35 @@ class PackModulesTest {
     }
 
     @Test
+    void referenceToAJdkModuleOutsideThePlatformLoaderFailsNamingTheModule() {
+        module("pack.user.User", "user:core", using("com.sun.source.tree.Tree", "java.sql.Connection"), NO_STAGES)
+                .writeInto(pack, "user.jar");
+
+        assertEquals("Module jar " + origin("user.jar") + " uses classes of JDK modules that are not available to modules:\n"
+                        + "  pack.user.User -> com.sun.source.tree.Tree (JDK module jdk.compiler)\n"
+                        + "Modules can use only the JDK modules of the platform class loader, such as java.base, java.sql and"
+                        + " java.net.http.",
+                failure(() -> PackModules.load(pack)));
+    }
+
+    @Test
+    void oneFailureReportsEveryKindOfUnusableClass() {
+        module("pack.user.User", "user:core", using("org.junit.jupiter.api.Test", "com.sun.source.tree.Tree"), NO_STAGES)
+                .compileAgainstHostOf(Test.class)
+                .writeInto(pack, "user.jar");
+
+        assertEquals("Module jar " + origin("user.jar") + " uses classes that exist in Iris but are hidden from modules:\n"
+                        + "  pack.user.User -> org.junit.jupiter.api.Test\n"
+                        + "Modules cannot use Iris's own classes or its copies of libraries; ship the library in a module"
+                        + " jar of the pack, or use the Iris API.\n"
+                        + "Module jar " + origin("user.jar") + " uses classes of JDK modules that are not available to modules:\n"
+                        + "  pack.user.User -> com.sun.source.tree.Tree (JDK module jdk.compiler)\n"
+                        + "Modules can use only the JDK modules of the platform class loader, such as java.base, java.sql and"
+                        + " java.net.http.",
+                failure(() -> PackModules.load(pack)));
+    }
+
+    @Test
     void classesNobodyHasAreReportedWithoutFailingTheLoad(@TempDir Path build) {
         var optionalLibrary = new TestModuleJar()
                 .source(OPTIONAL_CLASS, "package org.optional; public final class Feature { public static void use() {} }")

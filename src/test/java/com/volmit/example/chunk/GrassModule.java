@@ -14,7 +14,7 @@ public final class GrassModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("example:grass", "1.0.0");
+        return ModuleInfo.of("example:grass", "Grass", "1.0.0");
     }
 
     @Override

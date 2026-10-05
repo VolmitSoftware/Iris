@@ -19,7 +19,7 @@ public final class StiltModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("iris:stilt", "test");
+        return ModuleInfo.of("iris:stilt", "Stilts", "test");
     }
 
     @Override

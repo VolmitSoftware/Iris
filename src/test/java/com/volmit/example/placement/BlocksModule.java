@@ -17,7 +17,7 @@ public final class BlocksModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("iris:blocks", "test");
+        return ModuleInfo.of("iris:blocks", "Blocks", "test");
     }
 
     @Override

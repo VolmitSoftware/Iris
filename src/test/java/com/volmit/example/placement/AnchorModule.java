@@ -15,7 +15,7 @@ public final class AnchorModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("iris:anchor", "test");
+        return ModuleInfo.of("iris:anchor", "Anchor", "test");
     }
 
     @Override

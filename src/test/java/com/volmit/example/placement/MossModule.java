@@ -21,7 +21,7 @@ public final class MossModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("example:moss", "1.0.0");
+        return ModuleInfo.of("example:moss", "Moss", "1.0.0");
     }
 
     @Override

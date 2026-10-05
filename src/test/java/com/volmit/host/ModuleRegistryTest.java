@@ -69,7 +69,7 @@ class ModuleRegistryTest {
     void loadingModulesCatalogsStageSettingsAndRegistrationsTogether() {
         var conditioned = new IrisModule() {
             static final PlacementStage<Void> WORK = Stage.placement("test:conditioned/work");
-            public ModuleInfo info() { return ModuleInfo.of("test:conditioned", "1"); }
+            public ModuleInfo info() { return ModuleInfo.of("test:conditioned", "Conditioned", "1"); }
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
             public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
         };

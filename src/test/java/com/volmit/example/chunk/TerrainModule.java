@@ -17,7 +17,7 @@ public final class TerrainModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("iris:terrain", "test");
+        return ModuleInfo.of("iris:terrain", "Terrain", "test");
     }
 
     @Override

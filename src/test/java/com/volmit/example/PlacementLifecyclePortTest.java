@@ -177,7 +177,7 @@ class PlacementLifecyclePortTest {
     void inactiveRequirementDeactivatesThirdPartyDependents() {
         var capModule = new IrisModule() {
             static final PlacementStage<Void> CAP = Stage.placement("example:cap/top");
-            public ModuleInfo info() { return ModuleInfo.of("example:cap", "1"); }
+            public ModuleInfo info() { return ModuleInfo.of("example:cap", "Cap", "1"); }
             public void install(StageGraph graph) {
                 graph.define(CAP).requires(StiltModule.FILL).run(context -> context.access().set(
                         new PlacedBlock(new BlockPosition(5, 20, 5), PLANKS, Optional.empty())));

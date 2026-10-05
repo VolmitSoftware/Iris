@@ -32,6 +32,16 @@ class ApiValuesTest {
     }
 
     @Test
+    void moduleInfoRequiresANameAndVersion() {
+        var info = ModuleInfo.of("example:moss", "Moss", "1.0.0");
+        assertEquals(ResourceId.parse("example:moss"), info.id());
+        assertEquals("Moss", info.name());
+        assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("example:moss", " ", "1.0.0"));
+        assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("example:moss", "Moss", ""));
+        assertThrows(NullPointerException.class, () -> ModuleInfo.of("example:moss", null, "1.0.0"));
+    }
+
+    @Test
     void sparseObjectsCopySortAndRejectDuplicateOrOutOfBoundsBlocks() {
         var a = new ObjectBlock(new BlockPosition(-1, 0, 0), new BlockState("minecraft:stone"));
         var b = new ObjectBlock(new BlockPosition(1, 0, 0), new BlockState("minecraft:stone"));

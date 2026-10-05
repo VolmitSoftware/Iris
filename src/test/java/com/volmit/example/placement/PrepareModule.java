@@ -17,7 +17,7 @@ public final class PrepareModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("iris:prepare", "test");
+        return ModuleInfo.of("iris:prepare", "Prepare", "test");
     }
 
     @Override

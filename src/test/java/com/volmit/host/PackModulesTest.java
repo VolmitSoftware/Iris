@@ -18,6 +18,10 @@ class PackModulesTest {
             "public static final PlacementStage<Void> MARK = Stage.placement(\"alpha:core/mark\");";
     private static final String NO_MEMBERS = "";
     private static final String NO_STAGES = "";
+    private static final String SHARED_CLASS = "pack.shared.Util";
+    private static final String SHARED_SOURCE = "package pack.shared; public final class Util {}";
+    private static final byte[] UNUSED_CLASS_BYTES = {(byte) 0xCA, (byte) 0xFE};
+    private static final String DEFINED_PROPERTY = "irisapi.test.packModuleConstructed";
 
     @TempDir
     Path pack;
@@ -131,6 +135,76 @@ class PackModulesTest {
         assertMentions(failure(() -> PackModules.load(shadowed)),
                 "Module jar " + origin("moss.jar") + " has a broken entry point com.volmit.example.placement.MossModule",
                 "not from this jar");
+    }
+
+    @Test
+    void sameClassInTwoJarsFailsBeforeAnyModuleIsConstructed() {
+        var constructorMarker = "public %s() { System.setProperty(\"" + DEFINED_PROPERTY + "\", \"true\"); }";
+        module("pack.alpha.Alpha", "alpha:core", constructorMarker.formatted("Alpha"), NO_STAGES)
+                .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", constructorMarker.formatted("Beta"), NO_STAGES)
+                .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "beta.jar");
+
+        try {
+            assertMentions(failure(() -> PackModules.load(pack)),
+                    "Class " + SHARED_CLASS + " is in both module jars " + origin("alpha.jar") + " and " + origin("beta.jar"));
+            assertNull(System.getProperty(DEFINED_PROPERTY), "a module was constructed before the duplicate was found");
+        } finally {
+            System.clearProperty(DEFINED_PROPERTY);
+        }
+    }
+
+    @Test
+    void moduleDescriptorsMayRepeatAcrossJars() {
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .resource("module-info.class", UNUSED_CLASS_BYTES).writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
+                .resource("module-info.class", UNUSED_CLASS_BYTES).writeInto(pack, "beta.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(2, packModules.modules().size());
+        }
+    }
+
+    @Test
+    void versionedClassOfAMultiReleaseJarCountsUnderItsBaseName() {
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
+                .multiRelease()
+                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .writeInto(pack, "beta.jar");
+
+        assertMentions(failure(() -> PackModules.load(pack)),
+                "Class " + SHARED_CLASS + " is in both module jars " + origin("alpha.jar") + " and " + origin("beta.jar"));
+    }
+
+    @Test
+    void versionedEntriesOutsideAMultiReleaseJarAreNotClasses() {
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source(SHARED_CLASS, SHARED_SOURCE)
+                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .writeInto(pack, "alpha.jar");
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
+                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .writeInto(pack, "beta.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(2, packModules.modules().size());
+        }
+    }
+
+    @Test
+    void multiReleaseJarMayHoldAVersionedCopyOfItsOwnClass() {
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source(SHARED_CLASS, SHARED_SOURCE)
+                .multiRelease()
+                .resource("META-INF/versions/9/pack/shared/Util.class", UNUSED_CLASS_BYTES)
+                .writeInto(pack, "alpha.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(1, packModules.modules().size());
+        }
     }
 
     @Test

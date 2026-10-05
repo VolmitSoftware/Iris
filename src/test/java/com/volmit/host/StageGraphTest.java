@@ -41,7 +41,7 @@ class StageGraphTest {
 
     private static IrisModule module(String id, Consumer<StageGraph> install) {
         return new IrisModule() {
-            public ModuleInfo info() { return ModuleInfo.of(id, "1"); }
+            public ModuleInfo info() { return ModuleInfo.of(id, "Test module " + id, "1"); }
             public void install(StageGraph graph) { install.accept(graph); }
         };
     }

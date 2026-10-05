@@ -23,7 +23,7 @@ public final class SnowModule implements IrisModule {
 
     @Override
     public ModuleInfo info() {
-        return ModuleInfo.of("iris:snow", "test");
+        return ModuleInfo.of("iris:snow", "Snow", "test");
     }
 
     @Override

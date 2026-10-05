@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -30,6 +31,8 @@ public final class TestModuleJar {
     private static final String SERVICES_FILE = "META-INF/services/" + IrisModule.class.getName();
 
     private final Map<String, String> sources = new LinkedHashMap<>();
+    private final Map<String, byte[]> resources = new LinkedHashMap<>();
+    private boolean multiRelease;
     private final List<String> entryPoints = new ArrayList<>();
     private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class), classesOf(AnchorModule.class)));
 
@@ -49,6 +52,18 @@ public final class TestModuleJar {
         return this;
     }
 
+    /** Adds a raw jar entry, such as a versioned class file, without compiling anything. */
+    public TestModuleJar resource(String entryName, byte[] content) {
+        resources.put(entryName, content.clone());
+        return this;
+    }
+
+    /** Marks the jar {@code Multi-Release: true}, so its {@code META-INF/versions} entries count. */
+    public TestModuleJar multiRelease() {
+        multiRelease = true;
+        return this;
+    }
+
     public TestModuleJar compileAgainst(Path jar) {
         classpath.add(jar);
         return this;
@@ -59,8 +74,9 @@ public final class TestModuleJar {
         try {
             var jar = Files.createDirectories(packRoot.resolve("modules")).resolve(jarName);
             var classes = compile(Files.createTempDirectory(packRoot, "classes"));
-            try (var output = new JarOutputStream(Files.newOutputStream(jar), new Manifest())) {
+            try (var output = new JarOutputStream(Files.newOutputStream(jar), manifest())) {
                 writeClasses(output, classes);
+                writeResources(output);
                 writeEntryPoints(output);
             }
             return jar;
@@ -92,6 +108,21 @@ public final class TestModuleJar {
         }
     }
 
+    private Manifest manifest() {
+        var manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        if (multiRelease) manifest.getMainAttributes().put(Attributes.Name.MULTI_RELEASE, "true");
+        return manifest;
+    }
+
+    private void writeResources(JarOutputStream output) throws IOException {
+        for (var resource : resources.entrySet()) {
+            output.putNextEntry(new JarEntry(resource.getKey()));
+            output.write(resource.getValue());
+            output.closeEntry();
+        }
+    }
+
     private void writeEntryPoints(JarOutputStream output) throws IOException {
         if (entryPoints.isEmpty()) return;
         output.putNextEntry(new JarEntry(SERVICES_FILE));
@@ -111,11 +142,16 @@ public final class TestModuleJar {
                 public final class %s implements IrisModule {
                     %s
 
-                    public ModuleInfo info() { return ModuleInfo.of("%s", "1.0.0"); }
+                    public ModuleInfo info() { return ModuleInfo.of("%s", "%s", "1.0.0"); }
 
                     public void install(StageGraph graph) { %s }
                 }
-                """.formatted(className.substring(0, dot), className.substring(dot + 1), members, moduleId, install);
+                """.formatted(className.substring(0, dot), className.substring(dot + 1), members, moduleId, displayName(moduleId), install);
+    }
+
+    /** The display name test modules get, so assertions can predict it from the id. */
+    public static String displayName(String moduleId) {
+        return "Test " + moduleId;
     }
 
     private static Path classesOf(Class<?> type) {

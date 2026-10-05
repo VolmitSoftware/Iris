@@ -13,38 +13,42 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.zip.ZipFile;
 
-/** One jar in a pack's modules directory and the entry class it names.
+/** One jar in a pack's modules directory, the entry class it names and the classes it holds.
  *
  * <p>The entry point is the jar's own {@code META-INF/services/com.volmit.IrisModule} file, in
  * the format {@link java.util.ServiceLoader} reads. The host reads that file from this jar only:
  * {@code ServiceLoader} would also return providers from parent class loaders and could not tell
  * which jar a broken entry came from.
  */
-record ModuleJar(Path path, String origin, String entryClass) {
+record ModuleJar(Path path, String origin, String entryClass, List<String> classNames) {
     static final String ENTRY_POINT_FILE = "META-INF/services/" + IrisModule.class.getName();
     private static final String COMMENT_START = "#";
+    private static final String CLASS_FILE_SUFFIX = ".class";
+    private static final String MODULE_DESCRIPTOR = "module-info" + CLASS_FILE_SUFFIX;
+    private static final String META_INF = "META-INF/";
 
     ModuleJar {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(entryClass, "entryClass");
+        classNames = List.copyOf(classNames);
     }
 
-    /** Reads the single entry class a jar names. The origin is the jar path relative to its pack. */
+    /** Reads the single entry class a jar names and the classes it holds. The origin is the jar
+     * path relative to its pack.
+     */
     static ModuleJar read(Path packRoot, Path jar) {
         var origin = packRoot.relativize(jar).toString();
-        var entryClasses = readEntryClasses(jar, origin);
-        if (entryClasses.isEmpty()) {
-            throw new IllegalArgumentException("Module jar " + origin + " has no entry point; name its "
-                    + IrisModule.class.getSimpleName() + " class in " + ENTRY_POINT_FILE);
+        try (var file = openAsClassLoaderSeesIt(jar)) {
+            var entryClass = requireSingleEntryClass(origin, readEntryClasses(file));
+            return new ModuleJar(jar, origin, entryClass, readClassNames(file));
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Module jar " + origin + " is not a readable jar", exception);
         }
-        if (entryClasses.size() > 1) {
-            throw new IllegalArgumentException("Module jar " + origin + " names " + entryClasses.size()
-                    + " entry points " + entryClasses + "; one jar holds exactly one module");
-        }
-        return new ModuleJar(jar, origin, entryClasses.getFirst());
     }
 
     URL url() {
@@ -66,21 +70,61 @@ record ModuleJar(Path path, String origin, String entryClass) {
         return new DiscoveredModule(module, origin);
     }
 
-    private static List<String> readEntryClasses(Path jar, String origin) {
-        try (var file = new JarFile(jar.toFile())) {
-            var entry = file.getJarEntry(ENTRY_POINT_FILE);
-            if (entry == null) return List.of();
-            try (var reader = new BufferedReader(new InputStreamReader(file.getInputStream(entry), StandardCharsets.UTF_8))) {
-                return reader.lines()
-                        .map(ModuleJar::withoutComment)
-                        .map(String::strip)
-                        .filter(Predicate.not(String::isEmpty))
-                        .distinct()
-                        .toList();
-            }
-        } catch (IOException exception) {
-            throw new UncheckedIOException("Module jar " + origin + " is not a readable jar", exception);
+    /** Opens the jar with the runtime's multi-release version, like the pack class loader does, so
+     * class names below match the classes that loader can define.
+     */
+    private static JarFile openAsClassLoaderSeesIt(Path jar) throws IOException {
+        return new JarFile(jar.toFile(), true, ZipFile.OPEN_READ, JarFile.runtimeVersion());
+    }
+
+    private static String requireSingleEntryClass(String origin, List<String> entryClasses) {
+        if (entryClasses.isEmpty()) {
+            throw new IllegalArgumentException("Module jar " + origin + " has no entry point; name its "
+                    + IrisModule.class.getSimpleName() + " class in " + ENTRY_POINT_FILE);
         }
+        if (entryClasses.size() > 1) {
+            throw new IllegalArgumentException("Module jar " + origin + " names " + entryClasses.size()
+                    + " entry points " + entryClasses + "; one jar holds exactly one module");
+        }
+        return entryClasses.getFirst();
+    }
+
+    private static List<String> readEntryClasses(JarFile file) throws IOException {
+        var entry = file.getJarEntry(ENTRY_POINT_FILE);
+        if (entry == null) return List.of();
+        try (var reader = new BufferedReader(new InputStreamReader(file.getInputStream(entry), StandardCharsets.UTF_8))) {
+            return reader.lines()
+                    .map(ModuleJar::withoutComment)
+                    .map(String::strip)
+                    .filter(Predicate.not(String::isEmpty))
+                    .distinct()
+                    .toList();
+        }
+    }
+
+    /** Binary names of the classes in the jar, sorted. A multi-release jar contributes each class
+     * once, under its base name, in the version this runtime would load. Anything left below
+     * {@code META-INF/}, such as versioned entries of a jar that is not multi-release, cannot be
+     * loaded as a class: {@code META-INF} is not a valid package name.
+     */
+    private static List<String> readClassNames(JarFile file) {
+        return file.versionedStream()
+                .filter(Predicate.not(JarEntry::isDirectory))
+                .map(JarEntry::getName)
+                .filter(ModuleJar::isClassFile)
+                .map(ModuleJar::toBinaryName)
+                .sorted()
+                .toList();
+    }
+
+    private static boolean isClassFile(String entryName) {
+        return entryName.endsWith(CLASS_FILE_SUFFIX)
+                && !entryName.equals(MODULE_DESCRIPTOR)
+                && !entryName.startsWith(META_INF);
+    }
+
+    private static String toBinaryName(String entryName) {
+        return entryName.substring(0, entryName.length() - CLASS_FILE_SUFFIX.length()).replace('/', '.');
     }
 
     private static String withoutComment(String line) {

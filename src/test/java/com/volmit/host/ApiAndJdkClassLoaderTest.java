@@ -45,4 +45,11 @@ class ApiAndJdkClassLoaderTest {
         assertFalse(loader.hasClass(Test.class.getName()));
         assertFalse(loader.hasClass("com.volmit.DoesNotExist"));
     }
+
+    @Test
+    void knowsWhichClassesTheHostHasEvenWhenItHidesThem() {
+        assertTrue(loader.hostHasClass(Test.class.getName()));
+        assertTrue(loader.hostHasClass(IrisModule.class.getName()));
+        assertFalse(loader.hostHasClass("org.nowhere.Missing"));
+    }
 }

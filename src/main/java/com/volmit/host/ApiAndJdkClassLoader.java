@@ -40,7 +40,14 @@ final class ApiAndJdkClassLoader extends ClassLoader {
 
     /** Whether this loader can load the class, judged by its class file so that nothing is loaded. */
     boolean hasClass(String binaryName) {
-        return getResource(binaryName.replace('.', '/') + CLASS_FILE_SUFFIX) != null;
+        return getResource(classFile(binaryName)) != null;
+    }
+
+    /** Whether the API's loader has the class, whether or not this loader shows it to packs. In
+     * production that loader also holds Iris internals and the libraries Iris bundles.
+     */
+    boolean hostHasClass(String binaryName) {
+        return apiLoader.getResource(classFile(binaryName)) != null;
     }
 
     @Override
@@ -59,6 +66,10 @@ final class ApiAndJdkClassLoader extends ClassLoader {
     public Enumeration<URL> getResources(String name) throws IOException {
         if (isApiResource(name)) return apiLoader.getResources(name);
         return super.getResources(name);
+    }
+
+    private static String classFile(String binaryName) {
+        return binaryName.replace('.', '/') + CLASS_FILE_SUFFIX;
     }
 
     private static boolean isApiResource(String name) {

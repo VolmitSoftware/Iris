@@ -25,6 +25,7 @@ class PackModulesTest {
     private static final byte[] UNUSED_CLASS_BYTES = {(byte) 0xCA, (byte) 0xFE};
     private static final String VERSIONED_SHARED_CLASS = "META-INF/versions/9/pack/shared/Util.class";
     private static final String DEFINED_PROPERTY = "irisapi.test.packModuleConstructed";
+    private static final String OPTIONAL_CLASS = "org.optional.Feature";
 
     @TempDir
     Path pack;
@@ -78,6 +79,7 @@ class PackModulesTest {
             assertEquals(List.of("alpha:core", "beta:core"),
                     packModules.modules().stream().map(found -> found.module().info().id().toString()).toList());
             assertNotSame(PackModules.class.getClassLoader(), packModules.modules().getFirst().module().getClass().getClassLoader());
+            assertTrue(packModules.missingClasses().isEmpty());
 
             var order = loadWithBuiltIns(packModules).placement().stages().stream()
                     .map(stage -> stage.stage().id().toString()).toList();
@@ -247,11 +249,45 @@ class PackModulesTest {
                 .compileAgainstHostOf(Test.class)
                 .writeInto(pack, "user.jar");
 
-        assertEquals("Module jar " + origin("user.jar") + " uses classes that are not in the Iris API, the JDK or the"
-                        + " pack's module jars:\n  pack.user.User -> org.junit.jupiter.api.Test\n"
-                        + "A module can use only the Iris API, the JDK and the classes in its pack's module jars;"
-                        + " ship any library it needs inside a module jar of the pack.",
+        assertEquals("Module jar " + origin("user.jar") + " uses classes that exist in Iris but are hidden from modules:\n"
+                        + "  pack.user.User -> org.junit.jupiter.api.Test\n"
+                        + "Modules cannot use Iris's own classes or its copies of libraries; ship the library in a module"
+                        + " jar of the pack, or use the Iris API.",
                 failure(() -> PackModules.load(pack)));
+    }
+
+    @Test
+    void classesNobodyHasAreReportedWithoutFailingTheLoad(@TempDir Path build) {
+        var optionalLibrary = new TestModuleJar()
+                .source(OPTIONAL_CLASS, "package org.optional; public final class Feature { public static void use() {} }")
+                .writeInto(build, "optional.jar");
+        module("pack.user.User", "user:core", "static void useWhenPresent() { org.optional.Feature.use(); }",
+                "graph.define(Stage.placement(\"user:core/work\")).run(context -> {});")
+                .compileAgainst(optionalLibrary)
+                .writeInto(pack, "user.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals(List.of(new MissingClasses(origin("user.jar"), List.of(OPTIONAL_CLASS))), packModules.missingClasses());
+            assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of()));
+        }
+    }
+
+    @Test
+    void hiddenHostClassFailsEvenWhenOtherMissingClassesAreOptional(@TempDir Path build) {
+        var optionalLibrary = new TestModuleJar()
+                .source(OPTIONAL_CLASS, "package org.optional; public final class Feature {}")
+                .writeInto(build, "optional.jar");
+        module("pack.user.User", "user:core", """
+                static Object optional() { return org.optional.Feature.class; }
+                static Object hidden() { return org.junit.jupiter.api.Test.class; }
+                """, NO_STAGES)
+                .compileAgainst(optionalLibrary)
+                .compileAgainstHostOf(Test.class)
+                .writeInto(pack, "user.jar");
+
+        var message = failure(() -> PackModules.load(pack));
+        assertMentions(message, "pack.user.User -> org.junit.jupiter.api.Test");
+        assertFalse(message.contains(OPTIONAL_CLASS), message);
     }
 
     @Test
@@ -264,7 +300,8 @@ class PackModulesTest {
                 .writeInto(pack, "user.jar");
 
         assertMentions(failure(() -> PackModules.load(pack)),
-                "pack.user.User -> com.volmit.Newer", "the jar was built against a different Iris API");
+                "uses classes that this Iris does not have, in packages Iris provides to modules:\n  pack.user.User -> com.volmit.Newer",
+                "The jar was built against a different Iris API or Iris version.");
     }
 
     @Test

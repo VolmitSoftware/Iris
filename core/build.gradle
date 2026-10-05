@@ -168,6 +168,8 @@ dependencies {
     testImplementation(libs.log4j.core)
     testRuntimeOnly(libs.paper.api)
     testImplementation(libs.multiverseCore)
+    testImplementation(libs.annotations)
+    testImplementation(libs.mythic)
 }
 
 tasks.named('test').configure {

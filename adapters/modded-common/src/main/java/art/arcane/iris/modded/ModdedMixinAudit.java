@@ -45,6 +45,9 @@ public final class ModdedMixinAudit {
     private static final AtomicBoolean AUDITED = new AtomicBoolean(false);
 
     static final List<ExpectedMixin> EXPECTED = List.of(
+            new ExpectedMixin(ENTITY_CONFIG, "RegistryClientNamesMixin",
+                    NativeMixinTarget.REGISTRY_PACKET, "volmlib$clientRegistryNames",
+                    false, NativeMixinFlags::registryClientNamesRan),
             new ExpectedMixin(ENTITY_CONFIG, "EntityPersistenceMixin",
                     NativeMixinTarget.ENTITY, "iris$applyGeneratedPersistence",
                     false, NativeMixinFlags::entityPersistenceRan),
@@ -108,7 +111,7 @@ public final class ModdedMixinAudit {
             ModdedIrisLog.error("  missing: {}", entry);
         }
         ModdedIrisLog.error("The mixin config was not registered for this loader (fabric.mod.json mixins, neoforge.mods.toml [[mixins]], forge MixinConfigs manifest attribute).");
-        ModdedIrisLog.error("Entity persistence, custom mob loot, parallel structure safety, or Iris world-type labels are disabled until this is fixed.");
+        ModdedIrisLog.error("Entity persistence, custom mob loot, parallel structure safety, readable biome identifiers, or Iris world-type labels are disabled until this is fixed.");
         ModdedIrisLog.error("===============================================================");
     }
 

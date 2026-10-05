@@ -3,6 +3,7 @@ package art.arcane.iris.integration.data;
 import art.arcane.iris.integration.ExternalDataProvider;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.world.IrisToolbelt;
+import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -110,10 +111,17 @@ public class MythicMobsDataProvider extends ExternalDataProvider implements List
             if (access == null) return false;
             Engine engine = access.getEngine();
             if (engine == null) return false;
-            IrisBiome biome = surface ?
-                    engine.getSurfaceBiome(target.getBlockX(), target.getBlockZ()) :
-                    engine.getBiomeOrMantle(target.getBlockX(), target.getBlockY() - engine.getMinHeight(), target.getBlockZ());
-            return biomes.contains(biome.getLoadKey());
+            try {
+                IrisBiome biome = surface ?
+                        engine.getSurfaceBiome(target.getBlockX(), target.getBlockZ()) :
+                        engine.getBiomeOrMantle(target.getBlockX(), target.getBlockY() - engine.getMinHeight(), target.getBlockZ());
+                return biomes.contains(biome.getLoadKey());
+            } catch (SavedBiomeUnavailableException unavailable) {
+                if (unavailable.isLoading() && unavailable.getSuppressed().length == 0) {
+                    return false;
+                }
+                throw unavailable;
+            }
         }
     }
 
@@ -134,9 +142,16 @@ public class MythicMobsDataProvider extends ExternalDataProvider implements List
             if (access == null) return false;
             Engine engine = access.getEngine();
             if (engine == null) return false;
-            IrisRegion region = engine.getRegion(
-                    target.getBlockX(), target.getBlockY() - engine.getMinHeight(), target.getBlockZ());
-            return regions.contains(region.getLoadKey());
+            try {
+                IrisRegion region = engine.getRegion(
+                        target.getBlockX(), target.getBlockY() - engine.getMinHeight(), target.getBlockZ());
+                return regions.contains(region.getLoadKey());
+            } catch (SavedBiomeUnavailableException unavailable) {
+                if (unavailable.isLoading() && unavailable.getSuppressed().length == 0) {
+                    return false;
+                }
+                throw unavailable;
+            }
         }
     }
 }

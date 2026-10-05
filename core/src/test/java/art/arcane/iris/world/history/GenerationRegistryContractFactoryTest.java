@@ -19,6 +19,7 @@ import art.arcane.iris.generation.terrain.IrisDimensionTypeOptions;
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
+import art.arcane.volmlib.nativelib.terrain.RegistryClientNames;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -195,6 +196,9 @@ public class GenerationRegistryContractFactoryTest {
                 new GenerationRegistryContractFactory.CustomBiomeResourceResolver(contract, registry::customBiomeResourceKey);
         assertEquals(plateauKey, resolver.resolve("overworld", plateau));
         assertEquals(vanillaKey, resolver.resolve("overworld", vanilla));
+        assertEquals(Set.of("iris:overworld/savanna_plateau", "iris_2:overworld/savanna_plateau"),
+                Set.copyOf(RegistryClientNames.resolve(GenerationRegistryContractFactory.BIOME_REGISTRY,
+                        List.of(plateauKey, vanillaKey))));
         assertNotEquals(plateauKey, GenerationRegistryContractFactory.customBiomeResourceKey("overworld", plateau, registry));
         assertThrows(IOException.class,
                 () -> resolver.resolve("overworld", new IrisBiomeCustom().setId("savanna_plateau").setGrassColor("#FF0000")));
@@ -234,6 +238,25 @@ public class GenerationRegistryContractFactoryTest {
         assertNotEquals(first, changedBiomeIdentity);
         assertEquals("iris:biomes/" + first,
                 PlatformGenerationRegistry.contentAddressedCustomBiomeResourceKey(first));
+    }
+
+    @Test
+    public void clientBiomeNamesUseAuthoredIdsWhilePhysicalIdentitiesStayDistinct() {
+        IrisBiomeCustom first = new IrisBiomeCustom().setId("Mist").setTemperature(0.5D);
+        IrisBiomeCustom second = new IrisBiomeCustom().setId("Mist").setTemperature(0.7D);
+        String firstKey = GenerationRegistryContractFactory.customBiomeResourceKey("Overworld", first);
+        String secondKey = GenerationRegistryContractFactory.customBiomeResourceKey("Overworld", second);
+        List<String> physicalKeys = List.of("minecraft:plains", firstKey, secondKey);
+
+        List<String> clientKeys = RegistryClientNames.resolve(
+                GenerationRegistryContractFactory.BIOME_REGISTRY, physicalKeys);
+
+        assertNotEquals(firstKey, secondKey);
+        assertEquals("minecraft:plains", clientKeys.getFirst());
+        assertEquals(Set.of("iris:overworld/mist", "iris_2:overworld/mist"),
+                Set.of(clientKeys.get(1), clientKeys.get(2)));
+        assertTrue(firstKey.matches("iris:biomes/[a-f0-9]{64}"));
+        assertEquals(List.of("minecraft:plains", firstKey, secondKey), physicalKeys);
     }
 
     @Test

@@ -23,6 +23,7 @@ import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
+import art.arcane.volmlib.nativelib.terrain.RegistryClientNames;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.JsonArray;
@@ -253,6 +254,7 @@ public final class GenerationRegistryContractFactory {
                 requiredBiome.getId()
         );
         String resourceKey = requiredRegistry.customBiomeResourceKey(identityFingerprint);
+        registerCustomBiomeName(requiredDimension.getLoadKey(), requiredBiome.getId(), resourceKey);
         GenerationRegistryContract.PhysicalResourceKey physicalKey = key(BIOME_REGISTRY, resourceKey);
         PlatformGenerationRegistry.Definition canonicalDefinition = requiredRegistry.canonicalDefinition(
                 BIOME_REGISTRY,
@@ -285,13 +287,15 @@ public final class GenerationRegistryContractFactory {
             ContentGate contentGate
     ) {
         IrisBiomeCustom requiredBiome = Objects.requireNonNull(customBiome, "customBiome");
-        return PlatformGenerationRegistry.contentAddressedCustomBiomeResourceKey(
+        String resourceKey = PlatformGenerationRegistry.contentAddressedCustomBiomeResourceKey(
                 fingerprintCustomBiomeIdentity(
                         fingerprintCustomBiomeEffectiveDefinition(requiredBiome, contentGate),
                         dimensionKey,
                         requiredBiome.getId()
                 )
         );
+        registerCustomBiomeName(dimensionKey, requiredBiome.getId(), resourceKey);
+        return resourceKey;
     }
 
     public static String customBiomeResourceKey(
@@ -310,13 +314,15 @@ public final class GenerationRegistryContractFactory {
     ) {
         IrisBiomeCustom requiredBiome = Objects.requireNonNull(customBiome, "customBiome");
         PlatformGenerationRegistry requiredRegistry = Objects.requireNonNull(registry, "registry");
-        return requiredRegistry.customBiomeResourceKey(
+        String resourceKey = requiredRegistry.customBiomeResourceKey(
                 fingerprintCustomBiomeIdentity(
                         fingerprintCustomBiomeEffectiveDefinition(requiredBiome, contentGate),
                         dimensionKey,
                         requiredBiome.getId()
                 )
         );
+        registerCustomBiomeName(dimensionKey, requiredBiome.getId(), resourceKey);
+        return resourceKey;
     }
 
     public static String fingerprintCustomBiomeIdentity(
@@ -387,6 +393,7 @@ public final class GenerationRegistryContractFactory {
             }
         }
         if (selectedKey != null) {
+            registerCustomBiomeName(dimensionKey, customBiomeId, selectedKey);
             return selectedKey;
         }
         throw new IOException("Historical generation registry contract has no custom biome mapping for "
@@ -1539,6 +1546,14 @@ public final class GenerationRegistryContractFactory {
         }
     }
 
+    private static void registerCustomBiomeName(String dimensionKey, String biomeId, String resourceKey) {
+        String dimension = requireText(dimensionKey, "Dimension load key").toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9/._-]", "_");
+        String biome = requireText(biomeId, "Custom biome ID").toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9/._-]", "_");
+        RegistryClientNames.register(BIOME_REGISTRY, resourceKey, "iris:" + dimension + "/" + biome);
+    }
+
     private static void updateString(MessageDigest digest, String value) {
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         updateInt(digest, bytes.length);
@@ -1608,6 +1623,7 @@ public final class GenerationRegistryContractFactory {
                         + dimension + ":" + requiredBiome.getId() + ".");
             }
             requireGeneratedSemanticFingerprint(physicalKey, source, contract.definitions().get(physicalKey));
+            registerCustomBiomeName(dimension, requiredBiome.getId(), resourceKey);
             dimensionKeys.put(requiredBiome, resourceKey);
             return resourceKey;
         }

@@ -3,6 +3,7 @@ package com.volmit.host;
 import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
+import com.volmit.IrisModule;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
@@ -16,9 +17,11 @@ import java.util.Set;
 
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
  * immutable. IDs are unique across feature kinds; JSON fields are unique per attachment target.
- * Pass existing host JSON fields to reserve them before modules register. A failed registration
- * leaves the registry unchanged. A failed module callback invalidates the host's whole build.
- * This does not decode JSON, discover modules or instantiate settings.
+ * Pass existing host JSON fields to reserve them before modules register. Modules register through
+ * {@link #register(DiscoveredModule)}; object feature ids and mantle keys must use the registering
+ * module's namespace. A failed registration leaves the registry unchanged. A failed module callback
+ * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
+ * settings.
  */
 public final class ModuleRegistry implements FeatureRegistry {
     private final Map<Class<?>, FeatureDescriptor<?>> settings = new HashMap<>();
@@ -28,6 +31,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Map<Field, String> fields = new HashMap<>();
     private FeatureCatalog catalog;
+    private DiscoveredModule registering;
 
     public ModuleRegistry() {
         this(Map.of());
@@ -37,12 +41,28 @@ public final class ModuleRegistry implements FeatureRegistry {
         reserveHostFields(reservedFields);
     }
 
+    /** Lets the module register its contributions through {@link IrisModule#register}. */
+    public void register(DiscoveredModule discovered) {
+        Objects.requireNonNull(discovered, "discovered");
+        checkOpen();
+        if (registering != null) {
+            throw new IllegalStateException("Module " + discovered.info().id() + " registered during " + registering.info().id());
+        }
+        registering = discovered;
+        try {
+            discovered.module().register(this);
+        } finally {
+            registering = null;
+        }
+    }
+
     @Override
     public <F extends IrisFeature> void registerObject(
             Class<F> featureType,
             ObjectGeneratorFactory<F> factory) {
         checkOpen();
         var descriptor = FeatureDescriptor.of(featureType);
+        requireModuleNamespace("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
         var registration = new ObjectRegistration<>(descriptor, factory);
         claim(descriptor);
         objects.put(featureType, registration);
@@ -53,6 +73,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(codec, "codec");
+        requireModuleNamespace("Mantle layer", ResourceId.parse(key.id()));
 
         var registration = new MantleRegistration<>(key, lifetime, codec, codec.version());
         if (mantle.putIfAbsent(key.id(), registration) != null) {
@@ -76,6 +97,16 @@ public final class ModuleRegistry implements FeatureRegistry {
             catalog = new FeatureCatalog(settings, objects, mantle);
         }
         return catalog;
+    }
+
+    private void requireModuleNamespace(String registration, ResourceId id) {
+        if (registering == null) {
+            throw new IllegalStateException(registration + " " + id + " registered outside IrisModule.register");
+        }
+        var namespace = registering.info().id().namespace();
+        if (id.namespace().equals(namespace)) return;
+        throw new IllegalArgumentException(registration + " " + id + " must use namespace '" + namespace
+                + "' of its registering module " + registering);
     }
 
     private void reserveHostFields(Map<FeatureAttachment.Target, Set<String>> reservedFields) {

@@ -7,7 +7,8 @@ import com.volmit.object.ObjectGeneratorFactory;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON fields must be unique per attachment target, including the
- * settings types stages name in {@code when(...)}.
+ * settings types stages name in {@code when(...)}. Feature IDs and mantle keys a module registers
+ * use the namespace of its module id.
  */
 public interface FeatureRegistry {
     /** Registers a layer before pack loading. Null arguments throw NullPointerException;

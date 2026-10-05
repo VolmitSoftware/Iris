@@ -7,6 +7,7 @@ import com.volmit.stage.StageGraph;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DiscoveredModuleTest {
@@ -29,7 +30,7 @@ class DiscoveredModuleTest {
         var module = new ShiftingIdentity();
         var discovered = DiscoveredModule.builtIn(module);
 
-        var loaded = LoadedModules.load(List.of(discovered), Map.of());
+        var loaded = LoadedModules.load(List.of(discovered), Map.of(), Set.of());
 
         assertEquals("first:core", discovered.info().id().toString());
         assertEquals(List.of("first:core/mark"),

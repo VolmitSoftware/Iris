@@ -1,7 +1,6 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
-import com.volmit.IrisModule;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.BlockStageDefinition;
@@ -15,25 +14,24 @@ import com.volmit.stage.StageDefinition;
 import com.volmit.stage.StageGraph;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /** Reference host collection of module stages. Install every module, then resolve each pipeline
  * once per pack load. Install order never affects the result. If a module's install throws,
- * discard the whole builder: it may hold a partial module.
+ * discard the whole builder: it may hold a partial module. Errors about one module name its origin.
  */
 public final class StageGraphBuilder implements StageGraph {
     private final Map<ResourceId, StageDeclaration> declarations = new HashMap<>();
-    private final Set<ResourceId> modules = new HashSet<>();
+    private final Map<ResourceId, String> moduleOrigins = new HashMap<>();
     private ResourceId installingModule;
 
-    public void install(IrisModule module) {
-        Objects.requireNonNull(module, "module");
+    public void install(DiscoveredModule discovered) {
+        Objects.requireNonNull(discovered, "discovered");
+        var module = discovered.module();
         var moduleId = Objects.requireNonNull(module.info(), "module info").id();
-        claimModule(moduleId);
+        claimModule(moduleId, discovered.origin());
         installingModule = moduleId;
         try {
             module.install(this);
@@ -73,12 +71,14 @@ public final class StageGraphBuilder implements StageGraph {
                 .toList();
     }
 
-    private void claimModule(ResourceId moduleId) {
+    private void claimModule(ResourceId moduleId, String origin) {
         if (installingModule != null) {
             throw new IllegalStateException("Module " + moduleId + " installed during " + installingModule);
         }
-        if (!modules.add(moduleId)) {
-            throw new IllegalArgumentException("Duplicate module: " + moduleId);
+        var previous = moduleOrigins.putIfAbsent(moduleId, origin);
+        if (previous != null) {
+            throw new IllegalArgumentException("Duplicate module " + moduleId + " from " + origin
+                    + "; already loaded from " + previous);
         }
     }
 
@@ -103,10 +103,10 @@ public final class StageGraphBuilder implements StageGraph {
         return installingModule;
     }
 
-    private static void requireModuleNamespace(Stage<?> stage, ResourceId module) {
+    private void requireModuleNamespace(Stage<?> stage, ResourceId module) {
         if (!stage.id().namespace().equals(module.namespace())) {
             throw new IllegalArgumentException("Stage " + stage + " must use namespace '"
-                    + module.namespace() + "' of its defining module " + module);
+                    + module.namespace() + "' of its defining module " + module + " from " + moduleOrigins.get(module));
         }
     }
 

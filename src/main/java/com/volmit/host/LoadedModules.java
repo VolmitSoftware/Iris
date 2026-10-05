@@ -1,7 +1,6 @@
 package com.volmit.host;
 
 import com.volmit.FeatureAttachment;
-import com.volmit.IrisModule;
 import com.volmit.stage.Pipeline;
 import java.util.List;
 import java.util.Map;
@@ -18,15 +17,15 @@ public record LoadedModules(FeatureCatalog catalog, ResolvedGraph placement, Res
         Objects.requireNonNull(chunk, "chunk");
     }
 
-    /** Module discovery and version gating stay host work; pass the accepted modules here. */
+    /** Pass the built-in modules together with {@link PackModules#modules()} of the pack. */
     public static LoadedModules load(
-            List<? extends IrisModule> modules,
+            List<DiscoveredModule> modules,
             Map<FeatureAttachment.Target, Set<String>> reservedHostFields) {
         var registry = new ModuleRegistry(reservedHostFields);
         var stages = new StageGraphBuilder();
-        for (var module : modules) {
-            stages.install(module);
-            module.register(registry);
+        for (var discovered : modules) {
+            stages.install(discovered);
+            discovered.module().register(registry);
         }
         stages.settingsTypes().forEach(registry::registerSettings);
         return new LoadedModules(registry.freeze(), stages.resolve(Pipeline.PLACEMENT), stages.resolve(Pipeline.CHUNK));

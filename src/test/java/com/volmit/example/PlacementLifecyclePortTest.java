@@ -5,6 +5,7 @@ import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
 import com.volmit.example.placement.*;
 import com.volmit.host.ConfiguredSettings;
+import com.volmit.host.DiscoveredModule;
 import com.volmit.host.LoadedModules;
 import com.volmit.host.PlacementRunner;
 import com.volmit.host.ResolvedGraph;
@@ -83,7 +84,7 @@ class PlacementLifecyclePortTest {
 
     private static ResolvedGraph resolve(List<? extends IrisModule> modules) {
         var builder = new StageGraphBuilder();
-        modules.forEach(builder::install);
+        modules.stream().map(DiscoveredModule::builtIn).forEach(builder::install);
         return builder.resolve(Pipeline.PLACEMENT);
     }
 
@@ -196,7 +197,7 @@ class PlacementLifecyclePortTest {
 
     @Test
     void loadingThePortCatalogsEveryConditioningSettingsType() {
-        var loaded = LoadedModules.load(PlacementModules.all(), Map.of());
+        var loaded = LoadedModules.load(PlacementModules.builtIns(), Map.of());
 
         assertEquals(List.of("example:moss", "iris:snow", "iris:stilt"),
                 loaded.catalog().settings().stream().map(settings -> settings.id().toString()).toList());

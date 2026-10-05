@@ -7,6 +7,7 @@ import com.volmit.example.chunk.TerrainModule;
 import com.volmit.host.ArrayHunk;
 import com.volmit.host.ChunkRunner;
 import com.volmit.host.ConfiguredSettings;
+import com.volmit.host.DiscoveredModule;
 import com.volmit.host.StageGraphBuilder;
 import com.volmit.hunk.Hunk;
 import com.volmit.stage.Pipeline;
@@ -25,8 +26,8 @@ class ChunkPipelineTest {
 
     private static ChunkRunner runner() {
         var builder = new StageGraphBuilder();
-        builder.install(new GrassModule());
-        builder.install(new TerrainModule());
+        builder.install(DiscoveredModule.builtIn(new GrassModule()));
+        builder.install(DiscoveredModule.builtIn(new TerrainModule()));
         var graph = builder.resolve(Pipeline.CHUNK);
         assertEquals(List.of("iris:terrain/surface", "example:grass/top"),
                 graph.stages().stream().map(stage -> stage.stage().id().toString()).toList());

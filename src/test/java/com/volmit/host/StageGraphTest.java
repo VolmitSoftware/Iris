@@ -48,7 +48,7 @@ class StageGraphTest {
 
     private static ResolvedGraph resolve(Pipeline pipeline, IrisModule... modules) {
         var builder = new StageGraphBuilder();
-        for (var module : modules) builder.install(module);
+        for (var module : modules) builder.install(DiscoveredModule.builtIn(module));
         return builder.resolve(pipeline);
     }
 
@@ -207,8 +207,8 @@ class StageGraphTest {
 
         var module = module("test:twice", stages -> {});
         var builder = new StageGraphBuilder();
-        builder.install(module);
-        assertThrows(IllegalArgumentException.class, () -> builder.install(module));
+        builder.install(DiscoveredModule.builtIn(module));
+        assertThrows(IllegalArgumentException.class, () -> builder.install(DiscoveredModule.builtIn(module)));
     }
 
     @Test
@@ -268,7 +268,7 @@ class StageGraphTest {
                 stages.define(Stage.placement("test:plain/work")).when(Unannotated.class).run((context, settings) -> {}))));
 
         var retained = new ArrayList<StageGraph>();
-        new StageGraphBuilder().install(module("test:retained", retained::add));
+        new StageGraphBuilder().install(DiscoveredModule.builtIn(module("test:retained", retained::add)));
         assertThrows(IllegalStateException.class, () -> retained.getFirst().define(Stage.placement("test:retained/late")));
     }
 

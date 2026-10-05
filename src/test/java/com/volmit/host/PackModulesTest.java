@@ -96,7 +96,7 @@ class PackModulesTest {
             assertEquals(List.of(origin("alpha.jar"), origin("beta.jar")),
                     packModules.modules().stream().map(DiscoveredModule::origin).toList());
             assertEquals(List.of("alpha:core", "beta:core"),
-                    packModules.modules().stream().map(found -> found.module().info().id().toString()).toList());
+                    packModules.modules().stream().map(found -> found.info().id().toString()).toList());
             assertNotSame(PackModules.class.getClassLoader(), packModules.modules().getFirst().module().getClass().getClassLoader());
             assertTrue(packModules.missingClasses().isEmpty());
 
@@ -537,6 +537,42 @@ class PackModulesTest {
     void invalidExposedPackageFailsBeforeReadingJars() {
         assertMentions(failure(() -> PackModules.load(pack, List.of("example.*"))),
                 "Exposed package 'example.*' is not a package name");
+    }
+
+    @Test
+    void packModuleInfoIsReadOnceAtDiscovery() {
+        var answersOnce = """
+                private static boolean answered;
+
+                public ModuleInfo info() {
+                    if (answered) throw new IllegalStateException("info() called twice");
+                    answered = true;
+                    return ModuleInfo.of("once:core", "Once", "1.0.0");
+                }
+                """;
+        new TestModuleJar()
+                .source("pack.once.Once", """
+                        package pack.once;
+
+                        import com.volmit.IrisModule;
+                        import com.volmit.ModuleInfo;
+                        import com.volmit.stage.*;
+
+                        public final class Once implements IrisModule {
+                            %s
+                            public void install(StageGraph graph) {
+                                graph.define(Stage.placement("once:core/mark")).run(context -> {});
+                            }
+                        }
+                        """.formatted(answersOnce))
+                .entryPoint("pack.once.Once")
+                .writeInto(pack, "once.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            var loaded = assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of()));
+            assertEquals("once:core", packModules.modules().getFirst().info().id().toString());
+            assertEquals(1, loaded.placement().stages().size());
+        }
     }
 
     @Test

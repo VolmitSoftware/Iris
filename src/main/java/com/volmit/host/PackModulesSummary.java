@@ -23,7 +23,7 @@ final class PackModulesSummary {
     }
 
     private static String describe(DiscoveredModule discovered) {
-        var info = discovered.module().info();
+        var info = discovered.info();
         return info.name() + " (" + info.id() + " " + info.version() + ") from " + discovered.origin();
     }
 }

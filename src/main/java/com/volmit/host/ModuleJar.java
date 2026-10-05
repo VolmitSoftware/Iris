@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -83,8 +84,7 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         var type = loadEntryClass(packLoader);
         requireDefinedHere(type);
         var module = instantiate(type);
-        requireIdentity(module);
-        return new DiscoveredModule(module, origin);
+        return DiscoveredModule.fromJar(module, readIdentity(module), origin);
     }
 
     /** Opens the jar with the runtime's multi-release version, like the pack class loader does, so
@@ -197,9 +197,9 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         }
     }
 
-    private void requireIdentity(IrisModule module) {
+    private ModuleInfo readIdentity(IrisModule module) {
         try {
-            Objects.requireNonNull(module.info(), "info() returned null");
+            return Objects.requireNonNull(module.info(), "info() returned null");
         } catch (RuntimeException | LinkageError exception) {
             throw brokenEntryPoint("info() failed: " + exception, exception);
         }

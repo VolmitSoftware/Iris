@@ -152,7 +152,7 @@ public final class PackModules implements AutoCloseable {
      */
     private static List<MissingClasses> withoutDeclaredOptional(List<MissingClasses> missingClasses, List<DiscoveredModule> modules) {
         var optionalPackages = modules.stream()
-                .collect(Collectors.toMap(DiscoveredModule::origin, found -> found.module().info().optionalPackages()));
+                .collect(Collectors.toMap(DiscoveredModule::origin, found -> found.info().optionalPackages()));
         return missingClasses.stream()
                 .map(jar -> jar.outside(optionalPackages.get(jar.origin())))
                 .filter(Predicate.not(MissingClasses::isEmpty))

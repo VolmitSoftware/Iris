@@ -38,7 +38,7 @@ public record LoadedModules(FeatureCatalog catalog, ResolvedGraph placement, Res
             stages.install(discovered);
             discovered.module().register(registry);
         } catch (LinkageError error) {
-            throw new IllegalArgumentException("Module " + discovered.module().info().id() + " from "
+            throw new IllegalArgumentException("Module " + discovered.info().id() + " from "
                     + discovered.origin() + " failed to link or initialize a class while installing: " + error
                     + "; a missing method or field means the jar was built against a different Iris API", error);
         }

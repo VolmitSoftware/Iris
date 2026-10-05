@@ -29,12 +29,11 @@ public final class StageGraphBuilder implements StageGraph {
 
     public void install(DiscoveredModule discovered) {
         Objects.requireNonNull(discovered, "discovered");
-        var module = discovered.module();
-        var moduleId = Objects.requireNonNull(module.info(), "module info").id();
+        var moduleId = discovered.info().id();
         claimModule(moduleId, discovered.origin());
         installingModule = moduleId;
         try {
-            module.install(this);
+            discovered.module().install(this);
         } finally {
             installingModule = null;
         }

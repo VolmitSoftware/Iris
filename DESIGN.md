@@ -33,9 +33,9 @@ flowchart TD
 
 ## Module loading
 
-The `IrisModule` implementation is the module's entry point. `info()` returns its id and
-version; there is no separate descriptor. A pack keeps its modules in `<pack>/modules/*.jar`,
-one module per jar.
+The `IrisModule` implementation is the module's entry point. `info()` returns its id, display
+name and version; there is no separate descriptor. A pack keeps its modules in
+`<pack>/modules/*.jar`, one module per jar.
 
 A jar names its entry class in `META-INF/services/com.volmit.IrisModule`, the provider format of
 `ServiceLoader`. The host reads that file from the jar itself rather than calling
@@ -52,17 +52,30 @@ which jar a broken provider came from. The rejected alternatives:
 
 1. Lists regular files ending in `.jar` in `<pack>/modules`, sorted by file name. A missing
    directory means no modules.
-2. Reads each jar's entry point file. Comments (`#`) and blank lines are ignored; zero or more
-   than one class name fails.
-3. Creates one `URLClassLoader` for all jars of the pack, parent = the loader of `IrisModule`.
-4. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
+2. Reads each jar's entry point file and its class names. Comments (`#`) and blank lines are
+   ignored; zero or more than one entry class name fails.
+3. Fails if a class is in two jars, naming the class and both jars. Nothing has been defined yet.
+4. Creates one `URLClassLoader` for all jars of the pack, parent = the loader of `IrisModule`.
+5. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
    instantiates it with the public no-argument constructor and calls `info()`.
+6. Logs one INFO summary of the pack's modules.
 
 One loader per pack, not per jar, because `requires(...)` takes another module's stage constant.
 A pack jar that requires a stage of another pack jar must see its classes. Packs stay isolated
 from each other, and built-in modules visible to the API's loader are visible to every pack. The
-cost: two jars of one pack that contain the same class name share the first one in file name
-order. The entry-class check catches this for entry classes only.
+cost is a shared class namespace: with two copies of a class, the loader would silently use the
+one first in file name order. Step 3 turns that into a load error, so two jars that shade the same
+library must relocate it, and shared code belongs in one module that the others require.
+
+The class check reads jars the way the loader does. `module-info.class` is ignored. A
+multi-release jar (`Multi-Release: true`) contributes each class once, under its base name, from
+the highest `META-INF/versions/N` that the running JDK selects; a versioned copy of a class in one
+jar therefore clashes with the plain class in another. In a jar without that manifest attribute the
+loader never reads `META-INF/versions`, so those entries are skipped.
+
+There is no version gating. Packs ship their module jars and Iris never downloads any, so whether
+a jar works with the running Iris is the pack publisher's responsibility. An incompatible jar
+fails with a linkage error at load, install or run time.
 
 Closing `PackModules` closes the loader. Classes loaded before that keep working, so the host
 must drop `LoadedModules` and everything else built from the pack first.
@@ -70,6 +83,11 @@ must drop `LoadedModules` and everything else built from the pack first.
 Each module reaches `LoadedModules.load` as a `DiscoveredModule`: the module and its origin, the
 jar path relative to the pack or "host classpath" for built-ins. Duplicate module ids and foreign
 stage namespaces name the origin. Every jar error names the jar.
+
+The load summary goes through `System.getLogger(PackModules.class.getName())`, so the host can
+route it with a `System.LoggerFinder`. It lists display name, id, version and jar for each module
+in load order, or says the pack has no module jars. `PackModulesSummary` builds the text and is
+tested on its own.
 
 ## Stages
 
@@ -197,8 +215,8 @@ Unknown persisted layers must be preserved or fail explicitly.
 
 ## Not implemented
 
-- Iris host wiring: version gating, JSON decoding and validation, schema generation, resource
-  loaders, platform block adapters, storage and codecs.
+- Iris host wiring: JSON decoding and validation, schema generation, resource loaders, platform
+  block adapters, storage and codecs.
 - Reach. The old per-modifier `writeRadius` and `mantleRadius` are gone with the modifiers. The
   host must prepare the whole area a pipeline may touch. Per-stage reach is an open question.
 - Legacy random compatibility. Seed offsets and draw order must be matched by the adapter where

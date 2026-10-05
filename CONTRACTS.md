@@ -28,6 +28,9 @@ types that carry them and lists what the Iris adapter still owes.
 Stage bodies hold no invocation state. Everything per placement or chunk travels through the
 context, outputs and accumulators.
 
+There is no API version gating. Packs ship their module jars, so their compatibility with the
+running Iris is the pack publisher's responsibility.
+
 ## Requirements for the Iris adapter
 
 - Port the engine as ordinary modules. Keep `iris:*` stage ids stable once packs or addons
@@ -42,6 +45,8 @@ context, outputs and accumulators.
 - Preserve unknown persisted mantle layers or fail explicitly.
 - Load each pack's jars with `PackModules`, pass them with the built-in modules to
   `LoadedModules.load`, and close `PackModules` only after nothing built from it is in use.
+- Route `System.Logger` output (logger `com.volmit.host.PackModules`) to the server log, so the
+  per-pack module summary is visible.
 - Make built-in modules visible to the loader that defines the API, or pack jars cannot require
   their stages.
 
@@ -50,5 +55,3 @@ context, outputs and accumulators.
 - Per-stage reach declarations, replacing the removed modifier radii.
 - Per-stage RNG streams, so adding a module does not shift other modules' random draws.
 - Terrain/biome providers, pack transformations, structure assembly and the runtime family.
-- Version gating: modules do not declare which API version they target, so an incompatible jar
-  fails with a linkage error at load or later at install or run time.

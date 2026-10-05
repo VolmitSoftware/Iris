@@ -17,7 +17,7 @@ them in `install`. Other modules order themselves against those constants.
 public final class MossModule implements IrisModule {
     public static final PlacementStage<Void> SPREAD = Stage.placement("example:moss/spread");
 
-    public ModuleInfo info() { return ModuleInfo.of("example:moss", "1.0.0"); }
+    public ModuleInfo info() { return ModuleInfo.of("example:moss", "Moss", "1.0.0"); }
 
     public void install(StageGraph graph) {
         graph.define(SPREAD)
@@ -55,8 +55,13 @@ modules/moss.jar
   com/example/moss/MossSettings.class
 ```
 
-`info()` gives the module id and version. The id's namespace is the namespace of every stage the
-module defines.
+`info()` gives the module id, display name and version. The id's namespace is the namespace of
+every stage the module defines; the name is what logs show. A class may appear in only one jar of
+a pack, so shaded libraries need relocating.
+
+Iris never downloads modules and does not check which API version a jar was built for. A pack
+ships its module jars, and keeping them compatible with the Iris version it targets is the pack
+publisher's job.
 
 ## Host side
 
@@ -76,8 +81,19 @@ try (var pack = PackModules.load(packRoot)) {
 
 `PackModules.load` reads one entry point per jar, in jar file name order, and loads every jar
 of the pack through one class loader. Closing it closes that loader. A pack without a `modules`
-directory has no modules. Errors name the jar: no entry point, several entry points, or an entry
-class that cannot be loaded, is not an `IrisModule`, is not in that jar, or fails to construct.
+directory has no modules. Errors name the jar: no entry point, several entry points, a class that
+is also in another jar of the pack (both jars are named), or an entry class that cannot be loaded,
+is not an `IrisModule`, is not in that jar, or fails to construct.
+
+A successful load logs one INFO summary through `System.Logger`:
+
+```
+Pack overworld uses 2 modules:
+  Moss (example:moss 1.0.0) from modules/moss.jar
+  Stilts (iris:stilt 2.1.0) from modules/stilt.jar
+```
+
+A pack without jars logs `Pack overworld uses no modules: no jars in its modules directory`.
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
 together with geometry and mantle registrations, and resolves both pipelines. Graph errors
@@ -112,7 +128,8 @@ invocations and must not keep views or mutable state.
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
-jars into a temporary pack and loads them, including every jar error. The example ports in
+jars into a temporary pack and loads them, including every jar error and duplicate classes in
+plain and multi-release jars. `PackModulesSummaryTest` checks the log text. The example ports in
 `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and snow
 as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There is
 no Minecraft integration or production storage in these tests.

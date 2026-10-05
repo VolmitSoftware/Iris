@@ -28,7 +28,7 @@ public class SubterrainBiomeOwnershipTest {
     @Test
     public void occupiedFeatureOwnsExactVolumeAndYWithoutSurfaceDepthGate() {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("basin").setBiome("basin-biome").setProbability(1);
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320));
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320, (x, z) -> "test-region"));
         SubterrainPlan plan = planner.plansForBounds(0, 0, 512, 512).getFirst();
         Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         IrisComplex complex = mock(IrisComplex.class);

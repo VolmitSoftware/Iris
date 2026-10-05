@@ -64,6 +64,7 @@ import art.arcane.iris.generation.terrain.transform.TerrainTransformer;
 import art.arcane.iris.generation.noise.IrisInterpolator;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.RegionSelection;
 import art.arcane.iris.generation.hydrology.IrisDeepFluidConfig;
 import art.arcane.iris.generation.hydrology.IrisSurfacePoolConfig;
 import art.arcane.iris.generation.hydrology.IrisHydrology;
@@ -274,7 +275,8 @@ public class IrisComplex implements DataProvider {
         subterrainPlanner = new SubterrainPlanner(new SubterrainPlanner.Options(
                 engine.getDimension().allowsSubterrainFeatures() ? engine.getDimension().getSubterrainFeatures() : List.of(),
                 engine.getSeedManager().getBodies(),
-                engine.getDimension().getMinHeight(), engine.getDimension().getMaxHeight()),
+                engine.getDimension().getMinHeight(), engine.getDimension().getMaxHeight(),
+                (x, z) -> regionStream.get(x, z).getLoadKey()),
                 bounds -> transitionGenerationPlan == null || transitionGenerationPlan.allowsNewFootprint(
                         bounds.minX(), bounds.minZ(), bounds.maxX(), bounds.maxZ()));
         biomeBoundsSamplingStep = engine.getDimension().getBiomeBoundsSamplingStep();
@@ -376,15 +378,10 @@ public class IrisComplex implements DataProvider {
         regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
                 .zoom(engine.getDimension().getRegionZoom());
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE);
-        ProceduralStream<IrisRegion> proceduralRegionStream = focusedRegions != null ? focusedRegions
-                : GenerationStreams.cache2D(regionStyleStream
-                .selectRarity(compatRegionPool(engine)), "regionStream", engine, cacheSize);
-        regionStream = focusedRegions != null || !imageMapRuntime.has(IrisImageMapApplication.REGION)
-                ? proceduralRegionStream : GenerationStreams.cache2D(proceduralRegionStream
-                .convertAware2D((region, x, z) -> {
-                    IrisRegion mapped = imageMapRuntime.sampleRegion(x, z);
-                    return mapped == null ? region : mapped;
-                }), "imageMappedRegionStream", engine, cacheSize);
+        regionStream = focusedRegions != null ? focusedRegions
+                : GenerationStreams.cache2D(RegionSelection.select(new RegionSelection.Options(
+                        engine.getDimension(), data, regionStyleStream, imageMapRuntime, null)),
+                        "regionStream", engine, cacheSize);
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
                 String.valueOf(i * 38445).hashCode() * 3245556666L));
         caveBiomeStream = GenerationStreams.cache2D(GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z))
@@ -1847,17 +1844,6 @@ public class IrisComplex implements DataProvider {
             inferred.add(biome.withInferredType(type));
         }
         return inferred;
-    }
-
-    /** The dimension's region pool with regions the version-content gate excluded removed. */
-    private KList<IrisRegion> compatRegionPool(Engine engine) {
-        KList<IrisRegion> pool = new KList<>();
-        for (IrisRegion region : data.getRegionLoader().loadAll(engine.getDimension().getRegions())) {
-            if (!region.isCompatExcluded()) {
-                pool.add(region);
-            }
-        }
-        return pool;
     }
 
     private static <T extends IrisRegistrant> T compatUsable(T registrant) {

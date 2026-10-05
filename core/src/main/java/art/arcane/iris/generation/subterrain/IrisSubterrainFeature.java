@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.subterrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.pack.schema.annotation.MaxNumber;
 import art.arcane.iris.pack.schema.annotation.MinNumber;
 import art.arcane.iris.pack.schema.annotation.RegistryListResource;
@@ -26,6 +28,9 @@ public class IrisSubterrainFeature {
     @RegistryListResource(IrisBiome.class)
     @Description("Biome that owns occupied cells in this feature. Solid rims and surrounding terrain retain their biome.")
     private String biome = "";
+    @RegistryListResource(IrisRegion.class)
+    @Description("Allowed region keys at the feature placement center. Empty allows all regions.")
+    private KList<String> allowedRegions = new KList<>();
     @Description("Inclusive absolute world Y bounds. The entire feature including seals must fit inside this band.")
     private IrisRange worldYRange = new IrisRange(-48, 48);
     @MinNumber(32)
@@ -48,6 +53,10 @@ public class IrisSubterrainFeature {
     @MaxNumber(192)
     @Description("Main room height in blocks.")
     private int height = 32;
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Description("Seeded erosion and shape distortion strength for lobed basins, winding passages, uneven banks and irregular vaults.")
+    private double shapeWarp = 0;
     @Description("Retained fluid. When omitted, lava tubes use LAVA and cenotes and terraces use WATER. Faults remain dry.")
     private IrisSubterrainFluid fluid;
     @MinNumber(0)

@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
 import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
 import art.arcane.iris.generation.decoration.IrisSurfaceDecorator;
 import art.arcane.iris.generation.runtime.Engine;
@@ -76,6 +78,28 @@ public class IrisNaturalCaveScanTest {
     @Test
     public void chunkScanPreservesDecoratedBlocksMarkersAndMutationOrder() throws Exception {
         verifyScan(16, 16);
+    }
+
+    @Test
+    public void reservedWalkingPassageKeepsFloorClearAndDecoratesHighCeiling() throws Exception {
+        Fixture fixture = new Fixture();
+        SubterrainRoom room = mock(SubterrainRoom.class);
+        doReturn(true).when(room).reservedPassage();
+        SubterrainCell passage = new SubterrainCell(SubterrainCell.Kind.AIR, "minecraft:cave_air", room);
+        Engine engine = fixture.modifier.getEngine();
+        doReturn(passage).when(engine).getSubterrainCell(-32, 2, 48);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 32, 1);
+        for (int y = 0; y < 32; y++) {
+            output.setRaw(0, y, 0, y >= 2 && y <= 12 ? fixture.air : fixture.stone);
+        }
+
+        fixture.modifier.decorateNaturalCaves(-32, 48, output, null);
+
+        assertEquals(List.of("ceiling:0:0:12:6"), fixture.calls);
+        assertSame(fixture.air, output.getRaw(0, 2, 0));
+        assertSame(fixture.air, output.getRaw(0, 3, 0));
+        assertSame(fixture.air, output.getRaw(0, 4, 0));
+        assertSame(fixture.ceiling, output.getRaw(0, 12, 0));
     }
 
     @Test

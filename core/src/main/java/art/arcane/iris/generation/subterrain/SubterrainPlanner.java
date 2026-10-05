@@ -15,6 +15,7 @@ public final class SubterrainPlanner {
     private final int maxYExclusive;
     private final ThreadLocal<CandidateTile> sampleTile = new ThreadLocal<>();
     private final Predicate<SubterrainBounds> allowedBounds;
+    private final RegionResolver regionResolver;
 
     public SubterrainPlanner(Options options) {
         this(options, bounds -> true);
@@ -23,6 +24,7 @@ public final class SubterrainPlanner {
     public SubterrainPlanner(Options options, Predicate<SubterrainBounds> allowedBounds) {
         Objects.requireNonNull(options);
         this.allowedBounds = Objects.requireNonNull(allowedBounds);
+        regionResolver = Objects.requireNonNull(options.regionResolver());
         seed = options.seed();
         minY = options.minY();
         maxYExclusive = options.maxYExclusive();
@@ -49,6 +51,7 @@ public final class SubterrainPlanner {
 
     private SubterrainPlanner(SubterrainPlanner source, Predicate<SubterrainBounds> allowedBounds) {
         definitions = source.definitions;
+        regionResolver = source.regionResolver;
         seed = source.seed;
         minY = source.minY;
         maxYExclusive = source.maxYExclusive;
@@ -128,10 +131,10 @@ public final class SubterrainPlanner {
         SubterrainCell selected = SubterrainCell.OUTSIDE;
         for (SubterrainPlan plan : candidates) {
             SubterrainCell cell = plan.sample(x, y, z);
-            if (cell.solid()) {
+            if (cell.solid() && cell.room().reservedSolid()) {
                 return cell;
             }
-            if (!selected.owned() && cell.owned()) {
+            if (!selected.owned() && cell.owned() || selected.solid() && cell.occupied()) {
                 selected = cell;
             }
         }
@@ -164,13 +167,17 @@ public final class SubterrainPlanner {
         int spacing = definition.spacing();
         long x = gridX * spacing + spacing / 4L + Math.floorMod(mix(value + 1), Math.max(1, spacing / 2));
         long z = gridZ * spacing + spacing / 4L + Math.floorMod(mix(value + 2), Math.max(1, spacing / 2));
-        int bottomMargin = definition.height() / 2 + 3;
+        int bottomMargin = definition.height() / 2 + 3 + definition.baseDepth();
         int topMargin = definition.height() - definition.height() / 2 + 3
                 + (definition.family() == IrisSubterrainFamily.LAVA_TUBE ? definition.chimneyHeight() : 0);
         long low = (long) Math.max(minY, definition.minY()) + bottomMargin;
         long high = (long) Math.min(maxYExclusive - 1, definition.maxY()) - topMargin;
         if (low > high || x < Integer.MIN_VALUE + spacing || x > Integer.MAX_VALUE - spacing
                 || z < Integer.MIN_VALUE + spacing || z > Integer.MAX_VALUE - spacing) {
+            return null;
+        }
+        if (!definition.allowedRegions().isEmpty()
+                && !definition.allowedRegions().contains(regionResolver.regionAt((int) x, (int) z))) {
             return null;
         }
         int y = (int) (low + Math.floorMod(mix(value + 3), high - low + 1));
@@ -189,9 +196,16 @@ public final class SubterrainPlanner {
         return (value >>> 11) * 0x1.0p-53;
     }
 
-    public record Options(List<IrisSubterrainFeature> features, long seed, int minY, int maxYExclusive) {
+    @FunctionalInterface
+    public interface RegionResolver {
+        String regionAt(int x, int z);
+    }
+
+    public record Options(List<IrisSubterrainFeature> features, long seed, int minY, int maxYExclusive,
+                          RegionResolver regionResolver) {
         public Options {
             features = List.copyOf(Objects.requireNonNull(features));
+            Objects.requireNonNull(regionResolver);
         }
     }
 
@@ -199,9 +213,14 @@ public final class SubterrainPlanner {
     }
 
     record Definition(String id, IrisSubterrainFamily family, IrisSubterrainFluid fluid, String biome, int spacing, double probability,
-                      int length, int radius, int height, int fluidDepth, int chimneyHeight, int terraceCount,
+                      int length, int radius, int height, double shapeWarp, int fluidDepth, int chimneyHeight, int terraceCount,
                       int pillarSpacing, double formationFraction, String solid, int priority,
-                      int minY, int maxY, long seedSalt) {
+                      int minY, int maxY, long seedSalt, Set<String> allowedRegions) {
+        int baseDepth() {
+            return family == IrisSubterrainFamily.TECTONIC_FAULT || fluidDepth == 0 ? 0
+                    : (int) Math.ceil(Math.min(24, radius * 0.45) * shapeWarp);
+        }
+
         static Definition from(IrisSubterrainFeature feature) {
             String id = Objects.requireNonNull(feature.getId(), "Subterrain id").trim();
             IrisSubterrainFamily family = Objects.requireNonNull(feature.getFamily(), "Subterrain family");
@@ -214,6 +233,7 @@ public final class SubterrainPlanner {
             int horizontalReach = family == IrisSubterrainFamily.CENOTE ? radius : Math.max(length / 2, radius);
             if (!id.matches("[a-zA-Z0-9_/-]+") || length < 16 || length > 2048 || radius < 6 || radius > 256
                     || height < 8 || height > 192 || chimney < 0 || chimney > 96
+                    || !Double.isFinite(feature.getShapeWarp()) || feature.getShapeWarp() < 0 || feature.getShapeWarp() > 1
                     || feature.getSpacing() < Math.max(32, 2 * horizontalReach + 8) || feature.getSpacing() > 8192
                     || !Double.isFinite(feature.getProbability()) || feature.getProbability() < 0 || feature.getProbability() > 1
                     || feature.getFluidDepth() < 0 || feature.getFluidDepth() > Math.min(32, height / 3)
@@ -239,15 +259,21 @@ public final class SubterrainPlanner {
             if (!biome.isEmpty() && !biome.matches("[a-zA-Z0-9_/-]+")) {
                 throw new IllegalArgumentException("Invalid subterrain biome key: " + id);
             }
+            Set<String> allowedRegions = Set.copyOf(Objects.requireNonNull(feature.getAllowedRegions()));
+            for (String region : allowedRegions) {
+                if (!region.matches("[a-zA-Z0-9_/-]+")) {
+                    throw new IllegalArgumentException("Invalid subterrain region key: " + id);
+                }
+            }
             long salt = 0xcbf29ce484222325L;
             for (int i = 0; i < id.length(); i++) {
                 salt = (salt ^ id.charAt(i)) * 0x100000001b3L;
             }
             return new Definition(id, family, fluid, biome,
-                    feature.getSpacing(), feature.getProbability(), length, radius, height, feature.getFluidDepth(),
+                    feature.getSpacing(), feature.getProbability(), length, radius, height, feature.getShapeWarp(), feature.getFluidDepth(),
                     chimney, feature.getTerraceCount(), feature.getPillarSpacing(), feature.getFormationFraction(),
                     solid, feature.getPriority(), (int) Math.ceil(feature.getWorldYRange().getMin()),
-                    (int) Math.floor(feature.getWorldYRange().getMax()), salt);
+                    (int) Math.floor(feature.getWorldYRange().getMax()), salt, allowedRegions);
         }
     }
 }

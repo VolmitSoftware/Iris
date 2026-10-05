@@ -83,7 +83,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "6f6dae0cd1077c45fe3f5ba512c1da4b0ab43bc8516f2d759bc8f7a798eb1c58";
+    private static final String EXPECTED_SCHEMA_DIGEST = "cc10defa73f5288d10714cdbdef6bda866acfc656efe54e062fac9995bc5607f";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,
@@ -138,7 +138,7 @@ public class SchemaBuilderIdentityTest {
         IrisDimension dimension = gson.fromJson("""
                 {"subterrainFeatures":[{"id":"flooded-vault","family":"CENOTE",
                 "biome":"pack/cavern","fluid":"LAVA","worldYRange":{"min":-40,"max":24},
-                "spacing":384,"probability":0.75,"radius":28,"fluidDepth":6}]}
+                "spacing":384,"probability":0.75,"radius":28,"fluidDepth":6,"shapeWarp":0.94,"allowedRegions":["hot"]}]}
                 """, IrisDimension.class);
         assertEquals(1, dimension.getSubterrainFeatures().size());
         IrisSubterrainFeature feature = dimension.getSubterrainFeatures().get(0);
@@ -152,6 +152,8 @@ public class SchemaBuilderIdentityTest {
         assertEquals(0.75D, feature.getProbability(), 0D);
         assertEquals(28, feature.getRadius());
         assertEquals(6, feature.getFluidDepth());
+        assertEquals(0.94D, feature.getShapeWarp(), 0D);
+        assertEquals(List.of("hot"), feature.getAllowedRegions());
         IrisDimension restored = gson.fromJson(gson.toJson(dimension), IrisDimension.class);
         assertEquals(feature, restored.getSubterrainFeatures().get(0));
         assertTrue(new IrisDimension().getSubterrainFeatures().isEmpty());
@@ -178,11 +180,14 @@ public class SchemaBuilderIdentityTest {
         assertTrue(properties.has("biome"));
         assertTrue(properties.has("fluid"));
         assertTrue(properties.has("worldYRange"));
+        assertEquals("array", properties.getJSONObject("allowedRegions").getString("type"));
         assertEquals(32, properties.getJSONObject("spacing").getInt("minimum"));
         assertEquals(8192, properties.getJSONObject("spacing").getInt("maximum"));
         assertEquals(0D, properties.getJSONObject("probability").getDouble("minimum"), 0D);
         assertEquals(1D, properties.getJSONObject("probability").getDouble("maximum"), 0D);
         assertEquals(32, properties.getJSONObject("fluidDepth").getInt("maximum"));
+        assertEquals(0D, properties.getJSONObject("shapeWarp").getDouble("minimum"), 0D);
+        assertEquals(1D, properties.getJSONObject("shapeWarp").getDouble("maximum"), 0D);
     }
 
     private static String digest(String value) {

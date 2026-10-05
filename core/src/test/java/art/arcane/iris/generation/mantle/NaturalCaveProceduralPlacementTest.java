@@ -195,7 +195,7 @@ public class NaturalCaveProceduralPlacementTest {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("natural-room").setProbability(1)
                 .setRadius(32).setHeight(40).setFluid(options.fluid()).setFluidDepth(options.fluidDepth())
                 .setPillarSpacing(0).setFormationFraction(0).setWorldYRange(new IrisRange(20, 120));
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, 0, 256));
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, 0, 256, (x, z) -> "test-region"));
         SubterrainPlan plan = planner.plansForBounds(0, 0, 512, 512).getFirst();
         int x = plan.centerX() + 8;
         int z = plan.centerZ() + 8;

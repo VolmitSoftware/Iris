@@ -178,6 +178,9 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             if (y <= 0 || y >= writer.getMantle().getWorldHeight()) {
                 return;
             }
+            if (cell.solid() && !cell.room().reservedSolid()) {
+                return;
+            }
             if (cell.solid()) {
                 writer.clearData(x, y, z, MatterCavern.class);
             } else {

@@ -82,7 +82,8 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
                 return CommitResult.REJECTED_BOUNDS;
             }
             SubterrainCell feature = engine.getSubterrainCell(mutation.x(), mutation.y(), mutation.z());
-            if (SubterrainRasterizer.protectsPlacement(feature)) {
+            if (SubterrainRasterizer.protectsPlacement(feature)
+                    || feature != null && feature.solid() && delegate.isSolid(mutation.x(), mutation.y(), mutation.z())) {
                 discard();
                 return CommitResult.REJECTED_SUBTERRAIN;
             }

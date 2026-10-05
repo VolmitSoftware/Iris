@@ -43,7 +43,7 @@ public class SubterrainLocatorTest {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("basin").setBiome("wet-cave")
                 .setProbability(1).setWorldYRange(new IrisRange(-100, 100)).setRadius(28).setHeight(40)
                 .setFluidDepth(8).setFluid(fluid).setPillarSpacing(0).setFormationFraction(0);
-        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 74119L, -128, 256));
+        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 74119L, -128, 256, (x, z) -> "test-region"));
     }
 
     @Test
@@ -101,6 +101,6 @@ public class SubterrainLocatorTest {
     private static SubterrainPlanner planner() {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("basin").setBiome("wet-cave")
                 .setProbability(1).setWorldYRange(new IrisRange(-48, 48));
-        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 74119L, -64, 320));
+        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 74119L, -64, 320, (x, z) -> "test-region"));
     }
 }

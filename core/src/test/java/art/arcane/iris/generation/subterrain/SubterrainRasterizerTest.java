@@ -31,7 +31,7 @@ public class SubterrainRasterizerTest {
                         .setFluid(IrisSubterrainFluid.LAVA).setProbability(1).setLength(64).setRadius(12)
                         .setHeight(24).setPillarSpacing(0).setFormationFraction(0)
                         .setBiome("underground/lava").setWorldYRange(new IrisRange(-48, 60));
-                SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, -64, 128));
+                SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, -64, 128, (x, z) -> "test-region"));
                 SubterrainPlan plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
                 int[] fluids = {0};
                 SubterrainRasterizer.rasterize(planner, plan.centerX() >> 4, plan.centerZ() >> 4, (x, y, z, cell) -> {
@@ -85,7 +85,7 @@ public class SubterrainRasterizerTest {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("retained-cenote")
                 .setProbability(1).setRadius(20).setHeight(24).setPillarSpacing(12)
                 .setWorldYRange(new IrisRange(-48, 60));
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, -64, 128));
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, -64, 128, (x, z) -> "test-region"));
         SubterrainPlan plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
         int firstX = plan.centerX() >> 4;
         int firstZ = plan.centerZ() >> 4;
@@ -121,7 +121,10 @@ public class SubterrainRasterizerTest {
                 0, 0, 0, 0, 0, 0, -8, 12, 10, -4, false, false, SubterrainCell.Kind.AIR);
         assertFalse(SubterrainRasterizer.protectsPlacement(SubterrainCell.OUTSIDE));
         assertFalse(SubterrainRasterizer.protectsPlacement(new SubterrainCell(SubterrainCell.Kind.AIR, "minecraft:cave_air", room)));
-        assertTrue(SubterrainRasterizer.protectsPlacement(new SubterrainCell(SubterrainCell.Kind.SOLID, "minecraft:stone", room)));
+        assertFalse(SubterrainRasterizer.protectsPlacement(new SubterrainCell(SubterrainCell.Kind.SOLID, "minecraft:stone", room)));
+        SubterrainRoom seal = new SubterrainRoom("room", "biome", IrisSubterrainFamily.CENOTE,
+                0, 0, 0, 0, 0, 0, -8, 12, 10, -4, false, true, SubterrainCell.Kind.SOLID);
+        assertTrue(SubterrainRasterizer.protectsPlacement(new SubterrainCell(SubterrainCell.Kind.SOLID, "minecraft:stone", seal)));
         SubterrainRoom passage = new SubterrainRoom("room", "biome", IrisSubterrainFamily.CENOTE,
                 0, 0, 0, 0, 0, 0, -8, 12, 10, -4, true, false, SubterrainCell.Kind.AIR);
         assertTrue(SubterrainRasterizer.protectsPlacement(new SubterrainCell(SubterrainCell.Kind.AIR, "minecraft:cave_air", passage)));

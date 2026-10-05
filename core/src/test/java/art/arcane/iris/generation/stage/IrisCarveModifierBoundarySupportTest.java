@@ -85,6 +85,31 @@ public class IrisCarveModifierBoundarySupportTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void authoredRoomKeepsItsBiomeInsideNaturalTerrainOpening() {
+        IrisBiome room = new IrisBiome();
+        IrisBiome surface = new IrisBiome();
+        IrisComplex complex = mock(IrisComplex.class);
+        ProceduralStream<IrisBiome> biomes = mock(ProceduralStream.class);
+        doReturn(true).when(complex).isTerrain3DOpening(40, 42, 44);
+        doReturn(biomes).when(complex).getTrueBiomeStream();
+        doReturn(surface).when(biomes).get(40, 44);
+        IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
+        Engine engine = mock(Engine.class);
+        doReturn(engine).when(modifier).getEngine();
+        doReturn(complex).when(engine).getComplex();
+        doReturn(room).when(engine).getSubterrainBiome(40, 42, 44);
+        IrisCarveModifier.CaveInputs inputs = new IrisCarveModifier.CaveInputs(engine);
+
+        assertSame(room, modifier.resolveCaveBoundaryBiome(
+                new MatterCavern(true, "carving/other", (byte) 0), 40, 42, 44,
+                inputs, new Long2ObjectOpenHashMap<>(), new HashMap<>()));
+        assertSame(room, modifier.resolveCaveBoundaryBiome(
+                null, 40, 42, 44,
+                inputs, new Long2ObjectOpenHashMap<>(), new HashMap<>()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void terrainOpeningKeepsItsSurfaceBiomeOverCaveMatter() {
         IrisBiome surface = new IrisBiome();
         IrisComplex complex = mock(IrisComplex.class);

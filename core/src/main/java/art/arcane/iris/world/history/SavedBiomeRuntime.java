@@ -11,6 +11,10 @@ import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.RegionSelection;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.volmlib.util.cache.AtomicCache;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.spi.IrisLogging;
 
 import java.io.IOException;
@@ -521,11 +525,16 @@ public final class SavedBiomeRuntime implements AutoCloseable {
                 if (dimension.allowsSubterrainFeatures()) {
                     SubterrainRasterizer.validateMaterials(dimension.getSubterrainFeatures());
                 }
+                AtomicCache<ProceduralStream<IrisRegion>> regionSelection = new AtomicCache<>();
                 Definitions loaded = new Definitions(data, dimension, NativeBiomeSpawnSelection.retainedDerivatives(data),
                         resolveFocusRegions(data, dimension), new SubterrainPlanner(new SubterrainPlanner.Options(
                         dimension.allowsSubterrainFeatures() ? dimension.getSubterrainFeatures() : List.of(),
                         new SeedManager(epoch.worldSeed()).getBodies(),
-                        dimension.getMinHeight(), dimension.getMaxHeight())));
+                        dimension.getMinHeight(), dimension.getMaxHeight(),
+                        (x, z) -> regionSelection.aquire(() -> RegionSelection.restore(new RegionSelection.Snapshot(
+                                dimension, data, new SeedManager(epoch.worldSeed()).getComplex(),
+                                engine.isStudio() && "bukkit".equals(IrisPlatforms.get().platformName()))))
+                                .get(x, z).getLoadKey())));
                 data.prepareBlockDropRules();
                 definitions.put(epochId, loaded);
                 return loaded;

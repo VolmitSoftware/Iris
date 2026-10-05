@@ -33,7 +33,7 @@ public class SavedSubterrainQueriesTest {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("old-basin").setProbability(1D)
                 .setBiome("retired-cave").setRadius(28).setHeight(40).setFluidDepth(8)
                 .setWorldYRange(new IrisRange(-100, 100)).setFormationFraction(0).setPillarSpacing(0);
-        SubterrainPlanner historical = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -128, 256));
+        SubterrainPlanner historical = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -128, 256, (x, z) -> "test-region"));
         SubterrainPlan plan = historical.plansForBounds(0, 0, 511, 511).getFirst();
         SubterrainPosition anchor = plan.anchor();
         SubterrainLocator.Result target = new SubterrainLocator.Result(plan.id(), plan.family(), plan.biome(),
@@ -126,6 +126,6 @@ public class SavedSubterrainQueriesTest {
 
     private static SubterrainPlanner planner(String id) {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId(id).setProbability(1D);
-        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320));
+        return new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320, (x, z) -> "test-region"));
     }
 }

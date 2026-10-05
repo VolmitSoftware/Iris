@@ -74,7 +74,7 @@ public final class SubterrainRasterizer {
     }
 
     public static boolean protectsPlacement(SubterrainCell cell) {
-        return cell != null && cell.owned() && (cell.solid() || cell.room().reservedPassage());
+        return cell != null && cell.owned() && (cell.room().reservedSolid() || cell.room().reservedPassage());
     }
 
     @FunctionalInterface

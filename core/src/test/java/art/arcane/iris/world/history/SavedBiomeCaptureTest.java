@@ -213,7 +213,7 @@ public class SavedBiomeCaptureTest {
     public void capturesFeatureBoundariesAtExactBlockCoordinates() throws Exception {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("exact-basin").setBiome("authored-biome")
                 .setProbability(1).setPillarSpacing(0).setFormationFraction(0);
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320));
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320, (x, z) -> "test-region"));
         SubterrainPlan plan = planner.plansForBounds(0, 0, 512, 512).getFirst();
         SubterrainPosition anchor = plan.anchor();
         int edgeX = plan.bounds().minX();

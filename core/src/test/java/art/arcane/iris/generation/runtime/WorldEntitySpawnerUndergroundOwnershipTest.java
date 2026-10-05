@@ -51,7 +51,7 @@ public class WorldEntitySpawnerUndergroundOwnershipTest {
         Chunk chunk = mock(Chunk.class);
         when(chunk.getWorld()).thenReturn(world);
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("basin").setBiome("basin-biome").setProbability(1);
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320));
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 1191L, -64, 320, (x, z) -> "test-region"));
         SubterrainPlan plan = planner.plansForBounds(0, 0, 512, 512).getFirst();
         SubterrainPosition anchor = plan.anchor();
         Location candidate = new Location(world, anchor.x(), anchor.y(), anchor.z());

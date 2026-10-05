@@ -132,6 +132,28 @@ public class CaveObjectPlacementTransactionTest {
     }
 
     @Test
+    public void drySkinProtectsExistingRockButAllowsAnAlreadyOpenCaveJoin() {
+        for (boolean solid : new boolean[]{true, false}) {
+            IObjectPlacer delegate = createPlacer(128, 80, 20, 60);
+            SubterrainRoom room = new SubterrainRoom("cenote", "dry-cave", IrisSubterrainFamily.CENOTE,
+                    4, 35, 7, 4, 21, 7, 19, 61, 0, 18, false, false, SubterrainCell.Kind.SOLID);
+            when(delegate.getEngine().getSubterrainCell(4, 30, 7))
+                    .thenReturn(new SubterrainCell(SubterrainCell.Kind.SOLID, "minecraft:stone", room));
+            when(delegate.isSolid(4, 30, 7)).thenReturn(solid);
+            CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
+            NativeBlockState decoration = mock(NativeBlockState.class);
+            transaction.set(4, 30, 7, decoration);
+            assertEquals(solid ? CaveObjectPlacementTransaction.CommitResult.REJECTED_SUBTERRAIN
+                    : CaveObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
+            if (solid) {
+                verify(delegate, never()).set(anyInt(), anyInt(), anyInt(), any());
+            } else {
+                verify(delegate).set(4, 30, 7, decoration);
+            }
+        }
+    }
+
+    @Test
     public void ownedWaterAndLavaUseTheirExclusiveAbsoluteFluidHeadAtTheOriginalAnchor() {
         for (int minimumY : new int[]{-64, 32}) {
             for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.WATER, SubterrainCell.Kind.LAVA}) {

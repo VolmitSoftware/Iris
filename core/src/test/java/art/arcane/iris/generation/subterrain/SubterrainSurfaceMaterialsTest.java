@@ -2,6 +2,8 @@ package art.arcane.iris.generation.subterrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomePaletteLayer;
+import art.arcane.iris.generation.decoration.IrisDecorationPart;
+import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -20,6 +22,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,7 +63,7 @@ public class SubterrainSurfaceMaterialsTest {
                         default -> fixture.fallback;
                     };
                     assertSame(expected, fixture.materials.state(position.x(), position.y(), position.z(), before));
-                    assertTrue(SubterrainRasterizer.protectsPlacement(before));
+                    assertEquals(before.room().reservedSolid(), SubterrainRasterizer.protectsPlacement(before));
                     assertEquals(before, fixture.cell(position));
                     int chunkX = position.x() >> 4;
                     int chunkZ = position.z() >> 4;
@@ -100,10 +103,61 @@ public class SubterrainSurfaceMaterialsTest {
                 output.setRaw(x, y, z, null);
                 modifier.preserveSubterrain((position.x() >> 4) << 4, (position.z() >> 4) << 4, output);
                 NativeBlockState expected = fixture.materials.state(position.x(), position.y(), position.z(), fixture.cell(position));
-                assertSame(expected, output.getRaw(x, y, z));
+                assertSame(fixture.cell(position).room().reservedSolid() ? expected : null, output.getRaw(x, y, z));
                 output.setRaw(x, y, z, fixture.fallback);
                 modifier.preserveSubterrain((position.x() >> 4) << 4, (position.z() >> 4) << 4, output);
                 assertSame(expected, output.getRaw(x, y, z));
+                if (!fixture.cell(position).room().reservedSolid()) {
+                    for (String existingKey : List.of("minecraft:cave_air", "minecraft:water", "minecraft:lava")) {
+                        NativeBlockState opening = B.getState(existingKey);
+                        output.setRaw(x, y, z, opening);
+                        modifier.preserveSubterrain((position.x() >> 4) << 4, (position.z() >> 4) << 4, output);
+                        assertSame(opening, output.getRaw(x, y, z));
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void floorDecoratorSubstratesSurviveBothPreservationPasses() throws Exception {
+        try (Fixture fixture = new Fixture(IrisSubterrainFamily.CENOTE)) {
+            Engine engine = mock(Engine.class);
+            when(engine.getComplex()).thenReturn(fixture.complex);
+            when(engine.getData()).thenReturn(fixture.data);
+            when(engine.getDimension()).thenReturn(fixture.dimension);
+            when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(128).build());
+            when(fixture.complex.getSubterrainPlanner()).thenReturn(fixture.planner);
+            IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
+            doReturn(engine).when(modifier).getEngine();
+            Field random = IrisCarveModifier.class.getDeclaredField("rng");
+            random.setAccessible(true);
+            random.set(modifier, fixture.random);
+            Method restore = IrisCarveModifier.class.getDeclaredMethod("restoreSubterrainSolids", Hunk.class, int.class, int.class, boolean.class);
+            restore.setAccessible(true);
+            SubterrainPosition position = fixture.surfaces().get(SubterrainSurfaceMaterials.Surface.FLOOR);
+            int chunkX = position.x() >> 4;
+            int chunkZ = position.z() >> 4;
+            int x = position.x() & 15;
+            int y = position.y() + 64;
+            int z = position.z() & 15;
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 192, 16);
+            for (String key : List.of("minecraft:moss_block", "minecraft:crimson_nylium")) {
+                NativeBlockState support = solid(key);
+                IrisBlockData forceBlock = mock(IrisBlockData.class);
+                when(forceBlock.getBlockData(fixture.data)).thenReturn(support);
+                when(fixture.biome.getDecoratorBucket(IrisDecorationPart.NONE))
+                        .thenReturn(new IrisDecorator[]{new IrisDecorator().setForceBlock(forceBlock)});
+                output.setRaw(x, y, z, support);
+
+                restore.invoke(modifier, output, chunkX, chunkZ, true);
+                assertSame(support, output.getRaw(x, y, z));
+                modifier.preserveSubterrain(chunkX << 4, chunkZ << 4, output);
+                assertSame(support, output.getRaw(x, y, z));
+
+                when(support.isOccluding()).thenReturn(false);
+                modifier.preserveSubterrain(chunkX << 4, chunkZ << 4, output);
+                assertSame(fixture.floor, output.getRaw(x, y, z));
             }
         }
     }
@@ -183,13 +237,14 @@ public class SubterrainSurfaceMaterialsTest {
             IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setBiome("room-biome")
                     .setFamily(family).setProbability(1).setRadius(12).setHeight(16).setLength(200)
                     .setChimneyHeight(8).setWorldYRange(new IrisRange(-48, 64));
-            planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, -64, 128));
+            planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, -64, 128, (x, z) -> "test-region"));
             plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
             plans = planner.plansForBounds(plan.bounds().minX() - 1, plan.bounds().minZ() - 1,
                     plan.bounds().maxX() + 1, plan.bounds().maxZ() + 1);
             ResourceLoader<IrisBiome> loader = mock(ResourceLoader.class);
             when(data.getBiomeLoader()).thenReturn(loader);
             when(loader.load("room-biome")).thenReturn(biome);
+            when(biome.getDecoratorBucket(IrisDecorationPart.NONE)).thenReturn(new IrisDecorator[0]);
             IrisBiomePaletteLayer wallPalette = mock(IrisBiomePaletteLayer.class);
             when(biome.getWall()).thenReturn(wallPalette);
             when(wallPalette.get(eq(random), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(wall);
@@ -240,6 +295,7 @@ public class SubterrainSurfaceMaterialsTest {
             Map<SubterrainPosition, String> result = new HashMap<>();
             for (SubterrainPosition chunk : chunks) {
                 Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 192, 16);
+                output.fill(fallback);
                 for (int draw = 0; draw < 19; draw++) {
                     random.nextLong();
                 }

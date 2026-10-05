@@ -60,12 +60,19 @@ every stage the module defines; the name is what logs show. Names and versions m
 line: line breaks and other control characters are rejected.
 
 A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
-Iris provides the API at runtime. At runtime a module can use only the Iris API (`com.volmit.*`),
-the JDK and the classes in its pack's module jars. Iris internals and the libraries Iris bundles
-are hidden, so a library the module needs goes inside one of the pack's jars. A class may appear
-in only one jar of a pack, so two jars that shade the same library must relocate it. The
-`com.volmit.` package prefix belongs to the API: module classes, and the libraries they shade,
-must not use it.
+Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the
+packages the host exposes besides it (meant for built-in modules, so packs can require their
+stages), the JDK and the classes in its pack's module jars. Iris internals and the libraries Iris
+bundles are hidden.
+
+A module may use any library. It ships the library inside its own jar or as another jar of the
+pack, and never borrows Iris's copy. A class may appear in only one jar of a pack, so two jars that
+shade the same library must relocate it. The API's package and the other exposed packages belong
+to Iris: module classes, and the libraries they shade, must not use them.
+
+Libraries often reference optional integrations they only use when present. A class that neither
+the pack, Iris nor the JDK has therefore does not fail the load: the pack loads, logs one warning
+listing such classes per jar, and code that needs one throws `NoClassDefFoundError` when it runs.
 
 Iris never downloads modules and does not check which API version a jar was built for. A pack
 ships its module jars, and keeping them compatible with the Iris version it targets is the pack
@@ -74,7 +81,7 @@ publisher's job.
 ## Host side
 
 ```java
-try (var pack = PackModules.load(packRoot)) {
+try (var pack = PackModules.load(packRoot, builtInPackages)) {   // exposed besides the API
     var modules = new ArrayList<>(builtIns);           // DiscoveredModule.builtIn(...)
     modules.addAll(pack.modules());
     var loaded = LoadedModules.load(modules, reservedHostFields);
@@ -87,21 +94,38 @@ try (var pack = PackModules.load(packRoot)) {
 }   // drop everything built from the pack before it closes
 ```
 
-`PackModules.load` reads one entry point per jar, in jar file name order, and loads every jar
-of the pack through one class loader. Closing it closes that loader. A pack without a `modules`
-directory has no modules. Errors name the jar: no entry point, several entry points, a
-`com.volmit.` class in the jar, a class that is also in another jar of the pack (both jars are
-named), a class that uses a class outside the API, the JDK and the pack's jars, or an entry class
-that cannot be loaded, is not an `IrisModule`, is not in that jar, or fails to construct. All
-checks before the last run before any class of the pack is defined:
+`PackModules.load(packRoot, exposedHostPackages)` exposes the API plus the given host packages,
+each with its subpackages; `PackModules.load(packRoot)` exposes only the API. The host chooses
+those packages, such as the ones that hold built-in modules' stage constants. It reads one entry
+point per jar, in jar file name order, and loads every jar of the pack through one class loader.
+Closing it closes that loader. A pack without a `modules` directory has no modules. Errors name the
+jar: no entry point, several entry points, a class of an exposed package in the jar, a class that is
+also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides
+or a class missing from an exposed package, or an entry class that cannot be loaded, is not an
+`IrisModule`, is not in that jar, or fails to construct. All checks before the last run before any
+class of the pack is defined:
 
 ```
 Module jar modules/alpha.jar contains Iris API class com.volmit.FeatureAttachment and 130 more; Iris provides the API at runtime, so mark the Iris API dependency compileOnly (Maven: provided) and keep module classes out of com.volmit.*
 
-Module jar modules/moss.jar uses classes that are not in the Iris API, the JDK or the pack's module jars:
+Module jar modules/caves.jar contains class art.arcane.iris.engine.modules.CarveModule of package art.arcane.iris.engine.modules, which Iris provides to modules at runtime; compile against it compileOnly (Maven: provided) instead of shipping it, and keep module classes out of art.arcane.iris.engine.modules.*
+
+Module jar modules/moss.jar uses classes that exist in Iris but are hidden from modules:
   com.example.moss.MossModule -> com.google.gson.Gson
   com.example.moss.MossSettings -> art.arcane.iris.engine.object.IrisBiome
-A module can use only the Iris API, the JDK and the classes in its pack's module jars; ship any library it needs inside a module jar of the pack.
+Modules cannot use Iris's own classes or its copies of libraries; ship the library in a module jar of the pack, or use the Iris API.
+
+Module jar modules/moss.jar uses classes that this Iris does not have, in packages Iris provides to modules:
+  com.example.moss.MossModule -> com.volmit.stage.NewerStage
+The jar was built against a different Iris API or Iris version.
+```
+
+Classes that nobody has only produce a warning, also available as `pack.missingClasses()`:
+
+```
+Pack overworld: module jars use classes that neither the pack, Iris nor the JDK has, usually optional dependencies of a bundled library. The jars load, but code that needs these classes throws NoClassDefFoundError when it runs:
+  modules/moss.jar: org.slf4j.Logger, org.slf4j.LoggerFactory
+  modules/stilt.jar: org.apache.logging.log4j.LogManager, org.apache.logging.log4j.Logger, org.slf4j.Logger, org.slf4j.LoggerFactory, org.slf4j.spi.LocationAwareLogger and 3 more
 ```
 
 A successful load logs one INFO summary through `System.Logger`:
@@ -150,10 +174,13 @@ invocations and must not keep views or mutable state.
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, and install-order determinism. `PackModulesTest` compiles real module
 jars into a temporary pack and loads them, including every jar error, duplicate classes in plain
-and multi-release jars, API classes in a jar, references outside the pack, references that must
-still load (arrays, the JDK, other pack jars, missing annotation types) and linkage errors during
-install. `ApiAndJdkClassLoaderTest` checks what the pack loader's parent shows.
-`PackModulesSummaryTest` checks the log text. The example ports in
-`src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and snow
-as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There is
-no Minecraft integration or production storage in these tests.
+and multi-release jars, API and other exposed classes in a jar, hidden host classes, classes missing
+from an exposed package, optional dependencies that only warn, references that must still load
+(arrays, the JDK, other pack jars, missing annotation types), linkage errors during install, and a
+pack jar that requires a stage of a built-in module in `example.builtin`, outside `com.volmit`,
+which loads only when the host exposes that package. `ExposedHostClassLoaderTest` checks what the
+pack loader's parent shows and `ExposedPackagesTest` which package names it accepts and how they
+match. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
+ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
+snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There
+is no Minecraft integration or production storage in these tests.

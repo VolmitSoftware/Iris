@@ -8,7 +8,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Requirement | Contract |
 | --- | --- |
 | Module identity and composition | `IrisModule`, `ModuleInfo`, `StageGraph` |
-| Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules`, `DiscoveredModule` |
+| Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules`, `DiscoveredModule`, `MissingClasses` |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
 | Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` |
 | Typed results between modules | stage outputs, `StageContext.output` |
@@ -28,9 +28,11 @@ types that carry them and lists what the Iris adapter still owes.
 Stage bodies hold no invocation state. Everything per placement or chunk travels through the
 context, outputs and accumulators.
 
-Modules compile against the API `compileOnly` and never ship it. At runtime they can use only the
-API (`com.volmit.*`), the JDK and the classes in their own pack's jars; anything else fails the
-pack load, naming the jar and the classes.
+Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
+(`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
+own pack's jars. They may use any library they ship in the pack, never Iris's copy. A class Iris has
+but hides, or one missing from an exposed package, fails the pack load, naming the jar and the
+classes. A class nobody has (an optional dependency) only warns.
 
 There is no API version gating. Packs ship their module jars, so their compatibility with the
 running Iris is the pack publisher's responsibility.
@@ -50,11 +52,15 @@ running Iris is the pack publisher's responsibility.
 - Load each pack's jars with `PackModules`, pass them with the built-in modules to
   `LoadedModules.load`, and close `PackModules` only after nothing built from it is in use.
 - Route `System.Logger` output (logger `com.volmit.host.PackModules`) to the server log, so the
-  per-pack module summary is visible.
+  per-pack module summary and missing-classes warning are visible.
 - Provide the API at runtime from the plugin's class loader, for example by shading it into the
   Iris plugin jar. Pack jars must not ship it.
-- Pack jars see only `com.volmit.` classes of that loader. Built-in modules whose stages packs may
-  require must be in such a package on that loader, or pack jars cannot require their stages.
+- Pass the packages of built-in modules whose stages packs may require to
+  `PackModules.load(packRoot, exposedHostPackages)`. They must be on the loader that defines the
+  API. Keep them narrow: everything in an exposed package and its subpackages becomes visible to
+  packs and is part of what packs can break on. Stage output types and settings types that pack
+  code uses through those stages must be in exposed packages too. The API is always exposed.
+- Consider showing `PackModules.missingClasses()` in studio.
 
 ## Open
 

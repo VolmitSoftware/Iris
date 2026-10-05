@@ -48,25 +48,28 @@ which jar a broken provider came from. The rejected alternatives:
 - A descriptor file with id and version. It duplicates `info()`, so the two can disagree, and
   parsing it needs a format the JDK does not ship.
 
-`PackModules.load(packRoot)`:
+`PackModules.load(packRoot, exposedHostPackages)` (or `load(packRoot)`, which exposes only the
+API):
 
-1. Lists regular files ending in `.jar` in `<pack>/modules`, sorted by file name. A missing
+1. Validates the exposed packages. The API's package is always one of them.
+2. Lists regular files ending in `.jar` in `<pack>/modules`, sorted by file name. A missing
    directory means no modules.
-2. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
-   ignored; zero or more than one entry class name fails. A class in a `com.volmit.` package
-   fails, naming the jar and the first such class.
-3. Fails if a class is in two jars, naming the class and both jars.
-4. Fails if a class uses a class that is not in the API, the JDK or a jar of the pack, listing
-   each referencing and referenced class per jar. Nothing has been defined up to here.
-5. Creates one `URLClassLoader` for all jars of the pack, parent = `ApiAndJdkClassLoader`.
-6. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
+3. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
+   ignored; zero or more than one entry class name fails.
+4. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
+5. Fails if a class is in two jars, naming the class and both jars.
+6. Resolves every class each class uses (see below). A class that Iris has but hides, or that is
+   missing from an exposed package, fails the load, listing each referencing and referenced class
+   per jar. Classes that nobody has are collected per jar. Nothing has been defined up to here.
+7. Creates one `URLClassLoader` for all jars of the pack, parent = `ExposedHostClassLoader`.
+8. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
    instantiates it with the public no-argument constructor and calls `info()`.
-7. Logs one INFO summary of the pack's modules.
+9. Logs one INFO summary of the pack's modules, and one WARNING if any classes are missing.
 
 One loader per pack, not per jar, because `requires(...)` takes another module's stage constant.
 A pack jar that requires a stage of another pack jar must see its classes. Packs stay isolated
 from each other. The cost is a shared class namespace: with two copies of a class, the loader
-would silently use the one first in file name order. Step 3 turns that into a load error, so two
+would silently use the one first in file name order. Step 5 turns that into a load error, so two
 jars that shade the same library must relocate it, and shared code belongs in one module that the
 others require.
 
@@ -78,48 +81,73 @@ loader never reads `META-INF/versions`, so those entries are skipped.
 
 ### What a module can see
 
-Modules depend only on the Iris API. They compile against it `compileOnly` and never ship it,
-because Iris provides it at runtime; in production it is shaded into the Iris plugin jar. The
-loader that defines the API therefore also sees Iris internals and the libraries Iris bundles, so
-it is not the pack loader's parent. `ApiAndJdkClassLoader` is: it delegates every class in a
-package starting with `com.volmit.` (`API_PACKAGE_PREFIX`) to the API's loader and everything else
-to the platform class loader, which holds the JDK. A module can use only the API, the JDK and the
-classes of its own pack's jars. The api/host split is deferred, so `com.volmit.host` is visible
-too.
+Modules depend on the Iris API. They compile against it `compileOnly` and never ship it, because
+Iris provides it at runtime; in production it is shaded into the Iris plugin jar. That loader also
+holds Iris internals and the libraries Iris bundles, so it is not the pack loader's parent.
+`ExposedHostClassLoader` is: it delegates every class in an exposed package, and its subpackages,
+to the host's loader (the loader that defines the API) and everything else to the platform class
+loader, which holds the JDK. The api/host split is deferred, so `com.volmit.host` is visible too.
 
-Resources follow the same rule by path: `com/volmit/...` from the API's loader, everything else
-from the platform loader, then the pack's jars. A class and its class file come from the same
-place, and a pack never sees Iris's own resources such as `plugin.yml` or its service files.
+The exposed packages (`ExposedPackages`) are the API's package, `com.volmit` (the package of
+`IrisModule`), plus whatever the host passes to `PackModules.load`. The host decides those; the
+intended use is the packages that hold built-in modules' stage constants, so that a pack jar can
+`requires(...)` a stage of the core engine or a built-in feature. A pack jar then links against
+the host's class and the same stage constant, which resolution requires: a copy would be a second
+definition of the id. Names match whole packages: `com.volmit` does not expose `com.volmitx`. A
+trailing dot is accepted; anything that is not a package name, such as a blank string or a
+wildcard, is rejected.
 
-The pack loader asks its parent first, so a packaged copy of an API class would be silently
-replaced by the host's, and a module class in a `com.volmit.` package could be replaced by a
-later API class of the same name. Step 2 rejects both; the prefix belongs to the API. A module
-class that shares a name with an Iris internal is harmless, because the pack loader cannot see
-Iris internals. A module class that shares a name with a JDK class is replaced by the JDK's; that
-is not checked.
+A module may use any library, but it ships that library itself, inside its own jar or as another
+jar of the pack. It never borrows Iris's copy: Iris's libraries can change with any Iris update,
+and two modules would otherwise depend on whatever version Iris happens to bundle.
 
-Step 4 reads every class file with the JDK's `java.lang.classfile` API. A class uses every class
+Resources follow the same rule by path: `com/volmit/...` and the paths of other exposed packages
+from the host's loader, everything else from the platform loader, then the pack's jars. A class
+and its class file come from the same place, and a pack never sees Iris's own resources such as
+`plugin.yml` or its service files.
+
+The pack loader asks its parent first, so a packaged copy of a host class would be silently
+replaced by the host's, and a module class in an exposed package could be replaced by a later host
+class of the same name. Step 4 rejects both; exposed packages belong to the host. For the API the
+message points at `compileOnly`, the usual cause. A module class that shares a name with a hidden
+Iris internal is harmless, because the pack loader cannot see it. A module class that shares a name
+with a JDK class is replaced by the JDK's; that is not checked.
+
+Step 6 reads every class file with the JDK's `java.lang.classfile` API. A class uses every class
 in its constant pool (supertypes, and instantiated, cast, caught, called-on and class-literal
 types) and every type in the descriptors of its own fields and methods and of the members and
-call sites it uses. Arrays count as their element type; primitives do not count. A class counts
-as present when the pack has it or the parent has its class file, so nothing is loaded or
-initialized by the check. Annotations and generic signatures are left out: the JVM never resolves
-them while linking, and reflection skips an annotation whose type is missing, so a `compileOnly`
-annotation library such as JetBrains annotations needs nothing at runtime.
+call sites it uses. Arrays count as their element type; primitives do not count. Annotations and
+generic signatures are left out: the JVM never resolves them while linking, and reflection skips an
+annotation whose type is missing, so a `compileOnly` annotation library such as JetBrains
+annotations needs nothing at runtime. Each used class outside the pack is judged by its class
+file, so nothing is loaded or initialized:
 
-The check is stricter than the JVM, which resolves a class only when code first uses it. A
-shaded library with optional dependencies that are absent from the pack is therefore rejected,
-even if those code paths would never run; the jar must leave such classes out or ship the
-dependency. In exchange, a missing class shows up at load, with the jar and both class names,
-instead of as a `NoClassDefFoundError` during install or generation. A missing `com.volmit.`
-class means the jar was built against a different API, and the error says so.
+| The class is | Result |
+| --- | --- |
+| in a jar of the pack, an exposed package of the host, or the JDK | resolves |
+| in an exposed package, but the host does not have it | load error: the jar was built against a different Iris API or Iris version |
+| not exposed, but the host's loader has it (Iris internals, Iris's copy of a library) | load error: modules cannot use Iris's classes; ship the library in the pack or use the API |
+| nowhere | the pack loads, with a warning |
+
+The JVM resolves a class only when code first needs it, so a class that nobody has is usually an
+optional dependency of a bundled library, used only when present. Rejecting those would be stricter
+than the JVM and would make many ordinary libraries unusable. Instead the pack loads,
+`PackModules.missingClasses()` lists the missing classes per jar (`MissingClasses`), and the load
+logs one WARNING for the pack, one line per jar with at most five class names
+(`MissingClassesWarning`), so a large shaded library cannot flood the log. Code that needs a missing
+class throws `NoClassDefFoundError` when it runs; the verifier may also need it while linking a
+class that uses it, which then fails when that class is first used.
+
+A class the host hides fails, even though the pack might never run that code, because it exists:
+the module was written against Iris's copy, and the error says to ship the library or use the API
+instead of leaving the author with a `NoClassDefFoundError` during install or generation.
 
 There is no version gating. Packs ship their module jars and Iris never downloads any, so whether
 a jar works with the running Iris is the pack publisher's responsibility. The class check catches
-API classes that no longer exist. It does not check methods and fields: a jar built against an API
-whose methods have changed fails with a linkage error, which `LoadedModules.load` reports with the
-module's jar when it happens during install, and which surfaces at generation time when it
-happens only in a stage body.
+API and exposed classes that no longer exist. It does not check methods and fields: a jar built
+against an API whose methods have changed fails with a linkage error, which `LoadedModules.load`
+reports with the module's jar when it happens during install, and which surfaces at generation
+time when it happens only in a stage body.
 
 Closing `PackModules` closes the loader. Classes loaded before that keep working, so the host
 must drop `LoadedModules` and everything else built from the pack first.
@@ -128,10 +156,11 @@ Each module reaches `LoadedModules.load` as a `DiscoveredModule`: the module and
 jar path relative to the pack or "host classpath" for built-ins. Duplicate module ids and foreign
 stage namespaces name the origin. Every jar error names the jar.
 
-The load summary goes through `System.getLogger(PackModules.class.getName())`, so the host can
-route it with a `System.LoggerFinder`. It lists display name, id, version and jar for each module
-in load order, or says the pack has no module jars. `PackModulesSummary` builds the text and is
-tested on its own.
+The load summary and the missing-classes warning go through
+`System.getLogger(PackModules.class.getName())`, so the host can route them with a
+`System.LoggerFinder`. The summary lists display name, id, version and jar for each module in load
+order, or says the pack has no module jars. `PackModulesSummary` and `MissingClassesWarning` build
+the texts and are tested on their own.
 
 ## Stages
 

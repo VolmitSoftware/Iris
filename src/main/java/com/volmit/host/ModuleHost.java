@@ -23,8 +23,10 @@ import java.util.TreeSet;
  *         .reservingFields(reservedHostFields);
  * }</pre>
  *
- * Built-in modules' {@code info()} is read here, once. Exposed package names and reserved namespaces
- * are checked here, so a mistake fails when the host starts rather than at the first pack load.
+ * Every method adds to what earlier calls configured, so a host can build the configuration in steps.
+ * Built-in modules' {@code info()} is read here, once. Exposed package names, reserved namespaces and
+ * reserved field names are checked here, so a mistake fails when the host starts rather than at the
+ * first pack load.
  */
 public record ModuleHost(
         List<DiscoveredModule> builtIns,
@@ -38,6 +40,7 @@ public record ModuleHost(
         reservedNamespaces = Set.copyOf(reservedNamespaces);
         ExposedPackages.apiAnd(exposedHostPackages);
         ReservedNamespaces.of(reservedNamespaces);
+        requireFieldNames(reservedHostFields);
     }
 
     /** The given built-in modules, exposing only the Iris API and reserving nothing. */
@@ -58,9 +61,11 @@ public record ModuleHost(
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, union(reservedNamespaces, namespaces));
     }
 
-    /** This configuration with {@code fields} as the JSON fields the host itself uses, per target. */
+    /** This configuration with {@code fields} also reserved as JSON fields the host itself uses,
+     * merged per attachment target with the fields reserved before.
+     */
     public ModuleHost reservingFields(Map<FeatureAttachment.Target, Set<String>> fields) {
-        return new ModuleHost(builtIns, exposedHostPackages, fields, reservedNamespaces);
+        return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields), reservedNamespaces);
     }
 
     /** The built-in modules followed by a pack's modules, in the order {@link LoadedModules} installs them. */
@@ -74,6 +79,20 @@ public record ModuleHost(
         var copy = new EnumMap<FeatureAttachment.Target, Set<String>>(FeatureAttachment.Target.class);
         fields.forEach((target, names) -> copy.put(target, Set.copyOf(names)));
         return Map.copyOf(copy);
+    }
+
+    /** A blank field name fails here, as it would in a settings type's {@code @Feature}. */
+    private static void requireFieldNames(Map<FeatureAttachment.Target, Set<String>> fields) {
+        fields.forEach((target, names) -> names.forEach(name -> new FeatureAttachment(name, Set.of(target))));
+    }
+
+    private static Map<FeatureAttachment.Target, Set<String>> merge(
+            Map<FeatureAttachment.Target, Set<String>> existing,
+            Map<FeatureAttachment.Target, Set<String>> added) {
+        var merged = new EnumMap<FeatureAttachment.Target, Set<String>>(FeatureAttachment.Target.class);
+        existing.forEach((target, names) -> merged.put(target, new TreeSet<>(names)));
+        added.forEach((target, names) -> merged.computeIfAbsent(target, ignored -> new TreeSet<>()).addAll(names));
+        return merged;
     }
 
     private static Set<String> union(Set<String> existing, String... added) {

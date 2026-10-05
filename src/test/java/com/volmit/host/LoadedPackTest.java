@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.FeatureAttachment.Target;
 import com.volmit.support.TestModuleJar;
 import example.builtin.CarveModule;
 import org.junit.jupiter.api.AfterEach;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import static com.volmit.support.TestModuleJar.module;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -83,7 +86,23 @@ class LoadedPackTest {
         var host = ModuleHost.of(List.of());
         assertThrows(IllegalArgumentException.class, () -> host.exposing("org.*"));
         assertThrows(IllegalArgumentException.class, () -> host.reservingNamespaces("iris:core"));
+        assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Target.BIOME, Set.of(" "))));
         assertEquals(List.of(), host.builtIns());
-        assertEquals(java.util.Set.of(), host.exposedHostPackages());
+        assertEquals(Set.of(), host.exposedHostPackages());
+    }
+
+    @Test
+    void everyHostSettingAddsToWhatEarlierCallsConfigured() {
+        var host = ModuleHost.of(List.of())
+                .exposing("example.first")
+                .exposing("example.second")
+                .reservingNamespaces("iris")
+                .reservingNamespaces("vanilla")
+                .reservingFields(Map.of(Target.BIOME, Set.of("carving"), Target.REGION, Set.of("spawns")))
+                .reservingFields(Map.of(Target.BIOME, Set.of("objects")));
+
+        assertEquals(Set.of("example.first", "example.second"), host.exposedHostPackages());
+        assertEquals(Set.of("iris", "vanilla"), host.reservedNamespaces());
+        assertEquals(Map.of(Target.BIOME, Set.of("carving", "objects"), Target.REGION, Set.of("spawns")), host.reservedHostFields());
     }
 }

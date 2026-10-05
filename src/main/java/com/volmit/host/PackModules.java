@@ -8,6 +8,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -17,9 +18,11 @@ import java.util.Objects;
  *
  * <p>All jars of a pack share one class loader. A pack jar can therefore name another pack jar's
  * stage constants in {@code requires(...)}. Besides the pack's own classes, that loader sees only
- * the Iris API and the JDK ({@link ApiAndJdkClassLoader}); packs do not see each other or Iris
- * internals. Before the loader exists, the load fails if a jar holds API classes, if a class is in
- * two jars, or if a class uses a class that Iris hides from modules or that is missing from the API.
+ * the exposed host packages and the JDK ({@link ExposedHostClassLoader}); packs do not see each
+ * other or Iris internals. The Iris API is always exposed; the host may expose more packages, such
+ * as those of built-in modules whose stages packs may require. Before the loader exists, the load
+ * fails if a jar holds classes of an exposed package, if a class is in two jars, or if a class uses
+ * a class that Iris hides from modules or that is missing from an exposed package.
  * Classes that nobody has are not an error, because the JVM only needs them when code that uses
  * them runs; they are reported as {@link #missingClasses()}.
  *
@@ -44,17 +47,27 @@ public final class PackModules implements AutoCloseable {
         this.loader = loader;
     }
 
+    /** Loads the modules of the pack at {@code packRoot}, exposing only the Iris API. */
+    public static PackModules load(Path packRoot) {
+        return load(packRoot, List.of());
+    }
+
     /** Loads the modules of the pack at {@code packRoot}. A pack without a modules directory has
      * no modules. Errors name the offending jar relative to the pack root.
+     *
+     * @param exposedHostPackages host packages pack modules may use besides the Iris API, which is
+     *     always exposed, such as the packages of built-in modules whose stages packs may require.
+     *     Each exposes the package and its subpackages from the loader that defines the API. A
+     *     trailing dot is accepted; blank names and wildcards are rejected.
      */
-    public static PackModules load(Path packRoot) {
+    public static PackModules load(Path packRoot, Collection<String> exposedHostPackages) {
         Objects.requireNonNull(packRoot, "packRoot");
+        var host = new ExposedHostClassLoader(IrisModule.class.getClassLoader(), ExposedPackages.apiAnd(exposedHostPackages));
         var jars = findModuleJars(packRoot).stream()
                 .map(jar -> ModuleJar.read(packRoot, jar))
                 .toList();
-        var apiAndJdk = new ApiAndJdkClassLoader(IrisModule.class.getClassLoader());
-        var missingClasses = PackClassCheck.requireLinkable(jars, apiAndJdk);
-        var packModules = defineModules(packRoot, jars, missingClasses, apiAndJdk);
+        var missingClasses = PackClassCheck.requireLinkable(jars, host);
+        var packModules = defineModules(packRoot, jars, missingClasses, host);
         logLoad(packName(packRoot), packModules);
         return packModules;
     }
@@ -98,8 +111,8 @@ public final class PackModules implements AutoCloseable {
     }
 
     private static PackModules defineModules(
-            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader apiAndJdk) {
-        var loader = newPackClassLoader(packRoot, jars, apiAndJdk);
+            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host) {
+        var loader = newPackClassLoader(packRoot, jars, host);
         try {
             return new PackModules(createModules(jars, loader), missingClasses, loader);
         } catch (RuntimeException | Error failure) {
@@ -108,9 +121,9 @@ public final class PackModules implements AutoCloseable {
         }
     }
 
-    private static URLClassLoader newPackClassLoader(Path packRoot, List<ModuleJar> jars, ClassLoader apiAndJdk) {
+    private static URLClassLoader newPackClassLoader(Path packRoot, List<ModuleJar> jars, ClassLoader host) {
         var urls = jars.stream().map(ModuleJar::url).toArray(URL[]::new);
-        return new URLClassLoader("pack:" + packName(packRoot), urls, apiAndJdk);
+        return new URLClassLoader("pack:" + packName(packRoot), urls, host);
     }
 
     private static void logLoad(String packName, PackModules packModules) {

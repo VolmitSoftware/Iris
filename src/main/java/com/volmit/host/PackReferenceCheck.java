@@ -22,7 +22,7 @@ final class PackReferenceCheck {
 
     /** Where the pack loader would find a referenced class. */
     private enum Resolution {
-        /** In the pack, a package the host exposes, or the JDK. */
+        /** In the pack, an exposed host package, or the JDK. */
         PROVIDED,
         /** Nowhere: an optional dependency, which only fails when code that needs it runs. */
         ABSENT,
@@ -53,9 +53,9 @@ final class PackReferenceCheck {
 
     private final Set<String> packClasses = new HashSet<>();
     private final Map<String, Resolution> outsidePack = new HashMap<>();
-    private final ApiAndJdkClassLoader host;
+    private final ExposedHostClassLoader host;
 
-    private PackReferenceCheck(List<ModuleJar> jars, ApiAndJdkClassLoader host) {
+    private PackReferenceCheck(List<ModuleJar> jars, ExposedHostClassLoader host) {
         this.host = host;
         jars.forEach(jar -> packClasses.addAll(jar.classNames()));
     }
@@ -63,7 +63,7 @@ final class PackReferenceCheck {
     /** Fails when a jar uses a class Iris hides or a class missing from a package Iris exposes.
      * Returns the classes nobody has, per jar, for jars that use any.
      */
-    static List<MissingClasses> requireResolvable(List<ModuleJar> jars, ApiAndJdkClassLoader host) {
+    static List<MissingClasses> requireResolvable(List<ModuleJar> jars, ExposedHostClassLoader host) {
         var check = new PackReferenceCheck(jars, host);
         var references = jars.stream().map(check::resolve).toList();
         requireNoFailures(references);
@@ -88,7 +88,7 @@ final class PackReferenceCheck {
 
     private Resolution resolveOutsidePack(String className) {
         if (host.hasClass(className)) return Resolution.PROVIDED;
-        if (ApiAndJdkClassLoader.isApiClass(className)) return Resolution.MISSING_HOST_CLASS;
+        if (host.exposed().exposes(className)) return Resolution.MISSING_HOST_CLASS;
         if (host.hostHasClass(className)) return Resolution.HIDDEN_HOST_CLASS;
         return Resolution.ABSENT;
     }

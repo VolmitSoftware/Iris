@@ -4,6 +4,7 @@ import com.volmit.IrisModule;
 import com.volmit.example.placement.AnchorModule;
 import com.volmit.example.placement.PlacementModules;
 import com.volmit.support.TestModuleJar;
+import example.builtin.CarveModule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,6 +27,9 @@ class PackModulesTest {
     private static final String VERSIONED_SHARED_CLASS = "META-INF/versions/9/pack/shared/Util.class";
     private static final String DEFINED_PROPERTY = "irisapi.test.packModuleConstructed";
     private static final String OPTIONAL_CLASS = "org.optional.Feature";
+    private static final String BUILT_IN_PACKAGE = CarveModule.class.getPackageName();
+    private static final String REQUIRES_BUILT_IN_STAGE =
+            "graph.define(Stage.placement(\"user:core/carved\")).requires(example.builtin.CarveModule.CLEAR).run(context -> {});";
 
     @TempDir
     Path pack;
@@ -344,6 +348,63 @@ class PackModulesTest {
             assertEquals(0, beta.getDeclaredField("SHARED").getAnnotations().length,
                     "the annotation type is not in the pack, so the JVM skips it");
         }
+    }
+
+    @Test
+    void packJarRequiresAStageOfABuiltInModuleInAnExposedPackage() {
+        module("pack.user.User", "user:core", NO_MEMBERS, REQUIRES_BUILT_IN_STAGE)
+                .compileAgainstHostOf(CarveModule.class)
+                .writeInto(pack, "user.jar");
+
+        try (var packModules = PackModules.load(pack, List.of(BUILT_IN_PACKAGE))) {
+            var modules = new ArrayList<>(List.of(DiscoveredModule.builtIn(new CarveModule())));
+            modules.addAll(packModules.modules());
+            var order = LoadedModules.load(modules, Map.of()).placement().stages().stream()
+                    .map(stage -> stage.stage().id().toString()).toList();
+            assertEquals(List.of("iris:carve/clear", "user:core/carved"), order);
+        }
+    }
+
+    @Test
+    void builtInModuleOutsideTheExposedPackagesIsHidden() {
+        module("pack.user.User", "user:core", NO_MEMBERS, REQUIRES_BUILT_IN_STAGE)
+                .compileAgainstHostOf(CarveModule.class)
+                .writeInto(pack, "user.jar");
+
+        assertMentions(failure(() -> PackModules.load(pack)),
+                "Module jar " + origin("user.jar") + " uses classes that exist in Iris but are hidden from modules:\n"
+                        + "  pack.user.User -> example.builtin.CarveModule\n");
+    }
+
+    @Test
+    void referenceToAMissingClassOfAnExposedPackagePointsAtADifferentBuild(@TempDir Path build) {
+        var newerBuiltIns = new TestModuleJar()
+                .source("example.builtin.Newer", "package example.builtin; public final class Newer {}")
+                .writeInto(build, "newer-built-ins.jar");
+        module("pack.user.User", "user:core", "static Object probe() { return example.builtin.Newer.class; }", NO_STAGES)
+                .compileAgainst(newerBuiltIns)
+                .writeInto(pack, "user.jar");
+
+        assertMentions(failure(() -> PackModules.load(pack, List.of(BUILT_IN_PACKAGE))),
+                "pack.user.User -> example.builtin.Newer", "built against a different Iris API or Iris version");
+    }
+
+    @Test
+    void classOfAnExposedHostPackageInAJarFails() {
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+                .source("example.builtin.Copy", "package example.builtin; public final class Copy {}")
+                .writeInto(pack, "alpha.jar");
+
+        assertEquals("Module jar " + origin("alpha.jar") + " contains class example.builtin.Copy of package example.builtin,"
+                        + " which Iris provides to modules at runtime; compile against it compileOnly (Maven: provided)"
+                        + " instead of shipping it, and keep module classes out of example.builtin.*",
+                failure(() -> PackModules.load(pack, List.of(BUILT_IN_PACKAGE))));
+    }
+
+    @Test
+    void invalidExposedPackageFailsBeforeReadingJars() {
+        assertMentions(failure(() -> PackModules.load(pack, List.of("example.*"))),
+                "Exposed package 'example.*' is not a package name");
     }
 
     @Test

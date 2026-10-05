@@ -51,15 +51,13 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
     }
 
     /** Reads the single entry class a jar names and the classes it holds. The origin is the jar
-     * path relative to its pack. Fails if the jar holds a class of the Iris API or a class file that
-     * cannot be parsed.
+     * path relative to its pack. Fails if a class file cannot be parsed.
      */
     static ModuleJar read(Path packRoot, Path jar) {
         var origin = packRoot.relativize(jar).toString();
         try (var file = openAsClassLoaderSeesIt(jar)) {
             var entryClass = requireSingleEntryClass(origin, readEntryClasses(file));
             var classEntries = findClassEntries(file);
-            requireNoApiClasses(origin, classEntries);
             return new ModuleJar(jar, origin, entryClass, readClasses(origin, file, classEntries));
         } catch (IOException exception) {
             throw new UncheckedIOException("Module jar " + origin + " is not a readable jar", exception);
@@ -138,22 +136,6 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         return entryName.endsWith(CLASS_FILE_SUFFIX)
                 && !entryName.equals(MODULE_DESCRIPTOR)
                 && !entryName.startsWith(META_INF);
-    }
-
-    /** The API package prefix is reserved for the API that Iris provides at runtime. The pack loader
-     * asks the host for those classes first, so a packaged API class would be silently replaced by the
-     * host's copy, and a module's own class there could be replaced by a later API class of that name.
-     */
-    private static void requireNoApiClasses(String origin, List<JarEntry> classEntries) {
-        var apiClasses = classEntries.stream()
-                .map(entry -> toBinaryName(entry.getName()))
-                .filter(ApiAndJdkClassLoader::isApiClass)
-                .toList();
-        if (apiClasses.isEmpty()) return;
-        var others = apiClasses.size() == 1 ? "" : " and " + (apiClasses.size() - 1) + " more";
-        throw new IllegalArgumentException("Module jar " + origin + " contains Iris API class " + apiClasses.getFirst()
-                + others + "; Iris provides the API at runtime, so mark the Iris API dependency compileOnly"
-                + " (Maven: provided) and keep module classes out of " + ApiAndJdkClassLoader.API_PACKAGE_PREFIX + "*");
     }
 
     private static List<JarClass> readClasses(String origin, JarFile file, List<JarEntry> classEntries) throws IOException {

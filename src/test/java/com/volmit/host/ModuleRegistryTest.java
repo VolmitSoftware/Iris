@@ -40,8 +40,8 @@ class ModuleRegistryTest {
     @Test
     void validatesIdsTypesAndFieldsAcrossFeatureKindsWithoutPartialRegistration() {
         var registry = new ModuleRegistry();
-        registry.registerSettings(One.class);
-        registry.registerSettings(One.class);
+        registry.registerStageSettings(One.class);
+        registry.registerStageSettings(One.class);
         registerAs(registry, "test:core", objects -> {
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Collision.class, ignored -> context -> null));
             objects.registerObject(Two.class, ignored -> context -> null);
@@ -56,15 +56,15 @@ class ModuleRegistryTest {
     @Test
     void reservesHostFieldsAndRejectsInvalidFeaturesOrFactories() {
         var registry = new ModuleRegistry(Map.of(FeatureAttachment.Target.BIOME, Set.of("shared")));
-        assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(One.class));
-        assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(MissingAnnotation.class));
-        assertThrows(IllegalArgumentException.class, () -> registry.registerSettings(AbstractFeature.class));
+        assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(One.class));
+        assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(MissingAnnotation.class));
+        assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(AbstractFeature.class));
         registerAs(registry, "test:core", objects -> {
             assertThrows(NullPointerException.class, () -> objects.registerObject(Two.class, null));
             objects.registerObject(Two.class, ignored -> context -> null);
         });
         assertSame(registry.freeze(), registry.freeze());
-        assertThrows(IllegalStateException.class, () -> registry.registerSettings(One.class));
+        assertThrows(IllegalStateException.class, () -> registry.registerStageSettings(One.class));
     }
 
     @Test
@@ -133,6 +133,56 @@ class ModuleRegistryTest {
 
         var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("shared"));
         assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), reserved, Set.of()));
+    }
+
+    @Test
+    void moduleRegistersItsOwnSettingsExplicitlyAndRepeatingItChangesNothing() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "test:core", settings -> {
+            settings.registerSettings(One.class);
+            settings.registerSettings(One.class);
+        });
+        registry.registerStageSettings(One.class);
+
+        assertEquals(List.of("test:core/one"), registry.freeze().settings().stream().map(value -> value.id().toString()).toList());
+        assertTrue(registry.registeredByOwner(One.class));
+    }
+
+    @Test
+    void explicitSettingsFollowTheRegisteringModulesIdAndStillCollide() {
+        var registry = new ModuleRegistry();
+        var foreign = assertThrows(IllegalArgumentException.class,
+                () -> registerAs(registry, "test:other", settings -> settings.registerSettings(One.class)));
+        assertEquals("Settings " + One.class.getName() + " with feature id test:core/one must be test:other or start with "
+                + "test:other/, the id of its registering module test:other from host classpath", foreign.getMessage());
+        assertThrows(IllegalStateException.class, () -> registry.registerSettings(One.class));
+
+        registerAs(registry, "test:core", settings -> settings.registerObject(Two.class, ignored -> context -> null));
+        var collision = assertThrows(IllegalArgumentException.class,
+                () -> registerAs(registry, "test:core", settings -> settings.registerSettings(Collision.class)));
+        assertTrue(collision.getMessage().startsWith("JSON field collision"), collision.getMessage());
+        assertTrue(registry.freeze().settings().isEmpty());
+    }
+
+    @Test
+    void settingsTheirOwnerRegisteredMayBeNamedByAnyModule() {
+        var owner = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:core", "Owner", "1"); }
+            public void install(StageGraph graph) {}
+            public void register(FeatureRegistry registry) { registry.registerSettings(One.class); }
+        };
+        var user = new IrisModule() {
+            static final PlacementStage<Void> WORK = Stage.placement("test:user/work");
+            public ModuleInfo info() { return ModuleInfo.of("test:user", "User", "1"); }
+            public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
+        };
+
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of());
+        assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
+
+        var unowned = assertThrows(IllegalArgumentException.class,
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of()));
+        assertTrue(unowned.getMessage().contains("which none of the modules naming it in when(...) owns"), unowned.getMessage());
     }
 
     private static MantleCodec<String> codec(int version) {

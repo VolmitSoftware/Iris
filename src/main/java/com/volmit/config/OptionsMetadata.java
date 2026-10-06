@@ -1,5 +1,6 @@
 package com.volmit.config;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -12,8 +13,17 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
         options = List.copyOf(options);
     }
 
-    public record Option(String name, Type type, String description,
-                         boolean required, Double minimum, Double maximum) {}
+    /** One field of a settings type. {@code minimum}, {@code maximum} and {@code reference} are null when not declared. */
+    public record Option(Field field, String description, boolean required,
+                         Double minimum, Double maximum, Reference reference) {
+        public String name() {
+            return field.getName();
+        }
+
+        public Type type() {
+            return field.getGenericType();
+        }
+    }
 
     /** Reads private and inherited fields without constructing settings or accessing values.
      * Nested object types are preserved for the schema builder to inspect recursively.
@@ -34,6 +44,7 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                 var desc = field.getAnnotation(Desc.class);
                 var min = field.getAnnotation(MinNumber.class);
                 var max = field.getAnnotation(MaxNumber.class);
+                var ref = field.getAnnotation(Ref.class);
                 if ((min != null || max != null) && !isNumeric(field.getType())) {
                     throw new IllegalArgumentException("Numeric bounds on nonnumeric option: " + field.getName());
                 }
@@ -42,9 +53,9 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                         || (min != null && max != null && min.value() > max.value())) {
                     throw new IllegalArgumentException("Invalid bounds for option: " + field.getName());
                 }
-                options.add(new Option(field.getName(), field.getGenericType(),
-                        desc == null ? "" : desc.value(), field.isAnnotationPresent(Required.class),
-                        min == null ? null : min.value(), max == null ? null : max.value()));
+                options.add(new Option(field, desc == null ? "" : desc.value(), field.isAnnotationPresent(Required.class),
+                        min == null ? null : min.value(), max == null ? null : max.value(),
+                        ref == null ? null : ref.value()));
             }
         }
         var desc = type.getAnnotation(Desc.class);

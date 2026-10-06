@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /** Reference host collection of module stages. Install every module, then resolve each pipeline
@@ -27,7 +28,8 @@ import java.util.stream.Collectors;
  *
  * <p>A module defines only stages whose ids start with its own id and '/', and a settings type
  * named in {@code when(...)} must have a feature id that at least one module naming it owns: that
- * module's id, or one starting with it and '/'.
+ * module's id, or one starting with it and '/'. A type its owner registered explicitly may be named
+ * by any module.
  */
 public final class StageGraphBuilder implements StageGraph {
     private final Map<ResourceId, StageDeclaration> declarations = new HashMap<>();
@@ -67,11 +69,14 @@ public final class StageGraphBuilder implements StageGraph {
     }
 
     /** Settings types named by when(...), ordered by feature id. Fails if no module that names a type
-     * owns its feature id ({@link com.volmit.ModuleInfo#ownsId}).
+     * owns its feature id ({@link com.volmit.ModuleInfo#ownsId}), unless {@code registeredByOwner}
+     * says its owner registered it explicitly.
      */
-    public List<Class<? extends IrisFeature>> settingsTypes() {
+    public List<Class<? extends IrisFeature>> settingsTypes(Predicate<Class<?>> registeredByOwner) {
         var uses = settingsUses();
-        uses.forEach(this::requireSettingsOwner);
+        uses.stream()
+                .filter(use -> !registeredByOwner.test(use.settings().type()))
+                .forEach(this::requireSettingsOwner);
         return uses.stream()
                 .<Class<? extends IrisFeature>>map(use -> use.settings().type())
                 .toList();

@@ -57,7 +57,7 @@ class StageGraphTest {
     private static List<Class<? extends IrisFeature>> resolveSettings(IrisModule... modules) {
         var builder = new StageGraphBuilder();
         for (var module : modules) builder.install(DiscoveredModule.builtIn(module));
-        return builder.settingsTypes();
+        return builder.settingsTypes(type -> false);
     }
 
     private static List<String> order(ResolvedGraph graph) {

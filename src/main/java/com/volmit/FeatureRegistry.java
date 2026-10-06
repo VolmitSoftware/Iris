@@ -4,6 +4,7 @@ import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
+import com.volmit.stage.StageGraph;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON fields must be unique per attachment target, including the
@@ -20,4 +21,13 @@ public interface FeatureRegistry {
     <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, MantleCodec<T> codec);
 
     <F extends IrisFeature> void registerObject(Class<F> featureType, ObjectGeneratorFactory<F> factory);
+
+    /** Catalogs a settings type that no stage names in {@code when(...)}, such as one read only
+     * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes it and studio
+     * describes it. Settings that a stage names are catalogued without this; registering them as
+     * well changes nothing. The type's feature id must be this module's id or start with it and
+     * {@code /}. Once registered, other modules may name the type in {@code when(...)} (see
+     * {@link StageGraph}).
+     */
+    void registerSettings(Class<? extends IrisFeature> settingsType);
 }

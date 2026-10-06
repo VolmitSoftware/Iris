@@ -35,7 +35,7 @@ public record LoadedModules(FeatureCatalog catalog, ResolvedGraph placement, Res
         for (var discovered : modules) {
             installModule(discovered, stages, registry);
         }
-        stages.settingsTypes().forEach(registry::registerSettings);
+        stages.settingsTypes(registry::registeredByOwner).forEach(registry::registerStageSettings);
         return new LoadedModules(registry.freeze(), stages.resolve(Pipeline.PLACEMENT), stages.resolve(Pipeline.CHUNK));
     }
 

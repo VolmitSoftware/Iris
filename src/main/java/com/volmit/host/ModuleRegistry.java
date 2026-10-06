@@ -18,8 +18,8 @@ import java.util.Set;
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
  * immutable. IDs are unique across feature kinds; JSON fields are unique per attachment target.
  * Pass existing host JSON fields to reserve them before modules register. Modules register through
- * {@link #register(DiscoveredModule)}; object feature ids and mantle keys must be the registering
- * module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}). A failed registration leaves the registry unchanged. A failed module callback
+ * {@link #register(DiscoveredModule)}; object feature ids, mantle keys and explicitly registered
+ * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}). A failed registration leaves the registry unchanged. A failed module callback
  * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
  * settings.
  */
@@ -29,6 +29,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Map<String, MantleRegistration<?>> mantle = new HashMap<>();
     private final Set<ResourceId> featureIds = new HashSet<>();
     private final Set<Class<?>> featureTypes = new HashSet<>();
+    private final Set<Class<?>> registeredByOwner = new HashSet<>();
     private final Map<Field, String> fields = new HashMap<>();
     private FeatureCatalog catalog;
     private DiscoveredModule registering;
@@ -81,15 +82,29 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
-    /** Claims a settings type named by a stage's when(...). Several stages may share one type. */
+    @Override
     public void registerSettings(Class<? extends IrisFeature> settingsType) {
+        checkOpen();
+        var descriptor = FeatureDescriptor.of(settingsType);
+        requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
+        catalogSettings(descriptor);
+        registeredByOwner.add(settingsType);
+    }
+
+    /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
+     * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type.
+     */
+    void registerStageSettings(Class<? extends IrisFeature> settingsType) {
         checkOpen();
         if (settings.containsKey(settingsType)) {
             return;
         }
-        var descriptor = FeatureDescriptor.of(settingsType);
-        claim(descriptor);
-        settings.put(settingsType, descriptor);
+        catalogSettings(FeatureDescriptor.of(settingsType));
+    }
+
+    /** Whether the module owning {@code settingsType} registered it through {@link #registerSettings}. */
+    boolean registeredByOwner(Class<?> settingsType) {
+        return registeredByOwner.contains(settingsType);
     }
 
     public FeatureCatalog freeze() {
@@ -97,6 +112,14 @@ public final class ModuleRegistry implements FeatureRegistry {
             catalog = new FeatureCatalog(settings, objects, mantle);
         }
         return catalog;
+    }
+
+    private void catalogSettings(FeatureDescriptor<?> descriptor) {
+        if (settings.containsKey(descriptor.type())) {
+            return;
+        }
+        claim(descriptor);
+        settings.put(descriptor.type(), descriptor);
     }
 
     private void requireOwnedId(String registration, ResourceId id) {

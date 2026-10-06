@@ -1,0 +1,29 @@
+package com.volmit.config;
+
+/** What a text option names, so studio can offer the matching completion list. Platform kinds name
+ * entries of the server's registries, such as {@code minecraft:stone}, including those that data
+ * packs and mods add. Pack kinds name resources of the pack being edited. The set is closed: every
+ * kind is one the Iris host can list.
+ */
+public enum Reference {
+    /** A block type, such as {@code minecraft:stone}. {@link com.volmit.block.BlockState} options are block references without {@link Ref}. */
+    BLOCK,
+    /** An item type, such as {@code minecraft:stick}. */
+    ITEM,
+    /** An entity type, such as {@code minecraft:zombie}. */
+    ENTITY,
+    /** A platform biome, such as {@code minecraft:plains}; not a biome of the pack. */
+    BIOME,
+    /** A platform structure, such as {@code minecraft:village_plains}. */
+    STRUCTURE,
+    /** A potion effect type, such as {@code minecraft:speed}. */
+    POTION_EFFECT,
+    /** An enchantment, such as {@code minecraft:sharpness}. */
+    ENCHANTMENT,
+    /** A biome of the pack. */
+    PACK_BIOME,
+    /** A region of the pack. */
+    PACK_REGION,
+    /** An object of the pack. */
+    PACK_OBJECT
+}

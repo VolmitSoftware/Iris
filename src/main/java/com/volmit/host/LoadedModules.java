@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.FeatureAttachment;
+import com.volmit.host.schema.PackSchema;
 import com.volmit.stage.Pipeline;
 import java.util.Collection;
 import java.util.List;
@@ -9,11 +10,13 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Everything one pack load derives from its modules: the frozen feature catalog (including the
- * settings types stages are conditioned on) and one resolved graph per pipeline.
+ * settings types stages are conditioned on), its description for studio and one resolved graph per
+ * pipeline.
  */
-public record LoadedModules(FeatureCatalog catalog, ResolvedGraph placement, ResolvedGraph chunk) {
+public record LoadedModules(FeatureCatalog catalog, PackSchema schema, ResolvedGraph placement, ResolvedGraph chunk) {
     public LoadedModules {
         Objects.requireNonNull(catalog, "catalog");
+        Objects.requireNonNull(schema, "schema");
         Objects.requireNonNull(placement, "placement");
         Objects.requireNonNull(chunk, "chunk");
     }
@@ -36,7 +39,9 @@ public record LoadedModules(FeatureCatalog catalog, ResolvedGraph placement, Res
             installModule(discovered, stages, registry);
         }
         stages.settingsTypes(registry::registeredByOwner).forEach(registry::registerStageSettings);
-        return new LoadedModules(registry.freeze(), stages.resolve(Pipeline.PLACEMENT), stages.resolve(Pipeline.CHUNK));
+        var catalog = registry.freeze();
+        var schema = PackSchemaBuilder.describe(catalog, modules);
+        return new LoadedModules(catalog, schema, stages.resolve(Pipeline.PLACEMENT), stages.resolve(Pipeline.CHUNK));
     }
 
     /** The pack load checks that every class a module uses exists, not that every method or field

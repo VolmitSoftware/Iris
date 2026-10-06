@@ -2,13 +2,17 @@ package com.volmit.example.chunk;
 
 import com.volmit.FeatureAttachment;
 import com.volmit.IrisFeature;
+import com.volmit.block.BlockState;
+import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
+@Desc("Covers the top of every terrain column")
 @Feature(id = "example:grass", name = "Grass", field = "grass", targets = FeatureAttachment.Target.BIOME)
 public final class GrassSettings implements IrisFeature {
-    private String block = "minecraft:grass_block";
+    @Desc("Block placed on top of each column")
+    private BlockState block = new BlockState("minecraft:grass_block");
 
-    public String block() {
+    public BlockState block() {
         return block;
     }
 }

@@ -26,7 +26,7 @@ public final class GrassModule implements IrisModule {
     }
 
     private static void cover(ChunkStageContext context, GrassSettings grass) {
-        var top = new BlockState(grass.block());
+        var top = grass.block();
         var heights = context.output(TerrainModule.SURFACE);
         var blocks = context.hunk(BlockState.class);
         for (int x = 0; x < blocks.getWidth(); x++) {

@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.host.schema.PackSchema;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -56,6 +57,13 @@ public final class LoadedPack implements AutoCloseable {
 
     public FeatureCatalog catalog() {
         return loaded.catalog();
+    }
+
+    /** What the pack's modules, built-in ones included, add to the pack's JSON, for studio's schema
+     * and completion. Built with the pack, so a load that returns has a complete description.
+     */
+    public PackSchema schema() {
+        return loaded.schema();
     }
 
     public ResolvedGraph placement() {

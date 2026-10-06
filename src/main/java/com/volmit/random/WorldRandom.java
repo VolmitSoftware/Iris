@@ -1,5 +1,10 @@
 package com.volmit.random;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.RandomAccess;
+
 /** A random stream whose every value is defined here, so the same seed gives the same draws on
  * every machine and every JDK. World generation draws from it: stages through
  * {@link com.volmit.stage.StageContext#random()}, object generators through
@@ -29,7 +34,10 @@ package com.volmit.random;
  *       for ranges wider than the largest double);</li>
  *   <li>{@code nextGaussian()}: Marsaglia's polar method on pairs of {@code nextDouble()} values,
  *       using {@link StrictMath}, whose results are fixed;</li>
- *   <li>{@code chance(p)}: {@code nextDouble() < p}.</li>
+ *   <li>{@code chance(p)}: {@code nextDouble() < p};</li>
+ *   <li>{@code pick(items)}: {@code items.get(nextInt(items.size()))};</li>
+ *   <li>{@code shuffle(items)}: Fisher-Yates, for {@code i} from {@code size - 1} down to {@code 1}
+ *       swapping index {@code i} with {@code nextInt(i + 1)}.</li>
  * </ul>
  * Methods without rejection draw exactly one value. {@code nextInt(0, n)} equals {@code nextInt(n)}
  * and {@code nextLong(0, n)} equals {@code nextLong(n)}.
@@ -158,6 +166,53 @@ public final class WorldRandom {
         return nextDouble() < probability;
     }
 
+    /** One element chosen uniformly: {@code items.get(nextInt(items.size()))}, so it draws exactly what
+     * {@link #nextInt(int)} draws. Throws if {@code items} is empty.
+     */
+    public <T> T pick(List<T> items) {
+        if (items.isEmpty()) throw new IllegalArgumentException("cannot pick from an empty list");
+        return items.get(nextInt(items.size()));
+    }
+
+    /** Shuffles {@code items} in place by Fisher-Yates: for {@code i} from {@code size - 1} down to
+     * {@code 1}, swap the elements at {@code i} and {@code nextInt(i + 1)}. A list of {@code n >= 2}
+     * elements takes {@code n - 1} {@code nextInt} calls; a shorter list draws nothing and is not touched.
+     *
+     * <p>{@link RandomAccess} lists are swapped through {@link List#set}. Other lists, such as
+     * {@link java.util.LinkedList}, are copied to an array, shuffled there and written back through
+     * their {@link ListIterator}, like {@link Collections#shuffle}; the result is the same. A list that
+     * does not support {@code set} throws its {@link UnsupportedOperationException} before any element
+     * changes.
+     */
+    public void shuffle(List<?> items) {
+        if (items.size() < 2) return;
+        if (items instanceof RandomAccess) {
+            fisherYates(items.size(), (i, j) -> Collections.swap(items, i, j));
+            return;
+        }
+        shuffleThroughArray(items);
+    }
+
+    private void shuffleThroughArray(List<?> items) {
+        Object[] copy = items.toArray();
+        fisherYates(copy.length, (i, j) -> {
+            Object swapped = copy[i];
+            copy[i] = copy[j];
+            copy[j] = swapped;
+        });
+        @SuppressWarnings("unchecked")
+        ListIterator<Object> writer = (ListIterator<Object>) items.listIterator();
+        for (Object item : copy) {
+            writer.next();
+            writer.set(item);
+        }
+    }
+
+    /** The one place the shuffle order is defined, so both list kinds give the same result. */
+    private void fisherYates(int size, IndexSwap swap) {
+        for (int i = size - 1; i > 0; i--) swap.swap(i, nextInt(i + 1));
+    }
+
     /** Lemire's method for {@code range} in {@code [1, 2^32]}: high half of a 32-by-32-bit product. */
     private long boundedInt(long range) {
         long product = (nextLong() >>> INT_BITS) * range;
@@ -194,6 +249,11 @@ public final class WorldRandom {
 
     private static IllegalArgumentException invalidRange(long origin, long bound) {
         return new IllegalArgumentException("origin must be below bound: [" + origin + ", " + bound + ")");
+    }
+
+    @FunctionalInterface
+    private interface IndexSwap {
+        void swap(int i, int j);
     }
 
     private static long mix(long value) {

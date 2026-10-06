@@ -3,7 +3,10 @@ package com.volmit.random;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -124,6 +127,78 @@ class WorldRandomTest {
     }
 
     @Test
+    void pickTakesTheElementAtNextInt() {
+        assertEquals(List.of("h", "b", "c", "d", "a", "i"),
+                draws(6, random -> random.pick(List.of("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"))));
+    }
+
+    @Test
+    void shuffleIsFisherYatesFromTheLastIndexDown() {
+        assertEquals(List.of(), shuffled(0));
+        assertEquals(List.of(0), shuffled(1));
+        assertEquals(List.of(0, 1), shuffled(2));
+        assertEquals(List.of(8, 3, 6, 5, 4, 0, 9, 2, 1, 7), shuffled(10));
+    }
+
+    /** The first {@code nextInt(2)} is 1, which keeps the pair; the second is 0, which swaps it. */
+    @Test
+    void shuffleSwapsAPairWhenNextIntIsZero() {
+        var random = new WorldRandom(SEED);
+        var pair = new ArrayList<>(List.of(0, 1));
+
+        random.shuffle(pair);
+        assertEquals(List.of(0, 1), pair);
+        random.shuffle(pair);
+        assertEquals(List.of(1, 0), pair);
+    }
+
+    @Test
+    void shuffleGivesTheSameResultForListsWithoutRandomAccess() {
+        var linked = new LinkedList<>(range(10));
+        new WorldRandom(SEED).shuffle(linked);
+
+        assertEquals(shuffled(10), linked);
+    }
+
+    @Test
+    void shuffleOfAListWithoutSetThrowsAndLeavesItUnchanged() {
+        var fixed = List.of(0, 1, 2);
+        var unmodifiableLinked = Collections.unmodifiableList(new LinkedList<>(fixed));
+
+        assertThrows(UnsupportedOperationException.class, () -> new WorldRandom(SEED).shuffle(fixed));
+        assertThrows(UnsupportedOperationException.class, () -> new WorldRandom(SEED).shuffle(unmodifiableLinked));
+        assertEquals(fixed, unmodifiableLinked);
+    }
+
+    @Test
+    void shuffleOfFewerThanTwoElementsTouchesNothing() {
+        assertDoesNotThrow(() -> new WorldRandom(SEED).shuffle(List.of(0)));
+        assertDoesNotThrow(() -> new WorldRandom(SEED).shuffle(Collections.unmodifiableList(new LinkedList<>(List.of(0)))));
+    }
+
+    @Test
+    void pickFromAnEmptyListThrows() {
+        assertThrows(IllegalArgumentException.class, () -> new WorldRandom(SEED).pick(List.of()));
+    }
+
+    /** {@code pick} draws what {@code nextInt(size)} draws; a shuffle of {@code n >= 2} elements draws
+     * {@code n - 1} values (no rejection at these bounds and seed), a shorter one nothing.
+     */
+    @Test
+    void listHelpersDrawAFixedNumberOfValues() {
+        var longs = draws(10, WorldRandom::nextLong);
+        var picked = new WorldRandom(SEED);
+        picked.pick(List.of("a", "b", "c"));
+        assertEquals(longs.get(1), picked.nextLong());
+
+        for (int size : new int[] {0, 1, 2, 10}) {
+            var random = new WorldRandom(SEED);
+            random.shuffle(new ArrayList<>(range(size)));
+            assertEquals(longs.get(Math.max(size - 1, 0)), random.nextLong(), "shuffle of " + size);
+        }
+    }
+
+    @Test
     void zeroOriginRangesEqualTheSingleBoundMethods() {
         assertEquals(draws(REPEATS, random -> random.nextInt(37)), draws(REPEATS, random -> random.nextInt(0, 37)));
         assertEquals(draws(REPEATS, random -> random.nextLong(37)), draws(REPEATS, random -> random.nextLong(0, 37)));
@@ -175,7 +250,18 @@ class WorldRandomTest {
 
         assertEquals(Set.of("nextLong()", "nextLong(long)", "nextLong(long,long)", "nextInt()", "nextInt(int)",
                 "nextInt(int,int)", "nextBoolean()", "nextFloat()", "nextDouble()", "nextDouble(double)",
-                "nextDouble(double,double)", "nextGaussian()", "chance(double)"), methods);
+                "nextDouble(double,double)", "nextGaussian()", "chance(double)", "pick(java.util.List)",
+                "shuffle(java.util.List)"), methods);
+    }
+
+    private static List<Integer> shuffled(int size) {
+        var items = new ArrayList<>(range(size));
+        new WorldRandom(SEED).shuffle(items);
+        return items;
+    }
+
+    private static List<Integer> range(int size) {
+        return Stream.iterate(0, i -> i + 1).limit(size).toList();
     }
 
     private static String signature(Method method) {

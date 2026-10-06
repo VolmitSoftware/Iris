@@ -57,8 +57,9 @@ module may still condition its stages on it, as moss does on `iris:snow`.
 Stages and object generators draw from `com.volmit.random.WorldRandom`, an IrisApi type whose every
 method is defined and pinned by tests, so the same seed gives the same world on every JDK. It is
 SplitMix64 with `nextInt`, `nextLong` and `nextDouble` in plain, bounded and `origin, bound` forms,
-plus `nextBoolean`, `nextFloat`, `nextGaussian` and `chance(probability)`. It does not implement
-`java.util.random.RandomGenerator`, whose default methods the JDK may change. Bounded integers are
+plus `nextBoolean`, `nextFloat`, `nextGaussian`, `chance(probability)`, `pick(list)` and
+`shuffle(list)`. It does not implement `java.util.random.RandomGenerator`, whose default methods the
+JDK may change, so use `pick` and `shuffle` instead of `Collections.shuffle`. Bounded integers are
 unbiased, `nextDouble` never returns its bound, and invalid bounds throw. It is not thread-safe: a
 stage uses its own stream within one invocation and must not share or keep it.
 

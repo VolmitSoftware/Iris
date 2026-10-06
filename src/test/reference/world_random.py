@@ -177,6 +177,25 @@ class WorldRandom:
     def chance(self, probability):
         return self.next_double() < probability
 
+    def pick(self, items):
+        return items[self.next_int_bound(len(items))]
+
+    def shuffle(self, items):
+        """Fisher-Yates from the last index down to 1, swapping each with a nextInt(i + 1) index."""
+        for i in range(len(items) - 1, 0, -1):
+            j = self.next_int_bound(i + 1)
+            items[i], items[j] = items[j], items[i]
+
+
+class CountingRandom(WorldRandom):
+    def __init__(self, seed):
+        super().__init__(seed)
+        self.draws = 0
+
+    def raw(self):
+        self.draws += 1
+        return super().raw()
+
 
 def below(value):
     bits = struct.unpack("<q", struct.pack("<d", value))[0]
@@ -216,3 +235,16 @@ if __name__ == "__main__":
     draws("nextDouble(-MAX, MAX)", lambda r: r.next_double_range(-max_double, max_double))
     draws("nextGaussian()", WorldRandom.next_gaussian)
     draws("chance(0.25)", lambda r: r.chance(0.25), count=12)
+    draws("pick(a..j)", lambda r: r.pick("abcdefghij"))
+    for size in (0, 1, 2, 10):
+        random = CountingRandom(42)
+        items = list(range(size))
+        random.shuffle(items)
+        print(f"shuffle(0..{size - 1}): {items}, {random.draws} draws")
+    # The first nextInt(2) is 1, which keeps [0, 1]; the second is 0, which swaps.
+    random = WorldRandom(42)
+    pair = [0, 1]
+    random.shuffle(pair)
+    first = list(pair)
+    random.shuffle(pair)
+    print(f"shuffle([0, 1]) twice on one stream: {first}, {pair}")

@@ -405,7 +405,7 @@ JDK defaults that a JDK update may change, and those are the ones module authors
 `WorldRandom` therefore does not implement `RandomGenerator`. Overriding every default would hold
 only until a JDK adds another one; a type of its own exposes nothing IrisApi does not define. The
 price is that it cannot be passed to JDK methods that take a `Random` or `RandomGenerator`, such as
-`Collections.shuffle`. Its methods:
+`Collections.shuffle`; `pick` and `shuffle` cover the list cases instead. Its methods:
 
 | Method | Definition |
 | --- | --- |
@@ -418,13 +418,20 @@ price is that it cannot be passed to JDK methods that take a `Random` or `Random
 | `nextDouble(bound)`, `nextDouble(origin, bound)` | `origin + nextDouble() * (bound - origin)`, a result rounded up to `bound` replaced by the double below it; a width beyond `Double.MAX_VALUE` is halved first |
 | `nextGaussian()` | Marsaglia's polar method on `StrictMath.log` and `StrictMath.sqrt`; the pair's second value is discarded |
 | `chance(probability)` | `nextDouble() < probability` |
+| `pick(items)` | `items.get(nextInt(items.size()))`; an empty list throws |
+| `shuffle(items)` | Fisher-Yates in place: for `i` from `size - 1` down to `1`, swap `i` with `nextInt(i + 1)` |
 
 The state is one `long`, initially the seed. Methods without rejection draw exactly one value; how
 many values a method draws is part of the sequence. `StrictMath` is fixed bit for bit by the Java SE
 specification (fdlibm), so the gaussian needs no math of its own. Invalid bounds (`bound <= 0`,
 `origin >= bound`, NaN or infinite doubles, a probability outside `[0, 1]`) throw
-`IllegalArgumentException`. The generator is not thread-safe: one stage uses its stream within one
-invocation.
+`IllegalArgumentException`, as does `pick` on an empty list. `pick` draws what `nextInt(size)`
+draws. A shuffle of `n >= 2` elements makes `n - 1` `nextInt` calls; a shorter list draws nothing
+and is not touched. `RandomAccess` lists are swapped through `List.set`; other lists are copied to
+an array, shuffled there and written back through their `ListIterator`, like `Collections.shuffle`,
+with the same result. A list that does not support `set` throws its `UnsupportedOperationException`
+before any element changes. Weighted picking is left out until a stage needs it. The generator is
+not thread-safe: one stage uses its stream within one invocation.
 
 `WorldRandomTest` pins every method to values computed by `src/test/reference/world_random.py`, an
 independent implementation of this table with Python integers and IEEE doubles. Python's `math.log`

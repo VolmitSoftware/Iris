@@ -3,36 +3,44 @@ package art.arcane.iris.core.loader;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.json.JSONObject;
-import com.google.gson.annotations.SerializedName;
 
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class JsonSchemaValidator {
-    private static final ConcurrentHashMap<Class<?>, Set<String>> FIELD_CACHE = new ConcurrentHashMap<>();
     private static final int SUGGESTION_MAX_DISTANCE = 4;
 
     private JsonSchemaValidator() {
     }
 
-    static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass) {
+    /**
+     * Warns about every top-level key that is neither a field of {@code objectClass} nor one of
+     * {@code moduleKeys}, the ids and aliases the pack's modules read at this resource's target.
+     */
+    static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass,
+                                     Set<String> moduleKeys) {
         if (parsed == null || objectClass == null) {
             return;
         }
-        Set<String> known = FIELD_CACHE.computeIfAbsent(objectClass, JsonSchemaValidator::collectFieldNames);
+        Set<String> fields = JsonFieldNames.of(objectClass);
         for (String key : parsed.keySet()) {
-            if (known.contains(key)) {
+            if (fields.contains(key) || moduleKeys.contains(key)) {
                 continue;
             }
-            reportUnknownKey(key, rawText, file, resourceTypeName, known);
+            reportUnknownKey(key, rawText, file, resourceTypeName, union(fields, moduleKeys));
         }
+    }
+
+    private static Set<String> union(Set<String> fields, Set<String> moduleKeys) {
+        if (moduleKeys.isEmpty()) {
+            return fields;
+        }
+        Set<String> known = new LinkedHashSet<>(fields);
+        known.addAll(moduleKeys);
+        return known;
     }
 
     static void reportLoadFailure(File file, String rawText, String resourceTypeName, Throwable error) {
@@ -75,31 +83,6 @@ final class JsonSchemaValidator {
             out.append('\n').append(snippet);
         }
         IrisLogging.warn(out.toString());
-    }
-
-    private static Set<String> collectFieldNames(Class<?> cls) {
-        Set<String> names = new LinkedHashSet<>();
-        Class<?> c = cls;
-        while (c != null && c != Object.class) {
-            for (Field field : c.getDeclaredFields()) {
-                int mods = field.getModifiers();
-                if (Modifier.isStatic(mods) || Modifier.isTransient(mods)) {
-                    continue;
-                }
-                if (field.isSynthetic()) {
-                    continue;
-                }
-                SerializedName serialized = field.getAnnotation(SerializedName.class);
-                if (serialized != null) {
-                    names.add(serialized.value());
-                    Collections.addAll(names, serialized.alternate());
-                } else {
-                    names.add(field.getName());
-                }
-            }
-            c = c.getSuperclass();
-        }
-        return Collections.unmodifiableSet(names);
     }
 
     private static int findLineForKey(String rawText, String key) {

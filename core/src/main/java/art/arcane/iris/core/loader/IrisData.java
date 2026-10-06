@@ -31,6 +31,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
@@ -106,6 +107,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private final int id;
     private final boolean datapackCompiler;
     private volatile boolean closed = false;
+    private final PackModuleSet modules;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -139,6 +141,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     private IrisData(File dataFolder, boolean datapackCompiler) {
         this.dataFolder = dataFolder;
+        this.modules = new PackModuleSet(dataFolder);
         this.id = RNG.r.imax();
         this.datapackCompiler = datapackCompiler;
         if (datapackCompiler) {
@@ -418,6 +421,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public void close() {
         closed = true;
         dump();
+        modules.close();
         synchronized (engines) {
             engines.clear();
         }

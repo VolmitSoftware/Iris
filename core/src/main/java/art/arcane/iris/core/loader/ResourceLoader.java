@@ -37,6 +37,9 @@ import art.arcane.volmlib.util.io.CustomOutputStream;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.core.modules.ModuleSettings;
+import art.arcane.iris.core.modules.ModuleTargets;
+import com.volmit.FeatureAttachment.Target;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
@@ -64,6 +67,7 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -414,9 +418,11 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             rawText = IO.readAll(j);
             JSONObject parsed = new JSONObject(rawText);
-            JsonSchemaValidator.validateTopLevelKeys(parsed, rawText, j, resourceTypeName, objectClass);
+            Optional<Target> moduleTarget = ModuleTargets.ofResource(objectClass);
+            JsonSchemaValidator.validateTopLevelKeys(parsed, rawText, j, resourceTypeName, objectClass, moduleKeys(moduleTarget));
             T t = getManager().getGson()
                     .fromJson(preprocess(parsed).toString(0), objectClass);
+            moduleTarget.ifPresent(target -> t.setModuleSettings(decodeModuleSettings(target, parsed, name)));
             t.setLoadKey(name);
             t.setLoadFile(j);
             t.setLoader(manager);
@@ -429,6 +435,15 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             failLoad(j, rawText, e);
             return null;
         }
+    }
+
+    /** The ids and aliases the pack's modules read at {@code target}; none for resources that hold no module settings. */
+    private Set<String> moduleKeys(Optional<Target> target) {
+        return target.map(found -> getManager().getModules().settings().keys(found)).orElse(Set.of());
+    }
+
+    private ModuleSettings decodeModuleSettings(Target target, JSONObject json, String name) {
+        return getManager().getModules().settings().decode(target, json, resourceTypeName + " " + name);
     }
 
     protected JSONObject preprocess(JSONObject j) {

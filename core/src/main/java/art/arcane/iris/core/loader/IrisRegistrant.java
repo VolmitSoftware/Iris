@@ -19,6 +19,7 @@
 package art.arcane.iris.core.loader;
 
 import com.google.gson.GsonBuilder;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.spi.IrisLogging;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -34,6 +35,7 @@ public abstract class IrisRegistrant {
     private transient String loadKey;
 
     private transient File loadFile;
+    private transient ModuleSettings moduleSettings = ModuleSettings.NONE;
 
     public abstract String getFolderName();
 

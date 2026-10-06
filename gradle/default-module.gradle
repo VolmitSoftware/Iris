@@ -41,6 +41,10 @@ def verifyDefaultModuleOwnership = tasks.register('verifyDefaultModuleOwnership'
 
 tasks.named('compileJava').configure {
     dependsOn(verifyDefaultModuleOwnership)
+    // The default module's lombok.config imports core's, so editing either changes the generated members.
+    inputs.file(new File(defaultModuleDirectory, 'lombok.config'))
+        .withPropertyName('defaultModuleLombokConfig')
+        .withPathSensitivity(PathSensitivity.NONE)
 }
 
 tasks.named('test').configure {

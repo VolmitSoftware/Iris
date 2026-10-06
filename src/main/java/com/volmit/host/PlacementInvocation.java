@@ -6,13 +6,13 @@ import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementAccess;
 import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementRequest;
+import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
-import java.util.random.RandomGenerator;
 
 /** The context every stage of one placement attempt receives. Block accessors work only while
  * a block pass is running.
@@ -117,7 +117,7 @@ final class PlacementInvocation implements BlockStageContext {
     }
 
     @Override
-    public RandomGenerator random() {
+    public WorldRandom random() {
         return stages.random();
     }
 

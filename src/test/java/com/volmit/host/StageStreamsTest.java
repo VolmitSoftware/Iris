@@ -22,11 +22,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.random.RandomGenerator;
 import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.*;
 
-class StageRandomTest {
+class StageStreamsTest {
     private static final BlockState STONE = new BlockState("minecraft:stone");
     private static final int BLOCKS = 3;
     private static final int BOUND = 1_000_000;
@@ -79,7 +78,7 @@ class StageRandomTest {
     }
 
     private static List<Long> firstDraws(long invocationSeed, String stageId, int count) {
-        var stream = StageRandom.stream(invocationSeed, ResourceId.parse(stageId));
+        var stream = StageStreams.stream(invocationSeed, ResourceId.parse(stageId));
         return IntStream.range(0, count).mapToObj(ignored -> (long) stream.nextInt(BOUND)).toList();
     }
 
@@ -123,7 +122,7 @@ class StageRandomTest {
         var drawn = place(graph, TestContexts.SEED);
 
         assertNotEquals(drawn.get("a:mod/pick"), drawn.get("c:mod/pick"));
-        assertNotEquals(StageRandom.idHash(ResourceId.parse("a:mod/pick")), StageRandom.idHash(ResourceId.parse("c:mod/pick")));
+        assertNotEquals(StageStreams.idHash(ResourceId.parse("a:mod/pick")), StageStreams.idHash(ResourceId.parse("c:mod/pick")));
     }
 
     @Test
@@ -147,16 +146,19 @@ class StageRandomTest {
     }
 
     /** Pins the documented derivation with values computed outside Java from its specification, so a
-     * change to the derivation or to the JDK's Random fails here instead of silently changing worlds.
+     * change to the derivation fails here instead of silently changing worlds. {@code WorldRandomTest}
+     * pins the generator itself.
      */
     @Test
     void derivationMatchesItsSpecification() {
         var stage = ResourceId.parse("iris:stilt/fill");
-        assertEquals(0xd11cde74d6a9508aL, StageRandom.idHash(stage), "64-bit FNV-1a of iris:stilt/fill");
+        assertEquals(0xd11cde74d6a9508aL, StageStreams.idHash(stage), "64-bit FNV-1a of iris:stilt/fill");
 
-        RandomGenerator stream = StageRandom.stream(TestContexts.SEED, stage);
-        assertEquals(4203081479670090427L, stream.nextLong());
-        assertEquals(-978353470, stream.nextInt());
-        assertEquals(943449, stream.nextInt(BOUND));
+        assertEquals(-3593301659158072667L, StageStreams.streamSeed(TestContexts.SEED, StageStreams.idHash(stage)));
+
+        var stream = StageStreams.stream(TestContexts.SEED, stage);
+        assertEquals(2676194909693269196L, stream.nextLong());
+        assertEquals(1649978757, stream.nextInt());
+        assertEquals(868252, stream.nextInt(BOUND));
     }
 }

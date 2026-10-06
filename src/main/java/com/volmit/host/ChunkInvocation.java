@@ -4,12 +4,12 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.generation.GenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
+import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
-import java.util.random.RandomGenerator;
 
 /** The context every stage of one chunk invocation receives. */
 final class ChunkInvocation implements ChunkStageContext {
@@ -76,7 +76,7 @@ final class ChunkInvocation implements ChunkStageContext {
     }
 
     @Override
-    public RandomGenerator random() {
+    public WorldRandom random() {
         return stages.random();
     }
 }

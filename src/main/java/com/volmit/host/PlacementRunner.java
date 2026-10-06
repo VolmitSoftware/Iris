@@ -24,7 +24,7 @@ public final class PlacementRunner {
     /** Takes ownership of a fresh edit and closes it on success, rejection or exception.
      * The host prepares the edit area, the read-only inputs and the settings configured for this
      * placement, and derives {@code invocationSeed} from the world seed and the placement's stable
-     * identity. Each stage draws from its own stream of that seed ({@link StageRandom}). Stages never
+     * identity. Each stage draws from its own stream of that seed ({@link StageStreams}). Stages never
      * receive commit/close rights.
      */
     public PlacementOutcome place(

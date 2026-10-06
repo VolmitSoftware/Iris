@@ -1,6 +1,6 @@
 package com.volmit.stage;
 
-import java.util.random.RandomGenerator;
+import com.volmit.random.WorldRandom;
 
 /** Per-invocation view handed to one stage body. Do not retain it after the body returns. */
 public interface StageContext {
@@ -9,7 +9,7 @@ public interface StageContext {
      * how much they draw, never changes what this stage draws. A block stage has one stream per
      * placement, drawn across the blocks of its pass in block order. Do not retain it.
      */
-    RandomGenerator random();
+    WorldRandom random();
 
     /** The output the given stage produced in this invocation. Only stages the current stage
      * transitively requires are readable; anything else throws IllegalStateException, as does

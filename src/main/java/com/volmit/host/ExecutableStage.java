@@ -5,7 +5,7 @@ import com.volmit.stage.Stage;
 /** Execution data of one resolved stage. Indices are positions in the resolved order.
  * readableStages/readablePositions are the transitive requirements whose outputs it may read.
  * settingsSlot indexes the graph's distinct settings types, or is NO_SETTINGS. idHash keys the
- * stage's random stream ({@link StageRandom}), computed once per pack load.
+ * stage's random stream ({@link StageStreams}), computed once per pack load.
  */
 record ExecutableStage(
         Stage<?> stage,

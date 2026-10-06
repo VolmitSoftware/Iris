@@ -19,7 +19,7 @@ public final class ChunkRunner {
     }
 
     /** Runs one chunk. The host derives {@code invocationSeed} from the world seed and the chunk
-     * position; each stage draws from its own stream of that seed ({@link StageRandom}).
+     * position; each stage draws from its own stream of that seed ({@link StageStreams}).
      */
     public void generate(GenerationContext inputs, long invocationSeed, ConfiguredSettings settings) {
         var chunk = new ChunkInvocation(new StageInvocation(graph, invocationSeed, settings), inputs);

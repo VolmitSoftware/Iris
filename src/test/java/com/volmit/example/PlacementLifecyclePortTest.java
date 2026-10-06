@@ -10,7 +10,7 @@ import com.volmit.host.LoadedModules;
 import com.volmit.host.PlacementRunner;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.StageGraphBuilder;
-import com.volmit.host.StageRandom;
+import com.volmit.host.StageStreams;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
@@ -120,7 +120,7 @@ class PlacementLifecyclePortTest {
      * is the first draw of the transforms stage's own stream.
      */
     private static BlockPosition placed(int x, int y, int z) {
-        var transforms = new Transforms(StageRandom.stream(TestContexts.SEED, PrepareModule.TRANSFORMS.id()).nextInt(4));
+        var transforms = new Transforms(StageStreams.stream(TestContexts.SEED, PrepareModule.TRANSFORMS.id()).nextInt(4));
         var rotated = transforms.rotate(new BlockPosition(x, y, z), new BlockPosition(0, 0, 0));
         return rotated.add(SURFACE_ANCHOR);
     }

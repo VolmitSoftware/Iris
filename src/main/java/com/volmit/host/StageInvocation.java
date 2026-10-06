@@ -1,11 +1,11 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
+import com.volmit.random.WorldRandom;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.random.RandomGenerator;
 import java.util.stream.IntStream;
 
 /** Pipeline-independent state of one invocation: activation, settings, stage outputs and stage
@@ -24,7 +24,7 @@ final class StageInvocation {
     private final boolean[] active;
     private final Object[] outputs;
     private final long invocationSeed;
-    private final RandomGenerator[] streams;
+    private final WorldRandom[] streams;
     private int current = NO_STAGE;
 
     StageInvocation(ResolvedGraph graph, long invocationSeed, ConfiguredSettings settings) {
@@ -34,7 +34,7 @@ final class StageInvocation {
         outputs = new Object[graph.size()];
         Arrays.fill(outputs, PENDING);
         this.invocationSeed = invocationSeed;
-        streams = new RandomGenerator[graph.size()];
+        streams = new WorldRandom[graph.size()];
     }
 
     boolean isActive(int position) {
@@ -97,12 +97,12 @@ final class StageInvocation {
     }
 
     /** The running stage's own stream. A block stage keeps one stream across every block of its pass. */
-    RandomGenerator random() {
+    WorldRandom random() {
         if (current == NO_STAGE) {
             throw new IllegalStateException("A stage's random stream is only available while the stage runs");
         }
         if (streams[current] == null) {
-            streams[current] = StageRandom.stream(invocationSeed, graph.executable(current).idHash());
+            streams[current] = StageStreams.stream(invocationSeed, graph.executable(current).idHash());
         }
         return streams[current];
     }

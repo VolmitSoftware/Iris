@@ -12,8 +12,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /** The host's side of every pack load, the same for all packs: its built-in modules, the host
- * packages pack modules may use besides the Iris API, the JSON fields the host itself uses, and the
- * namespaces only built-in modules may use. Build it once and pass it to every
+ * packages pack modules may use besides the Iris API, the JSON fields the host itself uses (which no
+ * built-in alias may take), and the namespaces only built-in modules may use. Build it once and pass it to every
  * {@link LoadedPack#load(java.nio.file.Path, ModuleHost)}.
  *
  * <pre>{@code
@@ -81,9 +81,9 @@ public record ModuleHost(
         return Map.copyOf(copy);
     }
 
-    /** A blank field name fails here, as it would in a settings type's {@code @Feature}. */
+    /** A blank field name, or one with ':' like a feature id, fails here, as it would as an alias. */
     private static void requireFieldNames(Map<FeatureAttachment.Target, Set<String>> fields) {
-        fields.forEach((target, names) -> names.forEach(name -> new FeatureAttachment(name, Set.of(target))));
+        fields.values().forEach(names -> names.forEach(FeatureAttachment::requireFieldName));
     }
 
     private static Map<FeatureAttachment.Target, Set<String>> merge(

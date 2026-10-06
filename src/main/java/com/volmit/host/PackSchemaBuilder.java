@@ -17,10 +17,13 @@ import java.util.stream.Stream;
 
 /** Describes a loaded pack's catalogued settings for studio. Fails the load, naming the class, field
  * and module, on settings the host could not render: an unsupported field type, a misplaced
- * {@code @Ref}, a class without a usable no-argument constructor or a snippet name used twice.
+ * {@code @Ref}, a class without a usable no-argument constructor, a snippet name used twice or a pack
+ * class's snippet name outside its module's path.
  */
 final class PackSchemaBuilder {
-    private static final Pattern SNIPPET_NAME = Pattern.compile("[a-z0-9_-]+");
+    private static final Pattern SNIPPET_NAME = Pattern.compile("[a-z0-9_.-]+(/[a-z0-9_.-]+)*");
+    private static final Pattern RELATIVE_SEGMENT = Pattern.compile("(^|/)\\.\\.?(/|$)");
+    private static final char FOLDER_SEPARATOR = '/';
 
     private final List<DiscoveredModule> modules;
     private final TypeDrafts drafts = new TypeDrafts();
@@ -47,8 +50,8 @@ final class PackSchemaBuilder {
     private record FeatureDraft(Catalogued catalogued, DiscoveredModule owner) {
         FeatureSchema complete(Map<String, ObjectType> types) {
             var descriptor = catalogued.descriptor();
-            return new FeatureSchema(descriptor.id(), descriptor.name(), catalogued.role(), owner.info(),
-                    descriptor.attachment().field(), descriptor.attachment().targets(), types.get(descriptor.type().getName()));
+            return new FeatureSchema(descriptor.id(), descriptor.name(), catalogued.role(), owner.info(), descriptor.key(),
+                    descriptor.alias(), descriptor.attachment().targets(), types.get(descriptor.type().getName()));
         }
     }
 
@@ -80,16 +83,51 @@ final class PackSchemaBuilder {
             var snippet = draft.metadata().snippet();
             if (snippet.isEmpty()) continue;
             requireSnippetName(snippet, draft);
+            requirePackSnippetPath(snippet, draft);
             var previous = owners.putIfAbsent(snippet, draft);
             if (previous != null) throw snippetCollision(snippet, previous, draft);
         }
     }
 
     private static void requireSnippetName(String snippet, TypeDrafts.TypeDraft draft) {
-        if (SNIPPET_NAME.matcher(snippet).matches()) return;
+        if (SNIPPET_NAME.matcher(snippet).matches() && !RELATIVE_SEGMENT.matcher(snippet).find()) return;
         throw new IllegalArgumentException("Snippet name '" + snippet + "' of " + draft.type().getName() + " of "
-                + draft.source() + " is not a folder name; packs write snippets under snippet/<name>/, so use lowercase"
-                + " letters, digits, '-' and '_'");
+                + draft.source() + " is not a folder path; packs write snippets under snippet/<name>/, so use lowercase"
+                + " letters, digits, '-', '_' and '.', with '/' between folders");
+    }
+
+    /** A pack class keeps its snippets under the folder of a module of its pack,
+     * {@code snippet/<namespace>/<path>/}, so they can never collide with Iris's own or another module's.
+     */
+    private void requirePackSnippetPath(String snippet, TypeDrafts.TypeDraft draft) {
+        if (!isPackClass(draft.type())) return;
+        if (packModules().anyMatch(module -> isUnderModuleFolder(snippet, module))) return;
+        var example = moduleFolder(draft.source().module()) + FOLDER_SEPARATOR + lastSegment(snippet);
+        throw new IllegalArgumentException("Snippet name '" + snippet + "' of " + draft.type().getName() + " of "
+                + draft.source() + " is not under a module of the pack; snippets of pack modules start with their"
+                + " module's id as a folder path, such as '" + example + "' (folder snippet/" + example + "/)");
+    }
+
+    private boolean isPackClass(Class<?> type) {
+        return packModules().anyMatch(module -> module.module().getClass().getClassLoader() == type.getClassLoader());
+    }
+
+    private Stream<DiscoveredModule> packModules() {
+        return modules.stream().filter(module -> module.source() == DiscoveredModule.Source.PACK);
+    }
+
+    private static boolean isUnderModuleFolder(String snippet, DiscoveredModule module) {
+        var folder = moduleFolder(module);
+        return snippet.equals(folder) || snippet.startsWith(folder + FOLDER_SEPARATOR);
+    }
+
+    private static String moduleFolder(DiscoveredModule module) {
+        var id = module.info().id();
+        return id.namespace() + FOLDER_SEPARATOR + id.path();
+    }
+
+    private static String lastSegment(String snippet) {
+        return snippet.substring(snippet.lastIndexOf(FOLDER_SEPARATOR) + 1);
     }
 
     private static IllegalArgumentException snippetCollision(String snippet, TypeDrafts.TypeDraft first, TypeDrafts.TypeDraft second) {

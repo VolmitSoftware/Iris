@@ -6,7 +6,7 @@ import com.volmit.config.Feature;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
 
-@Feature(id = "iris:snow", name = "Snow", field = "snow", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
+@Feature(id = "iris:snow", name = "Snow", alias = "snow", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
 public final class SnowSettings implements IrisFeature {
     @MinNumber(1)
     @MaxNumber(8)

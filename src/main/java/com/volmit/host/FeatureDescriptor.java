@@ -7,6 +7,7 @@ import com.volmit.config.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /** Validated settings metadata. It describes configuration, not executable ordering. */
@@ -41,8 +42,22 @@ public record FeatureDescriptor<F extends IrisFeature>(
                 ResourceId.parse(annotation.id()),
                 annotation.name(),
                 type,
-                new FeatureAttachment(annotation.field(), Set.of(annotation.targets())),
+                new FeatureAttachment(alias(annotation), Set.of(annotation.targets())),
                 OptionsMetadata.inspect(type));
+    }
+
+    /** The JSON key packs write these settings under: the feature id. */
+    public String key() {
+        return id.toString();
+    }
+
+    /** The short JSON key a built-in module may set besides {@link #key()}. */
+    public Optional<String> alias() {
+        return attachment.alias();
+    }
+
+    private static Optional<String> alias(Feature annotation) {
+        return annotation.alias().isEmpty() ? Optional.empty() : Optional.of(annotation.alias());
     }
 
     private static void requireConcreteFeature(Class<?> type) {

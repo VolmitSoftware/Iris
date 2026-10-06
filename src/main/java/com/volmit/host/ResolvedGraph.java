@@ -68,6 +68,11 @@ public final class ResolvedGraph {
         return pairs;
     }
 
+    /** The most the pipeline's stages write beyond their footprint, overall and per mantle layer. */
+    public PipelineReach reach() {
+        return PipelineReach.of(stages.stream().map(ResolvedStage::reach).toList());
+    }
+
     /** Human-readable order, owners, edges, block passes and unordered pairs. */
     public String describe() {
         return GraphDescription.describe(this);

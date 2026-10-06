@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
+import com.volmit.mantle.MantleKey;
 import com.volmit.stage.BlockCollector;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.BlockStageDefinition;
@@ -37,6 +38,18 @@ final class BlockStageDraft<S extends IrisFeature, O>
     @Override
     public BlockStageDraft<S, O> softBefore(StageRef... stages) {
         declaration.softBefore(stages);
+        return this;
+    }
+
+    @Override
+    public BlockStageDraft<S, O> reach(int blocks) {
+        declaration.reach(blocks);
+        return this;
+    }
+
+    @Override
+    public BlockStageDraft<S, O> writesMantle(MantleKey<?>... layers) {
+        declaration.writesMantle(layers);
         return this;
     }
 

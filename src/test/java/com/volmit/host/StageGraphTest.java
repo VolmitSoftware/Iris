@@ -1,12 +1,16 @@
 package com.volmit.host;
 
 import com.volmit.FeatureAttachment;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
 import com.volmit.config.Feature;
 import com.volmit.mantle.BlockBox;
+import com.volmit.mantle.MantleCodec;
+import com.volmit.mantle.MantleKey;
+import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.placement.PlacedBlock;
@@ -29,14 +33,16 @@ import com.volmit.example.placement.SnowSettings;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StageGraphTest {
     private static final BlockState STONE = new BlockState("minecraft:stone");
 
-    @Feature(id = "test:owner/toggle", name = "Toggle", field = "toggle", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
+    @Feature(id = "test:owner/toggle", name = "Toggle", alias = "toggle", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
     static final class Toggle implements IrisFeature {}
 
     static final class Unannotated implements IrisFeature {}
@@ -451,5 +457,78 @@ class StageGraphTest {
 
     static final class Counter {
         int count;
+    }
+
+    @Test
+    void reachIsDeclaredPerStageAndCollectedPerPipelineAndLayer() {
+        var depth = new MantleKey<>("test:reach/depth", Integer.class);
+        var marks = new MantleKey<>("test:reach/marks", String.class);
+        var carve = Stage.chunk("test:reach/carve");
+        var mark = Stage.chunk("test:reach/mark");
+        var plain = Stage.chunk("test:reach/plain");
+        var paint = Stage.placementBlock("test:reach/paint");
+        var reach = module("test:reach", stages -> {
+            stages.define(carve).reach(24).writesMantle(depth).run(context -> {});
+            stages.define(mark).reach(8).writesMantle(depth, marks).run(context -> {});
+            stages.define(plain).run(context -> {});
+            stages.define(paint).reach(2).run(context -> {});
+        });
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(reach, depth, marks))), Map.of(), Set.of());
+
+        assertEquals(new StageReach(24, List.of(depth)), loaded.chunk().stages().getFirst().reach());
+        assertEquals(StageReach.NONE, loaded.chunk().stages().get(2).reach(), "an undeclared reach is 0 with no layers");
+        assertEquals(new PipelineReach(24, Map.of("test:reach/depth", 24, "test:reach/marks", 8)), loaded.chunk().reach());
+        assertEquals(new PipelineReach(2, Map.of()), loaded.placement().reach());
+        assertTrue(loaded.chunk().describe().contains("      reach 24 blocks, writes mantle test:reach/depth\n"), loaded.chunk().describe());
+        assertTrue(loaded.chunk().describe().contains("      reach 8 blocks, writes mantle test:reach/depth, test:reach/marks\n"));
+    }
+
+    @Test
+    void reachMustBeValidAndNameRegisteredLayers() {
+        var depth = new MantleKey<>("test:reach/depth", Integer.class);
+        var carve = Stage.chunk("test:reach/carve");
+
+        var negative = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
+                module("test:reach", stages -> stages.define(carve).reach(-1).run(context -> {}))));
+        assertEquals("Stage test:reach/carve (module test:reach) declares a negative reach of -1 blocks", negative.getMessage());
+        var twice = assertThrows(IllegalStateException.class, () -> resolve(Pipeline.CHUNK,
+                module("test:reach", stages -> stages.define(carve).reach(1).reach(2).run(context -> {}))));
+        assertEquals("Stage test:reach/carve (module test:reach) already declares a reach of 1 blocks", twice.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
+                module("test:reach", stages -> stages.define(carve).writesMantle(depth, depth).run(context -> {}))));
+
+        var unregistered = assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(
+                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {})))), Map.of(), Set.of()));
+        assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth, which no module registers;"
+                + " its owner registers it with FeatureRegistry.registerMantle", unregistered.getMessage());
+
+        var asText = new MantleKey<>("test:reach/depth", String.class);
+        var mismatch = assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(
+                module("test:reach", stages -> stages.define(carve).writesMantle(asText).run(context -> {})), depth))), Map.of(), Set.of()));
+        assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth as java.lang.String,"
+                + " but it is registered as java.lang.Integer", mismatch.getMessage());
+    }
+
+    /** {@code module}, also registering {@code layers}. */
+    private static IrisModule withMantle(IrisModule module, MantleKey<?>... layers) {
+        return new IrisModule() {
+            public ModuleInfo info() { return module.info(); }
+            public void install(StageGraph graph) { module.install(graph); }
+            public void register(FeatureRegistry registry) {
+                for (var layer : layers) registerLayer(registry, layer);
+            }
+        };
+    }
+
+    private static <T> void registerLayer(FeatureRegistry registry, MantleKey<T> layer) {
+        registry.registerMantle(layer, MantleLifetime.GENERATION, codec(layer));
+    }
+
+    private static <T> MantleCodec<T> codec(MantleKey<T> layer) {
+        return new MantleCodec<>() {
+            public int version() { return 0; }
+            public void write(java.io.DataOutput output, T value) {}
+            public T read(java.io.DataInput input, int storedVersion) { throw new UnsupportedOperationException(); }
+        };
     }
 }

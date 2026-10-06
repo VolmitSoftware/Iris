@@ -16,16 +16,16 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModuleRegistryTest {
-    @Feature(id = "test:core/one", name = "One", field = "shared", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/one", name = "One", alias = "shared", targets = FeatureAttachment.Target.BIOME)
     static class One implements IrisFeature {}
-    @Feature(id = "test:core/two", name = "Two", field = "shared", targets = FeatureAttachment.Target.DIMENSION)
+    @Feature(id = "test:core/two", name = "Two", alias = "shared", targets = FeatureAttachment.Target.DIMENSION)
     static class Two implements IrisFeature {}
-    @Feature(id = "test:core/collision", name = "Collision", field = "shared", targets = {FeatureAttachment.Target.DIMENSION, FeatureAttachment.Target.BIOME})
+    @Feature(id = "test:core/collision", name = "Collision", alias = "shared", targets = {FeatureAttachment.Target.DIMENSION, FeatureAttachment.Target.BIOME})
     static class Collision implements IrisFeature {}
-    @Feature(id = "test:core/one", name = "Duplicate", field = "different", targets = FeatureAttachment.Target.REGION)
+    @Feature(id = "test:core/one", name = "Duplicate", alias = "different", targets = FeatureAttachment.Target.REGION)
     static class Duplicate implements IrisFeature {}
     static class MissingAnnotation implements IrisFeature {}
-    @Feature(id = "test:core/abstract", name = "Abstract", field = "abstract", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/abstract", name = "Abstract", alias = "abstract", targets = FeatureAttachment.Target.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
     /** Runs {@code registrations} as the register(...) of a built-in module with the given id. */
@@ -40,7 +40,7 @@ class ModuleRegistryTest {
     @Test
     void validatesIdsTypesAndFieldsAcrossFeatureKindsWithoutPartialRegistration() {
         var registry = new ModuleRegistry();
-        registry.registerStageSettings(One.class);
+        registerAs(registry, "test:core", settings -> settings.registerSettings(One.class));
         registry.registerStageSettings(One.class);
         registerAs(registry, "test:core", objects -> {
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Collision.class, ignored -> context -> null));
@@ -56,7 +56,10 @@ class ModuleRegistryTest {
     @Test
     void reservesHostFieldsAndRejectsInvalidFeaturesOrFactories() {
         var registry = new ModuleRegistry(Map.of(FeatureAttachment.Target.BIOME, Set.of("shared")));
-        assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(One.class));
+        assertThrows(IllegalStateException.class, () -> registry.registerStageSettings(One.class), "no module owns it yet");
+        registerAs(registry, "test:core", nothing -> {});
+        var reserved = assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(One.class));
+        assertTrue(reserved.getMessage().startsWith("Alias collision"), reserved.getMessage());
         assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(MissingAnnotation.class));
         assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(AbstractFeature.class));
         registerAs(registry, "test:core", objects -> {
@@ -160,7 +163,7 @@ class ModuleRegistryTest {
         registerAs(registry, "test:core", settings -> settings.registerObject(Two.class, ignored -> context -> null));
         var collision = assertThrows(IllegalArgumentException.class,
                 () -> registerAs(registry, "test:core", settings -> settings.registerSettings(Collision.class)));
-        assertTrue(collision.getMessage().startsWith("JSON field collision"), collision.getMessage());
+        assertTrue(collision.getMessage().startsWith("Alias collision"), collision.getMessage());
         assertTrue(registry.freeze().settings().isEmpty());
     }
 

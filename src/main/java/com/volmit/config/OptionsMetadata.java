@@ -25,15 +25,15 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
         }
     }
 
-    /** Reads private and inherited fields without constructing settings or accessing values.
-     * Nested object types are preserved for the schema builder to inspect recursively.
+    /** Reads private and inherited fields without constructing settings or accessing values. Options are
+     * in declaration order, a superclass's before its subclass's. Nested object types are preserved for
+     * the schema builder to inspect recursively.
      */
     public static OptionsMetadata inspect(Class<?> type) {
         var options = new ArrayList<Option>();
         var names = new HashSet<String>();
-        for (Class<?> current = type; current != null && current != Object.class;
-             current = current.getSuperclass()) {
-            for (var field : current.getDeclaredFields()) {
+        for (var current : hierarchy(type)) {
+            for (var field : DeclaredFieldOrder.of(current)) {
                 int modifiers = field.getModifiers();
                 if (field.isSynthetic() || Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) {
                     continue;
@@ -62,6 +62,15 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
         var snippet = type.getAnnotation(Snippet.class);
         return new OptionsMetadata(desc == null ? "" : desc.value(),
                 snippet == null ? "" : snippet.value(), options);
+    }
+
+    /** {@code type} and its superclasses below Object, the topmost first. */
+    private static List<Class<?>> hierarchy(Class<?> type) {
+        var classes = new ArrayList<Class<?>>();
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            classes.addFirst(current);
+        }
+        return classes;
     }
 
     private static boolean isNumeric(Class<?> type) {

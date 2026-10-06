@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
+import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageRef;
@@ -17,6 +18,8 @@ final class StageDeclaration {
     private final List<StageRef> softAfter = new ArrayList<>();
     private final List<StageRef> softBefore = new ArrayList<>();
     private FeatureDescriptor<?> settings;
+    private Integer reachBlocks;
+    private final List<MantleKey<?>> mantleLayers = new ArrayList<>();
     private StageBody body;
 
     StageDeclaration(Stage<?> stage, ResourceId module) {
@@ -47,6 +50,28 @@ final class StageDeclaration {
             throw new IllegalStateException("Stage " + this + " already has a when(...) condition");
         }
         settings = FeatureDescriptor.of(settingsType);
+    }
+
+    void reach(int blocks) {
+        checkOpen();
+        if (reachBlocks != null) {
+            throw new IllegalStateException("Stage " + this + " already declares a reach of " + reachBlocks + " blocks");
+        }
+        if (blocks < 0) {
+            throw new IllegalArgumentException("Stage " + this + " declares a negative reach of " + blocks + " blocks");
+        }
+        reachBlocks = blocks;
+    }
+
+    void writesMantle(MantleKey<?>... layers) {
+        checkOpen();
+        for (var layer : layers) {
+            Objects.requireNonNull(layer, "mantle layer");
+            if (mantleLayers.stream().anyMatch(declared -> declared.id().equals(layer.id()))) {
+                throw new IllegalArgumentException("Stage " + this + " declares mantle layer " + layer.id() + " twice");
+            }
+            mantleLayers.add(layer);
+        }
     }
 
     /** Sets the only body. alternativeMethod names the builder method for the other output kind. */
@@ -89,6 +114,10 @@ final class StageDeclaration {
 
     StageBody body() {
         return body;
+    }
+
+    StageReach reach() {
+        return new StageReach(reachBlocks == null ? 0 : reachBlocks, mantleLayers);
     }
 
     @Override

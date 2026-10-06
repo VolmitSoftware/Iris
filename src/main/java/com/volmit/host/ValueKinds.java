@@ -23,6 +23,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ final class ValueKinds {
             Byte.class, Short.class, Integer.class, Long.class);
     private static final Set<Class<?>> DECIMALS = Set.of(float.class, double.class, Float.class, Double.class);
     private static final String DECLARE_COLLECTION = "declare it as List<...>, Set<...> or Map<String, ...>";
+    private static final Set<Reference> PACK_REFERENCES = EnumSet.of(Reference.PACK_BIOME, Reference.PACK_REGION, Reference.PACK_OBJECT);
 
     private final Function<Class<?>, ObjectKind> objects;
 
@@ -94,7 +96,14 @@ final class ValueKinds {
 
     private static ValueKind text(TextFormat format, Reference reference) {
         if (reference == null) return new TextKind(format);
+        if (format == TextFormat.RESOURCE_ID && PACK_REFERENCES.contains(reference)) throw packReferenceOnResourceId(reference);
         return new ReferenceKind(reference, format);
+    }
+
+    /** Packs name their biomes, regions and objects by path without a namespace, so a ResourceId could not hold one. */
+    private static SettingsTypeProblem packReferenceOnResourceId(Reference reference) {
+        return new SettingsTypeProblem("has @Ref(" + reference + ") on ResourceId, but packs name their biomes,"
+                + " regions and objects by path without a namespace, such as desert/dunes; use String");
     }
 
     private static ValueKind blockState(Reference reference) {

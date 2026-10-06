@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.StageKind;
 import java.util.List;
@@ -35,10 +36,22 @@ final class GraphDescription {
             text.append('\n');
             appendEdges(text, stage.incoming(), StageEdge.Kind.REQUIRED, "requires ");
             appendEdges(text, stage.incoming(), StageEdge.Kind.SOFT, "soft after ");
+            appendReach(text, stage.reach());
             if (!stage.absentSoftTargets().isEmpty()) {
                 text.append(DETAIL_INDENT).append("absent soft targets ").append(joined(stage.absentSoftTargets())).append('\n');
             }
         }
+    }
+
+    private static void appendReach(StringBuilder text, StageReach reach) {
+        if (reach.equals(StageReach.NONE)) {
+            return;
+        }
+        text.append(DETAIL_INDENT).append("reach ").append(reach.blocks()).append(reach.blocks() == 1 ? " block" : " blocks");
+        if (!reach.mantleLayers().isEmpty()) {
+            text.append(", writes mantle ").append(joined(reach.mantleLayers().stream().map(MantleKey::id).toList()));
+        }
+        text.append('\n');
     }
 
     private static String kindLabel(ResolvedStage stage, List<List<ResourceId>> passes) {

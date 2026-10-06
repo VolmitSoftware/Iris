@@ -227,7 +227,7 @@ final class GraphResolver {
                     settingsSlot(declaration, settingsTypes),
                     StageStreams.idHash(declaration.stage().id()));
             stages.add(new ResolvedStage(declaration.stage(), declaration.module(), declaration.settings(),
-                    incomingEdges(node, position), absentSoftTargets.get(node)));
+                    incomingEdges(node, position), absentSoftTargets.get(node), declaration.reach()));
         }
         return new ResolvedGraph(pipeline, stages, List.of(executables), settingsTypes);
     }

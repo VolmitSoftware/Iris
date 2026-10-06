@@ -457,17 +457,61 @@ all stages of the invocation. Hunk coordinates are local; samples and mantle coo
 world blocks. The runner does no neighbor scheduling or rollback. A failed invocation must stop
 the host from publishing the chunk.
 
+## Reach
+
+A stage may write outside its footprint: a carver reaches into neighbor chunks, a tree's leaves spread
+past the object's trunk. The host has to prepare that area, and the mantle in it, before the stage
+runs. Stages declare it in their definition:
+
+```java
+graph.define(CARVE).reach(32).writesMantle(CarveModule.CAVES).run(CarveModule::carve);
+```
+
+- `reach(blocks)`: how far, in blocks along X and Z, the stage writes blocks or mantle values beyond
+  its footprint. The footprint is the chunk's 16 by 16 columns for a chunk stage and the X/Z bounds of
+  the placed object for a placement or block stage. Whole columns: height is not limited, because
+  Iris prepares chunks and mantle as full columns. Leaving it out means 0. Declaring it twice or
+  negative fails while the module installs.
+- `writesMantle(layers...)`: the mantle layers the stage writes. Every layer must be registered by
+  some module with the same value type, or the pack load fails naming stage and layer.
+
+Each resolved stage carries its `StageReach`. `ResolvedGraph.reach()` collects a `PipelineReach`:
+the largest reach of the pipeline's stages, and per mantle layer the largest reach of the stages
+that write it. Inactive stages count, because activation is per invocation and the prepared area is
+decided once per pack load. `describe()` lists each stage's reach.
+
+One number per stage, not per layer: a stage that writes two layers at different distances declares
+the larger. The host can still size each layer's mantle from the per-layer maximum. Reads are not
+declared separately: the host prepares the pipeline's reach around every chunk or placement, so a
+stage may read what others wrote that far out. A stage that must read farther declares that distance
+as its reach. Terrain samples are computed, not prepared, and need nothing.
+
 ## Settings, geometry and storage
 
-Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, JSON
-field, attachment targets). `when(type)` validates the annotation while the module installs. The id
+Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, optional
+alias, attachment targets). `when(type)` validates the annotation while the module installs. The id
 must be owned by a module naming the type (see Namespaces), or the owner registers the type itself
 with `FeatureRegistry.registerSettings`. That is for settings no stage names, such as settings read
 only through `FeatureSettings.at(...)`; registering a type a stage also names changes nothing, and a
 type its owner registered may be named in `when(...)` by any module.
 `LoadedModules.load` catalogs those types with geometry generator settings and rejects duplicate
-ids and JSON field collisions per attachment target, including reserved host fields.
-`OptionsMetadata` reads field metadata; it does not decode JSON.
+ids and alias collisions per attachment target, including reserved host fields.
+`OptionsMetadata` reads field metadata, in declaration order; it does not decode JSON.
+
+### JSON keys and aliases
+
+Packs write a feature's settings under its feature id at each of its targets:
+`"example:moss": {...}`. The id is unique, namespaced and owned by one module, so two modules can never
+claim the same key, and a key can never be one of the host's own fields: those have no `:`.
+
+Built-in modules may also set `@Feature(alias = "stilt")`, a short key that existing pack JSON
+already uses, such as `"stilt": {...}`. An alias has no `:`, so it never equals an id. Aliases are
+unique per target and may not equal a reserved host field; reserved host fields therefore constrain
+aliases only. A pack module that sets an alias fails the load and is told to use its id: aliases are
+for keeping existing pack files working, and a pack module has no existing files to keep.
+
+A JSON object that holds both a feature's alias and its id is ambiguous. That is a host decoding
+rule, since IrisApi does not decode JSON: the host fails such an object, naming both keys.
 
 `GeneratedObject` is sparse, immutable local geometry with bounds, an anchor, sorted blocks,
 optional block entity payloads and markers. `ObjectGenerator` produces it from settings and a
@@ -497,8 +541,8 @@ already keep module fields from colliding with them.
 
 - A `FeatureSchema` per catalogued type: feature id and name, role (`SETTINGS` for types named in
   `when(...)` or registered with `registerSettings`, `OBJECT_GENERATOR` for `registerObject`), the
-  owning module's `ModuleInfo`, the JSON field, its targets and the settings `ObjectType`.
-  `fields(target)` lists a target's features; a feature attached to several targets appears under
+  owning module's `ModuleInfo`, the JSON key (the feature id), the alias if any, its targets and the
+  settings `ObjectType`. `fields(target)` lists a target's features; a feature attached to several targets appears under
   each. The owner is the one module whose id owns the feature id; module ids are unique and contain
   no `/`, so there is never more than one.
 - An `ObjectType` per class reachable from module settings, keyed by binary class name: description,
@@ -507,8 +551,8 @@ already keep module fields from colliding with them.
   directly or through others, ends the walk at its own name. Two different classes with one name fail
   the load; only a built-in class and a pack class can collide that way.
 - A `SchemaOption` per field that `OptionsMetadata` selects, which means instance fields that are
-  not transient, inherited ones included. Each has its name, `ValueKind`, `@Desc`, `@Required`,
-  `@MinNumber`/`@MaxNumber` and the default value.
+  not transient, inherited ones included, in declaration order. Each has its name, `ValueKind`,
+  `@Desc`, `@Required`, `@MinNumber`/`@MaxNumber` and the default value.
 
 ### Value kinds
 
@@ -553,7 +597,9 @@ structures, potion effects and enchantments from the server registries, and biom
 objects of the pack, the resource folders Iris's own settings refer to most. More kinds come when a
 module needs one and the host can serve it. `@Ref` fits `String` and `ResourceId` and lists, sets and
 arrays of them, where it applies to the elements. On any other field, a map included, it fails the
-load. `BlockState` always names a block, so its fields are block references without `@Ref`;
+load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`) fit `String` only: packs name their
+biomes, regions and objects by path without a namespace, such as `desert/dunes`, which a `ResourceId`
+cannot hold. `BlockState` always names a block, so its fields are block references without `@Ref`;
 `@Ref(BLOCK)` there is accepted, any other kind fails.
 
 ### Defaults
@@ -579,23 +625,31 @@ itself, such as a field holding `this`, is left out of the outer object.
 ### Snippets
 
 `@Snippet("name")` on a class lets a pack write that object in its own file under `snippet/name/`.
-`snippets()` lists those types. A snippet name must be a folder name of lowercase letters, digits, `-`
-and `_`, and it must belong to one class; otherwise the load fails naming both classes.
+`snippets()` lists those types. A snippet name is a folder path: segments of lowercase letters,
+digits, `-`, `_` and `.`, separated by `/`, never `.` or `..`. It must belong to one class; otherwise
+the load fails naming both classes.
+
+A class of a pack module keeps its snippets under the folder of a module of the pack: the name is the
+module's id as a path, `example/moss`, or starts with it and `/`, such as `example/moss/patch`
+(folder `snippet/example/moss/patch/`). Built-in classes keep the short names Iris's snippet folders
+already have. Since built-in modules ship with Iris and pack names always start with a pack module's
+namespace, which no built-in uses, a pack snippet can never collide with Iris's own or another
+module's. A class belongs to the pack when the pack's class loader defined it.
 
 ### Stable order
 
 The host writes schema files from this, so the order is fixed: features by id, a target's features
-by JSON field, types by class name, snippets by snippet name, options by field name and enum
-constants in declaration order. Options are sorted by name because `Class.getDeclaredFields()`
-promises no order. Which settings an error names first follows feature id order too, so the same
+by JSON key, types by class name, snippets by snippet name, and options and enum constants in
+declaration order. Options of a superclass come before the subclass's own.
+`Class.getDeclaredFields()` promises no order, but the class file lists fields as the source declares
+them, so `OptionsMetadata` reads it with `java.lang.classfile`. A settings class therefore has to come
+from a jar or a class directory, which every module class does. Which settings an error names first follows feature id order too, so the same
 pack always fails with the same message.
 
 ## Not implemented
 
 - Iris host wiring: JSON decoding and validation, rendering `PackSchema` into Iris's schema and
   workspace files, resource loaders, platform block adapters, storage and codecs.
-- Reach. The old per-modifier `writeRadius` and `mantleRadius` are gone with the modifiers. The
-  host must prepare the whole area a pipeline may touch. Per-stage reach is an open question.
 - Legacy random compatibility. Existing Iris features draw from shared, positional generators in a
   fixed order. Where existing worlds are promised to stay the same, the adapter has to reproduce
   those draws inside the ported stages; per-stage streams will not match them on their own.

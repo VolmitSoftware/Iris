@@ -1,5 +1,7 @@
 package com.volmit.stage;
 
+import com.volmit.mantle.MantleKey;
+
 import com.volmit.IrisFeature;
 
 /** Declares one invocation stage. requires(...) is a hard dependency on another module's
@@ -13,6 +15,15 @@ public interface StageDefinition<C extends StageContext, O> {
     StageDefinition<C, O> softAfter(StageRef... stages);
 
     StageDefinition<C, O> softBefore(StageRef... stages);
+
+    /** Declares how far, in blocks along X and Z, this stage writes blocks or mantle values beyond its
+     * footprint: the chunk for a chunk stage, the placed object's X/Z bounds for a placement stage. The
+     * host prepares that much around every chunk or placement of the pipeline. Leaving it out means 0.
+     */
+    StageDefinition<C, O> reach(int blocks);
+
+    /** Declares the mantle layers this stage writes; each must be registered by some module. */
+    StageDefinition<C, O> writesMantle(MantleKey<?>... layers);
 
     /** Activates the stage only where the given feature settings are configured. At least one module
      * naming the type must own its feature id: the id is that module's id or starts with it and '/'.

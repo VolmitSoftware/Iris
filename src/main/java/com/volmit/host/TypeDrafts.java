@@ -10,7 +10,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.MalformedParameterizedTypeException;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -66,7 +65,6 @@ final class TypeDrafts {
         var instance = instantiate(type, source);
         var kinds = new ValueKinds(nested -> object(nested, source));
         var options = metadata.options().stream()
-                .sorted(Comparator.comparing(OptionsMetadata.Option::name))
                 .map(option -> new OptionDraft(option, kind(option, kinds, source), defaultValue(option.field(), instance, source)))
                 .toList();
         return new TypeDraft(type, source, metadata, options);

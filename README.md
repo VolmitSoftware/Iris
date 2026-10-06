@@ -64,6 +64,21 @@ JDK may change, so use `pick` and `shuffle` instead of `Collections.shuffle`. Bo
 unbiased, `nextDouble` never returns its bound, and invalid bounds throw. It is not thread-safe: a
 stage uses its own stream within one invocation and must not share or keep it.
 
+## Reach
+
+A stage that writes outside its chunk or object declares how far, so the host can prepare that area
+and its mantle first:
+
+```java
+graph.define(CARVE).reach(32).writesMantle(CarveModule.CAVES).run(CarveModule::carve);
+```
+
+`reach(blocks)` is the distance in blocks along X and Z beyond the stage's footprint: the chunk for a
+chunk stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
+It defaults to 0. `writesMantle(...)` names the mantle layers the stage writes; each must be
+registered by some module. `pack.chunk().reach()` and `pack.placement().reach()` give the host the
+largest reach of a pipeline and the largest per mantle layer.
+
 ## Module jars
 
 A pack loads its modules from `<pack>/modules/*.jar`. One jar holds one module. Its entry point
@@ -136,7 +151,7 @@ completion from it.
 
 ```java
 @Desc("Plants flowers and bushes")
-@Feature(id = "example:flora", name = "Flora", field = "flora", targets = Target.BIOME)
+@Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)   // packs write "example:flora": {...}
 public final class FloraSettings implements IrisFeature {
     @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
     private int density = 4;                                         // default 4
@@ -157,15 +172,22 @@ public final class FloraSettings implements IrisFeature {
   shows.
 - Field types: `boolean`, primitive or boxed numbers, `String`, `ResourceId`, `BlockState`, enums,
   `List`, `Set` and arrays of these, `Map<String, V>`, and concrete classes, which are described the
-  same way. `@Snippet("name")` on a class lets packs write it as a file under `snippet/name/`.
+  same way. `@Snippet("example/flora/patch")` on a class lets packs write it as a file under
+  `snippet/example/flora/patch/`. A pack module's snippet names start with its module id as a folder
+  path (`example/flora` for `example:flora`).
   Anything else fails the pack load: `char`, JDK classes such as `UUID` or `Optional`, `ResourceKey`,
   interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
   concrete collections such as `ArrayList`, and maps with other keys.
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`,
   `POTION_EFFECT` or `ENCHANTMENT` from the server's registries, or `PACK_BIOME`, `PACK_REGION` or
-  `PACK_OBJECT` of the pack. `BlockState` fields name blocks without it. `@Ref` on any other field
-  fails the load.
+  `PACK_OBJECT` of the pack. The pack kinds fit `String` only, in the form packs use (`desert/dunes`),
+  never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
+  the load.
+- Packs write settings under the feature id. Built-in modules may also set `@Feature(alias = "stilt")`,
+  a short key existing pack JSON uses; a pack module that sets one fails the load. One JSON object may
+  not hold both.
+- Options keep the order the class declares them in, a superclass's first.
 - Settings named in `when(...)` and object generator settings are described automatically. Settings
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
   `registry.registerSettings(WindSettings.class)` in `register`. Their feature id follows the module
@@ -177,7 +199,8 @@ A load error names the field, the settings and the module:
 Field com.example.flora.FloraSettings.id of settings example:flora (module example:flora from modules/flora.jar) uses java.util.UUID, a JDK class settings cannot use; settings fields can be booleans, numbers, String, ResourceId, BlockState, enums, lists, sets and arrays of these, Map with String keys and classes with a no-argument constructor
 Field com.example.flora.FloraSettings.count of settings example:flora (module example:flora from modules/flora.jar) has @Ref(BLOCK) on int, but @Ref fits only String and ResourceId and lists, sets and arrays of them
 Class com.example.flora.Shape of settings example:flora (module example:flora from modules/flora.jar) has no no-argument constructor; the host creates settings with it and reads their defaults from it, so declare one, private if nothing else should use it
-Snippet name 'patch' is used by com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) and by com.example.flora.Plot of settings example:flora (module example:flora from modules/flora.jar); studio describes snippet/patch/ by one class, so give each its own name
+Snippet name 'patch' of com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) is not under a module of the pack; snippets of pack modules start with their module's id as a folder path, such as 'example/flora/patch' (folder snippet/example/flora/patch/)
+Settings com.example.flora.FloraSettings of module example:flora from modules/flora.jar set alias 'flora'; only modules that ship with the host may set one, so remove it: packs write these settings under their id "example:flora"
 ```
 
 ## Host side
@@ -293,9 +316,10 @@ have no path between them.
 `pack.schema()` is the `PackSchema` of the pack's modules, built-in ones included: plain Java values,
 no JSON. The host renders it and merges it with its own fields:
 
-- `fields(target)`: the module features attached to a target, by JSON field. Each `FeatureSchema` has
+- `fields(target)`: the module features attached to a target, by JSON key. Each `FeatureSchema` has
   the feature id and name, its role (`SETTINGS` or `OBJECT_GENERATOR`), the owning module's
-  `ModuleInfo`, the field, its targets and the settings `ObjectType`.
+  `ModuleInfo`, the JSON key (the id), the alias of a built-in if it has one, its targets and the
+  settings `ObjectType`.
 - `types()`: every class reachable from module settings, once each, by name. An `ObjectType` has the
   class name, description, snippet name and options. A `SchemaOption` has name, `ValueKind`,
   description, required, minimum, maximum and default value.
@@ -306,10 +330,10 @@ no JSON. The host renders it and merges it with its own fields:
 - `snippets()` and `objectGenerators()` pick the types with a snippet name and the object generator
   features.
 
-For the stilt example the host sees one `OBJECT_PLACEMENT` field. The records are abridged:
+For the stilt example the host sees one `OBJECT_PLACEMENT` feature. The records are abridged:
 
 ```
-FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), field=stilt, targets=[OBJECT_PLACEMENT],
+FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=iris:stilt, alias=Optional[stilt], targets=[OBJECT_PLACEMENT],
   settings=ObjectType[name=com.volmit.example.placement.StiltSettings, description=Fills the space below an object down to the ground,
     snippet=Optional.empty, options=[SchemaOption[name=maxDepth, kind=IntegerKind[], description=Maximum blocks filled below each
     lowest object block, required=false, minimum=OptionalDouble[1.0], maximum=OptionalDouble.empty, defaultValue=Optional[16]]]]]
@@ -347,17 +371,19 @@ concurrent invocations and must not keep views, streams or mutable state.
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, install-order determinism, id ownership of stages, settings, objects and
-mantle keys (`StageGraphTest`, `ModuleRegistryTest`), and per-stage random streams: inserting a module
+mantle keys, reach per stage, pipeline and mantle layer (`StageGraphTest`, `ModuleRegistryTest`), and per-stage random streams: inserting a module
 that draws leaves the other stages' draws unchanged, block stages draw one stream across their pass,
 and the derivation is pinned to values computed from its specification (`StageStreamsTest`).
 `WorldRandomTest` pins every `WorldRandom` method, bounds and edge cases to values computed by an
 independent Python reference (`python3 -B src/test/reference/world_random.py`; the build does not
 need Python) and fails if the type gains an unpinned method or implements `RandomGenerator`.
-`PackSchemaTest` loads module jars and checks their description: fields under their targets,
+`PackSchemaTest` loads module jars and checks their description: features under their targets by id,
+aliases of built-ins and the load error when a pack module sets one, options in declaration order,
 descriptions, required, bounds, defaults (floats, nulls, sets, maps, objects, a field holding `this`),
 enums, collections, references, nested classes with a cycle, snippets, object generator settings,
 explicit registration, built-in modules, the same result whatever the jar order, and the load error
-for each unsupported field type, misplaced `@Ref`, unusable class and bad or repeated snippet name.
+for each unsupported field type, misplaced `@Ref` (pack kinds on `ResourceId` included), unusable
+class, bad or repeated snippet name and pack snippet outside its module's folder.
 `DiscoveredModuleTest` checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go

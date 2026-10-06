@@ -10,8 +10,8 @@ import java.util.Objects;
  * studio completion. It holds module-provided entries only: the host describes its own fields.
  *
  * <p>Everything is in a fixed order, so the same modules always give the same description: features
- * by id, the features of a target by JSON field, types by name, snippets by snippet name, options by
- * name and enum constants in declaration order.
+ * by id, the features of a target by JSON key, types by name, snippets by snippet name, options and
+ * enum constants in declaration order.
  *
  * @param features every catalogued settings type of the pack's modules, built-in ones included
  * @param types every class reachable from those settings, each once
@@ -22,12 +22,12 @@ public record PackSchema(List<FeatureSchema> features, List<ObjectType> types) {
         types = types.stream().sorted(Comparator.comparing(ObjectType::name)).toList();
     }
 
-    /** The module fields of one attachment target, by JSON field name. */
+    /** The module features of one attachment target, by JSON key. */
     public List<FeatureSchema> fields(FeatureAttachment.Target target) {
         Objects.requireNonNull(target, "target");
         return features.stream()
                 .filter(feature -> feature.targets().contains(target))
-                .sorted(Comparator.comparing(FeatureSchema::field))
+                .sorted(Comparator.comparing(FeatureSchema::key))
                 .toList();
     }
 

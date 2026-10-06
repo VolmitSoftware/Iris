@@ -19,7 +19,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Per-block work with single-pass cost | `BlockStage`, fused block passes |
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
 | Reference execution | host `PlacementRunner`, `ChunkRunner` |
-| Annotated settings | `IrisFeature`, `@Feature`, config annotations, `OptionsMetadata` |
+| Annotated settings | `IrisFeature`, `@Feature` (id as JSON key, built-in alias), config annotations, `OptionsMetadata` |
+| Area a stage writes | `reach(blocks)`, `writesMantle(...)` on stage definitions, host `StageReach`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind`) |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette` |
@@ -45,8 +46,13 @@ A pack load works on copies of the module jars, so the originals are never held 
 Modules describe their settings only through their settings classes; jars ship no schema files. The
 pack load turns every catalogued settings type into a `PackSchema` and fails, naming field, settings
 and module, on a field type it cannot describe, a `@Ref` on a field that is not text, a class without
-a working no-argument constructor or a bad or repeated snippet name. Defaults come from an instance
-made by that constructor. The description is in a fixed order and holds module entries only.
+a working no-argument constructor, a bad or repeated snippet name, or a pack class's snippet name
+outside its module's folder. Defaults come from an instance made by that constructor. Options are in
+declaration order.
+
+Packs write settings under the feature id. Only built-in modules may set an alias, a short key that
+existing pack JSON uses; a pack module setting one fails the load. Aliases are unique per target and
+may not equal a reserved host field. The description is in a fixed order and holds module entries only.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
@@ -75,7 +81,9 @@ running Iris is the pack publisher's responsibility.
   work inside the ported stages.
 - Derive one seed per placement (world seed and the placement's stable identity) and per chunk
   (world seed and chunk position) and pass it to `PlacementRunner.place` / `ChunkRunner.generate`.
-- Prepare the full area a placement or chunk may read or write, including neighbors. Never clip.
+- Prepare the area a placement or chunk may read or write, including neighbors: the pipeline's
+  `reach()` around the chunk or the placed object's bounds, each mantle layer by its own maximum.
+  Never clip.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
@@ -93,11 +101,15 @@ running Iris is the pack publisher's responsibility.
   packs and is part of what packs can break on. Stage output types and settings types that pack
   code uses through those stages must be in exposed packages too. The API is always exposed.
 - Consider showing `PackModules.missingClasses()` in studio.
+- Decode module settings under the feature id and, for built-ins, the alias. Fail a JSON object that
+  holds both, naming the two keys.
 - Render `pack.schema()` into studio's files: merge each target's `fields(target)` into the schema
-  of the matching Iris file type (dimension, region, biome, object placement), write `types()` as
-  definitions, a `/snippet/<name>` schema per entry of `snippets()`, and completion lists per
-  `Reference` from the server registries and the pack's biome, region and object folders. Fail, do
-  not drop, when a module snippet name equals one of Iris's own.
+  of the matching Iris file type (dimension, region, biome, object placement) under the key and the
+  alias, write `types()` as definitions, a `/snippet/<name>` schema per entry of `snippets()`, and
+  completion lists per `Reference` from the server registries and the pack's biome, region and
+  object folders. `PACK_*` references are pack paths without a namespace, as Iris writes them. Pack
+  snippet names are under their module's folder, so they cannot collide with Iris's own; built-in
+  names are Iris's to keep distinct.
 - Refuse to open a pack in studio when its load fails, showing the error, rather than writing a
   schema without the modules.
 - Load the pack again and rebuild the schema files after a module jar in `<pack>/modules` changes.
@@ -106,5 +118,4 @@ running Iris is the pack publisher's responsibility.
 
 ## Open
 
-- Per-stage reach declarations, replacing the removed modifier radii.
 - Terrain/biome providers, pack transformations, structure assembly and the runtime family.

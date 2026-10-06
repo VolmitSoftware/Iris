@@ -5,7 +5,7 @@ import com.volmit.IrisFeature;
 import com.volmit.config.Feature;
 import com.volmit.config.MinNumber;
 
-@Feature(id = "example:moss", name = "Moss", field = "moss", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
+@Feature(id = "example:moss", name = "Moss", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
 public final class MossSettings implements IrisFeature {
     @MinNumber(0)
     private int radius;

@@ -69,7 +69,7 @@ class PackSchemaTest {
             import java.util.*;
 
             @Desc("Plants flowers and bushes")
-            @Feature(id = "example:flora", name = "Flora", field = "flora", targets = {Target.REGION, Target.BIOME})
+            @Feature(id = "example:flora", name = "Flora", targets = {Target.REGION, Target.BIOME})
             public final class FloraSettings implements IrisFeature {
                 @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
                 private int density = 4;
@@ -114,7 +114,7 @@ class PackSchemaTest {
             import com.volmit.config.*;
 
             @Desc("A patch of plants")
-            @Snippet("flora-patch")
+            @Snippet("example/flora/patch")
             final class Patch {
                 @MinNumber(1)
                 private int radius = 3;
@@ -131,7 +131,7 @@ class PackSchemaTest {
             import com.volmit.IrisFeature;
             import com.volmit.config.*;
 
-            @Feature(id = "example:flora/wind", name = "Wind", field = "wind", targets = Target.DIMENSION)
+            @Feature(id = "example:flora/wind", name = "Wind", targets = Target.DIMENSION)
             public final class WindSettings implements IrisFeature {
                 @Desc("How far plants sway")
                 private double strength = 1.5;
@@ -145,8 +145,8 @@ class PackSchemaTest {
             import com.volmit.IrisFeature;
             import com.volmit.config.*;
 
-            @Snippet("bush")
-            @Feature(id = "example:flora/bush", name = "Bush", field = "bush", targets = Target.OBJECT_PLACEMENT)
+            @Snippet("example/flora/bush")
+            @Feature(id = "example:flora/bush", name = "Bush", targets = Target.OBJECT_PLACEMENT)
             public final class BushSettings implements IrisFeature {
                 private int height = 2;
             }
@@ -190,13 +190,14 @@ class PackSchemaTest {
     }
 
     @Test
-    void attachesEveryModuleFieldToItsTargets() {
+    void attachesEveryModuleFeatureToItsTargetsUnderItsId() {
         var schema = floraSchema();
 
-        assertEquals(List.of("flora"), names(schema.fields(Target.BIOME), FeatureSchema::field));
-        assertEquals(List.of("flora"), names(schema.fields(Target.REGION), FeatureSchema::field));
-        assertEquals(List.of("wind"), names(schema.fields(Target.DIMENSION), FeatureSchema::field));
-        assertEquals(List.of("bush"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::field));
+        assertEquals(List.of("example:flora"), names(schema.fields(Target.BIOME), FeatureSchema::key));
+        assertEquals(List.of("example:flora"), names(schema.fields(Target.REGION), FeatureSchema::key));
+        assertEquals(List.of("example:flora/wind"), names(schema.fields(Target.DIMENSION), FeatureSchema::key));
+        assertEquals(List.of("example:flora/bush"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
+        assertTrue(schema.features().stream().allMatch(feature -> feature.alias().isEmpty()), "pack modules have no alias");
         assertEquals(List.of("example:flora", "example:flora/bush", "example:flora/wind"), names(schema.features(), FeatureSchema::id));
 
         var flora = schema.features().getFirst();
@@ -211,11 +212,11 @@ class PackSchemaTest {
     }
 
     @Test
-    void describesOptionsInNameOrderWithChecksAndDefaults() {
+    void describesOptionsInDeclarationOrderWithChecksAndDefaults() {
         var settings = floraSchema().type("pack.flora.FloraSettings");
 
-        assertEquals(List.of("biomes", "chance", "density", "drops", "enabled", "extra", "flower", "ground", "label",
-                        "palette", "patch", "season", "seasons", "seedOffset", "spread", "weights"),
+        assertEquals(List.of("density", "chance", "spread", "seedOffset", "enabled", "label", "palette", "ground", "biomes",
+                        "drops", "flower", "season", "seasons", "weights", "patch", "extra"),
                 settings.options().stream().map(SchemaOption::name).toList());
         assertEquals(new SchemaOption("density", new IntegerKind(), "Plants per chunk", true,
                 OptionalDouble.of(0), OptionalDouble.of(64), Optional.of(4L)), option(settings, "density"));
@@ -273,7 +274,7 @@ class PackSchemaTest {
         assertEquals(Optional.of(Map.of("bloom", "SUMMER", "radius", 3L)), option(settings, "patch").defaultValue(),
                 "an object default holds the options that have one");
         assertEquals("A patch of plants", patch.description());
-        assertEquals(List.of("bloom", "child", "radius"), patch.options().stream().map(SchemaOption::name).toList());
+        assertEquals(List.of("radius", "bloom", "child"), patch.options().stream().map(SchemaOption::name).toList());
         assertEquals(new ObjectKind("pack.flora.Patch"), option(patch, "child").kind());
         assertEquals("A smaller patch inside this one", option(patch, "child").description());
         assertEquals(OptionalDouble.of(1), option(patch, "radius").minimum());
@@ -283,7 +284,7 @@ class PackSchemaTest {
     void listsSnippetsObjectGeneratorsAndExplicitlyRegisteredSettings() {
         var schema = floraSchema();
 
-        assertEquals(List.of("bush", "flora-patch"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
+        assertEquals(List.of("example/flora/bush", "example/flora/patch"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
         assertEquals(List.of("pack.flora.BushSettings", "pack.flora.Patch"), schema.snippets().stream().map(ObjectType::name).toList());
 
         var bush = schema.objectGenerators().getFirst();
@@ -322,7 +323,9 @@ class PackSchemaTest {
         var schema = schemaOf(pack("empty"), ModuleHost.of(builtIns));
 
         assertEquals(List.of("example:grass", "example:moss", "iris:snow", "iris:stilt"), names(schema.features(), FeatureSchema::id));
-        assertEquals(List.of("moss", "snow", "stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::field));
+        assertEquals(List.of("example:moss", "iris:snow", "iris:stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
+        assertEquals(List.of("", "snow", "stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), feature -> feature.alias().orElse("")),
+                "built-ins keep their short aliases");
 
         var stilt = schema.fields(Target.OBJECT_PLACEMENT).get(2);
         assertEquals("Stilts", stilt.module().name());
@@ -349,7 +352,7 @@ class PackSchemaTest {
                         import com.volmit.resource.*;
                         import java.util.*;
 
-                        @Feature(id = "example:flora", name = "Flora", field = "flora", targets = Target.BIOME)
+                        @Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)
                         public final class FloraSettings implements IrisFeature {
                         %s
                         }
@@ -379,7 +382,7 @@ class PackSchemaTest {
                         import com.volmit.config.Feature;
                         import java.util.*;
 
-                        @Feature(id = "example:flora", name = "Flora", field = "flora", targets = Target.BIOME)
+                        @Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)
                         public final class FloraSettings implements IrisFeature {
                             private Node node = new Node();
                             private double ratio = Double.NaN;
@@ -449,14 +452,90 @@ class PackSchemaTest {
     }
 
     @Test
-    void snippetNamesAreFolderNamesThatBelongToOneClass() {
-        assertLoadFails("Snippet name 'Big Patch' of pack.flora.Patch of " + FLORA_SOURCE + " is not a folder name; packs write snippets under"
-                + " snippet/<name>/, so use lowercase letters, digits, '-' and '_'",
-                "private Patch patch;", "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"Big Patch\") final class Patch {}");
-        assertLoadFails("Snippet name 'patch' is used by pack.flora.Patch of " + FLORA_SOURCE + " and by pack.flora.Plot of " + FLORA_SOURCE
-                + "; studio describes snippet/patch/ by one class, so give each its own name",
+    void snippetNamesAreFolderPathsThatBelongToOneClass() {
+        var notAPath = "is not a folder path; packs write snippets under snippet/<name>/, so use lowercase letters, digits, '-', '_'"
+                + " and '.', with '/' between folders";
+        assertLoadFails("Snippet name 'example/flora/Big Patch' of pack.flora.Patch of " + FLORA_SOURCE + " " + notAPath,
+                "private Patch patch;", "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"example/flora/Big Patch\") final class Patch {}");
+        assertLoadFails("Snippet name 'example/flora/../moss' of pack.flora.Patch of " + FLORA_SOURCE + " " + notAPath,
+                "private Patch patch;", "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"example/flora/../moss\") final class Patch {}");
+        assertLoadFails("Snippet name 'example/flora/patch' is used by pack.flora.Patch of " + FLORA_SOURCE + " and by pack.flora.Plot of " + FLORA_SOURCE
+                + "; studio describes snippet/example/flora/patch/ by one class, so give each its own name",
                 "private Patch patch; private Plot plot;",
-                "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"patch\") final class Patch {}",
-                "pack.flora.Plot", "package pack.flora; @com.volmit.config.Snippet(\"patch\") final class Plot {}");
+                "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"example/flora/patch\") final class Patch {}",
+                "pack.flora.Plot", "package pack.flora; @com.volmit.config.Snippet(\"example/flora/patch\") final class Plot {}");
+    }
+
+    @Test
+    void packSnippetsLiveUnderTheirModulesFolder() {
+        assertLoadFails("Snippet name 'patch' of pack.flora.Patch of " + FLORA_SOURCE + " is not under a module of the pack; snippets of pack"
+                + " modules start with their module's id as a folder path, such as 'example/flora/patch' (folder snippet/example/flora/patch/)",
+                "private Patch patch;", "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"patch\") final class Patch {}");
+        assertLoadFails("Snippet name 'example/florae/patch' of pack.flora.Patch of " + FLORA_SOURCE + " is not under a module of the pack;"
+                + " snippets of pack modules start with their module's id as a folder path, such as 'example/flora/patch'"
+                + " (folder snippet/example/flora/patch/)",
+                "private Patch patch;", "pack.flora.Patch", "package pack.flora; @com.volmit.config.Snippet(\"example/florae/patch\") final class Patch {}");
+
+        var pack = pack("module-folder");
+        module("pack.flora.FloraModule", FLORA,
+                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        @com.volmit.config.Snippet("example/flora")
+                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                        public final class FloraSettings implements com.volmit.IrisFeature {}
+                        """)
+                .writeInto(pack, "flora.jar");
+        assertEquals(List.of("example/flora"), schemaOf(pack, NO_BUILT_INS).snippets().stream()
+                .map(type -> type.snippet().orElseThrow()).toList(), "the module's own folder is under its path");
+    }
+
+    @Test
+    void packModulesCannotSetAnAlias() {
+        var pack = pack("alias");
+        module("pack.flora.FloraModule", FLORA,
+                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", alias = "flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                        public final class FloraSettings implements com.volmit.IrisFeature {}
+                        """)
+                .writeInto(pack, "flora.jar");
+
+        var failure = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, NO_BUILT_INS));
+
+        assertEquals("Settings pack.flora.FloraSettings of module example:flora from modules/flora.jar set alias 'flora'; only modules"
+                + " that ship with the host may set one, so remove it: packs write these settings under their id \"example:flora\"",
+                failure.getMessage());
+    }
+
+    @Test
+    void packReferencesFitOnlyPlainText() {
+        assertLoadFails("Field pack.flora.FloraSettings.home of " + FLORA_SOURCE + " has @Ref(PACK_BIOME) on ResourceId, but packs name"
+                + " their biomes, regions and objects by path without a namespace, such as desert/dunes; use String",
+                "@Ref(Reference.PACK_BIOME) private ResourceId home;");
+        assertTrue(loadFailure("@Ref(Reference.PACK_OBJECT) private List<ResourceId> objects;").getMessage()
+                .contains("has @Ref(PACK_OBJECT) on ResourceId"));
+    }
+
+    @Test
+    void inheritedOptionsComeBeforeTheirSubclasssOwn() {
+        var pack = pack("inherited");
+        module("pack.flora.FloraModule", FLORA,
+                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                .source("pack.flora.Base", "package pack.flora; abstract class Base { private int zeta; private int alpha; }")
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                        public final class FloraSettings extends Base implements com.volmit.IrisFeature { private int omega; private int beta; }
+                        """)
+                .writeInto(pack, "flora.jar");
+
+        var settings = schemaOf(pack, NO_BUILT_INS).type("pack.flora.FloraSettings");
+
+        assertEquals(List.of("zeta", "alpha", "omega", "beta"), settings.options().stream().map(SchemaOption::name).toList());
     }
 }

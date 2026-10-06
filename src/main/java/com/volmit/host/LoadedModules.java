@@ -41,7 +41,31 @@ public record LoadedModules(FeatureCatalog catalog, PackSchema schema, ResolvedG
         stages.settingsTypes(registry::registeredByOwner).forEach(registry::registerStageSettings);
         var catalog = registry.freeze();
         var schema = PackSchemaBuilder.describe(catalog, modules);
-        return new LoadedModules(catalog, schema, stages.resolve(Pipeline.PLACEMENT), stages.resolve(Pipeline.CHUNK));
+        var placement = stages.resolve(Pipeline.PLACEMENT);
+        var chunk = stages.resolve(Pipeline.CHUNK);
+        requireRegisteredMantleLayers(catalog, placement);
+        requireRegisteredMantleLayers(catalog, chunk);
+        return new LoadedModules(catalog, schema, placement, chunk);
+    }
+
+    /** A stage's reach names the layers it writes; a layer nobody registered has no codec or lifetime. */
+    private static void requireRegisteredMantleLayers(FeatureCatalog catalog, ResolvedGraph graph) {
+        for (var stage : graph.stages()) {
+            for (var layer : stage.reach().mantleLayers()) {
+                var registered = catalog.mantle().stream()
+                        .map(MantleRegistration::key)
+                        .filter(key -> key.id().equals(layer.id()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Stage " + stage.stage().id() + " of module "
+                                + stage.module() + " writes mantle layer " + layer.id() + ", which no module registers;"
+                                + " its owner registers it with FeatureRegistry.registerMantle"));
+                if (registered.type() != layer.type()) {
+                    throw new IllegalArgumentException("Stage " + stage.stage().id() + " of module " + stage.module()
+                            + " writes mantle layer " + layer.id() + " as " + layer.type().getName()
+                            + ", but it is registered as " + registered.type().getName());
+                }
+            }
+        }
     }
 
     /** The pack load checks that every class a module uses exists, not that every method or field

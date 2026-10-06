@@ -9,15 +9,18 @@ import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
- * immutable. IDs are unique across feature kinds; JSON fields are unique per attachment target.
- * Pass existing host JSON fields to reserve them before modules register. Modules register through
+ * immutable. IDs are unique across feature kinds, and every feature id is its JSON key. Aliases,
+ * which only built-in modules may set, are unique per attachment target and may not equal the
+ * host JSON fields passed in to reserve them. Modules register through
  * {@link #register(DiscoveredModule)}; object feature ids, mantle keys and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}). A failed registration leaves the registry unchanged. A failed module callback
  * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
@@ -31,6 +34,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
     private final Map<Field, String> fields = new HashMap<>();
+    private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
     private DiscoveredModule registering;
 
@@ -50,6 +54,7 @@ public final class ModuleRegistry implements FeatureRegistry {
             throw new IllegalStateException("Module " + discovered.info().id() + " registered during " + registering.info().id());
         }
         registering = discovered;
+        registered.add(discovered);
         try {
             discovered.module().register(this);
         } finally {
@@ -65,7 +70,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         var descriptor = FeatureDescriptor.of(featureType);
         requireOwnedId("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
         var registration = new ObjectRegistration<>(descriptor, factory);
-        claim(descriptor);
+        claim(descriptor, registering);
         objects.put(featureType, registration);
     }
 
@@ -87,19 +92,21 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         var descriptor = FeatureDescriptor.of(settingsType);
         requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
-        catalogSettings(descriptor);
+        catalogSettings(descriptor, registering);
         registeredByOwner.add(settingsType);
     }
 
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
-     * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type.
+     * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type. Call
+     * it after every module has registered, so the owner is known.
      */
     void registerStageSettings(Class<? extends IrisFeature> settingsType) {
         checkOpen();
         if (settings.containsKey(settingsType)) {
             return;
         }
-        catalogSettings(FeatureDescriptor.of(settingsType));
+        var descriptor = FeatureDescriptor.of(settingsType);
+        catalogSettings(descriptor, ownerOf(descriptor));
     }
 
     /** Whether the module owning {@code settingsType} registered it through {@link #registerSettings}. */
@@ -114,12 +121,19 @@ public final class ModuleRegistry implements FeatureRegistry {
         return catalog;
     }
 
-    private void catalogSettings(FeatureDescriptor<?> descriptor) {
+    private void catalogSettings(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
         if (settings.containsKey(descriptor.type())) {
             return;
         }
-        claim(descriptor);
+        claim(descriptor, owner);
         settings.put(descriptor.type(), descriptor);
+    }
+
+    private DiscoveredModule ownerOf(FeatureDescriptor<?> descriptor) {
+        return registered.stream()
+                .filter(module -> module.info().ownsId(descriptor.id()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No registered module owns feature id " + descriptor.id()));
     }
 
     private void requireOwnedId(String registration, ResourceId id) {
@@ -141,25 +155,32 @@ public final class ModuleRegistry implements FeatureRegistry {
     }
 
     private void reserveHostField(FeatureAttachment.Target target, String name) {
-        new FeatureAttachment(name, Set.of(target));
-        fields.put(new Field(target, name), "host");
+        fields.put(new Field(target, FeatureAttachment.requireFieldName(name)), "host");
     }
 
-    private void claim(FeatureDescriptor<?> descriptor) {
-        validateClaim(descriptor);
+    private void claim(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
+        validateClaim(descriptor, owner);
         recordClaim(descriptor);
     }
 
-    private void validateClaim(FeatureDescriptor<?> descriptor) {
+    private void validateClaim(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
         if (featureTypes.contains(descriptor.type()) || featureIds.contains(descriptor.id())) {
             throw new IllegalArgumentException("Duplicate feature: " + descriptor.id());
         }
+        descriptor.alias().ifPresent(alias -> validateAlias(descriptor, alias, owner));
+    }
 
+    private void validateAlias(FeatureDescriptor<?> descriptor, String alias, DiscoveredModule owner) {
+        if (owner.source() == DiscoveredModule.Source.PACK) {
+            throw new IllegalArgumentException("Settings " + descriptor.type().getName() + " of module " + owner
+                    + " set alias '" + alias + "'; only modules that ship with the host may set one, so remove it:"
+                    + " packs write these settings under their id \"" + descriptor.key() + "\"");
+        }
         for (var target : descriptor.attachment().targets()) {
-            var field = new Field(target, descriptor.attachment().field());
+            var field = new Field(target, alias);
             if (fields.containsKey(field)) {
-                throw new IllegalArgumentException(
-                        "JSON field collision at " + field + ": " + fields.get(field));
+                throw new IllegalArgumentException("Alias collision at " + field + " of " + descriptor.id()
+                        + ": " + fields.get(field));
             }
         }
     }
@@ -167,10 +188,11 @@ public final class ModuleRegistry implements FeatureRegistry {
     private void recordClaim(FeatureDescriptor<?> descriptor) {
         featureTypes.add(descriptor.type());
         featureIds.add(descriptor.id());
-        for (var target : descriptor.attachment().targets()) {
-            var field = new Field(target, descriptor.attachment().field());
-            fields.put(field, descriptor.id().toString());
-        }
+        descriptor.alias().ifPresent(alias -> {
+            for (var target : descriptor.attachment().targets()) {
+                fields.put(new Field(target, alias), descriptor.id().toString());
+            }
+        });
     }
 
     private void checkOpen() {

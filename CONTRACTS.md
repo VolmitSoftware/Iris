@@ -10,8 +10,9 @@ types that carry them and lists what the Iris adapter still owes.
 | Module identity and composition | `IrisModule`, `ModuleInfo` (with optional packages), `StageGraph` |
 | Loading and unloading a pack | host `LoadedPack`, `ModuleHost` |
 | Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules` (jar copies), `DiscoveredModule`, `MissingClasses` |
-| Namespace ownership | module-prefixed stage ids, `ModuleInfo.ownsStage`, `ModuleHost.reservingNamespaces` |
-| Randomness independent of other modules | `StageContext.random()`, host `StageRandom`, invocation seed passed to the runners |
+| Namespace ownership | module-prefixed stage, feature and mantle ids, `ModuleInfo.ownsStage`/`ownsId`, `ModuleHost.reservingNamespaces` |
+| Randomness independent of other modules | `StageContext.random()`, host `StageStreams`, invocation seed passed to the runners |
+| Random values identical on every JDK | `WorldRandom`, pinned by `WorldRandomTest` |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
 | Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` |
 | Typed results between modules | stage outputs, `StageContext.output` |
@@ -30,11 +31,13 @@ types that carry them and lists what the Iris adapter still owes.
 
 Stage bodies hold no invocation state. Everything per placement or chunk travels through the
 context, outputs and accumulators. Each stage draws only from its own stream, derived from the
-invocation seed and its id, so other modules never change its draws.
+invocation seed and its id, so other modules never change its draws. Every value a stream produces is
+defined by IrisApi (`WorldRandom`), not by the JDK, so a JDK update never changes a world.
 
-A module owns its id (`ns:name`, no `/`) and the stage ids below it (`ns:name/...`). Feature ids and
-mantle keys it registers use its namespace; a settings type in `when(...)` uses the namespace of a
-module that names it. Pack modules cannot use the namespaces the host reserves.
+A module owns its id (`ns:name`, no `/`) and the ids below it (`ns:name/...`). Its stage ids are
+below it; feature ids and mantle keys it registers are its id or below it; a settings type in
+`when(...)` is owned in that sense by a module that names it. Pack modules cannot use the
+namespaces the host reserves.
 
 A pack load works on copies of the module jars, so the originals are never held open.
 
@@ -70,7 +73,8 @@ running Iris is the pack publisher's responsibility.
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
 - Build one `ModuleHost` at startup with the built-in modules, exposed packages, reserved JSON
-  fields and `reservingNamespaces("iris")`. Load each pack with `LoadedPack.load(packRoot, host)`
+  fields and `reservingNamespaces("iris")`. Its methods accumulate, so the configuration can be
+  built in steps. Load each pack with `LoadedPack.load(packRoot, host)`
   and close it only after nothing built from it is in use.
 - Route `System.Logger` output (logger `com.volmit.host.PackModules`) to the server log, so the
   per-pack module summary and missing-classes warning are visible.

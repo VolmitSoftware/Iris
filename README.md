@@ -44,11 +44,23 @@ public final class MossModule implements IrisModule {
 - `ctx.random()` is the stage's own random stream, derived from the invocation seed and the stage
   id. Installing or removing other modules, or how much they draw, never changes what a stage
   draws. A block stage has one stream per placement, drawn across the blocks of its pass.
+  The stream is a `WorldRandom` (see Random streams below).
 
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators
-and mantle layers. Their feature ids and mantle keys use the module's namespace. A settings type
-named in `when(...)` needs a feature id in the namespace of a module that names it, so another
-module may still condition its stages on it.
+and mantle layers. Their feature ids and mantle keys are the module id or start with it and `/`,
+like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in
+`when(...)` needs a feature id that at least one module naming it owns in that sense, so another
+module may still condition its stages on it, as moss does on `iris:snow`.
+
+## Random streams
+
+Stages and object generators draw from `com.volmit.random.WorldRandom`, an IrisApi type whose every
+method is defined and pinned by tests, so the same seed gives the same world on every JDK. It is
+SplitMix64 with `nextInt`, `nextLong` and `nextDouble` in plain, bounded and `origin, bound` forms,
+plus `nextBoolean`, `nextFloat`, `nextGaussian` and `chance(probability)`. It does not implement
+`java.util.random.RandomGenerator`, whose default methods the JDK may change. Bounded integers are
+unbiased, `nextDouble` never returns its bound, and invalid bounds throw. It is not thread-safe: a
+stage uses its own stream within one invocation and must not share or keep it.
 
 ## Module jars
 
@@ -68,8 +80,8 @@ Every stage id of the module starts with the module id and `/`; the name is what
 and versions must fit on one line: line breaks and other control characters are rejected.
 
 The host reserves namespaces for its own modules, such as `iris`. A pack module whose id uses a
-reserved namespace fails the load, and because stages, settings ids and mantle keys follow the
-module's namespace, none of them can use it either:
+reserved namespace fails the load, and because stage ids, settings ids and mantle keys start with the
+module id, none of them can use it either:
 
 ```
 Module iris:stilt from modules/stilt.jar uses reserved namespace 'iris', which only modules that ship with the host may use; give the module a namespace of its own, which its stages, settings ids and mantle keys then use too
@@ -136,7 +148,8 @@ try (var pack = LoadedPack.load(packRoot, host)) {
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
 once, here), the host packages pack modules may use, the JSON fields the host itself uses and the
-reserved namespaces. Package names and namespaces are checked when it is built. `LoadedPack.load`
+reserved namespaces. Each method adds to what earlier calls configured. Package names, namespaces and
+reserved field names are checked when it is built. `LoadedPack.load`
 loads the pack's jars, installs them after the built-ins, catalogs settings and registrations and
 resolves both pipelines. It returns a complete pack or throws with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
@@ -144,7 +157,7 @@ uses, stay available for tests and special cases.
 
 The host derives one seed per placement or chunk, from the world seed and the placement's stable
 identity or the chunk position, and passes it to the runner. Each stage's stream comes from that
-seed and the stage id (`StageRandom` documents the derivation). Stages cannot reach a shared stream.
+seed and the stage id (`StageStreams` documents the derivation). Stages cannot reach a shared stream.
 
 The load copies the pack's jars into a fresh temporary directory (`iris-pack-modules-*`) and reads,
 checks and loads classes only from the copies. The originals are never held open, so a module author
@@ -211,13 +224,13 @@ A pack without jars logs `Pack overworld uses no modules: no jars in its modules
 together with geometry and mantle registrations, and resolves both pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do reserved namespaces and feature ids or mantle keys outside the
-module's namespace. Errors about one module name its jar or "host classpath", and so does a module
+module's id. Errors about one module name its jar or "host classpath", and so does a module
 that fails to link a class while installing, such as a jar built against an API whose methods have
 since changed:
 
 ```
 Stage iris:anchor/height must start with example:moss/, the id of its defining module example:moss from modules/moss.jar
-Mantle layer iris:depth must use namespace 'example' of its registering module example:moss from modules/moss.jar
+Mantle layer iris:depth must be example:moss or start with example:moss/, the id of its registering module example:moss from modules/moss.jar
 ```
 `describe()` prints the order, owners, edge kinds, fused block passes and the stage pairs that
 have no path between them.
@@ -247,10 +260,13 @@ concurrent invocations and must not keep views, streams or mutable state.
 ```
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
-rejection and rollback, install-order determinism, stage-id prefixes and settings, object and mantle
-namespaces (`StageGraphTest`, `ModuleRegistryTest`), and per-stage random streams: inserting a module
+rejection and rollback, install-order determinism, id ownership of stages, settings, objects and
+mantle keys (`StageGraphTest`, `ModuleRegistryTest`), and per-stage random streams: inserting a module
 that draws leaves the other stages' draws unchanged, block stages draw one stream across their pass,
-and the derivation is pinned to values computed from its specification (`StageRandomTest`).
+and the derivation is pinned to values computed from its specification (`StageStreamsTest`).
+`WorldRandomTest` pins every `WorldRandom` method, bounds and edge cases to values computed by an
+independent Python reference (`python3 -B src/test/reference/world_random.py`; the build does not
+need Python) and fails if the type gains an unpinned method or implements `RandomGenerator`.
 `DiscoveredModuleTest` checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go

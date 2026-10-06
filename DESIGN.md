@@ -40,7 +40,8 @@ name, version and optional packages; there is no separate descriptor. A pack kee
 
 The host loads a pack with `LoadedPack.load(packRoot, host)`. `ModuleHost` is the host's fixed
 configuration, built once and the same for every pack: built-in modules, exposed host packages,
-reserved JSON fields and reserved namespaces. `LoadedPack` runs `PackModules.load` (below), then
+reserved JSON fields and reserved namespaces. Each of its methods adds to what earlier calls
+configured, and all names are checked when it is built. `LoadedPack` runs `PackModules.load` (below), then
 `LoadedModules.load` on the built-ins followed by the pack's modules. If the second step fails it
 closes the first before rethrowing, so a failed load leaves no class loader or jar copy behind.
 `close()` closes the pack's class loader, then deletes its jar copies.
@@ -255,15 +256,17 @@ with its id and `/` (`iris:stilt/fill`), so no module can define stages under an
 path, and a stage id names exactly one possible owner. A `/` in a module id would let `iris:stilt/x`
 define stages under `iris:stilt`, so `ModuleInfo` rejects it.
 
-Feature ids of geometry generators and mantle keys a module registers must use its namespace.
-A settings type named in `when(...)` must have a feature id in the namespace of at least one module
-that names it: its owner. Other modules may name it too, to run only where that setting is
+Feature ids of geometry generators and mantle keys a module registers follow the same rule
+(`ModuleInfo.ownsId`): they are the module id or start with it and `/`, such as `iris:snow` or
+`iris:snow/depth`. Sharing the namespace is not enough, or `iris:snow` could claim `iris:stilt`'s
+ids. A settings type named in `when(...)` must have a feature id that at least one module naming it
+owns in this sense: its owner. Other modules may name it too, to run only where that setting is
 configured. Checking against the module that names it alone would forbid that; checking nothing
-would let any module claim a settings id in another namespace.
+would let any module claim another module's settings id.
 
 The host reserves namespaces for its own modules (`ModuleHost.reservingNamespaces("iris")`). A
 module from a pack jar whose id uses a reserved namespace fails the load, naming the jar and the
-namespace. Its stages, settings ids and mantle keys follow its namespace, so this one check keeps
+namespace. Its stage ids, settings ids and mantle keys start with its id, so this one check keeps
 pack modules out of reserved namespaces everywhere. Built-in modules, discovered with
 `DiscoveredModule.builtIn`, may use them.
 
@@ -377,33 +380,64 @@ stream: `InvocationContext` has no `random()`, and the host passes a `long` invo
 shared stream, every draw of an earlier stage shifts what later stages get, so installing a module
 would change other modules' output for the same seed.
 
-The stream depends only on the invocation seed and the stage id (`StageRandom`):
+The stream depends only on the invocation seed and the stage id (`StageStreams`):
 
 1. `idHash` = 64-bit FNV-1a of the UTF-8 bytes of `namespace:path`, computed once per pack load;
 2. `streamSeed` = `mix(mix(invocationSeed) ^ idHash)`, `mix` being the SplitMix64 finalizer
    (Stafford variant 13);
-3. the stream is `new java.util.Random(streamSeed)`, created when the stage first draws.
+3. the stream is `new WorldRandom(streamSeed)`, created when the stage first draws.
 
 `mix` is a bijection, so a stage gets a different stream for every invocation seed, and in one
 invocation stages with different id hashes get different streams. The hash and the mixer are written
 out in IrisApi, not taken from `String.hashCode` or a JDK class whose output may change.
 
-`java.util.Random` is the only JDK generator whose algorithm the Java SE specification fixes:
-`nextInt()`, `nextInt(bound)`, `nextLong()`, `nextBoolean()`, `nextFloat()`, `nextDouble()`,
-`nextGaussian()` and `nextBytes` give the same values on every JDK. `SplittableRandom` and the named
-`RandomGeneratorFactory` algorithms such as `L64X128MixRandom` promise identical sequences only within
-one program, so a JDK update could change worlds. The methods `Random` inherits from
-`RandomGenerator`, such as `nextInt(origin, bound)` and `nextDouble(bound)`, and `nextExponential()`,
-are not fixed either. `Random`'s 48-bit state and its synchronized updates are fine for world
-generation, which Minecraft has done with it for years. A test pins the derivation to values
-computed outside Java from this description.
+A test pins the derivation to values computed outside Java from this description.
+
+### WorldRandom
+
+`com.volmit.random.WorldRandom` is the generator stages and object generators see. No JDK generator
+fits: `SplittableRandom` and the `RandomGeneratorFactory` algorithms promise identical sequences only
+within one program, and `java.util.Random` fixes only some methods. The ones it inherits from
+`RandomGenerator`, such as `nextInt(origin, bound)`, `nextDouble(bound)` and `nextExponential()`, are
+JDK defaults that a JDK update may change, and those are the ones module authors reach for.
+`Random` is also a 48-bit LCG with an atomic update per draw, a cost in per-block stages.
+
+`WorldRandom` therefore does not implement `RandomGenerator`. Overriding every default would hold
+only until a JDK adds another one; a type of its own exposes nothing IrisApi does not define. The
+price is that it cannot be passed to JDK methods that take a `Random` or `RandomGenerator`, such as
+`Collections.shuffle`. Its methods:
+
+| Method | Definition |
+| --- | --- |
+| `nextLong()` | SplitMix64 (Steele, Lea and Flood): `state += 0x9e3779b97f4a7c15`, return `mix(state)` |
+| `nextInt()` | the high 32 bits of `nextLong()` |
+| `nextBoolean()` | whether `nextLong()` is negative |
+| `nextFloat()` | the high 24 bits of `nextLong()` times 2^-24, in `[0, 1)` |
+| `nextDouble()` | the high 53 bits of `nextLong()` times 2^-53, in `[0, 1)` |
+| `nextInt(bound)`, `nextInt(origin, bound)`, `nextLong(bound)`, `nextLong(origin, bound)` | Lemire's multiply-and-reject method, unbiased; ranges wider than `MAX_VALUE` work |
+| `nextDouble(bound)`, `nextDouble(origin, bound)` | `origin + nextDouble() * (bound - origin)`, a result rounded up to `bound` replaced by the double below it; a width beyond `Double.MAX_VALUE` is halved first |
+| `nextGaussian()` | Marsaglia's polar method on `StrictMath.log` and `StrictMath.sqrt`; the pair's second value is discarded |
+| `chance(probability)` | `nextDouble() < probability` |
+
+The state is one `long`, initially the seed. Methods without rejection draw exactly one value; how
+many values a method draws is part of the sequence. `StrictMath` is fixed bit for bit by the Java SE
+specification (fdlibm), so the gaussian needs no math of its own. Invalid bounds (`bound <= 0`,
+`origin >= bound`, NaN or infinite doubles, a probability outside `[0, 1]`) throw
+`IllegalArgumentException`. The generator is not thread-safe: one stage uses its stream within one
+invocation.
+
+`WorldRandomTest` pins every method to values computed by `src/test/reference/world_random.py`, an
+independent implementation of this table with Python integers and IEEE doubles. Python's `math.log`
+is the platform's, so the script carries a port of fdlibm's `log`. The build does not run it. The test
+also fails if `WorldRandom` gains a public method without pinned values or implements
+`RandomGenerator`.
 
 A block stage gets one stream per placement and draws from it across the blocks of its pass in block
 order. Fused block stages interleave per block, but each still draws only from its own stream. A
 stage that never draws never creates its stream.
 
-Object generators are not stages. `ObjectGenerationContext.random()` stays, seeded from the variant
-seed the host chooses.
+Object generators are not stages. `ObjectGenerationContext.random()` stays, a `WorldRandom` seeded
+from the variant seed the host chooses.
 
 ## Chunk invocations
 
@@ -416,15 +450,15 @@ the host from publishing the chunk.
 ## Settings, geometry and storage
 
 Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, JSON
-field, attachment targets). `when(type)` validates the annotation while the module installs. The id's
-namespace must be that of a module naming the type (see Namespaces).
+field, attachment targets). `when(type)` validates the annotation while the module installs. The id
+must be owned by a module naming the type (see Namespaces).
 `LoadedModules.load` catalogs those types with geometry generator settings and rejects duplicate
 ids and JSON field collisions per attachment target, including reserved host fields.
 `OptionsMetadata` reads field metadata; it does not decode JSON.
 
 `GeneratedObject` is sparse, immutable local geometry with bounds, an anchor, sorted blocks,
-optional block entity payloads and markers. `ObjectGenerator` produces it from settings and an
-RNG. `ObjectTransformer` is host-owned.
+optional block entity payloads and markers. `ObjectGenerator` produces it from settings and a
+`WorldRandom`. `ObjectTransformer` is host-owned.
 
 The mantle contracts are unchanged: namespaced typed keys, versioned codecs, generation and
 persistent lifetimes, ordered sparse visits and buffered edits. Only owners register a layer.

@@ -1,0 +1,84 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * IrisApi source resolution, applied by the root settings file:
+ *
+ *   apply from: new File(settingsDir, 'gradle/irisapi-resolution.settings.gradle')
+ *
+ * IrisApi is a separate project with no published artifact, so Iris always compiles against a sibling
+ * checkout as a composite build. Core declares `com.volmit:IrisApi`; this substitutes it with the
+ * checkout's root project.
+ *
+ * Behaviour:
+ *   -PlocalIrisApiDirectory=<path>    explicit IrisApi checkout (relative paths resolve against the
+ *                                     including build's settings directory).
+ *   IRISAPI_DIR=<path>                same, via environment.
+ *   otherwise                         walk up from settingsDir looking for an `IrisApi` directory
+ *                                     that contains a settings script.
+ *
+ * When nothing is found the build fails here, naming where it looked, rather than later with an
+ * unresolvable dependency.
+ *
+ * The modded adapters do not apply this: they compile against core's jar and use no IrisApi type.
+ */
+
+import java.io.File
+
+boolean irisHasIrisApiSettings(File directory) {
+    if (directory == null) {
+        return false
+    }
+
+    new File(directory, 'settings.gradle.kts').exists() || new File(directory, 'settings.gradle').exists()
+}
+
+File irisResolveLocalIrisApiDirectory() {
+    String configuredPath = providers.gradleProperty('localIrisApiDirectory')
+        .orElse(providers.environmentVariable('IRISAPI_DIR'))
+        .orNull
+    if (configuredPath != null && !configuredPath.isBlank()) {
+        File configuredDirectory = new File(configuredPath)
+        if (!configuredDirectory.isAbsolute()) {
+            configuredDirectory = new File(settingsDir, configuredPath)
+        }
+        if (irisHasIrisApiSettings(configuredDirectory)) {
+            return configuredDirectory
+        }
+        throw new GradleException("IrisApi checkout ${configuredDirectory} has no settings script")
+    }
+
+    File currentDirectory = settingsDir
+    while (currentDirectory != null) {
+        File candidate = new File(currentDirectory, 'IrisApi')
+        if (irisHasIrisApiSettings(candidate)) {
+            return candidate
+        }
+
+        currentDirectory = currentDirectory.parentFile
+    }
+
+    throw new GradleException("No IrisApi checkout found in ${settingsDir} or its parent directories; "
+        + "clone IrisApi next to Iris, or pass -PlocalIrisApiDirectory=<path> or IRISAPI_DIR")
+}
+
+includeBuild(irisResolveLocalIrisApiDirectory()) {
+    dependencySubstitution {
+        substitute(module('com.volmit:IrisApi')).using(project(':'))
+    }
+}

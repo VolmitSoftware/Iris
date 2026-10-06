@@ -53,6 +53,11 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
 dependencies {
     api(project(':spi'))
 
+    // IrisApi, from the sibling checkout (gradle/irisapi-resolution.settings.gradle). compileOnly on
+    // purpose: how the API reaches a server at runtime is undecided, so it is not shaded into the
+    // plugin or mod jars, and a built jar cannot load packs until that is decided.
+    compileOnly('com.volmit:IrisApi')
+
     // Provided or Classpath
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
@@ -107,6 +112,7 @@ dependencies {
     slim(libs.dom4j)
     slim(libs.jaxen)
 
+    testImplementation('com.volmit:IrisApi')
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.mockito:mockito-core:5.23.0')
     testImplementation(libs.paper.api)

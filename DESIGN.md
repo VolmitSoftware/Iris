@@ -102,7 +102,8 @@ only the copies. The originals are closed again as soon as they are copied. This
 works on one consistent set of jars: a jar rebuilt during the load affects the next load, not half
 of this one.
 
-Copies live in a new directory `iris-pack-modules-*` under `java.io.tmpdir`, named by their
+Copies live in a new directory `iris-pack-modules-*` under `java.io.tmpdir`, or under the directory
+the host passes to `ModuleHost.copyingJarsTo(...)`, which is created when missing, named by their
 original file name, next to an owner file holding a fixed header and the id of the process that made
 it. Origins and messages always use the original path relative to the pack: the copy's path would
 mean nothing to the author. When an entry class turns out to come from another jar of the pack, the
@@ -273,9 +274,10 @@ namespace. Its stage ids, settings ids and mantle keys start with its id, so thi
 pack modules out of reserved namespaces everywhere. Built-in modules, discovered with
 `DiscoveredModule.builtIn`, may use them.
 
-The load summary and the missing-classes warning go through
-`System.getLogger(PackModules.class.getName())`, so the host can route them with a
-`System.LoggerFinder`. The summary lists display name, id, version and jar for each module in load
+The load summary and the missing-classes warning go to the `System.Logger` the host passes to
+`ModuleHost.loggingTo(...)`, by default `System.getLogger(PackModules.class.getName())`. A host
+argument rather than a `System.LoggerFinder`: the JDK finds a finder through the system class loader,
+which a plugin's classes are not on. The summary lists display name, id, version and jar for each module in load
 order, or says the pack has no module jars. `PackModulesSummary` and `MissingClassesWarning` build
 the texts and are tested on their own.
 

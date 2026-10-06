@@ -105,4 +105,35 @@ class LoadedPackTest {
         assertEquals(Set.of("iris", "vanilla"), host.reservedNamespaces());
         assertEquals(Map.of(Target.BIOME, Set.of("carving", "objects"), Target.REGION, Set.of("spawns")), host.reservedHostFields());
     }
+
+    @Test
+    void copiesJarsWhereTheHostSaysAndLogsToTheHostsLogger(@TempDir Path cache) throws java.io.IOException {
+        writeModule("user:core", NO_STAGES);
+        var copies = cache.resolve("module-jars");
+        var log = new RecordingLogger();
+
+        try (var ignored = LoadedPack.load(pack, HOST.copyingJarsTo(copies).loggingTo(log))) {
+            assertTrue(java.nio.file.Files.exists(copies), "a missing copy directory is created");
+            try (var entries = java.nio.file.Files.list(copies)) {
+                assertEquals(1, entries.filter(entry -> entry.getFileName().toString().startsWith(JarSnapshot.DIRECTORY_PREFIX)).count());
+            }
+        }
+
+        assertEquals(List.of("INFO Pack " + pack.getFileName() + " uses 1 module:"), log.levelsAndFirstLines());
+    }
+
+    /** Keeps the level and first line of every message, which is enough to see where the summary went. */
+    private static final class RecordingLogger implements System.Logger {
+        private final List<String> lines = new java.util.ArrayList<>();
+
+        List<String> levelsAndFirstLines() { return lines; }
+        public String getName() { return "recording"; }
+        public boolean isLoggable(Level level) { return true; }
+        public void log(Level level, java.util.ResourceBundle bundle, String message, Throwable thrown) { record(level, message); }
+        public void log(Level level, java.util.ResourceBundle bundle, String format, Object... parameters) { record(level, format); }
+
+        private void record(Level level, String message) {
+            lines.add(level + " " + message.lines().findFirst().orElse(""));
+        }
+    }
 }

@@ -95,6 +95,7 @@ final class JarSnapshot {
 
     private static Path createOwnedDirectory(Path temporaryRoot) {
         try {
+            Files.createDirectories(temporaryRoot);
             var directory = Files.createTempDirectory(temporaryRoot, DIRECTORY_PREFIX);
             Files.writeString(directory.resolve(OWNER_FILE), ownerRecord(ProcessHandle.current().pid()), StandardCharsets.UTF_8);
             return directory;

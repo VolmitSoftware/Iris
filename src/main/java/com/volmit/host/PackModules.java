@@ -36,8 +36,9 @@ import java.util.stream.Collectors;
  * them runs; they are reported as {@link #missingClasses()}, except those in the optional packages
  * the jar's module declares in its {@link com.volmit.ModuleInfo}.
  *
- * <p>A successful load logs one INFO summary of the pack's modules through {@link System.Logger},
- * which the host can route to its own logging, and one WARNING listing the missing classes, if any.
+ * <p>A successful load logs one INFO summary of the pack's modules through a {@link System.Logger}, by
+ * default the one named after this class, or the host's from {@link ModuleHost#loggingTo}, and one
+ * WARNING listing the missing classes, if any.
  *
  * <p>Close this when the pack unloads, after dropping everything built from its modules, such as
  * {@link LoadedModules}. Classes not loaded before then can no longer be loaded.
@@ -46,7 +47,7 @@ public final class PackModules implements AutoCloseable {
     public static final String MODULES_DIRECTORY = "modules";
     static final String JAR_EXTENSION = ".jar";
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
-    private static final System.Logger LOGGER = System.getLogger(PackModules.class.getName());
+    private static final System.Logger DEFAULT_LOGGER = System.getLogger(PackModules.class.getName());
 
     private final List<DiscoveredModule> modules;
     private final List<MissingClasses> missingClasses;
@@ -80,13 +81,19 @@ public final class PackModules implements AutoCloseable {
 
     /** Like {@link #load(Path, Collection)}, copying the jars below {@code temporaryRoot}. */
     static PackModules load(Path packRoot, Collection<String> exposedHostPackages, Path temporaryRoot) {
+        return load(packRoot, exposedHostPackages, temporaryRoot, DEFAULT_LOGGER);
+    }
+
+    /** Like {@link #load(Path, Collection)}, copying the jars below {@code temporaryRoot} and logging to {@code logger}. */
+    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, Path temporaryRoot, System.Logger logger) {
         Objects.requireNonNull(packRoot, "packRoot");
+        Objects.requireNonNull(logger, "logger");
         var host = new ExposedHostClassLoader(IrisModule.class.getClassLoader(), ExposedPackages.apiAnd(exposedHostPackages));
         StaleJarSnapshots.remove(temporaryRoot);
         var snapshot = JarSnapshot.take(packRoot, findModuleJars(packRoot), temporaryRoot);
         try {
             var packModules = loadSnapshot(packRoot, snapshot, host);
-            logLoad(packName(packRoot), packModules);
+            logLoad(logger, packName(packRoot), packModules);
             return packModules;
         } catch (RuntimeException | Error failure) {
             snapshot.deleteAfterFailure(failure);
@@ -164,10 +171,10 @@ public final class PackModules implements AutoCloseable {
         return new URLClassLoader("pack:" + packName(packRoot), urls, host);
     }
 
-    private static void logLoad(String packName, PackModules packModules) {
-        LOGGER.log(Level.INFO, () -> PackModulesSummary.describe(packName, packModules.modules()));
+    private static void logLoad(System.Logger logger, String packName, PackModules packModules) {
+        logger.log(Level.INFO, () -> PackModulesSummary.describe(packName, packModules.modules()));
         if (packModules.missingClasses().isEmpty()) return;
-        LOGGER.log(Level.WARNING, () -> MissingClassesWarning.describe(packName, packModules.missingClasses()));
+        logger.log(Level.WARNING, () -> MissingClassesWarning.describe(packName, packModules.missingClasses()));
     }
 
     private static String packName(Path packRoot) {

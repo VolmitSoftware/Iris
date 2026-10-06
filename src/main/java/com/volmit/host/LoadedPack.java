@@ -34,7 +34,7 @@ public final class LoadedPack implements AutoCloseable {
      */
     public static LoadedPack load(Path packRoot, ModuleHost host) {
         Objects.requireNonNull(host, "host");
-        var packModules = PackModules.load(packRoot, host.exposedHostPackages());
+        var packModules = PackModules.load(packRoot, host.exposedHostPackages(), host.jarCopyRoot(), host.logger());
         try {
             var loaded = LoadedModules.load(host.withPackModules(packModules.modules()),
                     host.reservedHostFields(), host.reservedNamespaces());

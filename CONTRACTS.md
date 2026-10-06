@@ -91,8 +91,9 @@ running Iris is the pack publisher's responsibility.
   fields and `reservingNamespaces("iris")`. Its methods accumulate, so the configuration can be
   built in steps. Load each pack with `LoadedPack.load(packRoot, host)`
   and close it only after nothing built from it is in use.
-- Route `System.Logger` output (logger `com.volmit.host.PackModules`) to the server log, so the
-  per-pack module summary and missing-classes warning are visible.
+- Pass a `System.Logger` that writes to the server log to `ModuleHost.loggingTo(...)`, so the
+  per-pack module summary and missing-classes warning are visible, and a cache directory of the host
+  to `ModuleHost.copyingJarsTo(...)` for the jar copies.
 - Provide the API at runtime from the plugin's class loader, for example by shading it into the
   Iris plugin jar. Pack jars must not ship it.
 - Pass the packages of built-in modules whose stages packs may require to

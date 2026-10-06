@@ -210,7 +210,9 @@ Settings com.example.flora.FloraSettings of module example:flora from modules/fl
 var host = ModuleHost.of(builtInModules)
         .exposing("art.arcane.iris.engine.modules")     // besides the API
         .reservingNamespaces("iris")
-        .reservingFields(reservedHostFields);
+        .reservingFields(reservedHostFields)
+        .copyingJarsTo(cacheDirectory)                    // default: java.io.tmpdir
+        .loggingTo(serverLogger);                         // a System.Logger; default: System.getLogger
 
 // Per pack.
 try (var pack = LoadedPack.load(packRoot, host)) {
@@ -287,7 +289,7 @@ Pack overworld: module jars use classes that neither the pack, Iris nor the JDK 
   modules/stilt.jar: org.apache.logging.log4j.LogManager, org.apache.logging.log4j.Logger, org.slf4j.Logger, org.slf4j.LoggerFactory, org.slf4j.spi.LocationAwareLogger and 3 more
 ```
 
-A successful load logs one INFO summary through `System.Logger`:
+A successful load logs one INFO summary to the host's `System.Logger`:
 
 ```
 Pack overworld uses 2 modules:

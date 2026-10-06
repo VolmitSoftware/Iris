@@ -1,7 +1,8 @@
 # Iris API design
 
 Status: pack module loading (`LoadedPack`), the stage graph, per-stage random streams, both
-pipelines' reference executors, settings catalog, geometry, resources and typed storage contracts
+pipelines' reference executors, settings catalog and its description for studio, geometry,
+resources and typed storage contracts
 exist and are tested without the Iris
 engine. Provider and runtime families at the end are design notes, not Java interfaces.
 
@@ -22,6 +23,8 @@ flowchart TD
     Register --> Catalog
     Resolve --> Placement[Placement graph]
     Resolve --> Chunk[Chunk graph]
+    Catalog --> Schema[PackSchema for studio]
+    Schema --> Render[Host JSON Schema and workspace]
     Catalog --> Decode[Host JSON decoding]
     Decode --> Configured[ConfiguredSettings per invocation]
     Configured --> Placement
@@ -458,7 +461,10 @@ the host from publishing the chunk.
 
 Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, JSON
 field, attachment targets). `when(type)` validates the annotation while the module installs. The id
-must be owned by a module naming the type (see Namespaces).
+must be owned by a module naming the type (see Namespaces), or the owner registers the type itself
+with `FeatureRegistry.registerSettings`. That is for settings no stage names, such as settings read
+only through `FeatureSettings.at(...)`; registering a type a stage also names changes nothing, and a
+type its owner registered may be named in `when(...)` by any module.
 `LoadedModules.load` catalogs those types with geometry generator settings and rejects duplicate
 ids and JSON field collisions per attachment target, including reserved host fields.
 `OptionsMetadata` reads field metadata; it does not decode JSON.
@@ -471,10 +477,123 @@ The mantle contracts are unchanged: namespaced typed keys, versioned codecs, gen
 persistent lifetimes, ordered sparse visits and buffered edits. Only owners register a layer.
 Unknown persisted layers must be preserved or fail explicitly.
 
+## Settings description for studio
+
+Studio needs a JSON Schema per pack file type and completion lists, and Iris writes both
+(`.iris/schema/*.json`, the `.code-workspace` and IntelliJ's `jsonSchemas.xml`). Module settings
+must appear there too. Module jars ship no schema: a schema written by the module's author would
+describe the jar's build, not the pack that loads it, and would have to be kept in sync by hand.
+IrisApi also writes no JSON Schema: it has no JSON library, and the host already renders its own
+classes. The pack load instead collects what modules declare in their settings classes into a
+`PackSchema` (`com.volmit.host.schema`), plain immutable Java values, and the host renders it.
+
+`LoadedModules.load` builds it right after freezing the catalog (`PackSchemaBuilder`), so a pack
+that loads has a complete description and a settings class the host could not render fails the
+load. It contains every catalogued settings type of every module, built-in ones too, because the
+core engine is modules as well. The host's own JSON fields are not in it; reserved host fields
+already keep module fields from colliding with them.
+
+### Shape
+
+- A `FeatureSchema` per catalogued type: feature id and name, role (`SETTINGS` for types named in
+  `when(...)` or registered with `registerSettings`, `OBJECT_GENERATOR` for `registerObject`), the
+  owning module's `ModuleInfo`, the JSON field, its targets and the settings `ObjectType`.
+  `fields(target)` lists a target's features; a feature attached to several targets appears under
+  each. The owner is the one module whose id owns the feature id; module ids are unique and contain
+  no `/`, so there is never more than one.
+- An `ObjectType` per class reachable from module settings, keyed by binary class name: description,
+  `@Snippet` name and options. A field of a class type is an `ObjectKind` naming the type, never an
+  inlined copy, so a class used in many places is described once, and a class that contains itself,
+  directly or through others, ends the walk at its own name. Two different classes with one name fail
+  the load; only a built-in class and a pack class can collide that way.
+- A `SchemaOption` per field that `OptionsMetadata` selects, which means instance fields that are
+  not transient, inherited ones included. Each has its name, `ValueKind`, `@Desc`, `@Required`,
+  `@MinNumber`/`@MaxNumber` and the default value.
+
+### Value kinds
+
+`ValueKind` is sealed, so a host renderer that switches over it covers every case:
+
+| Field type | Kind |
+| --- | --- |
+| `boolean`, `Boolean` | `BooleanKind` |
+| `byte`, `short`, `int`, `long` and boxes | `IntegerKind` |
+| `float`, `double` and boxes | `DecimalKind` |
+| `String` | `TextKind(PLAIN)`, or `ReferenceKind(reference, PLAIN)` with `@Ref` |
+| `ResourceId` | `TextKind(RESOURCE_ID)`, or `ReferenceKind(reference, RESOURCE_ID)` with `@Ref` |
+| `BlockState` | `ReferenceKind(BLOCK, BLOCK_STATE)` |
+| an enum | `EnumKind`: class name and constants in declaration order, each with its `@Desc` |
+| `List<E>`, `E[]` | `ListKind(E, false)` |
+| `Set<E>` | `ListKind(E, true)` |
+| `Map<String, V>` | `MapKind(V)` |
+| any other concrete class | `ObjectKind(class name)` |
+
+Everything else fails the load with the field, its settings and its module named, and what fits
+instead:
+
+- `char` and `Character`: no settings use them, and JSON has no character type;
+- JDK classes such as `UUID`, `Optional`, `BigDecimal` or `Object`, meaning classes of named modules
+  in the boot layer: the host would need a format for each;
+- `ResourceKey<T>`: its type argument is the Java class a resource loads as, which tells studio
+  nothing it could list; `ResourceId` with `@Ref` says what a value names;
+- interfaces and abstract classes: their fields depend on the subclass a pack would pick;
+- inner (non-static), local and anonymous classes, which cannot be created on their own;
+- raw `List`, `Set` and `Map`, concrete collections such as `ArrayList`, wildcards and type
+  variables, other generic classes, and maps whose keys are not `String`.
+
+Only `List`, `Set` and `Map` are accepted as collections. They are what the host can decode without
+choosing an implementation class, and accepting `ArrayList` or `Collection` would add cases without
+adding anything a pack can write.
+
+### References
+
+`@Ref(Reference.X)` says what a text value names. The kinds are a closed enum of what the Iris host
+can list today through its `RegistryList*` annotations: blocks, items, entities, platform biomes,
+structures, potion effects and enchantments from the server registries, and biomes, regions and
+objects of the pack, the resource folders Iris's own settings refer to most. More kinds come when a
+module needs one and the host can serve it. `@Ref` fits `String` and `ResourceId` and lists, sets and
+arrays of them, where it applies to the elements. On any other field, a map included, it fails the
+load. `BlockState` always names a block, so its fields are block references without `@Ref`;
+`@Ref(BLOCK)` there is accepted, any other kind fails.
+
+### Defaults
+
+Every described class needs a no-argument constructor, of any visibility. The builder creates one
+instance of each class with it and reads the fields of that instance as the defaults. The
+alternatives were worse: reading no defaults leaves studio without the values a pack gets when it
+leaves a field out, and parsing initializers from class files cannot see values a constructor sets.
+Running module code is not new at this point: the load has already run the module's constructor,
+`info()`, `install` and `register`. The host creates settings this way anyway before decoding JSON
+into them, so a constructor that would fail here would fail on every decode: the load fails with the
+constructor's exception, and a class without the constructor fails too, rather than describing
+settings the host cannot create.
+
+Defaults are JSON-shaped: `Boolean`, `Long`, `Double`, `String` (text, references as written,
+`BlockState.key()`, enum constant names), `List<Object>` and `Map<String, Object>` with sorted keys.
+An object default is the map of its options that have defaults, read through the declared class's
+options. A float keeps its own shortest decimal form (`0.1f` is `0.1`). There is no default for a
+null field, a NaN or infinite number, a list or map with an element without one, or a set of
+objects, lists or maps, which has no order to write; sets of scalars are sorted. An object inside
+itself, such as a field holding `this`, is left out of the outer object.
+
+### Snippets
+
+`@Snippet("name")` on a class lets a pack write that object in its own file under `snippet/name/`.
+`snippets()` lists those types. A snippet name must be a folder name of lowercase letters, digits, `-`
+and `_`, and it must belong to one class; otherwise the load fails naming both classes.
+
+### Stable order
+
+The host writes schema files from this, so the order is fixed: features by id, a target's features
+by JSON field, types by class name, snippets by snippet name, options by field name and enum
+constants in declaration order. Options are sorted by name because `Class.getDeclaredFields()`
+promises no order. Which settings an error names first follows feature id order too, so the same
+pack always fails with the same message.
+
 ## Not implemented
 
-- Iris host wiring: JSON decoding and validation, schema generation, resource loaders, platform
-  block adapters, storage and codecs.
+- Iris host wiring: JSON decoding and validation, rendering `PackSchema` into Iris's schema and
+  workspace files, resource loaders, platform block adapters, storage and codecs.
 - Reach. The old per-modifier `writeRadius` and `mantleRadius` are gone with the modifiers. The
   host must prepare the whole area a pipeline may touch. Per-stage reach is an open question.
 - Legacy random compatibility. Existing Iris features draw from shared, positional generators in a

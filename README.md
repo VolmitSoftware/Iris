@@ -46,11 +46,12 @@ public final class MossModule implements IrisModule {
   draws. A block stage has one stream per placement, drawn across the blocks of its pass.
   The stream is a `WorldRandom` (see Random streams below).
 
-`IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators
-and mantle layers. Their feature ids and mantle keys are the module id or start with it and `/`,
-like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in
-`when(...)` needs a feature id that at least one module naming it owns in that sense, so another
-module may still condition its stages on it, as moss does on `iris:snow`.
+`IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators,
+mantle layers and settings no stage names (see Settings for studio). Their feature ids and mantle
+keys are the module id or start with it and `/`, like stage ids: `iris:snow` or `iris:snow/depth`
+for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
+module naming it owns in that sense, or its owner must have registered it, so another module may
+still condition its stages on it, as moss does on `iris:snow`.
 
 ## Random streams
 
@@ -127,6 +128,58 @@ Iris never downloads modules and does not check which API version a jar was buil
 ships its module jars, and keeping them compatible with the Iris version it targets is the pack
 publisher's job.
 
+## Settings for studio
+
+Modules describe their settings in the settings classes themselves. Module jars ship no JSON Schema
+or workspace files: the pack load collects the description, and Iris writes the studio schema and
+completion from it.
+
+```java
+@Desc("Plants flowers and bushes")
+@Feature(id = "example:flora", name = "Flora", field = "flora", targets = Target.BIOME)
+public final class FloraSettings implements IrisFeature {
+    @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
+    private int density = 4;                                         // default 4
+
+    @Ref(Reference.PACK_BIOME)
+    private List<String> biomes = List.of();                         // completes the pack's biomes
+
+    private BlockState flower = new BlockState("minecraft:poppy");   // completes blocks without @Ref
+    private Season season = Season.SPRING;                           // completes the constant names
+    private Patch patch = new Patch();                               // a class of the module, described once
+}
+```
+
+- `@Desc` on a class, field or enum constant is its description. `@Required`, `@MinNumber` and
+  `@MaxNumber` are checks for the host to render.
+- Every settings class, nested ones included, needs a no-argument constructor, which may be private.
+  The host creates settings with it, and the field values of that instance are the defaults studio
+  shows.
+- Field types: `boolean`, primitive or boxed numbers, `String`, `ResourceId`, `BlockState`, enums,
+  `List`, `Set` and arrays of these, `Map<String, V>`, and concrete classes, which are described the
+  same way. `@Snippet("name")` on a class lets packs write it as a file under `snippet/name/`.
+  Anything else fails the pack load: `char`, JDK classes such as `UUID` or `Optional`, `ResourceKey`,
+  interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
+  concrete collections such as `ArrayList`, and maps with other keys.
+- `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
+  them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`,
+  `POTION_EFFECT` or `ENCHANTMENT` from the server's registries, or `PACK_BIOME`, `PACK_REGION` or
+  `PACK_OBJECT` of the pack. `BlockState` fields name blocks without it. `@Ref` on any other field
+  fails the load.
+- Settings named in `when(...)` and object generator settings are described automatically. Settings
+  that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
+  `registry.registerSettings(WindSettings.class)` in `register`. Their feature id follows the module
+  id like any other, and once registered, other modules may name them in `when(...)`.
+
+A load error names the field, the settings and the module:
+
+```
+Field com.example.flora.FloraSettings.id of settings example:flora (module example:flora from modules/flora.jar) uses java.util.UUID, a JDK class settings cannot use; settings fields can be booleans, numbers, String, ResourceId, BlockState, enums, lists, sets and arrays of these, Map with String keys and classes with a no-argument constructor
+Field com.example.flora.FloraSettings.count of settings example:flora (module example:flora from modules/flora.jar) has @Ref(BLOCK) on int, but @Ref fits only String and ResourceId and lists, sets and arrays of them
+Class com.example.flora.Shape of settings example:flora (module example:flora from modules/flora.jar) has no no-argument constructor; the host creates settings with it and reads their defaults from it, so declare one, private if nothing else should use it
+Snippet name 'patch' is used by com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) and by com.example.flora.Plot of settings example:flora (module example:flora from modules/flora.jar); studio describes snippet/patch/ by one class, so give each its own name
+```
+
 ## Host side
 
 ```java
@@ -151,8 +204,8 @@ try (var pack = LoadedPack.load(packRoot, host)) {
 once, here), the host packages pack modules may use, the JSON fields the host itself uses and the
 reserved namespaces. Each method adds to what earlier calls configured. Package names, namespaces and
 reserved field names are checked when it is built. `LoadedPack.load`
-loads the pack's jars, installs them after the built-ins, catalogs settings and registrations and
-resolves both pipelines. It returns a complete pack or throws with nothing left open. `close()`
+loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
+describes them for studio and resolves both pipelines. It returns a complete pack or throws with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
 uses, stay available for tests and special cases.
 
@@ -222,7 +275,8 @@ Pack overworld uses 2 modules:
 A pack without jars logs `Pack overworld uses no modules: no jars in its modules directory`.
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
-together with geometry and mantle registrations, and resolves both pipelines. Graph errors
+together with explicitly registered settings and geometry and mantle registrations, describes them
+and resolves both pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do reserved namespaces and feature ids or mantle keys outside the
 module's id. Errors about one module name its jar or "host classpath", and so does a module
@@ -235,6 +289,36 @@ Mantle layer iris:depth must be example:moss or start with example:moss/, the id
 ```
 `describe()` prints the order, owners, edge kinds, fused block passes and the stage pairs that
 have no path between them.
+
+`pack.schema()` is the `PackSchema` of the pack's modules, built-in ones included: plain Java values,
+no JSON. The host renders it and merges it with its own fields:
+
+- `fields(target)`: the module features attached to a target, by JSON field. Each `FeatureSchema` has
+  the feature id and name, its role (`SETTINGS` or `OBJECT_GENERATOR`), the owning module's
+  `ModuleInfo`, the field, its targets and the settings `ObjectType`.
+- `types()`: every class reachable from module settings, once each, by name. An `ObjectType` has the
+  class name, description, snippet name and options. A `SchemaOption` has name, `ValueKind`,
+  description, required, minimum, maximum and default value.
+- `ValueKind` is sealed: `BooleanKind`, `IntegerKind`, `DecimalKind`, `TextKind(format)`,
+  `ReferenceKind(reference, format)`, `EnumKind(type, constants)`, `ListKind(element, unique)`,
+  `MapKind(value)` and `ObjectKind(type)`, which names an entry of `types()`. `TextFormat` is `PLAIN`,
+  `RESOURCE_ID` or `BLOCK_STATE`.
+- `snippets()` and `objectGenerators()` pick the types with a snippet name and the object generator
+  features.
+
+For the stilt example the host sees one `OBJECT_PLACEMENT` field. The records are abridged:
+
+```
+FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), field=stilt, targets=[OBJECT_PLACEMENT],
+  settings=ObjectType[name=com.volmit.example.placement.StiltSettings, description=Fills the space below an object down to the ground,
+    snippet=Optional.empty, options=[SchemaOption[name=maxDepth, kind=IntegerKind[], description=Maximum blocks filled below each
+    lowest object block, required=false, minimum=OptionalDouble[1.0], maximum=OptionalDouble.empty, defaultValue=Optional[16]]]]]
+```
+
+Everything is in a fixed order, so the same modules write the same schema files on every run. The
+host refuses to open a pack in studio when its load fails, and loads the pack again, rebuilding the
+schema, after a module jar changes.
+
 
 `PlacementRunner` owns the edit for one attempt. It commits once if no stage rejects or throws
 and closes the edit in every case. Stages get buffered `PlacementAccess` without commit rights.
@@ -249,7 +333,8 @@ and closes the edit in every case. Stages get buffered `PlacementAccess` without
   with a world position using checked arithmetic.
 - `Hunk<T>` is a dense local volume; `ArrayHunk<T>` is the bounds-checked reference.
 - The `mantle` package keeps namespaced typed layers, codecs, lifetimes and buffered edits.
-- `IrisFeature`, `@Feature`, the config annotations and `OptionsMetadata` describe settings.
+- `IrisFeature`, `@Feature`, the config annotations (`@Desc`, `@Required`, `@MinNumber`,
+  `@MaxNumber`, `@Snippet`, `@Ref`) and `OptionsMetadata` describe settings.
 
 Invocation views and random streams expire when the invocation ends. Stage bodies are shared by
 concurrent invocations and must not keep views, streams or mutable state.
@@ -268,6 +353,11 @@ and the derivation is pinned to values computed from its specification (`StageSt
 `WorldRandomTest` pins every `WorldRandom` method, bounds and edge cases to values computed by an
 independent Python reference (`python3 -B src/test/reference/world_random.py`; the build does not
 need Python) and fails if the type gains an unpinned method or implements `RandomGenerator`.
+`PackSchemaTest` loads module jars and checks their description: fields under their targets,
+descriptions, required, bounds, defaults (floats, nulls, sets, maps, objects, a field holding `this`),
+enums, collections, references, nested classes with a cycle, snippets, object generator settings,
+explicit registration, built-in modules, the same result whatever the jar order, and the load error
+for each unsupported field type, misplaced `@Ref`, unusable class and bad or repeated snippet name.
 `DiscoveredModuleTest` checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go

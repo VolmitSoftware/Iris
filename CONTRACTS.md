@@ -20,6 +20,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
 | Reference execution | host `PlacementRunner`, `ChunkRunner` |
 | Annotated settings | `IrisFeature`, `@Feature`, config annotations, `OptionsMetadata` |
+| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind`) |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` |
@@ -40,6 +41,12 @@ below it; feature ids and mantle keys it registers are its id or below it; a set
 namespaces the host reserves.
 
 A pack load works on copies of the module jars, so the originals are never held open.
+
+Modules describe their settings only through their settings classes; jars ship no schema files. The
+pack load turns every catalogued settings type into a `PackSchema` and fails, naming field, settings
+and module, on a field type it cannot describe, a `@Ref` on a field that is not text, a class without
+a working no-argument constructor or a bad or repeated snippet name. Defaults come from an instance
+made by that constructor. The description is in a fixed order and holds module entries only.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
@@ -86,6 +93,16 @@ running Iris is the pack publisher's responsibility.
   packs and is part of what packs can break on. Stage output types and settings types that pack
   code uses through those stages must be in exposed packages too. The API is always exposed.
 - Consider showing `PackModules.missingClasses()` in studio.
+- Render `pack.schema()` into studio's files: merge each target's `fields(target)` into the schema
+  of the matching Iris file type (dimension, region, biome, object placement), write `types()` as
+  definitions, a `/snippet/<name>` schema per entry of `snippets()`, and completion lists per
+  `Reference` from the server registries and the pack's biome, region and object folders. Fail, do
+  not drop, when a module snippet name equals one of Iris's own.
+- Refuse to open a pack in studio when its load fails, showing the error, rather than writing a
+  schema without the modules.
+- Load the pack again and rebuild the schema files after a module jar in `<pack>/modules` changes.
+- Create settings with their no-argument constructor and decode JSON into that instance, so an
+  omitted field keeps the default studio shows.
 
 ## Open
 

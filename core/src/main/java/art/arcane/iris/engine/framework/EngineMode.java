@@ -20,6 +20,7 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.core.modules.ModuleChunkGeneration;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
@@ -107,6 +108,7 @@ public interface EngineMode extends Staged {
             for (EngineStage i : stages) {
                 i.generate(x, z, blocks, biomes, multicore, ctx);
             }
+            ModuleChunkGeneration.generate(getEngine(), x, z, blocks, ctx);
         }
     }
 

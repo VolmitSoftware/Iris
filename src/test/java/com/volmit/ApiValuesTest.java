@@ -32,6 +32,20 @@ class ApiValuesTest {
     }
 
     @Test
+    void blockStatesParseWhatTheirKeyWrites() {
+        var log = new BlockState("minecraft:oak_log").withProperty("waterlogged", "false").withProperty("axis", "y");
+
+        assertEquals(log, BlockState.parse(log.key()));
+        assertEquals(log, BlockState.parse("minecraft:oak_log[waterlogged=false,axis=y]"));
+        assertEquals(new BlockState("minecraft:stone"), BlockState.parse("minecraft:stone"));
+        assertEquals(new BlockState("minecraft:stone"), BlockState.parse("minecraft:stone[]"));
+        assertThrows(IllegalArgumentException.class, () -> BlockState.parse("minecraft:oak_log[axis=y"));
+        assertThrows(IllegalArgumentException.class, () -> BlockState.parse("minecraft:oak_log[axis]"));
+        assertThrows(IllegalArgumentException.class, () -> BlockState.parse("minecraft:oak_log[axis=y,axis=x]"));
+        assertThrows(IllegalArgumentException.class, () -> BlockState.parse("stone"));
+    }
+
+    @Test
     void moduleInfoRequiresANameAndVersion() {
         var info = ModuleInfo.of("example:moss", "Moss", "1.0.0");
         assertEquals(ResourceId.parse("example:moss"), info.id());

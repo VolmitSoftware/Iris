@@ -18,6 +18,8 @@
 
 package art.arcane.iris.studio;
 
+import art.arcane.iris.pack.PackFingerprints;
+
 import art.arcane.iris.studio.jigsaw.JigsawStudioService;
 
 import art.arcane.iris.spi.IrisLogging;
@@ -37,6 +39,7 @@ import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackDownloadExecution;
 import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.pack.PackValidationRegistry;
+import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.studio.workspace.IrisProject;
@@ -400,7 +403,7 @@ public class StudioSVC implements IrisService {
     }
 
     static IrisDimension loadInstalledDimension(Path packRoot, Path validatedSource, String dimensionKey) throws IOException {
-        String copiedFingerprint = ServerConfigurator.computePackTreeFingerprint(packRoot.toFile());
+        String copiedFingerprint = PackFingerprints.computePackTreeFingerprint(packRoot.toFile());
         PackValidationResult validation = validatePublishedPack(packRoot, validatedSource, copiedFingerprint);
         if (!validation.isLoadable()) {
             throw new BrokenPackException(packRoot.toString(), validation.getBlockingErrors());
@@ -468,7 +471,7 @@ public class StudioSVC implements IrisService {
             requireSafePublicationTarget(target, replaceExisting);
             publication = AtomicDirectoryPublisher.publish(stage, target);
             stage = null;
-            String copiedFingerprint = ServerConfigurator.computePackTreeFingerprint(target.toFile());
+            String copiedFingerprint = PackFingerprints.computePackTreeFingerprint(target.toFile());
             PackValidationResult publishedValidation =
                     validatePublishedPack(target, source, copiedFingerprint, validationMutation);
             if (!publishedValidation.isLoadable()) {
@@ -559,17 +562,40 @@ public class StudioSVC implements IrisService {
     static PackValidationResult validatePublishedPack(Path packRoot) {
         try (PackValidationRegistry.RootMutation mutation =
                      PackValidationRegistry.beginRootMutation(packRoot)) {
-            PackValidationResult result = PackValidator.validate(packRoot.toFile());
-            mutation.stage(result);
-            mutation.commit();
-            return PackValidationRegistry.requireLoadable(packRoot);
+            return validateAndPublishSnapshot(packRoot,
+                    PackFingerprints.computePackTreeFingerprint(packRoot.toFile()), mutation);
         }
+    }
+
+    private static PackValidationResult validatePublishedPack(Path packRoot, String contentFingerprint) {
+        try (PackValidationRegistry.RootMutation mutation =
+                     PackValidationRegistry.beginRootMutation(packRoot)) {
+            return validateAndPublishSnapshot(packRoot, contentFingerprint, mutation);
+        }
+    }
+
+    private static PackValidationResult validateAndPublishSnapshot(
+            Path packRoot,
+            String contentFingerprint,
+            PackValidationRegistry.RootMutation mutation
+    ) {
+        String contextFingerprint = PackValidationCache.contextFingerprint();
+        PackValidationResult result = PackValidator.validate(packRoot.toFile());
+        if (!contentFingerprint.equals(PackFingerprints.computePackTreeFingerprint(packRoot.toFile()))) {
+            throw new IllegalStateException("Iris pack changed during semantic validation: " + packRoot);
+        }
+        if (!contextFingerprint.equals(PackValidationCache.contextFingerprint())) {
+            throw new IllegalStateException("Iris validation registry context changed during semantic validation: " + packRoot);
+        }
+        mutation.stageValidatedSnapshot(result, contentFingerprint, contextFingerprint);
+        mutation.commit();
+        return PackValidationRegistry.requireLoadable(packRoot);
     }
 
     static PackValidationResult validateGenerationCandidate(Path packRoot, String contentFingerprint) {
         PackValidationResult validation = PackValidationRegistry.getMatching(packRoot, contentFingerprint);
         if (validation == null) {
-            return validatePublishedPack(packRoot);
+            return validatePublishedPack(packRoot, contentFingerprint);
         }
         if (!validation.isLoadable()) {
             throw new BrokenPackException(packRoot.toString(), validation.getBlockingErrors());

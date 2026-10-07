@@ -1,5 +1,7 @@
 package art.arcane.iris.pack.datapack;
 
+import art.arcane.iris.pack.PackFingerprints;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Assume;
@@ -9,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,20 +28,15 @@ public class ServerConfiguratorDatapackFingerprintTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    private Method fingerprintMethod() throws Exception {
-        return ServerConfigurator.class.getMethod("computePackFingerprint", File.class);
-    }
-
     @Test
     public void computePackFingerprintReturnsSameHashForUnchangedFiles() throws Exception {
-        Method method = fingerprintMethod();
         File packsDir = tmp.newFolder("packs");
         File dimFile = new File(packsDir, "testpack/dimensions/overworld.json");
         dimFile.getParentFile().mkdirs();
         dimFile.createNewFile();
 
-        String fp1 = (String) method.invoke(null, packsDir);
-        String fp2 = (String) method.invoke(null, packsDir);
+        String fp1 = PackFingerprints.computePackFingerprint(packsDir);
+        String fp2 = PackFingerprints.computePackFingerprint(packsDir);
 
         assertNotNull("Fingerprint must not be null", fp1);
         assertEquals("Same unchanged files must produce identical fingerprint", fp1, fp2);
@@ -48,15 +44,14 @@ public class ServerConfiguratorDatapackFingerprintTest {
 
     @Test
     public void computePackFingerprintIgnoresMetadataOnlyChanges() throws Exception {
-        Method method = fingerprintMethod();
         File packsDir = tmp.newFolder("packs");
         File dimFile = new File(packsDir, "testpack/dimensions/overworld.json");
         dimFile.getParentFile().mkdirs();
         dimFile.createNewFile();
 
-        String fp1 = (String) method.invoke(null, packsDir);
+        String fp1 = PackFingerprints.computePackFingerprint(packsDir);
         dimFile.setLastModified(dimFile.lastModified() + 2000L);
-        String fp2 = (String) method.invoke(null, packsDir);
+        String fp2 = PackFingerprints.computePackFingerprint(packsDir);
 
         assertEquals("Metadata-only changes must not alter a content fingerprint", fp1, fp2);
     }
@@ -68,11 +63,11 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.createDirectories(dimension.getParent());
         Files.writeString(dimension, "aaaa", StandardCharsets.UTF_8);
         FileTime originalMtime = Files.getLastModifiedTime(dimension);
-        String before = ServerConfigurator.computePackFingerprint(packsDir);
+        String before = PackFingerprints.computePackFingerprint(packsDir);
 
         Files.writeString(dimension, "bbbb", StandardCharsets.UTF_8);
         Files.setLastModifiedTime(dimension, originalMtime);
-        String after = ServerConfigurator.computePackFingerprint(packsDir);
+        String after = PackFingerprints.computePackFingerprint(packsDir);
 
         assertNotEquals("Equal-size content changes must alter the fingerprint", before, after);
     }
@@ -89,18 +84,18 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.writeString(alphaDimension, "alpha-a", StandardCharsets.UTF_8);
         Files.writeString(betaDimension, "beta-a", StandardCharsets.UTF_8);
 
-        ServerConfigurator.PackContentSnapshot before =
-                ServerConfigurator.computePackContentSnapshot(packsDir);
+        PackFingerprints.PackContentSnapshot before =
+                PackFingerprints.computePackContentSnapshot(packsDir);
 
-        assertEquals(ServerConfigurator.computePackFingerprint(packsDir), before.content());
-        assertEquals(ServerConfigurator.computePackTreeFingerprint(alphaPack.toFile()),
+        assertEquals(PackFingerprints.computePackFingerprint(packsDir), before.content());
+        assertEquals(PackFingerprints.computePackTreeFingerprint(alphaPack.toFile()),
                 before.packContents().get("alpha"));
-        assertEquals(ServerConfigurator.computePackTreeFingerprint(betaPack.toFile()),
+        assertEquals(PackFingerprints.computePackTreeFingerprint(betaPack.toFile()),
                 before.packContents().get("beta"));
 
         Files.writeString(alphaDimension, "alpha-b", StandardCharsets.UTF_8);
-        ServerConfigurator.PackContentSnapshot after =
-                ServerConfigurator.computePackContentSnapshot(packsDir);
+        PackFingerprints.PackContentSnapshot after =
+                PackFingerprints.computePackContentSnapshot(packsDir);
 
         assertNotEquals(before.content(), after.content());
         assertNotEquals(before.packContents().get("alpha"), after.packContents().get("alpha"));
@@ -109,17 +104,16 @@ public class ServerConfiguratorDatapackFingerprintTest {
 
     @Test
     public void computePackFingerprintChangesWhenFileIsAdded() throws Exception {
-        Method method = fingerprintMethod();
         File packsDir = tmp.newFolder("packs");
         File dimDir = new File(packsDir, "testpack/dimensions");
         dimDir.mkdirs();
         File dimFile = new File(dimDir, "overworld.json");
         dimFile.createNewFile();
 
-        String fp1 = (String) method.invoke(null, packsDir);
+        String fp1 = PackFingerprints.computePackFingerprint(packsDir);
         File extraFile = new File(dimDir, "nether.json");
         extraFile.createNewFile();
-        String fp2 = (String) method.invoke(null, packsDir);
+        String fp2 = PackFingerprints.computePackFingerprint(packsDir);
 
         assertNotEquals("Adding a file must produce a different fingerprint", fp1, fp2);
     }
@@ -133,11 +127,11 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.createDirectories(hidden.getParent());
         Files.writeString(visible, "visible", StandardCharsets.UTF_8);
         Files.writeString(hidden, "stage-one", StandardCharsets.UTF_8);
-        String before = ServerConfigurator.computePackFingerprint(packsDir);
+        String before = PackFingerprints.computePackFingerprint(packsDir);
 
         Files.writeString(hidden, "stage-two", StandardCharsets.UTF_8);
 
-        assertEquals(before, ServerConfigurator.computePackFingerprint(packsDir));
+        assertEquals(before, PackFingerprints.computePackFingerprint(packsDir));
     }
 
     @Test
@@ -149,12 +143,12 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.createDirectories(visible.getParent());
         Files.writeString(visible, "visible", StandardCharsets.UTF_8);
         Files.writeString(hidden, "hidden-one", StandardCharsets.UTF_8);
-        ServerConfigurator.PackContentSnapshot before =
-                ServerConfigurator.computePackContentSnapshot(packsDir);
+        PackFingerprints.PackContentSnapshot before =
+                PackFingerprints.computePackContentSnapshot(packsDir);
 
         Files.writeString(hidden, "hidden-two", StandardCharsets.UTF_8);
-        ServerConfigurator.PackContentSnapshot after =
-                ServerConfigurator.computePackContentSnapshot(packsDir);
+        PackFingerprints.PackContentSnapshot after =
+                PackFingerprints.computePackContentSnapshot(packsDir);
 
         assertNotEquals(before.content(), after.content());
         assertNotEquals(
@@ -162,7 +156,7 @@ public class ServerConfiguratorDatapackFingerprintTest {
                 after.packContents().get("testpack"));
         assertEquals(
                 after.packContents().get("testpack"),
-                ServerConfigurator.computePackTreeFingerprint(pack.toFile()));
+                PackFingerprints.computePackTreeFingerprint(pack.toFile()));
     }
 
     @Test
@@ -171,20 +165,20 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Path dimension = packsDir.toPath().resolve("overworld/dimensions/overworld.json");
         Files.createDirectories(dimension.getParent());
         Files.writeString(dimension, "authored", StandardCharsets.UTF_8);
-        String before = ServerConfigurator.computePackFingerprint(packsDir);
-        String packBefore = ServerConfigurator.computePackTreeFingerprint(
+        String before = PackFingerprints.computePackFingerprint(packsDir);
+        String packBefore = PackFingerprints.computePackTreeFingerprint(
                 packsDir.toPath().resolve("overworld").toFile());
 
         Path workspace = packsDir.toPath().resolve("overworld/overworld.code-workspace");
         Files.writeString(workspace, "{\"folders\":[]}", StandardCharsets.UTF_8);
 
         assertEquals("Iris-generated workspace files must not alter the fingerprint",
-                before, ServerConfigurator.computePackFingerprint(packsDir));
+                before, PackFingerprints.computePackFingerprint(packsDir));
 
         Files.writeString(workspace, "{\"folders\":[{\"path\":\".\"}]}", StandardCharsets.UTF_8);
 
         assertEquals("Reordered workspace bytes must not alter the fingerprint",
-                before, ServerConfigurator.computePackFingerprint(packsDir));
+                before, PackFingerprints.computePackFingerprint(packsDir));
 
         Path schema = packsDir.toPath().resolve("overworld/.iris/schema/dimension.json");
         Path repositoryObject = packsDir.toPath().resolve("overworld/.git/objects/blob");
@@ -193,8 +187,8 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.writeString(schema, "generated schema", StandardCharsets.UTF_8);
         Files.writeString(repositoryObject, "repository metadata", StandardCharsets.UTF_8);
 
-        assertEquals(before, ServerConfigurator.computePackFingerprint(packsDir));
-        assertEquals(packBefore, ServerConfigurator.computePackTreeFingerprint(
+        assertEquals(before, PackFingerprints.computePackFingerprint(packsDir));
+        assertEquals(packBefore, PackFingerprints.computePackTreeFingerprint(
                 packsDir.toPath().resolve("overworld").toFile()));
     }
 
@@ -207,16 +201,16 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.createDirectories(dimension.getParent());
         Files.createDirectories(metadata.getParent());
         Files.writeString(dimension, "authored", StandardCharsets.UTF_8);
-        ServerConfigurator.PackContentSnapshot before = ServerConfigurator.computePackContentSnapshot(packsDir);
-        String metadataBefore = ServerConfigurator.computePackMetadataDigest(packsDir);
+        PackFingerprints.PackContentSnapshot before = PackFingerprints.computePackContentSnapshot(packsDir);
+        String metadataBefore = PackFingerprints.computePackMetadataDigest(packsDir);
 
         for (String content : new String[]{"initial Finder layout", "updated Finder layout with different length"}) {
             Files.writeString(metadata, content, StandardCharsets.UTF_8);
-            ServerConfigurator.PackContentSnapshot after = ServerConfigurator.computePackContentSnapshot(packsDir);
+            PackFingerprints.PackContentSnapshot after = PackFingerprints.computePackContentSnapshot(packsDir);
             assertEquals(before, after);
             assertEquals(before.packContents().get("overworld"),
-                    ServerConfigurator.computePackTreeFingerprint(pack.toFile()));
-            assertEquals(metadataBefore, ServerConfigurator.computePackMetadataDigest(packsDir));
+                    PackFingerprints.computePackTreeFingerprint(pack.toFile()));
+            assertEquals(metadataBefore, PackFingerprints.computePackMetadataDigest(packsDir));
         }
     }
 
@@ -229,16 +223,16 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.writeString(resource, "aaaa", StandardCharsets.UTF_8);
         Files.writeString(resource.resolveSibling(".DS_Store"), "Finder layout", StandardCharsets.UTF_8);
         FileTime originalMtime = Files.getLastModifiedTime(resource);
-        ServerConfigurator.PackContentSnapshot before = ServerConfigurator.computePackContentSnapshot(packsDir);
+        PackFingerprints.PackContentSnapshot before = PackFingerprints.computePackContentSnapshot(packsDir);
 
         Files.writeString(resource, "bbbb", StandardCharsets.UTF_8);
         Files.setLastModifiedTime(resource, originalMtime);
-        ServerConfigurator.PackContentSnapshot after = ServerConfigurator.computePackContentSnapshot(packsDir);
+        PackFingerprints.PackContentSnapshot after = PackFingerprints.computePackContentSnapshot(packsDir);
 
         assertNotEquals(before.content(), after.content());
         assertNotEquals(before.packContents().get("overworld"), after.packContents().get("overworld"));
         assertEquals(after.packContents().get("overworld"),
-                ServerConfigurator.computePackTreeFingerprint(pack.toFile()));
+                PackFingerprints.computePackTreeFingerprint(pack.toFile()));
     }
 
     @Test
@@ -249,7 +243,7 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Files.writeString(dimension, "aaaa", StandardCharsets.UTF_8);
         ServerConfigurator.PackFingerprint first =
                 ServerConfigurator.resolvePackFingerprint(packsDir, "", "");
-        assertEquals(ServerConfigurator.computePackFingerprint(packsDir), first.content());
+        assertEquals(PackFingerprints.computePackFingerprint(packsDir), first.content());
         assertNotEquals("", first.metadata());
 
         FileTime originalMtime = Files.getLastModifiedTime(dimension);
@@ -267,7 +261,7 @@ public class ServerConfiguratorDatapackFingerprintTest {
 
         assertNotEquals("Changed metadata must re-hash pack contents",
                 first.content(), rehashed.content());
-        assertEquals(ServerConfigurator.computePackFingerprint(packsDir), rehashed.content());
+        assertEquals(PackFingerprints.computePackFingerprint(packsDir), rehashed.content());
     }
 
     @Test
@@ -298,7 +292,7 @@ public class ServerConfiguratorDatapackFingerprintTest {
 
         assertEquals(cached.content(), reused.content());
         assertNotEquals(cached.content(), recovered.content());
-        assertEquals(ServerConfigurator.computePackFingerprint(packsDir), recovered.content());
+        assertEquals(PackFingerprints.computePackFingerprint(packsDir), recovered.content());
     }
 
     @Test
@@ -337,12 +331,12 @@ public class ServerConfiguratorDatapackFingerprintTest {
         Path dimension = packsDir.toPath().resolve("overworld/dimensions/overworld.json");
         Files.createDirectories(dimension.getParent());
         Files.writeString(dimension, "authored", StandardCharsets.UTF_8);
-        String before = ServerConfigurator.computePackMetadataDigest(packsDir);
+        String before = PackFingerprints.computePackMetadataDigest(packsDir);
 
         Files.writeString(packsDir.toPath().resolve("overworld/overworld.code-workspace"),
                 "{\"folders\":[]}", StandardCharsets.UTF_8);
 
-        assertEquals(before, ServerConfigurator.computePackMetadataDigest(packsDir));
+        assertEquals(before, PackFingerprints.computePackMetadataDigest(packsDir));
     }
 
     @Test
@@ -359,7 +353,7 @@ public class ServerConfiguratorDatapackFingerprintTest {
         }
 
         try {
-            ServerConfigurator.computePackFingerprint(packsDir);
+            PackFingerprints.computePackFingerprint(packsDir);
             fail("Symbolic links must be rejected");
         } catch (UncheckedIOException expected) {
             assertTrue(expected.getMessage().contains("fingerprint"));
@@ -379,11 +373,11 @@ public class ServerConfiguratorDatapackFingerprintTest {
         } catch (IOException | UnsupportedOperationException | SecurityException exception) {
             Assume.assumeNoException(exception);
         }
-        String before = ServerConfigurator.computePackFingerprint(packsDir);
+        String before = PackFingerprints.computePackFingerprint(packsDir);
 
         Files.writeString(dimension, "other", StandardCharsets.UTF_8);
 
-        assertNotEquals(before, ServerConfigurator.computePackFingerprint(packsDir));
+        assertNotEquals(before, PackFingerprints.computePackFingerprint(packsDir));
     }
 
     @Test
@@ -401,12 +395,12 @@ public class ServerConfiguratorDatapackFingerprintTest {
         } catch (IOException | UnsupportedOperationException | SecurityException exception) {
             Assume.assumeNoException(exception);
         }
-        String before = ServerConfigurator.computePackFingerprint(workspaceLink.toFile());
-        assertEquals(ServerConfigurator.computePackFingerprint(workspace.toFile()), before);
+        String before = PackFingerprints.computePackFingerprint(workspaceLink.toFile());
+        assertEquals(PackFingerprints.computePackFingerprint(workspace.toFile()), before);
 
         Files.writeString(dimension, "other", StandardCharsets.UTF_8);
 
-        assertNotEquals(before, ServerConfigurator.computePackFingerprint(workspaceLink.toFile()));
+        assertNotEquals(before, PackFingerprints.computePackFingerprint(workspaceLink.toFile()));
     }
 
     @Test
@@ -419,7 +413,7 @@ public class ServerConfiguratorDatapackFingerprintTest {
         }
 
         try {
-            ServerConfigurator.computePackFingerprint(workspaceLink.toFile());
+            PackFingerprints.computePackFingerprint(workspaceLink.toFile());
             fail("Dangling symbolic workspace roots must be rejected");
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage().contains("missing or unsafe"));

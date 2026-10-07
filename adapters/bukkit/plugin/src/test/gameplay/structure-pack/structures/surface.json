@@ -1,0 +1,6 @@
+{
+  "startPool": "surface",
+  "maxDepth": 1,
+  "maxSizeChunks": 1,
+  "placeMode": "STRUCTURE_PIECE"
+}

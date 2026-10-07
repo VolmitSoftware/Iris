@@ -94,6 +94,63 @@ public class PackValidatorDimensionHeightTest {
     }
 
     @Test
+    public void rejectsNullAndUnresolvedHeightRanges() throws Exception {
+        for (String height : List.of("null", "\"missing\"", "\"snippet/range/missing\"", "[]")) {
+            PackValidationResult result = validate("{\"regions\":[\"region\"],\"dimensionHeight\":" + height + "}");
+            assertFalse(height + " " + result.getBlockingErrors(), result.isLoadable());
+            assertTrue(result.getBlockingErrors().toString(), result.getBlockingErrors().stream()
+                    .anyMatch(error -> error.contains("dimensionHeight")));
+        }
+    }
+
+    @Test
+    public void rejectsMalformedHeightSnippet() throws Exception {
+        File pack = pack("{\"regions\":[\"region\"],\"dimensionHeight\":\"snippet/range/broken\"}");
+        write(pack, "snippet/range/broken.json", "{");
+        assertFalse(PackValidator.validate(pack).isLoadable());
+    }
+
+    @Test
+    public void rejectsInvalidRangeNumbersWithoutInventingDefaults() throws Exception {
+        for (String value : List.of("\"NaN\"", "\"Infinity\"", "\"not-a-number\"", "{}", "true")) {
+            PackValidationResult result = validate("{\"regions\":[\"region\"],\"logicalHeight\":16,"
+                    + "\"dimensionHeight\":{\"min\":" + value + ",\"max\":32}}");
+            assertFalse(value + " " + result.getBlockingErrors(), result.isLoadable());
+        }
+    }
+
+    @Test
+    public void rejectsMalformedLogicalHeightWithoutTruncatingOrDefaulting() throws Exception {
+        for (String value : List.of("16.5", "4294967552", "\"not-a-number\"", "{}", "true")) {
+            PackValidationResult result = validate("{\"regions\":[\"region\"],\"logicalHeight\":" + value + "}");
+            assertTrue(value + " " + result.getBlockingErrors(), result.getBlockingErrors().contains(
+                    "Dimension 'main' logicalHeight must be an integer."));
+        }
+    }
+
+    @Test
+    public void acceptsNumericRangeStringsAndSnippetRerooting() throws Exception {
+        File pack = pack("{\"regions\":[\"region\"],\"dimensionHeight\":\"snippet/tall\"}");
+        write(pack, "snippet/range/tall.json", "{\"min\":\"-64\",\"max\":\"320\"}");
+        PackValidationResult result = PackValidator.validate(pack);
+        assertTrue(result.getBlockingErrors().toString(), result.isLoadable());
+        PackValidationResult numericLogical = validate("{\"regions\":[\"region\"],\"logicalHeight\":\"16.0\","
+                + "\"dimensionHeight\":{\"min\":16,\"max\":32}}");
+        assertTrue(numericLogical.getBlockingErrors().toString(), numericLogical.isLoadable());
+    }
+
+    @Test
+    public void rejectsMissingUpperDimensionButAllowsSelfReferenceAndDisabledUpper() throws Exception {
+        PackValidationResult missing = validate("{\"regions\":[\"region\"],\"upperDimension\":\"absent\"}");
+        assertTrue(missing.getBlockingErrors().contains(
+                "Dimension 'main' upperDimension references missing dimension 'absent'."));
+        for (String upper : List.of("main", "", "none", "NONE")) {
+            PackValidationResult result = validate("{\"regions\":[\"region\"],\"upperDimension\":\"" + upper + "\"}");
+            assertTrue(upper + " " + result.getBlockingErrors(), result.isLoadable());
+        }
+    }
+
+    @Test
     public void validatorAgreesWithIrisDimensionTypeExactly() {
         int[][] triples = {
                 // {minY, maxY, logicalHeight}

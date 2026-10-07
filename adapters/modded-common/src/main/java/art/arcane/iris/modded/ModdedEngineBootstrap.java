@@ -70,6 +70,7 @@ import art.arcane.iris.modded.service.ModdedEngineMaintenanceService;
 import art.arcane.iris.modded.service.ModdedEntitySpawnService;
 import art.arcane.iris.modded.service.ModdedLogFilterService;
 import art.arcane.iris.modded.service.ModdedPreservationService;
+import art.arcane.iris.modded.service.ModdedPackUpdateService;
 import art.arcane.iris.modded.service.ModdedSettingsHotloadService;
 import art.arcane.iris.modded.service.ModdedStudioHotloadService;
 import art.arcane.iris.modded.service.ModdedTreeFellerService;
@@ -477,6 +478,7 @@ public final class ModdedEngineBootstrap {
                 createdServices.register(ModdedLogFilterService.class, new ModdedLogFilterService());
                 createdServices.register(ModdedEngineMaintenanceService.class, new ModdedEngineMaintenanceService());
                 createdServices.register(ModdedSettingsHotloadService.class, new ModdedSettingsHotloadService());
+                createdServices.register(ModdedPackUpdateService.class, new ModdedPackUpdateService());
                 ModdedStudioHotloadService studioHotloadService = createdServices.register(
                         ModdedStudioHotloadService.class, new ModdedStudioHotloadService());
                 createdServices.register(ModdedChunkUpdateService.class, new ModdedChunkUpdateService());

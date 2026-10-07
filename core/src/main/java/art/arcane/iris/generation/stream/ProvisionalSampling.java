@@ -18,7 +18,7 @@ public final class ProvisionalSampling {
 
     /** Records that the calling thread just answered from inputs that are not final. */
     public static void mark() {
-        TRACKERS.get().provisional = true;
+        TRACKERS.get().revision++;
     }
 
     /**
@@ -27,15 +27,9 @@ public final class ProvisionalSampling {
      */
     public static <T> T memoizable(ProceduralStream<T> stream, int x, int z) {
         Tracker tracker = TRACKERS.get();
-        boolean outer = tracker.begin();
-        T value;
-        boolean provisional;
-        try {
-            value = stream.get(x, z);
-        } finally {
-            provisional = tracker.end(outer);
-        }
-        if (provisional) {
+        long revision = tracker.revision;
+        T value = stream.get(x, z);
+        if (tracker.revision != revision) {
             throw new Unmemoizable(value);
         }
         return value;
@@ -43,15 +37,9 @@ public final class ProvisionalSampling {
 
     public static double memoizableDouble(ProceduralStream<Double> stream, int x, int z) {
         Tracker tracker = TRACKERS.get();
-        boolean outer = tracker.begin();
-        double value;
-        boolean provisional;
-        try {
-            value = stream.getDouble(x, z);
-        } finally {
-            provisional = tracker.end(outer);
-        }
-        if (provisional) {
+        long revision = tracker.revision;
+        double value = stream.getDouble(x, z);
+        if (tracker.revision != revision) {
             throw new Unmemoizable(value);
         }
         return value;
@@ -59,34 +47,16 @@ public final class ProvisionalSampling {
 
     public static <T> T memoizable(Supplier<T> resolver) {
         Tracker tracker = TRACKERS.get();
-        boolean outer = tracker.begin();
-        T value;
-        boolean provisional;
-        try {
-            value = resolver.get();
-        } finally {
-            provisional = tracker.end(outer);
-        }
-        if (provisional) {
+        long revision = tracker.revision;
+        T value = resolver.get();
+        if (tracker.revision != revision) {
             throw new Unmemoizable(value);
         }
         return value;
     }
 
     private static final class Tracker {
-        private boolean provisional;
-
-        private boolean begin() {
-            boolean outer = provisional;
-            provisional = false;
-            return outer;
-        }
-
-        private boolean end(boolean outer) {
-            boolean inner = provisional;
-            provisional = outer || inner;
-            return inner;
-        }
+        private long revision;
     }
 
     /** Carries a provisional value past a memoizing cache so the cache stores nothing. */

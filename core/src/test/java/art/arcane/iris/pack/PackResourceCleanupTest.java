@@ -1,6 +1,8 @@
 package art.arcane.iris.pack;
 
 import org.junit.Rule;
+import org.junit.After;
+import org.mockito.MockedStatic;
 import org.junit.Test;
 import org.junit.Assume;
 import org.junit.rules.TemporaryFolder;
@@ -17,16 +19,88 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 public class PackResourceCleanupTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @After
+    public void clearValidation() {
+        PackValidationRegistry.clear();
+    }
+
+    @Test
+    public void cleanupScansReplacementTreeAfterAcquiringMutationOwnership() throws Exception {
+        File pack = createPack("replacement-target");
+        write(pack, "dimensions/main.json", "{}");
+        write(pack, "biomes/future.json", "{}");
+        File staged = createPack("replacement-source");
+        write(staged, "dimensions/main.json", "{\"biome\":\"future\"}");
+        write(staged, "biomes/future.json", "{\"name\":\"Required\"}");
+        Path root = pack.toPath().toAbsolutePath().normalize();
+        try (MockedStatic<PackValidationRegistry> registry = replaceAtMutationAdmission(staged, root)) {
+            PackResourceCleanup.ApplyResult result = PackResourceCleanup.apply(pack);
+
+            assertTrue(result.error(), result.success());
+            assertFalse(result.changed());
+            assertTrue(new File(pack, "biomes/future.json").isFile());
+        }
+    }
+
+    @Test
+    public void restoreScansReplacementTreeAfterAcquiringMutationOwnership() throws Exception {
+        File pack = createPack("restore-target");
+        write(pack, "dimensions/main.json", "{}");
+        write(pack, "biomes/old.json", "{}");
+        assertTrue(PackResourceCleanup.apply(pack).changed());
+        File staged = createPack("restore-source");
+        write(staged, "dimensions/main.json", "{}");
+        write(staged, ".iris-trash/new-dump/biomes/current.json", "{}");
+        Path root = pack.toPath().toAbsolutePath().normalize();
+        try (MockedStatic<PackValidationRegistry> registry = replaceAtMutationAdmission(staged, root)) {
+            PackResourceCleanup.RestoreResult result = PackResourceCleanup.restoreLatest(pack);
+
+            assertTrue(result.error(), result.success());
+            assertTrue(result.changed());
+            assertEquals(List.of("biomes/current.json"), result.restoredPaths());
+            assertTrue(new File(pack, "biomes/current.json").isFile());
+            assertFalse(new File(pack, "biomes/old.json").exists());
+        }
+    }
+
+    @Test
+    public void cleanupAndRestoreInvalidateValidationAndOlderTickets() throws Exception {
+        File pack = createPack("validation");
+        write(pack, "dimensions/main.json", "{}");
+        write(pack, "biomes/unused.json", "{}");
+        PackValidationResult original = new PackValidationResult(pack.getName(), List.of(), List.of(), 1L);
+        PackValidationRegistry.publish(pack.toPath(), original);
+        PackValidationRegistry.publish(original);
+        PackValidationRegistry.ValidationTicket ticket = PackValidationRegistry.tryBeginValidation(pack.toPath());
+
+        assertTrue(PackResourceCleanup.apply(pack).changed());
+
+        assertNull(PackValidationRegistry.get(pack.toPath()));
+        assertNull(PackValidationRegistry.get(pack.getName()));
+        assertFalse(PackValidationRegistry.publishIfCurrent(ticket, original));
+        PackValidationRegistry.publish(pack.toPath(), original);
+        PackValidationRegistry.publish(original);
+        ticket = PackValidationRegistry.tryBeginValidation(pack.toPath());
+
+        assertTrue(PackResourceCleanup.restoreLatest(pack).changed());
+
+        assertNull(PackValidationRegistry.get(pack.toPath()));
+        assertNull(PackValidationRegistry.get(pack.getName()));
+        assertFalse(PackValidationRegistry.publishIfCurrent(ticket, original));
+    }
 
     @Test
     public void previewIsReadOnlyAndReturnsSortedCandidates() throws Exception {
@@ -232,6 +306,20 @@ public class PackResourceCleanupTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    private static MockedStatic<PackValidationRegistry> replaceAtMutationAdmission(File staged, Path root) {
+        AtomicBoolean replaced = new AtomicBoolean();
+        return mockStatic(PackValidationRegistry.class, invocation -> {
+            if (invocation.getMethod().getName().equals("beginRootMutation")
+                    && root.equals(invocation.getArgument(0)) && replaced.compareAndSet(false, true)) {
+                try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staged.toPath(), root)) {
+                    publication.commit();
+                    publication.cleanupBackup();
+                }
+            }
+            return invocation.callRealMethod();
+        });
     }
 
     private File createPack(String name) throws Exception {

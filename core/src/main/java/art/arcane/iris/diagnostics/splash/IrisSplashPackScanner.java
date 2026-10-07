@@ -54,7 +54,7 @@ public final class IrisSplashPackScanner {
             JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
             JsonElement version = json.get("version");
             if (version == null || !version.isJsonPrimitive()) {
-                return null;
+                return new SplashPackMetadata(dimName, "unknown");
             }
 
             return new SplashPackMetadata(dimName, version.getAsString());

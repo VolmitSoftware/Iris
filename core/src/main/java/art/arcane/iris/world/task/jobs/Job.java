@@ -54,19 +54,19 @@ public interface Job {
     }
 
 
-    default void execute(VolmitSender sender) {
-        execute(sender, () -> {
+    default CompletableFuture<Void> execute(VolmitSender sender) {
+        return execute(sender, () -> {
         });
     }
 
 
-    default void execute(VolmitSender sender, Runnable whenComplete) {
-        execute(sender, false, whenComplete);
+    default CompletableFuture<Void> execute(VolmitSender sender, Runnable whenComplete) {
+        return execute(sender, false, whenComplete);
     }
 
-    default void execute(VolmitSender sender, boolean silentMsg, Runnable whenComplete) {
+    default CompletableFuture<Void> execute(VolmitSender sender, boolean silentMsg, Runnable whenComplete) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        CompletableFuture<?> f = J.afut(this::execute);
+        CompletableFuture<Void> f = J.afut(this::execute);
         int c = J.ar(() -> {
             if (sender.isPlayer()) {
                 sender.sendProgress(getProgress(), getName());
@@ -90,5 +90,6 @@ public interface Job {
             }
             whenComplete.run();
         });
+        return f;
     }
 }

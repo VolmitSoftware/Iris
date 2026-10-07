@@ -7,14 +7,69 @@ import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 public class ProvisionalSamplingTest {
+    @Test
+    public void nestedFinalSamplesIgnoreEarlierMarksWithoutClearingTheOuterMark() {
+        ProvisionalSampling.mark();
+        assertEquals("final", ProvisionalSampling.memoizable(() -> "final"));
+
+        ProvisionalSampling.Unmemoizable result = assertThrows(ProvisionalSampling.Unmemoizable.class,
+                () -> ProvisionalSampling.memoizable(() -> {
+                    ProvisionalSampling.mark();
+                    return ProvisionalSampling.memoizable(() -> "nested");
+                }));
+
+        assertEquals("nested", result.value());
+        assertEquals("final", ProvisionalSampling.memoizable(() -> "final"));
+    }
+
+    @Test
+    public void caughtSamplingFailureRetainsItsMarkOnlyForEnclosingResolvers() {
+        IllegalStateException failure = new IllegalStateException("sample failed");
+        ProvisionalSampling.Unmemoizable result = assertThrows(ProvisionalSampling.Unmemoizable.class,
+                () -> ProvisionalSampling.memoizable(() -> {
+                    assertSame(failure, assertThrows(IllegalStateException.class,
+                            () -> ProvisionalSampling.memoizable(() -> {
+                                ProvisionalSampling.mark();
+                                throw failure;
+                            })));
+                    return ProvisionalSampling.memoizable(() -> "recovered");
+                }));
+
+        assertEquals("recovered", result.value());
+        assertEquals("final", ProvisionalSampling.memoizable(() -> "final"));
+    }
+
+    @Test
+    public void provisionalMarksStayOnTheirSamplingThread() {
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            assertEquals("worker", ProvisionalSampling.memoizable(() -> CompletableFuture.supplyAsync(() -> {
+                ProvisionalSampling.mark();
+                return "worker";
+            }, executor).join()));
+
+            ProvisionalSampling.Unmemoizable result = assertThrows(ProvisionalSampling.Unmemoizable.class,
+                    () -> ProvisionalSampling.memoizable(() -> {
+                        ProvisionalSampling.mark();
+                        return CompletableFuture.supplyAsync(
+                                () -> ProvisionalSampling.memoizable(() -> "worker"), executor).join();
+                    }));
+            assertEquals("worker", result.value());
+        }
+    }
+
     @Test
     public void provisionalValuesReachTheCallerWithoutBeingMemoized() {
         try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {

@@ -57,6 +57,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ModdedStudioHotloadService implements ModdedTickableService, EnginePlatformHooks {
@@ -64,6 +65,8 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
     private static final long POLL_MILLIS = 250L;
     private static final long CHECK_LATCH_MILLIS = 1_000L;
     private static final long RECENT_GENERATION_HOLDOFF_MILLIS = 2_000L;
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 30L;
+    private static final long INTERRUPT_DRAIN_TIMEOUT_SECONDS = 5L;
 
     private final ConcurrentHashMap<String, Watch> watches = new ConcurrentHashMap<>();
     private volatile ExecutorService executor;
@@ -81,8 +84,12 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
 
     @Override
     public void onEnable() {
-        if (executor != null) {
-            return;
+        ExecutorService current = executor;
+        if (current != null && !current.isTerminated()) {
+            if (!current.isShutdown()) {
+                return;
+            }
+            throw new IllegalStateException("Iris Studio hotload cannot restart while prior workers are still active");
         }
         executor = Executors.newSingleThreadExecutor((Runnable task) -> {
             Thread thread = new Thread(task, "Iris Studio Hotload");
@@ -96,10 +103,10 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
     @Override
     public void onDisable() {
         ExecutorService active = executor;
-        executor = null;
-        if (active != null) {
-            active.shutdownNow();
+        if (!shutdownAndDrain(active)) {
+            throw new IllegalStateException("Iris Studio hotload worker remained active during service shutdown");
         }
+        executor = null;
         for (Watch watch : watches.values()) {
             watch.close();
         }
@@ -197,7 +204,7 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
     @Override
     public void onServerTick(NativeModdedServer server) {
         ExecutorService active = executor;
-        if (active == null) {
+        if (active == null || active.isShutdown()) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -282,6 +289,30 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
         return world != null
                 && WorldMaintenance.isWorldMaintenanceActive(world.identity())
                 && !isPregeneratorActive(engine);
+    }
+
+    private static boolean shutdownAndDrain(ExecutorService active) {
+        if (active == null) {
+            return true;
+        }
+        active.shutdown();
+        try {
+            if (active.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                return true;
+            }
+            active.shutdownNow();
+            if (active.awaitTermination(INTERRUPT_DRAIN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                return true;
+            }
+            ModdedIrisLog.error("Iris Studio hotload worker did not stop after shutdownNow",
+                    new IllegalStateException("Iris Studio hotload worker is still active"));
+            return false;
+        } catch (InterruptedException exception) {
+            active.shutdownNow();
+            Thread.currentThread().interrupt();
+            ModdedIrisLog.error("Interrupted while draining Iris Studio hotload", exception);
+            return false;
+        }
     }
 
     private boolean throttled(IrisModdedChunkGenerator generator, Engine engine, long now) {

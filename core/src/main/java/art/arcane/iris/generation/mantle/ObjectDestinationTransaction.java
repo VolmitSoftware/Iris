@@ -99,12 +99,19 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 }
                 captureOriginal(originals, mutation.key());
                 if (mutation.key().type() == NativeBlockState.class) {
-                    captureOriginal(originals, new DataKey(
-                            mutation.key().x(),
-                            mutation.key().y(),
-                            mutation.key().z(),
-                            Identifier.class
-                    ));
+                    TileWrapper tile = writer.getDataIfPresent(
+                            mutation.key().x(), mutation.key().y(), mutation.key().z(), TileWrapper.class);
+                    if (tile != null) {
+                        originals.putIfAbsent(new DataKey(
+                                mutation.key().x(), mutation.key().y(), mutation.key().z(), TileWrapper.class), tile);
+                    }
+                    Identifier identifier = writer.getDataIfPresent(
+                            mutation.key().x(), mutation.key().y(), mutation.key().z(), Identifier.class);
+                    if (identifier != null || mutation instanceof CustomBlockMutation) {
+                        originals.putIfAbsent(new DataKey(
+                                mutation.key().x(), mutation.key().y(), mutation.key().z(), Identifier.class),
+                                identifier == null ? CLEARED : identifier);
+                    }
                 }
                 mutation.apply(writer);
             }
@@ -148,6 +155,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             Identifier identifier = Identifier.fromString(placementKey);
             OverlayCell cell = writableCell(x, y, z);
             cell.block = baseState;
+            cell.tile = CLEARED;
             cell.identifier = identifier;
             mutations.add(replayed != null
                     ? replayed : new CustomBlockMutation(new DataKey(x, y, z, NativeBlockState.class), state));
@@ -243,6 +251,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         OverlayCell cell = writableCell(x, y, z);
         if (data instanceof NativeBlockState) {
             cell.block = data;
+            cell.tile = CLEARED;
             cell.identifier = CLEARED;
         } else {
             cell.put(type, data);
@@ -325,15 +334,15 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         return cell;
     }
 
-    private Object prerequisiteOrCleared(int x, int y, int z, Class<?> type) {
-        Object value = writer.getPrerequisiteDataIfPresent(x, y, z, type);
+    private Object publishedOrCleared(int x, int y, int z, Class<?> type) {
+        Object value = writer.getDataIfPresent(x, y, z, type);
         return value == null ? CLEARED : value;
     }
 
     private void captureOriginal(LinkedHashMap<DataKey, Object> originals, DataKey key) {
         originals.computeIfAbsent(
                 key,
-                candidate -> prerequisiteOrCleared(
+                candidate -> publishedOrCleared(
                         candidate.x(),
                         candidate.y(),
                         candidate.z(),
@@ -383,27 +392,16 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     private void rollback(LinkedHashMap<DataKey, Object> originals, Throwable failure) {
         ArrayList<Map.Entry<DataKey, Object>> entries = new ArrayList<>(originals.entrySet());
-        entries.sort((first, second) -> Boolean.compare(
-                second.getKey().type() == NativeBlockState.class,
-                first.getKey().type() == NativeBlockState.class
-        ));
-        for (Map.Entry<DataKey, Object> entry : entries) {
+        for (int index = entries.size() - 1; index >= 0; index--) {
+            Map.Entry<DataKey, Object> entry = entries.get(index);
             DataKey key = entry.getKey();
             try {
-                if (key.type() == NativeBlockState.class
-                        && writer.restorePrerequisiteCell(key.x(), key.y(), key.z())) {
-                    continue;
-                }
-                if (writer.restorePrerequisiteData(key.x(), key.y(), key.z(), key.type())) {
-                    continue;
-                }
-                writer.clearData(key.x(), key.y(), key.z(), key.type());
-                Object original = entry.getValue();
-                if (original != CLEARED) {
-                    writer.setData(key.x(), key.y(), key.z(), original);
-                }
+                writer.restoreData(key.x(), key.y(), key.z(), key.type(),
+                        entry.getValue() == CLEARED ? null : entry.getValue());
             } catch (Throwable rollbackFailure) {
-                failure.addSuppressed(rollbackFailure);
+                if (rollbackFailure != failure) {
+                    failure.addSuppressed(rollbackFailure);
+                }
             }
         }
     }
@@ -413,6 +411,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         private Object hydrology;
         private Object cavern;
         private Object identifier;
+        private Object tile;
         private Object string;
         private Object treeMaterial;
         private Map<Class<?>, Object> other;
@@ -430,6 +429,9 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             if (type == Identifier.class) {
                 return identifier;
             }
+            if (type == TileWrapper.class) {
+                return tile;
+            }
             if (type == String.class) {
                 return string;
             }
@@ -446,6 +448,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 cavern = value;
             } else if (type == Identifier.class) {
                 identifier = value;
+            } else if (type == TileWrapper.class) {
+                tile = value;
             } else if (type == String.class) {
                 string = value;
             } else if (type == TreeBlockMaterial.class) {

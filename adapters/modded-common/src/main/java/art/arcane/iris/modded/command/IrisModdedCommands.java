@@ -33,6 +33,7 @@ import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
+import art.arcane.iris.modded.service.ModdedPackUpdateService;
 import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
 import art.arcane.iris.modded.ModdedScheduler;
@@ -445,6 +446,12 @@ public final class IrisModdedCommands {
                     );
             String completionMessage = downloadCompletionMessage(result);
             if (result != null) {
+                if (result.changed()) {
+                    ModdedPackUpdateService updates = ModdedEngineBootstrap.services().service(ModdedPackUpdateService.class);
+                    if (updates != null) {
+                        dispatchDownloadFeedback(source, updates::refresh);
+                    }
+                }
                 if (completionMessage != null) {
                     dispatchDownloadFeedback(source, () -> ok(source, completionMessage));
                 }

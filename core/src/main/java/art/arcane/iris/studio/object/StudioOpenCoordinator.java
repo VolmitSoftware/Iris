@@ -247,8 +247,18 @@ public final class StudioOpenCoordinator {
 
             IrisLogging.debug("Studio open: " + world.getName() + " ready in "
                     + elapsedMillis(openStart) + "ms");
+            provider.completeInitialEntry();
             future.complete(new StudioOpenResult(world, entryLocation));
         } catch (Throwable e) {
+            if (provider != null) {
+                try {
+                    provider.completeInitialEntry();
+                } catch (Throwable completionFailure) {
+                    if (completionFailure != e) {
+                        e.addSuppressed(completionFailure);
+                    }
+                }
+            }
             if (entryBootstrap != null) {
                 entryBootstrap.handle((ignored, failure) -> null).join();
             }
@@ -440,12 +450,18 @@ public final class StudioOpenCoordinator {
             ));
         }
         return closeFuture.whenComplete((result, throwable) -> {
-            if (throwable == null && result.failureCause() == null) {
+            Throwable failure = throwable != null ? unwrapFailure(throwable)
+                    : result == null ? new IllegalStateException("Studio cleanup completed without a result.")
+                    : result.failureCause();
+            if (failure == null) {
                 lease.close();
             } else {
-                IrisLogging.error("Studio cleanup remains incomplete for \"" + operationTarget
-                        + "\". Further Iris world operations are blocked. Resolve the reported failure "
-                        + "and restart the server manually before opening another world.");
+                IrisLogging.reportError("Studio cleanup remains incomplete for \"" + operationTarget
+                        + "\" (unloadCompletedLive=" + (result != null && result.unloadCompletedLive())
+                        + ", folderDeletionCompletedLive=" + (result != null && result.folderDeletionCompletedLive())
+                        + ", startupCleanupQueued=" + (result != null && result.startupCleanupQueued())
+                        + "). Further Iris world operations are blocked. Resolve the reported failure "
+                        + "and restart the server manually before opening another world.", failure);
             }
         }).copy();
     }

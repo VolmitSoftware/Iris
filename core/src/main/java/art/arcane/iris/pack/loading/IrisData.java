@@ -867,29 +867,18 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public String toLoadKey(File f) {
-        if (f.getPath().startsWith(getDataFolder().getPath())) {
-            String[] full = f.getPath().split("\\Q" + File.separator + "\\E");
-            String[] df = getDataFolder().getPath().split("\\Q" + File.separator + "\\E");
-            StringBuilder g = new StringBuilder();
-            boolean m = true;
-            for (int i = 0; i < full.length; i++) {
-                if (i >= df.length) {
-                    if (m) {
-                        m = false;
-                        continue;
-                    }
-
-                    g.append("/").append(full[i]);
-                }
+        Path root = getDataFolder().toPath().toAbsolutePath().normalize();
+        Path resource = f.toPath().toAbsolutePath().normalize();
+        if (resource.startsWith(root)) {
+            Path relative = root.relativize(resource);
+            if (relative.getNameCount() > 1) {
+                String key = relative.subpath(1, relative.getNameCount()).toString().replace(File.separatorChar, '/');
+                int extension = key.lastIndexOf('.');
+                return extension > key.lastIndexOf('/') ? key.substring(0, extension) : key;
             }
-
-            return g.substring(1).split("\\Q.\\E")[0];
-        } else {
-            IrisLogging.error("Forign file from loader " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
         }
 
         IrisLogging.error("Failed to load " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
-
         return null;
     }
 
@@ -976,7 +965,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                         .filter(s -> s.endsWith(".json"))
                         .map(s -> s.substring(absPath.length() + 1))
                         .map(s -> s.replace("\\", "/"))
-                        .map(s -> s.split("\\Q.\\E")[0])
+                        .map(s -> s.substring(0, s.length() - ".json".length()))
                         .forEach(s -> l.add("snippet/" + s));
             } catch (Throwable e) {
                 IrisLogging.reportError("Failed to scan Iris snippets in " + snippetFolder + ".", e);

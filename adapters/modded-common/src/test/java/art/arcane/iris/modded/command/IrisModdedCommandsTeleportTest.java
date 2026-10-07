@@ -21,6 +21,8 @@ import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Pose;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.MockedStatic;
@@ -98,6 +100,7 @@ public class IrisModdedCommandsTeleportTest {
         when(server.getLevel(dimension)).thenReturn(serverLevel);
         ServerPlayer serverPlayer = mock(ServerPlayer.class);
         when(serverPlayer.getUUID()).thenReturn(UUID.randomUUID());
+        when(serverPlayer.getDimensions(Pose.STANDING)).thenReturn(EntityDimensions.scalable(0.6F, 1.8F));
         NativeWorld level = mock(NativeWorld.class);
         when(level.nativeHandle()).thenReturn(serverLevel);
 

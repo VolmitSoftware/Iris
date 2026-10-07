@@ -130,6 +130,48 @@ public class IrisCreatorTeleportTest {
     }
 
     @Test
+    public void cancellingEntryCancelsAnAlreadyStartedRuntimeTeleport() {
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        WorldRuntimeControlService runtimeControl = mock(WorldRuntimeControlService.class);
+        Location anchor = new Location(world, 0.5D, 80D, 0.5D);
+        CompletableFuture<Boolean> teleport = new CompletableFuture<>();
+        doReturn(anchor).when(runtimeControl).resolveEntryAnchor(world);
+        doReturn(CompletableFuture.completedFuture(mock(Chunk.class)))
+                .when(runtimeControl).requestChunkAsync(world, 0, 0, true);
+        doReturn(CompletableFuture.completedFuture(anchor)).when(runtimeControl).resolveSafeEntry(world, anchor);
+        doReturn(teleport).when(runtimeControl).teleport(player, anchor);
+
+        CompletableFuture<Boolean> result = IrisCreator.teleportSenderToCreatedWorld(player, world, runtimeControl);
+        assertTrue(result.cancel(false));
+
+        assertTrue(teleport.isCancelled());
+    }
+
+    @Test
+    public void cancellingEntryBeforeSafeResolutionPreventsTeleport() {
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        WorldRuntimeControlService runtimeControl = mock(WorldRuntimeControlService.class);
+        Location anchor = new Location(world, 0.5D, 80D, 0.5D);
+        CompletableFuture<Location> safeEntry = new CompletableFuture<>();
+        doReturn(anchor).when(runtimeControl).resolveEntryAnchor(world);
+        doReturn(CompletableFuture.completedFuture(mock(Chunk.class)))
+                .when(runtimeControl).requestChunkAsync(world, 0, 0, true);
+        doReturn(safeEntry).when(runtimeControl).resolveSafeEntry(world, anchor);
+
+        CompletableFuture<Boolean> result = IrisCreator.teleportSenderToCreatedWorld(player, world, runtimeControl);
+        assertTrue(result.cancel(false));
+        safeEntry.complete(anchor);
+
+        InOrder order = inOrder(runtimeControl);
+        order.verify(runtimeControl).resolveEntryAnchor(world);
+        order.verify(runtimeControl).requestChunkAsync(world, 0, 0, true);
+        order.verify(runtimeControl).resolveSafeEntry(world, anchor);
+        verifyNoMoreInteractions(runtimeControl);
+    }
+
+    @Test
     public void awaitTeleportFailure_returnsNullForSuccessfulTeleport() {
         CompletableFuture<Boolean> teleport = CompletableFuture.completedFuture(true);
 

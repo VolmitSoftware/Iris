@@ -33,12 +33,10 @@ import art.arcane.volmlib.util.interpolation.Interpolation3D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Geometric transforms for {@link IrisObject}: rotation, scaling and the interpolated upscalers.
@@ -57,22 +55,20 @@ final class IrisObjectTransforms {
         self.writeLock.lock();
         try {
             VectorMap<NativeBlockState> d = new VectorMap<>();
-            Set<IrisBlockVector> omitted = new HashSet<>();
+            VectorMap<TileData> dx = new VectorMap<>();
 
             for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
                 NativeBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
                 if (rotated == null) {
-                    omitted.add(entry.getKey());
                     continue;
                 }
-                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), rotated);
-            }
-
-            VectorMap<TileData> dx = new VectorMap<>();
-
-            for (Map.Entry<IrisBlockVector, TileData> entry : self.states) {
-                if (!omitted.contains(entry.getKey())) {
-                    dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
+                IrisBlockVector destination = r.rotate(entry.getKey(), spinx, spiny, spinz);
+                d.put(destination, rotated);
+                TileData tile = self.states.get(entry.getKey());
+                if (tile == null) {
+                    dx.remove(destination);
+                } else {
+                    dx.put(destination, tile);
                 }
             }
 

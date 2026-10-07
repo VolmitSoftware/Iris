@@ -390,6 +390,28 @@ public class IrisHydrologyRoutingTerrainSamplerTest {
     }
 
     @Test
+    public void nonFiniteHeightsAreRetriedUntilFiniteAndRetainedWithoutBasisLoading() {
+        double[] heights = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 87D};
+        AtomicInteger heightCalls = new AtomicInteger();
+        AtomicInteger basisCalls = new AtomicInteger();
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources((x, z, height) -> {
+                    basisCalls.incrementAndGet();
+                    return basis(x, z, height);
+                }, (x, z) -> heights[heightCalls.getAndIncrement()], (x, z) -> false, 63),
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16));
+        for (int index = 0; index < 3; index++) {
+            assertThrows(IllegalArgumentException.class, () -> sampler.sampleLandHeight(0, 0));
+            assertEquals(0, sampler.naturalHeightCacheSize());
+        }
+        assertEquals(87D, sampler.sampleLandHeight(0, 0), 0D);
+        assertEquals(87D, sampler.sampleLandHeight(0, 0), 0D);
+        assertEquals(4, heightCalls.get());
+        assertEquals(3, basisCalls.get());
+        assertEquals(1, sampler.naturalHeightCacheSize());
+    }
+
+    @Test
     public void adjacentGridsShareBasesAndProduceIdenticalOverlap() {
         AtomicInteger calls = new AtomicInteger();
         IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(

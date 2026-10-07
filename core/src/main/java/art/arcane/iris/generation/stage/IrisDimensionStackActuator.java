@@ -192,7 +192,8 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
         IrisDimension dimension = terrainContext.getDimension();
         IrisData data = terrainContext.getData();
         IrisBiome biome = layer.biome();
-        int surfaceDepth = Math.max(0, layer.normalTerrainHeight());
+        int bedrockDepth = dimension.isBedrock() ? 1 : 0;
+        int surfaceDepth = Math.max(0, layer.normalTerrainHeight() + 1 - bedrockDepth);
         int fluidDepth = Math.max(0, layer.fluidHeight() - layer.normalTerrainHeight());
         KList<NativeBlockState> surfaceBlocks = biome == null || layer.terrainColumn() != null
                 ? null
@@ -207,6 +208,8 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
                         terrainContext.getSlopeStream()
                 );
         int paletteSurfaceY = layer.normalTerrainHeight();
+        KList<NativeBlockState> ceilingBlocks = null;
+        int terrainSpan = layer.terrainColumn() == null ? -1 : layer.terrainColumn().spanCount() - 1;
         KList<NativeBlockState> seaBlocks = biome == null || fluidDepth == 0
                 ? null
                 : biome.generateSeaLayers(worldX, worldZ, rng, fluidDepth, data);
@@ -239,13 +242,32 @@ public final class IrisDimensionStackActuator extends EngineAssignedActuator<Nat
             if (sourceSurfaceY != paletteSurfaceY) {
                 paletteSurfaceY = sourceSurfaceY;
                 surfaceBlocks = null;
+                ceilingBlocks = null;
             }
             if (depth == 0 && layer.surfaceBlock() != null) {
                 writeBlock(output, metadata, localX, y, localZ, layer.surfaceBlock());
             } else {
+                if (terrainSpan >= 0) {
+                    while (terrainSpan >= 0 && sourceY < layer.terrainColumn().ceiling(terrainSpan)) {
+                        terrainSpan--;
+                    }
+                    int ceilingY = layer.terrainColumn().ceiling(terrainSpan);
+                    int ceilingDepth = sourceY - ceilingY;
+                    if (terrainSpan > 0 && depth >= 2 && ceilingDepth < 2) {
+                        if (ceilingBlocks == null && biome != null) {
+                            ceilingBlocks = biome.generateCeilingLayers(dimension, worldX, worldZ, rng,
+                                    2, ceilingY, data, null);
+                        }
+                        writeBlock(output, metadata, localX, y, localZ,
+                                ceilingBlocks != null && ceilingBlocks.hasIndex(ceilingDepth)
+                                        ? ceilingBlocks.get(ceilingDepth) : layer.rockBlock());
+                        continue;
+                    }
+                }
                 if (surfaceBlocks == null && biome != null) {
                     surfaceBlocks = biome.generateLayersWithSlope(dimension, worldX, worldZ, rng,
-                            sourceSurfaceY, sourceSurfaceY, data, terrainContext.getSurfaceSlopeStream(sourceSurfaceY));
+                            sourceSurfaceY + 1 - bedrockDepth, sourceSurfaceY, data,
+                            terrainContext.getSurfaceSlopeStream(sourceSurfaceY));
                 }
                 writeBlock(output, metadata, localX, y, localZ,
                         surfaceBlocks != null && surfaceBlocks.hasIndex(depth)

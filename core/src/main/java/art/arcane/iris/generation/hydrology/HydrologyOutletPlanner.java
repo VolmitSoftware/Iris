@@ -114,7 +114,7 @@ final class HydrologyOutletPlanner {
             return selectedOcean;
         }
         if (surface) {
-            HydrologySurfaceBudgets budgets = HydrologySurfaceBudgets.sample(grid, planner.settings.surface().sources());
+            HydrologySurfaceBudgets budgets = grid.surfaceBudgets(planner.settings.surface().sources());
             if (budgets.overridden()) {
                 oceanCandidates.removeIf(candidate -> !surfaceOutletHasBudget(key, grid, budgets, candidate, true));
             }
@@ -243,7 +243,7 @@ final class HydrologyOutletPlanner {
         }
         sortSurfaceFallbackOutletCandidates(grid, oceanCandidates);
         sortSurfaceFallbackOutletCandidates(grid, inlandCandidates);
-        HydrologySurfaceBudgets budgets = HydrologySurfaceBudgets.sample(grid, planner.settings.surface().sources());
+        HydrologySurfaceBudgets budgets = grid.surfaceBudgets(planner.settings.surface().sources());
         if (budgets.overridden()) {
             HydrologyTileKey key = HydrologyTileKey.fromBlock(grid.ownerMinimumX(), grid.ownerMinimumZ(), grid.ownerSize());
             oceanCandidates.removeIf(candidate -> !surfaceOutletHasBudget(key, grid, budgets, candidate, true));
@@ -279,7 +279,7 @@ final class HydrologyOutletPlanner {
 
     List<OutletCandidate> limitSurfaceOutlets(HydrologyTileKey key, HydrologySampledGrid grid,
                                              List<OutletCandidate> candidates, boolean coastal) {
-        HydrologySurfaceBudgets budgets = HydrologySurfaceBudgets.sample(grid, planner.settings.surface().sources());
+        HydrologySurfaceBudgets budgets = grid.surfaceBudgets(planner.settings.surface().sources());
         if (!budgets.overridden()) {
             return coastal ? limitOutletsByType(candidates, planner.settings.outlets().maximumCoastalPerTile())
                     : limitOutlets(candidates, planner.settings.outlets().maximumPerTile());

@@ -18,10 +18,13 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.pack.PackFingerprints;
+
 import art.arcane.iris.pack.BrokenPackException;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackDownloader;
 import art.arcane.iris.pack.PackValidationRegistry;
+import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.modded.command.ModdedPackCommands;
@@ -31,15 +34,11 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 public final class ModdedStartup {
     private static final int COMPAT_BOOT_KEY_CAP = 3;
@@ -60,34 +59,7 @@ public final class ModdedStartup {
         if (!PREPARED.compareAndSet(false, true)) {
             return;
         }
-        reportLegacyPacksDirectory();
         validateAllPacks();
-    }
-
-    /**
-     * Older builds mkdir'd (and stale guidance sometimes populated) config/iris/packs, but modded
-     * packs live under config/irisworldgen/packs. Never auto-move user content: warn loudly when
-     * the legacy directory holds packs, and quietly remove it when it is empty.
-     */
-    private static void reportLegacyPacksDirectory() {
-        try {
-            File legacy = ModdedEngineBootstrap.loader().configDir().resolve("iris").resolve("packs").toFile();
-            if (!legacy.isDirectory()) {
-                return;
-            }
-            if (!PackDirectoryResolver.listVisiblePackDirectories(legacy).isEmpty()) {
-                File real = art.arcane.iris.spi.IrisPlatforms.get().packsFolderNoCreate();
-                ModdedIrisLog.warn("Iris found packs under the legacy directory {} - modded packs load from {} only. Move them there.",
-                        legacy.getAbsolutePath(), real.getAbsolutePath());
-                return;
-            }
-            String[] entries = legacy.list();
-            if (entries == null || entries.length == 0) {
-                legacy.delete();
-            }
-        } catch (Throwable e) {
-            ModdedIrisLog.debug("Iris legacy packs directory check failed", e);
-        }
     }
 
     /**
@@ -140,8 +112,7 @@ public final class ModdedStartup {
         }
         for (File packDir : packDirs) {
             try {
-                PackValidationResult result = PackValidator.validate(packDir);
-                PackValidationRegistry.publish(result);
+                PackValidationResult result = validatePack(packDir);
                 String minecraftVersion = IrisPlatforms.isBound() ? IrisPlatforms.get().minecraftVersion() : null;
                 String compatSummary = PackValidator.compatSummary(result, minecraftVersion);
                 String compatSuffix = compatSummary.isEmpty() ? "" : " " + compatSummary;
@@ -184,16 +155,15 @@ public final class ModdedStartup {
             throw new BrokenPackException(pack, List.of(
                     "Pack folder does not exist under " + ModdedPackCommands.packsRoot().getAbsolutePath() + "."));
         }
-        PackValidationResult cached = PackValidationRegistry.get(pack);
-        if (cached != null && cached.getValidatedAtMillis() >= newestModificationMillis(packDir.toPath())) {
-            // prepareForStartup already validated this pack and nothing in it changed since; re-validating per
-            // persistent dimension at boot costs a full pack parse each time.
-            return PackValidationRegistry.requireLoadable(pack);
-        }
+        Path packRoot = packDir.toPath();
         try {
-            PackValidationResult result = PackValidator.validate(packDir);
-            PackValidationRegistry.publish(result);
-            return PackValidationRegistry.requireLoadable(pack);
+            PackValidationResult cached = PackValidationRegistry.getMatching(
+                    packRoot, PackFingerprints.computePackTreeFingerprint(packDir));
+            if (cached != null) {
+                return PackValidationRegistry.requireLoadable(packRoot);
+            }
+            validatePack(packDir);
+            return PackValidationRegistry.requireLoadable(packRoot);
         } catch (BrokenPackException e) {
             throw e;
         } catch (Throwable e) {
@@ -210,6 +180,42 @@ public final class ModdedStartup {
             PackValidationRegistry.publish(failure);
             throw new BrokenPackException(pack, failure.getBlockingErrors());
         }
+    }
+
+    public static PackValidationResult validatePack(File packDir) {
+        Path packRoot = packDir.toPath();
+        PackValidationRegistry.ValidationTicket ticket = PackValidationRegistry.tryBeginValidation(packRoot);
+        if (ticket == null) {
+            throw new BrokenPackException(packDir.getName(), List.of("Pack content is currently being changed."));
+        }
+        String contentFingerprint = PackFingerprints.computePackTreeFingerprint(packDir);
+        String contextFingerprint = PackValidationCache.contextFingerprint();
+        PackValidationResult result;
+        try {
+            result = PackValidator.validate(packDir);
+        } catch (Throwable failure) {
+            ModdedIrisLog.error("Iris pack validation failed for '{}'", packDir.getName(), failure);
+            String detail = failure.getMessage();
+            if (detail == null || detail.isBlank()) {
+                detail = failure.getClass().getSimpleName();
+            }
+            result = new PackValidationResult(
+                    packDir.getName(),
+                    List.of("Pack validation failed with " + failure.getClass().getSimpleName() + ": " + detail),
+                    List.of(),
+                    System.currentTimeMillis());
+        }
+        if (!contentFingerprint.equals(PackFingerprints.computePackTreeFingerprint(packDir))
+                || !contextFingerprint.equals(PackValidationCache.contextFingerprint())) {
+            PackValidationRegistry.remove(packRoot);
+            PackValidationRegistry.remove(packDir.getName());
+            throw new BrokenPackException(packDir.getName(), List.of("Pack content or validation context changed during validation."));
+        }
+        if (!PackValidationRegistry.publishIfCurrent(ticket, result, contentFingerprint, contextFingerprint)) {
+            throw new BrokenPackException(packDir.getName(), List.of("Pack content changed during validation."));
+        }
+        PackValidationRegistry.publish(result);
+        return result;
     }
 
     static void reinjectPersistentDimensions(NativeModdedServer server) {
@@ -266,23 +272,6 @@ public final class ModdedStartup {
                 + GenerationRefusalNotice.summary(failure));
     }
 
-    private static long newestModificationMillis(Path root) {
-        long newest = 0L;
-        try (Stream<Path> walk = Files.walk(root)) {
-            for (Path path : (Iterable<Path>) walk::iterator) {
-                BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-                long modified = attributes.lastModifiedTime().toMillis();
-                if (modified > newest) {
-                    newest = modified;
-                }
-            }
-        } catch (IOException | RuntimeException unreadable) {
-            ModdedIrisLog.debug("Iris could not stat {} for validation reuse; revalidating", root, unreadable);
-            return Long.MAX_VALUE;
-        }
-        return newest;
-    }
-
     /**
      * True once the first tick with a player list has re-injected the persistent dimensions. Before that a runtime
      * dimension that is not loaded yet is still on its way.
@@ -296,7 +285,7 @@ public final class ModdedStartup {
      * the console. Tell the operators who can actually act on it when they join.
      */
     public static void warnStartupFailuresTo(NativeProtocolPlayer player) {
-        if (player == null || !player.isGameMaster()) {
+        if (player == null || (!player.isGameMaster() && !player.isServerOwner())) {
             return;
         }
         for (String failure : DIMENSION_FAILURES) {

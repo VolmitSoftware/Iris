@@ -19,7 +19,6 @@
 package art.arcane.iris.generation.biome;
 
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 
 /**
@@ -31,24 +30,14 @@ final class IrisBiomeGenLinks {
     private IrisBiomeGenLinks() {
     }
 
-    static double getGenLinkMax(IrisBiome biome, String loadKey, Engine engine) {
-        if (loadKey == null || loadKey.isBlank()) {
-            return 0;
-        }
-
-        Integer v = maxIndex(biome).get(loadKey);
-
-        return v == null ? 0 : v;
+    static double getGenLinkMax(IrisBiome biome, String loadKey) {
+        IrisBiomeGeneratorLink link = getGenLink(biome, loadKey);
+        return link == null ? 0 : link.getMax();
     }
 
-    static double getGenLinkMin(IrisBiome biome, String loadKey, Engine engine) {
-        if (loadKey == null || loadKey.isBlank()) {
-            return 0;
-        }
-
-        Integer v = minIndex(biome).get(loadKey);
-
-        return v == null ? 0 : v;
+    static double getGenLinkMin(IrisBiome biome, String loadKey) {
+        IrisBiomeGeneratorLink link = getGenLink(biome, loadKey);
+        return link == null ? 0 : link.getMin();
     }
 
     static IrisBiomeGeneratorLink getGenLink(IrisBiome biome, String loadKey) {
@@ -57,57 +46,6 @@ final class IrisBiomeGenLinks {
         }
 
         return linkIndex(biome).get(loadKey);
-    }
-
-    private static KMap<String, Integer> maxIndex(IrisBiome biome) {
-        AtomicCache<KMap<String, Integer>> cache = biome.getGenCacheMax();
-        KMap<String, Integer> cached = cache.getIfPresent();
-
-        if (cached != null) {
-            return cached;
-        }
-
-        return cache.aquire(() ->
-        {
-            KMap<String, Integer> l = new KMap<>();
-
-            for (IrisBiomeGeneratorLink i : biome.getGenerators()) {
-                String generatorKey = i.getGenerator();
-                if (generatorKey == null || generatorKey.isBlank()) {
-                    continue;
-                }
-
-                l.put(generatorKey, i.getMax());
-
-            }
-
-            return l;
-        });
-    }
-
-    private static KMap<String, Integer> minIndex(IrisBiome biome) {
-        AtomicCache<KMap<String, Integer>> cache = biome.getGenCacheMin();
-        KMap<String, Integer> cached = cache.getIfPresent();
-
-        if (cached != null) {
-            return cached;
-        }
-
-        return cache.aquire(() ->
-        {
-            KMap<String, Integer> l = new KMap<>();
-
-            for (IrisBiomeGeneratorLink i : biome.getGenerators()) {
-                String generatorKey = i.getGenerator();
-                if (generatorKey == null || generatorKey.isBlank()) {
-                    continue;
-                }
-
-                l.put(generatorKey, i.getMin());
-            }
-
-            return l;
-        });
     }
 
     private static KMap<String, IrisBiomeGeneratorLink> linkIndex(IrisBiome biome) {

@@ -96,8 +96,6 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private static final int CHILDREN_SEED_SALT = 2137;
 
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
-    private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
-    private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
@@ -415,12 +413,12 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return getCustomDerivitives() != null && getCustomDerivitives().isNotEmpty();
     }
 
-    public double getGenLinkMax(String loadKey, Engine engine) {
-        return IrisBiomeGenLinks.getGenLinkMax(this, loadKey, engine);
+    public double getGenLinkMax(String loadKey) {
+        return IrisBiomeGenLinks.getGenLinkMax(this, loadKey);
     }
 
-    public double getGenLinkMin(String loadKey, Engine engine) {
-        return IrisBiomeGenLinks.getGenLinkMin(this, loadKey, engine);
+    public double getGenLinkMin(String loadKey) {
+        return IrisBiomeGenLinks.getGenLinkMin(this, loadKey);
     }
 
     public IrisBiomeGeneratorLink getGenLink(String loadKey) {

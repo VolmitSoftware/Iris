@@ -1955,8 +1955,8 @@ public class IrisComplex implements DataProvider {
                 continue;
             }
 
-            max += biome.getGenLinkMax(key, engine);
-            min += biome.getGenLinkMin(key, engine);
+            max += biome.getGenLinkMax(key);
+            min += biome.getGenLinkMin(key);
         }
 
         return new GeneratorBounds(min, max);

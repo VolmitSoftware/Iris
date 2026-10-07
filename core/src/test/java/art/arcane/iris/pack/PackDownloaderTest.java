@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -194,6 +195,18 @@ public class PackDownloaderTest {
             underworldData.close();
         }
         assertTransactionStateClean(packsFolder);
+    }
+
+    @Test
+    public void truncatedArchiveCannotBeExtractedAsCompletePack() throws Exception {
+        Path archive = temp.newFile("truncated.zip").toPath();
+        writeArchive(archive, Map.of("dimensions/main.json", "{}"));
+        byte[] complete = Files.readAllBytes(archive);
+        Files.write(archive, Arrays.copyOf(complete, complete.length - 22));
+
+        assertThrows(IOException.class, () -> PackDownloader.unpackArchive(
+                archive, temp.newFolder("truncated-extraction").toPath(),
+                new PackDownloader.ArchiveLimits(4096L, 10, 4096L, 4096L)));
     }
 
     @Test
@@ -583,6 +596,23 @@ public class PackDownloaderTest {
         assertEquals("overworld", result.key());
         assertFalse(result.changed());
         assertFalse(feedback.isEmpty());
+    }
+
+    @Test
+    public void replacementInvalidatesRootValidationAndRejectsOlderTickets() throws Exception {
+        File packsFolder = temp.newFolder("validation-packs");
+        File target = writePack(packsFolder.toPath().resolve("replaceable"), "replaceable", "old");
+        File extracted = writePack(temp.newFolder("validation-source").toPath(), "replaceable", "new");
+        PackValidationResult original = new PackValidationResult("replaceable", List.of(), List.of(), 1L);
+        PackValidationRegistry.publish(target.toPath(), original);
+        PackValidationRegistry.ValidationTicket ticket = PackValidationRegistry.tryBeginValidation(target.toPath());
+
+        PackDownloader.PackInstallResult result = PackDownloader.installExtractedPack(
+                packsFolder, extracted, true, "replaceable", ignored -> {});
+
+        assertNotNull(result);
+        assertNull(PackValidationRegistry.get(target.toPath()));
+        assertFalse(PackValidationRegistry.publishIfCurrent(ticket, original));
     }
 
     @Test

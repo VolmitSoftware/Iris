@@ -5,7 +5,6 @@ import art.arcane.iris.generation.hydrology.cave.CavePositionIndex;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCandidate;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveFluidPolicy;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveGrottoShape;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveMode;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlannerSettings;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveSource;
@@ -170,11 +169,8 @@ final class CaveCandidateBuilder {
                 volume,
                 1,
                 1,
-                1,
-                1,
                 dryHeadroom,
                 HydrologyCaveFluidPolicy.REJECT_EXISTING,
-                HydrologyCaveGrottoShape.ELLIPSOID,
                 horizontalRadius,
                 maximumDepth
         );

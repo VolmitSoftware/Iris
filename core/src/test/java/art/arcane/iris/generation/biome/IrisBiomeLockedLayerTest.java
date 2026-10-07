@@ -38,13 +38,31 @@ public class IrisBiomeLockedLayerTest {
                 IrisBiomeCeilingLayerTest.layer(third, 1)));
         List<NativeBlockState> cycle = List.of(first, second, third);
         int[] heights = {1, 509, 512, 513, 1000, Integer.MAX_VALUE};
-        int[][] expectedCycles = {{1, 0, 2}, {0, 2, 1}, {0, 2, 1}, {2, 1, 0}, {1, 0, 2}, {1, 0, 2}};
+        int[][] expectedCycles = {{1, 2, 0}, {0, 1, 2}, {0, 1, 2}, {2, 0, 1}, {1, 2, 0}, {1, 2, 0}};
         for (int index = 0; index < heights.length; index++) {
             KList<NativeBlockState> blocks = biome.generateLockedLayers(
                     13, -27, new RNG(37), 8, heights[index], null, null);
             assertEquals(8, blocks.size());
             for (int depth = 0; depth < blocks.size(); depth++) {
                 assertEquals(cycle.get(expectedCycles[index][depth % 3]), blocks.get(depth));
+            }
+        }
+    }
+
+    @Test
+    public void sharedWorldHeightHasTheSameBandUnderDifferentSurfaceHeights() {
+        NativeBlockState first = mock(NativeBlockState.class);
+        NativeBlockState second = mock(NativeBlockState.class);
+        NativeBlockState third = mock(NativeBlockState.class);
+        IrisBiome biome = new IrisBiome().setLockLayers(true).setLockLayersMax(16).setLayers(new KList<>(
+                IrisBiomeCeilingLayerTest.layer(first, 1),
+                IrisBiomeCeilingLayerTest.layer(second, 1),
+                IrisBiomeCeilingLayerTest.layer(third, 1)));
+        for (int surface : new int[]{-17, 20, 512, 1000}) {
+            KList<NativeBlockState> lower = biome.generateLockedLayers(13, -27, new RNG(37), 8, surface, null, null);
+            KList<NativeBlockState> higher = biome.generateLockedLayers(13, -27, new RNG(37), 9, surface + 1, null, null);
+            for (int depth = 0; depth < lower.size(); depth++) {
+                assertEquals(lower.get(depth), higher.get(depth + 1));
             }
         }
     }
@@ -171,7 +189,7 @@ public class IrisBiomeLockedLayerTest {
         }
         if (!expanded.isEmpty()) {
             for (int depth = 0; depth < Math.min(maxDepth, biome.getLockLayersMax()); depth++) {
-                result.add(expanded.get(Math.floorMod(512L - height - depth, expanded.size())));
+                result.add(expanded.get(Math.floorMod(512L - (height - (long) depth), expanded.size())));
             }
         }
         return result;

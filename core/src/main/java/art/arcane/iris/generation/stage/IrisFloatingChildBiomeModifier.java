@@ -178,15 +178,24 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
         return block == null ? fallbackSolid : block;
     }
 
-    private PaletteContext createPaletteContext(IrisBiome parent, IrisFloatingChildBiomes entry, IrisDimension dimension, int wx, int wz, int paletteDepth, IrisData data, IrisComplex complex) {
+    private PaletteContext createPaletteContext(IrisBiome parent, IrisFloatingChildBiomes entry, IrisDimension dimension, int wx, int wz, int paletteDepth, int surfaceY, int baseY, IrisData data, IrisComplex complex) {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
         RNG layerRng = paletteRng(rng, entry);
-        KList<NativeBlockState> topBlocks = target == null ? null : target.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+        boolean physicalDepth = usesPhysicalDepth(target, entry);
+        int topPaletteDepth = physicalDepth ? Math.max(paletteDepth, surfaceY - baseY + 1) : paletteDepth;
+        KList<NativeBlockState> topBlocks = target == null ? null : target.generateLayers(dimension, wx, wz, layerRng, topPaletteDepth, surfaceY, data, complex);
         if (topBlocks == null || topBlocks.isEmpty()) {
-            topBlocks = parent.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+            physicalDepth = usesPhysicalDepth(parent, entry);
+            topPaletteDepth = physicalDepth ? Math.max(paletteDepth, surfaceY - baseY + 1) : paletteDepth;
+            topBlocks = parent.generateLayers(dimension, wx, wz, layerRng, topPaletteDepth, surfaceY, data, complex);
         }
         KList<NativeBlockState> bottomBlocks = generateBottomPaletteLayers(entry, dimension, wx, wz, layerRng, paletteDepth, data, complex);
-        return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"));
+        return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"), surfaceY, physicalDepth);
+    }
+
+    private static boolean usesPhysicalDepth(IrisBiome biome, IrisFloatingChildBiomes entry) {
+        return biome != null && biome.isLockLayers() && (entry == null || entry.getBottomPaletteMode() == null
+                || entry.getBottomPaletteMode() == FloatingBottomPaletteMode.DEPTH);
     }
 
     static RNG paletteRng(RNG worldRng, IrisFloatingChildBiomes entry) {
@@ -198,11 +207,15 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
         private final KList<NativeBlockState> topBlocks;
         private final KList<NativeBlockState> bottomBlocks;
         private final NativeBlockState fallbackSolid;
+        private final int surfaceY;
+        private final boolean physicalDepth;
 
-        private PaletteContext(KList<NativeBlockState> topBlocks, KList<NativeBlockState> bottomBlocks, NativeBlockState fallbackSolid) {
+        private PaletteContext(KList<NativeBlockState> topBlocks, KList<NativeBlockState> bottomBlocks, NativeBlockState fallbackSolid, int surfaceY, boolean physicalDepth) {
             this.topBlocks = topBlocks;
             this.bottomBlocks = bottomBlocks;
             this.fallbackSolid = fallbackSolid;
+            this.surfaceY = surfaceY;
+            this.physicalDepth = physicalDepth;
         }
     }
 
@@ -251,12 +264,12 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                     IrisFloatingChildBiomes entry = sample.entryAt(k);
                     PaletteContext paletteContext = paletteContexts.get(entry);
                     if (paletteContext == null) {
-                        paletteContext = createPaletteContext(parent, entry, dimension, wx, wz, paletteDepth, data, complex);
+                        paletteContext = createPaletteContext(parent, entry, dimension, wx, wz, paletteDepth, y, sample.islandBaseY, data, complex);
                         paletteContexts.put(entry, paletteContext);
                     }
                     int depth = topDepthByEntry.getOrDefault(entry, 0);
                     int bottomDepth = bottomDepths == null || bottomDepths[k] < 0 ? depth : bottomDepths[k];
-                    NativeBlockState block = selectPaletteBlock(entry, paletteContext.topBlocks, paletteContext.bottomBlocks, depth, bottomDepth, paletteContext.fallbackSolid);
+                    NativeBlockState block = selectPaletteBlock(entry, paletteContext.topBlocks, paletteContext.bottomBlocks, paletteContext.physicalDepth ? paletteContext.surfaceY - y : depth, bottomDepth, paletteContext.fallbackSolid);
                     if (block != null) {
                         output.set(xf, y, zf, block);
                     }

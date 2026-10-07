@@ -17,6 +17,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -42,6 +44,9 @@ public class StudioCloseRecoveryTest {
             StudioOpenCoordinator.StudioCloseResult result = close(provider, null).join();
 
             assertSame(failure, result.failureCause());
+            logging.verify(() -> IrisLogging.reportError(
+                    contains("unloadCompletedLive=true, folderDeletionCompletedLive=true, startupCleanupQueued=false"),
+                    same(failure)));
             configurator.verifyNoInteractions();
             verify(lease, never()).close();
         }

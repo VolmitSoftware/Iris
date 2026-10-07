@@ -60,7 +60,7 @@ public class IrisAxisRotationClamp {
     @DependsOn({"min", "max"})
     @MinNumber(0)
     @MaxNumber(360)
-    @Description("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees. \nSetting this to 0 means totally free rotation.\n\nNote that a lot of structures can have issues with non 90 degree intervals because the minecraft block resolution is so low.")
+    @Description("Iris spins the axis but not freely. For example an interval of 90 would mean 4 possible angles (right angles) degrees. \nA zero interval resolves to a one-degree rotation step. Unlimited rotation also resolves positive intervals below 1 to one degree.\n\nNote that a lot of structures can have issues with non 90 degree intervals because the minecraft block resolution is so low.")
     private double interval = 0;
 
     public void minMax(double fd) {
@@ -79,7 +79,7 @@ public class IrisAxisRotationClamp {
 
     public double getRadians(int rng) {
         if (forceLock) {
-            return Math.toRadians(Math.ceil(Math.abs((max % 360D))));
+            return Math.toRadians(max);
         }
 
         if (isUnlimited()) {
@@ -91,6 +91,7 @@ public class IrisAxisRotationClamp {
             return Math.toRadians(max);
         }
 
-        return Math.toRadians(M.clip((interval * (Math.ceil(Math.abs((rng % 360D) / interval)))) % 360D, Math.min(min, max), Math.max(min, max)));
+        double resolvedInterval = interval <= 0 ? 1 : interval;
+        return Math.toRadians(M.clip((resolvedInterval * (Math.ceil(Math.abs((rng % 360D) / resolvedInterval)))) % 360D, Math.min(min, max), Math.max(min, max)));
     }
 }

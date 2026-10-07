@@ -15,6 +15,7 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.matter.MatterSlice;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -40,7 +42,7 @@ public class MantleHydrologyCaveVoxelViewTest {
     @SuppressWarnings("unchecked")
     public void authoritativeChunkFlagControlsWhetherCarvingInputIsRequired() {
         Mantle<Matter> mantle = mock(Mantle.class);
-        doReturn(mock(MantleChunk.class)).when(mantle).getChunk(anyInt(), anyInt());
+        configurePinnedReads(mantle);
         when(mantle.hasFlag(2, -3, ReservedFlag.CARVED)).thenReturn(true);
 
         assertFalse(MantleHydrologyCaveVoxelView.requiresCarvingInput(mantle, 2, -3));
@@ -54,7 +56,7 @@ public class MantleHydrologyCaveVoxelViewTest {
     @SuppressWarnings("unchecked")
     public void mapsCarvedAndStoredMatterAndLoadsEachChunkOnce() {
         Mantle<Matter> mantle = mock(Mantle.class);
-        doReturn(mock(MantleChunk.class)).when(mantle).getChunk(anyInt(), anyInt());
+        configurePinnedReads(mantle);
         MatterCavern air = new MatterCavern(true, "", (byte) 0);
         MatterCavern water = new MatterCavern(true, "", (byte) 1);
         MatterCavern lava = new MatterCavern(true, "", (byte) 2);
@@ -100,7 +102,7 @@ public class MantleHydrologyCaveVoxelViewTest {
     @SuppressWarnings("unchecked")
     public void carvedVerticalShaftIsOpenToSurface() {
         Mantle<Matter> mantle = mock(Mantle.class);
-        doReturn(mock(MantleChunk.class)).when(mantle).getChunk(anyInt(), anyInt());
+        configurePinnedReads(mantle);
         MatterCavern air = new MatterCavern(true, "", (byte) 0);
         doAnswer(invocation -> {
             int x = invocation.getArgument(0);
@@ -126,7 +128,7 @@ public class MantleHydrologyCaveVoxelViewTest {
     @SuppressWarnings("unchecked")
     public void terrainUndercutsRemainOpenWithoutCaveMatter() {
         Mantle<Matter> mantle = mock(Mantle.class);
-        doReturn(mock(MantleChunk.class)).when(mantle).getChunk(anyInt(), anyInt());
+        configurePinnedReads(mantle);
         MantleHydrologyCaveVoxelView view = new MantleHydrologyCaveVoxelView(mantle, 128,
                 new MantleHydrologyCaveVoxelView.TerrainSources((x, z) -> new MantleHydrologyCaveVoxelView.TerrainColumn(80, false),
                         (x, y, z) -> y <= 40 || y >= 65 && y <= 80,
@@ -212,8 +214,34 @@ public class MantleHydrologyCaveVoxelViewTest {
         verify(complex, never()).sampleHydrologyColumn(anyDouble(), anyDouble());
     }
 
+    @SuppressWarnings("unchecked")
+    private static void configurePinnedReads(Mantle<Matter> mantle) {
+        when(mantle.getWorldHeight()).thenReturn(128);
+        when(mantle.useChunk(anyInt(), anyInt())).thenAnswer(chunkInvocation -> {
+            int chunkX = chunkInvocation.getArgument(0);
+            int chunkZ = chunkInvocation.getArgument(1);
+            MantleChunk<Matter> chunk = mock(MantleChunk.class);
+            when(chunk.exists(anyInt())).thenReturn(true);
+            when(chunk.get(anyInt())).thenAnswer(sectionInvocation -> {
+                int section = sectionInvocation.getArgument(0);
+                Matter matter = mock(Matter.class);
+                when(matter.getSlice(any())).thenAnswer(sliceInvocation -> {
+                    Class<Object> type = sliceInvocation.getArgument(0);
+                    MatterSlice<Object> slice = mock(MatterSlice.class);
+                    when(slice.get(anyInt(), anyInt(), anyInt())).thenAnswer(cellInvocation ->
+                            mantle.get((chunkX << 4) + (int) cellInvocation.getArgument(0),
+                                    (section << 4) + (int) cellInvocation.getArgument(1),
+                                    (chunkZ << 4) + (int) cellInvocation.getArgument(2), type));
+                    return slice;
+                });
+                return matter;
+            });
+            return chunk;
+        });
+    }
+
     private static Engine configuredEngine(Mantle<Matter> mantle) {
-        doReturn(mock(MantleChunk.class)).when(mantle).getChunk(anyInt(), anyInt());
+        configurePinnedReads(mantle);
         when(mantle.getWorldHeight()).thenReturn(128);
         when(mantle.hasFlag(anyInt(), anyInt(), eq(ReservedFlag.CARVED))).thenReturn(true);
         Engine engine = mock(Engine.class);

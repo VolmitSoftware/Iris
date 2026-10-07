@@ -57,6 +57,11 @@ public class ModdedStartupReinjectFailureTest {
         NativeProtocolPlayer player = mock(NativeProtocolPlayer.class);
         ModdedStartup.warnStartupFailuresTo(operator);
         ModdedStartup.warnStartupFailuresTo(player);
+        NativeProtocolPlayer owner = mock(NativeProtocolPlayer.class);
+        when(owner.isServerOwner()).thenReturn(true);
+        ModdedStartup.warnStartupFailuresTo(owner);
+        verify(owner).sendMessage(argThat((String message) -> message.contains("iris:moon")
+                && message.contains("generation history is unusable")));
 
         verify(operator).sendMessage(argThat((String message) -> message.contains("iris:moon")
                 && message.contains("generation history is unusable")));

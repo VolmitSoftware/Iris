@@ -41,6 +41,39 @@ public class IrisProtocolServerTest {
     private static final long SERVER_CAPABILITIES = IrisProtocol.CAPABILITY_PREGEN;
 
     @Test
+    public void clientCannotPublishWorldOrPackStateThroughServerMessages() {
+        RecordingTransport transport = new RecordingTransport();
+        IrisSessionRegistry registry = new IrisSessionRegistry();
+        long capabilities = IrisProtocol.CAPABILITY_PREGEN | IrisProtocol.CAPABILITY_VISION
+                | IrisProtocol.CAPABILITY_CURSOR | IrisProtocol.CAPABILITY_STUDIO;
+        IrisProtocolServer server = new IrisProtocolServer(registry, capabilities, BRAND, true);
+        IrisSession session = new IrisSession("s1", transport);
+        registry.register(session);
+        server.onClientFrame("s1", IrisMessageCodec.encode(new IrisMessage.ClientHello(IrisProtocol.PROTOCOL_VERSION, capabilities)));
+        server.setEngineResolver(sessionId -> {
+            throw new AssertionError("client-supplied server state must not reach a world engine");
+        });
+        List<IrisMessage> messages = List.of(
+                new IrisMessage.ServerHello(IrisProtocol.PROTOCOL_VERSION, 0L, "other", false),
+                new IrisMessage.DimensionStatus("other", "other-pack", 2L, 0, 256, true),
+                new IrisMessage.StudioHotload("other-pack", 10, false, "replace pack"),
+                new IrisMessage.PregenProgress(1L, 2L, 3L, 1D, 1000L, IrisMessage.PregenProgress.STATE_RUNNING),
+                new IrisMessage.PregenEnd(1L, true),
+                new IrisMessage.Toast(IrisMessage.Toast.KIND_SUCCESS, "title", "body"));
+
+        for (IrisMessage message : messages) {
+            server.onClientFrame("s1", IrisMessageCodec.encode(message));
+        }
+
+        assertEquals(IrisSession.State.READY, session.state());
+        assertEquals(capabilities, session.capabilities());
+        assertEquals(1, transport.sent.size());
+        assertEquals(0L, server.studioHotloadsBroadcastCount());
+        assertEquals(0L, server.pregenRegionDeltasBroadcastCount());
+        assertEquals(0L, server.toastsBroadcastCount());
+    }
+
+    @Test
     public void frameBeforeHelloIsDroppedAndCounted() {
         RecordingTransport transport = new RecordingTransport();
         IrisSessionRegistry registry = new IrisSessionRegistry();

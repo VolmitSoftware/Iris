@@ -169,6 +169,62 @@ public class StructureCarvingFootprintTest {
         assertEquals(30, footprint.maxZ());
     }
 
+    @Test
+    public void cursorFootprintMatchesReferenceForRotatedSparseOverlappingPieces() {
+        NativeBlockState solid = mock(NativeBlockState.class);
+        NativeBlockState air = mock(NativeBlockState.class);
+        when(air.isAir()).thenReturn(true);
+        IrisObject object = new IrisObject(1, 1, 1);
+        for (int x = -8; x <= 8; x++) {
+            for (int y = -5; y <= 5; y++) {
+                for (int z = -8; z <= 8; z++) {
+                    if ((x + y + z) % 3 == 0) {
+                        object.getBlocks().put(new IrisBlockVector(x, y, z),
+                                (x - y + z) % 5 == 0 ? air : solid);
+                    }
+                }
+            }
+        }
+        int initialSize = object.getBlocks().size();
+        long initialRevision = object.getBlocks().modificationRevision();
+        for (int[] angles : new int[][]{{0, 0, 0}, {0, 90, 0}, {90, 0, 0},
+                {0, 0, 270}, {33, -45, 19}, {180, 270, 90}}) {
+            KList<PlacedStructurePiece> pieces = pieces(
+                    new PlacedStructurePiece(null, object, -17, 60, -33,
+                            IrisObjectRotation.of(angles[0], angles[1], angles[2]), 0, 0, 0, 0, 0, 0),
+                    new PlacedStructurePiece(null, object, -9, 70, -28,
+                            IrisObjectRotation.of(0, 180, 0), 0, 0, 0, 0, 0, 0));
+            StructureCarvingFootprint reference = StructureCarvingFootprint.fromColumns(sink -> {
+                for (PlacedStructurePiece piece : pieces) {
+                    for (IrisBlockVector local : piece.getObject().getBlocks().keys()) {
+                        NativeBlockState state = piece.getObject().getBlocks().get(local);
+                        if (state == null || state.isAir()) {
+                            continue;
+                        }
+                        IrisBlockVector rotated = piece.getRotation().rotate(local.clone());
+                        int worldY = piece.getY() + rotated.getBlockY();
+                        sink.column(piece.getX() + rotated.getBlockX(),
+                                piece.getZ() + rotated.getBlockZ(), worldY, worldY);
+                    }
+                }
+                return true;
+            }, 3, 4096);
+            StructureCarvingFootprint actual = StructurePieceColumns.from(pieces, 3, 4096);
+            assertNotNull(actual);
+            assertEquals(reference.minX(), actual.minX());
+            assertEquals(reference.minZ(), actual.minZ());
+            assertEquals(reference.maxX(), actual.maxX());
+            assertEquals(reference.maxZ(), actual.maxZ());
+            for (int index = 0; index < actual.width() * actual.depth(); index++) {
+                assertEquals(reference.distanceSquaredAt(index), actual.distanceSquaredAt(index));
+                assertEquals(reference.sourceMinYAt(index), actual.sourceMinYAt(index));
+                assertEquals(reference.sourceMaxYAt(index), actual.sourceMaxYAt(index));
+            }
+        }
+        assertEquals(initialSize, object.getBlocks().size());
+        assertEquals(initialRevision, object.getBlocks().modificationRevision());
+    }
+
     private static PlacedStructurePiece piece(int x, int y, int z, IrisObjectRotation rotation,
                                               int[]... blocks) {
         IrisObject object = new IrisObject(1, 1, 1);

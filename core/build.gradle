@@ -379,8 +379,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/bukkit/Events',
     'art/arcane/volmlib/util/json/SingleCollectionTypeFactory',
     'art/arcane/volmlib/util/collection/StateList',
-    'art/arcane/iris/pack/IrisPack',
-    'art/arcane/iris/pack/IrisPackRepository',
     'art/arcane/iris/world/task/jobs/DownloadJob',
     'art/arcane/iris/world/task/jobs/JobCollection',
     'art/arcane/iris/world/task/jobs/ParallelQueueJob',

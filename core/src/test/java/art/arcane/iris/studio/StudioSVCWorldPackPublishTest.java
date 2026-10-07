@@ -1,5 +1,7 @@
 package art.arcane.iris.studio;
 
+import art.arcane.iris.pack.PackFingerprints;
+
 import art.arcane.iris.pack.datapack.ServerConfigurator;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
@@ -288,7 +290,7 @@ public class StudioSVCWorldPackPublishTest {
         PackValidationResult validation = new PackValidationResult(
                 "validated-generation-source", List.of(), List.of("retained warning"), 31L);
         PackValidationRegistry.publish(source, validation,
-                ServerConfigurator.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
+                PackFingerprints.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
 
         try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
@@ -299,12 +301,74 @@ public class StudioSVCWorldPackPublishTest {
     }
 
     @Test
+    public void newlyValidatedGenerationCandidateReusesSemanticValidationForExactCopy() throws Exception {
+        Path source = temporaryFolder.newFolder("fresh-validation-source").toPath();
+        Path target = temporaryFolder.getRoot().toPath().resolve("fresh-validation-target");
+        writeValidPack(source);
+        String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
+        PackValidationResult sourceValidation = new PackValidationResult(
+                "fresh-validation-source", List.of(), List.of("source warning"), 43L);
+        PackValidationResult duplicateValidation = new PackValidationResult(
+                "fresh-validation-target", List.of(), List.of("duplicate warning"), 47L);
+        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
+            validator.when(() -> PackValidator.validate(source.toFile())).thenReturn(sourceValidation);
+            validator.when(() -> PackValidator.validate(target.toFile())).thenReturn(duplicateValidation);
+            assertSame(sourceValidation, StudioSVC.validateGenerationCandidate(source, fingerprint));
+            StudioSVC.copyPackTree(source, target);
+            String copiedFingerprint = PackFingerprints.computePackTreeFingerprint(target.toFile());
+
+            assertSame(sourceValidation, StudioSVC.validatePublishedPack(target, source, copiedFingerprint));
+            validator.verify(() -> PackValidator.validate(source.toFile()));
+            validator.verifyNoMoreInteractions();
+        }
+    }
+
+    @Test
+    public void sourceChangedDuringSemanticValidationCannotPublishReusableResult() throws Exception {
+        Path source = temporaryFolder.newFolder("changing-validation-source").toPath();
+        writeValidPack(source);
+        String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
+        PackValidationResult validation = new PackValidationResult(
+                "changing-validation-source", List.of(), List.of(), 53L);
+        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
+            validator.when(() -> PackValidator.validate(source.toFile())).thenAnswer(invocation -> {
+                Files.writeString(source.resolve("dimensions/main.json"), "{\"name\":\"changed\"}");
+                return validation;
+            });
+
+            assertThrows(IllegalStateException.class,
+                    () -> StudioSVC.validateGenerationCandidate(source, fingerprint));
+            assertNull(PackValidationRegistry.get(source));
+            assertNull(PackValidationRegistry.getMatching(source,
+                    PackFingerprints.computePackTreeFingerprint(source.toFile())));
+        }
+    }
+
+    @Test
+    public void registryContextChangedDuringSemanticValidationCannotPublishReusableResult() throws Exception {
+        Path source = temporaryFolder.newFolder("changing-context-source").toPath();
+        writeValidPack(source);
+        String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
+        PackValidationResult validation = new PackValidationResult(
+                "changing-context-source", List.of(), List.of(), 59L);
+        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class);
+             MockedStatic<PackValidationCache> context = mockStatic(PackValidationCache.class)) {
+            validator.when(() -> PackValidator.validate(source.toFile())).thenReturn(validation);
+            context.when(PackValidationCache::contextFingerprint).thenReturn("before", "after");
+
+            assertThrows(IllegalStateException.class,
+                    () -> StudioSVC.validateGenerationCandidate(source, fingerprint));
+            assertNull(PackValidationRegistry.get(source));
+        }
+    }
+
+    @Test
     public void editedGenerationCandidateCannotReuseStartupValidation() throws Exception {
         Path source = temporaryFolder.newFolder("edited-generation-source").toPath();
         writeValidPack(source);
         PackValidationRegistry.publish(source, new PackValidationResult(
                         "edited-generation-source", List.of(), List.of(), 37L),
-                ServerConfigurator.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
+                PackFingerprints.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
         Files.writeString(source.resolve("dimensions/main.json"), "{");
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
 
@@ -320,7 +384,7 @@ public class StudioSVCWorldPackPublishTest {
         PackValidationResult validation = new PackValidationResult(
                 "rejected-generation-source", List.of("registry content unavailable"), List.of(), 41L);
         PackValidationRegistry.publish(source, validation,
-                ServerConfigurator.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
+                PackFingerprints.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
         String fingerprint = GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION);
 
         try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
@@ -338,8 +402,8 @@ public class StudioSVCWorldPackPublishTest {
         Path target = root.resolve("target");
         writeValidPack(source);
         StudioSVC.copyPackTree(source, target);
-        String sourceFingerprint = ServerConfigurator.computePackTreeFingerprint(source.toFile());
-        String copiedFingerprint = ServerConfigurator.computePackTreeFingerprint(target.toFile());
+        String sourceFingerprint = PackFingerprints.computePackTreeFingerprint(source.toFile());
+        String copiedFingerprint = PackFingerprints.computePackTreeFingerprint(target.toFile());
         PackValidationResult sourceValidation = new PackValidationResult(
                 "source", List.of(), List.of("preserved source warning"), 17L);
         PackValidationRegistry.publish(source, sourceValidation, sourceFingerprint, PackValidationCache.contextFingerprint());
@@ -363,7 +427,7 @@ public class StudioSVCWorldPackPublishTest {
         PackValidationResult sourceValidation = new PackValidationResult(
                 "snapshot-source", List.of(), List.of("source warning"), 23L);
         PackValidationRegistry.publish(source, sourceValidation,
-                ServerConfigurator.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
+                PackFingerprints.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
 
         IrisData installed = IrisData.openDatapackCompiler(target.toFile());
         try (MockedStatic<IrisData> data = mockStatic(IrisData.class, CALLS_REAL_METHODS)) {
@@ -383,7 +447,7 @@ public class StudioSVCWorldPackPublishTest {
         writeValidPack(source);
         StudioSVC.copyPackTree(source, target);
         PackValidationRegistry.publish(source, new PackValidationResult("snapshot-source", List.of(), List.of(), 29L),
-                ServerConfigurator.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
+                PackFingerprints.computePackTreeFingerprint(source.toFile()), PackValidationCache.contextFingerprint());
         Files.writeString(target.resolve("dimensions/main.json"), "{");
 
         assertThrows(BrokenPackException.class, () -> StudioSVC.loadInstalledDimension(target, source, "main"));
@@ -397,12 +461,12 @@ public class StudioSVCWorldPackPublishTest {
         Path target = root.resolve("target");
         writeValidPack(source);
         StudioSVC.copyPackTree(source, target);
-        String sourceFingerprint = ServerConfigurator.computePackTreeFingerprint(source.toFile());
+        String sourceFingerprint = PackFingerprints.computePackTreeFingerprint(source.toFile());
         PackValidationResult sourceValidation = new PackValidationResult(
                 "source", List.of(), List.of(), 19L);
         PackValidationRegistry.publish(source, sourceValidation, sourceFingerprint, PackValidationCache.contextFingerprint());
         Files.writeString(target.resolve("dimensions/main.json"), "{");
-        String copiedFingerprint = ServerConfigurator.computePackTreeFingerprint(target.toFile());
+        String copiedFingerprint = PackFingerprints.computePackTreeFingerprint(target.toFile());
 
         assertFalse(sourceFingerprint.equals(copiedFingerprint));
         assertThrows(BrokenPackException.class, () -> StudioSVC.validatePublishedPack(
@@ -422,7 +486,7 @@ public class StudioSVCWorldPackPublishTest {
         writeValidPack(sourcePack);
         writeValidPack(target);
         StudioSVC.copyPackTree(sourcePack, stage);
-        String sourceFingerprint = ServerConfigurator.computePackTreeFingerprint(sourcePack.toFile());
+        String sourceFingerprint = PackFingerprints.computePackTreeFingerprint(sourcePack.toFile());
         PackValidationResult sourceValidation = new PackValidationResult(
                 "source", List.of(), List.of(), 23L);
         PackValidationResult staleTargetValidation = new PackValidationResult(
@@ -438,7 +502,7 @@ public class StudioSVCWorldPackPublishTest {
             assertThrows(BrokenPackException.class, () -> PackValidationRegistry.requireLoadable(target));
             publication = AtomicDirectoryPublisher.publish(stage, target);
             assertNull(PackValidationRegistry.get(target));
-            String copiedFingerprint = ServerConfigurator.computePackTreeFingerprint(target.toFile());
+            String copiedFingerprint = PackFingerprints.computePackTreeFingerprint(target.toFile());
             assertNull(PackValidationRegistry.get(target));
             assertThrows(BrokenPackException.class, () -> PackValidationRegistry.requireLoadable(target));
 

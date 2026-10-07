@@ -622,7 +622,7 @@ final class IrisObjectPlacementRunner {
                     continue;
                 }
 
-                data = IrisProceduralBlocks.normalizeWaterlogging(data, placer.get(xx, yy, zz), waterlogCandidate);
+                data = normalizePlacedWaterlogging(data, placer, xx, yy, zz, waterlogCandidate);
 
                 if (!rawStructurePiece && B.isVineBlock(data)) {
                     data = attachVineFaces(placer, data, xx, yy, zz);
@@ -822,7 +822,7 @@ final class IrisObjectPlacementRunner {
                                         }
                                     }
                                 }
-                                placer.set(xx, j, zz, IrisProceduralBlocks.normalizeWaterlogging(d, placer.get(xx, j, zz), waterlogCandidate));
+                                placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
                             }
                         } else {
                             int scan = 0;
@@ -844,7 +844,7 @@ final class IrisObjectPlacementRunner {
                                         }
                                     }
                                 }
-                                placer.set(xx, j, zz, IrisProceduralBlocks.normalizeWaterlogging(d, placer.get(xx, j, zz), waterlogCandidate));
+                                placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
                             }
                         }
                         continue;
@@ -892,7 +892,7 @@ final class IrisObjectPlacementRunner {
                         if (B.isVineBlock(d)) {
                             d = attachVineFaces(placer, d, xx, j, zz);
                         }
-                        placer.set(xx, j, zz, IrisProceduralBlocks.normalizeWaterlogging(d, placer.get(xx, j, zz), waterlogCandidate));
+                        placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
                     }
 
                 }
@@ -928,6 +928,14 @@ final class IrisObjectPlacementRunner {
 
     static boolean shouldPlaceObjectBlock(boolean rawStructurePiece, boolean air, boolean wouldReplace) {
         return !wouldReplace && (rawStructurePiece || !air);
+    }
+
+    private static NativeBlockState normalizePlacedWaterlogging(NativeBlockState state, IObjectPlacer placer,
+                                                                int x, int y, int z, boolean enabled) {
+        if (state == null || !IrisProceduralBlocks.hasProperty(state, "waterlogged")) {
+            return state;
+        }
+        return IrisProceduralBlocks.normalizeWaterlogging(state, placer.get(x, y, z), enabled);
     }
 
     private KList<IrisBlockVector> transformedPaintSupport(SpinKernel spin, IrisBlockVector translateOffset,

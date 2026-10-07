@@ -273,6 +273,35 @@ public class IrisShoreLineDecoratorTest {
         return new Fixture(new IrisShoreLineDecorator(engine), data, biome, decorator, decorant);
     }
 
+    @Test
+    public void percentageShorelineStackRespectsTheAbsoluteMaximumAndKeepsItsTop() {
+        Fixture fixture = createFixture(false);
+        NativeBlockState support = sturdyState();
+        NativeBlockState top = mock(NativeBlockState.class);
+        when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
+        when(fixture.decorator.isStacking()).thenReturn(true);
+        when(fixture.decorator.isScaleStack()).thenReturn(true);
+        when(fixture.decorator.getAbsoluteMaxStack()).thenReturn(3);
+        when(fixture.decorator.getHeight(any(), anyDouble(), anyDouble(), eq(fixture.data))).thenReturn(100);
+        when(fixture.decorator.getTopThreshold()).thenReturn(0.9D);
+        when(fixture.decorator.getBlockDataForTop(eq(fixture.biome), any(), anyDouble(), anyDouble(),
+                anyDouble(), eq(fixture.data))).thenReturn(top);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);
+        for (int y = FLUID_HEIGHT + 1; y < output.getHeight(); y++) {
+            output.set(0, y, 0, airState());
+        }
+        NativeBlockState beyondMaximum = output.get(0, FLUID_HEIGHT + 4, 0);
+        output.set(0, FLUID_HEIGHT, 0, support);
+
+        fixture.shoreline.decorateAcceptedShore(0, 0, 0, 0, output, fixture.biome,
+                FLUID_HEIGHT, output.getHeight());
+
+        assertSame(fixture.decorant, output.get(0, FLUID_HEIGHT + 1, 0));
+        assertSame(fixture.decorant, output.get(0, FLUID_HEIGHT + 2, 0));
+        assertSame(top, output.get(0, FLUID_HEIGHT + 3, 0));
+        assertSame(beyondMaximum, output.get(0, FLUID_HEIGHT + 4, 0));
+    }
+
     private Hunk<NativeBlockState> output(NativeBlockState support, NativeBlockState target) {
         Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
         output.set(0, FLUID_HEIGHT, 0, support);

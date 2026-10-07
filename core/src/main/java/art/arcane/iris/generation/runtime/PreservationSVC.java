@@ -20,7 +20,6 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.volmlib.util.data.KCache;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -33,7 +32,6 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PreservationSVC implements IrisService, PreservationRegistry {
@@ -186,10 +184,6 @@ public class PreservationSVC implements IrisService, PreservationRegistry {
 
     public void registerCache(MeteredCache cache) {
         caches.add(new WeakReference<>(cache));
-    }
-
-    public List<KCache<?, ?>> caches() {
-        return cacheStream().map(MeteredCache::getRawCache).collect(Collectors.toList());
     }
 
     @Unmodifiable

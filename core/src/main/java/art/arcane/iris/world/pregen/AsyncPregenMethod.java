@@ -88,7 +88,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final String chunkAccessMode;
     private final ChunkRequestExecutor executor;
     private final Executor slowRequestExecutor;
-    private final Executor chunkIoExecutor;
+    private final PregenChunkFlush chunkIoFlush;
     private final PregenSerialWorker chunkFlush;
     private final PregenSerialWorker mantleCleanup;
     private final PregenAdmissionGate admission;
@@ -179,7 +179,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         // Moonrise flush parks until the level's pending IO settles. Filling the pool with parked
         // flushes left generation waiting on plate loads that could never run.
         this.chunkFlush = new PregenSerialWorker("Iris Pregen Chunk Flush", world.getName());
-        this.chunkIoExecutor = chunkFlush.executor();
+        this.chunkIoFlush = new PregenChunkFlush(chunkFlush.executor(), () -> INMS.get().flushChunkIO(world));
         this.mantleCleanup = new PregenSerialWorker("Iris Pregen Mantle Cleanup", world.getName());
         this.slowRequestWarnIntervalMs = pregen.getTimeoutWarnIntervalMs();
         this.urgent = false;
@@ -427,8 +427,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private CompletableFuture<Void> flushChunkIOAsync() {
-        INMSBinding binding = INMS.get();
-        return CompletableFuture.runAsync(() -> binding.flushChunkIO(world), chunkIoExecutor);
+        return chunkIoFlush.request();
     }
 
     private CompletableFuture<Void> trackEviction(CompletableFuture<Void> eviction) {

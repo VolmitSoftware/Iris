@@ -91,9 +91,10 @@ public final class StructureCaveAnchorResolver {
         }
         List<Integer> anchors = new ArrayList<>();
         int step = Math.max(1, scanStep);
+        IntPredicate carved = y -> isCarved(engine, blockX, y, blockZ);
         for (int worldY = minimumY; worldY <= maximumY; worldY += step) {
             int mantleY = toMantleY(worldY, engine.getMinHeight());
-            if (!matchesGeometry(engine, mode, blockX, mantleY, blockZ, clearance)) {
+            if (!matchesGeometry(carved, mode, mantleY, clearance)) {
                 continue;
             }
             if (!matchesAnchorFluid(engine, placement, blockX, mantleY, blockZ)) {
@@ -170,22 +171,6 @@ public final class StructureCaveAnchorResolver {
                 && matchesBiome(engine, placement, blockX, mantleY, blockZ)) {
             anchors.add(worldY);
         }
-    }
-
-    static boolean matchesGeometry(
-            Engine engine,
-            IrisStructureAnchorMode mode,
-            int blockX,
-            int mantleY,
-            int blockZ,
-            int clearance
-    ) {
-        IntPredicate carved = y -> isCarved(engine, blockX, y, blockZ);
-        if (mode == IrisStructureAnchorMode.CAVE_CENTER) {
-            return matchesCenterGeometry(
-                    carved, mantleY, Math.max(1, clearance), 0, engine.getHeight() - 1);
-        }
-        return matchesGeometry(carved, mode, mantleY, clearance);
     }
 
     static boolean matchesGeometry(
@@ -289,7 +274,11 @@ public final class StructureCaveAnchorResolver {
             int blockZ
     ) {
         HydrologyCaveCell hydrology = hydrologyAt(engine, blockX, mantleY, blockZ);
-        MatterCavern cavern = cavernAt(engine, blockX, mantleY, blockZ);
+        if (hydrology != null && hydrology.protectsPlacement()) {
+            return false;
+        }
+        MatterCavern cavern = engine.getMantle().getMantle()
+                .get(blockX, mantleY, blockZ, MatterCavern.class);
         return acceptsAnchorFluid(
                 placement.isUnderwater(),
                 cavern,

@@ -108,13 +108,21 @@ final class PackBiomeLayerValidator {
 
     private static void validateLayerArray(JSONObject biome, String field, String biomeKey,
                                        List<String> blockingErrors) {
-        if (!biome.has(field) || biome.isNull(field)) {
+        if (!biome.has(field)) {
             return;
         }
 
         JSONArray array = biome.optJSONArray(field);
         if (array == null) {
             blockingErrors.add("Biome '" + biomeKey + "' " + field + " must be an array.");
+            return;
+        }
+        for (int index = 0; index < array.length(); index++) {
+            Object layer = array.opt(index);
+            if (!(layer instanceof JSONObject) && !(layer instanceof String)) {
+                blockingErrors.add("Biome '" + biomeKey + "' " + field + "[" + index
+                        + "] must be an object or snippet reference.");
+            }
         }
     }
 }

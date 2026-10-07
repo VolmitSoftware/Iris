@@ -142,7 +142,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
 
         for (File file : listedFiles) {
             if (file.isFile() && file.getName().endsWith(".png")) {
-                m.add(prefix + file.getName().replace(".png", ""));
+                m.add(prefix + file.getName().substring(0, file.getName().length() - ".png".length()));
             } else if (file.isDirectory()) {
                 getPNGFiles(file, prefix + file.getName() + "/", m, visitedDirectories);
             }

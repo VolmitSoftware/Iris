@@ -85,6 +85,38 @@ public class IrisObjectTransformsTileTest {
     }
 
     @Test
+    public void fractionalRotationKeepsTileDataOnlyForTheWinningBlock() {
+        IrisObject source = new IrisObject(9, 1, 9);
+        for (int x = 0; x < 9; x++) {
+            for (int z = 0; z < 9; z++) {
+                boolean chest = (x + z) % 2 == 0;
+                source.setUnsigned(x, 0, z, state(chest ? "minecraft:chest" : "minecraft:stone"));
+                if (chest) {
+                    source.setUnsignedTile(x, 0, z, tile("minecraft:chest", x + ":" + z));
+                }
+            }
+        }
+        IrisObjectRotation.StateRotator previous = IrisObjectRotation.bindPlatformRotator(
+                (rotation, block, x, y, z) -> block);
+        IrisObject rotated;
+        try {
+            rotated = source.rotateCopy(IrisObjectRotation.of(0, 45, 0));
+        } finally {
+            IrisObjectRotation.restorePlatformRotator(previous);
+        }
+
+        assertTrue(rotated.getBlocks().size() < source.getBlocks().size());
+        for (Map.Entry<IrisBlockVector, TileData> entry : rotated.getStates()) {
+            assertEquals("minecraft:chest", rotated.getBlocks().get(entry.getKey()).materialKey());
+        }
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : rotated.getBlocks()) {
+            if (entry.getValue().materialKey().equals("minecraft:chest")) {
+                assertNotNull(rotated.getStates().get(entry.getKey()));
+            }
+        }
+    }
+
+    @Test
     public void scalingWaitsForMatchingGeometryAndVolume() throws Exception {
         assertConsistentScaling(false);
         assertConsistentScaling(true);

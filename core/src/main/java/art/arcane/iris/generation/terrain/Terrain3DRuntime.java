@@ -145,25 +145,26 @@ public final class Terrain3DRuntime {
         int count = 1;
         boundaries[0] = 0;
         boolean previousSolid = true;
-        for (int gridY = Math.floorDiv(minimum, STEP) * STEP; gridY <= maximum; gridY += STEP) {
-            NodeSample lowerNW = northWest.sample(gridY);
-            NodeSample lowerNE = northEast.sample(gridY);
-            NodeSample lowerSW = southWest.sample(gridY);
-            NodeSample lowerSE = southEast.sample(gridY);
+        int firstGridY = Math.floorDiv(minimum, STEP) * STEP;
+        NodeSample lowerNW = northWest.sample(firstGridY);
+        NodeSample lowerNE = northEast.sample(firstGridY);
+        NodeSample lowerSW = southWest.sample(firstGridY);
+        NodeSample lowerSE = southEast.sample(firstGridY);
+        double lowerDisplacement = interpolate(lowerNW.displacement, lowerNE.displacement,
+                lowerSW.displacement, lowerSE.displacement, dx, dz);
+        double lowerCrack = interpolate(lowerNW.crackDistance, lowerNE.crackDistance,
+                lowerSW.crackDistance, lowerSE.crackDistance, dx, dz);
+        double lowerDepth = interpolate(lowerNW.crackDepth, lowerNE.crackDepth,
+                lowerSW.crackDepth, lowerSE.crackDepth, dx, dz);
+        for (int gridY = firstGridY; gridY <= maximum; gridY += STEP) {
             NodeSample upperNW = northWest.sample(gridY + STEP);
             NodeSample upperNE = northEast.sample(gridY + STEP);
             NodeSample upperSW = southWest.sample(gridY + STEP);
             NodeSample upperSE = southEast.sample(gridY + STEP);
-            double lowerDisplacement = interpolate(lowerNW.displacement, lowerNE.displacement,
-                    lowerSW.displacement, lowerSE.displacement, dx, dz);
             double upperDisplacement = interpolate(upperNW.displacement, upperNE.displacement,
                     upperSW.displacement, upperSE.displacement, dx, dz);
-            double lowerCrack = interpolate(lowerNW.crackDistance, lowerNE.crackDistance,
-                    lowerSW.crackDistance, lowerSE.crackDistance, dx, dz);
             double upperCrack = interpolate(upperNW.crackDistance, upperNE.crackDistance,
                     upperSW.crackDistance, upperSE.crackDistance, dx, dz);
-            double lowerDepth = interpolate(lowerNW.crackDepth, lowerNE.crackDepth,
-                    lowerSW.crackDepth, lowerSE.crackDepth, dx, dz);
             double upperDepth = interpolate(upperNW.crackDepth, upperNE.crackDepth,
                     upperSW.crackDepth, upperSE.crackDepth, dx, dz);
             int lastY = Math.min(maximum, gridY + STEP - 1);
@@ -185,6 +186,9 @@ public final class Terrain3DRuntime {
                     previousSolid = solid;
                 }
             }
+            lowerDisplacement = upperDisplacement;
+            lowerCrack = upperCrack;
+            lowerDepth = upperDepth;
         }
         if (previousSolid) {
             if (count == boundaries.length) {

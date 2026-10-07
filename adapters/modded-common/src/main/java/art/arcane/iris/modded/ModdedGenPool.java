@@ -27,7 +27,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Owns the Iris generation pool and the single decision of whether this loader already runs chunk
@@ -43,7 +42,7 @@ public final class ModdedGenPool {
     private static final long SHUTDOWN_DRAIN_MILLIS = 2_000L;
     private static final AtomicInteger GEN_THREAD_SEQ = new AtomicInteger();
     private static final ChunkSystem CHUNK_SYSTEM = detectChunkSystem();
-    private static final AtomicReference<ExecutorService> GEN_POOL = new AtomicReference<>(createGenPool());
+    private static ExecutorService generationPool = createGenPool();
 
     private ModdedGenPool() {
     }
@@ -63,39 +62,32 @@ public final class ModdedGenPool {
         return CHUNK_SYSTEM.description();
     }
 
-    static ExecutorService pool() {
-        ExecutorService pool = GEN_POOL.get();
-        if (pool != null && !pool.isShutdown()) {
-            return pool;
-        }
-        start();
-        ExecutorService restarted = GEN_POOL.get();
-        if (restarted == null) {
+    static synchronized ExecutorService pool() {
+        if (generationPool.isShutdown()) {
             throw new RejectedExecutionException("Iris gen pool is shut down");
         }
-        return restarted;
+        return generationPool;
     }
 
-    static void start() {
-        while (true) {
-            ExecutorService current = GEN_POOL.get();
-            if (current != null && !current.isShutdown()) {
-                return;
-            }
-            ExecutorService created = createGenPool();
-            if (GEN_POOL.compareAndSet(current, created)) {
-                return;
-            }
-            created.shutdownNow();
+    static synchronized void start() {
+        if (!generationPool.isShutdown()) {
+            return;
         }
+        if (!generationPool.isTerminated()) {
+            throw new IllegalStateException("Iris gen pool cannot restart while prior workers are still active");
+        }
+        generationPool = createGenPool();
     }
 
     static void shutdown() {
-        ExecutorService pool = GEN_POOL.getAndSet(null);
-        if (pool == null) {
-            return;
+        ExecutorService pool;
+        synchronized (ModdedGenPool.class) {
+            pool = generationPool;
+            if (pool.isTerminated()) {
+                return;
+            }
+            pool.shutdown();
         }
-        pool.shutdown();
         try {
             if (pool.awaitTermination(SHUTDOWN_DRAIN_MILLIS, TimeUnit.MILLISECONDS)) {
                 return;

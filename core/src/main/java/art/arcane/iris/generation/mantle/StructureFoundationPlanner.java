@@ -19,9 +19,7 @@ final class StructureFoundationPlanner {
             return;
         }
         long columnKey = pack(x, z);
-        if (!columns.containsKey(columnKey) || y < columns.get(columnKey)) {
-            columns.put(columnKey, y);
-        }
+        columns.mergeInt(columnKey, y, Math::min);
     }
 
     static int findGroundY(int foundationY, int maxDepth, int minimumY, IntPredicate solidAtY) {

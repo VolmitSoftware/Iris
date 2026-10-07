@@ -18,12 +18,8 @@
 
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.volmlib.util.data.KCache;
-
 public interface MeteredCache {
     long getSize();
-
-    KCache<?, ?> getRawCache();
 
     long getMaxSize();
 

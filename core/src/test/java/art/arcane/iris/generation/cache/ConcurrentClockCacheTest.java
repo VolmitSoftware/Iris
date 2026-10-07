@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -52,6 +53,57 @@ public class ConcurrentClockCacheTest {
             cache.putIfAbsent(key, key);
         }
         assertEquals(Long.valueOf(-1L), cache.get(-1L));
+    }
+
+    @Test
+    public void concurrentWritersAgreeWhenSetRequiresEviction() throws Exception {
+        ConcurrentClockCache<Object> cache = new ConcurrentClockCache<>(4);
+        CyclicBarrier barrier = new CyclicBarrier(3);
+        Object[] published = new Object[2];
+        int rounds = 100_000;
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            List<Future<Void>> writers = new ArrayList<>(2);
+            for (int writer = 0; writer < 2; writer++) {
+                int index = writer;
+                writers.add(executor.submit(() -> {
+                    for (int round = 0; round < rounds; round++) {
+                        barrier.await(10, TimeUnit.SECONDS);
+                        published[index] = cache.putIfAbsent(999L, new Object());
+                        barrier.await(10, TimeUnit.SECONDS);
+                    }
+                    return null;
+                }));
+            }
+            int disagreements = 0;
+            int duplicatePublications = 0;
+            for (int round = 0; round < rounds; round++) {
+                cache.clear();
+                for (long key = 0; key < 4; key++) {
+                    cache.putIfAbsent(key, new Object());
+                    cache.get(key);
+                }
+                barrier.await(10, TimeUnit.SECONDS);
+                barrier.await(10, TimeUnit.SECONDS);
+                if (published[0] != published[1]) {
+                    disagreements++;
+                }
+                AtomicInteger retainedPublications = new AtomicInteger();
+                cache.forEach(value -> {
+                    if (value == published[0] || value == published[1]) {
+                        retainedPublications.incrementAndGet();
+                    }
+                });
+                if (retainedPublications.get() != 1) {
+                    duplicatePublications++;
+                }
+            }
+            for (Future<Void> writer : writers) {
+                writer.get(10, TimeUnit.SECONDS);
+            }
+            assertEquals(0, disagreements);
+            assertEquals(0, duplicatePublications);
+            assertSame(published[0], cache.get(999L));
+        }
     }
 
     @Test

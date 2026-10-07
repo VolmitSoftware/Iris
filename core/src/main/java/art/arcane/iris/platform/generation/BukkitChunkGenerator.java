@@ -831,7 +831,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 @Override
                 protected long loop() {
                     Engine activeEngine = engine;
-                    if (activeEngine instanceof IrisEngine irisEngine
+                    if (initialEntryPending || activeEngine instanceof IrisEngine irisEngine
                             && irisEngine.isGenerationCacheWarmPending()) {
                         return HOTLOAD_LOOP_DELAY_MS;
                     }
@@ -995,8 +995,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public synchronized void beginInitialEntry(boolean playerEntry) {
-        if (studio || closing || engine != null) {
-            throw new IllegalStateException("Initial world entry must begin before a normal generator initializes.");
+        if (closing || engine != null) {
+            throw new IllegalStateException("Initial world entry must begin before the generator initializes.");
         }
         initialEntryPending = true;
         initialPlayerEntryPending = playerEntry;
@@ -1071,7 +1071,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+        if (initialEntryPending || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
             return;
         }
 
@@ -1079,18 +1079,18 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void hotloadFromWatcher() {
-        if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+        if (initialEntryPending || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
             return;
         }
         CompletableFuture<Void> pending = new CompletableFuture<>();
         watcherHotload.set(pending);
         try {
-            if (!shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)
+            if (initialEntryPending || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)
                     || Thread.currentThread().isInterrupted()) {
                 pending.cancel(true);
             } else {
                 J.a(() -> completeExclusiveControlFuture(loadLock, () -> {
-                    if (shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+                    if (!initialEntryPending && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
                         getEngine().hotload();
                     }
                 }, pending));

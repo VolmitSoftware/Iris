@@ -55,6 +55,17 @@ public class PackBiomeLayerValidatorTest {
     }
 
     @Test
+    public void rejectsNullLayerArraysAndNonObjectElements() throws Exception {
+        File pack = temporaryFolder.newFolder("pack");
+        write(pack, "biomes/bad.json", "{\"layers\":null,\"caveCeilingLayers\":[null,7,{},\"snippet/biome-palette/valid\"]}");
+        assertEquals(List.of(
+                "Biome 'bad' layers must be an array.",
+                "Biome 'bad' caveCeilingLayers[0] must be an object or snippet reference.",
+                "Biome 'bad' caveCeilingLayers[1] must be an object or snippet reference."
+        ), PackBiomeLayerValidator.validateLayers(new File(pack, "biomes")));
+    }
+
+    @Test
     public void independentCeilingLayersPassFullPackValidation() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]}");

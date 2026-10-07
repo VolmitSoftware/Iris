@@ -25,6 +25,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -39,6 +40,84 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 
 public class BukkitChunkGeneratorSpawnHydrologyTest {
+    @Test
+    public void studioDeferralSurvivesStructureBootstrapAndEndsOnlyAfterEntryCompletion() throws Exception {
+        Fixture fixture = new Fixture();
+        setField(fixture.generator, "studio", true);
+        setField(fixture.generator, "studioEntryBootstrapActive", new AtomicBoolean(true));
+        fixture.generator.setEngine(null);
+        fixture.generator.beginInitialEntry(false);
+        fixture.generator.publishInitializedEngine(fixture.engine);
+        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
+
+        CompletableFuture<Void> prefetch = fixture.prefetch();
+        fixture.lookup.complete(null);
+        prefetch.get(5L, TimeUnit.SECONDS);
+        verify(fixture.engine).startEntryHydrology(0, 0);
+        fixture.generator.endStudioEntryBootstrap();
+        verify(fixture.hydrology, never()).setNeighbourPrefetchEnabled(true);
+
+        fixture.generator.completeInitialEntry();
+        fixture.generator.completeInitialEntry();
+        verify(fixture.hydrology, times(1)).setNeighbourPrefetchEnabled(true);
+    }
+
+    @Test
+    public void studioCompletionBeforePublicationDoesNotSuspendNewRuntime() throws Exception {
+        Fixture fixture = new Fixture();
+        setField(fixture.generator, "studio", true);
+        fixture.generator.setEngine(null);
+        fixture.generator.beginInitialEntry(true);
+        fixture.generator.completeInitialEntry();
+        fixture.generator.publishInitializedEngine(fixture.engine);
+
+        verifyNoInteractions(fixture.hydrology);
+    }
+
+    @Test
+    public void studioEntryDeferralAppliesToReplacementEngineUntilEntryCompletes() throws Exception {
+        Fixture fixture = new Fixture();
+        setField(fixture.generator, "studio", true);
+        fixture.generator.setEngine(null);
+        fixture.generator.beginInitialEntry(false);
+        fixture.generator.publishInitializedEngine(fixture.engine);
+        IrisEngine replacement = mock(IrisEngine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
+        when(replacement.getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
+
+        fixture.generator.publishInitializedEngine(replacement);
+        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
+        verify(hydrology).setNeighbourPrefetchEnabled(false);
+        fixture.generator.completeInitialEntry();
+        verify(hydrology).setNeighbourPrefetchEnabled(true);
+        verify(fixture.hydrology, never()).setNeighbourPrefetchEnabled(true);
+    }
+
+    @Test
+    public void studioWatcherAndExplicitHotloadWaitUntilInitialEntryCompletes() throws Exception {
+        Fixture fixture = new Fixture();
+        setField(fixture.generator, "studio", true);
+        fixture.generator.setEngine(null);
+        fixture.generator.beginInitialEntry(false);
+        fixture.generator.publishInitializedEngine(fixture.engine);
+        Method watcher = BukkitChunkGenerator.class.getDeclaredMethod("hotloadFromWatcher");
+        watcher.setAccessible(true);
+
+        watcher.invoke(fixture.generator);
+        fixture.generator.hotload();
+        verify(fixture.engine, never()).hotload();
+
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(fixture.generator).withExclusiveControl(any(Runnable.class));
+        fixture.generator.completeInitialEntry();
+        fixture.generator.hotload();
+        verify(fixture.engine).hotload();
+    }
+
     @Test
     public void creationDefersNeighboursBeforePublishingAndKeepsEntryDemandTracked() throws Exception {
         Fixture fixture = new Fixture();

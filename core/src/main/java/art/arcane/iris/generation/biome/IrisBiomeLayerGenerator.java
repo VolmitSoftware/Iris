@@ -225,7 +225,7 @@ final class IrisBiomeLayerGenerator {
 
         int sampledDepth = Math.min(maxDepth, cycleLength);
         for (int depth = 0; depth < sampledDepth; depth++) {
-            int position = Math.floorMod(512L - height - depth, cycleLength);
+            int position = Math.floorMod(512L - height + depth, cycleLength);
             int layerIndex = findLayer(boundaries, position);
             IrisBiomePaletteLayer layer = layers.get(layerIndex);
             int offset = position - boundaries[layerIndex];

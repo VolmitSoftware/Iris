@@ -1,0 +1,66 @@
+{
+  "name": "Structure Fixture",
+  "version": 1,
+  "mode": {
+    "type": "OVERWORLD"
+  },
+  "regions": [
+    "flat"
+  ],
+  "focusRegion": "flat",
+  "focus": "flat",
+  "landChance": 1,
+  "environment": "NORMAL",
+  "dimensionHeight": {
+    "min": -64,
+    "max": 320
+  },
+  "logicalHeight": 384,
+  "fluidHeight": 0,
+  "bedrock": false,
+  "rockPalette": {
+    "palette": [
+      {
+        "block": "minecraft:stone"
+      }
+    ]
+  },
+  "structures": [
+    {
+      "structures": [
+        "surface"
+      ],
+      "placementId": "surface",
+      "distribution": "DENSITY",
+      "density": 1,
+      "anchor": "SURFACE",
+      "terrain": {
+        "mode": "PRESERVE"
+      },
+      "stilt": {
+        "maxDepth": 16,
+        "palette": {
+          "palette": [
+            {
+              "block": "minecraft:diamond_block"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "structures": [
+        "buried"
+      ],
+      "placementId": "buried",
+      "distribution": "DENSITY",
+      "density": 1,
+      "anchor": "HEIGHT_BAND",
+      "minHeight": 24,
+      "maxHeight": 24,
+      "terrain": {
+        "mode": "BORE"
+      }
+    }
+  ]
+}

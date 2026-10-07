@@ -3,6 +3,9 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -41,6 +44,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -95,6 +99,232 @@ public class MantleWriterPreObjectJournalTest {
             writer.close();
         }
         IrisPlatforms.unbind();
+    }
+
+    @Test
+    public void acceptedBlockReplacementClearsOldTileInDirectAndReplayedPlacement() {
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        writer.setTile(X, Y, Z, mock(TileData.class));
+        writer.set(X, Y, Z, replacement);
+        assertNull(writer.getDataIfPresent(X, Y, Z, TileWrapper.class));
+
+        writer.setTile(X, Y, Z, mock(TileData.class));
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        source.set(X, Y, Z, replacement);
+        assertNull(source.getDataIfPresent(X, Y, Z, TileWrapper.class));
+        ObjectDestinationTransaction replay = new ObjectDestinationTransaction(writer, 0, 0);
+        replay.apply(source.sourcePlanSince(0));
+        replay.commit();
+        assertNull(writer.getDataIfPresent(X, Y, Z, TileWrapper.class));
+    }
+
+    @Test
+    public void customBlockReplacementClearsOldTileDuringReplay() {
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.deferredPlacementKey()).thenReturn("test:replacement");
+        when(custom.placementBaseState()).thenReturn(base);
+        writer.setTile(X, Y, Z, mock(TileData.class));
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        source.set(X, Y, Z, custom);
+        assertNull(source.getDataIfPresent(X, Y, Z, TileWrapper.class));
+        ObjectDestinationTransaction replay = new ObjectDestinationTransaction(writer, 0, 0);
+        replay.apply(source.sourcePlanSince(0));
+        replay.commit();
+        assertSame(base, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+        assertNull(writer.getDataIfPresent(X, Y, Z, TileWrapper.class));
+    }
+
+    @Test
+    public void continuationPayloadKeepsOnlyTileForLastBlock() {
+        Matter payload = new IrisMatter(16, 16, 16);
+        TileData oldTile = mock(TileData.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        ObjectContinuationPersistence.put(payload, X, Y, Z, oldTile);
+        ObjectContinuationPersistence.put(payload, X, Y, Z, replacement);
+        assertNull(payload.<TileWrapper>slice(TileWrapper.class).get(X, Y, Z));
+        TileData newTile = mock(TileData.class);
+        ObjectContinuationPersistence.put(payload, X, Y, Z, newTile);
+        assertSame(newTile, payload.<TileWrapper>slice(TileWrapper.class).get(X, Y, Z).getData());
+    }
+
+    @Test
+    public void failedBlockPublicationRestoresPublishedBlockAndTile() {
+        NativeBlockState original = mock(NativeBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        TileData tile = mock(TileData.class);
+        writer.set(X, Y, Z, original);
+        writer.setTile(X, Y, Z, tile);
+        TileWrapper publishedTile = writer.getDataIfPresent(X, Y, Z, TileWrapper.class);
+        MantleWriter failingWriter = spy(writer);
+        doThrow(new IllegalStateException("publication failed"))
+                .when(failingWriter).setData(X + 1, Y, Z, "fail");
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+        transaction.set(X, Y, Z, replacement);
+        transaction.setData(X + 1, Y, Z, "fail");
+
+        assertThrows(IllegalStateException.class, transaction::commit);
+
+        assertSame(original, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+        assertSame(publishedTile, writer.getDataIfPresent(X, Y, Z, TileWrapper.class));
+    }
+
+    @Test
+    public void dryBlockRollbackDoesNotRestoreUntouchedTileMetadata() {
+        NativeBlockState original = mock(NativeBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        writer.set(X, Y, Z, original);
+        MantleWriter failingWriter = spy(writer);
+        doThrow(new IllegalStateException("publication failed"))
+                .when(failingWriter).setData(X + 1, Y, Z, "fail");
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+        transaction.set(X, Y, Z, replacement);
+        transaction.setData(X + 1, Y, Z, "fail");
+
+        assertThrows(IllegalStateException.class, transaction::commit);
+
+        assertSame(original, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+        assertNull(writer.getDataIfPresent(X, Y, Z, TileWrapper.class));
+        verify(failingWriter, never()).restoreData(X, Y, Z, TileWrapper.class, null);
+    }
+
+    @Test
+    public void rollbackRetainsFirstTileStateAcrossRepeatedBlockAndTileWrites() {
+        for (boolean originallyTiled : new boolean[]{false, true}) {
+            for (boolean tileFirst : new boolean[]{false, true}) {
+                NativeBlockState original = mock(NativeBlockState.class);
+                NativeBlockState replacement = mock(NativeBlockState.class);
+                writer.set(X, Y, Z, original);
+                if (originallyTiled) {
+                    writer.setTile(X, Y, Z, mock(TileData.class));
+                }
+                TileWrapper originalTile = writer.getDataIfPresent(X, Y, Z, TileWrapper.class);
+                MantleWriter failingWriter = spy(writer);
+                doThrow(new IllegalStateException("publication failed"))
+                        .when(failingWriter).setData(X + 1, Y, Z, "fail");
+                ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+                TileData replacementTile = mock(TileData.class);
+                if (tileFirst) {
+                    transaction.setTile(X, Y, Z, replacementTile);
+                    transaction.set(X, Y, Z, replacement);
+                } else {
+                    transaction.set(X, Y, Z, replacement);
+                    transaction.setTile(X, Y, Z, replacementTile);
+                }
+                transaction.set(X, Y, Z, replacement);
+                transaction.setTile(X, Y, Z, mock(TileData.class));
+                transaction.setData(X + 1, Y, Z, "fail");
+
+                assertThrows(IllegalStateException.class, transaction::commit);
+
+                assertSame(original, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+                assertSame(originalTile, writer.getDataIfPresent(X, Y, Z, TileWrapper.class));
+            }
+        }
+    }
+
+    @Test
+    public void ordinaryBlockRollbackDoesNotRestoreUntouchedIdentifierMetadata() {
+        NativeBlockState original = mock(NativeBlockState.class);
+        writer.set(X, Y, Z, original);
+        MantleWriter failingWriter = spy(writer);
+        doThrow(new IllegalStateException("publication failed"))
+                .when(failingWriter).setData(X + 1, Y, Z, "fail");
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+        transaction.set(X, Y, Z, mock(NativeBlockState.class));
+        transaction.setData(X + 1, Y, Z, "fail");
+
+        assertThrows(IllegalStateException.class, transaction::commit);
+
+        assertSame(original, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+        assertNull(writer.getDataIfPresent(X, Y, Z, Identifier.class));
+        verify(failingWriter, never()).restoreData(X, Y, Z, Identifier.class, null);
+    }
+
+    @Test
+    public void customBlockRollbackClearsNewIdentifierAndRestoresExistingIdentifier() {
+        NativeBlockState original = mock(NativeBlockState.class);
+        NativeBlockState custom = mock(NativeBlockState.class);
+        NativeBlockState base = mock(NativeBlockState.class);
+        when(custom.isCustom()).thenReturn(true);
+        when(custom.deferredPlacementKey()).thenReturn("test:replacement");
+        when(custom.placementBaseState()).thenReturn(base);
+        for (boolean originallyCustom : new boolean[]{false, true}) {
+            writer.set(X, Y, Z, original);
+            if (originallyCustom) {
+                writer.setData(X, Y, Z, Identifier.fromString("test:original"));
+            }
+            Identifier originalIdentifier = writer.getDataIfPresent(X, Y, Z, Identifier.class);
+            MantleWriter failingWriter = spy(writer);
+            doThrow(new IllegalStateException("publication failed"))
+                    .when(failingWriter).setData(X + 1, Y, Z, "fail");
+            ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+            transaction.set(X, Y, Z, custom);
+            transaction.set(X, Y, Z, mock(NativeBlockState.class));
+            transaction.set(X, Y, Z, custom);
+            transaction.setData(X + 1, Y, Z, "fail");
+
+            assertThrows(IllegalStateException.class, transaction::commit);
+
+            assertSame(original, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+            assertSame(originalIdentifier, writer.getDataIfPresent(X, Y, Z, Identifier.class));
+        }
+    }
+
+    @Test
+    public void rollbackRetainsFirstIdentifierAcrossExplicitMetadataAndBlockWrites() {
+        for (boolean originallyCustom : new boolean[]{false, true}) {
+            for (boolean identifierFirst : new boolean[]{false, true}) {
+                NativeBlockState original = mock(NativeBlockState.class);
+                NativeBlockState replacement = mock(NativeBlockState.class);
+                writer.set(X, Y, Z, original);
+                if (originallyCustom) {
+                    writer.setData(X, Y, Z, Identifier.fromString("test:original"));
+                }
+                Identifier originalIdentifier = writer.getDataIfPresent(X, Y, Z, Identifier.class);
+                MantleWriter failingWriter = spy(writer);
+                doThrow(new IllegalStateException("publication failed"))
+                        .when(failingWriter).setData(X + 1, Y, Z, "fail");
+                ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+                Identifier replacementIdentifier = Identifier.fromString("test:replacement");
+                if (identifierFirst) {
+                    transaction.setData(X, Y, Z, replacementIdentifier);
+                    transaction.set(X, Y, Z, replacement);
+                } else {
+                    transaction.set(X, Y, Z, replacement);
+                    transaction.setData(X, Y, Z, replacementIdentifier);
+                }
+                transaction.set(X, Y, Z, replacement);
+                transaction.setData(X, Y, Z, replacementIdentifier);
+                transaction.setData(X + 1, Y, Z, "fail");
+
+                assertThrows(IllegalStateException.class, transaction::commit);
+
+                assertSame(original, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
+                assertSame(originalIdentifier, writer.getDataIfPresent(X, Y, Z, Identifier.class));
+            }
+        }
+    }
+
+    @Test
+    public void failedDestinationRestoresPreviouslyPublishedObjectRatherThanTerrainBaseline() {
+        String terrain = "terrain";
+        String published = "previous-object";
+        matter.<String>slice(String.class).set(X, Y, Z, terrain);
+        writer.withComponentPriority(2, () -> writer.setData(X, Y, Z, published));
+        MantleWriter failingWriter = spy(writer);
+        doThrow(new IllegalStateException("publication failed"))
+                .when(failingWriter).setData(X + 1, Y, Z, "fail");
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(failingWriter, 0, 0);
+        transaction.setData(X, Y, Z, "replacement");
+        transaction.setData(X + 1, Y, Z, "fail");
+
+        assertThrows(IllegalStateException.class,
+                () -> failingWriter.withComponentPriority(2, transaction::commit));
+
+        assertEquals(published, writer.getDataIfPresent(X, Y, Z, String.class));
+        assertEquals(terrain, writer.getPrerequisiteDataIfPresent(X, Y, Z, String.class));
     }
 
     @Test
@@ -287,13 +517,15 @@ public class MantleWriterPreObjectJournalTest {
             writer.setData(X, Y, Z, replacementCavern);
         });
 
-        assertTrue(writer.restorePrerequisiteData(X, Y, Z, String.class));
+        writer.restoreData(X, Y, Z, String.class, null);
         assertNull(writer.getDataIfPresent(X, Y, Z, String.class));
-        assertTrue(writer.restorePrerequisiteCell(X, Y, Z));
+        writer.restoreData(X, Y, Z, NativeBlockState.class, originalBlock);
+        writer.restoreData(X, Y, Z, MatterCavern.class, originalCavern);
         assertSame(originalBlock, writer.getDataIfPresent(X, Y, Z, NativeBlockState.class));
         assertEquals(originalCavern, writer.getDataIfPresent(X, Y, Z, MatterCavern.class));
-        assertFalse(writer.restorePrerequisiteData(X, Y, Z, Integer.class));
-        assertFalse(writer.restorePrerequisiteCell(X + 1, Y, Z));
+        assertSame(originalBlock, writer.getPrerequisiteDataIfPresent(X, Y, Z, NativeBlockState.class));
+        assertEquals(originalCavern, writer.getPrerequisiteDataIfPresent(X, Y, Z, MatterCavern.class));
+        assertNull(writer.getPrerequisiteDataIfPresent(X, Y, Z, String.class));
     }
 
     private void verifyTransactionReads(

@@ -315,7 +315,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                             cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
                         }
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
-                                layerSurfaceY + cut, layerSurfaceY + cut, data, complex);
+                                layerSurfaceY + cut + 1 - bedrockFloor, layerSurfaceY + cut, data, complex);
                     }
 
                     int deepFloor = Math.max(bedrockFloor, layerCeilingY > 0 ? layerCeilingY + 2 : 0);
@@ -436,7 +436,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 int depthFromFace = y - faceY;
                 if (upperBlocks == null && upperBiome != null) {
                     upperBlocks = upperBiome.generateLayersWithSlope(upperContext.getDimension(),
-                            realX, realZ, rng, sourceSurfaceY, sourceSurfaceY,
+                            realX, realZ, rng, sourceSurfaceY + 1 - (bedrockEnabled ? 1 : 0), sourceSurfaceY,
                             upperContext.getData(), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
                 }
                 if (upperBlocks != null && upperBlocks.hasIndex(depthFromFace)) {

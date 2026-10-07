@@ -219,7 +219,7 @@ final class HydrologySourcePlanner {
             return SourceSelection.empty(surface);
         }
         long sourceSalt = surface ? SURFACE_SOURCE_SALT : UNDERGROUND_SOURCE_SALT;
-        HydrologySurfaceBudgets surfaceBudgets = surface ? HydrologySurfaceBudgets.sample(grid, sourceSettings) : null;
+        HydrologySurfaceBudgets surfaceBudgets = surface ? grid.surfaceBudgets(sourceSettings) : null;
         ArrayList<SourceCandidate> candidates = new ArrayList<>();
         boolean hasRequiredCandidate = false;
         for (HydrologyGridNode node : grid.nodes()) {

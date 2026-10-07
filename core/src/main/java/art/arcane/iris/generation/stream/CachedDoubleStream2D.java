@@ -7,7 +7,6 @@ import art.arcane.iris.generation.runtime.MeteredCache;
 import art.arcane.volmlib.util.stream.BasicStream;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.cache.WorldCache2DDouble;
-import art.arcane.volmlib.util.data.KCache;
 
 public class CachedDoubleStream2D extends BasicStream<Double> implements ProceduralStream<Double>, MeteredCache, ChunkFillableStream2D, ChunkFillableDoubleStream2D {
     private final ProceduralStream<Double> stream;
@@ -54,11 +53,6 @@ public class CachedDoubleStream2D extends BasicStream<Double> implements Procedu
     @Override
     public long getSize() {
         return cache.getSize();
-    }
-
-    @Override
-    public KCache<?, ?> getRawCache() {
-        return null;
     }
 
     @Override

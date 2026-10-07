@@ -75,11 +75,15 @@ public final class PackResourceCleanup {
         synchronized (packLock(lockPath)) {
             try {
                 Path packRoot = requirePackRoot(packFolder);
-                CleanupScan scan = scanCleanup(packRoot);
-                if (scan.paths().isEmpty()) {
-                    return new ApplyResult(null, List.of(), null);
+                try (PackValidationRegistry.RootMutation mutation =
+                             PackValidationRegistry.beginRootMutation(packRoot)) {
+                    CleanupScan scan = scanCleanup(packRoot);
+                    if (scan.paths().isEmpty()) {
+                        return new ApplyResult(null, List.of(), null);
+                    }
+                    PackValidationRegistry.remove(packFolder.getName());
+                    return quarantine(packRoot, scan.paths());
                 }
-                return quarantine(packRoot, scan.paths());
             } catch (IOException | RuntimeException e) {
                 return new ApplyResult(null, List.of(), errorMessage("Unable to quarantine pack resources", e));
             }
@@ -110,14 +114,18 @@ public final class PackResourceCleanup {
         synchronized (packLock(lockPath)) {
             try {
                 Path packRoot = requirePackRoot(packFolder);
-                RestoreScan scan = scanRestore(packRoot);
-                if (scan.dump() == null) {
-                    return new RestoreResult(null, List.of(), List.of(), null);
+                try (PackValidationRegistry.RootMutation mutation =
+                             PackValidationRegistry.beginRootMutation(packRoot)) {
+                    RestoreScan scan = scanRestore(packRoot);
+                    if (scan.dump() == null) {
+                        return new RestoreResult(null, List.of(), List.of(), null);
+                    }
+                    if (!scan.conflicts().isEmpty()) {
+                        return new RestoreResult(scan.dumpPath(), List.of(), scan.conflicts(), null);
+                    }
+                    PackValidationRegistry.remove(packFolder.getName());
+                    return restore(packRoot, scan);
                 }
-                if (!scan.conflicts().isEmpty()) {
-                    return new RestoreResult(scan.dumpPath(), List.of(), scan.conflicts(), null);
-                }
-                return restore(packRoot, scan);
             } catch (IOException | RuntimeException e) {
                 return new RestoreResult(null, List.of(), List.of(), errorMessage("Unable to restore quarantined resources", e));
             }

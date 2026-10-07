@@ -8,6 +8,7 @@ import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterSlice;
 
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,10 @@ public final class ObjectContinuationPersistence {
 
     public static void put(Matter payload, int x, int y, int z, Object value) {
         if (value instanceof NativeBlockState state) {
+            MatterSlice<TileWrapper> tiles = payload.getSlice(TileWrapper.class);
+            if (tiles != null) {
+                tiles.set(x, y, z, null);
+            }
             String customKey = state.deferredPlacementKey();
             NativeBlockState base = state.placementBaseState();
             boolean custom = state.isCustom() && customKey != null && base != null;

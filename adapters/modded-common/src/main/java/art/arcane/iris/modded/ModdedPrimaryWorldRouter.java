@@ -27,16 +27,15 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public final class ModdedPrimaryWorldRouter {
     private static final int TICK_INTERVAL = 20;
 
-    private static final Set<UUID> routed = ConcurrentHashMap.newKeySet();
-    private static final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
+    private static final ConcurrentMap<UUID, CompletableFuture<Boolean>> routes = new ConcurrentHashMap<>();
     private static int tickCounter = 0;
     private static volatile String loginRefusal;
     private static volatile String absentPrimary;
@@ -45,8 +44,12 @@ public final class ModdedPrimaryWorldRouter {
     }
 
     public static void clear() {
-        routed.clear();
-        inFlight.clear();
+        routes.forEach((id, route) -> {
+            if (routes.remove(id, route)) {
+                route.cancel(false);
+            }
+        });
+        tickCounter = 0;
         loginRefusal = null;
         absentPrimary = null;
     }
@@ -57,8 +60,10 @@ public final class ModdedPrimaryWorldRouter {
      */
     public static void forget(UUID player) {
         if (player != null) {
-            routed.remove(player);
-            inFlight.remove(player);
+            CompletableFuture<Boolean> route = routes.remove(player);
+            if (route != null) {
+                route.cancel(false);
+            }
         }
     }
 
@@ -110,36 +115,52 @@ public final class ModdedPrimaryWorldRouter {
             return;
         }
 
-        server.forEachPlayer(player -> {
-            UUID id = player.id();
-            if (routed.contains(id) || !inFlight.add(id)) {
-                return;
+        server.forEachPlayer(player -> routePlayer(server, player, overworld, target, primary));
+    }
+
+    private static void routePlayer(NativeModdedServer server, NativeProtocolPlayer player,
+                                    NativeWorld overworld, NativeWorld target, String primary) {
+        UUID id = player.id();
+        if (routes.containsKey(id)) {
+            return;
+        }
+        CompletableFuture<Boolean> route = new CompletableFuture<>();
+        if (routes.putIfAbsent(id, route) != null) {
+            return;
+        }
+        route.whenComplete((success, failure) -> {
+            if (!Boolean.TRUE.equals(success)) {
+                routes.remove(id, route);
             }
-            if (!player.isInWorld(overworld)) {
-                inFlight.remove(id);
-                routed.add(id);
-                return;
-            }
-            try {
-                CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player,
-                        new NativeWorldTeleport.Destination(server, target, player.x(), Double.MIN_VALUE, player.z(),
-                                ModdedTeleportDeadline.fromNow()));
-                teleport.whenComplete((success, failure) -> {
-                    inFlight.remove(id);
-                    if (Boolean.TRUE.equals(success) && failure == null) {
-                        routed.add(id);
-                        return;
-                    }
-                    if (failure != null) {
+        });
+        if (!player.isInWorld(overworld)) {
+            route.complete(true);
+            return;
+        }
+        try {
+            CompletableFuture<Boolean> teleport = NativeWorldTeleport.teleport(player,
+                    new NativeWorldTeleport.Destination(server, target, player.x(), Double.MIN_VALUE, player.z(),
+                            ModdedTeleportDeadline.fromNow()));
+            route.whenComplete((success, failure) -> {
+                if (!Boolean.TRUE.equals(success) && !teleport.isDone()) {
+                    teleport.cancel(false);
+                }
+            });
+            teleport.whenComplete((success, failure) -> {
+                if (failure != null) {
+                    if (route.completeExceptionally(failure)) {
                         ModdedIrisLog.error("Iris failed to route player {} to primary world '{}'",
                                 id, primary, failure);
                     }
-                });
-            } catch (Throwable e) {
-                inFlight.remove(id);
-                ModdedIrisLog.error("Iris failed to route player {} to primary world '{}'", id, primary, e);
+                } else {
+                    route.complete(Boolean.TRUE.equals(success));
+                }
+            });
+        } catch (Throwable failure) {
+            if (route.completeExceptionally(failure)) {
+                ModdedIrisLog.error("Iris failed to route player {} to primary world '{}'", id, primary, failure);
             }
-        });
+        }
     }
 
     /**

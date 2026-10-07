@@ -62,6 +62,29 @@ public class StructureFoundationPlannerTest {
     }
 
     @Test
+    public void baseColumnMinimaMatchReferenceAcrossSignedCoordinatesAndDefaultValues() {
+        NativeBlockState solid = mock(NativeBlockState.class);
+        when(solid.isOccluding()).thenReturn(true);
+        Long2IntOpenHashMap reference = new Long2IntOpenHashMap();
+        Long2IntOpenHashMap actual = new Long2IntOpenHashMap();
+        reference.defaultReturnValue(97);
+        actual.defaultReturnValue(97);
+        int[] heights = {97, 0, 15, -7, Integer.MAX_VALUE, Integer.MIN_VALUE, 28};
+        for (int x = -32; x <= 32; x++) {
+            for (int z = -32; z <= 32; z++) {
+                for (int height : heights) {
+                    long key = StructureFoundationPlanner.pack(x, z);
+                    if (!reference.containsKey(key) || height < reference.get(key)) {
+                        reference.put(key, height);
+                    }
+                    StructureFoundationPlanner.recordBaseCell(actual, x, height, z, solid, false);
+                }
+            }
+        }
+        assertEquals(reference, actual);
+    }
+
+    @Test
     public void scansThroughAirAndFluidUntilSolidGround() {
         int groundY = StructureFoundationPlanner.findGroundY(10, 10, 0, y -> y == 3);
 

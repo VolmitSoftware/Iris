@@ -111,12 +111,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             return;
         }
 
-        int stack = decorator.getHeight(partRNG, realX, realZ, getData());
-        if (decorator.isScaleStack()) {
-            stack = (int) Math.ceil((double) (max - height) * ((double) stack / 100));
-        } else {
-            stack = Math.min(max - height, stack);
-        }
+        int stack = DecoratorCore.computeStack(decorator, partRNG, realX, realZ, getData(), max - height);
 
         if (stack == 1) {
             int targetY = height + 1;

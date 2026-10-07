@@ -5,16 +5,20 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -22,10 +26,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -143,6 +150,54 @@ public class StructureCaveAnchorResolverTest {
 
         assertNull(anchor);
         verify(engine, never()).getHeight(anyInt(), anyInt(), eq(true));
+    }
+
+    @Test
+    public void anchorFluidReadsOverlayOnlyOnceAfterGeometry() {
+        Engine engine = engineWithFloorAnchor(new MatterCavern(true, "", (byte) 0), 0);
+        AtomicInteger overlayReads = new AtomicInteger();
+        try (MockedStatic<HydrologyCaveStorage> storage = mockStatic(HydrologyCaveStorage.class)) {
+            storage.when(() -> HydrologyCaveStorage.getIfPresent(any(Mantle.class), anyInt(), anyInt(), anyInt()))
+                    .thenAnswer(invocation -> {
+                        overlayReads.incrementAndGet();
+                        return null;
+                    });
+            RNG actualRandom = new RNG(87234L);
+            RNG referenceRandom = new RNG(87234L);
+            int referenceColumn = referenceRandom.nextInt(256);
+            referenceRandom.nextInt(128);
+            referenceRandom.nextInt(1);
+            StructureCaveAnchorResolver.Anchor anchor = StructureCaveAnchorResolver.resolve(
+                    engine, floorPlacement(false), -3, -7, actualRandom);
+
+            assertEquals(new StructureCaveAnchorResolver.Anchor(
+                    (-3 << 4) + (referenceColumn & 15), -54,
+                    (-7 << 4) + (referenceColumn >>> 4)), anchor);
+            assertEquals(referenceRandom.nextLong(), actualRandom.nextLong());
+            assertEquals(6, overlayReads.get());
+            verify(engine.getMantle().getMantle(), times(6)).get(
+                    anyInt(), anyInt(), anyInt(), eq(MatterCavern.class));
+        }
+    }
+
+    @Test
+    public void protectedHydrologyRejectsBeforeReadingAnchorCavernAgain() {
+        Engine engine = engineWithFloorAnchor(new MatterCavern(true, "", (byte) 0), 0);
+        HydrologyCaveCell protectedCell = HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR);
+        AtomicInteger overlayReads = new AtomicInteger();
+        try (MockedStatic<HydrologyCaveStorage> storage = mockStatic(HydrologyCaveStorage.class)) {
+            storage.when(() -> HydrologyCaveStorage.getIfPresent(any(Mantle.class), anyInt(), anyInt(), anyInt()))
+                    .thenAnswer(invocation -> {
+                        overlayReads.incrementAndGet();
+                        int mantleY = invocation.getArgument(2);
+                        return mantleY == 10 ? protectedCell : null;
+                    });
+            assertNull(StructureCaveAnchorResolver.resolve(
+                    engine, floorPlacement(true), -3, -7, new RNG(87234L)));
+            assertEquals(6, overlayReads.get());
+            verify(engine.getMantle().getMantle(), times(5)).get(
+                    anyInt(), anyInt(), anyInt(), eq(MatterCavern.class));
+        }
     }
 
     @Test

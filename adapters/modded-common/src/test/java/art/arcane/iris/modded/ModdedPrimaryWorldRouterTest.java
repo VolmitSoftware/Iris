@@ -4,7 +4,10 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldTeleport;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
@@ -37,6 +40,12 @@ import static org.mockito.Mockito.when;
 public class ModdedPrimaryWorldRouterTest {
     private static final int TICK_INTERVAL = 20;
     private static final String PRIMARY = "iris:primary";
+
+    @BeforeClass
+    public static void bootstrap() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
 
     @After
     public void clearRouter() {
@@ -231,6 +240,41 @@ public class ModdedPrimaryWorldRouterTest {
 
     private static ModdedDimensionRegistryStore.PersistentDimension persisted() {
         return new ModdedDimensionRegistryStore.PersistentDimension(PRIMARY, "overworld", "overworld", 1337L);
+    }
+
+    @Test
+    public void disconnectCancelsOldRoutingWithoutAffectingReconnectedPlayer() {
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        NativeWorld overworld = mock(NativeWorld.class);
+        NativeWorld primary = mock(NativeWorld.class);
+        when(overworld.nativeHandle()).thenReturn(new Object());
+        when(primary.nativeHandle()).thenReturn(new Object());
+        when(server.overworld()).thenReturn(overworld);
+        NativeProtocolPlayer player = mock(NativeProtocolPlayer.class);
+        UUID id = UUID.randomUUID();
+        when(player.id()).thenReturn(id);
+        when(player.isInWorld(overworld)).thenReturn(true);
+        onlinePlayers(server, player);
+        CompletableFuture<Boolean> oldRoute = new CompletableFuture<>();
+        CompletableFuture<Boolean> newRoute = new CompletableFuture<>();
+        ModdedModConfig config = config(true, PRIMARY);
+        try (MockedStatic<ModdedModConfig> configs = mockStatic(ModdedModConfig.class);
+             MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
+             MockedStatic<NativeWorldTeleport> teleport = mockStatic(NativeWorldTeleport.class)) {
+            configs.when(ModdedModConfig::get).thenReturn(config);
+            manager.when(() -> ModdedDimensionManager.level(server, PRIMARY)).thenReturn(primary);
+            teleport.when(() -> NativeWorldTeleport.teleport(any(), any())).thenReturn(oldRoute, newRoute);
+            evaluate(server);
+            ModdedPrimaryWorldRouter.forget(id);
+            assertTrue(oldRoute.isCancelled());
+            evaluate(server);
+            oldRoute.complete(true);
+            evaluate(server);
+            teleport.verify(() -> NativeWorldTeleport.teleport(any(), any()), times(2));
+            assertFalse(newRoute.isDone());
+            ModdedPrimaryWorldRouter.clear();
+            assertTrue(newRoute.isCancelled());
+        }
     }
 
     private static void evaluate(NativeModdedServer server) {

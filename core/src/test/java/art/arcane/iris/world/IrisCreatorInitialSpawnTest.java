@@ -14,8 +14,28 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class IrisCreatorInitialSpawnTest {
+    @Test
+    public void successfulStudioCreationLeavesEntryPreparationWithTheCoordinator() {
+        PlatformChunkGenerator generator = mock(PlatformChunkGenerator.class);
+
+        IrisCreator.completeCreationEntry(generator, true);
+
+        verifyNoInteractions(generator);
+    }
+
+    @Test
+    public void failedStudioCreationReleasesEntryPreparation() {
+        PlatformChunkGenerator generator = mock(PlatformChunkGenerator.class);
+
+        IrisCreator.completeCreationEntry(generator, false);
+
+        verify(generator).completeInitialEntry();
+    }
+
     @Test
     public void worldCreationWaitsForInitialSpawnCompletion() throws Exception {
         PlatformChunkGenerator generator = mock(PlatformChunkGenerator.class);

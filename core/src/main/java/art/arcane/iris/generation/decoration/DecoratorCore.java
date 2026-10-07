@@ -98,14 +98,6 @@ final class DecoratorCore {
         return picked;
     }
 
-    private static String topHalfValue(String half) {
-        return half.equals("upper") || half.equals("lower") ? "upper" : "top";
-    }
-
-    private static String bottomHalfValue(String half) {
-        return half.equals("upper") || half.equals("lower") ? "lower" : "bottom";
-    }
-
     static void placeSurfaceSingle(IrisDecorator decorator,
                                    int x, int z, int realX, int height, int realZ,
                                    Hunk<NativeBlockState> data, RNG rng, IrisData irisData,
@@ -150,7 +142,7 @@ final class DecoratorCore {
         }
 
         String half = bd == null ? null : IrisProceduralBlocks.propertyValue(bd, "half");
-        if (half != null) {
+        if ("upper".equals(half) || "lower".equals(half)) {
             int lowerY = height + 1;
             int upperY = height + 2;
             if (!canPlaceTwoBlockPlant(data, x, z, lowerY, upperY, caveSkipFluid)) {
@@ -158,9 +150,9 @@ final class DecoratorCore {
             }
 
             try {
-                NativeBlockState upper = bd.withProperty("half", topHalfValue(half));
+                NativeBlockState upper = bd.withProperty("half", "upper");
                 NativeBlockState lower = fixFacesForHunk(
-                        bd.withProperty("half", bottomHalfValue(half)),
+                        bd.withProperty("half", "lower"),
                         data, x, z, realX, lowerY, realZ, mantle);
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(x, upperY, z), true));
@@ -228,6 +220,8 @@ final class DecoratorCore {
         int stack = computeStack(decorator, rng, realX, realZ, irisData, effectiveMax);
         int placed = 0;
         boolean hasSpikes = false;
+        NativeBlockState sampledBlock = null;
+        boolean sampledTop = false;
         for (int i = 0; i < stack; i++) {
             int y = height + 1 + i;
             if (y >= data.getHeight()) {
@@ -239,9 +233,14 @@ final class DecoratorCore {
                 break;
             }
             double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
-            NativeBlockState block = threshold >= decorator.getTopThreshold()
-                    ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                    : decorator.pickBlockData(rng, irisData, realX, realZ);
+            boolean top = threshold >= decorator.getTopThreshold();
+            if (sampledBlock == null || top != sampledTop) {
+                sampledBlock = top
+                        ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
+                        : decorator.pickBlockData(rng, irisData, realX, realZ);
+                sampledTop = top;
+            }
+            NativeBlockState block = sampledBlock;
             if (block == null) {
                 break;
             }
@@ -282,6 +281,8 @@ final class DecoratorCore {
         int stack = computeStack(decorator, rng, realX, realZ, irisData, max);
         int placed = 0;
         boolean hasSpikes = false;
+        NativeBlockState sampledBlock = null;
+        boolean sampledTop = false;
         for (int i = 0; i < stack; i++) {
             int y = height - i;
             if (y < 0 || y < minHeight) {
@@ -293,9 +294,14 @@ final class DecoratorCore {
                 break;
             }
             double threshold = stack == 1 ? 1.0 : ((double) i) / (stack - 1);
-            NativeBlockState block = threshold >= decorator.getTopThreshold()
-                    ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                    : decorator.pickBlockData(rng, irisData, realX, realZ);
+            boolean top = threshold >= decorator.getTopThreshold();
+            if (sampledBlock == null || top != sampledTop) {
+                sampledBlock = top
+                        ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
+                        : decorator.pickBlockData(rng, irisData, realX, realZ);
+                sampledTop = top;
+            }
+            NativeBlockState block = sampledBlock;
             if (block == null) {
                 break;
             }
@@ -346,7 +352,7 @@ final class DecoratorCore {
         }
 
         String half = IrisProceduralBlocks.propertyValue(bd, "half");
-        if (half != null) {
+        if ("upper".equals(half) || "lower".equals(half)) {
             int lowerY = height + 1;
             int upperY = height + 2;
             if (max <= 2 || !canPlaceTwoBlockPlant(data, xf, zf, lowerY, upperY, false)) {
@@ -354,8 +360,8 @@ final class DecoratorCore {
             }
 
             try {
-                NativeBlockState upper = bd.withProperty("half", topHalfValue(half));
-                NativeBlockState lower = bd.withProperty("half", bottomHalfValue(half));
+                NativeBlockState upper = bd.withProperty("half", "upper");
+                NativeBlockState lower = bd.withProperty("half", "lower");
                 data.set(xf, lowerY, zf, IrisProceduralBlocks.normalizeWaterlogging(lower, data.get(xf, lowerY, zf), true));
                 data.set(xf, upperY, zf, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(xf, upperY, zf), true));
             } catch (Throwable e) {
@@ -386,15 +392,22 @@ final class DecoratorCore {
 
         int placed = 0;
         boolean hasSpikes = false;
+        NativeBlockState sampledBlock = null;
+        boolean sampledTop = false;
         for (int i = 0; i < stack; i++) {
             int h = height + 1 + i;
             if (h >= height + max || h >= data.getHeight()) {
                 break;
             }
             double threshold = stack == 1 ? 0.0 : ((double) i) / (stack - 1);
-            NativeBlockState bd = threshold >= decorator.getTopThreshold()
-                    ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                    : decorator.pickBlockData(rng, irisData, realX, realZ);
+            boolean top = threshold >= decorator.getTopThreshold();
+            if (sampledBlock == null || top != sampledTop) {
+                sampledBlock = top
+                        ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
+                        : decorator.pickBlockData(rng, irisData, realX, realZ);
+                sampledTop = top;
+            }
+            NativeBlockState bd = sampledBlock;
             if (bd == null) {
                 break;
             }

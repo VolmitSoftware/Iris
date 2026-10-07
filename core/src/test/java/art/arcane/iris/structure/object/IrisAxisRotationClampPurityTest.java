@@ -9,6 +9,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class IrisAxisRotationClampPurityTest {
+    @Test
+    public void fixedRotationsPreserveSignedFractionalAngles() {
+        for (double degrees : new double[]{-359.75, -90, -45.5, 0, 12.25, 90, 359.75}) {
+            IrisObjectRotation rotation = IrisObjectRotation.of(degrees, degrees, degrees);
+            assertEquals(Math.toRadians(degrees), rotation.getXRotation(217), 0D);
+            assertEquals(Math.toRadians(degrees), rotation.getYRotation(217), 0D);
+            assertEquals(Math.toRadians(degrees), rotation.getZRotation(217), 0D);
+        }
+    }
+
     private static IrisAxisRotationClamp unlimited(double interval) {
         IrisAxisRotationClamp clamp = new IrisAxisRotationClamp();
         clamp.setEnabled(true);
@@ -37,6 +47,38 @@ public class IrisAxisRotationClampPurityTest {
                 assertEquals("interval=" + interval + " rng=" + rng,
                         reference(interval, rng), unlimited(interval).getRadians(rng), 0D);
             }
+        }
+    }
+
+    @Test
+    public void boundedZeroIntervalProducesTheRequestedFiniteAngle() {
+        IrisAxisRotationClamp clamp = unlimited(0).setMin(25).setMax(75);
+
+        assertEquals(Math.toRadians(37), clamp.getRadians(37), 0D);
+        assertEquals(0D, clamp.getInterval(), 0D);
+    }
+
+    @Test
+    public void boundedPositiveFractionalIntervalPreservesItsAuthoredRotationStep() {
+        IrisAxisRotationClamp clamp = unlimited(0.3).setMin(25).setMax(75);
+
+        assertEquals(Math.toRadians(37.2), clamp.getRadians(37), 1E-12);
+        assertEquals(0.3D, clamp.getInterval(), 0D);
+    }
+
+    @Test
+    public void boundedSubdegreeIntervalsStayFiniteWithoutMutatingAuthoredSettings() {
+        for (double interval : new double[]{0, 0.3, 0.5, 1}) {
+            IrisAxisRotationClamp clamp = unlimited(interval).setMin(25).setMax(75);
+            IrisAxisRotationClamp authored = unlimited(interval).setMin(25).setMax(75);
+            for (int rng : new int[]{Integer.MIN_VALUE, -13, 0, 37, 359, Integer.MAX_VALUE}) {
+                double radians = clamp.getRadians(rng);
+                assertTrue("bounded rotation must stay finite", Double.isFinite(radians));
+                assertTrue(radians >= Math.toRadians(25));
+                assertTrue(radians <= Math.toRadians(75));
+            }
+            assertEquals(authored, clamp);
+            assertEquals(authored.hashCode(), clamp.hashCode());
         }
     }
 

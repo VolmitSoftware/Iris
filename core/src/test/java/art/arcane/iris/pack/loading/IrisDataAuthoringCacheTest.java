@@ -91,7 +91,8 @@ public class IrisDataAuthoringCacheTest {
     public void resourceKeyDiscoveryPreservesNestedNamesAndCachedArrays() throws Exception {
         Path root = temporary.newFolder("resource-keys").toPath();
         for (String name : List.of(
-                "generators/plain.json", "generators/nested.json/ridge.json.alt.json", "generators/ignored.JSON",
+                "generators/plain.json", "generators/nested.json/ridge.json.alt.json", "generators/dotless", "generators/ignored.JSON",
+                "objects/plain.iob", "objects/nested.iob/ridge.iob.alt.iob", "objects/ignored.IOB",
                 "images/plain.png", "images/nested.png/ridge.png.alt.png", "images/ignored.PNG",
                 "matter/plain.mat", "matter/nested.mat/ridge.mat.alt.mat", "matter/ignored.MAT")) {
             Path file = root.resolve(name);
@@ -100,16 +101,57 @@ public class IrisDataAuthoringCacheTest {
         }
         source = IrisData.get(root.toFile());
         Map<ResourceLoader<?>, Set<String>> expected = Map.of(
-                source.getGeneratorLoader(), Set.of("plain", "nested/ridge.alt"),
-                source.getImageLoader(), Set.of("plain", "nested.png/ridge.alt"),
-                source.getMatterLoader(), Set.of("plain", "nested.mat/ridge.alt"));
+                source.getGeneratorLoader(), Set.of("plain", "nested.json/ridge.json.alt"),
+                source.getObjectLoader(), Set.of("plain", "nested.iob/ridge.iob.alt"),
+                source.getImageLoader(), Set.of("plain", "nested.png/ridge.png.alt"),
+                source.getMatterLoader(), Set.of("plain", "nested.mat/ridge.mat.alt"));
 
         for (Map.Entry<ResourceLoader<?>, Set<String>> entry : expected.entrySet()) {
             String[] keys = entry.getKey().getPossibleKeys();
             assertEquals(entry.getValue(), Set.of(keys));
             assertEquals(entry.getValue().size(), keys.length);
             assertSame(keys, entry.getKey().getPossibleKeys());
+            for (String key : keys) {
+                File resolved = entry.getKey().findFile(key);
+                assertTrue("Discovered resource must resolve: " + key, resolved != null && resolved.isFile());
+                assertEquals(key, source.toLoadKey(resolved));
+                Path relative = root.resolve(entry.getKey().getFolderName()).relativize(resolved.toPath());
+                String relativeName = relative.toString().replace(File.separatorChar, '/');
+                assertEquals(key, relativeName.substring(0, relativeName.lastIndexOf('.')));
+            }
         }
+    }
+
+    @Test
+    public void fileKeyConversionPreservesDotlessNamesAndNormalizesRelativePaths() throws Exception {
+        Path root = temporary.newFolder("file-keys").toPath();
+        Files.createDirectories(root.resolve("generators/nested.json"));
+        source = IrisData.get(root.toFile());
+
+        assertEquals("nested.json/dotless", source.toLoadKey(root.resolve("generators/nested.json/dotless").toFile()));
+        assertEquals("nested.json/ridge.json.alt", source.toLoadKey(
+                root.resolve("generators/nested.json/../nested.json/ridge.json.alt.json").toFile()));
+    }
+
+    @Test
+    public void snippetDiscoveryPreservesDotsAndResolvesItsSourceFiles() throws Exception {
+        Path root = temporary.newFolder("snippet-keys").toPath();
+        Path snippets = root.resolve("snippet/generator");
+        for (String name : List.of("plain.json", "nested.json/ridge.json.alt.json", "ignored.JSON")) {
+            Path file = snippets.resolve(name);
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, "{}");
+        }
+        source = IrisData.get(root.toFile());
+
+        List<String> keys = source.getPossibleSnippets("generator");
+
+        assertEquals(Set.of("snippet/plain", "snippet/nested.json/ridge.json.alt"), Set.copyOf(keys));
+        for (String key : keys) {
+            Path resolved = snippets.resolve(key.substring("snippet/".length()) + ".json");
+            assertTrue("Discovered snippet must resolve: " + key, Files.isRegularFile(resolved));
+        }
+        assertSame(keys, source.getPossibleSnippets("generator"));
     }
 
     @Test

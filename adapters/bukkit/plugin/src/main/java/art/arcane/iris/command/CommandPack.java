@@ -18,6 +18,8 @@
 
 package art.arcane.iris.command;
 
+import art.arcane.iris.pack.PackFingerprints;
+
 import art.arcane.iris.Iris;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.pack.PackDirectoryResolver;
@@ -174,7 +176,6 @@ public class CommandPack implements DirectorExecutor {
                 s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NO_CLEANUP_CANDIDATES_FOUND_PACK, MessageArgument.untrusted("pack", String.valueOf(pack))));
                 return;
             }
-            PackValidationRegistry.remove(packFolder.getName());
             s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_QUARANTINED_CLEANUP_CANDIDATE_S_UNDER, MessageArgument.untrusted("size", String.valueOf(result.quarantinedPaths().size())), MessageArgument.untrusted("quarantinePath", String.valueOf(result.quarantinePath()))));
             reportPaths(s, result.quarantinedPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_QUARANTINED);
             return;
@@ -230,7 +231,6 @@ public class CommandPack implements DirectorExecutor {
                 s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_NOTHING_RESTORE_PACK, MessageArgument.untrusted("pack", String.valueOf(pack))));
                 return;
             }
-            PackValidationRegistry.remove(packFolder.getName());
             s.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.COMMAND_PACK_RESTORED_FILE_S_FROM, MessageArgument.untrusted("size", String.valueOf(result.restoredPaths().size())), MessageArgument.untrusted("dumpPath", String.valueOf(result.dumpPath()))));
             reportPaths(s, result.restoredPaths(), BukkitRuntimeMessages.COMMAND_PACK_PATH_RESTORED);
             return;
@@ -363,47 +363,79 @@ public class CommandPack implements DirectorExecutor {
         return persisted == null || persisted.isBlank() ? "unknown" : persisted;
     }
 
-    private PackValidationResult runValidate(VolmitSender s, File packFolder) {
+    PackValidationResult runValidate(VolmitSender s, File packFolder) {
+        PackValidationRegistry.ValidationTicket ticket =
+                PackValidationRegistry.tryBeginValidation(packFolder.toPath());
+        PackValidationResult result;
+        String contentFingerprint = "";
+        String contextFingerprint = "";
         try {
-            PackValidationResult result = PackValidator.validate(packFolder);
-            PackValidationRegistry.publish(result);
-            reportResult(s, result);
-            return result;
+            if (ticket == null) {
+                throw new IllegalStateException("Pack content is currently being changed.");
+            }
+            contentFingerprint = PackFingerprints.computePackTreeFingerprint(packFolder);
+            contextFingerprint = PackValidationCache.contextFingerprint();
+            result = PackValidator.validate(packFolder);
+            if (!contentFingerprint.equals(PackFingerprints.computePackTreeFingerprint(packFolder))
+                    || !contextFingerprint.equals(PackValidationCache.contextFingerprint())) {
+                throw new IllegalStateException("Pack content or validation context changed during validation.");
+            }
         } catch (Throwable e) {
             Iris.reportError("Pack validation failed for '" + packFolder.getName() + "'", e);
             String detail = e.getMessage() == null || e.getMessage().isBlank()
                     ? e.getClass().getSimpleName()
                     : e.getMessage();
-            PackValidationResult result = new PackValidationResult(
+            result = new PackValidationResult(
                     packFolder.getName(),
                     List.of("Pack validation failed with " + e.getClass().getSimpleName() + ": " + detail),
                     List.of(),
                     System.currentTimeMillis());
-            PackValidationRegistry.publish(result);
-            reportResult(s, result);
-            return result;
+            contentFingerprint = "";
+            contextFingerprint = "";
         }
+        if (PackValidationRegistry.publishIfCurrent(ticket, result, contentFingerprint, contextFingerprint)) {
+            PackValidationRegistry.publish(result);
+        } else {
+            result = new PackValidationResult(packFolder.getName(),
+                    List.of("Pack content changed during validation."), List.of(), System.currentTimeMillis());
+        }
+        reportResult(s, result);
+        return result;
     }
 
     private void persistValidationCache(File packsRoot) {
-        List<File> packDirectories = PackDirectoryResolver.listVisiblePackDirectories(packsRoot);
-        List<PackValidationResult> results = new ArrayList<>(packDirectories.size());
-        for (File packDirectory : packDirectories) {
-            PackValidationResult result = PackValidationRegistry.get(packDirectory.getName());
-            if (result == null) {
-                // The boot cache only loads when it covers every pack, so a partial write is
-                // pointless - but say so instead of silently skipping the persist forever.
-                Iris.warn("Pack validation cache not written: \"" + packDirectory.getName()
-                        + "\" has no registered result. Run /iris pack validate all to repopulate it.");
+        try {
+            String contextFingerprint = PackValidationCache.contextFingerprint();
+            PackFingerprints.PackContentSnapshot snapshot = PackFingerprints.computePackContentSnapshot(packsRoot);
+            List<File> packDirectories = PackDirectoryResolver.listVisiblePackDirectories(packsRoot);
+            List<PackValidationResult> results = new ArrayList<>(packDirectories.size());
+            for (File packDirectory : packDirectories) {
+                PackValidationResult result = PackValidationRegistry.getMatching(
+                        packDirectory.toPath(), snapshot.packContents().get(packDirectory.getName()));
+                if (result == null) {
+                    Iris.warn("Pack validation cache not written: \"" + packDirectory.getName()
+                            + "\" has no validation matching its current content. Run /iris pack validate to refresh it.");
+                    return;
+                }
+                results.add(result);
+            }
+            if (!snapshot.content().equals(PackFingerprints.computePackContentSnapshot(packsRoot).content())
+                    || !contextFingerprint.equals(PackValidationCache.contextFingerprint())) {
+                Iris.warn("Pack validation cache not written because pack content or validation context changed.");
                 return;
             }
-            results.add(result);
-        }
-        try {
+            for (int index = 0; index < packDirectories.size(); index++) {
+                File packDirectory = packDirectories.get(index);
+                if (PackValidationRegistry.getMatching(packDirectory.toPath(),
+                        snapshot.packContents().get(packDirectory.getName())) != results.get(index)) {
+                    Iris.warn("Pack validation cache not written because validation changed during persistence.");
+                    return;
+                }
+            }
             PackValidationCache.save(
                     Iris.instance.getDataFile("cache", "pack-validation.json").toPath(),
-                    PackValidationCache.contentFingerprint(packsRoot),
-                    PackValidationCache.contextFingerprint(),
+                    snapshot.content(),
+                    contextFingerprint,
                     results);
         } catch (IOException | RuntimeException e) {
             Iris.reportError("Could not persist refreshed pack-validation results", e);

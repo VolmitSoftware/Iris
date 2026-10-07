@@ -59,6 +59,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 public final class PackDownloader {
     private static final String DEFAULT_OVERWORLD_PACK = "overworld";
@@ -641,33 +642,36 @@ public final class PackDownloader {
             );
             return null;
         }
-        if (cancellation != null) {
-            cancellation.beginPublication();
-        }
-        IrisData.getLoaded(new File(packsFolder, prepared.key())).ifPresent(IrisData::close);
-        IrisData.getLoaded(target.toFile()).ifPresent(IrisData::close);
         Path retainedBackup = null;
-        if (forceOverwrite && Files.exists(target)) {
-            Path backupRoot = packsRoot.resolve(".backups");
-            if (Files.isSymbolicLink(backupRoot)) {
-                throw new IOException("Pack backup folder is an unsafe symbolic link: " + backupRoot);
+        try (PackValidationRegistry.RootMutation mutation = PackValidationRegistry.beginRootMutation(target)) {
+            PackValidationRegistry.remove(prepared.key());
+            if (cancellation != null) {
+                cancellation.beginPublication();
             }
-            Files.createDirectories(backupRoot);
-            retainedBackup = backupRoot.resolve(prepared.key() + "-" + UUID.randomUUID());
-        }
-        try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staging, target)) {
-            if (retainedBackup != null) {
-                publication.retainBackup(retainedBackup);
+            IrisData.getLoaded(new File(packsFolder, prepared.key())).ifPresent(IrisData::close);
+            IrisData.getLoaded(target.toFile()).ifPresent(IrisData::close);
+            if (forceOverwrite && Files.exists(target)) {
+                Path backupRoot = packsRoot.resolve(".backups");
+                if (Files.isSymbolicLink(backupRoot)) {
+                    throw new IOException("Pack backup folder is an unsafe symbolic link: " + backupRoot);
+                }
+                Files.createDirectories(backupRoot);
+                retainedBackup = backupRoot.resolve(prepared.key() + "-" + UUID.randomUUID());
             }
-            publication.commit();
-            if (retainedBackup == null) {
-                try {
-                    publication.cleanupBackup();
-                } catch (IOException exception) {
-                    IrisLogging.reportError(
-                            "Pack '" + prepared.key() + "' was published, but its transaction backup could not be cleaned.",
-                            exception
-                    );
+            try (AtomicDirectoryPublisher.Publication publication = AtomicDirectoryPublisher.publish(staging, target)) {
+                if (retainedBackup != null) {
+                    publication.retainBackup(retainedBackup);
+                }
+                publication.commit();
+                if (retainedBackup == null) {
+                    try {
+                        publication.cleanupBackup();
+                    } catch (IOException exception) {
+                        IrisLogging.reportError(
+                                "Pack '" + prepared.key() + "' was published, but its transaction backup could not be cleaned.",
+                                exception
+                        );
+                    }
                 }
             }
         }
@@ -762,6 +766,11 @@ public final class PackDownloader {
         }
         if (Files.size(source) > safety.maxArchiveBytes()) {
             throw new IOException("Pack archive exceeds the compressed size limit.");
+        }
+        try (ZipFile directory = new ZipFile(source.toFile())) {
+            if (directory.size() > safety.maxEntries()) {
+                throw new IOException("Pack archive contains too many entries.");
+            }
         }
         if (Files.exists(root, LinkOption.NOFOLLOW_LINKS) && !Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Pack extraction target is not a directory: " + root);

@@ -29,91 +29,6 @@ public final class HydrologyCaveContainmentPlanner {
 
     static final Comparator<HydrologyCaveSource> SOURCE_PRIORITY =
             HydrologyCaveConflictPolicy.sourcePriority();
-    final HydrologyCaveChamberPlanner chambers;
-
-    public HydrologyCaveContainmentPlanner() {
-        this.chambers = new HydrologyCaveChamberPlanner(this);
-    }
-
-    public HydrologyCavePlan plan(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            HydrologyCavePlannerSettings settings
-    ) {
-        Objects.requireNonNull(view);
-        Objects.requireNonNull(source);
-        Objects.requireNonNull(settings);
-
-        HydrologyCaveRejection sourceRejection = validateSource(source);
-        if (sourceRejection != HydrologyCaveRejection.NONE) {
-            return rejected(source, sourceRejection);
-        }
-
-        CavePathResult throat = chambers.buildThroat(view, source, settings);
-        if (throat.rejection() != HydrologyCaveRejection.NONE) {
-            return rejected(source, throat.rejection());
-        }
-
-        return switch (source.mode()) {
-            case CLOSED_COMPONENT -> chambers.planClosedComponent(view, source, settings, throat.positions());
-            case GENERATED_GROTTO -> chambers.planGeneratedGrotto(view, source, settings, throat.positions());
-            case GROTTO_OR_CLOSED_COMPONENT -> chambers.planGrottoOrClosedComponent(
-                    view,
-                    source,
-                    settings,
-                    throat.positions()
-            );
-            case WATERFALL_POOL -> chambers.planWaterfallPool(
-                    view,
-                    source,
-                    settings,
-                    throat.positions()
-            );
-            case DEEP_POOL -> chambers.planDeepPool(view, source, settings, throat.positions());
-        };
-    }
-
-    public HydrologyCavePlanningResult planAll(
-            CaveVoxelView view,
-            Collection<HydrologyCaveSource> sources,
-            HydrologyCavePlannerSettings settings
-    ) {
-        Objects.requireNonNull(view);
-        Objects.requireNonNull(sources);
-        Objects.requireNonNull(settings);
-
-        List<HydrologyCaveSource> orderedSources = new ArrayList<>(sources);
-        orderedSources.sort(SOURCE_PRIORITY);
-        List<HydrologyCavePlan> plans = new ArrayList<>(orderedSources.size());
-        Map<CavePosition, HydrologyCaveAction> combinedActions = new LinkedHashMap<>();
-        Map<CavePosition, HydrologyCaveSource> claimedBy = new HashMap<>();
-        Map<CavePosition, CaveVoxelPrecondition> combinedPreconditions = new LinkedHashMap<>();
-
-        for (HydrologyCaveSource source : orderedSources) {
-            HydrologyCavePlan candidate = plan(view, source, settings);
-            if (!candidate.accepted()) {
-                plans.add(candidate);
-                continue;
-            }
-            OptionalLong winnerSourceId = findWinningSourceId(
-                    candidate.actions().keySet(),
-                    claimedBy
-            );
-            if (winnerSourceId.isPresent()) {
-                plans.add(rejectedOverlap(source, winnerSourceId.getAsLong()));
-            } else {
-                plans.add(candidate);
-                combinedActions.putAll(candidate.actions());
-                combinedPreconditions.putAll(candidate.baselinePreconditions());
-            }
-            for (CavePosition position : candidate.actions().keySet()) {
-                claimedBy.putIfAbsent(position, source);
-            }
-        }
-
-        return new HydrologyCavePlanningResult(plans, combinedActions, combinedPreconditions);
-    }
-
     public HydrologyCavePlanningResult validateAll(
             CaveVoxelView view,
             Collection<HydrologyCaveCandidate> candidates
@@ -698,14 +613,6 @@ public final class HydrologyCaveContainmentPlanner {
         return HydrologyCaveRejection.NONE;
     }
 
-    HydrologyCaveRejection rejectionForTarget(
-            CaveVoxel voxel,
-            HydrologyCavePlannerSettings settings
-    ) {
-        HydrologyCaveRejection hazard = rejectionForHazard(voxel, settings);
-        return hazard == HydrologyCaveRejection.NONE ? HydrologyCaveRejection.NO_CAVE_TARGET : hazard;
-    }
-
     HydrologyCaveRejection rejectionForHazard(
             CaveVoxel voxel,
             HydrologyCavePlannerSettings settings
@@ -722,48 +629,8 @@ public final class HydrologyCaveContainmentPlanner {
         };
     }
 
-    boolean isFluidReachable(CaveVoxel voxel, HydrologyCavePlannerSettings settings) {
-        return voxel == CaveVoxel.CAVE_AIR
-                || (voxel == CaveVoxel.COMPATIBLE_FLUID
-                && settings.existingFluidPolicy() != HydrologyCaveFluidPolicy.REJECT_EXISTING)
-                || (voxel == CaveVoxel.INCOMPATIBLE_FLUID
-                && settings.existingFluidPolicy() == HydrologyCaveFluidPolicy.REPLACE_CONTAINED);
-    }
-
     CaveVoxel voxelAt(CaveVoxelView view, CavePosition position) {
         return Objects.requireNonNull(view.voxelAt(position));
-    }
-
-    OptionalLong findWinningSourceId(
-            Set<CavePosition> positions,
-            Map<CavePosition, HydrologyCaveSource> claimedBy
-    ) {
-        HydrologyCaveSource winner = null;
-        for (CavePosition position : positions) {
-            HydrologyCaveSource contender = claimedBy.get(position);
-            if (contender == null) {
-                continue;
-            }
-            if (winner == null || SOURCE_PRIORITY.compare(contender, winner) < 0) {
-                winner = contender;
-            }
-        }
-        return winner == null ? OptionalLong.empty() : OptionalLong.of(winner.sourceId());
-    }
-
-    HydrologyCavePlan accepted(
-            CaveVoxelView view,
-            HydrologyCaveSource source,
-            Map<CavePosition, HydrologyCaveAction> actions
-    ) {
-        Map<CavePosition, CaveVoxelPrecondition> preconditions = new LinkedHashMap<>(actions.size());
-        for (CavePosition position : actions.keySet()) {
-            preconditions.put(
-                    position,
-                    new CaveVoxelPrecondition(voxelAt(view, position), view.isOpenToSurface(position))
-            );
-        }
-        return accepted(source, actions, preconditions);
     }
 
     HydrologyCavePlan accepted(

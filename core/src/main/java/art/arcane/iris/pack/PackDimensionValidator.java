@@ -63,6 +63,7 @@ final class PackDimensionValidator {
             validateStaticObjects(packFolder, dimensionKey, dimJson, blockingErrors);
             validateObjectScaleFactor(dimensionKey, dimJson, blockingErrors);
             validateDimensionStack(packFolder, dimensionKey, dimJson, dimensionKeys, blockingErrors);
+            validateUpperDimension(dimensionKey, dimJson, dimensionKeys, blockingErrors);
 
             JSONArray regionsArray = dimJson.optJSONArray("regions");
             if (regionsArray == null || regionsArray.length() == 0) {
@@ -104,6 +105,21 @@ final class PackDimensionValidator {
             if (resolvedRegions == 0) {
                 blockingErrors.add("Dimension '" + dimensionKey + "' has no resolvable regions.");
             }
+        }
+    }
+
+    private static void validateUpperDimension(String dimensionKey, JSONObject dimension, Set<String> dimensionKeys,
+                                               List<String> errors) {
+        if (!dimension.has("upperDimension") || dimension.isNull("upperDimension")) {
+            return;
+        }
+        Object value = dimension.opt("upperDimension");
+        if (!(value instanceof String key)) {
+            errors.add("Dimension '" + dimensionKey + "' upperDimension must be a dimension key.");
+            return;
+        }
+        if (!key.isEmpty() && !key.equalsIgnoreCase("none") && !dimensionKeys.contains(key)) {
+            errors.add("Dimension '" + dimensionKey + "' upperDimension references missing dimension '" + key + "'.");
         }
     }
 
@@ -385,15 +401,31 @@ final class PackDimensionValidator {
      * initializers (min 16, max 32); logicalHeight absent means 256.
      */
     static void validateDimensionHeights(File packFolder, String dimensionKey, JSONObject dimJson, List<String> blockingErrors) {
-        JSONObject range = resolveDimensionHeight(packFolder, dimJson);
-        if (range == null && dimJson.has("dimensionHeight") && !dimJson.isNull("dimensionHeight")) {
-            if (!(dimJson.opt("dimensionHeight") instanceof String)) {
-                blockingErrors.add("Dimension '" + dimensionKey + "' dimensionHeight must be an object or a range snippet reference.");
-            }
-            // Unresolvable snippet references are reported by the content-key machinery.
+        if (dimJson.has("dimensionHeight") && dimJson.isNull("dimensionHeight")) {
+            blockingErrors.add("Dimension '" + dimensionKey + "' dimensionHeight must be an object or a range snippet reference.");
             return;
         }
+        JSONObject range = resolveDimensionHeight(packFolder, dimJson);
+        if (range == null && dimJson.has("dimensionHeight")) {
+            blockingErrors.add("Dimension '" + dimensionKey + "' dimensionHeight must be an object or a resolvable range snippet reference.");
+            return;
+        }
+        if (range != null) {
+            boolean validMin = validateHeightNumber(range, "min", dimensionKey, blockingErrors);
+            boolean validMax = validateHeightNumber(range, "max", dimensionKey, blockingErrors);
+            if (!validMin || !validMax) {
+                return;
+            }
+        }
 
+        if (dimJson.has("logicalHeight") && !dimJson.isNull("logicalHeight")) {
+            double logicalHeightValue = dimJson.optDouble("logicalHeight", Double.NaN);
+            if (!Double.isFinite(logicalHeightValue) || logicalHeightValue != Math.rint(logicalHeightValue)
+                    || logicalHeightValue < Integer.MIN_VALUE || logicalHeightValue > Integer.MAX_VALUE) {
+                blockingErrors.add("Dimension '" + dimensionKey + "' logicalHeight must be an integer.");
+                return;
+            }
+        }
         int minY;
         int maxY;
         if (range == null) {
@@ -404,7 +436,7 @@ final class PackDimensionValidator {
             maxY = (int) range.optDouble("max", 32D);
         }
         int height = maxY - minY;
-        int logicalHeight = dimJson.optInt("logicalHeight", 256);
+        int logicalHeight = (int) dimJson.optDouble("logicalHeight", 256D);
 
         if (height < IrisDimensionType.MIN_HEIGHT || height > IrisDimensionType.MAX_HEIGHT) {
             blockingErrors.add("Dimension '" + dimensionKey + "' dimensionHeight span (max - min) is " + height
@@ -505,6 +537,31 @@ final class PackDimensionValidator {
             return Long.toString((long) value);
         }
         return Double.toString(value);
+    }
+
+    private static boolean validateHeightNumber(JSONObject range, String field, String dimensionKey, List<String> errors) {
+        if (!range.has(field) || range.isNull(field)) {
+            return true;
+        }
+        Object value = range.opt(field);
+        double number;
+        try {
+            if (value instanceof Number numeric) {
+                number = numeric.doubleValue();
+            } else if (value instanceof String text) {
+                number = Double.parseDouble(text);
+            } else {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException exception) {
+            errors.add("Dimension '" + dimensionKey + "' dimensionHeight." + field + " must be a finite number.");
+            return false;
+        }
+        if (!Double.isFinite(number)) {
+            errors.add("Dimension '" + dimensionKey + "' dimensionHeight." + field + " must be a finite number.");
+            return false;
+        }
+        return true;
     }
 
     private static JSONObject resolveDimensionHeight(File packFolder, JSONObject dimJson) {

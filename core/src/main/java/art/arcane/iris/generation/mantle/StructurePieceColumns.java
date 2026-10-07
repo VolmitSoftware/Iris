@@ -4,6 +4,8 @@ import art.arcane.iris.structure.placement.PlacedStructurePiece;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.generation.block.B;
+import art.arcane.iris.generation.block.VectorMap;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.structure.StructureCarvingFootprint;
@@ -36,11 +38,12 @@ final class StructurePieceColumns {
             if (object == null || rotation == null || object.getBlocks() == null) {
                 continue;
             }
-            for (IrisBlockVector local : object.getBlocks().keys()) {
-                if (local == null || B.isAir(object.getBlocks().get(local))) {
+            VectorMap<NativeBlockState>.Cursor cursor = object.getBlocks().cursor();
+            while (cursor.next()) {
+                if (B.isAir(cursor.value())) {
                     continue;
                 }
-                IrisBlockVector rotated = rotation.rotate(local.clone());
+                IrisBlockVector rotated = rotation.rotate(cursor.key());
                 long worldX = (long) piece.getX() + rotated.getBlockX();
                 long worldY = (long) piece.getY() + rotated.getBlockY();
                 long worldZ = (long) piece.getZ() + rotated.getBlockZ();

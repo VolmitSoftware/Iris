@@ -2,16 +2,24 @@ package art.arcane.iris.pack;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 public final class AtomicDirectoryPublisher {
+    private static final int MAXIMUM_METADATA_DELETION_RETRIES = 3;
+    private static final Set<String> OS_METADATA_FILES = Set.of(".DS_Store", "Thumbs.db", "desktop.ini");
+    private static final String APPLE_DOUBLE_PREFIX = "._";
+
     private AtomicDirectoryPublisher() {
     }
 
@@ -139,8 +147,52 @@ public final class AtomicDirectoryPublisher {
         }
         try (Stream<Path> stream = Files.walk(path)) {
             for (Path entry : stream.sorted(Comparator.reverseOrder()).toList()) {
-                Files.deleteIfExists(entry);
+                deleteEntry(entry);
             }
         }
+    }
+
+    public static boolean isOperatingSystemMetadata(Path entry) {
+        if (!Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        Path name = entry.getFileName();
+        if (name == null) {
+            return false;
+        }
+        String fileName = name.toString();
+        return OS_METADATA_FILES.contains(fileName) || fileName.startsWith(APPLE_DOUBLE_PREFIX);
+    }
+
+    private static void deleteEntry(Path entry) throws IOException {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                Files.deleteIfExists(entry);
+                return;
+            } catch (DirectoryNotEmptyException notEmpty) {
+                if (attempt >= MAXIMUM_METADATA_DELETION_RETRIES || !deleteResidualMetadata(entry)) {
+                    throw notEmpty;
+                }
+            }
+        }
+    }
+
+    private static boolean deleteResidualMetadata(Path directory) throws IOException {
+        if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        List<Path> entries;
+        try (Stream<Path> stream = Files.list(directory)) {
+            entries = stream.toList();
+        }
+        for (Path entry : entries) {
+            if (!isOperatingSystemMetadata(entry)) {
+                return false;
+            }
+        }
+        for (Path entry : entries) {
+            Files.deleteIfExists(entry);
+        }
+        return true;
     }
 }

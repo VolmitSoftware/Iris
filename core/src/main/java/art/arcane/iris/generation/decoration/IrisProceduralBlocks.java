@@ -146,13 +146,17 @@ public final class IrisProceduralBlocks {
     }
 
     public static NativeBlockState normalizeWaterlogging(NativeBlockState state, NativeBlockState existing, boolean enabled) {
-        if (state == null || !hasProperty(state, "waterlogged")) {
+        if (state == null) {
+            return null;
+        }
+        String current = propertyValue(state, "waterlogged");
+        if (current == null) {
             return state;
         }
-        boolean authored = "true".equals(propertyValue(state, "waterlogged"));
+        boolean authored = "true".equals(current);
         boolean submerged = existing != null && (existing.isWater() || "true".equals(propertyValue(existing, "waterlogged")));
         String value = submerged && (enabled || authored) ? "true" : "false";
-        return value.equals(propertyValue(state, "waterlogged")) ? state : state.withProperty("waterlogged", value);
+        return value.equals(current) ? state : state.withProperty("waterlogged", value);
     }
 
     public static IrisObject assemble(Map<Vector3i, NativeBlockState> blocks) {

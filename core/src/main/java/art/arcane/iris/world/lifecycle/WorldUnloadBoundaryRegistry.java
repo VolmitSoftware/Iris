@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class WorldUnloadBoundaryRegistry {
     private static final ConcurrentHashMap<String, Boundary> ACTIVE = new ConcurrentHashMap<>();
@@ -13,7 +14,7 @@ public final class WorldUnloadBoundaryRegistry {
 
     static Boundary begin(String worldIdentity) {
         String requiredIdentity = Objects.requireNonNull(worldIdentity, "world identity");
-        Boundary boundary = new Boundary(requiredIdentity, new CompletableFuture<>());
+        Boundary boundary = new Boundary(requiredIdentity, new CompletableFuture<>(), new AtomicBoolean());
         Boundary existing = ACTIVE.putIfAbsent(requiredIdentity, boundary);
         if (existing != null) {
             throw new IllegalStateException("World unload is already active for " + requiredIdentity + ".");
@@ -22,8 +23,8 @@ public final class WorldUnloadBoundaryRegistry {
     }
 
     public static CompletionStage<Boolean> claim(String worldIdentity) {
-        Boundary boundary = ACTIVE.remove(Objects.requireNonNull(worldIdentity, "world identity"));
-        return boundary == null ? null : boundary.completion();
+        Boundary boundary = ACTIVE.get(Objects.requireNonNull(worldIdentity, "world identity"));
+        return boundary == null || !boundary.claimed().compareAndSet(false, true) ? null : boundary.completion();
     }
 
     static void complete(Boundary boundary, Boolean unloaded, Throwable failure) {
@@ -36,6 +37,6 @@ public final class WorldUnloadBoundaryRegistry {
         boundary.completion().completeExceptionally(WorldLifecycleSupport.unwrap(failure));
     }
 
-    record Boundary(String worldIdentity, CompletableFuture<Boolean> completion) {
+    record Boundary(String worldIdentity, CompletableFuture<Boolean> completion, AtomicBoolean claimed) {
     }
 }

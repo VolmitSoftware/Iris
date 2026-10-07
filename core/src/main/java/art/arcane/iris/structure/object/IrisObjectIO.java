@@ -28,7 +28,6 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
-import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.jobs.Job;
 import art.arcane.volmlib.util.collection.KList;
@@ -42,12 +41,22 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -128,79 +137,108 @@ public final class IrisObjectIO {
     }
 
     static void readLegacy(IrisObject self, InputStream in) throws IOException {
-        self.surfaceSupportOffsets.reset();
-        self.floatingFootprint.reset();
-        DataInputStream din = new DataInputStream(in);
-        self.w = din.readInt();
-        self.h = din.readInt();
-        self.d = din.readInt();
-        self.center = new Vector3i(self.w / 2, self.h / 2, self.d / 2);
-        int s = din.readInt();
-
-        for (int i = 0; i < s; i++) {
-            IrisBlockVector pos = new IrisBlockVector(din.readShort(), din.readShort(), din.readShort());
-            NativeBlockState data = resolvePaletteState(self, din.readUTF());
-            if (isExcludedObjectBlock(data)) {
-                continue;
+        DataInputStream input = new DataInputStream(in);
+        IrisObject parsed = readDimensions(input);
+        int blocks = requireNonnegativeCount(input.readInt(), "block");
+        for (int index = 0; index < blocks; index++) {
+            IrisBlockVector position = new IrisBlockVector(input.readShort(), input.readShort(), input.readShort());
+            NativeBlockState state = resolvePaletteState(self, input.readUTF());
+            if (!isExcludedObjectBlock(state)) {
+                parsed.blocks.put(position, state);
             }
-            self.blocks.put(pos, data);
         }
 
-        if (din.available() == 0)
-            return;
-
-        try {
-            int size = din.readInt();
-
-            for (int i = 0; i < size; i++) {
-                readTile(self, din);
+        int firstByte = input.read();
+        if (firstByte != -1) {
+            int tiles = requireNonnegativeCount((firstByte << 24)
+                    | (input.readUnsignedByte() << 16)
+                    | (input.readUnsignedByte() << 8)
+                    | input.readUnsignedByte(), "tile");
+            for (int index = 0; index < tiles; index++) {
+                readTile(parsed, input);
             }
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
         }
+        publishRead(self, parsed);
     }
 
-    static void read(IrisObject self, InputStream in) throws Throwable {
-        self.surfaceSupportOffsets.reset();
-        self.floatingFootprint.reset();
-        DataInputStream din = new DataInputStream(in);
-        self.w = din.readInt();
-        self.h = din.readInt();
-        self.d = din.readInt();
-        if (!din.readUTF().equals("Iris V2 IOB;")) {
-            throw new HeaderException();
+    static void read(IrisObject self, InputStream in) throws IOException {
+        DataInputStream input = new DataInputStream(in);
+        IrisObject parsed = readDimensions(input);
+        if (!V2_HEADER.equals(input.readUTF())) {
+            throw new IOException("Invalid object header");
         }
-        self.center = new Vector3i(self.w / 2, self.h / 2, self.d / 2);
-        int s = din.readShort();
-        int i;
+        int paletteSize = requireNonnegativeCount(input.readShort(), "palette");
         KList<String> palette = new KList<>();
-
-        for (i = 0; i < s; i++) {
-            palette.add(din.readUTF());
+        for (int index = 0; index < paletteSize; index++) {
+            palette.add(input.readUTF());
         }
 
         // Resolve the palette once: B.getState per BLOCK was a registry lookup times the
         // block count (tens of thousands) instead of times the palette size (hundreds).
         NativeBlockState[] resolved = new NativeBlockState[palette.size()];
-        for (i = 0; i < resolved.length; i++) {
-            resolved[i] = resolvePaletteState(self, palette.get(i));
+        for (int index = 0; index < resolved.length; index++) {
+            resolved[index] = resolvePaletteState(self, palette.get(index));
         }
 
-        s = din.readInt();
-
-        for (i = 0; i < s; i++) {
-            IrisBlockVector pos = new IrisBlockVector(din.readShort(), din.readShort(), din.readShort());
-            NativeBlockState data = resolved[din.readShort()];
-            if (isExcludedObjectBlock(data)) {
-                continue;
+        int blocks = requireNonnegativeCount(input.readInt(), "block");
+        for (int index = 0; index < blocks; index++) {
+            IrisBlockVector position = new IrisBlockVector(input.readShort(), input.readShort(), input.readShort());
+            int paletteIndex = input.readShort();
+            if (paletteIndex < 0 || paletteIndex >= resolved.length) {
+                throw new IOException("Invalid object palette index " + paletteIndex);
             }
-            self.blocks.put(pos, data);
+            NativeBlockState state = resolved[paletteIndex];
+            if (!isExcludedObjectBlock(state)) {
+                parsed.blocks.put(position, state);
+            }
         }
 
-        s = din.readInt();
+        int tiles = requireNonnegativeCount(input.readInt(), "tile");
+        for (int index = 0; index < tiles; index++) {
+            readTile(parsed, input);
+        }
+        publishRead(self, parsed);
+    }
 
-        for (i = 0; i < s; i++) {
-            readTile(self, din);
+    private static IrisObject readDimensions(DataInputStream input) throws IOException {
+        int width = input.readInt();
+        int height = input.readInt();
+        int depth = input.readInt();
+        requireValidDimensions(width, height, depth);
+        return new IrisObject(width, height, depth);
+    }
+
+    private static void requireValidDimensions(int width, int height, int depth) throws IOException {
+        if (width < 1 || height < 1 || depth < 1) {
+            throw new IOException("Invalid object dimensions " + width + "x" + height + "x" + depth);
+        }
+    }
+
+    private static int requireNonnegativeCount(int count, String kind) throws IOException {
+        if (count < 0) {
+            throw new IOException("Invalid object " + kind + " count " + count);
+        }
+        return count;
+    }
+
+    private static void publishRead(IrisObject self, IrisObject parsed) {
+        // A mid-file failure must not leave parsed entries merged into the previous object contents.
+        self.writeLock.lock();
+        try {
+            self.w = parsed.w;
+            self.h = parsed.h;
+            self.d = parsed.d;
+            self.center = parsed.center;
+            self.shrinkOffset = parsed.shrinkOffset;
+            self.blocks = parsed.blocks;
+            self.states = parsed.states;
+            self.smartBored = false;
+            self.smartBoreVariant = null;
+            self.aabb.reset();
+            self.surfaceSupportOffsets.reset();
+            self.floatingFootprint.reset();
+        } finally {
+            self.writeLock.unlock();
         }
     }
 
@@ -213,18 +251,27 @@ public final class IrisObjectIO {
     }
 
     static void read(IrisObject self, File file) throws IOException {
-        try (var fin = new BufferedInputStream(new FileInputStream(file))) {
-            read(self, fin);
-        } catch (Throwable e) {
-            if (!(e instanceof HeaderException))
-                IrisLogging.reportError(e);
-            // The V2 parse populates blocks/states incrementally; a mid-file failure must not
-            // leave those entries to be merged with the legacy parse of the same file.
-            self.blocks.clear();
-            self.states.clear();
-            try (var fin = new BufferedInputStream(new FileInputStream(file))) {
-                readLegacy(self, fin);
+        try (BufferedInputStream input = new BufferedInputStream(new FileInputStream(file))) {
+            if (hasV2Header(input)) {
+                read(self, input);
+            } else {
+                readLegacy(self, input);
             }
+        }
+    }
+
+    private static boolean hasV2Header(BufferedInputStream input) throws IOException {
+        input.mark(3 * Integer.BYTES + Short.BYTES + V2_HEADER.length());
+        try {
+            DataInputStream header = new DataInputStream(input);
+            header.readInt();
+            header.readInt();
+            header.readInt();
+            int length = header.readUnsignedShort();
+            return length == V2_HEADER.length()
+                    && V2_HEADER.equals(new String(header.readNBytes(length), StandardCharsets.US_ASCII));
+        } finally {
+            input.reset();
         }
     }
 
@@ -276,15 +323,16 @@ public final class IrisObjectIO {
      * write path now rejects them with a descriptive error before any byte is written.
      */
     static void validateWritable(IrisObject self) throws IOException {
+        requireValidDimensions(self.w, self.h, self.d);
         Palette palette = buildPalette(self);
         if (palette.size() > MAX_PALETTE_ENTRIES) {
             throw new IOException("Object '" + self.getLoadKey() + "' has " + palette.size()
                     + " distinct block states; the .iob format supports at most " + MAX_PALETTE_ENTRIES + ".");
         }
-        for (var entry : self.blocks) {
+        for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
             requireShortCoordinates(self, "block", entry.getKey());
         }
-        for (var entry : self.states) {
+        for (Map.Entry<IrisBlockVector, TileData> entry : self.states) {
             requireShortCoordinates(self, "tile", entry.getKey());
         }
     }
@@ -345,9 +393,8 @@ public final class IrisObjectIO {
     }
 
     private static void writeValidated(IrisObject self, OutputStream o, VolmitSender sender) throws IOException {
-        AtomicReference<IOException> ref = new AtomicReference<>();
-        CountDownLatch latch = new CountDownLatch(1);
-        new Job() {
+        AtomicReference<Throwable> ref = new AtomicReference<>();
+        CompletableFuture<Void> completion = new Job() {
             private volatile int total = self.blocks.size() * 3 + self.states.size();
             private volatile int c = 0;
 
@@ -385,10 +432,8 @@ public final class IrisObjectIO {
                         writeState(dos, entry);
                         ++c;
                     }
-                } catch (IOException e) {
-                    ref.set(e);
-                } finally {
-                    latch.countDown();
+                } catch (Throwable failure) {
+                    ref.set(failure);
                 }
             }
 
@@ -407,13 +452,26 @@ public final class IrisObjectIO {
         }.execute(sender, true, () -> {});
 
         try {
-            latch.await();
+            completion.get();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted while writing object", interrupted);
+        } catch (ExecutionException rejected) {
+            ref.compareAndSet(null, rejected.getCause());
         }
-        if (ref.get() != null)
-            throw ref.get();
+        Throwable failure = ref.get();
+        if (failure instanceof IOException ioFailure) {
+            throw ioFailure;
+        }
+        if (failure instanceof RuntimeException runtimeFailure) {
+            throw runtimeFailure;
+        }
+        if (failure instanceof Error error) {
+            throw error;
+        }
+        if (failure != null) {
+            throw new IOException("Object save work failed", failure);
+        }
     }
 
     private static void writeHeader(IrisObject self, DataOutputStream output) throws IOException {
@@ -446,12 +504,9 @@ public final class IrisObjectIO {
             return;
         }
 
-        // Validate before opening the stream: FileOutputStream truncates, and a rejected
-        // object must leave the existing .iob untouched.
+        // Validate before staging output: a rejected object must leave the existing .iob untouched.
         validateWritable(self);
-        try (FileOutputStream out = new FileOutputStream(file)) {
-            writeValidated(self, out);
-        }
+        writeAtomically(file, out -> writeValidated(self, out));
     }
 
     static void write(IrisObject self, File file, VolmitSender sender) throws IOException {
@@ -460,15 +515,49 @@ public final class IrisObjectIO {
         }
 
         validateWritable(self);
-        try (FileOutputStream out = new FileOutputStream(file)) {
-            writeValidated(self, out, sender);
+        writeAtomically(file, out -> writeValidated(self, out, sender));
+    }
+
+    private static void writeAtomically(File file, ObjectWriter writer) throws IOException {
+        Path target = resolveWriteTarget(file);
+        Path parent = target.getParent();
+        boolean posix = Files.getFileStore(parent).supportsFileAttributeView(PosixFileAttributeView.class);
+        Set<PosixFilePermission> permissions = posix && Files.exists(target)
+                ? Files.getPosixFilePermissions(target) : null;
+        Path temporary = posix
+                ? Files.createTempFile(parent, ".iris-object-", ".tmp",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-rw-rw-")))
+                : Files.createTempFile(parent, ".iris-object-", ".tmp");
+        try {
+            if (permissions != null) {
+                Files.setPosixFilePermissions(temporary, permissions);
+            }
+            try (FileOutputStream output = new FileOutputStream(temporary.toFile())) {
+                writer.write(output);
+            }
+            Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(temporary);
         }
     }
 
-    private static class HeaderException extends IOException {
-        public HeaderException() {
-            super("Invalid Header");
+    private static Path resolveWriteTarget(File file) throws IOException {
+        Path target = file.toPath().toAbsolutePath();
+        target = target.getParent().toRealPath().resolve(target.getFileName());
+        Set<Path> visited = new HashSet<>();
+        while (Files.isSymbolicLink(target)) {
+            if (!visited.add(target)) {
+                throw new IOException("Object destination contains a symbolic-link cycle: " + file);
+            }
+            Path link = Files.readSymbolicLink(target);
+            target = link.isAbsolute() ? link : target.getParent().resolve(link);
+            target = target.getParent().toRealPath().resolve(target.getFileName());
         }
+        return target;
+    }
+
+    private interface ObjectWriter {
+        void write(OutputStream output) throws IOException;
     }
 
     private static final class Palette {

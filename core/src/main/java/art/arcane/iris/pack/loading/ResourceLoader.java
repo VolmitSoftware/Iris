@@ -397,7 +397,8 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         HashSet<String> m = new HashSet<>();
         for (File i : files) {
             for (File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json"))) {
-                m.add(i.toURI().relativize(j.toURI()).getPath().replace(".json", ""));
+                String path = i.toURI().relativize(j.toURI()).getPath();
+                m.add(path.substring(0, path.length() - ".json".length()));
             }
         }
 
@@ -765,11 +766,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     public long getSize() {
         return loadCache.getSize();
-    }
-
-    @Override
-    public KCache<?, ?> getRawCache() {
-        return loadCache;
     }
 
     @Override

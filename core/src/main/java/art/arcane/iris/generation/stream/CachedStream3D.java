@@ -65,11 +65,6 @@ public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStrea
     }
 
     @Override
-    public KCache<?, ?> getRawCache() {
-        return cache;
-    }
-
-    @Override
     public long getMaxSize() {
         return cache.getMaxSize();
     }

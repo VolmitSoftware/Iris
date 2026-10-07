@@ -8,6 +8,7 @@ import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
 import art.arcane.iris.world.storage.matter.PreObjectMatterTest;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -31,6 +32,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,6 +45,52 @@ public class TerrainMatterViewTest {
     public static void registerMatter() {
         PreObjectMatterTest.setUpBukkit();
         IrisMatterSupport.ensureRegistered();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void mantleReadsPinOneChunkForJournalAndPublishedValue() {
+        Mantle<Matter> mantle = mock(Mantle.class);
+        Matter matter = new IrisMatter(16, 16, 16);
+        matter.<String>slice(String.class).set(15, 3, 14, "content");
+        matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class)
+                .set(15, 3, 14, PreObjectMatterCell.string("terrain"));
+        MantleChunk<Matter> pinned = chunk(matter);
+        when(mantle.getWorldHeight()).thenReturn(16);
+        when(mantle.useChunk(-1, -2)).thenReturn(pinned);
+
+        assertEquals("terrain", TerrainMatterView.get(mantle, -1, 3, -18, String.class));
+
+        verify(mantle).useChunk(-1, -2);
+        verify(mantle, never()).getChunk(-1, -2);
+        verify(pinned).release();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void mantleReadFailureReleasesPinnedChunk() {
+        Mantle<Matter> mantle = mock(Mantle.class);
+        MantleChunk<Matter> pinned = mock(MantleChunk.class);
+        when(mantle.getWorldHeight()).thenReturn(16);
+        when(mantle.useChunk(0, 0)).thenReturn(pinned);
+        doThrow(new IllegalStateException("read failure")).when(pinned).exists(0);
+
+        assertThrows(IllegalStateException.class, () -> TerrainMatterView.get(mantle, 0, 3, 0, String.class));
+
+        verify(pinned).release();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void outsideWorldHeightDoesNotAcquireChunk() {
+        Mantle<Matter> mantle = mock(Mantle.class);
+        when(mantle.getWorldHeight()).thenReturn(16);
+
+        assertNull(TerrainMatterView.get(mantle, -1, -1, -18, String.class));
+        assertNull(TerrainMatterView.get(mantle, -1, 16, -18, String.class));
+
+        verify(mantle, never()).useChunk(-1, -2);
+        verify(mantle, never()).getChunk(-1, -2);
     }
 
     @Test

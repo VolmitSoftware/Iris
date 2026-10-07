@@ -83,7 +83,7 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
 
         for (File file : listedFiles) {
             if (file.isFile() && file.getName().endsWith(".mat")) {
-                m.add(prefix + file.getName().replace(".mat", ""));
+                m.add(prefix + file.getName().substring(0, file.getName().length() - ".mat".length()));
             } else if (file.isDirectory()) {
                 findMatFiles(file, prefix + file.getName() + "/", m, visitedDirectories);
             }

@@ -49,6 +49,9 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisExpression extends IrisRegistrant {
+    private static final int MAX_RETAINED_EVALUATION_DEPTH = 8;
+    private static final int MAX_RETAINED_ARGUMENTS = 256;
+
     @ArrayType(type = IrisExpressionLoad.class, min = 1)
     @Description("Variables to use in this expression")
     private KList<IrisExpressionLoad> variables = new KList<>();
@@ -65,6 +68,10 @@ public class IrisExpression extends IrisRegistrant {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient LazyBoundedCache<Long, ProceduralStream<Double>> streams = new LazyBoundedCache<>(8);
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient ThreadLocal<EvaluationScratch> evaluationScratch = ThreadLocal.withInitial(EvaluationScratch::new);
 
     private Expression expression() {
         return expressionCache.aquire(() -> {
@@ -108,31 +115,37 @@ public class IrisExpression extends IrisRegistrant {
     }
 
     public double evaluate(RNG rng, double x, double z) {
-        double[] g = new double[3 + getVariables().size()];
-        int m = 0;
-        for (IrisExpressionLoad i : getVariables()) {
-            g[m++] = i.getValue(rng, getLoader(), x, z);
+        EvaluationScratch scratch = evaluationScratch.get();
+        double[] arguments = scratch.acquire(3 + getVariables().size());
+        try {
+            int index = 0;
+            for (IrisExpressionLoad variable : getVariables()) {
+                arguments[index++] = variable.getValue(rng, getLoader(), x, z);
+            }
+            arguments[index++] = x;
+            arguments[index++] = z;
+            arguments[index] = -1;
+            return expression().evaluate(new FunctionContext(rng), arguments);
+        } finally {
+            scratch.release();
         }
-
-        g[m++] = x;
-        g[m++] = z;
-        g[m] = -1;
-
-        return expression().evaluate(new FunctionContext(rng), g);
     }
 
     public double evaluate(RNG rng, double x, double y, double z) {
-        double[] g = new double[3 + getVariables().size()];
-        int m = 0;
-        for (IrisExpressionLoad i : getVariables()) {
-            g[m++] = i.getValue(rng, getLoader(), x, y, z);
+        EvaluationScratch scratch = evaluationScratch.get();
+        double[] arguments = scratch.acquire(3 + getVariables().size());
+        try {
+            int index = 0;
+            for (IrisExpressionLoad variable : getVariables()) {
+                arguments[index++] = variable.getValue(rng, getLoader(), x, y, z);
+            }
+            arguments[index++] = x;
+            arguments[index++] = y;
+            arguments[index] = z;
+            return expression().evaluate(new FunctionContext(rng), arguments);
+        } finally {
+            scratch.release();
         }
-
-        g[m++] = x;
-        g[m++] = y;
-        g[m] = z;
-
-        return expression().evaluate(new FunctionContext(rng), g);
     }
 
     @Override
@@ -143,5 +156,29 @@ public class IrisExpression extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Expression";
+    }
+
+    private static final class EvaluationScratch {
+        private final double[][] retained = new double[MAX_RETAINED_EVALUATION_DEPTH][];
+        private int depth;
+
+        private double[] acquire(int length) {
+            double[] arguments;
+            if (depth >= retained.length || length > MAX_RETAINED_ARGUMENTS) {
+                arguments = new double[length];
+            } else {
+                arguments = retained[depth];
+                if (arguments == null || arguments.length != length) {
+                    arguments = new double[length];
+                    retained[depth] = arguments;
+                }
+            }
+            depth++;
+            return arguments;
+        }
+
+        private void release() {
+            depth--;
+        }
     }
 }

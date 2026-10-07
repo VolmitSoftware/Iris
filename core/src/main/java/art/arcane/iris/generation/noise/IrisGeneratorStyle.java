@@ -258,7 +258,7 @@ public class IrisGeneratorStyle {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isFlat() {
-        return style == null || style.equals(NoiseStyle.FLAT);
+        return expression == null && imageMap == null && (style == null || style.equals(NoiseStyle.FLAT));
     }
 
     public double getMaxFractureDistance() {

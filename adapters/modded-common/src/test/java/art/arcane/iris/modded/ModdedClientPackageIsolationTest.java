@@ -40,6 +40,37 @@ public class ModdedClientPackageIsolationTest {
     private static final int MINIMUM_SCANNED = 50;
 
     @Test
+    public void clientPresentationCannotAccessPackOrWorldPersistence() throws IOException, URISyntaxException {
+        Path root = classesRoot();
+        Path directory = root.resolve(CLIENT_IRIS);
+        List<String> forbidden = List.of(
+                "art/arcane/iris/pack/",
+                "art/arcane/iris/world/storage/",
+                "art/arcane/iris/world/history/",
+                "art/arcane/iris/generation/runtime/",
+                "art/arcane/iris/configuration/",
+                "java/nio/file/",
+                "java/nio/channels/FileChannel",
+                "java/io/File",
+                "java/io/RandomAccessFile");
+        List<String> violations = new ArrayList<>();
+        int scanned = 0;
+        try (Stream<Path> walk = Files.walk(directory)) {
+            for (Path classFile : walk.filter(ModdedClientPackageIsolationTest::isClassFile).toList()) {
+                scanned++;
+                String bytecode = readAsLatin1(classFile);
+                for (String dependency : forbidden) {
+                    if (bytecode.contains(dependency)) {
+                        violations.add(root.relativize(classFile) + " -> " + dependency);
+                    }
+                }
+            }
+        }
+        assertTrue("client presentation classes were not scanned", scanned >= 20);
+        assertEquals("client presentation can access persistent generation data: " + violations, List.of(), violations);
+    }
+
+    @Test
     public void serverSidePackagesNeverReferenceClientOnlyTypes() throws IOException, URISyntaxException {
         Path root = classesRoot();
         List<String> violations = new ArrayList<>();

@@ -12,6 +12,7 @@ final class HydrologySampledGrid {
     private final int spacing;
     private final List<HydrologyGridNode> nodes;
     private volatile HydrologyDrainageGraph drainage;
+    private volatile SurfaceBudgetSnapshot surfaceBudgets;
 
     HydrologySampledGrid(int minimumX, int minimumZ, int ownerMinimumX, int ownerMinimumZ,
                         int ownerSize, int width, int spacing, List<HydrologyGridNode> nodes) {
@@ -77,6 +78,21 @@ final class HydrologySampledGrid {
         return nodes.get(index);
     }
 
+    HydrologySurfaceBudgets surfaceBudgets(HydrologyPlannerSettings.Source sources) {
+        SurfaceBudgetSnapshot current = surfaceBudgets;
+        if (current != null && current.sources().equals(sources)) {
+            return current.budgets();
+        }
+        synchronized (this) {
+            current = surfaceBudgets;
+            if (current == null || !current.sources().equals(sources)) {
+                current = new SurfaceBudgetSnapshot(sources, HydrologySurfaceBudgets.sample(this, sources));
+                surfaceBudgets = current;
+            }
+            return current.budgets();
+        }
+    }
+
     HydrologyGridNode nodeAt(int gridX, int gridZ) {
         if (gridX < 0 || gridZ < 0 || gridX >= width || gridZ >= width) {
             return null;
@@ -101,5 +117,8 @@ final class HydrologySampledGrid {
     boolean owns(int x, int z) {
         return x >= ownerMinimumX && x < ownerMinimumX + ownerSize
                 && z >= ownerMinimumZ && z < ownerMinimumZ + ownerSize;
+    }
+
+    private record SurfaceBudgetSnapshot(HydrologyPlannerSettings.Source sources, HydrologySurfaceBudgets budgets) {
     }
 }

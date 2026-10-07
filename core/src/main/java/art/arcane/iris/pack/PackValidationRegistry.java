@@ -115,6 +115,11 @@ public final class PackValidationRegistry {
     }
 
     public static boolean publishIfCurrent(ValidationTicket ticket, PackValidationResult result) {
+        return publishIfCurrent(ticket, result, "", "");
+    }
+
+    public static boolean publishIfCurrent(ValidationTicket ticket, PackValidationResult result,
+                                           String contentFingerprint, String contextFingerprint) {
         if (ticket == null || result == null) {
             return false;
         }
@@ -129,7 +134,9 @@ public final class PackValidationRegistry {
             return new RootState(
                     current.generation(),
                     false,
-                    new RootValidation(result, "", ""));
+                    new RootValidation(result,
+                            Objects.requireNonNull(contentFingerprint, "Content fingerprint"),
+                            Objects.requireNonNull(contextFingerprint, "Context fingerprint")));
         });
         return published.get();
     }
@@ -319,6 +326,18 @@ public final class PackValidationRegistry {
                     Objects.requireNonNull(result, "Pack validation result"),
                     "",
                     "");
+        }
+
+        public synchronized void stageValidatedSnapshot(
+                PackValidationResult result,
+                String contentFingerprint,
+                String contextFingerprint
+        ) {
+            requireOpen();
+            pendingValidation = new RootValidation(
+                    Objects.requireNonNull(result, "Pack validation result"),
+                    Objects.requireNonNull(contentFingerprint, "Content fingerprint"),
+                    Objects.requireNonNull(contextFingerprint, "Context fingerprint"));
         }
 
         public synchronized void commit() {

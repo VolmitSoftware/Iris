@@ -2,6 +2,8 @@ package art.arcane.iris.world.runtime;
 
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
+import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.world.task.J;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -11,23 +13,55 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.VoxelShape;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class WorldRuntimeControlServiceSafeEntryTest {
     private static final BoundingBox FULL_BLOCK = new BoundingBox(0D, 0D, 0D, 1D, 1D, 1D);
+
+    @Test
+    public void scheduledSafeEntryKeepsItsOriginalRegionAndCoordinates() {
+        World world = loadedWorld(0, 0);
+        Block stone = block(Material.STONE, false, false, FULL_BLOCK);
+        Block air = block(Material.AIR, false, true);
+        doReturn(62).when(world).getHighestBlockYAt(anyInt(), anyInt(), eq(HeightMap.MOTION_BLOCKING_NO_LEAVES));
+        doAnswer(invocation -> (int) invocation.getArgument(1) == 62 ? stone : air)
+                .when(world).getBlockAt(anyInt(), anyInt(), anyInt());
+        AtomicReference<Runnable> task = new AtomicReference<>();
+        try (MockedStatic<J> scheduling = mockStatic(J.class);
+             MockedStatic<BukkitPlatform> platform = mockStatic(BukkitPlatform.class)) {
+            scheduling.when(() -> J.runRegion(eq(world), eq(0), eq(0), any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        task.set(invocation.getArgument(3));
+                        return true;
+                    });
+            WorldRuntimeControlService service = mock(WorldRuntimeControlService.class, CALLS_REAL_METHODS);
+            Location source = new Location(world, 0.5D, 63D, 0.5D);
+            CompletableFuture<Location> result = service.resolveSafeEntry(world, source);
+            source.setX(32.5D);
+            task.get().run();
+            assertNotNull(result.join());
+            assertEquals(0.5D, result.join().getX(), 0D);
+        }
+    }
 
     @Test
     public void resolvesStudioEntryAnchorFromGeneratorInsteadOfMutableWorldSpawn() {

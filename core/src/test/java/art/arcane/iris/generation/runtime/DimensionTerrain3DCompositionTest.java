@@ -70,6 +70,60 @@ public class DimensionTerrain3DCompositionTest {
     }
 
     @Test
+    public void stackFloorWithoutBedrockKeepsItsBiomePalette() {
+        IrisBiome biome = paletteBiome(false, new IrisSlopeClip(), "grass");
+        Terrain3DColumn terrain = Terrain3DColumnFixtures.spans(0, 0, 0);
+        DimensionStackLayout layout = DimensionStackLayout.create(32, 0,
+                List.of(input(10, 0, null), materialInput(terrain, biome, 0D)), new int[]{0});
+
+        assertSame(state("grass"), render(layout, 32).getRaw(0, 11, 0));
+        DimensionStackLayout.LayerInput flat = input(0, 0, null);
+        DimensionStackLayout.LayerInput flatPalette = new DimensionStackLayout.LayerInput(
+                flat.terrainContext(), biome, null, flat.rockBlock(), flat.fluidBlock(), null, 0, 0, null);
+        DimensionStackLayout flatLayout = DimensionStackLayout.create(32, 0,
+                List.of(input(10, 0, null), flatPalette), new int[]{0});
+        assertSame(state("grass"), render(flatLayout, 32).getRaw(0, 11, 0));
+    }
+
+    @Test
+    public void naturalFloorWithoutBedrockKeepsItsBiomePalette() {
+        IrisBiome biome = paletteBiome(false, new IrisSlopeClip(), "grass", "dirt", "clay", "sand");
+        Hunk<NativeBlockState> blocks = renderTerrain(null, biome, 3);
+
+        assertSame(state("grass"), blocks.getRaw(0, 3, 0));
+        assertSame(state("sand"), blocks.getRaw(0, 0, 0));
+    }
+
+    @Test
+    public void mirroredFloorWithoutBedrockKeepsItsBiomePaletteAtTheWorldCeiling() {
+        IrisBiome biome = paletteBiome(false, new IrisSlopeClip(), "grass", "dirt", "clay", "sand");
+        UpperDimensionContext upper = materialUpper(Terrain3DColumnFixtures.spans(3, 0, 3), biome, 0D);
+        Hunk<NativeBlockState> blocks = renderUpper(upper);
+
+        assertSame(state("grass"), blocks.getRaw(0, 60, 0));
+        assertSame(state("sand"), blocks.getRaw(0, 63, 0));
+    }
+
+    @Test
+    public void stackOverhangsUseCeilingPalettesWhileThinLedgesKeepSurfaceLayers() {
+        IrisBiome biome = paletteBiome(false, new IrisSlopeClip(), "grass", "dirt");
+        biome.setCaveCeilingLayers(paletteBiome(false, new IrisSlopeClip(), "ceiling", "ceiling-deep").getLayers());
+        Terrain3DColumn terrain = Terrain3DColumnFixtures.spans(16, 0, 3, 7, 11, 15, 16);
+        DimensionStackLayout layout = DimensionStackLayout.create(40, 0,
+                List.of(input(10, 0, null), materialInput(terrain, biome, 0D)), new int[]{0});
+        Hunk<NativeBlockState> blocks = render(layout, 40);
+
+        assertSame(state("ceiling"), blocks.getRaw(0, 18, 0));
+        assertSame(state("ceiling-deep"), blocks.getRaw(0, 19, 0));
+        assertSame(state("rock"), blocks.getRaw(0, 20, 0));
+        assertSame(state("dirt"), blocks.getRaw(0, 21, 0));
+        assertSame(state("grass"), blocks.getRaw(0, 22, 0));
+        assertSame(state("dirt"), blocks.getRaw(0, 26, 0));
+        assertSame(state("grass"), blocks.getRaw(0, 27, 0));
+        assertSame(state("rock"), blocks.getRaw(0, 11, 0));
+    }
+
+    @Test
     public void actualStackPassClearsGapsAndPaintsEveryExposedFloor() {
         Terrain3DColumn terrain = Terrain3DColumnFixtures.spans(6, 0, 3, 7, 9);
         DimensionStackLayout layout = DimensionStackLayout.create(32, 0,
@@ -129,7 +183,7 @@ public class DimensionTerrain3DCompositionTest {
                 List.of(input(10, 0, null), materialInput(terrain, biome, 0D)), new int[]{0});
         Hunk<NativeBlockState> blocks = render(layout, 64);
         assertSame(state("a"), blocks.getRaw(0, 16, 0));
-        assertSame(state("c"), blocks.getRaw(0, 15, 0));
+        assertSame(state("b"), blocks.getRaw(0, 15, 0));
         assertSame(state("c"), blocks.getRaw(0, 32, 0));
     }
 
@@ -145,7 +199,7 @@ public class DimensionTerrain3DCompositionTest {
         upper = materialUpper(terrain, paletteBiome(true, new IrisSlopeClip(), "a", "b", "c"), 0D);
         Hunk<NativeBlockState> lockedBlocks = renderUpper(upper);
         assertSame(state("a"), lockedBlocks.getRaw(0, 58, 0));
-        assertSame(state("c"), lockedBlocks.getRaw(0, 59, 0));
+        assertSame(state("b"), lockedBlocks.getRaw(0, 59, 0));
         assertSame(state("c"), lockedBlocks.getRaw(0, 42, 0));
     }
 
@@ -268,6 +322,11 @@ public class DimensionTerrain3DCompositionTest {
 
     @SuppressWarnings("unchecked")
     private Hunk<NativeBlockState> renderUpper(UpperDimensionContext upper) {
+        return renderTerrain(upper, null, 8);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Hunk<NativeBlockState> renderTerrain(UpperDimensionContext upper, IrisBiome rootBiome, int rootHeight) {
         NativeBlockState rootRock = state("root");
         Engine engine = mock(Engine.class);
         IrisDimension dimension = new IrisDimension().setBedrock(false).setHideOresForHiddenOre(true);
@@ -278,9 +337,11 @@ public class DimensionTerrain3DCompositionTest {
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 8D));
         when(complex.getImageMapRuntime()).thenReturn(mock(IrisImageMapRuntime.class));
-        IrisBiome biome = mock(IrisBiome.class);
-        when(biome.generateLayers(any(), anyDouble(), anyDouble(), any(), anyInt(), anyInt(), any(), any()))
-                .thenReturn(new KList<>());
+        IrisBiome biome = rootBiome == null ? mock(IrisBiome.class) : rootBiome;
+        if (rootBiome == null) {
+            when(biome.generateLayers(any(), anyDouble(), anyDouble(), any(), anyInt(), anyInt(), any(), any()))
+                    .thenReturn(new KList<>());
+        }
         ChunkedDataCache<IrisBiome> biomes = mock(ChunkedDataCache.class);
         when(biomes.get(0, 0)).thenReturn(biome);
         ChunkedDataCache<IrisRegion> regions = mock(ChunkedDataCache.class);
@@ -290,7 +351,7 @@ public class DimensionTerrain3DCompositionTest {
         when(context.getBiome()).thenReturn(biomes);
         when(context.getRegion()).thenReturn(regions);
         when(context.getRock()).thenReturn(rocks);
-        when(context.getRoundedHeight(0, 0)).thenReturn(8);
+        when(context.getRoundedHeight(0, 0)).thenReturn(rootHeight);
         Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(1, 64, 1);
         new IrisTerrainNormalActuator(engine).paint(0, 0, blocks, context);
         return blocks;

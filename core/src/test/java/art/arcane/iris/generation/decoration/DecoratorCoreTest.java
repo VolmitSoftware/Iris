@@ -808,6 +808,43 @@ public class DecoratorCoreTest {
         return state;
     }
 
+    @Test
+    public void surfaceStairsAndTrapdoorsUseTheirAuthoredHalfInOneVoxel() {
+        assertSingleVoxelHalfPlacement(false);
+    }
+
+    @Test
+    public void floatingStairsAndTrapdoorsUseTheirAuthoredHalfInOneVoxel() {
+        assertSingleVoxelHalfPlacement(true);
+    }
+
+    private void assertSingleVoxelHalfPlacement(boolean floating) {
+        for (String key : new String[]{"minecraft:oak_stairs[half=bottom]", "minecraft:oak_trapdoor[half=top]"}) {
+            IrisDecorator decorator = mock(IrisDecorator.class);
+            IrisData data = mock(IrisData.class);
+            NativeBlockState support = sturdyState();
+            NativeBlockState air = airState();
+            NativeBlockState occupied = mock(NativeBlockState.class);
+            NativeBlockState block = mock(NativeBlockState.class);
+            when(block.key()).thenReturn(key);
+            when(block.canPlaceOnto(support)).thenReturn(true);
+            when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(block);
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 4, 1);
+            output.set(0, 0, 0, support);
+            output.set(0, 1, 0, air);
+            output.set(0, 2, 0, occupied);
+
+            if (floating) {
+                DecoratorCore.placeFloatingSimple(decorator, 0, 0, 0, 0, 0, 3, output, new RNG(1L), data, null);
+            } else {
+                DecoratorCore.placeSurfaceSingle(decorator, 0, 0, 0, 0, 0, output, new RNG(1L), data, false, false, null);
+            }
+
+            assertSame(key, block, output.get(0, 1, 0));
+            assertSame(key, occupied, output.get(0, 2, 0));
+        }
+    }
+
     private NativeBlockState tallPlantState() {
         return tallPlantState(mock(NativeBlockState.class), mock(NativeBlockState.class));
     }

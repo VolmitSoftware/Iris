@@ -1,0 +1,8 @@
+{
+  "object": "surface",
+  "connectors": [],
+  "rotatable": false,
+  "rules": {
+    "terminal": true
+  }
+}

@@ -303,12 +303,15 @@ public final class WorldRuntimeControlService {
             return CompletableFuture.completedFuture(null);
         }
 
-        int chunkX = source.getBlockX() >> 4;
-        int chunkZ = source.getBlockZ() >> 4;
+        Location destination = source.clone();
+        int chunkX = destination.getBlockX() >> 4;
+        int chunkZ = destination.getBlockZ() >> 4;
         CompletableFuture<Location> future = new CompletableFuture<>();
         boolean scheduled = J.runRegion(world, chunkX, chunkZ, () -> {
             try {
-                future.complete(findTopSafeLocationWithTicket(world, source, chunkX, chunkZ));
+                if (!future.isDone()) {
+                    future.complete(findTopSafeLocationWithTicket(world, destination, chunkX, chunkZ));
+                }
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
@@ -369,6 +372,7 @@ public final class WorldRuntimeControlService {
             return CompletableFuture.completedFuture(false);
         }
         Objects.requireNonNull(teleporter, "teleporter");
+        Location destination = location.clone();
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         GameModeRestore modeRestore = new GameModeRestore(player);
@@ -395,7 +399,7 @@ public final class WorldRuntimeControlService {
                         return;
                     }
                 }
-                CompletableFuture<Boolean> teleportFuture = teleporter.teleport(player, location);
+                CompletableFuture<Boolean> teleportFuture = teleporter.teleport(player, destination);
                 if (teleportFuture == null) {
                     future.complete(false);
                     return;
@@ -425,7 +429,7 @@ public final class WorldRuntimeControlService {
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
-        });
+        }, 0, () -> future.complete(false));
         if (!scheduled) {
             future.completeExceptionally(new IllegalStateException("Failed to schedule teleport for " + player.getName() + "."));
         }

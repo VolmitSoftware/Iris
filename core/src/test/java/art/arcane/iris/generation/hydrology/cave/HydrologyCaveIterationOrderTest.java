@@ -136,13 +136,10 @@ public final class HydrologyCaveIterationOrderTest {
                 8,
                 16,
                 64,
-                16,
-                1,
                 2,
                 2,
                 4,
                 HydrologyCaveFluidPolicy.REJECT_EXISTING,
-                HydrologyCaveGrottoShape.ELLIPSOID,
                 8,
                 16
         );

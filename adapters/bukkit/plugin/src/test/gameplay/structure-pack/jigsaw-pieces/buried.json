@@ -1,0 +1,8 @@
+{
+  "object": "buried",
+  "connectors": [],
+  "rotatable": false,
+  "rules": {
+    "terminal": true
+  }
+}

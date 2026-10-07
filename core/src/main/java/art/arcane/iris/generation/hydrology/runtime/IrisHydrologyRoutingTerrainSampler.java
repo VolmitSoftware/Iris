@@ -376,7 +376,7 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
     private double naturalHeight(CacheStripe stripe, long packed, int blockX, int blockZ) {
         synchronized (stripe) {
             double cached = stripe.naturalHeights.getAndMoveToLast(packed);
-            if (!Double.isNaN(cached) || stripe.naturalHeights.containsKey(packed)) {
+            if (!Double.isNaN(cached)) {
                 return cached;
             }
             TerrainBasis cachedBasis = stripe.bases.getAndMoveToLast(packed);
@@ -392,7 +392,7 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         }
         synchronized (stripe) {
             double existing = stripe.naturalHeights.getAndMoveToLast(packed);
-            if (!Double.isNaN(existing) || stripe.naturalHeights.containsKey(packed)) {
+            if (!Double.isNaN(existing)) {
                 return existing;
             }
             stripe.naturalHeights.putAndMoveToLast(packed, sampled);

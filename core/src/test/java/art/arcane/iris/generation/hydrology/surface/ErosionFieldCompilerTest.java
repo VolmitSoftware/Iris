@@ -146,15 +146,19 @@ public class ErosionFieldCompilerTest {
     public void rasterBatchesPreserveExactDemandAndColumnOrder() {
         Map<Long, Integer> serialCalls = new HashMap<>();
         Map<Long, Integer> batchCalls = new HashMap<>();
+        List<Long> serialOrder = new ArrayList<>();
+        List<Long> batchOrder = new ArrayList<>();
         AtomicInteger batches = new AtomicInteger();
         HydrologyTerrainSampler serial = (x, z) -> {
             serialCalls.merge(RiverFootprint.pack(x, z), 1, Integer::sum);
+            serialOrder.add(RiverFootprint.pack(x, z));
             return HydrologyTerrainSample.openLand(80 + Math.floorMod(z, 7), 0D, "land");
         };
         HydrologyTerrainSampler batched = new HydrologyTerrainSampler() {
             @Override
             public HydrologyTerrainSample sample(int x, int z) {
                 batchCalls.merge(RiverFootprint.pack(x, z), 1, Integer::sum);
+                batchOrder.add(RiverFootprint.pack(x, z));
                 return HydrologyTerrainSample.openLand(80 + Math.floorMod(z, 7), 0D, "land");
             }
 
@@ -176,6 +180,7 @@ public class ErosionFieldCompilerTest {
         assertEquals(expected.uncontainedWetCells(), actual.uncontainedWetCells());
         assertEquals(expected.bankExcavation(), actual.bankExcavation());
         assertEquals(serialCalls, batchCalls);
+        assertEquals(serialOrder, batchOrder);
         assertTrue(batches.get() > 1);
     }
 

@@ -1,6 +1,5 @@
 package art.arcane.iris.pack;
 
-import art.arcane.iris.pack.datapack.ServerConfigurator;
 import art.arcane.iris.pack.validation.CompatAction;
 import art.arcane.iris.pack.validation.CompatFinding;
 import art.arcane.iris.pack.validation.CompatRegistry;
@@ -41,7 +40,7 @@ public final class PackValidationCache {
     }
 
     public static String contentFingerprint(File packsRoot) {
-        return ServerConfigurator.computePackFingerprint(packsRoot);
+        return PackFingerprints.computePackFingerprint(packsRoot);
     }
 
     public static String contextFingerprint() {

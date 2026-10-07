@@ -18,8 +18,9 @@
 
 package art.arcane.iris.world;
 
+import art.arcane.iris.pack.PackFingerprints;
+
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.pack.datapack.ServerConfigurator;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.world.lifecycle.WorldLifecycleStaging;
@@ -184,12 +185,12 @@ public final class IrisWorldGeneratorResolver {
         }
         List<String> packNames = packDirs.stream().map(File::getName).sorted().toList();
         Path cacheFile = IrisPlatforms.get().dataFile("cache", "pack-validation.json").toPath();
-        ServerConfigurator.PackContentSnapshot contentSnapshot =
-                new ServerConfigurator.PackContentSnapshot("", Map.of());
+        PackFingerprints.PackContentSnapshot contentSnapshot =
+                new PackFingerprints.PackContentSnapshot("", Map.of());
         String contextFingerprint = "";
         Optional<List<PackValidationResult>> cached = Optional.empty();
         try {
-            contentSnapshot = ServerConfigurator.computePackContentSnapshot(packsRoot);
+            contentSnapshot = PackFingerprints.computePackContentSnapshot(packsRoot);
             contextFingerprint = PackValidationCache.contextFingerprint();
             if (!externalContentChanged) {
                 cached = PackValidationCache.load(
@@ -274,19 +275,19 @@ public final class IrisWorldGeneratorResolver {
     private static FreshValidation validateStablePacks(
             File packsRoot,
             List<File> initialPackDirs,
-            ServerConfigurator.PackContentSnapshot initialSnapshot
+            PackFingerprints.PackContentSnapshot initialSnapshot
     ) {
         List<File> packDirs = initialPackDirs;
-        ServerConfigurator.PackContentSnapshot before = initialSnapshot;
+        PackFingerprints.PackContentSnapshot before = initialSnapshot;
         for (int attempt = 0; attempt < VALIDATION_STABILITY_ATTEMPTS; attempt++) {
             List<String> packNames = packDirs.stream().map(File::getName).sorted().toList();
             List<PackValidationResult> results = validatePacks(packDirs);
-            ServerConfigurator.PackContentSnapshot after;
+            PackFingerprints.PackContentSnapshot after;
             try {
-                after = ServerConfigurator.computePackContentSnapshot(packsRoot);
+                after = PackFingerprints.computePackContentSnapshot(packsRoot);
             } catch (RuntimeException exception) {
                 Iris.reportError("Could not verify Iris pack bytes after validation", exception);
-                after = new ServerConfigurator.PackContentSnapshot("", Map.of());
+                after = new PackFingerprints.PackContentSnapshot("", Map.of());
             }
             List<File> afterPackDirs = PackDirectoryResolver.listVisiblePackDirectories(packsRoot);
             List<String> afterPackNames = afterPackDirs.stream().map(File::getName).sorted().toList();
@@ -923,7 +924,7 @@ public final class IrisWorldGeneratorResolver {
 
     private record FreshValidation(
             List<File> packDirs,
-            ServerConfigurator.PackContentSnapshot contentSnapshot,
+            PackFingerprints.PackContentSnapshot contentSnapshot,
             List<PackValidationResult> results,
             boolean stable
     ) {

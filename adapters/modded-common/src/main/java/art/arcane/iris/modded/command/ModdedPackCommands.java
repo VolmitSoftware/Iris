@@ -18,6 +18,8 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.modded.ModdedStartup;
+
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -25,7 +27,6 @@ import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackResourceCleanup;
 import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationResult;
-import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -138,8 +139,7 @@ public final class ModdedPackCommands {
             int broken = 0;
             for (File target : targets) {
                 try {
-                    PackValidationResult result = PackValidator.validate(target);
-                    PackValidationRegistry.publish(result);
+                    PackValidationResult result = ModdedStartup.validatePack(target);
                     if (!result.isLoadable()) {
                         broken++;
                     }

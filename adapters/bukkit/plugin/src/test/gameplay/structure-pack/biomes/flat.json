@@ -1,0 +1,45 @@
+{
+  "name": "Flat",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [
+    {
+      "minHeight": 1,
+      "maxHeight": 1,
+      "palette": [
+        {
+          "block": "minecraft:lime_wool"
+        }
+      ]
+    },
+    {
+      "minHeight": 384,
+      "maxHeight": 384,
+      "palette": [
+        {
+          "block": "minecraft:stone"
+        }
+      ]
+    }
+  ],
+  "generators": [
+    {
+      "generator": "flat",
+      "min": 64,
+      "max": 64
+    }
+  ],
+  "objects": [
+    {
+      "place": [
+        "object"
+      ],
+      "chance": 1,
+      "density": 4,
+      "mode": "CENTER_HEIGHT",
+      "rotation": {
+        "enabled": false
+      }
+    }
+  ]
+}

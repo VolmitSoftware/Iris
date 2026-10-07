@@ -1,0 +1,22 @@
+{
+  "interpolator": {
+    "function": "NONE",
+    "horizontalScale": 1
+  },
+  "seed": 310,
+  "composite": [
+    {
+      "seed": 310,
+      "style": {
+        "expression": "terrain"
+      }
+    },
+    {
+      "seed": 311,
+      "style": {
+        "style": "CLOVER_HERMITE",
+        "zoom": 0.1
+      }
+    }
+  ]
+}

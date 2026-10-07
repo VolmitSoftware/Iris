@@ -193,20 +193,22 @@ public class IrisDecorator {
     }
 
     public NativeBlockState getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
-        if (getBlockData(data).isEmpty()) {
+        KList<NativeBlockState> palette = getBlockData(data);
+        if (palette.isEmpty()) {
             IrisLogging.warnOnce("decorator-empty:" + b.getName(), "Empty Block Data for " + b.getName());
             return null;
         }
 
-        if (getBlockData(data).size() == 1) {
-            return getBlockData(data).get(0);
+        if (palette.size() == 1) {
+            return palette.get(0);
         }
 
-        return getVarianceGenerator(rng, data).fit(getBlockData(data), z, y, x); //X and Z must be switched
+        return getVarianceGenerator(rng, data).fit(palette, z, y, x); //X and Z must be switched
     }
 
     public NativeBlockState getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
-        if (getBlockDataTops(data).isEmpty()) {
+        KList<NativeBlockState> topPalette = getBlockDataTops(data);
+        if (topPalette.isEmpty()) {
             return getBlockData100(b, rng, x, y, z, data);
         }
 
@@ -214,11 +216,11 @@ public class IrisDecorator {
         double zz = z / style.getZoom();
 
         if (getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
-            if (getBlockData(data).size() == 1) {
-                return getBlockDataTops(data).get(0);
+            if (topPalette.size() == 1) {
+                return topPalette.get(0);
             }
 
-            return getVarianceGenerator(rng, data).fit(getBlockDataTops(data), z, y, x); //X and Z must be switched
+            return getVarianceGenerator(rng, data).fit(topPalette, z, y, x); //X and Z must be switched
         }
 
         return null;

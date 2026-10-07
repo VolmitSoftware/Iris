@@ -106,7 +106,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         String name = skipDirName ? "" : dir.getName() + "/";
         for (File f : listedFiles) {
             if (f.isFile() && f.getName().endsWith(ext)) {
-                paths.add(name + f.getName().replaceAll("\\Q" + ext + "\\E", ""));
+                paths.add(name + f.getName().substring(0, f.getName().length() - ext.length()));
             } else if (f.isDirectory()) {
                 getFiles(f, ext, false, visitedDirectories).forEach(e -> paths.add(name + e));
             }

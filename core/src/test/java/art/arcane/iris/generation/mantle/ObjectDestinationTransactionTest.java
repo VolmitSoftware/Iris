@@ -181,6 +181,8 @@ public class ObjectDestinationTransactionTest {
         Marker failure = new Marker("failure");
         when(writer.getPrerequisiteDataIfPresent(0, 4, 0, String.class)).thenReturn("original");
         when(writer.getPrerequisiteDataIfPresent(0, 4, 0, TreeBlockMaterial.class)).thenReturn(originalMaterial);
+        when(writer.getDataIfPresent(0, 4, 0, String.class)).thenReturn("original");
+        when(writer.getDataIfPresent(0, 4, 0, TreeBlockMaterial.class)).thenReturn(originalMaterial);
         doThrow(new IllegalStateException("publication failed"))
                 .when(writer).setData(1, 4, 0, failure);
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
@@ -193,11 +195,9 @@ public class ObjectDestinationTransactionTest {
 
         assertThrows(IllegalStateException.class, transaction::commit);
 
-        verify(writer).clearData(0, 4, 0, String.class);
-        verify(writer).setData(0, 4, 0, "original");
-        verify(writer).clearData(0, 4, 0, TreeBlockMaterial.class);
-        verify(writer).setData(0, 4, 0, originalMaterial);
-        verify(writer).clearData(0, 4, 0, Marker.class);
+        verify(writer).restoreData(0, 4, 0, String.class, "original");
+        verify(writer).restoreData(0, 4, 0, TreeBlockMaterial.class, originalMaterial);
+        verify(writer).restoreData(0, 4, 0, Marker.class, null);
         verify(writer).setData(0, 4, 0, generic);
     }
 
@@ -488,8 +488,8 @@ public class ObjectDestinationTransactionTest {
         Marker secondOriginal = new Marker("second-original");
         Marker first = new Marker("first");
         Marker second = new Marker("second");
-        when(writer.getPrerequisiteDataIfPresent(0, 4, 0, Marker.class)).thenReturn(firstOriginal);
-        when(writer.getPrerequisiteDataIfPresent(1, 4, 0, Marker.class)).thenReturn(secondOriginal);
+        when(writer.getDataIfPresent(0, 4, 0, Marker.class)).thenReturn(firstOriginal);
+        when(writer.getDataIfPresent(1, 4, 0, Marker.class)).thenReturn(secondOriginal);
         doThrow(new IllegalStateException("publication failed"))
                 .when(writer).setData(1, 4, 0, second);
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
@@ -498,10 +498,8 @@ public class ObjectDestinationTransactionTest {
 
         assertThrows(IllegalStateException.class, transaction::commit);
 
-        verify(writer).clearData(0, 4, 0, Marker.class);
-        verify(writer).clearData(1, 4, 0, Marker.class);
-        verify(writer).setData(0, 4, 0, firstOriginal);
-        verify(writer).setData(1, 4, 0, secondOriginal);
+        verify(writer).restoreData(0, 4, 0, Marker.class, firstOriginal);
+        verify(writer).restoreData(1, 4, 0, Marker.class, secondOriginal);
     }
 
     @Test
@@ -579,6 +577,7 @@ public class ObjectDestinationTransactionTest {
         Marker failure = new Marker("failure");
         Identifier originalIdentifier = Identifier.fromString("iris:deferred");
         when(writer.getPrerequisiteDataIfPresent(0, 4, 0, Identifier.class)).thenReturn(originalIdentifier);
+        when(writer.getDataIfPresent(0, 4, 0, Identifier.class)).thenReturn(originalIdentifier);
         doThrow(new IllegalStateException("publication failed"))
                 .when(writer).setData(1, 4, 0, failure);
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
@@ -593,8 +592,7 @@ public class ObjectDestinationTransactionTest {
         assertEquals(plan.mutationsFor(0, 0).getFirst(), destination.sourcePlanSince(0).mutationsFor(0, 0).getFirst());
 
         assertThrows(IllegalStateException.class, destination::commit);
-        verify(writer).clearData(0, 4, 0, Identifier.class);
-        verify(writer).setData(0, 4, 0, originalIdentifier);
+        verify(writer).restoreData(0, 4, 0, Identifier.class, originalIdentifier);
     }
 
     @SuppressWarnings("unchecked")

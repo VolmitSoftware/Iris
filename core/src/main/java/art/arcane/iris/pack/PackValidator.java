@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -205,12 +206,15 @@ public final class PackValidator {
             return findings;
         } catch (Throwable e) {
             IrisLogging.reportError("Version-content gating failed for pack '" + packFolder.getName() + "'", e);
+            blockingErrors.add("Version-content gating failed with " + e.getClass().getSimpleName()
+                    + ": " + Objects.requireNonNullElse(e.getMessage(), "No failure detail."));
             return List.of();
         } finally {
             if (data != null) {
                 try {
                     data.close();
-                } catch (Throwable ignored) {
+                } catch (Throwable closeFailure) {
+                    IrisLogging.reportError("Failed to close validation data for pack '" + packFolder.getName() + "'", closeFailure);
                 }
             }
         }

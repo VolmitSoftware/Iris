@@ -1,6 +1,7 @@
 package art.arcane.iris.world;
 
 import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.pack.AtomicDirectoryPublisher;
 import art.arcane.volmlib.util.bukkit.WorldIdentity;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -18,14 +19,11 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.Stream;
 
 public final class IrisWorldStorage {
     private static final String IRIS_NAMESPACE = "iris";
     private static final String DEFAULT_LEVEL_NAME = "world";
-    private static final Set<String> OS_METADATA_FILES = Set.of(".DS_Store", "Thumbs.db", "desktop.ini");
-    private static final String APPLE_DOUBLE_PREFIX = "._";
 
     /**
      * Server#getLevelDirectory is Paper-API-only. Once a call throws NoSuchMethodError (plain
@@ -352,23 +350,12 @@ public final class IrisWorldStorage {
             return true;
         }
         try (Stream<Path> entries = Files.list(irisRoot)) {
-            return entries.anyMatch(entry -> !isOperatingSystemMetadata(entry));
+            return entries.anyMatch(entry -> !AtomicDirectoryPublisher.isOperatingSystemMetadata(entry));
         } catch (IOException unreadable) {
             return true;
         }
     }
 
-    private static boolean isOperatingSystemMetadata(Path entry) {
-        if (!Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
-            return false;
-        }
-        Path name = entry.getFileName();
-        if (name == null) {
-            return false;
-        }
-        String fileName = name.toString();
-        return OS_METADATA_FILES.contains(fileName) || fileName.startsWith(APPLE_DOUBLE_PREFIX);
-    }
 
     /**
      * True when the level root holds at least one Iris-managed world directory. Used by the failure paths

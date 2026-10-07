@@ -7,7 +7,6 @@ import art.arcane.iris.generation.hydrology.cave.CaveVoxelView;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCandidate;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveFluidPolicy;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveGrottoShape;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveMode;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlannerSettings;
@@ -165,8 +164,17 @@ public class HydrologyCaveTerminalAlignmentTest {
         actions.put(SHARED, sharedAction);
         return new HydrologyCaveCandidate(
                 new HydrologyCaveSource(id, SHARED, SHARED, 20, HydrologyCaveMode.GENERATED_GROTTO),
-                "water", new HydrologyCavePlannerSettings(8, 8, 32, 1, 1, 1, 1, 0,
-                HydrologyCaveFluidPolicy.REJECT_EXISTING, HydrologyCaveGrottoShape.ELLIPSOID, 8, 8),
+                "water", new HydrologyCavePlannerSettings(
+                        8,
+                        8,
+                        32,
+                        1,
+                        1,
+                        0,
+                        HydrologyCaveFluidPolicy.REJECT_EXISTING,
+                        8,
+                        8
+                ),
                 false, actions, Set.of(own));
     }
 

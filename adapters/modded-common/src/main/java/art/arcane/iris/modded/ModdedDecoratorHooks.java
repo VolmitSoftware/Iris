@@ -50,7 +50,7 @@ public final class ModdedDecoratorHooks implements DecoratorPlatformHooks.FaceFi
             int xx = rX + dx;
             int yy = y + dy;
             int zz = rZ + dz;
-            return xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy > hunk.getHeight()
+            return xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy >= hunk.getHeight()
                     ? null : hunk.get(xx, yy, zz);
         }
     }

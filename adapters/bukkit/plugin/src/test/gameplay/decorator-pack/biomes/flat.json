@@ -1,0 +1,47 @@
+{
+  "name": "Flat",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [
+    {
+      "minHeight": 1,
+      "maxHeight": 1,
+      "palette": [
+        {
+          "block": "minecraft:lime_wool"
+        }
+      ]
+    },
+    {
+      "minHeight": 384,
+      "maxHeight": 384,
+      "palette": [
+        {
+          "block": "minecraft:green_concrete"
+        }
+      ]
+    }
+  ],
+  "generators": [
+    {
+      "generator": "flat",
+      "min": 96,
+      "max": 96
+    }
+  ],
+  "decorators": [
+    {
+      "palette": [
+        {
+          "block": "minecraft:oak_stairs",
+          "data": {
+            "half": "bottom",
+            "facing": "north"
+          }
+        }
+      ],
+      "chance": 1,
+      "forcePlace": true
+    }
+  ]
+}

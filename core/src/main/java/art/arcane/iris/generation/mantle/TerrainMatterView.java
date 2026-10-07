@@ -22,13 +22,15 @@ public final class TerrainMatterView {
     }
 
     public static <T> T get(Mantle<Matter> mantle, int x, int y, int z, Class<T> type) {
-        if (!hasJournal(type)) {
-            return mantle.get(x, y, z, type);
+        Objects.requireNonNull(type, "Terrain matter type");
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return null;
         }
-        MantleChunk<Matter> chunk = mantle.getChunk(x >> 4, z >> 4);
-        synchronized (chunk) {
-            PreObjectMatterCell cell = mantle.get(x, y, z, PreObjectMatterCell.class);
-            return cell != null && cell.captures(type) ? cell.original(type) : mantle.get(x, y, z, type);
+        MantleChunk<Matter> chunk = mantle.useChunk(x >> 4, z >> 4);
+        try {
+            return get(chunk, x, y, z, type);
+        } finally {
+            chunk.release();
         }
     }
 

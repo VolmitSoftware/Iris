@@ -210,8 +210,8 @@ public final class DimensionTerrainContext implements DataProvider {
                     if (key == null || key.isBlank()) {
                         continue;
                     }
-                    maximum += biome.getGenLinkMax(key, engine);
-                    minimum += biome.getGenLinkMin(key, engine);
+                    maximum += biome.getGenLinkMax(key);
+                    minimum += biome.getGenLinkMin(key);
                 }
                 interpolatorBounds.put(biome, new NoiseBounds(minimum, maximum));
             }
@@ -329,8 +329,8 @@ public final class DimensionTerrainContext implements DataProvider {
                             if (key == null || key.isBlank()) {
                                 continue;
                             }
-                            maximum += sampledBiome.getGenLinkMax(key, engine);
-                            minimum += sampledBiome.getGenLinkMin(key, engine);
+                            maximum += sampledBiome.getGenLinkMax(key);
+                            minimum += sampledBiome.getGenLinkMin(key);
                         }
                         return new NoiseBounds(minimum, maximum);
                     } catch (Throwable e) {

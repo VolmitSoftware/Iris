@@ -71,6 +71,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -78,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
@@ -244,6 +246,7 @@ public class IrisCreator {
         World world = null;
         boolean bukkitRegistered = false;
         PlatformChunkGenerator stagedGenerator = null;
+        boolean studioEntryTransferred = false;
         try {
             reportStudioProgress(0.08D, "resolve_dimension");
             reportStudioProgress(0.16D, "prepare_world_pack");
@@ -309,7 +312,7 @@ public class IrisCreator {
                 throw new IrisException("Access is null. Something bad happened.");
             }
             stagedGenerator = access;
-            if (!studio && !benchmark) {
+            if (!benchmark) {
                 access.beginInitialEntry(sender != null && sender.isPlayer());
             }
             AtomicInteger createProgressTask = startCreateProgressReporter(access, done, creationReporter);
@@ -386,7 +389,9 @@ public class IrisCreator {
             }
             reportCreationProgress(creationReporter, 0.92D, "teleport_player");
             awaitSenderTeleport(world);
-            access.completeInitialEntry();
+            if (!studio) {
+                access.completeInitialEntry();
+            }
 
             if (pregen != null) {
                 CompletableFuture<Boolean> ff = new CompletableFuture<>();
@@ -415,6 +420,7 @@ public class IrisCreator {
                 }
             }
             reportCreationProgress(creationReporter, 0.99D, "finalize");
+            studioEntryTransferred = studio;
             return world;
         } catch (Throwable failure) {
             rollbackWorldCreation(worldKey, world, stagedGenerator, storageRoot, bukkitRegistered, failure);
@@ -423,9 +429,13 @@ public class IrisCreator {
             }
             throw new IrisException("Failed to create world \"" + name + "\".", failure);
         } finally {
-            if (stagedGenerator != null) {
-                stagedGenerator.completeInitialEntry();
-            }
+            completeCreationEntry(stagedGenerator, studioEntryTransferred);
+        }
+    }
+
+    static void completeCreationEntry(PlatformChunkGenerator generator, boolean studioEntryTransferred) {
+        if (generator != null && !studioEntryTransferred) {
+            generator.completeInitialEntry();
         }
     }
 
@@ -452,15 +462,40 @@ public class IrisCreator {
 
         int chunkX = entryAnchor.getBlockX() >> 4;
         int chunkZ = entryAnchor.getBlockZ() >> 4;
-        return requiredRuntime.requestChunkAsync(requiredWorld, chunkX, chunkZ, true)
-                .thenCompose(chunk -> requiredRuntime.resolveSafeEntry(requiredWorld, entryAnchor))
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        AtomicReference<CompletableFuture<Boolean>> activeTeleport = new AtomicReference<>();
+        result.whenComplete((ignored, failure) -> {
+            CompletableFuture<Boolean> teleport = activeTeleport.get();
+            if (result.isCancelled() && teleport != null) {
+                teleport.cancel(false);
+            }
+        });
+        requiredRuntime.requestChunkAsync(requiredWorld, chunkX, chunkZ, true)
+                .thenCompose(chunk -> result.isCancelled()
+                        ? CompletableFuture.failedFuture(new CancellationException())
+                        : requiredRuntime.resolveSafeEntry(requiredWorld, entryAnchor))
                 .thenCompose(safeEntry -> {
+                    if (result.isCancelled()) {
+                        return CompletableFuture.failedFuture(new CancellationException());
+                    }
                     if (safeEntry == null) {
                         return CompletableFuture.failedFuture(new IllegalStateException(
                                 "Unable to resolve a safe entry for world \"" + requiredWorld.getName() + "\"."));
                     }
-                    return requiredRuntime.teleport(requiredPlayer, safeEntry);
+                    CompletableFuture<Boolean> teleport = requiredRuntime.teleport(requiredPlayer, safeEntry);
+                    activeTeleport.set(teleport);
+                    if (result.isCancelled()) {
+                        teleport.cancel(false);
+                    }
+                    return teleport;
+                }).whenComplete((teleported, failure) -> {
+                    if (failure == null) {
+                        result.complete(teleported);
+                    } else {
+                        result.completeExceptionally(unwrapFailure(failure));
+                    }
                 });
+        return result;
     }
 
     private void awaitSenderTeleport(World world) {
@@ -752,7 +787,12 @@ public class IrisCreator {
             try {
                 stagedGenerator.closeAsync().get(ROLLBACK_PHASE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (Throwable rollbackFailure) {
-                failure.addSuppressed(unwrapFailure(rollbackFailure));
+                Throwable cause = unwrapFailure(rollbackFailure);
+                failure.addSuppressed(cause);
+                safeToDelete = false;
+                if (cause instanceof TimeoutException) {
+                    ServerConfigurator.restart("World creation rollback timed out for \"" + name + "\".");
+                }
             }
         }
         if (activeWorld != null) {

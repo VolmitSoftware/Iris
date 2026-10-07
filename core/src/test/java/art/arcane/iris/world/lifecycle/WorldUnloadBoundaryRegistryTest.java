@@ -64,4 +64,20 @@ public class WorldUnloadBoundaryRegistryTest {
             WorldUnloadBoundaryRegistry.complete(boundary, false, null);
         }
     }
+    @Test
+    public void claimedBoundaryStillExcludesAnotherUnloadUntilRawCompletion() {
+        String worldIdentity = "iris:boundary_claimed_duplicate";
+        WorldUnloadBoundaryRegistry.Boundary boundary = WorldUnloadBoundaryRegistry.begin(worldIdentity);
+        try {
+            CompletionStage<Boolean> claimed = WorldUnloadBoundaryRegistry.claim(worldIdentity);
+            assertFalse(claimed.toCompletableFuture().isDone());
+            assertNull(WorldUnloadBoundaryRegistry.claim(worldIdentity));
+            assertThrows(IllegalStateException.class, () -> WorldUnloadBoundaryRegistry.begin(worldIdentity));
+        } finally {
+            WorldUnloadBoundaryRegistry.complete(boundary, false, null);
+        }
+        WorldUnloadBoundaryRegistry.Boundary next = WorldUnloadBoundaryRegistry.begin(worldIdentity);
+        WorldUnloadBoundaryRegistry.complete(next, true, null);
+    }
+
 }

@@ -31,6 +31,7 @@ import art.arcane.iris.platform.protocol.IrisVisionRequestService;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.protocol.IrisProtocol;
+import art.arcane.iris.modded.service.ModdedPackUpdateService;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -128,6 +129,10 @@ public final class ModdedProtocolHandler {
         }
         String sessionId = sessionId(player);
         ModdedStartup.warnStartupFailuresTo(player);
+        ModdedPackUpdateService packUpdates = ModdedEngineBootstrap.services().service(ModdedPackUpdateService.class);
+        if (packUpdates != null) {
+            packUpdates.notifyPlayer(player);
+        }
         IrisSessionRegistry current = registry;
         ModdedProtocolTransport currentTransport = transport;
         if (current == null || currentTransport == null) {

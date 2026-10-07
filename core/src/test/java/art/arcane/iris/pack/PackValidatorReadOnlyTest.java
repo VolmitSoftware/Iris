@@ -1,5 +1,10 @@
 package art.arcane.iris.pack;
 
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.IrisLogging;
+import org.mockito.MockedStatic;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -16,6 +21,9 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class PackValidatorReadOnlyTest {
     @Rule
@@ -39,6 +47,29 @@ public class PackValidatorReadOnlyTest {
             assertArrayEquals(entry.getValue(), after.get(entry.getKey()));
         }
         assertFalse(new File(pack, ".iris-trash").exists());
+    }
+
+    @Test
+    public void contentGateInitializationFailureBlocksPackPublication() throws Exception {
+        File pack = temporaryFolder.newFolder("failed-gate");
+        write(pack, "dimensions/main.json", "{\"regions\":[\"region\"]}");
+        write(pack, "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack, "biomes/biome.json", "{\"name\":\"Biome\"}");
+        assertTrue(PackValidator.validateForPackaging(pack).isLoadable());
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.minecraftVersion()).thenReturn("26.3");
+        try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class);
+             MockedStatic<IrisData> data = mockStatic(IrisData.class);
+             MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+            platforms.when(IrisPlatforms::isBound).thenReturn(true);
+            platforms.when(IrisPlatforms::get).thenReturn(platform);
+            data.when(() -> IrisData.openRuntime(pack)).thenThrow(new IllegalStateException("Registry unavailable"));
+
+            PackValidationResult result = PackValidator.validate(pack);
+
+            assertFalse(result.isLoadable());
+            assertTrue(result.getBlockingErrors().toString().contains("Registry unavailable"));
+        }
     }
 
     private void write(File root, String relative, String content) throws Exception {

@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Queue;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -57,10 +57,58 @@ import static org.mockito.Mockito.when;
 
 public class AsyncPregenServerSaveOwnershipTest {
     @Test
+    public void adjacentRegionEvictionsShareQueuedFlushButActiveArrivalNeedsAnother() throws Exception {
+        Fixture fixture = new Fixture();
+        for (int regionX = 1; regionX <= 2; regionX++) {
+            Chunk chunk = mock(Chunk.class);
+            when(chunk.getX()).thenReturn(regionX << 5);
+            when(chunk.getZ()).thenReturn(3);
+            when(fixture.binding.saveAndUnloadChunk(fixture.world, regionX << 5, 3)).thenReturn(true);
+            Queue<Chunk> chunks = new ConcurrentLinkedQueue<>();
+            chunks.add(chunk);
+            fixture.chunks.put((long) regionX << 32, chunks);
+        }
+        Queue<Runnable> scheduled = new ArrayDeque<>();
+        fixture.set("chunkIoFlush", new PregenChunkFlush(scheduled::add,
+                () -> fixture.binding.flushChunkIO(fixture.world)));
+        AtomicInteger calls = new AtomicInteger();
+        AtomicReference<CompletableFuture<?>> third = new AtomicReference<>();
+        AtomicReference<CompletableFuture<?>> first = new AtomicReference<>();
+        AtomicReference<CompletableFuture<?>> second = new AtomicReference<>();
+        doAnswer(invocation -> {
+            if (calls.incrementAndGet() == 1) {
+                third.set((CompletableFuture<?>) invoke(fixture.method, "evictRegion", 2L << 32));
+                assertFalse(third.get().isDone());
+            } else {
+                assertTrue(first.get().isDone());
+                assertTrue(second.get().isDone());
+                assertFalse(third.get().isDone());
+            }
+            return null;
+        }).when(fixture.binding).flushChunkIO(fixture.world);
+        try (SchedulingContext context = new SchedulingContext(fixture)) {
+            first.set((CompletableFuture<?>) invoke(fixture.method, "evictRegion", 0L));
+            second.set((CompletableFuture<?>) invoke(fixture.method, "evictRegion", 1L << 32));
+            assertEquals(1, scheduled.size());
+            assertFalse(first.get().isDone());
+            assertFalse(second.get().isDone());
+            scheduled.remove().run();
+            first.get().join();
+            second.get().join();
+            third.get().join();
+            verify(fixture.binding, times(2)).flushChunkIO(fixture.world);
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 2, 3);
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 32, 3);
+            verify(fixture.binding).saveAndUnloadChunk(fixture.world, 64, 3);
+            assertTrue(scheduled.isEmpty());
+        }
+    }
+
+    @Test
     public void ownerReturnsAfterUnloadWhileEvictionTracksTheOffOwnerIoDrain() throws Exception {
         Fixture fixture = new Fixture();
         ExecutorService io = Executors.newSingleThreadExecutor();
-        fixture.set("chunkIoExecutor", io);
+        fixture.set("chunkIoFlush", new PregenChunkFlush(io, () -> fixture.binding.flushChunkIO(fixture.world)));
         Thread ownerThread = Thread.currentThread();
         CountDownLatch draining = new CountDownLatch(1);
         CountDownLatch finishDrain = new CountDownLatch(1);
@@ -95,7 +143,7 @@ public class AsyncPregenServerSaveOwnershipTest {
         Fixture fixture = new Fixture();
         fixture.set("foliaRuntime", true);
         ExecutorService io = Executors.newSingleThreadExecutor();
-        fixture.set("chunkIoExecutor", io);
+        fixture.set("chunkIoFlush", new PregenChunkFlush(io, () -> fixture.binding.flushChunkIO(fixture.world)));
         Chunk second = mock(Chunk.class);
         when(second.getX()).thenReturn(17);
         when(second.getZ()).thenReturn(3);
@@ -318,7 +366,7 @@ public class AsyncPregenServerSaveOwnershipTest {
     public void nativeFlushRunsOnThePregenFlushWorkerNotTheSharedIoPool() throws Exception {
         Fixture fixture = new Fixture();
         PregenSerialWorker flush = new PregenSerialWorker("Iris Pregen Chunk Flush", "world");
-        fixture.set("chunkIoExecutor", flush.executor());
+        fixture.set("chunkIoFlush", new PregenChunkFlush(flush.executor(), () -> fixture.binding.flushChunkIO(fixture.world)));
         AtomicReference<Thread> ioThread = new AtomicReference<>();
         doAnswer(invocation -> {
             ioThread.set(Thread.currentThread());
@@ -517,7 +565,7 @@ public class AsyncPregenServerSaveOwnershipTest {
             set("regionChunks", chunks);
             set("regionPending", pendingRegions);
             set("pendingEvictions", evictions);
-            set("chunkIoExecutor", (Executor) Runnable::run);
+            set("chunkIoFlush", new PregenChunkFlush(Runnable::run, () -> binding.flushChunkIO(world)));
             set("generationFailure", new AtomicReference<>());
             set("inFlightRequests", new PregenInFlightRequests());
             when(chunk.getX()).thenReturn(2);

@@ -668,6 +668,53 @@ public class IrisObjectPlacementRunnerRegressionTest {
         }
     }
 
+    @Test
+    public void dryObjectBlocksDoNotReadDestinationWaterlogging() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        IrisObject object = lineObject(8);
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+        List<NativeBlockState> observed = new ArrayList<>();
+        TileData tile = new TileData("minecraft:stone", new KMap<>());
+        object.setUnsignedTile(0, 0, 0, tile);
+
+        object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L),
+                (position, state) -> observed.add(state), null, data);
+
+        assertEquals(0, placer.blockReads);
+        assertEquals(8, placer.writes().size());
+        assertEquals(Collections.nCopies(8, solid), observed);
+        assertTrue(placer.data.containsValue(tile));
+    }
+
+    @Test
+    public void waterloggedBlocksPreserveAuthoredAndEnabledSubmersionRules() {
+        NativeBlockState wet = state("minecraft:oak_slab[type=bottom,waterlogged=true]", true);
+        NativeBlockState dry = state("minecraft:oak_slab[type=bottom,waterlogged=false]", true);
+        NativeBlockState water = state("minecraft:water", false);
+        when(water.isWater()).thenReturn(true);
+        when(wet.withProperty("waterlogged", "false")).thenReturn(dry);
+        when(dry.withProperty("waterlogged", "true")).thenReturn(wet);
+        for (boolean authored : new boolean[]{false, true}) {
+            for (boolean enabled : new boolean[]{false, true}) {
+                for (boolean submerged : new boolean[]{false, true}) {
+                    RecordingPlacer placer = new RecordingPlacer(null);
+                    placer.world.put("0:" + ANCHOR_Y + ":0", submerged ? water : solid);
+                    IrisObject object = new IrisObject(1, 1, 1);
+                    object.setUnsigned(0, 0, 0, authored ? wet : dry);
+                    IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.STRUCTURE_PIECE)
+                            .setWaterloggable(enabled);
+
+                    object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
+
+                    assertEquals(1, placer.blockReads);
+                    assertEquals(1, placer.writes().size());
+                    assertSame(submerged && (enabled || authored) ? wet : dry,
+                            placer.writes().get(0).state());
+                }
+            }
+        }
+    }
+
     private IrisObjectPlacement placement() {
         IrisObjectPlacement placement = new IrisObjectPlacement();
         placement.setMode(ObjectPlaceMode.CENTER_HEIGHT);
@@ -718,6 +765,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         private final Map<String, int[]> terrain = new HashMap<>();
         private final Engine engine;
         private int failAfterWrites = Integer.MAX_VALUE;
+        private int blockReads;
         private boolean debugSmartBore;
         private boolean highestFollowsWrites;
 
@@ -778,6 +826,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         @Override
         public NativeBlockState get(int x, int y, int z) {
+            blockReads++;
             return world.get(x + ":" + y + ":" + z);
         }
 

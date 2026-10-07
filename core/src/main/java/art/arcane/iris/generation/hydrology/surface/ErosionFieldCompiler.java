@@ -9,7 +9,8 @@ import art.arcane.iris.generation.hydrology.HydrologyTerrainSampler;
 import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.generation.hydrology.IrisRiverBedProfile;
 import art.arcane.iris.generation.hydrology.IrisRiverBlendStyle;
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -149,8 +150,9 @@ public final class ErosionFieldCompiler {
         boolean[] basin = prepared.basin();
         double[] bendOffsets = prepared.bendOffsets();
         double[][] blendWidth = prepared.blendWidth();
-        Long2IntOpenHashMap nearest = geometry.nearest;
-        Long2DoubleOpenHashMap distance = geometry.distance;
+        Long2IntOpenHashMap indices = geometry.indices;
+        IntArrayList stations = geometry.stations;
+        DoubleArrayList distance = geometry.distance;
         if (!geometry.prepared) {
             for (int station = 0; station < count; station++) {
                 int radius = prepared.radii()[station];
@@ -172,14 +174,22 @@ public final class ErosionFieldCompiler {
                             continue;
                         }
                         long key = RiverFootprint.pack(cellX, cellZ);
-                        int existing = nearest.get(key);
+                        int index = indices.get(key);
+                        int existing = index < 0 ? -1 : stations.getInt(index);
+                        double existingDistance = index < 0 ? 0D : distance.getDouble(index);
                         // A cell on a station's cross-section row ties between the two segments meeting
                         // there; the later station owns it so the row uses the head its own ring bounded.
                         if (existing < 0
-                                || cellDistance < distance.get(key) - EPSILON
-                                || Math.abs(cellDistance - distance.get(key)) <= EPSILON && station > existing) {
-                            nearest.put(key, station);
-                            distance.put(key, cellDistance);
+                                || cellDistance < existingDistance - EPSILON
+                                || Math.abs(cellDistance - existingDistance) <= EPSILON && station > existing) {
+                            if (index < 0) {
+                                indices.put(key, stations.size());
+                                stations.add(station);
+                                distance.add(cellDistance);
+                            } else {
+                                stations.set(index, station);
+                                distance.set(index, cellDistance);
+                            }
                         }
                     }
                 }
@@ -189,17 +199,18 @@ public final class ErosionFieldCompiler {
         int oceanStart = oceanStart(centerline, valley, terminal);
         int inletStart = prepared.inletStart();
         Long2ObjectOpenHashMap<SurfaceColumn> columns = new Long2ObjectOpenHashMap<>(wetOnly
-                ? Math.min(nearest.size(), Math.max(16, count * 8)) : nearest.size());
+                ? Math.min(indices.size(), Math.max(16, count * 8)) : indices.size());
         LongArrayList wetKeys = new LongArrayList();
-        LongIterator candidates = nearest.keySet().iterator();
-        long[] coordinates = new long[Math.min(nearest.size(), HydrologyTerrainSampler.MAXIMUM_BATCH_SIZE)];
+        LongIterator candidates = indices.keySet().iterator();
+        long[] coordinates = new long[Math.min(indices.size(), HydrologyTerrainSampler.MAXIMUM_BATCH_SIZE)];
         double[] outlines = new double[coordinates.length];
         while (candidates.hasNext()) {
             int pageSize = 0;
             while (candidates.hasNext() && pageSize < coordinates.length) {
                 long key = candidates.nextLong();
-                int station = nearest.get(key);
-                double cellDistance = distance.get(key);
+                int geometryIndex = indices.get(key);
+                int station = stations.getInt(geometryIndex);
+                double cellDistance = distance.getDouble(geometryIndex);
                 int cellX = RiverFootprint.unpackX(key);
                 int cellZ = RiverFootprint.unpackZ(key);
                 int head = valley.head()[station];
@@ -231,8 +242,9 @@ public final class ErosionFieldCompiler {
             HydrologyTerrainSample[] samples = sampler.sampleBatch(coordinates, pageSize);
             for (int index = 0; index < pageSize; index++) {
                 long key = coordinates[index];
-                int station = nearest.get(key);
-                double cellDistance = distance.get(key);
+                int geometryIndex = indices.get(key);
+                int station = stations.getInt(geometryIndex);
+                double cellDistance = distance.getDouble(geometryIndex);
                 int cellX = RiverFootprint.unpackX(key);
                 int cellZ = RiverFootprint.unpackZ(key);
                 int head = valley.head()[station];
@@ -898,12 +910,13 @@ public final class ErosionFieldCompiler {
     }
 
     private static final class RasterGeometry {
-        private final Long2IntOpenHashMap nearest = new Long2IntOpenHashMap();
-        private final Long2DoubleOpenHashMap distance = new Long2DoubleOpenHashMap();
+        private final Long2IntOpenHashMap indices = new Long2IntOpenHashMap();
+        private final IntArrayList stations = new IntArrayList();
+        private final DoubleArrayList distance = new DoubleArrayList();
         private boolean prepared;
 
         private RasterGeometry() {
-            nearest.defaultReturnValue(-1);
+            indices.defaultReturnValue(-1);
         }
     }
 

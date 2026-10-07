@@ -524,8 +524,8 @@ public class IrisToolbelt {
                 }
             };
             try {
-                if (!J.runEntity(player, teleportTask)) {
-                    teleportTask.run();
+                if (!J.runEntity(player, teleportTask, 0, () -> evacuation.complete(false))) {
+                    evacuation.complete(false);
                 }
             } catch (Throwable failure) {
                 evacuation.completeExceptionally(failure);

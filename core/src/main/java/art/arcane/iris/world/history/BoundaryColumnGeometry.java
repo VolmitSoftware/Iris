@@ -20,6 +20,7 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
     private final List<Voxel> palette;
     private final int[] runEnds;
     private final short[] paletteIndices;
+    private final int highestSolidOffset;
 
     public BoundaryColumnGeometry(int minimumY, List<Voxel> palette, int[] runEnds, short[] paletteIndices) {
         this.minimumY = minimumY;
@@ -27,6 +28,7 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         this.runEnds = Objects.requireNonNull(runEnds, "Geometry run ends").clone();
         this.paletteIndices = Objects.requireNonNull(paletteIndices, "Geometry palette indices").clone();
         validate();
+        highestSolidOffset = findHighestSolidOffset();
     }
 
     public static BoundaryColumnGeometry empty() {
@@ -112,20 +114,16 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
     }
 
     public boolean hasSolidAbove(int worldY) {
-        long offset = (long) worldY - minimumY;
-        if (offset >= height() - 1L) {
-            return false;
-        }
-        int startRun = offset < 0 ? 0 : runAt((int) offset);
-        for (int run = startRun; run < runEnds.length; run++) {
-            if (runEnds[run] <= offset + 1L) {
-                continue;
-            }
+        return highestSolidOffset >= 0 && (long) worldY - minimumY < highestSolidOffset;
+    }
+
+    private int findHighestSolidOffset() {
+        for (int run = runEnds.length - 1; run >= 0; run--) {
             if (palette.get(paletteIndices[run]).phase() == Phase.SOLID) {
-                return true;
+                return runEnds[run] - 1;
             }
         }
-        return false;
+        return -1;
     }
 
     public List<Voxel> voxels() {

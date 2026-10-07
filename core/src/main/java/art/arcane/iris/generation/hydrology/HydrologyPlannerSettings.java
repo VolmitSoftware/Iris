@@ -589,7 +589,7 @@ public record HydrologyPlannerSettings(
         }
     }
 
-    /** A pond at one end of a surface course: a round bowl holding the course's head at that end. */
+    /** A pond at one end of a surface course: a shaped bowl holding the course's head at that end. */
     public record Pond(boolean enabled, int minimumRadius, int maximumRadius, int depth) {
         public Pond {
             if (minimumRadius < 1 || maximumRadius < minimumRadius || depth < 1) {

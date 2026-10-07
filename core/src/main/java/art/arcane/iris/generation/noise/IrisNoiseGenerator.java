@@ -102,8 +102,7 @@ public class IrisNoiseGenerator {
         this.enabled = enabled;
     }
 
-    protected CNG getGenerator(long superSeed, IrisData data) {
-        Engine engine = data == null ? null : data.getEngine();
+    CNG getGenerator(long superSeed, IrisData data, Engine engine) {
         long generatorSeed = superSeed + GENERATOR_SEED_SALT - seed;
         CachedGenerator recent = recentGenerator.get();
         if (recent != null && recent.key.matches(data, engine, generatorSeed)) {
@@ -112,7 +111,7 @@ public class IrisNoiseGenerator {
 
         GeneratorKey key = new GeneratorKey(data, engine, generatorSeed);
         CNG generator = generators.computeIfAbsent(key,
-                ignored -> style.createForLayer(new RNG(generatorSeed), data, octaves));
+                ignored -> style.createForLayer(new RNG(generatorSeed), data, octaves, engine));
         if (generator != null) {
             recentGenerator.set(new CachedGenerator(key, generator));
         }
@@ -128,6 +127,14 @@ public class IrisNoiseGenerator {
             return offsetY;
         }
 
+        return getNoise(superSeed, xv, zv, data, data == null ? null : data.getEngine());
+    }
+
+    double getNoise(long superSeed, double xv, double zv, IrisData data, Engine engine) {
+        if (!enabled) {
+            return offsetY;
+        }
+
         double x = xv;
         double z = zv;
         int g = 33;
@@ -135,13 +142,13 @@ public class IrisNoiseGenerator {
         for (IrisNoiseGenerator i : fracture) {
             if (i.isEnabled()) {
                 double fractureOffset = i.getOpacity() / 2D;
-                x += i.getNoise(superSeed + seed + g, xv, zv, data) - fractureOffset;
-                z += i.getNoise(superSeed + seed + g, zv, xv, data) - fractureOffset;
+                x += i.getNoise(superSeed + seed + g, xv, zv, data, engine) - fractureOffset;
+                z += i.getNoise(superSeed + seed + g, zv, xv, data, engine) - fractureOffset;
             }
             g += 819;
         }
 
-        CNG cng = getGenerator(superSeed, data);
+        CNG cng = getGenerator(superSeed, data, engine);
         double sampleX = (x / zoom) + offsetX;
         double sampleZ = (z / zoom) + offsetZ;
         double n = cng.noiseFast2D(sampleX, sampleZ) * opacity;

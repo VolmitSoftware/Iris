@@ -47,7 +47,7 @@ public final class SurfaceCourseBuilder {
         SurfaceCenterline centerline = SurfaceCenterline.densify(path);
         boolean directOcean = terminal == SurfaceTerminal.OCEAN_MOUTH;
         ChannelProfile channel = new ChannelProfileBuilder(surface, sampler, geometry)
-                .build(centerline, profileKey, directOcean);
+                .build(centerline, profileKey, directOcean, worldSeed);
         ValleyProfile valley = new RiverProfileSolver(new RiverProfileSolver.Options(surface, seaLevel), sampler)
                 .solve(path, centerline, channel, terminal, terminalHead, minimumCourseLength);
         if (!valley.accepted()) {

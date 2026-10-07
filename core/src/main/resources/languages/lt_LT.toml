@@ -1874,6 +1874,8 @@ status = "{name}  |  X: {x}  Z: {z}  124; didinimas: {zoom}  SmithKline 124; Ver
 "category.other" = "Kita"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "Uždarius šį langą generavimas tęsiamas."
 initializing = "Inicijuojama..."
 title = "Comment"
 method_pending = "Laukiama"

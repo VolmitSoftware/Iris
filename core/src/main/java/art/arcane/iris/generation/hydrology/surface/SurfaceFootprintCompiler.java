@@ -21,12 +21,15 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 public final class SurfaceFootprintCompiler {
     private static final long COURSE_SEED_SALT = 0x535552464143455fL;
+    private static final Comparator<SurfaceColumn> COLUMN_POSITION_ORDER = Comparator.comparingLong(
+            column -> RiverFootprint.pack(column.x(), column.z()));
 
     private final HydrologyPlannerSettings settings;
     private final HydrologyTerrainSampler sampler;
@@ -175,11 +178,9 @@ public final class SurfaceFootprintCompiler {
                 seed, centerline, run.channel(), run.valley(), run.terminal(),
                 settings.outlets().maximumOceanApron(), run.ponds(), context,
                 run.field());
-        ArrayList<SurfaceColumn> ordered = new ArrayList<>(field.columns().values());
-        ordered.sort(Comparator.comparingInt(SurfaceColumn::station)
-                .thenComparingLong((SurfaceColumn column) -> RiverFootprint.pack(column.x(), column.z())));
+        SurfaceColumn[] ordered = orderedColumns(field, centerline.size());
         SurfaceFeatureRefs features = new SurfaceFeatureRefs(course.id());
-        ArrayList<SurfaceLayerColumn> columns = new ArrayList<>(ordered.size());
+        ArrayList<SurfaceLayerColumn> columns = new ArrayList<>(ordered.length);
         for (SurfaceColumn column : ordered) {
             if (bounds != null && !bounds.contains(column.x(), column.z())) {
                 continue;
@@ -197,6 +198,29 @@ public final class SurfaceFootprintCompiler {
                     stationOffset + column.station()));
         }
         return new SurfaceFootprint(columns, field.uncontainedWetCells(), field.rejection(), field.rejectionDetail(), field.bankExcavation());
+    }
+
+    static SurfaceColumn[] orderedColumns(ErosionField field, int stationCount) {
+        int[] ends = new int[stationCount + 1];
+        for (SurfaceColumn column : field.columns().values()) {
+            ends[column.station() + 1]++;
+        }
+        for (int station = 1; station < ends.length; station++) {
+            ends[station] += ends[station - 1];
+        }
+        SurfaceColumn[] ordered = new SurfaceColumn[field.size()];
+        for (SurfaceColumn column : field.columns().values()) {
+            ordered[ends[column.station()]++] = column;
+        }
+        int start = 0;
+        for (int station = 0; station < stationCount; station++) {
+            int end = ends[station];
+            if (end - start > 1) {
+                Arrays.sort(ordered, start, end, COLUMN_POSITION_ORDER);
+            }
+            start = end;
+        }
+        return ordered;
     }
 
     private SurfaceRunBoundary runBoundary(RiverCourse course, int first, int after,

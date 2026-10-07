@@ -6,10 +6,9 @@ import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.BrokenPackException;
-import art.arcane.iris.pack.PackValidationCache;
+import art.arcane.iris.pack.PackFingerprints;
 import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationResult;
-import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
@@ -174,7 +173,7 @@ final class ModdedGenerationHistoryStorage {
     static ActivePack resolveActive(GenerationHistory history) throws IOException {
         GenerationEpoch epoch = history.activeEpoch();
         Path packRoot = normalize(history.activePackRoot());
-        validatePack(packRoot, epoch.packFingerprint());
+        validatePack(packRoot);
         validateDimension(packRoot, epoch);
         return new ActivePack(
                 packRoot,
@@ -184,13 +183,16 @@ final class ModdedGenerationHistoryStorage {
         );
     }
 
-    private static void validatePack(Path packRoot, String fingerprint) {
-        String contextFingerprint = PackValidationCache.contextFingerprint();
-        PackValidationResult validation = PackValidator.validate(packRoot.toFile());
-        PackValidationRegistry.publish(packRoot, validation, fingerprint, contextFingerprint);
+    static PackValidationResult validatePack(Path packRoot) {
+        PackValidationResult validation = PackValidationRegistry.getMatching(
+                packRoot, PackFingerprints.computePackTreeFingerprint(packRoot.toFile()));
+        if (validation == null) {
+            validation = ModdedStartup.validatePack(packRoot.toFile());
+        }
         if (!validation.isLoadable()) {
             throw new BrokenPackException(packRoot.toString(), validation.getBlockingErrors());
         }
+        return validation;
     }
 
     private static void validateDimension(

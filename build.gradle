@@ -775,6 +775,12 @@ tasks.register('buildAll') {
     }
 }
 
+tasks.register('buildPsychoLT') {
+    group = 'development'
+    description = 'Builds all verified Iris platform jars and stages them in the local test-server dropins and PluginOuts.'
+    dependsOn('buildAll')
+}
+
 tasks.register('irisDev', Copy) {
     group = 'iris'
     from(project(':core').layout.buildDirectory.files('libs/core-javadoc.jar', 'libs/core-sources.jar'))

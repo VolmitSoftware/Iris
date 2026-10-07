@@ -25,6 +25,50 @@ public class BoundaryColumnGeometryTest {
             "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
 
     @Test
+    public void solidAboveMatchesDenseColumnsWithProtectionAndExtremeWorldCoordinates() {
+        BoundaryColumnGeometry.Voxel protectedSolid = new BoundaryColumnGeometry.Voxel(
+                "minecraft:gold_block", BoundaryColumnGeometry.Phase.SOLID, "", true);
+        BoundaryColumnGeometry.Voxel fluid = new BoundaryColumnGeometry.Voxel(
+                "minecraft:water", BoundaryColumnGeometry.Phase.FLUID, "minecraft:water", false);
+        Random random = new Random(83761L);
+        for (int height : new int[]{0, 1, 2, 3, 64, 257, 4096, BoundaryColumnGeometry.MAXIMUM_HEIGHT}) {
+            for (int minimumY : new int[]{Integer.MIN_VALUE, -2032, -64, 0,
+                    Integer.MAX_VALUE - BoundaryColumnGeometry.MAXIMUM_HEIGHT}) {
+                ArrayList<BoundaryColumnGeometry.Voxel> voxels = new ArrayList<>(height);
+                for (int offset = 0; offset < height; offset++) {
+                    voxels.add(switch (random.nextInt(8)) {
+                        case 0 -> STONE;
+                        case 1 -> protectedSolid;
+                        case 2 -> fluid;
+                        default -> AIR;
+                    });
+                }
+                BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(minimumY, voxels);
+                for (int index = 0; index < 128; index++) {
+                    long offset = index < 4 ? new long[]{-1, 0, height - 1L, height}[index]
+                            : random.nextInt(Math.max(1, height + 2)) - 1L;
+                    long worldY = (long) minimumY + offset;
+                    if (worldY < Integer.MIN_VALUE || worldY > Integer.MAX_VALUE) {
+                        continue;
+                    }
+                    boolean expected = false;
+                    for (int above = (int) Math.max(0L, offset + 1L); above < height; above++) {
+                        if (voxels.get(above).phase() == BoundaryColumnGeometry.Phase.SOLID) {
+                            expected = true;
+                            break;
+                        }
+                    }
+                    assertEquals(expected, geometry.hasSolidAbove((int) worldY));
+                }
+                assertFalse(geometry.hasSolidAbove(Integer.MAX_VALUE));
+            }
+        }
+        assertFalse(BoundaryColumnGeometry.empty().hasSolidAbove(Integer.MIN_VALUE));
+        assertFalse(BoundaryColumnGeometry.fromVoxels(-64, List.of(AIR, fluid)).hasSolidAbove(Integer.MIN_VALUE));
+        assertTrue(BoundaryColumnGeometry.fromVoxels(-64, List.of(protectedSolid)).hasSolidAbove(-65));
+    }
+
+    @Test
     public void preservesEveryVerticalRunIncludingCavesAndIslands() {
         BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(-4,
                 List.of(STONE, STONE, AIR, AIR, STONE, AIR));

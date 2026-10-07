@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -46,6 +47,79 @@ public class ErosionFieldCompilerTest {
         case SURFACE_DEPTH -> 3;
         default -> request.minimum();
     };
+
+    @Test
+    public void shapedEndpointPondsStayConnectedInsideTheirValidatedCircularEnvelope() {
+        HydrologyPlannerSettings.Ponds ponds = new HydrologyPlannerSettings.Ponds(
+                new HydrologyPlannerSettings.Pond(true, 10, 10, 3),
+                new HydrologyPlannerSettings.Pond(true, 10, 10, 3));
+        HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface(0, HydrologyPlannerSettings.Erosion.defaults(), ponds);
+        HydrologyTerrainSampler terrain = (x, z) -> HydrologyTerrainSample.openLand(80, 0D, "land");
+        for (boolean rotated : List.of(false, true)) {
+            SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(new HydrologyPoint(0, 80, 0),
+                    new HydrologyPoint(rotated ? 0 : 127, 80, rotated ? 127 : 0)));
+            double[] widths = new double[centerline.size()];
+            double[] depths = new double[centerline.size()];
+            double[] banks = new double[centerline.size()];
+            int[] heads = new int[centerline.size()];
+            Arrays.fill(widths, 2D);
+            Arrays.fill(depths, 2D);
+            Arrays.fill(banks, 1D);
+            Arrays.fill(heads, 80);
+            ChannelProfile channel = new ChannelProfile(widths, depths, banks);
+            ValleyProfile valley = ValleyProfile.fromHeads(heads, heads.length);
+            ErosionFieldCompiler compiler = new ErosionFieldCompiler(rasterSettings(surface), terrain);
+            ErosionField field = compiler.compile(1234L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 0);
+            assertNull(field.rejection());
+            assertEquals(0, field.uncontainedWetCells());
+            assertChannelContained(new Compiled(field, valley));
+            assertEquals(SurfaceRole.CHANNEL, field.column(0, 0).role());
+            SurfaceColumn end = field.column(rotated ? 0 : 127, rotated ? 127 : 0);
+            assertEquals(SurfaceRole.CHANNEL, end.role());
+            assertTrue(end.height() < end.headY());
+            assertTrue(field.column(0, 0).height() < field.column(0, 0).headY());
+            SurfaceColumn narrowSide = field.column(rotated ? 9 : 0, rotated ? 0 : 9);
+            assertTrue(narrowSide == null || narrowSide.role() != SurfaceRole.CHANNEL);
+            Set<Long> wet = new HashSet<>();
+            for (SurfaceColumn column : field.columns().values()) {
+                if (column.role() != SurfaceRole.CHANNEL || column.height() >= column.headY() || column.apron()) {
+                    continue;
+                }
+                wet.add(RiverFootprint.pack(column.x(), column.z()));
+                int along = rotated ? column.z() : column.x();
+                int across = rotated ? column.x() : column.z();
+                if (along < 0 || along > 127) {
+                    int endpoint = along < 0 ? 0 : 127;
+                    assertTrue(StrictMath.hypot(along - endpoint, across) <= 10.25D);
+                }
+            }
+            Set<Long> reached = new HashSet<>();
+            ArrayDeque<Long> pending = new ArrayDeque<>();
+            pending.add(RiverFootprint.pack(0, 0));
+            reached.add(RiverFootprint.pack(0, 0));
+            int[][] offsets = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+            while (!pending.isEmpty()) {
+                long current = pending.removeFirst();
+                for (int[] offset : offsets) {
+                    long next = RiverFootprint.pack(RiverFootprint.unpackX(current) + offset[0],
+                            RiverFootprint.unpackZ(current) + offset[1]);
+                    if (wet.contains(next) && reached.add(next)) {
+                        pending.add(next);
+                    }
+                }
+            }
+            assertEquals(wet, reached);
+            SurfaceBounds bounds = rotated ? new SurfaceBounds(-12, -12, 12, 64)
+                    : new SurfaceBounds(-12, -12, 64, 12);
+            ErosionField clipped = compiler.compile(1234L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 0,
+                    ponds, SurfaceRasterContext.bounded(bounds));
+            for (SurfaceColumn column : field.columns().values()) {
+                if (bounds.contains(column.x(), column.z())) {
+                    assertEquals(column, clipped.column(column.x(), column.z()));
+                }
+            }
+        }
+    }
 
     @Test
     public void wetIncisionPreflightMatchesFullVerdictsAcrossPondsCrossingsStepsAndPolicies() {
@@ -253,13 +327,13 @@ public class ErosionFieldCompilerTest {
             sampleCounts.add(samples.get());
         }
         assertEquals(List.of(
-                "66595850077d44389c5c78594276de4568f85f08854d3333137dfc05ebf3455a",
-                "66595850077d44389c5c78594276de4568f85f08854d3333137dfc05ebf3455a",
-                "66595850077d44389c5c78594276de4568f85f08854d3333137dfc05ebf3455a",
-                "744b15e684ba996f9c730ab1409ada2643985c902a6da1aadb5cc2b4882d640b",
-                "2e7e4af1e433ccd0a7392f0d2e93bb85ac122088cd2cf8d55107f7dcfb4ec283",
-                "7beee0b78c37b1287510fa0719375e14e0f0013eb8af81df8e20a3b5628612b7",
-                "ad35016194318efa42dc862df4e2bb3d9ec398d3bacec79588576d74bfd1723a",
+                "1cf278d948dd80523cb79dceeabf5e3846a28c8ecd2595247f97de147b502aea",
+                "1cf278d948dd80523cb79dceeabf5e3846a28c8ecd2595247f97de147b502aea",
+                "1cf278d948dd80523cb79dceeabf5e3846a28c8ecd2595247f97de147b502aea",
+                "4632eab466aaf31be342e60e7ea285bd112564356e364e7876563c373027ab54",
+                "f64cb9e63d53728d55be395cf7f0cd5c88ef0402441434a64f79323d579f8a43",
+                "2da402c95dbd9d0568fec47479a943a020d1304a386653ba5b696d0e885dfff2",
+                "db2cd5eb7fd1d53fd9de167cda8e6c214652585162a937511c51596215b75fbf",
                 "a2fe6d20c87be6b6ebf1f4503da75ee767e65d5c8e8c43d5c344957f48f3085a"), fingerprints);
         int[] previousSamples = {16724, 16724, 16724, 19594, 15164, 15464, 16724, 7367};
         int[] maximumSamples = {15500, 15500, 15500, 17000, 3000, 3300, 5000, 7367};
@@ -400,7 +474,7 @@ public class ErosionFieldCompilerTest {
         HydrologyPlannerSettings.Surface surface = zeroRoughnessSurface();
         HydrologyTerrainSampler hillside = (int x, int z) -> HydrologyTerrainSample.openLand(90 + Math.max(0, z) / 2, 0D, "land");
         SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(new HydrologyPoint(-150, 0, 0), new HydrologyPoint(150, 0, 0)));
-        ChannelProfile channel = new ChannelProfileBuilder(surface, hillside, CONSTANT_GEOMETRY).build(centerline, "water", false);
+        ChannelProfile channel = new ChannelProfileBuilder(surface, hillside, CONSTANT_GEOMETRY).build(centerline, "water", false, 0L);
         ValleyProfile valley = new ValleyProfileSolver(surface, hillside, SEA_LEVEL, 64).solve(centerline, channel, SurfaceTerminal.SINKHOLE, 40);
         ErosionFieldCompiler compiler = new ErosionFieldCompiler(rasterSettings(surface), hillside);
         ErosionField complete = compiler.compile(42L, centerline, channel, valley, SurfaceTerminal.SINKHOLE, 8);
@@ -745,7 +819,7 @@ public class ErosionFieldCompilerTest {
         List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(stations - 1, 0, 0));
         SurfaceCenterline centerline = SurfaceCenterline.densify(path);
         ChannelProfile channel = new ChannelProfileBuilder(surface, sampler, CONSTANT_GEOMETRY)
-                .build(centerline, "water", terminal == SurfaceTerminal.OCEAN_MOUTH);
+                .build(centerline, "water", terminal == SurfaceTerminal.OCEAN_MOUTH, 0L);
         ValleyProfile valley = new ValleyProfileSolver(surface, sampler, SEA_LEVEL, 64)
                 .solve(centerline, channel, terminal, terminalHead);
         assertNull(valley.rejection());
@@ -992,7 +1066,7 @@ public class ErosionFieldCompilerTest {
         List<HydrologyPoint> path = List.of(new HydrologyPoint(0, 0, 0), new HydrologyPoint(259, 0, 0));
         SurfaceCenterline centerline = SurfaceCenterline.densify(path);
         ChannelProfile channel = new ChannelProfileBuilder(surface, sampler, CONSTANT_GEOMETRY)
-                .build(centerline, "water", true);
+                .build(centerline, "water", true, 0L);
         ValleyProfile valley = new ValleyProfileSolver(surface, sampler, SEA_LEVEL, 64)
                 .solve(centerline, channel, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
         assertNull(valley.rejection());
@@ -1069,16 +1143,17 @@ public class ErosionFieldCompilerTest {
         assertEquals(SurfaceRole.CHANNEL, centre.role());
         assertEquals(80, centre.headY());
         assertTrue(centre.height() <= 77);
-        SurfaceColumn behind = compiled.field().column(-9, 0);
+        SurfaceColumn behind = compiled.field().column(-7, 0);
         assertNotNull(behind);
         assertEquals(SurfaceRole.CHANNEL, behind.role());
         assertEquals(80, behind.headY());
-        SurfaceColumn beside = compiled.field().column(0, 9);
+        SurfaceColumn beside = compiled.field().column(0, 6);
         assertEquals(SurfaceRole.CHANNEL, beside.role());
         assertEquals(0, behind.station());
-        SurfaceColumn plainBehind = plain.field().column(-9, 0);
+        SurfaceColumn plainBehind = plain.field().column(-7, 0);
         assertTrue(plainBehind == null || plainBehind.role() != SurfaceRole.CHANNEL);
-        assertEquals(SurfaceRole.SHORE, compiled.field().column(-11, 0).role());
+        SurfaceColumn outside = compiled.field().column(-11, 0);
+        assertTrue(outside == null || outside.role() != SurfaceRole.CHANNEL);
         assertNotNull(compiled.field().column(150, 0));
         assertEquals(SurfaceRole.CHANNEL, compiled.field().column(150, 0).role());
         assertTrue(compiled.field().column(150, 4).role() == SurfaceRole.SHORE);
@@ -1129,7 +1204,7 @@ public class ErosionFieldCompilerTest {
         assertChannelContained(compiled);
         assertBoundedBankFill(compiled, 8);
         assertEquals(80, compiled.field().column(0, 0).headY());
-        SurfaceColumn nearRim = compiled.field().column(0, 4);
+        SurfaceColumn nearRim = compiled.field().column(0, 3);
         assertEquals(SurfaceRole.CHANNEL, nearRim.role());
         assertTrue(compiled.field().columns().values().stream()
                 .anyMatch(column -> column.height() > column.terrain().naturalHeight()));

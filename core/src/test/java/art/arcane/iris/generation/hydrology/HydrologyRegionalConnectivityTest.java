@@ -2,9 +2,13 @@ package art.arcane.iris.generation.hydrology;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.OptionalLong;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -90,6 +94,125 @@ public final class HydrologyRegionalConnectivityTest {
 
         assertFalse(flatChannel().connected(course, sampler, SETTINGS));
         assertTrue(flatChannel().connected(course, bridged, SETTINGS));
+    }
+
+    @Test
+    public void separatedIntervalsCanConnectAroundAnAdjacentWaterfall() {
+        HydrologyRegionalConnectivity water = flatChannel();
+        water.addFluidColumn(1, 0, 67, 70);
+        water.addFluidColumn(1, 1, 60, 70);
+        assertTrue(water.connected(course(), ocean(), SETTINGS));
+    }
+
+    @Test
+    public void anIsolatedUpperIntervalStillRejectsTheCourse() {
+        HydrologyRegionalConnectivity water = flatChannel();
+        water.addFluidColumn(1, 0, 67, 70);
+        water.addFluidColumn(1, 1, 60, 63);
+        assertFalse(water.connected(course(), ocean(), SETTINGS));
+    }
+
+    @Test
+    public void aHigherReceivingIntervalCanJoinTheOceanAboveAnotherInterval() {
+        HydrologyRegionalConnectivity water = flatChannel();
+        water.addFluidColumn(2, 0, 40, 45);
+        water.addFluidColumn(2, 1, 40, 63);
+        assertTrue(water.connected(course(), ocean(), SETTINGS));
+    }
+
+    @Test
+    public void intervalConnectivityMatchesVoxelFloodFillRegardlessOfInsertionOrder() {
+        Random random = new Random(438761L);
+        int connected = 0;
+        int disconnected = 0;
+        for (int trial = 0; trial < 250; trial++) {
+            ArrayList<int[]> intervals = new ArrayList<>();
+            boolean[][][] voxels = new boolean[3][3][13];
+            for (int x = 0; x < 3; x++) {
+                for (int z = 0; z < 3; z++) {
+                    intervals.add(new int[]{x, z, 60, 63});
+                    if (x == 2 && z == 0) {
+                        continue;
+                    }
+                    if (random.nextBoolean()) {
+                        int bed = 64 + random.nextInt(3);
+                        intervals.add(new int[]{x, z, bed, bed + 1 + random.nextInt(3)});
+                    }
+                    if (random.nextBoolean()) {
+                        intervals.add(new int[]{x, z, 60, 68 + random.nextInt(3)});
+                    }
+                }
+            }
+            for (int[] interval : intervals) {
+                for (int y = interval[2] + 1; y <= interval[3]; y++) {
+                    voxels[interval[0]][interval[1]][y - 58] = true;
+                }
+            }
+            boolean expected = voxelConnected(voxels);
+            if (expected) {
+                connected++;
+            } else {
+                disconnected++;
+            }
+            for (int order = 0; order < 2; order++) {
+                Collections.shuffle(intervals, random);
+                HydrologyRegionalConnectivity water = new HydrologyRegionalConnectivity();
+                for (int[] interval : intervals) {
+                    water.addFluidColumn(interval[0], interval[1], interval[2], interval[3]);
+                }
+                assertEquals("Trial " + trial + ", order " + order, expected,
+                        water.connected(course(), ocean(), SETTINGS));
+            }
+        }
+        assertTrue(connected > 0);
+        assertTrue(disconnected > 0);
+    }
+
+    private static boolean voxelConnected(boolean[][][] voxels) {
+        int height = voxels[0][0].length;
+        int[] queue = new int[3 * 3 * height];
+        boolean[] visited = new boolean[queue.length];
+        int total = 0;
+        int first = -1;
+        for (int x = 0; x < 3; x++) {
+            for (int z = 0; z < 3; z++) {
+                for (int y = 0; y < height; y++) {
+                    if (voxels[x][z][y]) {
+                        total++;
+                        first = (x * 3 + z) * height + y;
+                    }
+                }
+            }
+        }
+        if (first < 0) {
+            return false;
+        }
+        int[][] offsets = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+        int read = 0;
+        int write = 1;
+        queue[0] = first;
+        visited[first] = true;
+        while (read < write) {
+            int current = queue[read++];
+            int y = current % height;
+            int z = current / height % 3;
+            int x = current / height / 3;
+            for (int[] offset : offsets) {
+                int nextX = x + offset[0];
+                int nextZ = z + offset[1];
+                int nextY = y + offset[2];
+                if (nextX < 0 || nextX >= 3 || nextZ < 0 || nextZ >= 3 || nextY < 0 || nextY >= height
+                        || !voxels[nextX][nextZ][nextY]) {
+                    continue;
+                }
+                int next = (nextX * 3 + nextZ) * height + nextY;
+                if (!visited[next]) {
+                    visited[next] = true;
+                    queue[write++] = next;
+                }
+            }
+        }
+        return write == total;
     }
 
     private static HydrologyRegionalConnectivity flatChannel() {

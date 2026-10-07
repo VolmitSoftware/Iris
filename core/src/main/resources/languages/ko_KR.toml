@@ -1872,6 +1872,8 @@ status = "{name}  |  X: {x}  Z: {z}  | 줌: {zoom}  | 가치: {value}  |  {fps} 
 "category.other" = "기타"
 
 [iris.desktop.pregen]
+chunk_coordinates = "청크 X {x} · Z {z}"
+window_hint = "이 창을 닫아도 생성은 계속됩니다."
 initializing = "초기화..."
 title = "Pregen 보기"
 method_pending = "대기 중"

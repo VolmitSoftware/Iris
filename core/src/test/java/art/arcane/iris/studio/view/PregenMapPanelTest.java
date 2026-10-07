@@ -7,12 +7,14 @@ import org.junit.Test;
 import javax.swing.SwingUtilities;
 import java.awt.Color;
 import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class PregenMapPanelTest {
@@ -79,6 +81,58 @@ public class PregenMapPanelTest {
     }
 
     @Test
+    public void hoverCoordinatesFollowPaintedRectangularBoundsAndLetterboxing() throws Exception {
+        PregenMapPanel wide = panel(new PregenRenderSnapshot.Bounds(-2, -3, 1, -2));
+        SwingUtilities.invokeAndWait(() -> wide.setSize(802, 602));
+        assertEquals("Chunk X -2 · Z -3", tooltip(wide, 1, 101));
+        assertEquals("Chunk X -2 · Z -3", tooltip(wide, 200, 300));
+        assertEquals("Chunk X -1 · Z -2", tooltip(wide, 201, 301));
+        assertEquals("Chunk X 1 · Z -2", tooltip(wide, 800, 500));
+        assertNull(tooltip(wide, 0, 300));
+        assertNull(tooltip(wide, 801, 300));
+        assertNull(tooltip(wide, 400, 100));
+        assertNull(tooltip(wide, 400, 501));
+        SwingUtilities.invokeAndWait(wide::disposeMap);
+        assertNull(tooltip(wide, 400, 300));
+
+        PregenMapPanel tall = panel(new PregenRenderSnapshot.Bounds(-7, -2, -6, 1));
+        SwingUtilities.invokeAndWait(() -> tall.setSize(802, 602));
+        assertEquals("Chunk X -7 · Z -2", tooltip(tall, 251, 1));
+        assertEquals("Chunk X -6 · Z 1", tooltip(tall, 550, 600));
+        assertNull(tooltip(tall, 250, 300));
+        assertNull(tooltip(tall, 551, 300));
+        SwingUtilities.invokeAndWait(tall::disposeMap);
+    }
+
+    @Test
+    public void hoverCoordinatesPreserveSingleChunkAndExtremeIntegerBoundsAfterResize() throws Exception {
+        PregenMapPanel single = panel(new PregenRenderSnapshot.Bounds(5, -9, 5, -9));
+        SwingUtilities.invokeAndWait(() -> single.setSize(64, 64));
+        assertEquals("Chunk X 5 · Z -9", tooltip(single, 1, 1));
+        assertEquals("Chunk X 5 · Z -9", tooltip(single, 62, 62));
+        SwingUtilities.invokeAndWait(() -> single.setSize(128, 64));
+        assertNull(tooltip(single, 1, 1));
+        assertEquals("Chunk X 5 · Z -9", tooltip(single, 33, 1));
+        SwingUtilities.invokeAndWait(single::disposeMap);
+
+        PregenMapPanel extreme = panel(new PregenRenderSnapshot.Bounds(
+                Integer.MIN_VALUE, -10, Integer.MAX_VALUE, 10));
+        SwingUtilities.invokeAndWait(() -> extreme.setSize(1026, 3));
+        assertEquals("Chunk X -2147483648 · Z -10", tooltip(extreme, 1, 1));
+        assertEquals("Chunk X 0 · Z -10", tooltip(extreme, 513, 1));
+        assertEquals("Chunk X 2143289344 · Z -10", tooltip(extreme, 1024, 1));
+        assertNull(tooltip(extreme, 1025, 1));
+        SwingUtilities.invokeAndWait(extreme::disposeMap);
+    }
+
+    private static String tooltip(PregenMapPanel panel, int x, int y) throws Exception {
+        String[] result = new String[1];
+        SwingUtilities.invokeAndWait(() -> result[0] = panel.getToolTipText(
+                new MouseEvent(panel, MouseEvent.MOUSE_MOVED, 0L, 0, x, y, 0, false)));
+        return result[0];
+    }
+
+    @Test
     public void arithmeticTaskBoundsMatchActualRectangularTraversal() {
         PregenTask task = PregenTask.builder().center(new Position2(-17, 35)).radiusX(9).radiusZ(37).build();
         int[] actual = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
@@ -93,7 +147,7 @@ public class PregenMapPanelTest {
 
     private static PregenMapPanel panel(PregenRenderSnapshot.Bounds bounds) throws Exception {
         PregenMapPanel[] result = new PregenMapPanel[1];
-        SwingUtilities.invokeAndWait(() -> result[0] = new PregenMapPanel(bounds));
+        SwingUtilities.invokeAndWait(() -> result[0] = new PregenMapPanel(new PregenMapState(bounds)));
         return result[0];
     }
 

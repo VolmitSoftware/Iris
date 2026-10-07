@@ -1872,6 +1872,8 @@ status = "{name}  |  X: {x}  Z: {z}  Phóng to- thu nhỏ {zoom}  Giá trị {va
 "category.other" = "Khác"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "Quá trình tạo vẫn tiếp tục khi đóng cửa sổ này."
 initializing = "Đang sở khởi..."
 title = "Xem mẫu"
 method_pending = "Đang đợi"

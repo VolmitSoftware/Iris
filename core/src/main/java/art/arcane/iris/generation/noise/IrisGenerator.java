@@ -200,38 +200,37 @@ public class IrisGenerator extends IrisRegistrant {
         if (!Double.isFinite(surfaceDetail) || surfaceDetail < 0D || surfaceDetail > 1D) {
             throw new IllegalArgumentException("Generator surfaceDetail must be finite and between 0 and 1");
         }
-        if (surfaceDetail == 1D || composite.isEmpty()) {
-            return sampleHeight(rx, rz, superSeed);
+        if (composite.isEmpty()) {
+            return 0D;
         }
         IrisData data = getLoader();
         Engine engine = data == null ? null : data.getEngine();
+        if (surfaceDetail == 1D) {
+            return sampleHeight(rx, rz, superSeed, data, engine);
+        }
         SurfaceCacheStripe[] stripes = surfaceCache(data, engine).stripes();
         double lowerX = Math.floor(rx / SURFACE_GRID) * SURFACE_GRID;
         double lowerZ = Math.floor(rz / SURFACE_GRID) * SURFACE_GRID;
         double dx = (rx - lowerX) / SURFACE_GRID;
         double dz = (rz - lowerZ) / SURFACE_GRID;
-        double northWest = cachedSurfaceHeight(lowerX, lowerZ, superSeed, stripes);
+        double northWest = cachedSurfaceHeight(lowerX, lowerZ, superSeed, stripes, data, engine);
         if (dx == 0D && dz == 0D) {
             return northWest;
         }
         double north = dx == 0D ? northWest : IrisInterpolation.lerp(northWest,
-                cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ, superSeed, stripes), dx);
+                cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ, superSeed, stripes, data, engine), dx);
         double smooth = north;
         if (dz != 0D) {
-            double southWest = cachedSurfaceHeight(lowerX, lowerZ + SURFACE_GRID, superSeed, stripes);
+            double southWest = cachedSurfaceHeight(lowerX, lowerZ + SURFACE_GRID, superSeed, stripes, data, engine);
             double south = dx == 0D ? southWest : IrisInterpolation.lerp(southWest,
-                    cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID, superSeed, stripes), dx);
+                    cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID, superSeed, stripes, data, engine), dx);
             smooth = IrisInterpolation.lerp(north, south, dz);
         }
         return surfaceDetail == 0D ? smooth
-                : smooth + (sampleHeight(rx, rz, superSeed) - smooth) * surfaceDetail;
+                : smooth + (sampleHeight(rx, rz, superSeed, data, engine) - smooth) * surfaceDetail;
     }
 
-    private double sampleHeight(double rx, double rz, long superSeed) {
-        if (composite.isEmpty()) {
-            return 0;
-        }
-
+    private double sampleHeight(double rx, double rz, long superSeed, IrisData data, Engine engine) {
         int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * getSeed() + offsetX + offsetZ);
         double h = multiplicitive ? 1 : 0;
         double tp = 0;
@@ -240,18 +239,18 @@ public class IrisGenerator extends IrisRegistrant {
 
         if (composite.size() == 1) {
             if (multiplicitive) {
-                h *= composite.get(0).getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, getLoader());
+                h *= composite.get(0).getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, data, engine);
             } else {
                 tp += composite.get(0).getOpacity();
-                h += composite.get(0).getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, getLoader());
+                h += composite.get(0).getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, data, engine);
             }
         } else {
             for (IrisNoiseGenerator i : composite) {
                 if (multiplicitive) {
-                    h *= i.getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, getLoader());
+                    h *= i.getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, data, engine);
                 } else {
                     tp += i.getOpacity();
-                    h += i.getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, getLoader());
+                    h += i.getNoise(getSeed() + superSeed + hc, sampleX, sampleZ, data, engine);
                 }
             }
         }
@@ -262,15 +261,15 @@ public class IrisGenerator extends IrisRegistrant {
             v = 0;
         }
 
-        v = hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;
+        v = hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc, data, engine) : v;
         v = hasCellCracks() ? cell(rx, rz, v, superSeed + 48622 + hc) : v;
 
         return v;
     }
 
-    private double cachedSurfaceHeight(double x, double z, long superSeed, SurfaceCacheStripe[] stripes) {
+    private double cachedSurfaceHeight(double x, double z, long superSeed, SurfaceCacheStripe[] stripes, IrisData data, Engine engine) {
         if (x != (int) x || z != (int) z) {
-            return sampleHeight(x, z, superSeed);
+            return sampleHeight(x, z, superSeed, data, engine);
         }
         long key = ((long) (int) x << 32) | ((int) z & 0xffffffffL);
         long mixed = key ^ (key >>> 33);
@@ -282,7 +281,7 @@ public class IrisGenerator extends IrisRegistrant {
         if (cached != null) {
             return cached.height();
         }
-        double height = sampleHeight(x, z, superSeed);
+        double height = sampleHeight(x, z, superSeed, data, engine);
         stripe.put(slot, new SurfaceSample(key, superSeed, height));
         return height;
     }
@@ -321,15 +320,25 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double getCliffHeight(double rx, double rz, double superSeed) {
+        IrisData data = getLoader();
+        return getCliffHeight(rx, rz, superSeed, data, data == null ? null : data.getEngine());
+    }
+
+    private double getCliffHeight(double rx, double rz, double superSeed, IrisData data, Engine engine) {
         int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * getSeed() + offsetX + offsetZ);
         double sampleX = (rx + offsetX) / zoom;
         double sampleZ = (rz + offsetZ) / zoom;
-        double h = cliffHeightGenerator.getNoise((long) (getSeed() + superSeed + hc), sampleX, sampleZ, getLoader());
+        double h = cliffHeightGenerator.getNoise((long) (getSeed() + superSeed + hc), sampleX, sampleZ, data, engine);
         return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
     }
 
     public double cliff(double rx, double rz, double v, double superSeed) {
-        double cliffHeight = getCliffHeight(rx, rz, superSeed - 34857);
+        IrisData data = getLoader();
+        return cliff(rx, rz, v, superSeed, data, data == null ? null : data.getEngine());
+    }
+
+    private double cliff(double rx, double rz, double v, double superSeed, IrisData data, Engine engine) {
+        double cliffHeight = getCliffHeight(rx, rz, superSeed - 34857, data, engine);
         return (Math.round((v * 255D) / cliffHeight) * cliffHeight) / 255D;
     }
 

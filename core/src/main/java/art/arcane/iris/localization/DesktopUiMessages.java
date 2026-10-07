@@ -111,6 +111,8 @@ public final class DesktopUiMessages {
     public static final TextKey PREGEN_CACHED = TextKey.of("iris.desktop.pregen.cached", "{method} · cached");
     public static final TextKey PREGEN_FAILED = TextKey.of("iris.desktop.pregen.failed", "{count} failed · see server log");
     public static final TextKey PREGEN_MAP = TextKey.of("iris.desktop.pregen.map", "Generation map");
+    public static final TextKey PREGEN_CHUNK_COORDINATES = TextKey.of("iris.desktop.pregen.chunk_coordinates", "Chunk X {x} · Z {z}");
+    public static final TextKey PREGEN_WINDOW_HINT = TextKey.of("iris.desktop.pregen.window_hint", "Closing this window keeps generation running.");
     public static final TextKey PREGEN_BOUNDS = TextKey.of("iris.desktop.pregen.bounds", "Chunks X {minX} to {maxX} · Z {minZ} to {maxZ}");
     public static final TextKey PREGEN_WAITING = TextKey.of("iris.desktop.pregen.waiting", "Waiting");
     public static final TextKey PREGEN_READY = TextKey.of("iris.desktop.pregen.ready", "Ready");
@@ -212,6 +214,7 @@ public final class DesktopUiMessages {
             PREGEN_SIXTY, PREGEN_RATE, PREGEN_ETA, PREGEN_ELAPSED,
             PREGEN_MEMORY_LABEL, PREGEN_MEMORY_USAGE, PREGEN_PRESSURE, PREGEN_PRESSURE_VALUE,
             PREGEN_METHOD, PREGEN_CACHED, PREGEN_FAILED, PREGEN_MAP,
+            PREGEN_CHUNK_COORDINATES, PREGEN_WINDOW_HINT,
             PREGEN_BOUNDS, PREGEN_WAITING, PREGEN_READY, PREGEN_EXISTING,
             PREGEN_NETWORK, PREGEN_TERRAIN_HINT,
             IMAGEMAP_TITLE, IMAGEMAP_PRESET, IMAGEMAP_LOAD, IMAGEMAP_IMPORT_PNG,

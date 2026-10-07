@@ -110,7 +110,11 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createForLayer(RNG rng, IrisData data, int octaveMultiplier) {
-        return createNoCache(rng, data, Math.clamp(octaveMultiplier, 1, 16), 0, false, resolveEngine(data));
+        return createForLayer(rng, data, octaveMultiplier, resolveEngine(data));
+    }
+
+    CNG createForLayer(RNG rng, IrisData data, int octaveMultiplier, Engine engine) {
+        return createNoCache(rng, data, Math.clamp(octaveMultiplier, 1, 16), 0, false, engine);
     }
 
     public CNG createForPrebake(RNG rng, IrisData data, int fallbackCacheSize) {

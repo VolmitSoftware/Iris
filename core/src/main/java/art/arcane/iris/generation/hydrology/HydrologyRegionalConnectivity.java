@@ -2,6 +2,8 @@ package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.hydrology.surface.SurfaceCenterline;
 import art.arcane.iris.generation.hydrology.surface.SurfaceLayerColumn;
+import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -71,10 +73,16 @@ final class HydrologyRegionalConnectivity {
     }
 
     boolean connected(RiverCourse course, HydrologyTerrainSampler sampler, HydrologyPlannerSettings settings) {
-        if (water.isEmpty() || !disjoint.isEmpty()) {
+        if (water.isEmpty()) {
             return false;
         }
         LongOpenHashSet visited = new LongOpenHashSet(water.size());
+        if (!disjoint.isEmpty()) {
+            if (!connectedIntervals(visited)) {
+                return false;
+            }
+            return reachesTerminal(course, sampler, settings, visited);
+        }
         LongArrayFIFOQueue queue = new LongArrayFIFOQueue();
         long start = water.keySet().iterator().nextLong();
         queue.enqueue(start);
@@ -102,6 +110,65 @@ final class HydrologyRegionalConnectivity {
         if (visited.size() != water.size()) {
             return false;
         }
+        return reachesTerminal(course, sampler, settings, visited);
+    }
+
+    private boolean connectedIntervals(LongOpenHashSet visited) {
+        int count = water.size();
+        for (LongArrayList intervals : disjoint.values()) {
+            count += intervals.size() - 1;
+        }
+        long[] columns = new long[count];
+        long[] intervals = new long[count];
+        Long2IntOpenHashMap starts = new Long2IntOpenHashMap(water.size());
+        starts.defaultReturnValue(-1);
+        int index = 0;
+        for (long column : water.keySet()) {
+            starts.put(column, index);
+            LongArrayList layers = disjoint.get(column);
+            int size = layers == null ? 1 : layers.size();
+            for (int layer = 0; layer < size; layer++) {
+                columns[index] = column;
+                intervals[index++] = layers == null ? water.get(column) : layers.getLong(layer);
+            }
+        }
+        boolean[] reached = new boolean[count];
+        IntArrayFIFOQueue queue = new IntArrayFIFOQueue();
+        queue.enqueue(0);
+        reached[0] = true;
+        visited.add(columns[0]);
+        int reachedCount = 1;
+        while (!queue.isEmpty()) {
+            int current = queue.dequeueInt();
+            int currentBed = (int) (intervals[current] >> 32);
+            int currentHead = (int) intervals[current];
+            int x = RiverFootprint.unpackX(columns[current]);
+            int z = RiverFootprint.unpackZ(columns[current]);
+            for (int[] offset : NEIGHBORS) {
+                long nextColumn = RiverFootprint.pack(x + offset[0], z + offset[1]);
+                int start = starts.get(nextColumn);
+                if (start < 0) {
+                    continue;
+                }
+                LongArrayList layers = disjoint.get(nextColumn);
+                int end = start + (layers == null ? 1 : layers.size());
+                for (int next = start; next < end; next++) {
+                    if (reached[next] || Math.max(currentBed, (int) (intervals[next] >> 32))
+                            >= Math.min(currentHead, (int) intervals[next])) {
+                        continue;
+                    }
+                    reached[next] = true;
+                    reachedCount++;
+                    visited.add(nextColumn);
+                    queue.enqueue(next);
+                }
+            }
+        }
+        return reachedCount == count;
+    }
+
+    private boolean reachesTerminal(RiverCourse course, HydrologyTerrainSampler sampler,
+                                    HydrologyPlannerSettings settings, LongOpenHashSet visited) {
         HydraulicSegment first = course.segments().getFirst();
         HydraulicSegment last = course.segments().getLast();
         return reaches(last, false, sampler, settings, visited)
@@ -154,8 +221,20 @@ final class HydrologyRegionalConnectivity {
     private boolean touchesOwnedWater(int x, int z, int seaLevel, LongOpenHashSet visited) {
         for (int[] offset : NEIGHBORS) {
             long key = RiverFootprint.pack(x + offset[0], z + offset[1]);
-            if (visited.contains(key) && (int) water.get(key) == seaLevel) {
-                return true;
+            if (!visited.contains(key)) {
+                continue;
+            }
+            LongArrayList layers = disjoint.get(key);
+            if (layers == null) {
+                if ((int) water.get(key) == seaLevel) {
+                    return true;
+                }
+                continue;
+            }
+            for (int index = 0; index < layers.size(); index++) {
+                if ((int) layers.getLong(index) == seaLevel) {
+                    return true;
+                }
             }
         }
         return false;

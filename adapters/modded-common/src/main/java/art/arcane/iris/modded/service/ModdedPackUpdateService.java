@@ -119,7 +119,8 @@ public final class ModdedPackUpdateService implements ModdedTickableService {
                         + ", latest built-in release v" + update.version() + ".");
                 updates.add("Back up and review custom edits in " + new File(packsFolder, pack.name())
                         + "; close Studio, then update with /iris download pack=" + pack.name() + " overwrite=true.");
-                updates.add("Existing worlds retain their recorded production pack; this updates the authoring pack for new worlds.");
+                updates.add("Existing worlds retain their recorded production pack. Back up the complete world, then stage an update with /iris world update <dimension> "
+                        + pack.name() + " and restart the server to activate it.");
             }
         }
         notices = List.copyOf(updates);

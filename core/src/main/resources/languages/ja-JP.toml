@@ -1872,6 +1872,8 @@ status = "{name}  |  X: {x}  Z: {z}  |  ズーム: {zoom}  |  値: {value}  |  {
 "category.other" = "その他"
 
 [iris.desktop.pregen]
+chunk_coordinates = "チャンク X {x} · Z {z}"
+window_hint = "このウィンドウを閉じても生成は続行されます。"
 initializing = "初期化中..."
 title = "事前生成ビュー"
 method_pending = "保留中"

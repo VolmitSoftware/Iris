@@ -65,6 +65,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     private final List<Runnable> whenDone = new CopyOnWriteArrayList<>();
     private final IrisPregenerator pregenerator;
     private final PregenRenderSnapshot.Bounds bounds;
+    private final PregenMapState mapState;
     private final Engine engine;
     private final ExecutorService service;
     private final Thread worker;
@@ -98,6 +99,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         this.pregenerator = new IrisPregenerator(task, method, this);
         int[] chunkBounds = task.chunkBounds();
         bounds = new PregenRenderSnapshot.Bounds(chunkBounds[0], chunkBounds[1], chunkBounds[2], chunkBounds[3]);
+        mapState = new PregenMapState(bounds);
         lastTotalChunks = task.chunkCount();
         lastChunksRemaining = lastTotalChunks;
         publishView(PregenRenderSnapshot.Phase.INITIALIZING);
@@ -371,23 +373,13 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     }
 
     public void drawRegion(int x, int z, Color color) {
-        PregenRenderer activeRenderer = renderer;
-        if (activeRenderer == null || closed) {
-            return;
+        if (!closed) {
+            task.iterateChunks(x, z, (chunkX, chunkZ) -> mapState.submit(chunkX, chunkZ, color));
         }
-        task.iterateChunks(x, z, (chunkX, chunkZ) -> activeRenderer.submit(chunkX, chunkZ, color));
     }
 
     public void draw(int x, int z, Color color) {
-        try {
-            PregenRenderer activeRenderer = renderer;
-            if (activeRenderer != null) {
-                activeRenderer.submit(x, z, color);
-            }
-        } catch (Throwable error) {
-            IrisLogging.reportError(error);
-            IrisLogging.error("Failed to draw pregen");
-        }
+        mapState.submit(x, z, color);
     }
 
     public void stop() {
@@ -588,6 +580,11 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         return renderSnapshot;
     }
 
+    @Override
+    public PregenMapState renderMapState() {
+        return mapState;
+    }
+
     private synchronized void publishView(PregenRenderSnapshot.Phase phase) {
         if (failure != null) {
             phase = PregenRenderSnapshot.Phase.ERROR;
@@ -603,12 +600,9 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
     }
 
     private void drawChunkPreview(int x, int z, Color statusColor) {
-        PregenRenderer activeRenderer = renderer;
-        if (activeRenderer == null) {
-            return;
-        }
         draw(x, z, statusColor);
-        if (!activeRenderer.isVisibleFrame() || service.isShutdown()) {
+        PregenRenderer activeRenderer = renderer;
+        if (activeRenderer == null || !activeRenderer.isVisibleFrame() || service.isShutdown()) {
             return;
         }
         if (engine != null) {

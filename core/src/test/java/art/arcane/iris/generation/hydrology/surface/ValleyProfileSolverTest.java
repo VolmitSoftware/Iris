@@ -29,7 +29,7 @@ public class ValleyProfileSolverTest {
         SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(
                 new HydrologyPoint(0, 0, 0), new HydrologyPoint(48, 0, 48)));
         ChannelProfile channel = new ChannelProfileBuilder(HydrologyPlannerSettings.defaults().surface(),
-                terrain, CONSTANT_GEOMETRY).build(centerline, "water", false);
+                terrain, CONSTANT_GEOMETRY).build(centerline, "water", false, 0L);
 
         ValleyProfile valley = solver(terrain).solve(centerline, channel, SurfaceTerminal.SINKHOLE, 40);
 
@@ -55,7 +55,7 @@ public class ValleyProfileSolverTest {
                 new HydrologyPoint(0, 0, 0), new HydrologyPoint(80, 0, 80)));
         HydrologyPlannerSettings.Surface surface = HydrologyPlannerSettings.defaults().surface();
         ChannelProfile channel = new ChannelProfileBuilder(surface, terrain, CONSTANT_GEOMETRY)
-                .build(centerline, "water", false);
+                .build(centerline, "water", false, 0L);
 
         ValleyProfile valley = new ValleyProfileSolver(surface, terrain, SEA_LEVEL, 67)
                 .solve(centerline, channel, SurfaceTerminal.OCEAN_MOUTH, SEA_LEVEL);
@@ -482,7 +482,7 @@ public class ValleyProfileSolverTest {
 
     private static ChannelProfile channel(int stations, HydrologyTerrainSampler sampler) {
         return new ChannelProfileBuilder(HydrologyPlannerSettings.defaults().surface(), sampler, CONSTANT_GEOMETRY)
-                .build(straight(stations), "water", false);
+                .build(straight(stations), "water", false, 0L);
     }
 
     private static SurfaceCenterline straight(int stations) {

@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.surface;
 
 import art.arcane.iris.generation.hydrology.HydrologyGeometrySampler;
+import art.arcane.iris.generation.hydrology.HydrologyHash;
 import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSampler;
@@ -8,6 +9,13 @@ import art.arcane.iris.generation.hydrology.HydrologyTerrainSampler;
 import java.util.Objects;
 
 public final class ChannelProfileBuilder {
+    private static final long WIDTH_REACH_SALT = 0x5749445448524541L;
+    private static final double WIDTH_REACH_STRENGTH = 0.45D;
+    private static final double SPRING_OPENING_FRACTION = 0.6D;
+    private static final double SPRING_PEAK_PROGRESS = 0.25D;
+    private static final int MINIMUM_WIDTH_WAVELENGTH = 32;
+    private static final int MAXIMUM_WIDTH_WAVELENGTH = 128;
+
     private final HydrologyPlannerSettings.Surface surface;
     private final HydrologyTerrainSampler sampler;
     private final HydrologyGeometrySampler geometry;
@@ -25,13 +33,18 @@ public final class ChannelProfileBuilder {
     public ChannelProfile build(
             SurfaceCenterline centerline,
             String profileKey,
-            boolean directOcean
+            boolean directOcean,
+            long worldSeed
     ) {
+        profileKey = profileKey == null ? "" : profileKey;
         int count = centerline.size();
         double[] width = new double[count];
         double[] depth = new double[count];
         double[] bank = new double[count];
         int coast = count;
+        long widthSeed = HydrologyHash.mix(worldSeed, WIDTH_REACH_SALT, profileKey.hashCode());
+        int widthWavelength = Math.max(MINIMUM_WIDTH_WAVELENGTH,
+                Math.min(MAXIMUM_WIDTH_WAVELENGTH, surface.maximumWidth() * 12));
         for (int station = 0; station < count; station++) {
             int stationX = centerline.x()[station];
             int stationZ = centerline.z()[station];
@@ -60,7 +73,12 @@ public final class ChannelProfileBuilder {
             double widthMultiplier = terrain == null ? 1D : terrain.widthMultiplier();
             double depthMultiplier = terrain == null ? 1D : terrain.depthMultiplier();
             bank[station] = terrain == null ? 1D : terrain.bankMultiplier();
-            width[station] = clamp(sampledWidth * widthMultiplier, surface.minimumWidth(), surface.maximumWidth() * 2D);
+            double variedWidth = sampledWidth;
+            if (surface.maximumWidth() > surface.minimumWidth() && sampledWidth > surface.minimumWidth()) {
+                variedWidth = reachWidth(sampledWidth, surface.minimumWidth(), surface.maximumWidth(),
+                        SurfaceNoise.signed(widthSeed, stationX, stationZ, widthWavelength));
+            }
+            width[station] = clamp(variedWidth * widthMultiplier, surface.minimumWidth(), surface.maximumWidth() * 2D);
             depth[station] = clamp(sampledDepth * depthMultiplier, 1D, surface.maximumDepth() * 2D);
         }
         HydrologyPlannerSettings.Channel channel = surface.banks().channel();
@@ -74,7 +92,12 @@ public final class ChannelProfileBuilder {
         for (int station = 0; station < spring; station++) {
             double remaining = 1D - SurfaceNoise.smoothStep(station / (double) spring);
             double localRatio = 1D + (springRatio - 1D) * springRoom(centerline, station, smoothWidth[station] * springRatio / 2D);
-            smoothWidth[station] *= 1D + (localRatio - 1D) * remaining;
+            double progress = station / (double) spring;
+            double opening = progress <= SPRING_PEAK_PROGRESS
+                    ? SPRING_OPENING_FRACTION + (1D - SPRING_OPENING_FRACTION)
+                    * SurfaceNoise.smoothStep(progress / SPRING_PEAK_PROGRESS)
+                    : 1D - SurfaceNoise.smoothStep((progress - SPRING_PEAK_PROGRESS) / (1D - SPRING_PEAK_PROGRESS));
+            smoothWidth[station] *= 1D + (localRatio - 1D) * opening;
             smoothDepth[station] += remaining * channel.springExtraDepth();
         }
         // The inlet: over its length before the coast the channel widens toward the mouth flare and
@@ -144,6 +167,15 @@ public final class ChannelProfileBuilder {
             smoothed[station] = total / weight;
         }
         return smoothed;
+    }
+
+    static double reachWidth(double authored, int minimum, int maximum, double reach) {
+        double range = (double) maximum - minimum;
+        if (range <= 0D || authored <= minimum) {
+            return authored;
+        }
+        double freedom = Math.min(1D, (authored - minimum) / (range * 0.25D));
+        return clamp(authored + range * WIDTH_REACH_STRENGTH * freedom * reach, minimum, maximum);
     }
 
     private static double clamp(double value, double minimum, double maximum) {

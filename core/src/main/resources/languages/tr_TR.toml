@@ -1874,6 +1874,8 @@ status = "{name}  |  X: {x}  Z: {z}  yakınlaştırma: {zoom}  Değer: {value}  
 "category.other" = "Diğer"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "Bu pencere kapatılsa da oluşturma devam eder."
 initializing = "Başlangıç..."
 title = "Prejen View"
 method_pending = "Pending Ping"

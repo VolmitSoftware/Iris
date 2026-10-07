@@ -1874,6 +1874,8 @@ status = "{name}  |  X: {x}  Z: {z}  זום: {zoom}  ערך: {value}  |  {fps}  
 "category.other" = "אחרים"
 
 [iris.desktop.pregen]
+chunk_coordinates = "צ'אנק X {x} · Z {z}"
+window_hint = "היצירה נמשכת גם לאחר סגירת החלון."
 initializing = "הדמיה..."
 title = "תצוגה מקדימה"
 method_pending = "עקבו"

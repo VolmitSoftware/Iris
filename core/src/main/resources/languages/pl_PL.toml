@@ -1874,6 +1874,8 @@ status = "{name}  |  X: {x}  Z: {z}  |  Zoom: {zoom}  |  Wartość: {value}  |  
 "category.other" = "Inne"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "Generowanie trwa dalej po zamknięciu tego okna."
 initializing = "Inicjowanie..."
 title = "Widok z góry"
 method_pending = "Oczekiwanie"

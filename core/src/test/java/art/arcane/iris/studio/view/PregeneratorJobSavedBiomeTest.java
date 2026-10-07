@@ -33,7 +33,7 @@ public class PregeneratorJobSavedBiomeTest {
         fixture.job.onChunkGenerated(2, -3, false);
         assertEquals(1, fixture.tasks.size());
         fixture.tasks.removeFirst().run();
-        verify(fixture.renderer).submit(anyInt(), anyInt(), any());
+        assertEquals(PregenRenderer.GENERATED.getRGB(), fixture.mapPixels[0]);
     }
 
     @Test
@@ -92,11 +92,16 @@ public class PregeneratorJobSavedBiomeTest {
         private final Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         private final PregenRenderer renderer = mock(PregenRenderer.class);
         private final ArrayList<Runnable> tasks = new ArrayList<>();
+        private final int[] mapPixels = new int[1];
 
         private Fixture() throws Exception {
+            PregenMapState state = new PregenMapState(new PregenRenderSnapshot.Bounds(2, -3, 2, -3));
+            PregenMapState.View view = state.attach(mapPixels);
+            setField("mapState", state);
             ExecutorService service = mock(ExecutorService.class);
             doAnswer(invocation -> {
                 tasks.add(invocation.getArgument(0));
+                view.flush();
                 return null;
             }).when(service).execute(any(Runnable.class));
             when(renderer.isVisibleFrame()).thenReturn(true);

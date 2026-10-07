@@ -16,7 +16,7 @@ import lombok.experimental.Accessors;
 @Description("Controls the wet channel of a surface river.")
 @Data
 public class IrisSurfaceRiverChannelConfig {
-    @Description("Wet channel width in blocks.")
+    @Description("Wet channel width range in blocks. Authored noise and coherent reach variation shape the width; equal endpoints disable the additional variation.")
     private IrisStyledRange width = range(4D, 8D, 1024D);
 
     @Description("Wet bed depth in blocks at the channel center.")
@@ -44,17 +44,17 @@ public class IrisSurfaceRiverChannelConfig {
 
     @MinNumber(1)
     @MaxNumber(4)
-    @Description("Width of the spring pool at the headwater relative to the channel width; 1 starts the river at its normal width.")
+    @Description("Peak width of the spring pool relative to the channel width, reached near the first quarter of springLength; 1 keeps the source at normal channel width.")
     private double springWidthRatio = 2.5D;
 
     @MinNumber(4)
     @MaxNumber(96)
-    @Description("Blocks over which the spring pool narrows back to the channel width.")
+    @Description("Blocks over which the source widens into its spring pool and narrows back to the channel width.")
     private int springLength = 24;
 
     @MinNumber(0)
     @MaxNumber(64)
-    @Description("Stations along the course the sampled width and depth are averaged over, so the channel changes size gradually; 0 follows the sampled values exactly at every station.")
+    @Description("Stations along the course the varied width and sampled depth are averaged over; 0 retains their unsmoothed values at each station.")
     private int smoothingRadius = 16;
 
     @MinNumber(0.2)

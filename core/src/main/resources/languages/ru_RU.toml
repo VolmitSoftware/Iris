@@ -1874,6 +1874,8 @@ status = "{name}  |  X: {x}  Z: {z}  Зум: {zoom}  Величина: {value}  
 "category.other" = "другой"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Чанк X {x} · Z {z}"
+window_hint = "После закрытия этого окна генерация продолжится."
 initializing = "инициировать..."
 title = "Прегеновский взгляд"
 method_pending = "В ожидании"

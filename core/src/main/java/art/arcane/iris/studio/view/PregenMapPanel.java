@@ -1,90 +1,65 @@
 package art.arcane.iris.studio.view;
 
+import art.arcane.iris.localization.DesktopUiMessages;
+import art.arcane.iris.localization.IrisLanguage;
+import art.arcane.volmlib.util.localization.MessageArgument;
+
 import javax.swing.JPanel;
+import javax.swing.ToolTipManager;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.concurrent.locks.ReentrantLock;
 
 final class PregenMapPanel extends JPanel {
-    private static final int MAX_RASTER_SIZE = 1024;
-    static final Color WAITING = new Color(29, 35, 46);
-
     private final PregenRenderSnapshot.Bounds bounds;
+    private final PregenMapState state;
+    private final PregenMapState.View view;
     private final BufferedImage image;
-    private final int[] imagePixels;
-    private final int[] pendingPixels;
-    private final BitSet dirtyPixels;
-    private final ReentrantLock lock = new ReentrantLock();
-    private volatile boolean pendingChanges;
     private volatile boolean disposed;
 
-    PregenMapPanel(PregenRenderSnapshot.Bounds bounds) {
-        this.bounds = bounds;
-        int width = (int) Math.min(MAX_RASTER_SIZE, bounds.width());
-        int height = (int) Math.min(MAX_RASTER_SIZE, bounds.height());
-        image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        imagePixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
-        pendingPixels = new int[imagePixels.length];
-        dirtyPixels = new BitSet(imagePixels.length);
-        Arrays.fill(imagePixels, WAITING.getRGB());
-        Arrays.fill(pendingPixels, WAITING.getRGB());
+    PregenMapPanel(PregenMapState state) {
+        this.state = state;
+        bounds = state.bounds();
+        image = new BufferedImage(state.width(), state.height(), BufferedImage.TYPE_INT_RGB);
+        view = state.attach(((DataBufferInt) image.getRaster().getDataBuffer()).getData());
         setBackground(PregenRenderer.BACKGROUND);
+        ToolTipManager.sharedInstance().registerComponent(this);
     }
 
     void submit(int chunkX, int chunkZ, Color color) {
-        if (disposed || !bounds.contains(chunkX, chunkZ)) {
-            return;
-        }
-        int x = (int) (((long) chunkX - bounds.minX()) * image.getWidth() / bounds.width());
-        int z = (int) (((long) chunkZ - bounds.minZ()) * image.getHeight() / bounds.height());
-        int index = z * image.getWidth() + x;
-        int rgb = color.getRGB();
-        lock.lock();
-        try {
-            if (disposed || pendingPixels[index] == rgb) {
-                return;
-            }
-            pendingPixels[index] = rgb;
-            dirtyPixels.set(index);
-            pendingChanges = true;
-        } finally {
-            lock.unlock();
+        if (!disposed) {
+            state.submit(chunkX, chunkZ, color);
         }
     }
 
     boolean flush() {
-        if (!pendingChanges || disposed) {
-            return false;
-        }
-        lock.lock();
-        try {
-            for (int index = dirtyPixels.nextSetBit(0); index >= 0; index = dirtyPixels.nextSetBit(index + 1)) {
-                imagePixels[index] = pendingPixels[index];
-            }
-            dirtyPixels.clear();
-            pendingChanges = false;
-        } finally {
-            lock.unlock();
-        }
-        return true;
+        return !disposed && view.flush();
     }
 
     void disposeMap() {
-        lock.lock();
-        try {
-            disposed = true;
-            dirtyPixels.clear();
-            pendingChanges = false;
-        } finally {
-            lock.unlock();
+        disposed = true;
+        ToolTipManager.sharedInstance().unregisterComponent(this);
+        view.close();
+    }
+
+    @Override
+    public String getToolTipText(MouseEvent event) {
+        if (disposed) {
+            return null;
         }
+        Rectangle area = fit(bounds, getWidth(), getHeight());
+        if (!area.contains(event.getX(), event.getY())) {
+            return null;
+        }
+        int chunkX = (int) (bounds.minX() + (long) (event.getX() - area.x) * bounds.width() / area.width);
+        int chunkZ = (int) (bounds.minZ() + (long) (event.getY() - area.y) * bounds.height() / area.height);
+        return IrisLanguage.plain(DesktopUiMessages.PREGEN_CHUNK_COORDINATES,
+                MessageArgument.trusted("x", chunkX), MessageArgument.trusted("z", chunkZ));
     }
 
     @Override

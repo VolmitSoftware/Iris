@@ -1869,6 +1869,8 @@ status = "{name}  |  X: {x}  Z: {z}  □ Zoom: {zoom}  Valor: {value}  |  {fps} 
 "category.other" = "Outros"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "A geração continua após fechar esta janela."
 initializing = "Inicializando..."
 title = "Visão Pregen"
 method_pending = "Pendente"

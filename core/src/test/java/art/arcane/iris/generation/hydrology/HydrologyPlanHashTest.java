@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyPlanHashTest {
-    private static final String EXPECTED_PLAN_DIGEST = "e54461c339854842f7fc7b2e85bd700b57942a2c691f5a249d8e498729378296";
+    private static final String EXPECTED_PLAN_DIGEST = "ad4e63b9081878d0eac05c2aeacc80afa18a7f2bf4e06c18490211e7ae91fe99";
 
     private static final List<HydrologyTileKey> TILES = List.of(
             new HydrologyTileKey(0, 0),

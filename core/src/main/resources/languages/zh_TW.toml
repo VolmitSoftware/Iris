@@ -1872,6 +1872,8 @@ status = "{name}  |  X: {x}  Z: {z}  縮放 : {zoom}  數值 : {value}  |  {fps}
 "category.other" = "其他人員"
 
 [iris.desktop.pregen]
+chunk_coordinates = "區塊 X {x} · Z {z}"
+window_hint = "關閉此視窗後仍會繼續生成。"
 initializing = "初始化..."
 title = "Pregen 檢視"
 method_pending = "待決"

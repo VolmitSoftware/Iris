@@ -1874,6 +1874,8 @@ status = "{name}  |  X: {x}  Z: {z}  Zoom: {zoom}  Arvo: {value}  |  {fps}  FPS"
 "category.other" = "Muut"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "Generointi jatkuu, vaikka suljet tämän ikkunan."
 initializing = "Alustetaan..."
 title = "Pregen- näkymä"
 method_pending = "Odotetaan"

@@ -33,7 +33,7 @@ public class HydrologyRegionalWidthAdaptationTest {
             double fraction = 0.25D + 0.75D * flow.fraction(point.x(), point.z());
             double accumulated = 4D + 4D * fraction;
             int authored = 4 + Math.floorMod(point.x() / 256, 5);
-            int expected = (int) StrictMath.round(accumulated * 0.75D + authored * 0.25D);
+            int expected = (int) StrictMath.round(accumulated * 0.35D + authored * 0.65D);
             int actual = width(planner, context, point.x());
             assertEquals(expected, actual);
             assertTrue(actual >= previous);
@@ -104,7 +104,11 @@ public class HydrologyRegionalWidthAdaptationTest {
                 .build(71L, 91L, "default", guide, SurfaceTerminal.SINKHOLE, 40, 512);
 
         assertTrue(built.accepted());
-        assertEquals(10D, storedWidth(built.segments(), 512), 0D);
+        HydrologyTerrainSampler plainTerrain = (x, z) -> HydrologyTerrainSample.openLand(80, 0D, "land");
+        SurfaceCourseResult plain = new SurfaceCourseBuilder(SETTINGS.surface(), plainTerrain, geometry, SETTINGS.seaLevel())
+                .build(71L, 91L, "default", guide, SurfaceTerminal.SINKHOLE, 40, 512);
+        assertTrue(plain.accepted());
+        assertEquals(storedWidth(plain.segments(), 512) * 1.25D, storedWidth(built.segments(), 512), 1.0E-9D);
     }
 
     @Test

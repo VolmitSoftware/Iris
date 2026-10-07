@@ -65,6 +65,9 @@ public class ModdedPackUpdateServiceTest {
             verify(online, times(1)).sendMessage(contains("installed v1, latest built-in release v2"));
             verify(online, times(1)).sendMessage(contains(new File(root, "overworld").toString()));
             verify(online, times(1)).sendMessage(contains("/iris download pack=overworld overwrite=true"));
+            verify(online, times(1)).sendMessage(contains("Back up the complete world"));
+            verify(online, times(1)).sendMessage(contains("/iris world update <dimension> overworld"));
+            verify(online, times(1)).sendMessage(contains("restart the server to activate it"));
             verify(online, never()).sendMessage(contains("plugins/"));
             NativeProtocolPlayer later = player(true, false);
             service.notifyPlayer(later);

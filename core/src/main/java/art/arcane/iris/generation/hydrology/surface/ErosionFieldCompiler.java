@@ -28,6 +28,11 @@ public final class ErosionFieldCompiler {
     private static final long SOURCE_POND_SALT = 0x504f4e4453524345L;
     private static final long TERMINAL_POND_SALT = 0x504f4e4454524dL;
     private static final int POND_RIM_SAMPLES_PER_BLOCK = 8;
+    private static final long POND_ASPECT_SALT = 0x504f4e4441535045L;
+    private static final double POND_LONG_AXIS_RATIO = 0.85D;
+    private static final double POND_OFFSET_RATIO = 0.15D;
+    private static final double POND_MINIMUM_SHORT_AXIS_RATIO = 0.6D;
+    private static final double POND_SHORT_AXIS_RANGE = 0.2D;
     private static final double EPSILON = 1.0E-9D;
 
     private final HydrologyPlannerSettings.Surface surface;
@@ -174,22 +179,20 @@ public final class ErosionFieldCompiler {
                             continue;
                         }
                         long key = RiverFootprint.pack(cellX, cellZ);
-                        int index = indices.get(key);
-                        int existing = index < 0 ? -1 : stations.getInt(index);
-                        double existingDistance = index < 0 ? 0D : distance.getDouble(index);
+                        int index = indices.putIfAbsent(key, stations.size());
+                        if (index < 0) {
+                            stations.add(station);
+                            distance.add(cellDistance);
+                            continue;
+                        }
+                        int existing = stations.getInt(index);
+                        double existingDistance = distance.getDouble(index);
                         // A cell on a station's cross-section row ties between the two segments meeting
                         // there; the later station owns it so the row uses the head its own ring bounded.
-                        if (existing < 0
-                                || cellDistance < existingDistance - EPSILON
+                        if (cellDistance < existingDistance - EPSILON
                                 || Math.abs(cellDistance - existingDistance) <= EPSILON && station > existing) {
-                            if (index < 0) {
-                                indices.put(key, stations.size());
-                                stations.add(station);
-                                distance.add(cellDistance);
-                            } else {
-                                stations.set(index, station);
-                                distance.set(index, cellDistance);
-                            }
+                            stations.set(index, station);
+                            distance.set(index, cellDistance);
                         }
                     }
                 }
@@ -352,7 +355,7 @@ public final class ErosionFieldCompiler {
     }
 
     /**
-     * A round bowl around an end station holding that station's head: wet inside its outline, a shore
+     * A shaped bowl around an end station holding that station's head: wet inside its outline, a shore
      * ring and an eroded rim outside it like the channel's own. Channel water inside the bowl joins
      * the pond at the pond's level; dry channel columns give way to the bowl. The radius is chosen per
      * course within the configured range and shrinks where the ground around the rim falls below the
@@ -399,9 +402,15 @@ public final class ErosionFieldCompiler {
         double maximumBlendWidth = Math.min(banks.maximumBlendWidth(),
                 Math.max(0.25D, erosion.excavation().maximumWidth() - shore));
         int reach = (int) StrictMath.ceil(radius * (1D + roughness) + shore + banks.maximumBlendWidth()) + 1;
+        double tangentX = centerline.tangentX()[station];
+        double tangentZ = centerline.tangentZ()[station];
+        double offset = radius * POND_OFFSET_RATIO;
+        double minor = POND_MINIMUM_SHORT_AXIS_RATIO + POND_SHORT_AXIS_RANGE * HydrologyHash.unit(HydrologyHash.mix(seed, POND_ASPECT_SALT));
         for (int deltaZ = -reach; deltaZ <= reach; deltaZ++) {
             for (int deltaX = -reach; deltaX <= reach; deltaX++) {
-                double distance = Math.sqrt((double) deltaX * deltaX + (double) deltaZ * deltaZ);
+                double along = (deltaX * tangentX + deltaZ * tangentZ - offset) / POND_LONG_AXIS_RATIO;
+                double across = (-deltaX * tangentZ + deltaZ * tangentX) / minor;
+                double distance = Math.sqrt(along * along + across * across);
                 if (distance > reach) {
                     continue;
                 }

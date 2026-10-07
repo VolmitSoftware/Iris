@@ -1869,6 +1869,8 @@ status = "{name}  |  X: {x}  Z: {z}  Zoom: {zoom}  Waarde: {value}  |  {fps}  FP
 "category.other" = "Andere"
 
 [iris.desktop.pregen]
+chunk_coordinates = "Chunk X {x} · Z {z}"
+window_hint = "Het genereren gaat door wanneer je dit venster sluit."
 initializing = "Initialiseren..."
 title = "Beeld instellen"
 method_pending = "In afwachting"

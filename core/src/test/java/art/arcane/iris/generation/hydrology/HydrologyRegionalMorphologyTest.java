@@ -13,6 +13,23 @@ import static org.junit.Assert.assertTrue;
 
 public class HydrologyRegionalMorphologyTest {
     @Test
+    public void regionalWidthRestoresAuthoredVariationWithoutChangingFixedRangesOrConfines() {
+        HydrologyGeometrySampler.Request request = new HydrologyGeometrySampler.Request(
+                HydrologyGeometrySampler.Field.SURFACE_WIDTH, "water", 0, 0, 0L, 4, 12);
+        int narrow = HydrologyRegionalPlanner.regionalWidth(request, 4, 0.5D, 1D);
+        int wide = HydrologyRegionalPlanner.regionalWidth(request, 12, 0.5D, 1D);
+        assertTrue(wide - narrow >= 5);
+        for (double flow : List.of(0D, 0.5D, 1D)) {
+            assertEquals(4, HydrologyRegionalPlanner.regionalWidth(request, 8, flow, 0D));
+            int width = HydrologyRegionalPlanner.regionalWidth(request, 8, flow, 1D);
+            assertTrue(width >= 4 && width <= 12);
+            HydrologyGeometrySampler.Request fixed = new HydrologyGeometrySampler.Request(
+                    HydrologyGeometrySampler.Field.SURFACE_WIDTH, "water", 0, 0, 0L, 8, 8);
+            assertEquals(8, HydrologyRegionalPlanner.regionalWidth(fixed, 8, flow, 1D));
+        }
+    }
+
+    @Test
     public void flatOpenTerrainRetainsFullFreedomWithoutSamplingDuringQueries() {
         AtomicInteger calls = new AtomicInteger();
         HydrologyRegionalMorphology morphology = HydrologyRegionalMorphology.sample(guide(4096, 256), (x, z) -> {

@@ -35,16 +35,22 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.Scrollable;
+import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicGraphicsUtils;
 import javax.swing.plaf.basic.BasicProgressBarUI;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -85,7 +91,7 @@ public final class PregenRenderer extends JPanel {
     private final JLabel worldLabel = label("", new Font(Font.SANS_SERIF, Font.BOLD, 21), TEXT);
     private final JLabel phaseLabel = label("", BODY_FONT, MUTED);
     private final JLabel countLabel = label("", BODY_FONT, TEXT);
-    private final JLabel percentLabel = label("", BODY_FONT, MUTED);
+    private final JLabel percentLabel = label("", new Font(Font.SANS_SERIF, Font.BOLD, 24), TEXT);
     private final JLabel currentValue = label("", VALUE_FONT, TEXT);
     private final JLabel overallValue = label("", VALUE_FONT, TEXT);
     private final JLabel thirtyValue = label("", VALUE_FONT, TEXT);
@@ -95,7 +101,8 @@ public final class PregenRenderer extends JPanel {
     private final JLabel memoryValue = label("", VALUE_FONT, TEXT);
     private final JLabel pressureValue = label("", VALUE_FONT, TEXT);
     private final JLabel methodLabel = label("", LABEL_FONT, MUTED);
-    private final JLabel failureLabel = label("", LABEL_FONT, ERROR);
+    private final JTextArea failureLabel = wrappedText("", BODY_FONT, ERROR, SURFACE);
+    private String controlFailure;
     private final JButton pauseButton = new JButton();
     private final JProgressBar progressBar = new JProgressBar(0, 10_000);
     private volatile boolean renderingEnabled;
@@ -106,14 +113,18 @@ public final class PregenRenderer extends JPanel {
     private PregenRenderer(PregenRenderSource source, Runnable onPause) {
         this.source = Objects.requireNonNull(source, "Generation view source");
         this.onPause = onPause;
+        failureLabel.setFocusable(true);
         PregenRenderSnapshot initial = source.renderSnapshot();
-        map = new PregenMapPanel(initial.bounds());
+        map = new PregenMapPanel(source.renderMapState());
         setLayout(new BorderLayout(0, 18));
         setBackground(BACKGROUND);
         setBorder(BorderFactory.createEmptyBorder(20, 24, 18, 24));
         add(header(), BorderLayout.NORTH);
-        add(mapArea(initial.bounds()), BorderLayout.CENTER);
-        add(statusArea(), BorderLayout.SOUTH);
+        JPanel content = panel(new BorderLayout(18, 0), BACKGROUND);
+        content.add(mapArea(initial.bounds()), BorderLayout.CENTER);
+        content.add(statusArea(), BorderLayout.EAST);
+        add(content, BorderLayout.CENTER);
+        add(wrappedText(text(DesktopUiMessages.PREGEN_WINDOW_HINT), LABEL_FONT, MUTED, BACKGROUND), BorderLayout.SOUTH);
         installPauseControl();
         repaintTimer = new Timer(IrisSettings.get().getGui().isMaximumPregenGuiFPS() ? 4 : 250,
                 event -> refresh());
@@ -130,8 +141,8 @@ public final class PregenRenderer extends JPanel {
         renderer.frame = frame;
         renderer.renderingEnabled = true;
         frame.setContentPane(renderer);
-        frame.setSize(1040, 900);
-        frame.setMinimumSize(new Dimension(760, 660));
+        frame.setSize(1040, 760);
+        frame.setMinimumSize(new Dimension(760, 620));
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent event) {
@@ -142,10 +153,6 @@ public final class PregenRenderer extends JPanel {
         frame.setVisible(true);
         renderer.repaintTimer.start();
         return renderer;
-    }
-
-    public void submit(int x, int z, Color color) {
-        map.submit(x, z, color);
     }
 
     public boolean isVisibleFrame() {
@@ -199,36 +206,89 @@ public final class PregenRenderer extends JPanel {
                 MessageArgument.trusted("maxX", Form.f(bounds.maxX())),
                 MessageArgument.trusted("minZ", Form.f(bounds.minZ())),
                 MessageArgument.trusted("maxZ", Form.f(bounds.maxZ()))), LABEL_FONT, MUTED);
-        area.add(coordinates, BorderLayout.SOUTH);
+        JPanel mapFooter = panel(new BorderLayout(0, 10), BACKGROUND);
+        mapFooter.add(coordinates, BorderLayout.NORTH);
+        mapFooter.add(legend(), BorderLayout.CENTER);
+        area.add(mapFooter, BorderLayout.SOUTH);
         return area;
     }
 
-    private JPanel statusArea() {
-        JPanel metrics = panel(new GridLayout(2, 4, 24, 20), SURFACE);
-        metrics.add(metric(DesktopUiMessages.PREGEN_CURRENT, currentValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_OVERALL, overallValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_THIRTY, thirtyValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_SIXTY, sixtyValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_ETA, etaValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_ELAPSED, elapsedValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_MEMORY_LABEL, memoryValue));
-        metrics.add(metric(DesktopUiMessages.PREGEN_PRESSURE, pressureValue));
-        JPanel method = panel(new BorderLayout(16, 0), SURFACE);
-        method.add(methodLabel, BorderLayout.CENTER);
-        method.add(failureLabel, BorderLayout.EAST);
-        JPanel status = panel(new BorderLayout(0, 18), SURFACE);
-        status.setBorder(BorderFactory.createEmptyBorder(18, 18, 16, 18));
-        status.add(metrics, BorderLayout.CENTER);
-        status.add(method, BorderLayout.SOUTH);
-        JPanel footer = panel(new BorderLayout(0, 12), BACKGROUND);
-        footer.add(legend(), BorderLayout.NORTH);
-        footer.add(status, BorderLayout.CENTER);
-        return footer;
+    private JScrollPane statusArea() {
+        JPanel status = new StatusPanel();
+        status.setBackground(SURFACE);
+        status.setBorder(BorderFactory.createEmptyBorder(18, 16, 16, 16));
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weightx = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.anchor = GridBagConstraints.NORTHWEST;
+        constraints.insets = new Insets(0, 0, 18, 0);
+        status.add(failureLabel, constraints);
+        constraints.gridy++;
+        currentValue.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 25));
+        etaValue.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 23));
+        status.add(metric(DesktopUiMessages.PREGEN_CURRENT, currentValue), constraints);
+        constraints.gridy++;
+        status.add(metric(DesktopUiMessages.PREGEN_ETA, etaValue), constraints);
+        constraints.gridy++;
+        constraints.insets = new Insets(0, 0, 10, 0);
+        status.add(metricRow(DesktopUiMessages.PREGEN_OVERALL, overallValue), constraints);
+        constraints.gridy++;
+        status.add(metricRow(DesktopUiMessages.PREGEN_THIRTY, thirtyValue), constraints);
+        constraints.gridy++;
+        status.add(metricRow(DesktopUiMessages.PREGEN_SIXTY, sixtyValue), constraints);
+        constraints.gridy++;
+        status.add(metricRow(DesktopUiMessages.PREGEN_ELAPSED, elapsedValue), constraints);
+        constraints.gridy++;
+        status.add(metricRow(DesktopUiMessages.PREGEN_MEMORY_LABEL, memoryValue), constraints);
+        constraints.gridy++;
+        status.add(metricRow(DesktopUiMessages.PREGEN_PRESSURE, pressureValue), constraints);
+        constraints.gridy++;
+        status.add(methodLabel, constraints);
+        constraints.gridy++;
+        constraints.weighty = 1;
+        status.add(panel(new BorderLayout(), SURFACE), constraints);
+        JScrollPane scroll = new JScrollPane(status);
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER));
+        scroll.getViewport().setBackground(SURFACE);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setPreferredSize(new Dimension(276, 1));
+        scroll.setMinimumSize(new Dimension(260, 0));
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                thumbColor = BORDER;
+                thumbDarkShadowColor = BORDER;
+                thumbHighlightColor = BORDER;
+                thumbLightShadowColor = BORDER;
+                trackColor = FIELD;
+            }
+
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return scrollEnd();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return scrollEnd();
+            }
+
+            private JButton scrollEnd() {
+                JButton button = new JButton();
+                button.setPreferredSize(new Dimension(0, 0));
+                button.setFocusable(false);
+                return button;
+            }
+        });
+        return scroll;
     }
 
     private JPanel legend() {
-        JPanel legend = panel(new FlowLayout(FlowLayout.LEFT, 0, 0), BACKGROUND);
-        legend.add(legendItem(DesktopUiMessages.PREGEN_WAITING, PregenMapPanel.WAITING));
+        JPanel legend = panel(new GridLayout(0, 2, 12, 7), BACKGROUND);
+        legend.add(legendItem(DesktopUiMessages.PREGEN_WAITING, PregenMapState.WAITING));
         legend.add(legendItem(DesktopUiMessages.PREGEN_GENERATING, GENERATING));
         legend.add(legendItem(DesktopUiMessages.PREGEN_READY, GENERATED));
         legend.add(legendItem(DesktopUiMessages.PREGEN_EXISTING, EXISTS));
@@ -238,22 +298,30 @@ public final class PregenRenderer extends JPanel {
     }
 
     private JPanel legendItem(TextKey key, Color color) {
-        JPanel item = panel(new FlowLayout(FlowLayout.LEFT, 6, 0), BACKGROUND);
-        JPanel swatch = new JPanel();
-        swatch.setBackground(color);
+        JPanel item = panel(new BorderLayout(7, 0), BACKGROUND);
+        JPanel swatch = panel(new BorderLayout(), color);
         swatch.setPreferredSize(new Dimension(10, 10));
         swatch.setBorder(BorderFactory.createLineBorder(BORDER));
-        item.add(swatch);
-        item.add(label(text(key), LABEL_FONT, MUTED));
-        item.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 13));
+        JPanel marker = panel(new BorderLayout(), BACKGROUND);
+        marker.add(swatch, BorderLayout.NORTH);
+        item.add(marker, BorderLayout.WEST);
+        item.add(wrappedText(text(key), LABEL_FONT, MUTED, BACKGROUND), BorderLayout.CENTER);
         return item;
     }
 
     private JPanel metric(TextKey title, JLabel value) {
         JPanel metric = panel(new BorderLayout(0, 5), SURFACE);
-        metric.add(label(text(title), LABEL_FONT, MUTED), BorderLayout.NORTH);
+        metric.add(wrappedText(text(title), LABEL_FONT, MUTED, SURFACE), BorderLayout.NORTH);
         metric.add(value, BorderLayout.CENTER);
         return metric;
+    }
+
+    private JPanel metricRow(TextKey title, JLabel value) {
+        JPanel row = panel(new BorderLayout(8, 0), SURFACE);
+        value.setFont(BODY_FONT);
+        row.add(wrappedText(text(title), LABEL_FONT, MUTED, SURFACE), BorderLayout.CENTER);
+        row.add(value, BorderLayout.EAST);
+        return row;
     }
 
     private void installPauseControl() {
@@ -288,6 +356,14 @@ public final class PregenRenderer extends JPanel {
             }
         });
         pauseButton.addActionListener(event -> togglePause());
+        pauseButton.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "activatePause");
+        pauseButton.getActionMap().put("activatePause", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                pauseButton.doClick();
+            }
+        });
         getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0, true), "pause");
         getActionMap().put("pause", new AbstractAction() {
             @Override
@@ -309,10 +385,14 @@ public final class PregenRenderer extends JPanel {
         }
         try {
             onPause.run();
+            controlFailure = null;
+            displayedSnapshot = null;
             refresh();
         } catch (RuntimeException failure) {
             IrisLogging.reportError("Unable to change pregeneration pause state.", failure);
-            failureLabel.setText(text(DesktopUiMessages.PREGEN_CONTROL_FAILED));
+            controlFailure = text(DesktopUiMessages.PREGEN_CONTROL_FAILED) + "\n"
+                    + Objects.toString(failure.getMessage(), failure.getClass().getSimpleName());
+            updateStatus(source.renderSnapshot());
         }
     }
 
@@ -335,6 +415,7 @@ public final class PregenRenderer extends JPanel {
         boolean initializing = snapshot.phase() == PregenRenderSnapshot.Phase.INITIALIZING;
         boolean paused = snapshot.phase() == PregenRenderSnapshot.Phase.PAUSED;
         worldLabel.setText(progress.worldName() == null ? text(DesktopUiMessages.PREGEN_TITLE) : progress.worldName());
+        worldLabel.setToolTipText(worldLabel.getText());
         phaseLabel.setText(text(switch (snapshot.phase()) {
             case INITIALIZING -> DesktopUiMessages.PREGEN_INITIALIZING;
             case GENERATING -> DesktopUiMessages.PREGEN_GENERATING;
@@ -351,6 +432,8 @@ public final class PregenRenderer extends JPanel {
         percentLabel.setText(text(DesktopUiMessages.PREGEN_PERCENT,
                 MessageArgument.trusted("percent", Form.pc(Math.max(0D, Math.min(1D, progress.percent() / 100D)), 1))));
         progressBar.setValue((int) Math.max(0D, Math.min(10_000D, progress.percent() * 100D)));
+        progressBar.getAccessibleContext().setAccessibleName(countLabel.getText());
+        map.getAccessibleContext().setAccessibleDescription(countLabel.getText() + ". " + phaseLabel.getText());
         pauseButton.setText(text(paused ? DesktopUiMessages.PREGEN_RESUME : DesktopUiMessages.PREGEN_PAUSE));
         pauseButton.setToolTipText(text(paused ? DesktopUiMessages.PREGEN_RESUME_HINT : DesktopUiMessages.PREGEN_PAUSE_HINT));
         pauseButton.setEnabled(onPause != null && switch (snapshot.phase()) {
@@ -361,7 +444,9 @@ public final class PregenRenderer extends JPanel {
         overallValue.setText(initializing ? pending() : rate(progress.overallChunksPerSecond()));
         thirtyValue.setText(initializing ? pending() : rate(progress.thirtySecondChunksPerSecond()));
         sixtyValue.setText(initializing ? pending() : rate(progress.sixtySecondChunksPerSecond()));
-        etaValue.setText(initializing || paused || progress.eta() < 0
+        etaValue.setText((snapshot.phase() != PregenRenderSnapshot.Phase.GENERATING
+                && snapshot.phase() != PregenRenderSnapshot.Phase.SAVING
+                && snapshot.phase() != PregenRenderSnapshot.Phase.COMPLETED) || progress.eta() < 0
                 || (progress.eta() == 0 && progress.chunksRemaining() > 0)
                 ? pending() : Form.duration(progress.eta(), 2));
         elapsedValue.setText(initializing ? pending() : Form.duration(progress.elapsed(), 2));
@@ -375,12 +460,20 @@ public final class PregenRenderer extends JPanel {
             method = text(DesktopUiMessages.PREGEN_CACHED, MessageArgument.untrusted("method", method));
         }
         methodLabel.setText(text(DesktopUiMessages.PREGEN_METHOD, MessageArgument.untrusted("method", method)));
-        failureLabel.setText(progress.failed() > 0 ? text(DesktopUiMessages.PREGEN_FAILED,
-                MessageArgument.trusted("count", Form.f(progress.failed()))) : "");
-        failureLabel.setToolTipText(snapshot.failure());
+        methodLabel.setToolTipText(methodLabel.getText());
+        String failureSummary = progress.failed() > 0 ? text(DesktopUiMessages.PREGEN_FAILED,
+                MessageArgument.trusted("count", Form.f(progress.failed()))) : "";
         if (snapshot.failure() != null) {
-            failureLabel.setText(text(DesktopUiMessages.PREGEN_ERROR_DETAILS));
+            failureSummary += (failureSummary.isEmpty() ? "" : "\n")
+                    + text(DesktopUiMessages.PREGEN_ERROR_DETAILS) + "\n" + snapshot.failure();
         }
+        if (controlFailure != null) {
+            failureSummary += (failureSummary.isEmpty() ? "" : "\n") + controlFailure;
+        }
+        if (!failureSummary.equals(failureLabel.getText())) {
+            failureLabel.setText(failureSummary);
+        }
+        failureLabel.setVisible(!failureSummary.isEmpty());
     }
 
     private void setRenderingEnabled(boolean enabled) {
@@ -418,6 +511,19 @@ public final class PregenRenderer extends JPanel {
         return label;
     }
 
+    private static JTextArea wrappedText(String text, Font font, Color foreground, Color background) {
+        JTextArea area = new JTextArea(text);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setFont(font);
+        area.setForeground(foreground);
+        area.setBackground(background);
+        area.setBorder(BorderFactory.createEmptyBorder());
+        return area;
+    }
+
     private static String pending() {
         return text(DesktopUiMessages.PREGEN_METHOD_PENDING);
     }
@@ -428,5 +534,36 @@ public final class PregenRenderer extends JPanel {
 
     private static String text(TextKey key, MessageArgument... arguments) {
         return IrisLanguage.plain(key, arguments);
+    }
+
+    private static final class StatusPanel extends JPanel implements Scrollable {
+        private StatusPanel() {
+            super(new GridBagLayout());
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
+            return Math.max(16, visible.height - 16);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return getParent() != null && getPreferredSize().height < getParent().getHeight();
+        }
     }
 }

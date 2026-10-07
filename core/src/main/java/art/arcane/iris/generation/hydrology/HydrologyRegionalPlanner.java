@@ -31,6 +31,7 @@ final class HydrologyRegionalPlanner {
     private static final long BASIN_SALT = 0x524547424153494eL;
     private static final long COURSE_SALT = 0x524547434f555253L;
     private static final long NODE_SALT = 0x5245474e4f444553L;
+    private static final double AUTHORED_WIDTH_WEIGHT = 0.65D;
     private static final int MAXIMUM_SOURCE_TRIALS = 24;
     private static final int SOURCE_TRIAL_WINDOW = 16;
     private static final int MAXIMUM_DIAGNOSTICS = 64;
@@ -579,11 +580,17 @@ final class HydrologyRegionalPlanner {
         if (request.field() != HydrologyGeometrySampler.Field.SURFACE_WIDTH) {
             return planner.geometrySampler.sample(request);
         }
-        int authored = planner.geometrySampler.sample(request);
-        double fraction = 0.25D + 0.75D * context.flow().fraction(request.x(), request.z());
-        double sampled = request.minimum() + (request.maximum() - request.minimum()) * fraction;
-        double width = sampled * 0.75D + authored * 0.25D;
-        double freedom = context.morphology().freedomAt(request.x(), request.z());
+        return regionalWidth(request, planner.geometrySampler.sample(request),
+                context.flow().fraction(request.x(), request.z()),
+                context.morphology().freedomAt(request.x(), request.z()));
+    }
+
+    static int regionalWidth(HydrologyGeometrySampler.Request request, int authored,
+                             double flow, double freedom) {
+        double fraction = 0.25D + 0.75D * flow;
+        double range = (double) request.maximum() - request.minimum();
+        double sampled = request.minimum() + range * fraction;
+        double width = sampled * (1D - AUTHORED_WIDTH_WEIGHT) + authored * AUTHORED_WIDTH_WEIGHT;
         double constrained = request.minimum() + (width - request.minimum()) * freedom;
         return Math.max(request.minimum(), Math.min(request.maximum(), (int) StrictMath.round(constrained)));
     }

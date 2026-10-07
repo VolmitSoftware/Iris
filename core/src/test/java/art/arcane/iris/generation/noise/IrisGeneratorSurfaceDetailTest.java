@@ -277,7 +277,7 @@ public class IrisGeneratorSurfaceDetailTest {
         }
 
         @Override
-        public double getNoise(long superSeed, double x, double z, IrisData data) {
+        public double getNoise(long superSeed, double x, double z, IrisData data, Engine engine) {
             return sampler.sample(superSeed, x, z);
         }
     }
@@ -290,7 +290,7 @@ public class IrisGeneratorSurfaceDetailTest {
         }
 
         @Override
-        public double getNoise(long superSeed, double x, double z, IrisData data) {
+        public double getNoise(long superSeed, double x, double z, IrisData data, Engine engine) {
             return sampler.applyAsDouble(data);
         }
     }

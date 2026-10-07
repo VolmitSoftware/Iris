@@ -20,4 +20,6 @@ package art.arcane.iris.studio.view;
 
 public interface PregenRenderSource {
     PregenRenderSnapshot renderSnapshot();
+
+    PregenMapState renderMapState();
 }

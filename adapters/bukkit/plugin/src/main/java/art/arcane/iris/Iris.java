@@ -18,6 +18,7 @@
 
 package art.arcane.iris;
 
+import java.util.concurrent.CompletionStage;
 import art.arcane.volmlib.util.diagnostics.BukkitDebugDump;
 import art.arcane.iris.generation.runtime.IrisEngineEffects;
 import art.arcane.iris.generation.runtime.IrisWorldManager;
@@ -1011,20 +1012,21 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     @Override
-    public void onPreUnload(ReloadAware.PreUnloadReason reason) {
+    public CompletionStage<Void> commitReload(ReloadAware.PreUnloadReason reason) {
         teardownPapi();
         if (IrisToolbelt.isServerStopping()) {
             quiesceRuntimeForServerShutdown("pre-unload:" + reason);
             startPostStopFinisher();
             Iris.debug("Pre-unload hook deferred generator teardown until Paper closes its chunk schedulers.");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         if (alreadyDrained.get()) {
             Iris.debug("Pre-unload hook skipped; Iris already drained.");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         Iris.debug("BileTools pre-unload hook fired (" + reason + "). Freezing all Iris worlds.");
         drainOnce("pre-unload:" + reason, 45L);
+        return CompletableFuture.completedFuture(null);
     }
 
     /**

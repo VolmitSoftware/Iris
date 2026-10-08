@@ -22,8 +22,6 @@ import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockState;
 import com.volmit.hunk.Hunk;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -32,17 +30,13 @@ import java.util.function.Function;
  * invocation, since a chunk repeats few states many times.
  */
 final class BlockStateHunk implements Hunk<BlockState> {
-    private static final BlockState AIR = BlockState.parse("minecraft:air");
-
     private final art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks;
-    private final Function<String, PlatformBlockState> platformStates;
-    private final Map<PlatformBlockState, BlockState> read = new HashMap<>();
-    private final Map<BlockState, PlatformBlockState> written = new HashMap<>();
+    private final PlatformBlockStates states;
 
     /** {@code platformStates} turns a block state key into the platform's state, such as {@code B::getState}. */
     BlockStateHunk(art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks, Function<String, PlatformBlockState> platformStates) {
         this.blocks = blocks;
-        this.platformStates = platformStates;
+        this.states = new PlatformBlockStates(platformStates);
     }
 
     @Override
@@ -63,11 +57,7 @@ final class BlockStateHunk implements Hunk<BlockState> {
     @Override
     public BlockState get(int x, int y, int z) {
         requireInside(x, y, z);
-        PlatformBlockState state = blocks.get(x, y, z);
-        if (state == null) {
-            return AIR;
-        }
-        return read.computeIfAbsent(state, platform -> BlockState.parse(platform.key()));
+        return states.toApi(blocks.get(x, y, z));
     }
 
     @Override
@@ -76,7 +66,7 @@ final class BlockStateHunk implements Hunk<BlockState> {
         if (value == null) {
             throw new NullPointerException("Block hunks hold no null states; write minecraft:air for empty space");
         }
-        blocks.set(x, y, z, written.computeIfAbsent(value, state -> platformStates.apply(state.key())));
+        blocks.set(x, y, z, states.toPlatform(value));
     }
 
     private void requireInside(int x, int y, int z) {

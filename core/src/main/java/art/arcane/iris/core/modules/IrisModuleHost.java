@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
 import com.volmit.host.ModuleHost;
@@ -37,7 +38,6 @@ public final class IrisModuleHost {
     static final String RESERVED_NAMESPACE = "iris";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
-    private static final List<IrisModule> BUILT_IN_MODULES = List.of();
 
     private IrisModuleHost() {
     }
@@ -46,8 +46,13 @@ public final class IrisModuleHost {
         return Holder.HOST;
     }
 
+    /** The modules every pack loads before its own: Iris's built-in features. */
+    public static List<IrisModule> builtInModules() {
+        return PlacementModules.all();
+    }
+
     private static ModuleHost build() {
-        return ModuleHost.of(BUILT_IN_MODULES)
+        return ModuleHost.of(builtInModules())
                 .exposing(BUILT_IN_API_PACKAGE)
                 .reservingNamespaces(RESERVED_NAMESPACE)
                 .reservingFields(ModuleTargets.reservedFields())

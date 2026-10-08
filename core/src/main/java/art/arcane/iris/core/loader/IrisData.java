@@ -31,6 +31,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.core.modules.ObjectPlacementSettingsReader;
 import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.engine.data.cache.AtomicCache;
@@ -474,6 +475,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
                 .setStrictness(Strictness.LENIENT)
+                .registerTypeAdapterFactory(new ObjectPlacementSettingsReader(() -> modules.settings()))
                 .registerTypeAdapterFactory(this)
                 .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();

@@ -29,8 +29,9 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
- * Iris's terrain streams for one chunk invocation. The streams are computed, not prepared, so the
- * bounds are only the area the pipeline's reach may touch: the chunk widened by it, at full height.
+ * Iris's terrain streams for one invocation. The streams are computed, not prepared, so the bounds are
+ * only the area the invocation may touch: a chunk or a placement widened by the pipeline's reach, at
+ * full height.
  */
 final class IrisTerrainSampler implements TerrainSampler {
     private static final int CHUNK_WIDTH_BLOCKS = 16;
@@ -39,12 +40,17 @@ final class IrisTerrainSampler implements TerrainSampler {
     private final PackResourceIds ids;
     private final BlockBox bounds;
 
+    /** The chunk at {@code originX}, {@code originZ} widened by {@code reachBlocks}, over the full world height. */
     IrisTerrainSampler(Engine engine, PackResourceIds ids, int originX, int originZ, int reachBlocks) {
+        this(engine, ids, originX - reachBlocks, originZ - reachBlocks,
+                originX + CHUNK_WIDTH_BLOCKS + reachBlocks, originZ + CHUNK_WIDTH_BLOCKS + reachBlocks);
+    }
+
+    /** Columns from the minima, inclusive, to the maxima, exclusive, over the full world height. */
+    IrisTerrainSampler(Engine engine, PackResourceIds ids, int minX, int minZ, int maxX, int maxZ) {
         this.engine = engine;
         this.ids = ids;
-        this.bounds = new BlockBox(
-                originX - reachBlocks, engine.getMinHeight(), originZ - reachBlocks,
-                originX + CHUNK_WIDTH_BLOCKS + reachBlocks, engine.getMinHeight() + engine.getHeight(), originZ + CHUNK_WIDTH_BLOCKS + reachBlocks);
+        this.bounds = new BlockBox(minX, engine.getMinHeight(), minZ, maxX, engine.getMinHeight() + engine.getHeight(), maxZ);
     }
 
     @Override

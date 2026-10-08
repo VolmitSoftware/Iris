@@ -9,6 +9,8 @@ import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPlacementPack;
+import com.volmit.host.LoadedPack;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.IrisPlatform;
@@ -19,8 +21,12 @@ import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,11 +46,15 @@ import static org.mockito.Mockito.when;
 public class IrisObjectSurfaceSupportPlacementTest {
     private static final int SURFACE_Y = 80;
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     private IrisData data;
     private Engine engine;
+    private LoadedPack pack;
 
     @Before
-    public void bindPlatform() {
+    public void bindPlatform() throws IOException {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
         // IrisObject caches built-in states across test fixtures; every registry answer must be usable.
@@ -72,12 +82,15 @@ public class IrisObjectSurfaceSupportPlacementTest {
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
         when(engine.getComplex()).thenReturn(complex);
+        BuiltInPlacementPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
+        pack = BuiltInPlacementPack.serve(data, folder, List.of());
     }
 
     @After
     public void unbindPlatform() {
+        pack.close();
         IrisPlatforms.unbind();
     }
 

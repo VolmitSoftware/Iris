@@ -20,7 +20,6 @@ package art.arcane.iris.engine.framework;
 
 
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.PlacementLifecycles;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.framework.render.Renderer;
@@ -84,10 +83,6 @@ import java.util.stream.Collectors;
 
 public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
-
-    default art.arcane.iris.engine.object.placement.PlacementLifecycles getPlacementLifecycles() {
-        return art.arcane.iris.engine.object.placement.PlacementLifecycles.defaults();
-    }
 
     default @Nullable UpperDimensionContext getUpperContext() {
         return null;

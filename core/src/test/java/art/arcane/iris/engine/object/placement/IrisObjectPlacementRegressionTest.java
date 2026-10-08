@@ -7,20 +7,18 @@ import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.engine.object.placement.IrisStiltSettings;
 import art.arcane.iris.engine.object.placement.IrisVacuumSettings;
 import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
-import art.arcane.iris.engine.object.placement.PlacementContext;
-import art.arcane.iris.engine.object.placement.PlacementLifecycleBuilder;
-import art.arcane.iris.engine.object.placement.PlacementLifecycleDependency;
-import art.arcane.iris.engine.object.placement.PlacementLifecycles;
-import art.arcane.iris.engine.object.placement.PlacementModuleAnchor;
-import art.arcane.iris.engine.object.placement.PlacementStage;
-import art.arcane.iris.engine.object.placement.PlacementState;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
+import art.arcane.iris.builtin.blocks.BlocksStages;
+import art.arcane.iris.builtin.bore.BoreStages;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPlacementPack;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.core.modules.ObjectPlacementResult;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
@@ -32,14 +30,27 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
+import com.volmit.block.BlockState;
+import com.volmit.host.LoadedPack;
+import com.volmit.placement.PlacedBlock;
+import com.volmit.stage.PlacementStage;
+import com.volmit.stage.Stage;
+import com.volmit.stage.StageGraph;
+import com.volmit.world.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,38 +63,59 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisObjectPlacementRunnerRegressionTest {
+public class IrisObjectPlacementRegressionTest {
     private static final int ANCHOR_Y = 80;
+    private static final String SNOW_LAYER = "minecraft:snow[layers=1]";
+    private static final String CAVE_AIR = "minecraft:cave_air";
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private final Map<String, PlatformBlockState> registryStates = new HashMap<>();
     private IrisData data;
     private Engine engine;
     private PlatformBlockState solid;
     private PlatformBlockState schematicAir;
+    private LoadedPack pack;
 
     @Before
-    public void bindPlatform() {
+    public void bindPlatform() throws IOException {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        Map<String, PlatformBlockState> registryStates = new HashMap<>();
-        when(registries.block(anyString())).thenAnswer(invocation -> {
-            String key = invocation.getArgument(0);
-            return registryStates.computeIfAbsent(key, value -> state(value.toLowerCase(), !value.toLowerCase().contains("air")));
-        });
+        when(registries.block(anyString())).thenAnswer(invocation -> registryState(invocation.getArgument(0)));
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);
 
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
+        BuiltInPlacementPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
-        solid = state("minecraft:stone", true);
-        schematicAir = state("minecraft:air", false);
+        usePack(List.of());
+        solid = registryState("minecraft:stone");
+        schematicAir = registryState("minecraft:air");
     }
 
     @After
     public void unbindPlatform() {
+        pack.close();
         IrisPlatforms.unbind();
+    }
+
+    /** Placements run Iris's built-in modules followed by {@code packModules}, as a pack's placement graph does. */
+    private void usePack(List<IrisModule> packModules) throws IOException {
+        if (pack != null) {
+            pack.close();
+        }
+        pack = BuiltInPlacementPack.serve(data, folder, packModules);
+    }
+
+    /** Platform states by key, the way a registry answers them; keys without a namespace are Minecraft's. */
+    private PlatformBlockState registryState(String key) {
+        String normalized = key.toLowerCase();
+        String namespaced = normalized.contains(":") ? normalized : "minecraft:" + normalized;
+        return registryStates.computeIfAbsent(namespaced, value -> state(value, !value.contains("air")));
     }
 
     @Test
@@ -104,14 +136,16 @@ public class IrisObjectPlacementRunnerRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         IrisObjectPlacement placement = placement();
         placement.setBore(true);
+        placement.setBoreExtendMaxY(1);
         placement.setRotation(IrisObjectRotation.of(0, 90, 0));
         placement.setTranslate(new IrisObjectTranslate().setX(4).setYRandom(3));
 
         int resultY = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-        List<BlockWrite> airWrites = placer.writesOf(IrisObject.States.AIR);
-        assertFalse(airWrites.isEmpty());
-        assertTrue(airWrites.stream().allMatch(write -> write.y() >= resultY && write.y() <= resultY));
+        // The object's own blocks replace the bored air below, so only the extension stays air.
+        List<BlockWrite> airWrites = placer.writesOf(CAVE_AIR);
+        assertEquals(3, airWrites.size());
+        assertTrue(airWrites.stream().allMatch(write -> write.y() == resultY + 1));
         assertTrue(airWrites.stream().allMatch(write -> write.x() == 0));
         assertTrue(airWrites.stream().allMatch(write -> write.z() <= -3 && write.z() >= -5));
     }
@@ -162,7 +196,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-        List<BlockWrite> snowWrites = placer.writesOf(IrisObject.States.SNOW_LAYERS[0]);
+        List<BlockWrite> snowWrites = placer.writesOf(SNOW_LAYER);
         assertEquals(1, snowWrites.size());
         assertEquals(ANCHOR_Y, snowWrites.get(0).y());
     }
@@ -183,9 +217,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
         assertSame(IrisObject.States.VAIR, cachedState);
-        if (IrisObject.States.VAIR != IrisObject.States.VAIR_DEBUG) {
-            assertTrue(cachedState != IrisObject.States.VAIR_DEBUG);
-        }
+        assertEquals(BlockState.parse(IrisObject.States.VAIR.key()), object.getGeometry().blocks().getFirst().state());
     }
 
     @Test
@@ -215,8 +247,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         // Every bottom column reaches the ground after rotation and translation.
         for (int z = -5; z <= -3; z++) {
-            assertSame(solid, placer.get(0, ANCHOR_Y, z));
-            assertSame(solid, placer.get(0, ANCHOR_Y + 3, z));
+            assertEquals(solid.key(), placer.get(0, ANCHOR_Y, z).key());
+            assertEquals(solid.key(), placer.get(0, ANCHOR_Y + 3, z).key());
         }
         assertTrue(placer.writes().stream().allMatch(write -> write.x() == 0));
     }
@@ -232,8 +264,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         boxObject(1, 3, 1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
 
-        assertSame(solid, placer.get(0, 82, 0));
-        assertSame(solid, placer.get(0, 89, 0));
+        assertEquals(solid.key(), placer.get(0, 82, 0).key());
+        assertEquals(solid.key(), placer.get(0, 89, 0).key());
         assertTrue(placer.writes().stream().noneMatch(write -> write.y() < 82 || write.y() >= 90));
     }
 
@@ -248,7 +280,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         lineObject(1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
 
         for (int y = 76; y <= ANCHOR_Y; y++) {
-            assertSame(solid, placer.get(0, y, 0));
+            assertEquals(solid.key(), placer.get(0, y, 0).key());
         }
         assertTrue(placer.writes().stream().noneMatch(write -> write.y() <= 75));
     }
@@ -275,22 +307,94 @@ public class IrisObjectPlacementRunnerRegressionTest {
     }
 
     @Test
-    public void runnerUsesTheEnginePlanAndCompletesTheBlockPassBeforeAfterBlocks() {
+    public void packStagesSeeTheWrittenObjectAndCommitWithIt() throws IOException {
+        List<Integer> writtenSizes = new ArrayList<>();
+        usePack(List.of(new CapModule(writtenSizes)));
         RecordingPlacer placer = new RecordingPlacer(engine);
-        PlacementLifecycleBuilder builder = new PlacementLifecycleBuilder();
-        ObjectPlaceMode.CENTER_HEIGHT.install(builder);
-        builder.add(new PlacementLifecycleDependency("test.offset"), PlacementStage.HEIGHT,
-                (context, state, ignored) -> state.y += 5, PlacementModuleAnchor.HEIGHT);
-        List<Integer> finishedSizes = new ArrayList<>();
-        builder.add(new PlacementLifecycleDependency("test.finished"), PlacementStage.AFTER_BLOCKS,
-                (context, state, ignored) -> finishedSizes.add(placer.writes().size()));
-        PlacementLifecycles plans = mock(PlacementLifecycles.class);
-        when(plans.get(ObjectPlaceMode.CENTER_HEIGHT)).thenReturn(builder.build());
-        when(engine.getPlacementLifecycles()).thenReturn(plans);
 
-        assertEquals(ANCHOR_Y + 5, lineObject(3).place(0, ANCHOR_Y, 0, placer, placement(), new RNG(2L), data));
-        assertEquals(List.of(3), finishedSizes);
-        assertTrue(placer.writes().stream().allMatch(write -> write.y() == ANCHOR_Y + 5));
+        assertEquals(ANCHOR_Y, lineObject(3).place(0, ANCHOR_Y, 0, placer, placement(), new RNG(2L), data));
+
+        assertEquals(List.of(3), writtenSizes);
+        assertEquals(4, placer.writes().size());
+        assertEquals(solid.key(), placer.get(0, ANCHOR_Y + 1, 0).key());
+    }
+
+    @Test
+    public void aRejectingPackStageDiscardsEveryEarlierWrite() throws IOException {
+        usePack(List.of(new VetoModule()));
+        RecordingPlacer placer = new RecordingPlacer(engine);
+
+        ObjectPlacementResult result = place(placement().setBore(true), ANCHOR_Y, placer, null);
+
+        assertEquals(Optional.of("veto"), result.rejection());
+        assertEquals(-1, result.heightOrRejected());
+        assertTrue(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void withoutAnEngineThePlacementDrawsItsSeedOnceFromTheCallersRandom() {
+        RNG rng = new RNG(91);
+        RNG expected = new RNG(91);
+        expected.nextLong();
+        IrisObjectPlacement config = placement();
+        config.setTranslate(new IrisObjectTranslate().setYRandom(3));
+
+        lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), config, rng, data);
+
+        assertEquals(expected.nextLong(), rng.nextLong());
+    }
+
+    @Test
+    public void withAnEngineTheSamePlacementPlacesTheSameWayWithoutTheCallersRandom() {
+        IrisObjectPlacement config = placement();
+        config.setTranslate(new IrisObjectTranslate().setYRandom(20));
+        RNG rng = new RNG(91);
+
+        int first = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config, rng, data);
+        int second = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config, new RNG(3), data);
+
+        assertEquals(first, second);
+        assertEquals(new RNG(91).nextLong(), rng.nextLong());
+    }
+
+    /** Puts a block on top of the object once it is written, reporting how many blocks the object wrote. */
+    private static final class CapModule implements IrisModule {
+        private static final PlacementStage<Void> CAP = Stage.placement("test:cap/top");
+        private final List<Integer> writtenSizes;
+
+        private CapModule(List<Integer> writtenSizes) {
+            this.writtenSizes = writtenSizes;
+        }
+
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:cap", "Cap", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(CAP).requires(BlocksStages.COMPLETE, BlocksStages.WRITE).run(context -> {
+                List<PlacedBlock> written = context.output(BlocksStages.WRITE).blocks();
+                writtenSizes.add(written.size());
+                BlockPosition first = written.getFirst().position();
+                context.access().set(new PlacedBlock(new BlockPosition(0, first.y() + 1, 0), written.getFirst().state(), Optional.empty()));
+            });
+        }
+    }
+
+    /** Rejects every placement after it is bored and written. */
+    private static final class VetoModule implements IrisModule {
+        private static final PlacementStage<Void> VETO = Stage.placement("test:veto/all");
+
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:veto", "Veto", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(VETO).requires(BoreStages.CLEAR, BlocksStages.COMPLETE).run(context -> context.reject("veto"));
+        }
     }
 
     @Test
@@ -325,13 +429,13 @@ public class IrisObjectPlacementRunnerRegressionTest {
                 }
                 case "height-clamp" -> config.getClamp().setMaximumHeight(ANCHOR_Y - 1);
             }
-            PlacementState result = execute(config, anchor, placer, cave);
-            assertEquals(reason, result.getRejection());
+            ObjectPlacementResult result = place(config, anchor, placer, cave);
+            assertEquals(Optional.of(reason), result.rejection());
             assertEquals(-1, result.heightOrRejected());
             assertTrue(reason, placer.writes().isEmpty());
 
             config.setForcePlace(true);
-            assertFalse(reason, execute(config, anchor, placer, cave).isRejected());
+            assertTrue(reason, place(config, anchor, placer, cave).isPlaced());
             assertFalse(reason, placer.writes().isEmpty());
         }
     }
@@ -343,11 +447,11 @@ public class IrisObjectPlacementRunnerRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(engine);
         IrisObjectPlacement config = placement().setForcePlace(true).setBore(true).setSnow(0.1);
 
-        assertEquals("native-structure", execute(config, ANCHOR_Y, placer, null).getRejection());
+        assertEquals(Optional.of("native-structure"), place(config, ANCHOR_Y, placer, null).rejection());
         assertTrue(placer.writes().isEmpty());
 
         config.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
-        assertEquals(ANCHOR_Y, execute(config, ANCHOR_Y, placer, null).heightOrRejected());
+        assertEquals(ANCHOR_Y, place(config, ANCHOR_Y, placer, null).heightOrRejected());
         assertFalse(placer.writes().isEmpty());
     }
 
@@ -359,16 +463,16 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisObjectPlacement config = placement().setBore(true);
         config.getForbiddenCollisions().add("forbidden");
 
-        assertEquals("object-collision", execute(config, ANCHOR_Y, placer, null).getRejection());
+        assertEquals(Optional.of("object-collision"), place(config, ANCHOR_Y, placer, null).rejection());
         assertTrue(placer.writes().isEmpty());
 
         config.getAllowedCollisions().add("forbidden");
-        assertFalse(execute(config, ANCHOR_Y, placer, null).isRejected());
+        assertTrue(place(config, ANCHOR_Y, placer, null).isPlaced());
         assertFalse(placer.writes().isEmpty());
 
         config.getAllowedCollisions().clear();
         config.setForcePlace(true);
-        assertFalse(execute(config, ANCHOR_Y, new RecordingPlacer(engine), null).isRejected());
+        assertTrue(place(config, ANCHOR_Y, new RecordingPlacer(engine), null).isPlaced());
     }
 
     @Test
@@ -379,7 +483,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         config.getForbiddenCollisions().add("forbidden");
         assertEquals("Object placement requires active Iris data for collision settings.",
                 assertThrows(IllegalStateException.class,
-                        () -> execute(config, ANCHOR_Y, placer, null)).getMessage());
+                        () -> place(config, ANCHOR_Y, placer, null)).getMessage());
         assertTrue(placer.writes().isEmpty());
     }
 
@@ -397,42 +501,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         List<BlockWrite> center = placer.writes().stream().filter(write -> write.x() == 0 && write.z() == 0).toList();
         assertEquals(List.of(82, 81, 83), center.stream().map(BlockWrite::y).toList());
-        assertSame(solid, center.get(0).state());
-        assertSame(IrisObject.States.SNOW_LAYERS[0], center.get(2).state());
-    }
-
-    @Test
-    public void preparationPreservesRandomDrawsForPlacementAndLaterCallers() {
-        for (int range : List.of(-3, 0, 3)) {
-            RNG rng = new RNG(91);
-            RNG expected = new RNG(91);
-            expected.imax();
-            expected.imax();
-            expected.imax();
-            int offset = range > 0 ? expected.i(0, range) : range < 0 ? expected.i(range, 0) : 0;
-            IrisObjectPlacement config = placement().setBore(true);
-            config.setTranslate(new IrisObjectTranslate().setYRandom(range));
-            assertEquals(ANCHOR_Y + offset,
-                    lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), config, rng, data));
-            assertEquals(expected.nextLong(), rng.nextLong());
-        }
-    }
-
-    @Test
-    public void heightmapPreparationKeepsItsSeedDrawBeforeRotation() {
-        RNG rng = new RNG(91);
-        RNG expected = new RNG(91);
-        expected.nextLong();
-        expected.imax();
-        expected.imax();
-        expected.imax();
-        RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement config = placement();
-        config.setHeightmap(new IrisNoiseGenerator(false).setOffsetY(93));
-
-        assertEquals(93, lineObject(1).place(0, -1, 0, placer, config, rng, data));
-        assertTrue(placer.sampledColumns().isEmpty());
-        assertEquals(expected.nextLong(), rng.nextLong());
+        assertEquals(solid.key(), center.get(0).state().key());
+        assertEquals(SNOW_LAYER, center.get(2).state().key());
     }
 
     @Test
@@ -474,9 +544,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
         assertEquals(List.of(-1, 0, 1), placer.writes().stream().map(BlockWrite::z).sorted().toList());
     }
 
-    private PlacementState execute(IrisObjectPlacement config, int y, RecordingPlacer placer, CarveResult cave) {
-        return PlacementLifecycles.defaults().get(config.getMode()).execute(
-                new PlacementContext(config, data, placer, cave, new RNG(2L), lineObject(1), 0, 0, y, null));
+    private ObjectPlacementResult place(IrisObjectPlacement config, int y, RecordingPlacer placer, CarveResult cave) {
+        return ModuleObjectPlacement.place(lineObject(1), 0, y, 0, placer, config, new RNG(2L), null, cave, data);
     }
 
     private IrisObject lineObject(int width) {
@@ -541,8 +610,8 @@ public class IrisObjectPlacementRunnerRegressionTest {
             return writes;
         }
 
-        private List<BlockWrite> writesOf(PlatformBlockState state) {
-            return writes.stream().filter(write -> write.state() == state).toList();
+        private List<BlockWrite> writesOf(String key) {
+            return writes.stream().filter(write -> write.state().key().equals(key)).toList();
         }
 
         private List<String> sampledColumns() {

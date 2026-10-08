@@ -7,6 +7,8 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPlacementPack;
+import com.volmit.host.LoadedPack;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
@@ -19,8 +21,11 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,12 +42,16 @@ import static org.mockito.Mockito.when;
 public class NativeStructureObjectVetoTest {
     private static final int SURFACE_Y = 80;
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     private IrisData data;
     private Engine engine;
+    private LoadedPack pack;
     private PlatformBlockState log;
 
     @Before
-    public void bindPlatform() {
+    public void bindPlatform() throws IOException {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
         // IrisObject caches built-in states across test fixtures; every registry answer must be usable.
@@ -72,12 +81,15 @@ public class NativeStructureObjectVetoTest {
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getDimension()).thenReturn(mock(IrisDimension.class));
         volumes();
+        BuiltInPlacementPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
+        pack = BuiltInPlacementPack.serve(data, folder, List.of());
     }
 
     @After
     public void unbindPlatform() {
+        pack.close();
         IrisPlatforms.unbind();
     }
 

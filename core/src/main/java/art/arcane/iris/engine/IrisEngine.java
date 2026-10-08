@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine;
 
-import art.arcane.iris.engine.object.placement.PlacementLifecycles;
 import art.arcane.iris.engine.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.framework.Engine;
@@ -499,19 +498,6 @@ public class IrisEngine implements Engine {
         }
         EngineRuntime current = runtime;
         return current == null ? null : current.complex();
-    }
-
-    @Override
-    public art.arcane.iris.engine.object.placement.PlacementLifecycles getPlacementLifecycles() {
-        RuntimeAssembly assembly = runtimeAssembly.get();
-        if (assembly != null) {
-            return assembly.placementLifecycles;
-        }
-        EngineRuntime current = runtime;
-        if (current == null) {
-            throw new IllegalStateException("Placement requires an active Iris runtime.");
-        }
-        return current.placementLifecycles();
     }
 
     @Override

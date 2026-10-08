@@ -423,6 +423,8 @@ and closes the edit in every case. Stages get buffered `PlacementAccess` without
 
 - `ResourceId` requires a namespace. `ResourceKey<T>` pairs it with a public type.
 - `PackResources` serves one immutable pack snapshot; caches must not survive a reload.
+  It serves pack objects (`GeneratedObject`), biomes (`PackBiome`) and regions (`PackRegion`); the
+  requested type selects the kind, so `BiomeSample` ids look up directly.
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
   platform. `BlockPalette` and `NoiseSampler` are typed resources.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor

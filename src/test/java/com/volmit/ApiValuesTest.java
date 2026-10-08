@@ -150,4 +150,22 @@ class ApiValuesTest {
         assertThrows(IllegalArgumentException.class, () -> new TerrainSample(Double.NaN, OptionalInt.empty(), 0));
         assertThrows(IllegalArgumentException.class, () -> new TerrainSample(0, OptionalInt.empty(), -1));
     }
+
+    @Test
+    void packBiomesAndRegionsAreImmutableValues() {
+        var children = new ArrayList<>(List.of(ResourceId.parse("pack:dunes")));
+        var desert = new PackBiome(ResourceId.parse("pack:desert"), "Desert", ResourceId.parse("minecraft:desert"), 2, children);
+        children.clear();
+        assertEquals(List.of(ResourceId.parse("pack:dunes")), desert.children());
+        assertThrows(UnsupportedOperationException.class, () -> desert.children().clear());
+        assertThrows(IllegalArgumentException.class,
+                () -> new PackBiome(desert.id(), "Desert", desert.platformBiome(), 0, List.of()));
+
+        var land = List.of(desert.id());
+        var arid = new PackRegion(ResourceId.parse("pack:arid"), "Arid", 1, land, List.of(), List.of(), List.of());
+        assertEquals(land, arid.landBiomes());
+        assertThrows(UnsupportedOperationException.class, () -> arid.caveBiomes().add(desert.id()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new PackRegion(arid.id(), "Arid", 0, land, List.of(), List.of(), List.of()));
+    }
 }

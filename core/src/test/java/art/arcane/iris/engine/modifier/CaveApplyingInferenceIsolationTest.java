@@ -3,6 +3,7 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -34,7 +35,7 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class IrisCarveModifierInferenceIsolationTest {
+public class CaveApplyingInferenceIsolationTest {
     @BeforeClass
     public static void bindPlatform() {
         IrisPlatforms.unbind();
@@ -63,14 +64,14 @@ public class IrisCarveModifierInferenceIsolationTest {
         doReturn(mock(IrisDimension.class)).when(engine).getDimension();
         doReturn(mock(IrisComplex.class)).when(engine).getComplex();
         doReturn(IrisWorld.builder().minHeight(-256).maxHeight(512).build()).when(engine).getWorld();
-        IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
-        doReturn(engine).when(modifier).getEngine();
+        doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
+        CaveApplying modifier = new CaveApplying(engine);
 
         Map<String, IrisBiome> customBiomes = new HashMap<>();
         customBiomes.put("shared", biome);
         CarveWallBuffer walls = new CarveWallBuffer(1);
         walls.put(0, 1, 0, new MatterCavern(true, "shared", (byte) 0));
-        Method paintBoundaryZone = IrisCarveModifier.class.getDeclaredMethod(
+        Method paintBoundaryZone = CaveApplying.class.getDeclaredMethod(
                 "paintBoundaryZone",
                 Hunk.class,
                 CarveWallBuffer.class,

@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisCarveModifierFluidIntentTest {
+public class CaveApplyingFluidIntentTest {
     @Test
     public void explicitCavernIntentsOverrideExistingFluid() {
         MatterCavern airIntent = new MatterCavern(true, "", (byte) 0);
@@ -24,24 +24,24 @@ public class IrisCarveModifierFluidIntentTest {
         PlatformBlockState air = mock(PlatformBlockState.class);
         when(existingFluid.isFluid()).thenReturn(true);
 
-        assertFalse(IrisCarveModifier.hasExplicitCarveIntent(null));
-        assertTrue(IrisCarveModifier.shouldPreserveExistingFluid(airIntent, existingFluid));
-        assertTrue(IrisCarveModifier.isFluidIntent(fluidIntent));
-        assertFalse(IrisCarveModifier.shouldPreserveExistingFluid(fluidIntent, existingFluid));
-        assertFalse(IrisCarveModifier.shouldPreserveExistingFluid(lavaIntent, existingFluid));
-        assertFalse(IrisCarveModifier.shouldPreserveExistingFluid(forcedAirIntent, existingFluid));
-        assertNull(IrisCarveModifier.resolveExplicitCarveState(null, fluid, lava, air));
-        assertSame(fluid, IrisCarveModifier.resolveExplicitCarveState(fluidIntent, fluid, lava, air));
-        assertSame(lava, IrisCarveModifier.resolveExplicitCarveState(lavaIntent, fluid, lava, air));
-        assertSame(air, IrisCarveModifier.resolveExplicitCarveState(forcedAirIntent, fluid, lava, air));
-        assertNull(IrisCarveModifier.resolveExplicitCarveState(airIntent, fluid, lava, air));
+        assertFalse(CaveApplying.hasExplicitCarveIntent(null));
+        assertTrue(CaveApplying.shouldPreserveExistingFluid(airIntent, existingFluid));
+        assertTrue(CaveApplying.isFluidIntent(fluidIntent));
+        assertFalse(CaveApplying.shouldPreserveExistingFluid(fluidIntent, existingFluid));
+        assertFalse(CaveApplying.shouldPreserveExistingFluid(lavaIntent, existingFluid));
+        assertFalse(CaveApplying.shouldPreserveExistingFluid(forcedAirIntent, existingFluid));
+        assertNull(CaveApplying.resolveExplicitCarveState(null, fluid, lava, air));
+        assertSame(fluid, CaveApplying.resolveExplicitCarveState(fluidIntent, fluid, lava, air));
+        assertSame(lava, CaveApplying.resolveExplicitCarveState(lavaIntent, fluid, lava, air));
+        assertSame(air, CaveApplying.resolveExplicitCarveState(forcedAirIntent, fluid, lava, air));
+        assertNull(CaveApplying.resolveExplicitCarveState(airIntent, fluid, lava, air));
     }
 
     @Test
     public void defaultLavaIncludesConfiguredBoundary() {
-        assertTrue(IrisCarveModifier.usesDefaultLava(18, 17));
-        assertTrue(IrisCarveModifier.usesDefaultLava(18, 18));
-        assertFalse(IrisCarveModifier.usesDefaultLava(18, 19));
+        assertTrue(CaveApplying.usesDefaultLava(18, 17));
+        assertTrue(CaveApplying.usesDefaultLava(18, 18));
+        assertFalse(CaveApplying.usesDefaultLava(18, 19));
     }
 
     @Test
@@ -55,8 +55,8 @@ public class IrisCarveModifierFluidIntentTest {
         when(air.isSolid()).thenReturn(false);
         when(solid.isSolid()).thenReturn(true);
 
-        assertTrue(IrisCarveModifier.isUnsupportedSurfaceOre(ore, air));
-        assertFalse(IrisCarveModifier.isUnsupportedSurfaceOre(ore, solid));
-        assertFalse(IrisCarveModifier.isUnsupportedSurfaceOre(ordinarySurface, air));
+        assertTrue(CaveApplying.isUnsupportedSurfaceOre(ore, air));
+        assertFalse(CaveApplying.isUnsupportedSurfaceOre(ore, solid));
+        assertFalse(CaveApplying.isUnsupportedSurfaceOre(ordinarySurface, air));
     }
 }

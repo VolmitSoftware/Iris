@@ -11,7 +11,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
-public class IrisCarveModifierZoneParityTest {
+public class CaveApplyingZoneParityTest {
     @Test
     public void randomColumnZonesMatchLegacySortedResolver() {
         CarveColumnMask columnMask = new CarveColumnMask();

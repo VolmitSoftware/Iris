@@ -2,7 +2,9 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -12,6 +14,8 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -23,11 +27,20 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class IrisCarveModifierBoundarySupportTest {
+public class CaveApplyingBoundarySupportTest {
+    @Before
+    public void bindPlatform() {
+        UsableBlockPlatform.bind();
+    }
+
+    @After
+    public void unbindPlatform() {
+        UsableBlockPlatform.unbind();
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     public void boundaryBiomeUsesCustomMatterAtItsOwnY() {
@@ -42,8 +55,8 @@ public class IrisCarveModifierBoundarySupportTest {
         doReturn(data).when(engine).getData();
         doReturn(resolvedCeiling).when(engine).getCaveBiome(anyInt(), eq(42), anyInt(), any(IrisDimensionCarvingResolver.State.class));
 
-        IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
-        doReturn(engine).when(modifier).getEngine();
+        doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
+        CaveApplying modifier = new CaveApplying(engine);
 
         MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
         Matter floorMatter = mock(Matter.class);
@@ -84,11 +97,11 @@ public class IrisCarveModifierBoundarySupportTest {
         PlatformBlockState stone = state("minecraft:stone", true);
 
         doReturn(air).when(output).getRaw(0, 4, 0);
-        assertFalse(IrisCarveModifier.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
-        assertTrue(IrisCarveModifier.canReplaceCaveFloorLayer(output, 0, 5, 0, stone));
+        assertFalse(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
+        assertTrue(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, stone));
 
         doReturn(solid).when(output).getRaw(0, 4, 0);
-        assertTrue(IrisCarveModifier.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
+        assertTrue(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
     }
 
     @Test
@@ -101,10 +114,10 @@ public class IrisCarveModifierBoundarySupportTest {
 
         doReturn(sand).when(output).getRaw(0, 5, 0);
         doReturn(air).when(output).getRaw(0, 4, 0);
-        assertFalse(IrisCarveModifier.hasStableCaveFloorSupport(output, 0, 6, 0));
+        assertFalse(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0));
 
         doReturn(stone).when(output).getRaw(0, 4, 0);
-        assertTrue(IrisCarveModifier.hasStableCaveFloorSupport(output, 0, 6, 0));
+        assertTrue(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0));
     }
 
     private PlatformBlockState state(String key, boolean solid) {

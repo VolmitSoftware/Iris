@@ -70,7 +70,6 @@ import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
@@ -306,8 +305,8 @@ public class IrisDimension extends IrisRegistrant {
     private int caveLavaHeight = 8;
     @RegistryListFunction(ComponentFlagFunction.class)
     @ArrayType(type = String.class)
-    @Desc("Mantle passes to skip in this dimension, by flag: CARVED (caves), OBJECT (objects), FLOATING_OBJECT (objects on floating islands) or JIGSAW (structures).")
-    private KList<MantleFlag> disabledComponents = new KList<>();
+    @Desc("Mantle passes to skip in this dimension: CARVED (caves), OBJECT (objects), FLOATING_OBJECT (objects on floating islands) or JIGSAW (structures), or the id of a pack module's mantle stage, such as example:moss/veins. A name that matches nothing is warned about and ignored.")
+    private KList<String> disabledComponents = new KList<>();
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();

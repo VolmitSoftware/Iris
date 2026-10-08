@@ -18,10 +18,16 @@ public interface StageDefinition<C extends StageContext, O> {
 
     /** Declares how far, in blocks along X and Z, this stage writes blocks or mantle values beyond its
      * footprint: the chunk for a mantle stage, the placed object's X/Z bounds for a placement stage. The
-     * host prepares that much around every chunk or placement of the pipeline. Leaving it out means 0.
+     * host prepares that much around every chunk the stage runs for, or every placement. Leaving it out means 0.
      * Chunk stages write only their own chunk, so a reach above 0 on one fails the install.
      */
     StageDefinition<C, O> reach(int blocks);
+
+    /** Declares a reach the host works out from the pack's settings when the pack loads, for a mantle
+     * stage whose reach depends on the pack. Only mantle stages may declare one: placement areas and
+     * chunks are sized without the pack's settings, so it fails the install on any other stage.
+     */
+    StageDefinition<C, O> reach(PackReach reach);
 
     /** Declares the mantle layers this stage writes; each must be registered by some module. Chunk stages
      * only read the mantle, so declaring layers on one fails the install.

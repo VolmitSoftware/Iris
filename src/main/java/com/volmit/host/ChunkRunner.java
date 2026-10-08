@@ -27,7 +27,7 @@ public final class ChunkRunner {
         if (graph.size() == 0) {
             return;
         }
-        var settings = ChunkSettings.collect(graph, inputs::settings, inputs.originX(), inputs.originZ());
+        var settings = ChunkSettings.collect(graph.settingsTypes(), inputs::settings, inputs.originX(), inputs.originZ());
         var chunk = new ChunkInvocation(new StageInvocation(graph, invocationSeed, settings), inputs);
         for (int position = 0; position < graph.size(); position++) {
             chunk.stages().runInvocationStage(position, chunk);

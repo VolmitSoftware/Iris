@@ -7,6 +7,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
 import com.volmit.config.Feature;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
@@ -24,6 +25,8 @@ import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
 import com.volmit.stage.StageRef;
+import com.volmit.support.ColumnSettings;
+import com.volmit.support.DeclaredSettings;
 import com.volmit.support.MemoryEdit;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestTerrain;
@@ -484,6 +487,69 @@ class StageGraphTest {
         assertEquals(new PipelineReach(0, Map.of()), loaded.chunk().reach());
         assertTrue(loaded.mantle().describe().contains("      reach 24 blocks, writes mantle test:reach/depth\n"), loaded.mantle().describe());
         assertTrue(loaded.mantle().describe().contains("      reach 8 blocks, writes mantle test:reach/depth, test:reach/marks\n"));
+    }
+
+    @Test
+    void aMantleStageWorksOutItsReachWhenThePackLoads() {
+        var carve = Stage.mantle("test:reach/carve");
+        var mark = Stage.mantle("test:reach/mark");
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(module("test:reach", stages -> {
+            stages.define(carve).reach(settings -> settings.declared(Toggle.class).isEmpty() ? 4 : 40).run(context -> {});
+            stages.define(mark).reach(2).run(context -> {});
+        }))), Map.of(), Set.of(), Set.of());
+        var computed = loaded.mantle().stages().getFirst();
+        var toggled = new DeclaredSettings(new Entry<>(FeatureAttachment.Target.DIMENSION, ResourceId.parse("pack:dimension/main"), new Toggle()));
+
+        assertEquals(4, computed.reachBlocks(DeclaredSettings.NONE));
+        assertEquals(40, computed.reachBlocks(toggled));
+        assertEquals(2, loaded.mantle().stages().get(1).reachBlocks(toggled), "a declared number is the same for every pack");
+        assertTrue(loaded.mantle().describe().contains("      reach worked out when the pack loads\n"), loaded.mantle().describe());
+        var pipeline = assertThrows(IllegalStateException.class, () -> loaded.mantle().reach());
+        assertEquals("Stage test:reach/carve of module test:reach works out its reach when the pack loads;"
+                + " ask each mantle stage with ResolvedStage.reachBlocks(settings)", pipeline.getMessage());
+    }
+
+    @Test
+    void onlyMantleStagesWorkOutTheirReachAndNeverANegativeOne() {
+        var negative = LoadedModules.load(List.of(DiscoveredModule.builtIn(module("test:reach", stages ->
+                stages.define(Stage.mantle("test:reach/carve")).reach(settings -> -1).run(context -> {})))), Map.of(), Set.of(), Set.of());
+        var failure = assertThrows(IllegalStateException.class, () -> negative.mantle().stages().getFirst().reachBlocks(DeclaredSettings.NONE));
+        assertEquals("Stage test:reach/carve of module test:reach worked out a negative reach of -1 blocks for this pack", failure.getMessage());
+
+        var placement = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.PLACEMENT, module("test:reach", stages ->
+                stages.define(Stage.placement("test:reach/work")).reach(settings -> 1).run(context -> {}))));
+        assertEquals("Stage test:reach/work (module test:reach) is a placement stage and declares a reach worked out when the pack"
+                + " loads, which only mantle stages may; declare a number of blocks with reach(blocks)", placement.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK, module("test:reach", stages ->
+                stages.define(Stage.chunk("test:reach/work")).reach(settings -> 0).run(context -> {}))));
+        var twice = assertThrows(IllegalStateException.class, () -> resolve(Pipeline.MANTLE, module("test:reach", stages ->
+                stages.define(Stage.mantle("test:reach/carve")).reach(2).reach(settings -> 1).run(context -> {}))));
+        assertEquals("Stage test:reach/carve (module test:reach) already declares a reach of 2 blocks", twice.getMessage());
+    }
+
+    @Test
+    void theMantleRunnerRunsOneStageWhereItAndWhatItRequiresAreActive() {
+        var toggled = Stage.mantle("test:owner/toggled");
+        var follower = Stage.mantle("test:owner/follower");
+        var ran = new ArrayList<String>();
+        var graph = resolve(Pipeline.MANTLE, module("test:owner", stages -> {
+            stages.define(toggled).when(Toggle.class).run((context, entries) -> ran.add("toggled"));
+            stages.define(follower).requires(toggled).run(context -> ran.add("follower"));
+        }));
+        var runner = new MantleRunner(graph);
+        var toggle = new Entry<>(FeatureAttachment.Target.BIOME, ResourceId.parse("pack:biome/plains"), new Toggle());
+        var nowhere = TestContexts.mantle(0, 0, ColumnSettings.NONE, null);
+        var oneColumn = TestContexts.mantle(0, 0, new ColumnSettings((x, z) -> x == 15 && z == 0 ? List.of(toggle) : List.of()), null);
+
+        runner.generate(follower, nowhere, TestContexts.SEED);
+        assertEquals(List.of(), ran, "a stage whose requirement is inactive in the chunk is inactive too");
+        runner.generate(follower, oneColumn, TestContexts.SEED);
+        assertEquals(List.of("follower"), ran, "only the asked stage runs; its requirement ran in its own pass");
+        runner.generate(toggled, oneColumn, TestContexts.SEED);
+        assertEquals(List.of("follower", "toggled"), ran);
+        var foreign = assertThrows(IllegalArgumentException.class,
+                () -> runner.generate(Stage.mantle("test:owner/absent"), nowhere, TestContexts.SEED));
+        assertEquals("Stage test:owner/absent is not a stage of this mantle graph", foreign.getMessage());
     }
 
     @Test

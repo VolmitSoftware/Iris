@@ -18,13 +18,14 @@ public record PipelineReach(int blocks, Map<String, Integer> mantleLayers) {
         mantleLayers = Collections.unmodifiableMap(new TreeMap<>(mantleLayers));
     }
 
-    static PipelineReach of(Iterable<StageReach> stages) {
+    static PipelineReach of(Iterable<ResolvedStage> stages) {
         int blocks = 0;
         var layers = new TreeMap<String, Integer>();
         for (var stage : stages) {
-            blocks = Math.max(blocks, stage.blocks());
-            for (var layer : stage.mantleLayers()) {
-                layers.merge(layer.id(), stage.blocks(), Math::max);
+            int stageBlocks = stage.fixedReachBlocks();
+            blocks = Math.max(blocks, stageBlocks);
+            for (var layer : stage.reach().mantleLayers()) {
+                layers.merge(layer.id(), stageBlocks, Math::max);
             }
         }
         return new PipelineReach(blocks, layers);

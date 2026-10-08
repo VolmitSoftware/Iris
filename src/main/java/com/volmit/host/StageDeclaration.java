@@ -3,11 +3,13 @@ package com.volmit.host;
 import com.volmit.IrisFeature;
 import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
+import com.volmit.stage.PackReach;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageRef;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,7 +21,7 @@ final class StageDeclaration {
     private final List<StageRef> softAfter = new ArrayList<>();
     private final List<StageRef> softBefore = new ArrayList<>();
     private FeatureDescriptor<?> settings;
-    private Integer reachBlocks;
+    private PackReach reach;
     private final List<MantleKey<?>> mantleLayers = new ArrayList<>();
     private StageBody body;
 
@@ -56,13 +58,34 @@ final class StageDeclaration {
     void reach(int blocks) {
         checkOpen();
         if (blocks > 0) requireOutsideChunkPipeline("a reach of " + blocks + " blocks");
-        if (reachBlocks != null) {
-            throw new IllegalStateException("Stage " + this + " already declares a reach of " + reachBlocks + " blocks");
-        }
         if (blocks < 0) {
             throw new IllegalArgumentException("Stage " + this + " declares a negative reach of " + blocks + " blocks");
         }
-        reachBlocks = blocks;
+        declareReach(new FixedReach(blocks));
+    }
+
+    void reach(PackReach computed) {
+        checkOpen();
+        Objects.requireNonNull(computed, "reach");
+        if (stage.pipeline() != Pipeline.MANTLE) {
+            throw new IllegalArgumentException("Stage " + this + " is a " + stage.pipeline().name().toLowerCase(Locale.ROOT)
+                    + " stage and declares a reach worked out when the pack loads, which only mantle stages may;"
+                    + " declare a number of blocks with reach(blocks)");
+        }
+        declareReach(computed);
+    }
+
+    private void declareReach(PackReach declared) {
+        if (reach != null) {
+            throw new IllegalStateException("Stage " + this + " already declares " + describe(reach));
+        }
+        reach = declared;
+    }
+
+    private static String describe(PackReach reach) {
+        return reach instanceof FixedReach fixed
+                ? "a reach of " + fixed.blocks() + " blocks"
+                : "a reach worked out when the pack loads";
     }
 
     void writesMantle(MantleKey<?>... layers) {
@@ -120,7 +143,7 @@ final class StageDeclaration {
     }
 
     StageReach reach() {
-        return new StageReach(reachBlocks == null ? 0 : reachBlocks, mantleLayers);
+        return new StageReach(reach == null ? FixedReach.NONE : reach, mantleLayers);
     }
 
     @Override

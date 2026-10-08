@@ -25,6 +25,7 @@ import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
 import com.volmit.support.ColumnSettings;
+import com.volmit.support.DeclaredSettings;
 import com.volmit.support.MemoryMantle;
 import com.volmit.support.TestContexts;
 import java.util.ArrayList;
@@ -135,13 +136,14 @@ class ChunkPipelineTest {
     @Test
     void mantleStagesWriteBeyondTheirChunkAndChunkStagesReadTheirOwnPart() {
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(new VeinModule())), Map.of(), Set.of(), Set.of());
-        assertEquals(VeinModule.REACH, loaded.mantle().reach().blocks());
-        assertEquals(Map.of(VeinModule.ORE.id(), VeinModule.REACH), loaded.mantle().reach().mantleLayers());
+        var vein = new Entry<>(Target.BIOME, PLAINS, new VeinSettings(12, -60));
+        int reach = loaded.mantle().stages().getFirst().reachBlocks(new DeclaredSettings(vein));
+        assertEquals(3, reach, "a 12 block vein from the centre column runs 3 blocks into the next chunk");
         var mantle = new MemoryMantle();
-        var veins = ColumnSettings.everywhere(new Entry<>(Target.BIOME, PLAINS, new VeinSettings(12, -60)));
-        var reachArea = new BlockBox(-VeinModule.REACH, MIN_Y, -VeinModule.REACH, CHUNK + VeinModule.REACH, MAX_Y, CHUNK + VeinModule.REACH);
+        var reachArea = new BlockBox(-reach, MIN_Y, -reach, CHUNK + reach, MAX_Y, CHUNK + reach);
 
-        new MantleRunner(loaded.mantle()).generate(TestContexts.mantle(0, 0, veins, mantle.within(reachArea)), TestContexts.SEED);
+        new MantleRunner(loaded.mantle()).generate(VeinModule.PLAN,
+                TestContexts.mantle(0, 0, ColumnSettings.everywhere(vein), mantle.within(reachArea)), TestContexts.SEED);
         assertEquals(1, mantle.get(VeinModule.ORE, 18, -60, 7), "the vein runs on into the next chunk");
 
         var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, AIR);

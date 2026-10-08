@@ -68,9 +68,13 @@ public final class ResolvedGraph {
         return pairs;
     }
 
-    /** The most the pipeline's stages write beyond their footprint, overall and per mantle layer. */
+    /** The most the pipeline's stages write beyond their footprint, overall and per mantle layer.
+     *
+     * @throws IllegalStateException when a mantle stage works out its reach when the pack loads: the host
+     *     runs each mantle stage as its own pass and asks it with {@link ResolvedStage#reachBlocks}
+     */
     public PipelineReach reach() {
-        return PipelineReach.of(stages.stream().map(ResolvedStage::reach).toList());
+        return PipelineReach.of(stages);
     }
 
     /** Human-readable order, owners, edges, block passes and unordered pairs. */

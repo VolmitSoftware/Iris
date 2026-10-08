@@ -3,6 +3,7 @@ package com.volmit.host;
 import com.volmit.IrisFeature;
 import com.volmit.mantle.MantleKey;
 import com.volmit.stage.ConditionalStageDefinition;
+import com.volmit.stage.PackReach;
 import com.volmit.stage.SettingsAction;
 import com.volmit.stage.SettingsFunction;
 import com.volmit.stage.Stage;
@@ -43,6 +44,12 @@ final class InvocationStageDraft<C extends StageContext, S extends IrisFeature, 
     @Override
     public InvocationStageDraft<C, S, O> reach(int blocks) {
         declaration.reach(blocks);
+        return this;
+    }
+
+    @Override
+    public InvocationStageDraft<C, S, O> reach(PackReach reach) {
+        declaration.reach(reach);
         return this;
     }
 

@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
+import com.volmit.stage.PackReach;
 import com.volmit.stage.StageKind;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,11 +48,18 @@ final class GraphDescription {
         if (reach.equals(StageReach.NONE)) {
             return;
         }
-        text.append(DETAIL_INDENT).append("reach ").append(reach.blocks()).append(reach.blocks() == 1 ? " block" : " blocks");
+        text.append(DETAIL_INDENT).append("reach ").append(reachText(reach.blocks()));
         if (!reach.mantleLayers().isEmpty()) {
             text.append(", writes mantle ").append(joined(reach.mantleLayers().stream().map(MantleKey::id).toList()));
         }
         text.append('\n');
+    }
+
+    private static String reachText(PackReach reach) {
+        if (!(reach instanceof FixedReach fixed)) {
+            return "worked out when the pack loads";
+        }
+        return fixed.blocks() + (fixed.blocks() == 1 ? " block" : " blocks");
     }
 
     private static String kindLabel(ResolvedStage stage, List<List<ResourceId>> passes) {

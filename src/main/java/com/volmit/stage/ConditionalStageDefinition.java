@@ -13,6 +13,8 @@ public interface ConditionalStageDefinition<C extends StageContext, S extends Ir
 
     ConditionalStageDefinition<C, S, O> reach(int blocks);
 
+    ConditionalStageDefinition<C, S, O> reach(PackReach reach);
+
     ConditionalStageDefinition<C, S, O> writesMantle(MantleKey<?>... layers);
 
     void run(SettingsAction<C, S> action);

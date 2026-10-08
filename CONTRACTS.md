@@ -22,7 +22,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner` |
 | Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages read the mantle only |
 | Annotated settings | `IrisFeature`, `@Feature` (id as JSON key, built-in alias), config annotations, `OptionsMetadata` |
-| Area a stage writes | `reach(blocks)`, `writesMantle(...)` on stage definitions, host `StageReach`, `PipelineReach` |
+| Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema` with `shorthand()`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette` |
@@ -90,12 +90,15 @@ running Iris is the pack publisher's responsibility.
   work inside the ported stages.
 - Derive one seed per placement (world seed and the placement's stable identity) and per chunk
   (world seed and chunk position) and pass it to `PlacementRunner.place` / `ChunkRunner.generate`.
-- Prepare the area a placement or chunk may read or write, including neighbors: the pipeline's
-  `reach()` around the chunk or the placed object's bounds, each mantle layer by its own maximum.
-  Never clip.
-- Run the mantle pipeline (`MantleRunner`) for every chunk within its reach of a chunk, each chunk once,
-  before that chunk generates, with the mantle widened by the reach. Give chunk stages that chunk's
-  mantle; `ChunkRunner` makes it read-only.
+- Prepare the area a placement may read or write, including neighbors: the placement pipeline's
+  `reach()` around the placed object's bounds, each mantle layer by its own maximum. Never clip.
+- Work out each mantle stage's reach once per pack load (`ResolvedStage.reachBlocks(PackSettings)`),
+  answering `PackSettings.declared(type)` with every entry of the dimension and of the regions and
+  biomes it can reach.
+- Run each mantle stage (`MantleRunner.generate(stage, ...)`) as its own pass, in resolved order: for
+  every chunk within that stage's reach plus the reach of every later stage of a chunk, each chunk once,
+  before the next stage and before that chunk generates, with the mantle widened by the stage's reach.
+  Give chunk stages that chunk's mantle; `ChunkRunner` makes it read-only.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.

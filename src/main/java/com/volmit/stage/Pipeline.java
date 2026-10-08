@@ -9,8 +9,9 @@ public enum Pipeline {
      */
     CHUNK,
     /** Runs once per chunk before any chunk near it generates, against the mantle only: work that writes
-     * the mantle or reaches beyond its chunk. The host runs it around a chunk as far as the pipeline's
-     * reach, so a chunk's mantle is complete when the chunk pipeline reads it.
+     * the mantle or reaches beyond its chunk. The host runs each stage as its own pass, in resolved order,
+     * around a chunk as far as that stage's reach plus every later stage's, so a chunk's mantle is
+     * complete when the chunk pipeline reads it.
      */
     MANTLE
 }

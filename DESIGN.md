@@ -297,7 +297,7 @@ resolve time.
 | `PlacementStage<O>` | PLACEMENT | once per placement attempt | `PlacementStageContext` |
 | `BlockStage<O>` | PLACEMENT | once per object block, in a block pass | `BlockStageContext` |
 | `ChunkStage<O>` | CHUNK | once per chunk invocation | `ChunkStageContext` |
-| `MantleStage<O>` | MANTLE | once per chunk, before the chunks it reaches generate | `MantleStageContext` |
+| `MantleStage<Void>` | MANTLE | once per chunk, before the chunks it reaches generate, each stage its own pass | `MantleStageContext` |
 
 Rules enforced by `StageGraphBuilder` and the resolver:
 
@@ -484,18 +484,24 @@ the host from publishing the chunk.
 
 Some work writes beyond its chunk: a carver whose tunnels cross chunk borders, a vein running on into
 the next chunk. A chunk stage cannot do that, because the host may already have generated the
-neighbor. Such work is a mantle stage. `MantleRunner.generate(inputs, invocationSeed)` runs the active
-mantle stages of one chunk in resolved order, against the mantle around it (`MantleGenerationContext`:
-origin, terrain, settings, mantle), without a block hunk. The host runs it for every chunk within the
-mantle pipeline's reach of a chunk, each chunk once, before that chunk generates, so a chunk's mantle is
-complete when its chunk stages read it. In Iris it is one mantle component whose radius is the
-pipeline's reach.
+neighbor. Such work is a mantle stage. `MantleRunner.generate(stage, inputs, invocationSeed)` runs one
+mantle stage for one chunk, if it is active there, against the mantle around it
+(`MantleGenerationContext`: origin, terrain, settings, mantle), without a block hunk.
+
+Every mantle stage is its own pass. Before a chunk generates, the host runs the first stage in resolved
+order for every chunk within that stage's reach plus the reach of every later stage, each chunk once,
+then the next stage the same way. A stage therefore sees, in the chunks around it, everything earlier
+stages wrote, and a chunk's mantle is complete when its chunk stages read it. In Iris each mantle stage
+is one mantle component, a pass of its own, whose radius is the stage's reach. Because stages of one
+chunk run in different invocations, mantle stages have no outputs: `Stage.mantle` declares `Void`, and
+stages pass data on through mantle layers. `requires(...)` still orders mantle stages and still
+deactivates a stage in a chunk where a stage it requires is inactive; the runner works that out from
+the settings of the stage and everything it requires, and collects only those.
 
 The mantle pipeline is the only place that writes the mantle during generation, and mantle and chunk
 pipelines meet only through mantle layers: an edge between them is a cross-pipeline edge and fails the
-load. Within one invocation, stages can still require each other and read outputs. Across chunks they
-cannot: a mantle stage that reads another mantle stage's layer outside its own chunk sees whatever has
-run there so far, which depends on the order the host generates chunks in.
+load. A mantle stage may rely on what earlier stages wrote around its chunk, but not on what a stage of
+its own pass wrote in other chunks: that depends on the order the host generates chunks in.
 
 ## Reach
 
@@ -513,6 +519,13 @@ graph.define(CARVE).reach(32).writesMantle(CaveModule.CAVES).run(CaveModule::car
   reach above 0 on one fails the install, naming mantle stages as the place for the work. Whole
   columns: height is not limited, because Iris prepares chunks and mantle as full columns. Leaving it out means 0. Declaring it twice or
   negative fails while the module installs.
+- `reach(PackReach)`: for a mantle stage whose reach depends on the pack, such as the largest object
+  or the longest vein any level configures. The host works it out once per pack load from
+  `PackSettings`, every entry of a settings type the dimension and its reachable regions and biomes
+  declare, and asks each stage with `ResolvedStage.reachBlocks(settings)`; a negative result fails
+  there, naming the stage. Placement and chunk stages may not declare one: placement areas and chunks
+  are sized without the pack's settings. It counts as declaring the reach, so it cannot be combined
+  with `reach(blocks)`.
 - `writesMantle(layers...)`: the mantle layers the stage writes. Every layer must be registered by
   some module with the same value type, or the pack load fails naming stage and layer. Chunk stages
   cannot declare any.
@@ -520,13 +533,15 @@ graph.define(CARVE).reach(32).writesMantle(CaveModule.CAVES).run(CaveModule::car
 Each resolved stage carries its `StageReach`. `ResolvedGraph.reach()` collects a `PipelineReach`:
 the largest reach of the pipeline's stages, and per mantle layer the largest reach of the stages
 that write it. Inactive stages count, because activation is per invocation and the prepared area is
-decided once per pack load. `describe()` lists each stage's reach.
+decided once per pack load. A mantle pipeline with a reach worked out per pack has no such number, so
+`reach()` throws there; the host sizes each mantle pass from its own stage instead. `describe()` lists
+each stage's reach.
 
 One number per stage, not per layer: a stage that writes two layers at different distances declares
 the larger. The host can still size each layer's mantle from the per-layer maximum. Reads are not
-declared separately: the host prepares the pipeline's reach around every chunk or placement, so a
-stage may read what others wrote that far out (for mantle stages, see the ordering caveat under Mantle
-invocations). A stage that must read farther declares that distance
+declared separately: the host prepares the pipeline's reach around every placement, and each mantle
+stage's own reach around its chunk, so a stage may read what others wrote that far out (for mantle
+stages, see the ordering caveat under Mantle invocations). A stage that must read farther declares that distance
 as its reach. Terrain samples are computed, not prepared, and need nothing.
 
 ## Settings, geometry and storage

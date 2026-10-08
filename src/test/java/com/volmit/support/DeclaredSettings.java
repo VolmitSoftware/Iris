@@ -1,0 +1,26 @@
+package com.volmit.support;
+
+import com.volmit.IrisFeature;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.PackSettings;
+import java.util.List;
+
+/** A pack's settings as a fixed list of declarations, for reach tests. */
+public final class DeclaredSettings implements PackSettings {
+    public static final DeclaredSettings NONE = new DeclaredSettings();
+
+    private final List<Entry<?>> entries;
+
+    public DeclaredSettings(Entry<?>... entries) {
+        this.entries = List.of(entries);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked") // Filtered by the requested type.
+    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+        return entries.stream()
+                .filter(entry -> featureType.isInstance(entry.value()))
+                .map(entry -> (Entry<F>) entry)
+                .toList();
+    }
+}

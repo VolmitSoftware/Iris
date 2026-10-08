@@ -32,8 +32,8 @@ public final class MossModule implements IrisModule {
 - `Stage.placement`, `Stage.placementBlock`, `Stage.chunk` and `Stage.mantle` create stages for the
   placement pipeline (once per attempt), the placement pipeline (once per object block), the chunk
   pipeline (once per chunk, writing only that chunk) and the mantle pipeline (once per chunk, before
-  the chunks it reaches generate, writing only the mantle). Pass an output class to give a stage a
-  typed output.
+  the chunks it reaches generate, writing only the mantle). Pass an output class to give a placement
+  or chunk stage a typed output; mantle stages have none.
 - A stage id starts with the id of the module that defines it and `/`: module `example:moss`
   defines `example:moss/spread`, never `example:other/...`. Module ids therefore contain no `/`.
   Defining an id twice fails.
@@ -98,9 +98,11 @@ stage uses its own stream within one invocation and must not share or keep it.
 
 A chunk stage writes only its own chunk: the host may already have generated its neighbors. Work that
 writes the mantle or reaches beyond its chunk, such as a carver or a vein that runs on into the next
-chunk, is a mantle stage. The host runs the mantle pipeline for every chunk within the pipeline's reach
-of a chunk before that chunk generates, so the chunk's mantle is complete when its chunk stages read it.
-The two pipelines meet only in the mantle.
+chunk, is a mantle stage. Every mantle stage is its own pass: before a chunk generates, the host runs
+the first mantle stage for every chunk within that stage's reach plus the reach of every later stage,
+then the next stage the same way, in resolved order. So a stage sees what earlier stages wrote into the
+chunks around it, and the chunk's mantle is complete when its chunk stages read it. Mantle stages have
+no outputs: they pass data on through mantle layers. The two pipelines meet only in the mantle.
 
 ```java
 public static final MantleStage<Void> CARVE = Stage.mantle("example:caves/carve");
@@ -114,9 +116,27 @@ graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and
 mantle stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
 It defaults to 0. `writesMantle(...)` names the mantle layers the stage writes; each must be
 registered by some module. A chunk stage that declares either fails the install, and its mantle is
-read-only. `pack.mantle().reach()` and `pack.placement().reach()` give the host the largest reach of a
-pipeline and the largest per mantle layer. A mantle stage should not rely on what other mantle stages
-wrote in other chunks: whether they have run there yet depends on which chunk the host generates first.
+read-only. `pack.placement().reach()` gives the host the largest reach of a pipeline and the largest
+per mantle layer.
+
+When how far a mantle stage writes depends on the pack, such as the longest vein or the largest object
+any level configures, it declares a `PackReach` instead of a number. The host works it out from the
+pack's settings (`PackSettings.declared(type)`: every entry of the dimension and of the regions and
+biomes it can reach) when the pack loads, and asks each mantle stage with
+`ResolvedStage.reachBlocks(settings)`. Only mantle stages may declare one.
+
+```java
+graph.define(PLAN).when(VeinSettings.class).reach(VeinModule::reach).writesMantle(ORE).run(VeinModule::plan);
+
+static int reach(PackSettings settings) {
+    int longest = settings.declared(VeinSettings.class).stream().mapToInt(vein -> vein.value().length()).max().orElse(0);
+    return Math.max(0, longest - 9);   // a vein starts at the chunk's centre column
+}
+```
+
+A mantle stage may rely on what earlier stages wrote around its chunk, but not on what a stage of its
+own pass wrote in other chunks: whether it has run there yet depends on which chunk the host generates
+first.
 
 ## Module jars
 
@@ -267,7 +287,10 @@ try (var pack = LoadedPack.load(packRoot, host)) {
     PlacementOutcome outcome = placer.place(request, edit, inputs, placementSeed,
             ConfiguredSettings.placement(objectId, stilt, snow));
 
-    new MantleRunner(pack.mantle()).generate(mantleContext, chunkSeed);   // each chunk within reach, first
+    var mantle = new MantleRunner(pack.mantle());
+    for (var stage : pack.mantle().stages()) {                            // each stage its own pass, first
+        mantle.generate(stage.stage(), mantleContext, chunkSeed);         // for each chunk it reaches
+    }
     new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed);
 }   // stop using the runners before the pack closes
 ```
@@ -420,8 +443,9 @@ concurrent invocations and must not keep views, streams or mutable state.
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, install-order determinism, id ownership of stages, settings, objects and
-mantle keys, reach per stage, pipeline and mantle layer, chunk stages that declare reach or mantle
-writes (`StageGraphTest`, `ModuleRegistryTest`), settings entries per type in level order
+mantle keys, reach per stage, pipeline and mantle layer, reach worked out when the pack loads (mantle
+stages only, never negative), one mantle stage per runner call with activation that follows its
+requirements, chunk stages that declare reach or mantle writes (`StageGraphTest`, `ModuleRegistryTest`), settings entries per type in level order
 (`ConfiguredSettingsTest`), and per-stage random streams: inserting a module
 that draws leaves the other stages' draws unchanged, block stages draw one stream across their pass,
 and the derivation is pinned to values computed from its specification (`StageStreamsTest`).
@@ -459,5 +483,5 @@ loads and that other internal packages are still reported. `PackModulesSummaryTe
 ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
 snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline whose
 `ChunkPipelineTest` checks any-column activation, per-column reads, stacked levels, a mantle stage
-writing into the next chunk that a chunk stage then reads, and the read-only mantle of chunk stages. There
+whose reach follows the pack's longest vein writing into the next chunk that a chunk stage then reads, and the read-only mantle of chunk stages. There
 is no Minecraft integration or production storage in these tests.

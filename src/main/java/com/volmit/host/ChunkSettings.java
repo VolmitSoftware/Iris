@@ -8,10 +8,11 @@ import com.volmit.resource.ResourceId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.function.Supplier;
 
-/** The settings one chunk's stages see: for every settings type the graph conditions on, each distinct
- * entry of the chunk's 16 by 16 columns. A stage is therefore active when any column of the chunk
+/** The settings one chunk's stages see: for every settings type the running stages condition on, each
+ * distinct entry of the chunk's 16 by 16 columns. A stage is therefore active when any column of the chunk
  * configures its settings, also where a biome border crosses the chunk. Entries are distinct by level
  * and source and keep the order their first column was read in, columns by X and then Z.
  */
@@ -21,14 +22,14 @@ final class ChunkSettings {
 
     private ChunkSettings() {}
 
-    /** {@code settings} is asked only when the graph conditions a stage on settings. */
-    static ConfiguredSettings collect(ResolvedGraph graph, Supplier<FeatureSettings> settings, int originX, int originZ) {
-        if (graph.settingsTypes().isEmpty()) {
+    /** {@code settings} is asked only when {@code types} is not empty. */
+    static ConfiguredSettings collect(List<Class<?>> types, Supplier<FeatureSettings> settings, int originX, int originZ) {
+        if (types.isEmpty()) {
             return ConfiguredSettings.none();
         }
         var view = settings.get();
         var entries = new ArrayList<Entry<?>>();
-        for (var type : graph.settingsTypes()) {
+        for (var type : types) {
             entries.addAll(distinctEntries(type.asSubclass(IrisFeature.class), view, originX, originZ));
         }
         return ConfiguredSettings.of(entries);

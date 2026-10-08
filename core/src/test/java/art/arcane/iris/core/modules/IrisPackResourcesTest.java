@@ -89,7 +89,7 @@ public class IrisPackResourcesTest {
         when(regionLoader.getPossibleKeys()).thenReturn(new String[]{"desert"});
         when(regionLoader.load("desert")).thenReturn(desert);
 
-        resources = new IrisPackResources(data);
+        resources = new IrisPackResources(data, List::of);
     }
 
     private ResourceId id(String path) {
@@ -103,7 +103,7 @@ public class IrisPackResourcesTest {
 
     @Test
     public void everySnapshotHasItsOwnId() {
-        assertNotEquals(resources.snapshotId(), new IrisPackResources(data).snapshotId());
+        assertNotEquals(resources.snapshotId(), new IrisPackResources(data, List::of).snapshotId());
         assertEquals(resources.snapshotId(), resources.snapshotId());
     }
 
@@ -158,7 +158,7 @@ public class IrisPackResourcesTest {
     @Test
     public void aResourceThatExistsButFailsToLoadIsAnErrorNotAbsent() {
         when(objectLoader.getPossibleKeys()).thenReturn(new String[]{"trees/broken"});
-        IrisPackResources fresh = new IrisPackResources(data);
+        IrisPackResources fresh = new IrisPackResources(data, List::of);
 
         assertThrows(IllegalStateException.class, () -> fresh.find(new ResourceKey<>(id("trees/broken"), GeneratedObject.class)));
     }
@@ -180,7 +180,7 @@ public class IrisPackResourcesTest {
         IrisObject object = mock(IrisObject.class);
         when(object.getGeometry()).thenReturn(tree);
         when(objectLoader.load("Trees/Oak")).thenReturn(object);
-        IrisPackResources fresh = new IrisPackResources(data);
+        IrisPackResources fresh = new IrisPackResources(data, List::of);
 
         assertSame(tree, fresh.require(new ResourceKey<>(id("trees/oak"), GeneratedObject.class)));
     }

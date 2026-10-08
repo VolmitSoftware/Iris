@@ -1,5 +1,6 @@
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.runtime.InPlaceChunkRegenerator;
@@ -2470,8 +2471,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         JigsawStudioActivation.Request request = studio.generator().getRequest();
         J.a(() -> {
             try {
-                IrisStructure structure = request.source().load(
-                        IrisStructure.class, request.structureKey(), false);
+                IrisStructure structure = StructureResources.structure(
+                        request.source(), request.structureKey());
                 if (structure == null) {
                     throw new IOException("The active structure resource no longer exists");
                 }
@@ -2598,10 +2599,9 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         EvaluationComputation computation;
         try {
             JigsawStudioActivation.Request request = studio.generator().getRequest();
-            IrisStructure structure = request.source().load(
-                    IrisStructure.class,
-                    request.structureKey(),
-                    false);
+            IrisStructure structure = StructureResources.structure(
+                    request.source(),
+                    request.structureKey());
             if (structure == null) {
                 throw new IOException("The active structure resource no longer exists");
             }
@@ -2801,7 +2801,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
 
     private static IrisStructure loadStudioStructure(ActiveStudio studio) {
         JigsawStudioActivation.Request request = studio.generator().getRequest();
-        return request.source().load(IrisStructure.class, request.structureKey(), false);
+        return StructureResources.structure(request.source(), request.structureKey());
     }
 
     private static boolean canResizeVariantToCapacity(
@@ -3797,7 +3797,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         JigsawStudioActivation.Request request = studio.generator().getRequest();
         IrisData source = request.source();
         source.invalidateStructureResources();
-        IrisStructure structure = source.load(IrisStructure.class, request.structureKey(), false);
+        IrisStructure structure = StructureResources.structure(source, request.structureKey());
         if (structure == null) {
             throw new IOException("The structure could not be reloaded after the graph transaction");
         }
@@ -7069,7 +7069,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
             throw new IOException("variant '" + activeVariant.pieceKey()
                     + "' does not belong to workcell '" + currentBay.stableId() + "'");
         }
-        IrisJigsawPiece piece = source.getJigsawPieceLoader().load(activeVariant.pieceKey(), false);
+        IrisJigsawPiece piece = StructureResources.piece(source, activeVariant.pieceKey());
         if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
             throw new IOException("piece '" + activeVariant.pieceKey() + "' is missing or has no object");
         }

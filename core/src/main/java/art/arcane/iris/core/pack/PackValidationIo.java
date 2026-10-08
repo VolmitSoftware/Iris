@@ -35,7 +35,8 @@ public final class PackValidationIo {
     private PackValidationIo() {
     }
 
-    static JSONObject readJson(File file) {
+    /** The JSON object {@code file} holds, or null when it cannot be read or parsed. */
+    public static JSONObject readJson(File file) {
         try {
             return new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
         } catch (IOException | RuntimeException parseFailure) {
@@ -79,7 +80,8 @@ public final class PackValidationIo {
         return true;
     }
 
-    static List<File> listJsonRecursive(File root) {
+    /** Every {@code .json} file below {@code root}, in no particular order; none when it cannot be listed. */
+    public static List<File> listJsonRecursive(File root) {
         List<File> out = new ArrayList<>();
         try (Stream<Path> stream = Files.walk(root.toPath())) {
             stream.filter(Files::isRegularFile)
@@ -90,7 +92,8 @@ public final class PackValidationIo {
         return out;
     }
 
-    static String deriveKey(File resourceFolder, File resourceFile) {
+    /** The key of {@code resourceFile} in {@code resourceFolder}: its path below it without {@code .json}, or null for other files. */
+    public static String deriveKey(File resourceFolder, File resourceFile) {
         Path relative = resourceFolder.toPath().relativize(resourceFile.toPath());
         String str = relative.toString().replace(File.separatorChar, '/');
         if (!str.endsWith(".json")) {

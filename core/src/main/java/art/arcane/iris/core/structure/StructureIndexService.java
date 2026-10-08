@@ -18,11 +18,10 @@
 
 package art.arcane.iris.core.structure;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.google.gson.GsonBuilder;
 
 import java.io.File;
@@ -90,11 +89,8 @@ public final class StructureIndexService {
             }
         }
 
-        List<String> iris = new ArrayList<>();
-        if (data.getStructureLoader() != null) {
-            Collections.addAll(iris, data.getStructureLoader().getPossibleKeys());
-            iris.removeIf(LEGACY_INDEX_KEY::equals);
-        }
+        List<String> iris = new ArrayList<>(StructureResources.structureKeys(data));
+        iris.removeIf(LEGACY_INDEX_KEY::equals);
 
         Collections.sort(vanilla);
         Collections.sort(datapack);
@@ -145,11 +141,8 @@ public final class StructureIndexService {
     static void removeLegacyIndex(IrisData data) {
         File legacyFile = legacyIndexFile(data.getDataFolder());
         try {
-            Files.deleteIfExists(legacyFile.toPath());
-            ResourceLoader<IrisStructure> structureLoader = data.getStructureLoader();
-            if (structureLoader != null) {
-                structureLoader.getLoadCache().invalidate(LEGACY_INDEX_KEY);
-                structureLoader.clearList();
+            if (Files.deleteIfExists(legacyFile.toPath())) {
+                data.invalidateStructureResources();
             }
         } catch (Throwable e) {
             IrisLogging.reportError("Failed to remove legacy structure index '"

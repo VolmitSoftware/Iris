@@ -1,7 +1,11 @@
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.PackModuleSet;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
+import com.volmit.host.LoadedPack;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -64,6 +68,12 @@ public class IrisImageMapSchemaTest {
     @SuppressWarnings("unchecked")
     private static IrisData schemaData() {
         IrisData data = mock(IrisData.class);
+        LoadedPack pack = mock(LoadedPack.class);
+        PackModuleSet modules = mock(PackModuleSet.class);
+        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new StructureModule()));
+        when(modules.pack()).thenReturn(pack);
+        when(data.getModules()).thenReturn(modules);
+        ModuleResourceFixture.serve(data);
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
         when(data.getLoaders()).thenReturn(loaders);
         when(data.getPossibleSnippets(anyString())).thenReturn(new KList<>());

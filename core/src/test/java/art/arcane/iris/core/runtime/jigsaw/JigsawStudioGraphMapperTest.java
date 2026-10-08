@@ -1,7 +1,9 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.structure.authoring.StructureBackend;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureOwnershipManifest;
@@ -63,16 +65,13 @@ public class JigsawStudioGraphMapperTest {
     @SuppressWarnings("unchecked")
     public void catalogPreservesDuplicateWeightedPoolEntries() {
         IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPool> poolLoader = mock(ResourceLoader.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
-        when(data.getJigsawPoolLoader()).thenReturn(poolLoader);
-        when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
 
         IrisJigsawPool start = new IrisJigsawPool().setPieces(new KList<>());
         start.getPieces().add(new IrisJigsawPieceEntry("village/end", 2).setChance(0.25D));
         start.getPieces().add(new IrisJigsawPieceEntry("village/end", 7));
         start.getPieces().add(new IrisJigsawPieceEntry("village/east", 5));
-        when(poolLoader.load("village/start")).thenReturn(start);
+        resources.resource(StructureResources.POOLS, "village/start", start);
         IrisJigsawPiece endPiece = planarPiece("village/end", IrisDirection.NORTH_NEGATIVE_Z)
                 .setRules(new IrisJigsawPieceRules()
                         .setMinimumDepth(1)
@@ -81,8 +80,8 @@ public class JigsawStudioGraphMapperTest {
                         .setMaximumPlacements(2)
                         .setTerminal(true));
         endPiece.getThemes().add("spruce");
-        when(pieceLoader.load("village/end")).thenReturn(endPiece);
-        when(pieceLoader.load("village/east")).thenReturn(planarPiece(
+        resources.resource(StructureResources.PIECES, "village/end", endPiece);
+        resources.resource(StructureResources.PIECES, "village/east", planarPiece(
                 "village/east", IrisDirection.EAST_POSITIVE_X));
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/start")
@@ -108,14 +107,11 @@ public class JigsawStudioGraphMapperTest {
     public void ownedUnassignedPiecesRequireOwnedObjectForEditing() throws Exception {
         Path root = temporaryFolder.newFolder("pack").toPath();
         IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPool> poolLoader = mock(ResourceLoader.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         when(data.getDataFolder()).thenReturn(root.toFile());
-        when(data.getJigsawPoolLoader()).thenReturn(poolLoader);
-        when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
-        when(pieceLoader.load("village/orphan")).thenReturn(planarPiece(
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
+        resources.resource(StructureResources.PIECES, "village/orphan", planarPiece(
                 "village/orphan", IrisDirection.NORTH_NEGATIVE_Z));
-        when(pieceLoader.load("village/incomplete")).thenReturn(planarPiece(
+        resources.resource(StructureResources.PIECES, "village/incomplete", planarPiece(
                 "village/incomplete", IrisDirection.EAST_POSITIVE_X));
 
         IrisStructure structure = new IrisStructure()
@@ -156,12 +152,9 @@ public class JigsawStudioGraphMapperTest {
     public void managedDatapackManifestResourcesRemainReadOnly() throws Exception {
         Path root = temporaryFolder.newFolder("managed-pack").toPath();
         IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPool> poolLoader = mock(ResourceLoader.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         when(data.getDataFolder()).thenReturn(root.toFile());
-        when(data.getJigsawPoolLoader()).thenReturn(poolLoader);
-        when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
-        when(pieceLoader.load("village/managed")).thenReturn(planarPiece(
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
+        resources.resource(StructureResources.PIECES, "village/managed", planarPiece(
                 "village/managed", IrisDirection.NORTH_NEGATIVE_Z));
 
         IrisStructure structure = new IrisStructure()
@@ -238,18 +231,15 @@ public class JigsawStudioGraphMapperTest {
     @SuppressWarnings("unchecked")
     public void mapsAuthorLabelsAndCanonicalPerVariantDimensionsIndependently() {
         IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPool> poolLoader = mock(ResourceLoader.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(data.getJigsawPoolLoader()).thenReturn(poolLoader);
-        when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(data);
         when(data.getObjectLoader()).thenReturn(objectLoader);
         IrisJigsawPool start = new IrisJigsawPool().setPieces(new KList<>());
         start.getPieces().add(new IrisJigsawPieceEntry("village/east-gate", 1));
-        when(poolLoader.load("village/start")).thenReturn(start);
+        resources.resource(StructureResources.POOLS, "village/start", start);
         IrisJigsawPiece gate = planarPiece("village/east-gate", IrisDirection.EAST_POSITIVE_X)
                 .setDisplayName("East Gatehouse");
-        when(pieceLoader.load("village/east-gate")).thenReturn(gate);
+        resources.resource(StructureResources.PIECES, "village/east-gate", gate);
         when(objectLoader.load("village/east-gate")).thenReturn(new IrisObject(7, 3, 5));
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/start")
@@ -280,8 +270,7 @@ public class JigsawStudioGraphMapperTest {
     @SuppressWarnings("unchecked")
     public void mapsSpatialWorkcellLabelWithoutChangingItsCanonicalRole() {
         IrisData data = mock(IrisData.class);
-        when(data.getJigsawPoolLoader()).thenReturn(mock(ResourceLoader.class));
-        when(data.getJigsawPieceLoader()).thenReturn(mock(ResourceLoader.class));
+        ModuleResourceFixture.serve(data);
         IrisStructure structure = new IrisStructure()
                 .setStartPool("stronghold/missing")
                 .setMode(IrisJigsawMode.SPATIAL_JIGSAW)
@@ -298,8 +287,7 @@ public class JigsawStudioGraphMapperTest {
     @SuppressWarnings("unchecked")
     public void planarMapPreservesIndependentEmptyAndDisabledWorkcellBounds() {
         IrisData data = mock(IrisData.class);
-        when(data.getJigsawPoolLoader()).thenReturn(mock(ResourceLoader.class));
-        when(data.getJigsawPieceLoader()).thenReturn(mock(ResourceLoader.class));
+        ModuleResourceFixture.serve(data);
         IrisStructure structure = new IrisStructure()
                 .setStartPool("village/missing")
                 .setMode(IrisJigsawMode.PLANAR_JIGSAW);

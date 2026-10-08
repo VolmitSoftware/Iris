@@ -110,6 +110,21 @@ public final class ModuleSettingsDecoder {
         return ModuleSettings.of(values);
     }
 
+    /**
+     * Reads the JSON of a module resource file into a new {@code type}, created with its no-argument constructor so an
+     * omitted option keeps its default. Iris's own classes, which built-in resource kinds may read into, are read by
+     * the pack's Gson like every Iris resource.
+     *
+     * @throws RuntimeException when the JSON does not decode into {@code type}
+     */
+    public <T> T decodeResource(Class<T> type, String json) {
+        T decoded = gson.fromJson(json, type);
+        if (decoded == null) {
+            throw new JsonParseException("the file holds null");
+        }
+        return decoded;
+    }
+
     private static Optional<String> presentKey(FeatureDescriptor<?> feature, JSONObject json, String resource) {
         boolean hasKey = json.has(feature.key());
         Optional<String> alias = feature.alias().filter(json::has);

@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyStatus;
@@ -1195,15 +1197,15 @@ public class StructureAssemblerTest {
         private final IrisData data = mock(IrisData.class);
 
         private Fixture() {
-            when(data.load(IrisJigsawPool.class, "terminal", false)).thenReturn(new IrisJigsawPool());
+            ModuleResourceFixture.of(data).resource(StructureResources.POOLS, "terminal", new IrisJigsawPool());
         }
 
         private void pool(String key, IrisJigsawPool pool) {
-            when(data.load(IrisJigsawPool.class, key, false)).thenReturn(pool);
+            ModuleResourceFixture.of(data).resource(StructureResources.POOLS, key, pool);
         }
 
         private void piece(String key, IrisJigsawPiece piece) {
-            when(data.load(IrisJigsawPiece.class, key, false)).thenReturn(piece);
+            ModuleResourceFixture.of(data).resource(StructureResources.PIECES, key, piece);
         }
 
         private void object(String key, IrisObject object) {

@@ -28,6 +28,7 @@ import com.volmit.host.schema.PackSchema;
 import com.volmit.host.schema.SchemaOption;
 import com.volmit.host.schema.TextFormat;
 import com.volmit.host.schema.ValueKind;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
 import java.util.Locale;
@@ -38,8 +39,9 @@ import java.util.function.Function;
 /**
  * Renders the settings a pack's modules add, described by IrisApi as a {@link PackSchema}, into the JSON
  * schema studio writes: each feature as a property of its target under its id and, for built-ins, its
- * alias, each settings class once as a definition, references as completion lists. Settings with one option
- * also accept that option's bare value; Iris's own classes in built-in settings use Iris's own definitions.
+ * alias, each settings class once as a definition, references as completion lists (resource references as the keys
+ * of the module resource kind they name). Settings with one option also accept that option's bare value; Iris's own
+ * classes in built-in settings use Iris's own definitions.
  */
 final class ModuleSchemaRenderer {
     private static final String DEFINITION_PREFIX = "module-";
@@ -53,6 +55,11 @@ final class ModuleSchemaRenderer {
         void complete(JSONObject property, Reference reference, TextFormat format);
     }
 
+    /** Points a string property at the keys of the pack's resources of a module resource kind. */
+    interface ResourceCompletions {
+        void complete(JSONObject property, ResourceId kind);
+    }
+
     /** The definition key of Iris's own description of one of its classes, built the first time it is asked for. */
     interface HostDefinitions {
         String definition(String typeName);
@@ -61,15 +68,17 @@ final class ModuleSchemaRenderer {
     private final PackSchema schema;
     private final Map<String, JSONObject> definitions;
     private final ReferenceCompletions references;
+    private final ResourceCompletions resources;
     private final HostDefinitions hostDefinitions;
     private final Function<String, List<String>> snippetFiles;
 
     /** {@code snippetFiles} lists the snippet references a pack has for a snippet folder, such as {@code snippet/thick}. */
     ModuleSchemaRenderer(PackSchema schema, Map<String, JSONObject> definitions, ReferenceCompletions references,
-                         HostDefinitions hostDefinitions, Function<String, List<String>> snippetFiles) {
+                         ResourceCompletions resources, HostDefinitions hostDefinitions, Function<String, List<String>> snippetFiles) {
         this.schema = schema;
         this.definitions = definitions;
         this.references = references;
+        this.resources = resources;
         this.hostDefinitions = hostDefinitions;
         this.snippetFiles = snippetFiles;
     }
@@ -89,8 +98,8 @@ final class ModuleSchemaRenderer {
         }
     }
 
-    /** The schema of a snippet file of {@code type}, which holds one object of it. */
-    JSONObject snippetFileSchema(ObjectType type) {
+    /** The schema of a file that holds one object of {@code type}: a snippet file, or a file of a module resource kind. */
+    JSONObject fileSchema(ObjectType type) {
         JSONObject file = objectSchema(type);
         file.put("$schema", "http://json-schema.org/draft-07/schema#");
         JSONObject fileDefinitions = new JSONObject();
@@ -191,6 +200,10 @@ final class ModuleSchemaRenderer {
             case ValueKind.ReferenceKind reference -> {
                 value.put("type", "string");
                 references.complete(value, reference.reference(), reference.format());
+            }
+            case ValueKind.ResourceReferenceKind resource -> {
+                value.put("type", "string");
+                resources.complete(value, resource.kind());
             }
             case ValueKind.EnumKind enumKind -> {
                 value.put("type", "string");

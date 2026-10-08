@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.platform.studio.generators;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
@@ -62,9 +64,8 @@ public class JigsawStudioGeneratorTest {
     @SuppressWarnings("unchecked")
     public void connectorBlocksAreHiddenByDefaultAndCanBeShownPerWorkcell() {
         IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
         when(source.getObjectLoader()).thenReturn(objectLoader);
         IrisJigsawConnector connector = new IrisJigsawConnector()
                 .setPosition(new IrisPosition(1, 1, 1))
@@ -82,7 +83,7 @@ public class JigsawStudioGeneratorTest {
         PlatformBlockState stone = mock(PlatformBlockState.class);
         IrisObject object = new IrisObject(3, 3, 3);
         object.setUnsigned(1, 1, 1, stone);
-        when(pieceLoader.load("test/room", false)).thenReturn(piece);
+        resources.resource(StructureResources.PIECES, "test/room", piece);
         when(objectLoader.load("test/room", false)).thenReturn(object);
         JigsawStudioVariant variant = new JigsawStudioVariant(
                 "test/room",
@@ -332,9 +333,8 @@ public class JigsawStudioGeneratorTest {
     @SuppressWarnings("unchecked")
     public void rendersSourceVariantInCanonicalOrientationAndRotatesFinalState() {
         IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
         when(source.getObjectLoader()).thenReturn(objectLoader);
         IrisJigsawConnector connector = new IrisJigsawConnector()
                 .setPosition(new IrisPosition(2, 1, 1))
@@ -357,7 +357,7 @@ public class JigsawStudioGeneratorTest {
         TileData sourceTile = new TileData("minecraft:chest", tileProperties);
         object.setUnsigned(0, 0, 0, sourceBlock);
         object.setUnsignedTile(0, 0, 0, sourceTile);
-        when(pieceLoader.load("village/east", false)).thenReturn(piece);
+        resources.resource(StructureResources.PIECES, "village/east", piece);
         when(objectLoader.load("village/east", false)).thenReturn(object);
         JigsawStudioVariant variant = planarVariant("village/east", JigsawPlanarTopology.EAST_END);
         GeneratorFixture fixture = fixture(
@@ -385,9 +385,8 @@ public class JigsawStudioGeneratorTest {
     @SuppressWarnings("unchecked")
     public void invalidRotatedFinalStateFailsRenderPrecisely() {
         IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
         when(source.getObjectLoader()).thenReturn(objectLoader);
         IrisJigsawConnector connector = new IrisJigsawConnector()
                 .setPosition(new IrisPosition(2, 1, 1))
@@ -402,7 +401,7 @@ public class JigsawStudioGeneratorTest {
                 .setObject("village/east")
                 .setConnectors(new KList<>());
         piece.getConnectors().add(connector);
-        when(pieceLoader.load("village/east", false)).thenReturn(piece);
+        resources.resource(StructureResources.PIECES, "village/east", piece);
         when(objectLoader.load("village/east", false)).thenReturn(new IrisObject(3, 3, 3));
         JigsawStudioVariant variant = planarVariant("village/east", JigsawPlanarTopology.EAST_END);
         GeneratorFixture fixture = fixture(
@@ -422,14 +421,13 @@ public class JigsawStudioGeneratorTest {
     @SuppressWarnings("unchecked")
     public void renderCacheIncludesLoadGenerationAndSupportsExplicitInvalidation() {
         IrisData source = mock(IrisData.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
         when(source.getObjectLoader()).thenReturn(objectLoader);
         IrisJigsawPiece piece = new IrisJigsawPiece()
                 .setObject("stronghold/hall")
                 .setConnectors(new KList<>());
-        when(pieceLoader.load("stronghold/hall", false)).thenReturn(piece);
+        resources.resource(StructureResources.PIECES, "stronghold/hall", piece);
         when(objectLoader.load("stronghold/hall", false)).thenReturn(new IrisObject(3, 3, 3));
         JigsawStudioVariant variant = new JigsawStudioVariant(
                 "stronghold/hall",

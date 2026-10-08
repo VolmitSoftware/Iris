@@ -1,6 +1,8 @@
 package art.arcane.iris.util.common.director.specialhandlers;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.director.DirectorParameterHandler;
@@ -46,9 +48,11 @@ public final class IrisStructureHandler implements DirectorParameterHandler<Stri
         return type == String.class;
     }
 
+    /** A pack whose modules fail to load has no structures to offer; its failure was reported when it loaded. */
     private static void addStructureKeys(Set<String> keys, IrisData data) {
-        for (String key : data.getStructureLoader().getPossibleKeys()) {
-            keys.add(key);
+        try {
+            keys.addAll(StructureResources.structureKeys(data));
+        } catch (PackModulesException ignored) {
         }
     }
 }

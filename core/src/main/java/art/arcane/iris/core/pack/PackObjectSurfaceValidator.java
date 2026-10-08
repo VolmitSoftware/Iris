@@ -24,52 +24,11 @@ import art.arcane.volmlib.util.json.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 final class PackObjectSurfaceValidator {
     private PackObjectSurfaceValidator() {
-    }
-
-    static Set<String> collectPlacedStructureKeys(File packFolder) {
-        Set<String> structureKeys = new LinkedHashSet<>();
-        if (packFolder == null || !packFolder.isDirectory()) {
-            return structureKeys;
-        }
-        for (String folderName : PackValidator.STRUCTURE_HOST_FOLDERS) {
-            File resourceFolder = new File(packFolder, folderName);
-            if (!resourceFolder.isDirectory()) {
-                continue;
-            }
-            for (File resourceFile : PackValidationIo.listJsonRecursive(resourceFolder)) {
-                JSONObject resource = PackValidationIo.readJson(resourceFile);
-                if (resource == null) {
-                    continue;
-                }
-                JSONArray placements = resource.optJSONArray("structures");
-                if (placements == null) {
-                    continue;
-                }
-                for (int placementIndex = 0; placementIndex < placements.length(); placementIndex++) {
-                    JSONObject placement = placements.optJSONObject(placementIndex);
-                    if (placement == null) {
-                        continue;
-                    }
-                    JSONArray references = placement.optJSONArray("structures");
-                    if (references == null) {
-                        continue;
-                    }
-                    for (int referenceIndex = 0; referenceIndex < references.length(); referenceIndex++) {
-                        Object rawReference = references.opt(referenceIndex);
-                        if (rawReference instanceof String structureKey && !structureKey.isBlank()) {
-                            structureKeys.add(structureKey);
-                        }
-                    }
-                }
-            }
-        }
-        return Set.copyOf(structureKeys);
     }
 
     static List<String> validateUnsupportedStructureTransforms(File packFolder) {

@@ -207,7 +207,7 @@ public class IrisStructureLocateCommandContractTest {
         assertTrue(method.indexOf("DatapackIngestService.installed()") > method.indexOf("J.a(() ->"));
         assertTrue(source.contains("engine.getDimension().getDatapackImports()"));
         assertTrue(source.contains("snapshot.configuredImportUrls().contains(importUrl)"));
-        assertTrue(source.contains("engine.getData().getStructureLoader().getPossibleKeys()"));
+        assertTrue(source.contains("StructureResources.structureKeys(engine.getData())"));
         assertFalse(method.contains("commandSender.sendMessage(exclusion"));
     }
 

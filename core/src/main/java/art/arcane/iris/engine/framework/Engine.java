@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.framework;
 
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.render.RenderType;
@@ -461,7 +462,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
         if (marker.structureAware()) {
             IrisObject placedObject = getData().getObjectLoader().load(object);
-            IrisStructure structure = getData().load(IrisStructure.class, marker.structureKey(), false);
+            IrisStructure structure = StructureResources.structure(getData(), marker.structureKey());
             IrisObjectPlacement placement = placedObject == null || structure == null
                     ? null
                     : structure.createLootPlacement(object);

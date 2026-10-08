@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
@@ -140,7 +141,7 @@ public final class ModdedStructureCommands {
             return 0;
         }
         String key = keyRaw.trim();
-        IrisStructure structure = data.load(IrisStructure.class, key, false);
+        IrisStructure structure = StructureResources.structure(data, key);
         if (structure == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK, MessageArgument.untrusted("key", key)));
             return 0;
@@ -180,7 +181,7 @@ public final class ModdedStructureCommands {
             return 0;
         }
         String key = keyRaw.trim();
-        IrisStructure structure = data.load(IrisStructure.class, key, false);
+        IrisStructure structure = StructureResources.structure(data, key);
         if (structure == null) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK_2, MessageArgument.untrusted("key", key)));
             return 0;
@@ -226,8 +227,8 @@ public final class ModdedStructureCommands {
         ModdedCommandFeedback.tab(context.getSource());
         try {
             Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
-            if (engine != null && engine.getData().getStructureLoader() != null) {
-                return SharedSuggestionProvider.suggest(engine.getData().getStructureLoader().getPossibleKeys(), builder);
+            if (engine != null) {
+                return SharedSuggestionProvider.suggest(StructureResources.structureKeys(engine.getData()), builder);
             }
         } catch (Throwable ignored) {
         }

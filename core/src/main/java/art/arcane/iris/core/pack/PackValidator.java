@@ -23,6 +23,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * Validates a pack before Iris loads it, packages it or opens it in studio: Iris's own checks of its files, then the
+ * validators the pack's modules register ({@link ModulePackValidation}). Blocking errors stop the pack from loading;
+ * warnings are only shown.
+ */
 public final class PackValidator {
     static final String TRASH_ROOT = ".iris-trash";
     static final String DATAPACK_IMPORTS = "datapack-imports";
@@ -93,15 +98,6 @@ public final class PackValidator {
         blockingErrors.addAll(PackObjectSurfaceValidator.validateUnsupportedStructureTransforms(packFolder));
         blockingErrors.addAll(PackObjectSurfaceValidator.validateStructureGraph(
                 packFolder, validateLiveRegistries));
-        StructureGraphPackValidator.Validation compiledStructures =
-                StructureGraphPackValidator.validate(
-                        packFolder.toPath(), PackObjectSurfaceValidator.collectPlacedStructureKeys(packFolder));
-        addDistinct(blockingErrors, compiledStructures.errors());
-        addDistinct(warnings, compiledStructures.warnings());
-        blockingErrors.addAll(PackNativeStructureValidator.validateNativeStructureReplacements(
-                packFolder,
-                compiledStructures.replacementOutputStructures(),
-                compiledStructures.sampledVerticalEnvelopes()));
         blockingErrors.addAll(PackSpawnValidator.validateSpawnerEntityReferences(
                 new File(packFolder, "spawners"), new File(packFolder, "entities")));
         blockingErrors.addAll(PackSpawnValidator.validateCustomBiomeSpawns(
@@ -119,6 +115,10 @@ public final class PackValidator {
         ContentKeyValidator.ContentKeyIssues contentKeys = ContentKeyValidator.collectContentKeyIssues(packFolder);
         addDistinct(ContentKeyValidator.strictContent() ? blockingErrors : warnings, contentKeys.strict());
         addDistinct(warnings, contentKeys.advisory());
+
+        ModulePackValidation.Findings modules = ModulePackValidation.validate(packFolder);
+        addDistinct(blockingErrors, modules.errors());
+        addDistinct(warnings, modules.warnings());
 
         return new PackValidationResult(packName, blockingErrors, warnings, validatedAt);
     }

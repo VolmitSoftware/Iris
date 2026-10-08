@@ -20,7 +20,6 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
 import art.arcane.iris.engine.framework.EngineEffects;
@@ -150,10 +149,8 @@ final class EngineRuntimeBuilder {
         try {
             if (!engine.backgroundTasks.scheduleTrackedTask(() -> {
                 try {
-                    File[] roots = engine.getData().getLoaders()
-                            .values()
+                    File[] roots = engine.getData().resourceFolderNames()
                             .stream()
-                            .map(ResourceLoader::getFolderName)
                             .map(name -> new File(engine.getData().getDataFolder(), name))
                             .filter(File::exists)
                             .filter(File::isDirectory)

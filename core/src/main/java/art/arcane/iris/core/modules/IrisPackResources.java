@@ -25,13 +25,16 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.block.BlockRegistry;
+import com.volmit.host.ResourceKindRegistration;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKey;
+import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackRegion;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -44,29 +47,44 @@ import java.util.function.Supplier;
 
 /**
  * The resources of one loaded snapshot of an Iris pack, which every chunk, mantle and placement stage of that
- * snapshot shares. Each load or hotload of the pack's data makes a new one, with a new {@link #snapshotId()}.
+ * snapshot shares. Each load or hotload of the pack's data makes a new one, with a new {@link #snapshotId()}, and so
+ * does every reload of its module resources ({@link IrisData#dump()}, {@link IrisData#invalidateStructureResources()}).
  * <p>
- * Three kinds of resource are served, by the type the key asks for: {@link GeneratedObject} (a pack object, as
- * its geometry), {@link PackBiome} and {@link PackRegion}. All use the id {@code <pack namespace>:<key>} that
- * {@link PackResourceIds} gives the pack's biomes in a biome sample, so one id can name a biome and a region.
- * An id the pack lacks, or of another namespace, is absent; any other type fails with
- * {@link IllegalArgumentException}. A resource that exists but cannot be loaded fails with
- * {@link IllegalStateException}. Each resource is built once and kept for the snapshot.
+ * Served by the type the key asks for: {@link GeneratedObject} (a pack object, as its geometry), {@link PackBiome},
+ * {@link PackRegion}, and the type of every {@link ResourceKind} the pack's modules register, read from the kind's
+ * folder ({@link ModuleResourceFiles}). All use the id {@code <pack namespace>:<key>} that {@link PackResourceIds}
+ * gives the pack's biomes in a biome sample, so one id can name a biome and a region. An id the pack lacks, or of
+ * another namespace, is absent; any other type fails with {@link IllegalArgumentException}. A resource that exists
+ * but cannot be loaded fails with {@link IllegalStateException}. Each resource is built once and kept for the
+ * snapshot. The module kinds are looked up the first time one is asked for, which loads the pack's modules.
  */
 public final class IrisPackResources implements PackResources {
-    private static final String SERVED_TYPES = "GeneratedObject, PackBiome and PackRegion";
+    private static final String SERVED_TYPES = "GeneratedObject, PackBiome, PackRegion and the types of the pack's module resource kinds";
 
+    private final IrisData data;
     private final PackResourceIds ids;
     private final UUID snapshotId = UUID.randomUUID();
     private final BlockRegistry blocks = new IrisBlockRegistry();
-    private final Map<Class<?>, Kind<?, ?>> kinds;
+    private final Map<Class<?>, Kind<?>> irisKinds;
+    private final Supplier<List<ResourceKind<?>>> moduleKindList;
+    private volatile Map<Class<?>, Kind<?>> moduleKinds;
+    private volatile List<String> moduleFolders;
 
     public IrisPackResources(IrisData data) {
+        this(data, () -> data.getModules().pack().catalog().resourceKinds().stream()
+                .<ResourceKind<?>>map(ResourceKindRegistration::kind)
+                .toList());
+    }
+
+    /** @param moduleKinds the resource kinds of the pack's modules, asked for once, when a module kind is first needed */
+    IrisPackResources(IrisData data, Supplier<List<ResourceKind<?>>> moduleKinds) {
+        this.data = data;
         this.ids = new PackResourceIds(data.getDataFolder());
-        this.kinds = Map.of(
-                GeneratedObject.class, new Kind<IrisObject, GeneratedObject>(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
-                PackBiome.class, new Kind<IrisBiome, PackBiome>(ids, data::getBiomeLoader, this::biomeOf),
-                PackRegion.class, new Kind<IrisRegion, PackRegion>(ids, data::getRegionLoader, this::regionOf));
+        this.moduleKindList = moduleKinds;
+        this.irisKinds = Map.of(
+                GeneratedObject.class, Kind.<IrisObject, GeneratedObject>ofLoader(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
+                PackBiome.class, Kind.<IrisBiome, PackBiome>ofLoader(ids, data::getBiomeLoader, this::biomeOf),
+                PackRegion.class, Kind.<IrisRegion, PackRegion>ofLoader(ids, data::getRegionLoader, this::regionOf));
     }
 
     @Override
@@ -87,11 +105,59 @@ public final class IrisPackResources implements PackResources {
     @Override
     @SuppressWarnings("unchecked") // The kinds are keyed by the type they serve.
     public <T> Optional<T> find(ResourceKey<T> key) {
-        Kind<?, T> kind = (Kind<?, T>) kinds.get(key.type());
-        if (kind == null) {
-            throw new IllegalArgumentException("Iris serves pack resources of " + SERVED_TYPES + ", not " + key.type().getName());
+        return ((Kind<T>) kindOf(key.type())).find(key.id());
+    }
+
+    @Override
+    public List<ResourceId> ids(Class<?> type) {
+        return kindOf(type).ids();
+    }
+
+    /** The id of the resource the pack names by {@code packKey}, such as {@code overworld:castle/keep} for {@code castle/keep}. */
+    public ResourceId idOf(String packKey) {
+        return ids.of(packKey);
+    }
+
+    /** The folders the pack's module resource kinds read, which loads the pack's modules. */
+    public List<String> moduleFolderNames() {
+        List<String> folders = moduleFolders;
+        if (folders == null) {
+            folders = moduleKindList.get().stream().map(ResourceKind::folder).sorted().toList();
+            moduleFolders = folders;
         }
-        return kind.find(key.id());
+        return folders;
+    }
+
+    private Kind<?> kindOf(Class<?> type) {
+        Kind<?> iris = irisKinds.get(type);
+        if (iris != null) {
+            return iris;
+        }
+        Kind<?> module = moduleKinds().get(type);
+        if (module == null) {
+            throw new IllegalArgumentException("Iris serves pack resources of " + SERVED_TYPES + ", not " + type.getName());
+        }
+        return module;
+    }
+
+    private Map<Class<?>, Kind<?>> moduleKinds() {
+        Map<Class<?>, Kind<?>> kinds = moduleKinds;
+        if (kinds != null) {
+            return kinds;
+        }
+        synchronized (this) {
+            if (moduleKinds == null) {
+                Map<Class<?>, Kind<?>> found = new HashMap<>();
+                moduleKindList.get().forEach(kind -> found.put(kind.type(), moduleKind(kind)));
+                moduleKinds = Map.copyOf(found);
+            }
+            return moduleKinds;
+        }
+    }
+
+    private <T> Kind<T> moduleKind(ResourceKind<T> kind) {
+        ModuleResourceFiles<T> files = new ModuleResourceFiles<>(data, kind);
+        return new Kind<>(ids, files::keys, (id, key) -> files.read(key));
     }
 
     private PackBiome biomeOf(ResourceId id, IrisBiome biome) {
@@ -107,18 +173,28 @@ public final class IrisPackResources implements PackResources {
         return keys.stream().map(ids::of).toList();
     }
 
-    /** One kind of pack resource: the loader that serves its keys, an index from ids to keys and what was built so far. */
-    private static final class Kind<R extends IrisRegistrant, T> {
+    /** One kind of pack resource: the keys the pack has, how a key's resource is read, an index from ids to keys and what was read so far. */
+    private static final class Kind<T> {
         private final PackResourceIds ids;
-        private final Supplier<ResourceLoader<R>> loader;
-        private final BiFunction<ResourceId, R, T> conversion;
+        private final Supplier<Collection<String>> keys;
+        private final BiFunction<ResourceId, String, T> read;
         private final Map<ResourceId, T> built = new ConcurrentHashMap<>();
         private volatile Map<ResourceId, String> keysById;
 
-        Kind(PackResourceIds ids, Supplier<ResourceLoader<R>> loader, BiFunction<ResourceId, R, T> conversion) {
+        /** {@code read} gives the resource of a key, or null when it exists but fails to load. */
+        Kind(PackResourceIds ids, Supplier<Collection<String>> keys, BiFunction<ResourceId, String, T> read) {
             this.ids = ids;
-            this.loader = loader;
-            this.conversion = conversion;
+            this.keys = keys;
+            this.read = read;
+        }
+
+        /** A kind Iris's own loader serves, each loaded resource converted into what IrisApi hands out. */
+        static <R extends IrisRegistrant, T> Kind<T> ofLoader(PackResourceIds ids, Supplier<ResourceLoader<R>> loader,
+                                                               BiFunction<ResourceId, R, T> conversion) {
+            return new Kind<>(ids, () -> Arrays.asList(loader.get().getPossibleKeys()), (id, key) -> {
+                R resource = loader.get().load(key);
+                return resource == null ? null : conversion.apply(id, resource);
+            });
         }
 
         Optional<T> find(ResourceId id) {
@@ -130,13 +206,16 @@ public final class IrisPackResources implements PackResources {
             if (key == null) {
                 return Optional.empty();
             }
-            R resource = loader.get().load(key);
-            if (resource == null) {
+            T made = read.apply(id, key);
+            if (made == null) {
                 throw new IllegalStateException("Pack resource " + id + " exists but failed to load");
             }
-            T made = conversion.apply(id, resource);
             T raced = built.putIfAbsent(id, made);
             return Optional.of(raced != null ? raced : made);
+        }
+
+        List<ResourceId> ids() {
+            return keysById().keySet().stream().sorted().toList();
         }
 
         /** The pack's keys by the ids they get, built on first use; a key whose id another key already has is left out. */
@@ -146,7 +225,7 @@ public final class IrisPackResources implements PackResources {
                 return index;
             }
             Map<ResourceId, String> indexed = new HashMap<>();
-            for (String key : loader.get().getPossibleKeys()) {
+            for (String key : keys.get()) {
                 indexed.putIfAbsent(ids.of(key), key);
             }
             keysById = Map.copyOf(indexed);

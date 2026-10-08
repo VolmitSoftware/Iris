@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
@@ -301,7 +302,7 @@ public class CommandStructure implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_4, MessageArgument.untrusted("value", dimension.getLoadKey())));
             return;
         }
-        IrisStructure s = data.load(IrisStructure.class, structure, false);
+        IrisStructure s = StructureResources.structure(data, structure);
         if (s == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK, MessageArgument.untrusted("structure", structure)));
             return;
@@ -339,7 +340,7 @@ public class CommandStructure implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_5, MessageArgument.untrusted("value", dimension.getLoadKey())));
             return;
         }
-        IrisStructure s = data.load(IrisStructure.class, structure, false);
+        IrisStructure s = StructureResources.structure(data, structure);
         if (s == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK_2, MessageArgument.untrusted("structure", structure)));
             return;

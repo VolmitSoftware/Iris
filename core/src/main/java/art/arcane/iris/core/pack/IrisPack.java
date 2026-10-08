@@ -22,6 +22,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.IrisWorld;
@@ -375,6 +376,7 @@ public class IrisPack {
                 schemas.put(r.buildSchema());
             }
         }
+        ModuleResourceSchemas.entries(dm, false).forEach(schemas::put);
 
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);

@@ -1,5 +1,7 @@
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioBounds;
@@ -522,16 +524,12 @@ public class JigsawStudioServiceCaptureTest {
         when(request.structureKey()).thenReturn("qa/profile_final");
         IrisData source = mock(IrisData.class);
         @SuppressWarnings("unchecked")
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
-        @SuppressWarnings("unchecked")
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
         when(request.source()).thenReturn(source);
-        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
         when(source.getObjectLoader()).thenReturn(objectLoader);
-        when(pieceLoader.load("test/end", false))
-                .thenReturn(new IrisJigsawPiece().setObject("test/end"));
-        when(pieceLoader.load("test/straight", false))
-                .thenReturn(new IrisJigsawPiece().setObject("test/straight"));
+        resources.resource(StructureResources.PIECES, "test/end", new IrisJigsawPiece().setObject("test/end"));
+        resources.resource(StructureResources.PIECES, "test/straight", new IrisJigsawPiece().setObject("test/straight"));
         when(objectLoader.load("test/end", false)).thenReturn(new IrisObject(16, 16, 16));
         when(objectLoader.load("test/straight", false)).thenReturn(new IrisObject(16, 16, 16));
         JigsawStudioGenerator generator = mock(JigsawStudioGenerator.class);
@@ -648,15 +646,13 @@ public class JigsawStudioServiceCaptureTest {
         when(request.ownerId()).thenReturn(ownerId);
         IrisData source = mock(IrisData.class);
         @SuppressWarnings("unchecked")
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
-        @SuppressWarnings("unchecked")
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
         IrisJigsawPiece piece = new IrisJigsawPiece().setObject("test/end");
         IrisObject object = new IrisObject(16, 16, 16);
         when(request.source()).thenReturn(source);
-        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        ModuleResourceFixture resources = ModuleResourceFixture.serve(source);
         when(source.getObjectLoader()).thenReturn(objectLoader);
-        when(pieceLoader.load("test/end", false)).thenReturn(piece);
+        resources.resource(StructureResources.PIECES, "test/end", piece);
         when(objectLoader.load("test/end", false)).thenReturn(object);
         JigsawStudioGenerator generator = mock(JigsawStudioGenerator.class);
         when(generator.getRequest()).thenReturn(request);

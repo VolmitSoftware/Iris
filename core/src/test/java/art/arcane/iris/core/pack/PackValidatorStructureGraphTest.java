@@ -1,5 +1,9 @@
 package art.arcane.iris.core.pack;
 
+import art.arcane.iris.engine.framework.structure.NativeReplacementValidation;
+import art.arcane.iris.engine.framework.structure.StructureGraphValidation;
+import art.arcane.iris.engine.framework.structure.StructureValidator;
+import com.volmit.validation.Problem;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
@@ -53,7 +57,7 @@ public class PackValidatorStructureGraphTest {
         write(pack, "structures/regional.json", "{}");
         write(pack, "structures/library.json", "{}");
 
-        assertEquals(Set.of("active", "regional"), PackObjectSurfaceValidator.collectPlacedStructureKeys(pack));
+        assertEquals(Set.of("active", "regional"), StructureValidator.placedStructureKeys(pack));
     }
 
     @Test
@@ -69,7 +73,7 @@ public class PackValidatorStructureGraphTest {
                 + "\"lobeFrequency\":0.02,\"lobeStrength\":0.85}}]}");
 
         assertTrue(PackObjectSurfaceValidator.validateStructureGraph(pack).isEmpty());
-        assertTrue(PackNativeStructureValidator.validateNativeStructureReplacements(
+        assertTrue(nativeReplacementErrors(
                 pack, Set.of(), Map.of()).isEmpty());
     }
 
@@ -584,7 +588,7 @@ public class PackValidatorStructureGraphTest {
                 + "\"nativeSuppression\":\"REPLACE_SOURCE\"}]}");
         write(pack, "structures/city.json", "{\"vanillaSource\":\"minecraft:ancient_city\"}");
 
-        assertTrue(PackNativeStructureValidator.validateNativeStructureReplacements(
+        assertTrue(nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, 0, 0)).isEmpty());
     }
 
@@ -595,7 +599,7 @@ public class PackValidatorStructureGraphTest {
                 + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}],"
                 + "\"nativeSuppression\":\"REPLACE_SOURCE\"}]}");
 
-        assertTrue(PackNativeStructureValidator.validateNativeStructureReplacements(
+        assertTrue(nativeReplacementErrors(
                 pack, Set.of(), Map.of()).isEmpty());
     }
 
@@ -606,7 +610,7 @@ public class PackValidatorStructureGraphTest {
                 + "\"nativeSuppression\":\"REPLACE_SOURCE\"}]}");
         write(pack, "structures/city.json", "{\"vanillaSource\":\"minecraft:ancient_city\"}");
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(pack, Set.of(), Map.of());
+        List<String> errors = nativeReplacementErrors(pack, Set.of(), Map.of());
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("not runtime-viable")));
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("will not be used as a fallback")));
@@ -619,7 +623,7 @@ public class PackValidatorStructureGraphTest {
                 + "\"nativeSuppression\":\"REPLACE_SOURCE\"}]}");
         write(pack, "structures/city.json", "{\"vanillaSource\":\"\"}");
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -1, 1));
 
         assertTrue(errors.toString(), errors.stream().anyMatch(
@@ -633,7 +637,7 @@ public class PackValidatorStructureGraphTest {
                 + "\"nativeSuppression\":\"REPLACE_SOURCE\"}]}");
         write(pack, "structures/city.json", "{\"vanillaSource\":\"minecraft:ancient_city\"}");
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -1, 1));
 
         assertTrue(errors.toString(), errors.stream().anyMatch(
@@ -644,7 +648,7 @@ public class PackValidatorStructureGraphTest {
     public void rejectsUndergroundReplacementBelowDimensionWritableRange() throws Exception {
         File pack = replacementPack("below", "STRUCTURE_PIECE", true, -80, -80);
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -5, 4));
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("sampled seed 0")
@@ -658,7 +662,7 @@ public class PackValidatorStructureGraphTest {
     public void rejectsUndergroundReplacementAboveDimensionWritableRange() throws Exception {
         File pack = replacementPack("above", "STRUCTURE_PIECE", true, 318, 318);
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -5, 4));
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("sampled seed 0")
@@ -671,7 +675,7 @@ public class PackValidatorStructureGraphTest {
     public void surfaceAlignsMultiPieceEnvelopeBeforeCheckingWorldBounds() throws Exception {
         File pack = replacementPack("surface-aligned", "CENTER_HEIGHT", false, 290, 290);
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 2, -30, 10));
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("surface-aligned")
@@ -683,7 +687,7 @@ public class PackValidatorStructureGraphTest {
     public void doesNotApplyExactYEnvelopeGateToSingleSurfacePiece() throws Exception {
         File pack = replacementPack("surface-single", "CENTER_HEIGHT", false, -63, 319);
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -500, 500));
 
         assertTrue(errors.toString(), errors.isEmpty());
@@ -693,7 +697,7 @@ public class PackValidatorStructureGraphTest {
     public void validatesEverySurfaceExactYAnchorAgainstWritableWorldBounds() throws Exception {
         File pack = replacementPack("surface-exact-range", "STRUCTURE_PIECE", false, -63, 319);
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -5, 4));
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("sampled seed 0")
@@ -706,7 +710,7 @@ public class PackValidatorStructureGraphTest {
     public void acceptsSurfaceExactYWhenEveryConfiguredAnchorFits() throws Exception {
         File pack = replacementPack("surface-exact-safe", "STRUCTURE_PIECE", false, -58, 315);
 
-        List<String> errors = PackNativeStructureValidator.validateNativeStructureReplacements(
+        List<String> errors = nativeReplacementErrors(
                 pack, Set.of("city"), sampledEnvelope("city", 1, -5, 4));
 
         assertTrue(errors.toString(), errors.isEmpty());
@@ -756,7 +760,7 @@ public class PackValidatorStructureGraphTest {
         }
 
         PackValidationResult result = PackValidator.validate(pack);
-        String expected = "Malformed Iris object resource " + object + ": EOFException";
+        String expected = "structures/castle.json: Malformed Iris object resource " + object + ": EOFException";
 
         assertTrue(result.getBlockingErrors().toString(), result.getBlockingErrors().contains(expected));
         assertFalse(result.getBlockingErrors().toString(), result.getBlockingErrors().stream().anyMatch(
@@ -930,14 +934,24 @@ public class PackValidatorStructureGraphTest {
         }
     }
 
-    private Map<String, List<StructureGraphPackValidator.SampledVerticalEnvelope>> sampledEnvelope(
+    private static List<String> nativeReplacementErrors(
+            File pack,
+            Set<String> replacementOutputStructures,
+            Map<String, List<StructureGraphValidation.SampledVerticalEnvelope>> sampledVerticalEnvelopes
+    ) {
+        return NativeReplacementValidation.validate(pack, replacementOutputStructures, sampledVerticalEnvelopes).stream()
+                .map(Problem::message)
+                .toList();
+    }
+
+    private Map<String, List<StructureGraphValidation.SampledVerticalEnvelope>> sampledEnvelope(
             String structureKey,
             int pieceCount,
             int minimumYOffset,
             int maximumYOffset
     ) {
         return Map.of(structureKey, List.of(
-                new StructureGraphPackValidator.SampledVerticalEnvelope(
+                new StructureGraphValidation.SampledVerticalEnvelope(
                         0L, pieceCount, minimumYOffset, maximumYOffset)));
     }
 

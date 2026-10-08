@@ -1,5 +1,6 @@
 package art.arcane.iris.core.runtime.jigsaw;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.authoring.StructureKey;
 import art.arcane.iris.core.structure.authoring.StructureOwnershipManifest;
@@ -165,7 +166,7 @@ public final class JigsawStudioGraphMapper {
             if (!visitedPools.add(poolKey)) {
                 continue;
             }
-            IrisJigsawPool pool = data.getJigsawPoolLoader().load(poolKey);
+            IrisJigsawPool pool = StructureResources.pool(data, poolKey);
             if (pool == null) {
                 continue;
             }
@@ -179,7 +180,7 @@ public final class JigsawStudioGraphMapper {
                     continue;
                 }
                 String pieceKey = entry.getPiece();
-                IrisJigsawPiece piece = data.getJigsawPieceLoader().load(pieceKey);
+                IrisJigsawPiece piece = StructureResources.piece(data, pieceKey);
                 if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
                     continue;
                 }
@@ -210,7 +211,7 @@ public final class JigsawStudioGraphMapper {
         if (variants.containsKey(pieceKey)) {
             return;
         }
-        IrisJigsawPiece piece = data.getJigsawPieceLoader().load(pieceKey);
+        IrisJigsawPiece piece = StructureResources.piece(data, pieceKey);
         if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
             return;
         }

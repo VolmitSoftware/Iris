@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaBuilder;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.spi.IrisLogging;
@@ -95,6 +96,7 @@ public final class ModdedWorkspaceGenerator {
                 schemas.put(immediateSchemas ? loader.buildSchemaImmediately() : loader.buildSchema());
             }
         }
+        ModuleResourceSchemas.entries(data, immediateSchemas).forEach(schemas::put);
 
         for (Class<?> snippetClass : data.resolveSnippets()) {
             try {

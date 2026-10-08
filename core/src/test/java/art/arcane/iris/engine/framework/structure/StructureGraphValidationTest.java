@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.core.pack;
+package art.arcane.iris.engine.framework.structure;
 
+import art.arcane.iris.core.loader.IrisData;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -34,7 +35,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-public class StructureGraphPackValidatorTest {
+/** The structure module's graph check, run on real pack folders the way Iris opens a pack to validate it. */
+public class StructureGraphValidationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -49,7 +51,7 @@ public class StructureGraphPackValidatorTest {
                         + "\"direction\":\"NORTH_NEGATIVE_Z\",\"pool\":\"castle/start\",\"name\":\"path\",\"targetName\":\"path\"}]}");
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().stream().anyMatch(message -> message.contains("non-positive weight 0")));
         assertTrue(validation.errors().stream().anyMatch(message -> message.contains("outside object bounds")));
@@ -67,7 +69,7 @@ public class StructureGraphPackValidatorTest {
                 "{\"object\":\"castle/piece\",\"connectors\":[]}");
         writeObjectHeader(pack.resolve("objects/castle/piece.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().stream().anyMatch(message -> message.contains("fallback cycle")));
     }
@@ -89,7 +91,7 @@ public class StructureGraphPackValidatorTest {
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 1, 1, 1);
         writeObjectHeader(pack.resolve("objects/castle/target.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().stream().anyMatch(
                 message -> message.contains("does not produce a complete deterministic assembly")));
@@ -116,7 +118,7 @@ public class StructureGraphPackValidatorTest {
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 1, 1, 1);
         writeObjectHeader(pack.resolve("objects/castle/target.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
     }
@@ -138,8 +140,8 @@ public class StructureGraphPackValidatorTest {
         writeObjectHeader(pack.resolve("objects/library/start.iob"), 1, 1, 1);
         writeObjectHeader(pack.resolve("objects/library/target.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation =
-                StructureGraphPackValidator.validate(pack, Set.of());
+        StructureGraphValidation.Validation validation =
+                validate(pack, Set.of());
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
         assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
@@ -156,7 +158,7 @@ public class StructureGraphPackValidatorTest {
         Path object = pack.resolve("objects/castle/start.iob");
         writeTruncatedObjectHeader(object, 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertEquals(List.of("Malformed Iris object resource " + object
                 + ": EOFException"), validation.errors());
@@ -172,8 +174,8 @@ public class StructureGraphPackValidatorTest {
                 "{\"object\":\"library/start\",\"connectors\":[]}");
         writeTruncatedObjectHeader(pack.resolve("objects/library/start.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation =
-                StructureGraphPackValidator.validate(pack, Set.of());
+        StructureGraphValidation.Validation validation =
+                validate(pack, Set.of());
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
     }
@@ -188,7 +190,7 @@ public class StructureGraphPackValidatorTest {
                 "{\"object\":\"castle/start\",\"connectors\":[]}");
         writeSignedObject(pack.resolve("objects/castle/start.iob"), 18, 31, 41, -9, -15, -20);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertFalse(validation.errors().toString(),
                 validation.errors().stream().anyMatch(message -> message.contains("missing object")));
@@ -205,8 +207,8 @@ public class StructureGraphPackValidatorTest {
                 "{\"object\":\"castle/start\",\"connectors\":[]}");
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 3, 9, 3);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
-        List<StructureGraphPackValidator.SampledVerticalEnvelope> envelopes =
+        StructureGraphValidation.Validation validation = validate(pack, null);
+        List<StructureGraphValidation.SampledVerticalEnvelope> envelopes =
                 validation.sampledVerticalEnvelopes().get("castle");
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
@@ -215,7 +217,7 @@ public class StructureGraphPackValidatorTest {
                 && envelope.minimumYOffset() == -4
                 && envelope.maximumYOffset() == 4));
         assertThrows(UnsupportedOperationException.class,
-                () -> envelopes.add(new StructureGraphPackValidator.SampledVerticalEnvelope(1L, 1, 0, 0)));
+                () -> envelopes.add(new StructureGraphValidation.SampledVerticalEnvelope(1L, 1, 0, 0)));
         assertThrows(UnsupportedOperationException.class,
                 () -> validation.sampledVerticalEnvelopes().put("other", List.of()));
     }
@@ -233,7 +235,7 @@ public class StructureGraphPackValidatorTest {
                         + "\"name\":\"source\",\"targetName\":\"door\"}]}" );
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
     }
@@ -245,7 +247,7 @@ public class StructureGraphPackValidatorTest {
         write(pack, "jigsaw-pools/castle/start.json",
                 "{\"pieces\":[{\"empty\":true,\"weight\":1}]}");
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
         assertFalse(validation.replacementOutputStructures().contains("castle"));
@@ -262,7 +264,7 @@ public class StructureGraphPackValidatorTest {
                 "{\"object\":\"castle/start\",\"connectors\":[]}");
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 1, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
         assertFalse(validation.replacementOutputStructures().contains("castle"));
@@ -279,7 +281,7 @@ public class StructureGraphPackValidatorTest {
                 "{\"object\":\"castle/start\",\"connectors\":[]}");
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 34, 1, 1);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
         assertFalse(validation.replacementOutputStructures().contains("castle"));
@@ -310,11 +312,20 @@ public class StructureGraphPackValidatorTest {
         writeObjectHeader(pack.resolve("objects/castle/start.iob"), 3, 3, 3);
         writeObjectHeader(pack.resolve("objects/castle/recursive.iob"), 3, 3, 3);
 
-        StructureGraphPackValidator.Validation validation = StructureGraphPackValidator.validate(pack);
+        StructureGraphValidation.Validation validation = validate(pack, null);
 
         assertTrue(validation.errors().toString(), validation.errors().stream().anyMatch(
                 message -> message.contains("does not produce a complete deterministic assembly")
                         && message.contains("seed 0")));
+    }
+
+    private static StructureGraphValidation.Validation validate(Path pack, Set<String> activeStructureKeys) {
+        IrisData data = IrisData.openValidation(pack.toFile());
+        try {
+            return StructureGraphValidation.validate(data, activeStructureKeys);
+        } finally {
+            data.close();
+        }
     }
 
     private void write(Path root, String relativePath, String content) throws Exception {

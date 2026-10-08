@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
@@ -25,7 +26,6 @@ import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.vanilla.IrisVanillaStructureAdjustment;
@@ -60,6 +60,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.core.modules.PackModuleSet;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
@@ -318,7 +319,7 @@ public class SchemaBuilderParityTest {
     }
 
     private static IrisData structureSchemaData() {
-        return structureSchemaData(new PackSchema(List.of(), List.of()));
+        return structureSchemaData(new PackSchema(List.of(), List.of(), List.of()));
     }
 
     /** {@code modules} is what the pack's modules add to its JSON. */
@@ -327,21 +328,17 @@ public class SchemaBuilderParityTest {
         LoadedPack pack = mock(LoadedPack.class);
         PackModuleSet moduleSet = mock(PackModuleSet.class);
         when(pack.schema()).thenReturn(modules);
+        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new StructureModule()));
         when(moduleSet.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(moduleSet);
-        ResourceLoader<IrisStructure> structureLoader = mock(ResourceLoader.class);
-        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
+        ModuleResourceFixture.serve(data);
         ResourceLoader<IrisExpression> expressionLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisBlockData> blockLoader = mock(ResourceLoader.class);
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
         loaders.put(IrisExpression.class, expressionLoader);
-        when(data.getStructureLoader()).thenReturn(structureLoader);
-        when(data.getJigsawPieceLoader()).thenReturn(pieceLoader);
         when(data.getBlockLoader()).thenReturn(blockLoader);
         when(data.getLoaders()).thenReturn(loaders);
         when(data.getPossibleSnippets(anyString())).thenReturn(new KList<>());
-        when(structureLoader.getPossibleKeys()).thenReturn(new String[0]);
-        when(pieceLoader.getPossibleKeys()).thenReturn(new String[0]);
         when(blockLoader.getPossibleKeys()).thenReturn(new String[0]);
         when(expressionLoader.getPossibleKeys()).thenReturn(new String[0]);
         when(expressionLoader.getFolderName()).thenReturn("expressions");

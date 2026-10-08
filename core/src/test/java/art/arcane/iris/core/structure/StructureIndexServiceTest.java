@@ -1,12 +1,12 @@
 package art.arcane.iris.core.structure;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
-import art.arcane.volmlib.util.data.KCache;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -75,19 +76,23 @@ public class StructureIndexServiceTest {
         Files.createDirectories(legacyIndex.toPath().getParent());
         Files.writeString(legacyIndex.toPath(), "{}", StandardCharsets.UTF_8);
         IrisData data = mock(IrisData.class);
-        @SuppressWarnings("unchecked")
-        ResourceLoader<IrisStructure> structureLoader = mock(ResourceLoader.class);
-        @SuppressWarnings("unchecked")
-        KCache<String, IrisStructure> loadCache = mock(KCache.class);
         when(data.getDataFolder()).thenReturn(pack);
-        when(data.getStructureLoader()).thenReturn(structureLoader);
-        when(structureLoader.getLoadCache()).thenReturn(loadCache);
 
         StructureIndexService.removeLegacyIndex(data);
 
         assertFalse(legacyIndex.exists());
-        verify(loadCache).invalidate("structure-index");
-        verify(structureLoader).clearList();
+        verify(data).invalidateStructureResources();
+    }
+
+    @Test
+    public void structureResourcesStayUntouchedWithoutALegacyIndex() throws Exception {
+        File pack = temporaryFolder.newFolder("pack");
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(pack);
+
+        StructureIndexService.removeLegacyIndex(data);
+
+        verify(data, never()).invalidateStructureResources();
     }
 
     @Test
@@ -97,16 +102,12 @@ public class StructureIndexServiceTest {
         Files.createDirectories(legacyIndex.toPath().getParent());
         Files.writeString(legacyIndex.toPath(), "{}", StandardCharsets.UTF_8);
         IrisData data = mock(IrisData.class);
-        @SuppressWarnings("unchecked")
-        ResourceLoader<IrisStructure> structureLoader = mock(ResourceLoader.class);
-        @SuppressWarnings("unchecked")
-        KCache<String, IrisStructure> loadCache = mock(KCache.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks structureHooks = mock(PlatformStructureHooks.class);
         when(data.getDataFolder()).thenReturn(pack);
-        when(data.getStructureLoader()).thenReturn(structureLoader);
-        when(structureLoader.getLoadCache()).thenReturn(loadCache);
-        when(structureLoader.getPossibleKeys()).thenReturn(new String[]{"castle", "structure-index"});
+        ModuleResourceFixture.serve(data)
+                .resource(StructureResources.STRUCTURES, "castle", new IrisStructure())
+                .resource(StructureResources.STRUCTURES, "structure-index", new IrisStructure());
         when(structureHooks.structureKeys()).thenReturn(List.of("minecraft:village", "example:castle"));
         when(structureHooks.structureSetKeys()).thenReturn(List.of("minecraft:villages"));
 
@@ -123,9 +124,8 @@ public class StructureIndexServiceTest {
         assertEquals(StructureIndexService.indexFile(pack), index);
         assertTrue(index.isFile());
         assertFalse(legacyIndex.exists());
-        InOrder order = inOrder(loadCache, structureLoader, structureHooks);
-        order.verify(loadCache).invalidate("structure-index");
-        order.verify(structureLoader).clearList();
+        InOrder order = inOrder(data, structureHooks);
+        order.verify(data).invalidateStructureResources();
         order.verify(structureHooks).structureKeys();
         order.verify(structureHooks).structureSetKeys();
         assertNull(StructureIndexService.writeOnce(data));

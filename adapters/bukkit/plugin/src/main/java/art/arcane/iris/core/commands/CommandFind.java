@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.localization.BukkitCommandMessages;
 import art.arcane.iris.core.localization.BukkitCommandMessagesExtended;
@@ -315,7 +316,7 @@ public class CommandFind implements DirectorExecutor {
         Set<String> unplacedEditableKeys = new LinkedHashSet<>();
         Set<String> locatableEditableKeys = normalizedStructureKeys(
                 IrisStructureLocator.locatableEditableKeys(engine));
-        for (String editableKey : engine.getData().getStructureLoader().getPossibleKeys()) {
+        for (String editableKey : StructureResources.structureKeys(engine.getData())) {
             String normalizedKey = normalizeStructureKey(editableKey);
             if (!isUnplacedEditableCandidate(
                     normalizedKey, registeredKeys.keySet(), locatableEditableKeys,

@@ -10,7 +10,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-final class JsonSchemaValidator {
+/** Warns about JSON a pack file holds that its type ignores, and reports a file that failed to load with the line at fault. */
+public final class JsonSchemaValidator {
     private static final int SUGGESTION_MAX_DISTANCE = 4;
 
     private JsonSchemaValidator() {
@@ -20,7 +21,7 @@ final class JsonSchemaValidator {
      * Warns about every top-level key that is neither a field of {@code objectClass} nor one of
      * {@code moduleKeys}, the ids and aliases the pack's modules read at this resource's target.
      */
-    static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass,
+    public static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass,
                                      Set<String> moduleKeys) {
         if (parsed == null || objectClass == null) {
             return;
@@ -43,7 +44,7 @@ final class JsonSchemaValidator {
         return known;
     }
 
-    static void reportLoadFailure(File file, String rawText, String resourceTypeName, Throwable error) {
+    public static void reportLoadFailure(File file, String rawText, String resourceTypeName, Throwable error) {
         String message = error.getMessage();
         if (message == null || message.isBlank()) {
             message = error.getClass().getSimpleName();

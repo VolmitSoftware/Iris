@@ -27,6 +27,7 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +39,9 @@ import java.util.List;
  * {@link #of(PackSettings)}.
  */
 public final class IrisPackSettings implements PackSettings {
-    private static final String DIMENSION = "dimension";
-    private static final String REGION = "region";
-    private static final String BIOME = "biome";
+    static final String DIMENSION = "dimension";
+    static final String REGION = "region";
+    static final String BIOME = "biome";
 
     private final Engine engine;
     private final PackResourceIds ids;
@@ -67,19 +68,19 @@ public final class IrisPackSettings implements PackSettings {
     public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
         IrisDimension dimension = engine.getDimension();
         List<Entry<F>> entries = new ArrayList<>();
-        addEntry(entries, featureType, Target.DIMENSION, DIMENSION, dimension);
+        addEntry(entries, featureType, Target.DIMENSION, ids.of(DIMENSION, dimension.getLoadKey()), dimension);
         for (IrisRegion region : dimension.getAllRegions(engine)) {
-            addEntry(entries, featureType, Target.REGION, REGION, region);
+            addEntry(entries, featureType, Target.REGION, ids.of(REGION, region.getLoadKey()), region);
         }
         for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
-            addEntry(entries, featureType, Target.BIOME, BIOME, biome);
+            addEntry(entries, featureType, Target.BIOME, ids.of(BIOME, biome.getLoadKey()), biome);
         }
         return List.copyOf(entries);
     }
 
-    private <F extends IrisFeature> void addEntry(List<Entry<F>> entries, Class<F> featureType, Target level, String kind,
-                                                  IrisRegistrant owner) {
-        owner.getModuleSettings().find(featureType)
-                .ifPresent(value -> entries.add(new Entry<>(level, ids.of(kind, owner.getLoadKey()), value)));
+    /** Adds {@code owner}'s settings of {@code featureType}, if it declares them, as an entry from {@code source}. */
+    static <F extends IrisFeature> void addEntry(List<Entry<F>> entries, Class<F> featureType, Target level, ResourceId source,
+                                                 IrisRegistrant owner) {
+        owner.getModuleSettings().find(featureType).ifPresent(value -> entries.add(new Entry<>(level, source, value)));
     }
 }

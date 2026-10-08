@@ -50,15 +50,12 @@ import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.image.IrisImage;
 import art.arcane.iris.engine.object.image.IrisImageMap;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.mod.IrisMod;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.engine.object.prefab.matter.IrisMatterObject;
 import art.arcane.volmlib.util.collection.KList;
@@ -96,6 +93,7 @@ import java.util.Optional;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Data
@@ -107,9 +105,16 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     // engine-hosting IrisData (and its pack graph) for the JVM lifetime.
     private static final Set<IrisData> ENGINE_HOLDERS =
             Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
+    /** Every resource type Iris loads itself for generation, studio and validation; module resource kinds come on top. */
+    private static final List<Class<? extends IrisRegistrant>> RUNTIME_RESOURCE_TYPES = List.of(IrisLootTable.class,
+            IrisSpawner.class, IrisEntity.class, IrisRegion.class, IrisBiome.class, IrisMod.class, IrisDimension.class,
+            IrisGenerator.class, IrisMarker.class, IrisBlockData.class, IrisExpression.class, IrisObject.class, IrisImage.class,
+            IrisImageMap.class, IrisMatterObject.class);
+    /** Pack folders Iris reads that hold no resources of its loaders: snippets and module jars. */
+    private static final List<String> OTHER_OWN_FOLDERS = List.of("snippet", "modules");
     private final File dataFolder;
     private final int id;
-    private final boolean datapackCompiler;
+    private final Purpose purpose;
     private volatile boolean closed = false;
     private final PackModuleSet modules;
     @EqualsAndHashCode.Exclude
@@ -130,9 +135,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisMatterObject> matterLoader;
     private ResourceLoader<IrisImage> imageLoader;
     private ResourceLoader<IrisImageMap> imageMapLoader;
-    private ResourceLoader<IrisStructure> structureLoader;
-    private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
-    private ResourceLoader<IrisJigsawPiece> jigsawPieceLoader;
     private KMap<String, KList<String>> possibleSnippets;
     private Gson gson;
     private Gson snippetLoader;
@@ -142,19 +144,29 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     @Setter(AccessLevel.NONE)
     private final transient List<Engine> engines = new ArrayList<>();
 
-    private IrisData(File dataFolder) {
-        this(dataFolder, false);
+    /** What an instance is opened for, which decides its loaders and whether opening it may change the pack. */
+    private enum Purpose {
+        /** Generation and studio: every loader, registered with Iris's services; interrupted structure transactions are recovered. */
+        RUNTIME,
+        /** The datapack compiler at bootstrap: only the loaders it reads, without Iris's services. */
+        DATAPACK_COMPILER,
+        /** Validating a pack: every loader, without Iris's services, and nothing in the pack is written. */
+        VALIDATION
     }
 
-    private IrisData(File dataFolder, boolean datapackCompiler) {
+    private IrisData(File dataFolder) {
+        this(dataFolder, Purpose.RUNTIME);
+    }
+
+    private IrisData(File dataFolder, Purpose purpose) {
         this.dataFolder = dataFolder;
         this.modules = new PackModuleSet(dataFolder, this::getGson);
         this.id = RNG.r.imax();
-        this.datapackCompiler = datapackCompiler;
-        if (datapackCompiler) {
-            hotloadedDatapackCompiler();
-        } else {
-            hotloaded();
+        this.purpose = purpose;
+        switch (purpose) {
+            case RUNTIME -> hotloaded();
+            case DATAPACK_COMPILER -> hotloadedDatapackCompiler();
+            case VALIDATION -> openForValidation();
         }
     }
 
@@ -167,7 +179,27 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public static IrisData openDatapackCompiler(File dataFolder) {
-        return new IrisData(dataFolder, true);
+        return new IrisData(dataFolder, Purpose.DATAPACK_COMPILER);
+    }
+
+    /** A detached instance that reads the pack as generation would, for validating it: it writes nothing into the pack
+     * and needs none of Iris's services. Close it when done.
+     */
+    public static IrisData openValidation(File dataFolder) {
+        return new IrisData(dataFolder, Purpose.VALIDATION);
+    }
+
+    /** Every folder below a pack's root that Iris reads itself, which no module resource kind may read. */
+    public static Set<String> ownFolderNames() {
+        Set<String> folders = new TreeSet<>(OTHER_OWN_FOLDERS);
+        for (Class<? extends IrisRegistrant> type : RUNTIME_RESOURCE_TYPES) {
+            try {
+                folders.add(type.getConstructor().newInstance().getFolderName());
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Iris resource type " + type.getName() + " cannot be created", failure);
+            }
+        }
+        return Set.copyOf(folders);
     }
 
     public static Optional<IrisData> getLoaded(File dataFolder) {
@@ -263,14 +295,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisGenerator loadAnyGenerator(String key, @Nullable IrisData nearest) {
         return loadAny(IrisGenerator.class, key, nearest);
-    }
-
-    public static IrisJigsawPool loadAnyJigsawPool(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisJigsawPool.class, key, nearest);
-    }
-
-    public static IrisJigsawPiece loadAnyJigsawPiece(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisJigsawPiece.class, key, nearest);
     }
 
     public static <T extends IrisRegistrant> T loadAny(Class<T> type, String key, @Nullable IrisData nearest) {
@@ -444,9 +468,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         try {
             IrisRegistrant rr = registrant.getConstructor().newInstance();
             ResourceLoader<T> r = null;
-            ResourceLoader.Options options = datapackCompiler
-                    ? ResourceLoader.Options.datapackCompiler()
-                    : ResourceLoader.Options.runtime();
+            ResourceLoader.Options options = purpose == Purpose.RUNTIME
+                    ? ResourceLoader.Options.runtime()
+                    : ResourceLoader.Options.datapackCompiler();
             if (registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(),
                         rr.getTypeName(), options);
@@ -476,6 +500,22 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
         closed = false;
+        dataFolder.mkdirs();
+        recoverStructureTransactions();
+        loadRuntimeResources();
+
+        for (Engine engine : getEngines()) {
+            engine.hotload();
+        }
+    }
+
+    private void openForValidation() {
+        closed = false;
+        loadRuntimeResources();
+    }
+
+    /** The runtime loaders, the pack's Gson and a new snapshot of its resources, module resource kinds included. */
+    private void loadRuntimeResources() {
         possibleSnippets = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
@@ -486,9 +526,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> replacement = new KMap<>();
-        File packs = dataFolder;
-        packs.mkdirs();
-        recoverStructureTransactions();
         this.lootLoader = registerLoader(IrisLootTable.class, replacement);
         this.spawnerLoader = registerLoader(IrisSpawner.class, replacement);
         this.entityLoader = registerLoader(IrisEntity.class, replacement);
@@ -504,18 +541,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.imageLoader = registerLoader(IrisImage.class, replacement);
         this.imageMapLoader = registerLoader(IrisImageMap.class, replacement);
         this.matterLoader = registerLoader(IrisMatterObject.class, replacement);
-        this.structureLoader = registerLoader(IrisStructure.class, replacement);
-        this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class, replacement);
-        this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class, replacement);
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
         loaders = replacement;
         packResources = new IrisPackResources(this);
-
-        for (Engine engine : getEngines()) {
-            engine.hotload();
-        }
     }
 
     private void hotloadedDatapackCompiler() {
@@ -547,23 +577,42 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
     }
 
+    /** Forgets everything read so far: the loaders' caches and the module resources, which a new snapshot reads again. */
     public void dump() {
         StructureGraphCatalog.invalidate(this);
         IrisObjectScale.invalidate(this);
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearCache();
         }
+        reloadModuleResources();
     }
 
+    /** Reads objects and module resources (structures, jigsaw pools and pieces among them) again after a tool rewrote their files. */
     public synchronized void invalidateStructureResources() {
         StructureGraphCatalog.invalidate(this);
         invalidateLoader(objectLoader);
-        invalidateLoader(structureLoader);
-        invalidateLoader(jigsawPoolLoader);
-        invalidateLoader(jigsawPieceLoader);
+        reloadModuleResources();
         for (Engine engine : getEngines()) {
             IrisStructureLocator.invalidate(engine);
         }
+    }
+
+    /**
+     * Starts a new snapshot of the pack's resources, so the files of every module resource kind are listed and read
+     * again, after a tool added, rewrote or deleted some. Iris's own loaders keep their caches.
+     */
+    public void reloadModuleResources() {
+        packResources = new IrisPackResources(this);
+    }
+
+    /** The folders below the pack root that hold its resources: Iris's loaders' and its modules' resource kinds'. */
+    public List<String> resourceFolderNames() {
+        Set<String> folders = new TreeSet<>();
+        for (ResourceLoader<?> loader : loaders.values()) {
+            folders.add(loader.getFolderName());
+        }
+        folders.addAll(packResources.moduleFolderNames());
+        return List.copyOf(folders);
     }
 
     private void recoverStructureTransactions() {

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
@@ -72,7 +73,7 @@ final class ModdedUnregisteredStructures {
                         entry.status().label(), entry.key(), entry.reason());
             }
             ModdedIrisLog.info("[Iris goto unregistered] Inventory scope is the live registry, this pack's "
-                    + "nativeStructures placements, and structureLoader editable resources. This is deterministic "
+                    + "nativeStructures placements, and its editable Iris structures. This is deterministic "
                     + "eligibility analysis and performs no chunk search; absent unmanaged datapack resources "
                     + "cannot be inferred after registry loading.");
             IrisModdedCommands.ok(source, "Iris wrote " + excluded.size() + " structure candidate(s) for "
@@ -136,23 +137,21 @@ final class ModdedUnregisteredStructures {
                     "Configured by an Iris nativeStructures placement, but absent from the live structure registry; "
                             + "install or enable the datapack or mod that provides this key."));
         }
-        if (engine.getData().getStructureLoader() != null) {
-            for (String key : engine.getData().getStructureLoader().getPossibleKeys()) {
-                String normalizedKey = ModdedCommandSuggestions.normalizeKey(key);
-                if (normalizedKey.isEmpty() || eligibleRegisteredKeys.contains(normalizedKey)
-                        || excluded.containsKey(normalizedKey)) {
-                    continue;
-                }
-                boolean registered = registeredKeys.contains(normalizedKey);
-                boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
-                boolean locatableEditable = IrisStructureLocator.hasLocatableEditablePlacement(engine, key);
-                if (!registered && !nativePlacement && locatableEditable) {
-                    continue;
-                }
-                boolean configured = IrisStructureLocator.hasEditablePlacement(engine, key);
-                excluded.putIfAbsent(normalizedKey, new ExcludedStructure(
-                        ReportStatus.UNPLACED, key.trim(), editableExclusionReason(configured)));
+        for (String key : StructureResources.structureKeys(engine.getData())) {
+            String normalizedKey = ModdedCommandSuggestions.normalizeKey(key);
+            if (normalizedKey.isEmpty() || eligibleRegisteredKeys.contains(normalizedKey)
+                    || excluded.containsKey(normalizedKey)) {
+                continue;
             }
+            boolean registered = registeredKeys.contains(normalizedKey);
+            boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
+            boolean locatableEditable = IrisStructureLocator.hasLocatableEditablePlacement(engine, key);
+            if (!registered && !nativePlacement && locatableEditable) {
+                continue;
+            }
+            boolean configured = IrisStructureLocator.hasEditablePlacement(engine, key);
+            excluded.putIfAbsent(normalizedKey, new ExcludedStructure(
+                    ReportStatus.UNPLACED, key.trim(), editableExclusionReason(configured)));
         }
         return List.copyOf(excluded.values());
     }

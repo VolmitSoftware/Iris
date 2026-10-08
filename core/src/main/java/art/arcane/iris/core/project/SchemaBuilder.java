@@ -25,7 +25,9 @@ import art.arcane.iris.spi.PlatformNumericRange;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.ModuleResourceFiles;
 import art.arcane.iris.core.modules.ModuleTargets;
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -57,8 +59,13 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.config.Reference;
+import com.volmit.host.ResourceKindRegistration;
 import com.volmit.host.schema.ObjectType;
+import com.volmit.host.schema.ResourceKindSchema;
 import com.volmit.host.schema.TextFormat;
+import com.volmit.host.schema.ValueKind;
+import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKind;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.GraphicsEnvironment;
@@ -99,7 +106,19 @@ public class SchemaBuilder {
 
     /** The schema of a module snippet file, which holds one object of {@code type}. */
     public static JSONObject moduleSnippet(ObjectType type, IrisData data) {
-        return new SchemaBuilder(type.getClass(), data).moduleSchemas().snippetFileSchema(type);
+        return new SchemaBuilder(type.getClass(), data).moduleSchemas().fileSchema(type);
+    }
+
+    /**
+     * The schema of a file of a module resource kind: Iris's own description of the class a built-in kind reads into,
+     * as its loader described it, or the module's description of its class.
+     */
+    public static JSONObject moduleResource(ResourceKindSchema kind, IrisData data) {
+        if (kind.type() instanceof ValueKind.HostKind host) {
+            return new SchemaBuilder(hostType(host.type()), data).construct();
+        }
+        ObjectType type = data.getModules().pack().schema().type(((ValueKind.ObjectKind) kind.type()).type());
+        return new SchemaBuilder(kind.getClass(), data).moduleSchemas().fileSchema(type);
     }
 
     public JSONObject construct() {
@@ -372,7 +391,7 @@ public class SchemaBuilder {
     private ModuleSchemaRenderer moduleSchemas() {
         if (moduleSchemas == null) {
             moduleSchemas = new ModuleSchemaRenderer(data.getModules().pack().schema(), definitions,
-                    this::completeReference, this::hostDefinition, data::getPossibleSnippets);
+                    this::completeReference, this::completeResourceReference, this::hostDefinition, data::getPossibleSnippets);
         }
         return moduleSchemas;
     }
@@ -423,20 +442,55 @@ public class SchemaBuilder {
         }
     }
 
-    /** Points {@code property} at the keys of the pack's resources of {@code type}; null when the pack has no such loader. */
-    private ResourceLoader<?> putPackResourceRef(JSONObject property, Class<?> type) {
+    /** A list of pack resource keys studio completes: the folder the resources live in and what they are called. */
+    private record PackResourceList(String folder, String typeName) {
+    }
+
+    /**
+     * Points {@code property} at the keys of the pack's resources of {@code type}, read by Iris's loader for it or by
+     * the module resource kind read into it; null when the pack has neither.
+     */
+    private PackResourceList putPackResourceRef(JSONObject property, Class<?> type) {
         ResourceLoader<?> loader = data.getLoaders().get(type);
-        if (loader == null) {
-            return null;
+        if (loader != null) {
+            return putResourceKeys(property, new PackResourceList(loader.getFolderName(), loader.getResourceTypeName()),
+                    Arrays.asList(loader.getPossibleKeys()));
         }
-        String key = "erz" + loader.getFolderName();
+        return moduleKinds().stream()
+                .filter(kind -> kind.type() == type)
+                .findFirst()
+                .map(kind -> putModuleResourceRef(property, kind))
+                .orElse(null);
+    }
+
+    /** Completion for a module option naming a resource of the module resource kind {@code kindId}. */
+    private void completeResourceReference(JSONObject property, ResourceId kindId) {
+        moduleKinds().stream()
+                .filter(kind -> kind.id().equals(kindId))
+                .findFirst()
+                .ifPresent(kind -> putModuleResourceRef(property, kind));
+    }
+
+    private PackResourceList putModuleResourceRef(JSONObject property, ResourceKind<?> kind) {
+        List<String> keys = data.getPackResources().ids(kind.type()).stream().map(ResourceId::path).toList();
+        return putResourceKeys(property, new PackResourceList(kind.folder(), ModuleResourceFiles.typeName(kind)), keys);
+    }
+
+    private PackResourceList putResourceKeys(JSONObject property, PackResourceList list, List<String> keys) {
+        String key = "erz" + list.folder();
         if (!definitions.containsKey(key)) {
-            JSONObject keys = new JSONObject();
-            keys.put("enum", new JSONArray(loader.getPossibleKeys()));
-            definitions.put(key, keys);
+            JSONObject enumeration = new JSONObject();
+            enumeration.put("enum", new JSONArray(keys.toArray(new String[0])));
+            definitions.put(key, enumeration);
         }
         property.put("$ref", "#/definitions/" + key);
-        return loader;
+        return list;
+    }
+
+    private List<ResourceKind<?>> moduleKinds() {
+        return data.getModules().pack().catalog().resourceKinds().stream()
+                .<ResourceKind<?>>map(ResourceKindRegistration::kind)
+                .toList();
     }
 
     private void buildProperties(JSONObject properties, JSONArray required, JSONArray extended, Class<?> c) {
@@ -518,11 +572,11 @@ public class SchemaBuilder {
 
                 if (k.isAnnotationPresent(RegistryListResource.class)) {
                     RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
-                    ResourceLoader<?> loader = putPackResourceRef(prop, rr.value());
+                    PackResourceList resources = putPackResourceRef(prop, rr.value());
 
-                    if (loader != null) {
-                        fancyType = "Iris " + loader.getResourceTypeName();
-                        description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getFolderName() + " (use ctrl+space for auto complete!)");
+                    if (resources != null) {
+                        fancyType = "Iris " + resources.typeName();
+                        description.add(SYMBOL_TYPE__N + "  Must be a valid " + resources.folder() + " (use ctrl+space for auto complete!)");
                     } else {
                         IrisLogging.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                     }
@@ -532,8 +586,8 @@ public class SchemaBuilder {
                     if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         j.put("enum", new JSONArray(StructureSchemaKeys.collect(
-                                Arrays.asList(data.getStructureLoader().getPossibleKeys()),
-                                Arrays.asList(data.getJigsawPieceLoader().getPossibleKeys())).toArray(new String[0])));
+                                StructureResources.structureKeys(data),
+                                StructureResources.pieceKeys(data)).toArray(new String[0])));
                         definitions.put(key, j);
                     }
 
@@ -719,12 +773,12 @@ public class SchemaBuilder {
                             if (k.isAnnotationPresent(RegistryListResource.class)) {
                                 RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
                                 JSONObject items = new JSONObject();
-                                ResourceLoader<?> loader = putPackResourceRef(items, rr.value());
+                                PackResourceList resources = putPackResourceRef(items, rr.value());
 
-                                if (loader != null) {
-                                    fancyType = "List<" + loader.getResourceTypeName() + ">";
+                                if (resources != null) {
+                                    fancyType = "List<" + resources.typeName() + ">";
                                     prop.put("items", items);
-                                    description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getResourceTypeName() + " (use ctrl+space for auto complete!)");
+                                    description.add(SYMBOL_TYPE__N + "  Must be a valid " + resources.typeName() + " (use ctrl+space for auto complete!)");
                                 } else {
                                     IrisLogging.error("Cannot find Registry Loader for type (list schema) " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                                 }
@@ -735,8 +789,8 @@ public class SchemaBuilder {
                                 if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     j.put("enum", new JSONArray(StructureSchemaKeys.collect(
-                                            Arrays.asList(data.getStructureLoader().getPossibleKeys()),
-                                            Arrays.asList(data.getJigsawPieceLoader().getPossibleKeys())).toArray(new String[0])));
+                                            StructureResources.structureKeys(data),
+                                            StructureResources.pieceKeys(data)).toArray(new String[0])));
                                     definitions.put(key, j);
                                 }
 

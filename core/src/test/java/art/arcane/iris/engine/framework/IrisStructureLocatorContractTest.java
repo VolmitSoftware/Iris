@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
 import art.arcane.iris.engine.object.value.IrisDirection;
@@ -111,7 +113,7 @@ public class IrisStructureLocatorContractTest {
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         structure.setVanillaSource("source:city");
-        when(data.load(IrisStructure.class, "test:city_definition", false)).thenReturn(structure);
+        ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city_definition", structure);
 
         IrisStructurePlacement editable = new IrisStructurePlacement();
         editable.getStructures().add("test:city_definition");
@@ -182,7 +184,7 @@ public class IrisStructureLocatorContractTest {
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         structure.setVanillaSource("minecraft:ancient_city");
-        when(data.load(IrisStructure.class, "test:city", false)).thenReturn(structure);
+        ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
 
         IrisStructurePlacement placement = new IrisStructurePlacement();
@@ -211,7 +213,7 @@ public class IrisStructureLocatorContractTest {
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         structure.setVanillaSource("minecraft:ancient_city");
-        when(data.load(IrisStructure.class, "test:city", false)).thenReturn(structure);
+        ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
 
         IrisStructurePlacement placement = new IrisStructurePlacement();
@@ -270,11 +272,11 @@ public class IrisStructureLocatorContractTest {
         when(targetObject.getW()).thenReturn(100);
         when(targetObject.getH()).thenReturn(1);
         when(targetObject.getD()).thenReturn(1);
-        when(data.load(IrisStructure.class, "test:city", false)).thenReturn(structure);
-        when(data.load(IrisJigsawPool.class, "test:start", false)).thenReturn(startPool);
-        when(data.load(IrisJigsawPool.class, "test:target", false)).thenReturn(targetPool);
-        when(data.load(IrisJigsawPiece.class, "test:start-piece", false)).thenReturn(startPiece);
-        when(data.load(IrisJigsawPiece.class, "test:target-piece", false)).thenReturn(targetPiece);
+        ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
+        ModuleResourceFixture.of(data).resource(StructureResources.POOLS, "test:start", startPool);
+        ModuleResourceFixture.of(data).resource(StructureResources.POOLS, "test:target", targetPool);
+        ModuleResourceFixture.of(data).resource(StructureResources.PIECES, "test:start-piece", startPiece);
+        ModuleResourceFixture.of(data).resource(StructureResources.PIECES, "test:target-piece", targetPiece);
         when(data.load(IrisObject.class, "test:start-object", false)).thenReturn(startObject);
         when(data.load(IrisObject.class, "test:target-object", false)).thenReturn(targetObject);
         assertFalse(StructureGraphCatalog.compile(data, structure).isAssemblyViable());
@@ -300,7 +302,7 @@ public class IrisStructureLocatorContractTest {
         IrisData data = mock(IrisData.class);
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
-        when(data.load(IrisStructure.class, "test:city", false)).thenReturn(structure);
+        ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
         IrisStructurePlacement placement = new IrisStructurePlacement()
                 .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
@@ -321,6 +323,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void missingNonReplacementStructureFailsInsteadOfBeingSkipped() {
         IrisData data = mock(IrisData.class);
+        ModuleResourceFixture.serve(data);
         IrisStructurePlacement placement = new IrisStructurePlacement();
         placement.getStructures().add("test:missing");
         IrisDimension dimension = mock(IrisDimension.class);
@@ -800,7 +803,7 @@ public class IrisStructureLocatorContractTest {
         IrisData data = mock(IrisData.class);
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:density");
-        when(data.load(IrisStructure.class, "test:density", false)).thenReturn(structure);
+        ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:density", structure);
         registerSinglePieceGraph(data, structure, "test:density");
 
         IrisStructurePlacement placement = new IrisStructurePlacement();
@@ -839,8 +842,8 @@ public class IrisStructureLocatorContractTest {
         when(object.getW()).thenReturn(1);
         when(object.getH()).thenReturn(1);
         when(object.getD()).thenReturn(1);
-        when(data.load(IrisJigsawPool.class, poolKey, false)).thenReturn(pool);
-        when(data.load(IrisJigsawPiece.class, pieceKey, false)).thenReturn(piece);
+        ModuleResourceFixture.of(data).resource(StructureResources.POOLS, poolKey, pool);
+        ModuleResourceFixture.of(data).resource(StructureResources.PIECES, pieceKey, piece);
         when(data.load(IrisObject.class, objectKey, false)).thenReturn(object);
     }
 

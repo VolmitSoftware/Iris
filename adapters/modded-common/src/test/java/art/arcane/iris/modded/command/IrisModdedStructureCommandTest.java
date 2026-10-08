@@ -184,7 +184,7 @@ public class IrisModdedStructureCommandTest {
         assertTrue(tree.contains("ModdedUnregisteredStructures.print(context.getSource())"));
         assertTrue(command.contains("ModdedCommandSuggestions.isEligibleRegisteredStructure("));
         assertTrue(command.contains("ModdedLocateCommands.registeredStructureUnavailableMessage("));
-        assertTrue(command.contains("engine.getData().getStructureLoader().getPossibleKeys()"));
+        assertTrue(command.contains("StructureResources.structureKeys(engine.getData())"));
         assertTrue(command.contains("IrisStructureLocator.hasLocatableEditablePlacement(engine, key)"));
         assertTrue(command.contains("ModdedIrisLog.info(\"[Iris goto unregistered] [{}] {} - {}\""));
         assertTrue(command.contains("UNREGISTERED(\"unregistered\")"));

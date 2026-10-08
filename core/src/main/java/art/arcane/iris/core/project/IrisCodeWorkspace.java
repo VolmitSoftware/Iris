@@ -232,6 +232,7 @@ public class IrisCodeWorkspace {
         for (ObjectType type : dm.getModules().pack().schema().snippets()) {
             schemaEntries.add(moduleSnippetSchema(dm, type, immediateSchemas));
         }
+        schemaEntries.addAll(ModuleResourceSchemas.entries(dm, immediateSchemas));
 
         schemaEntries.sort(Comparator.comparing(entry -> entry.getString("url")));
         for (JSONObject entry : schemaEntries) {

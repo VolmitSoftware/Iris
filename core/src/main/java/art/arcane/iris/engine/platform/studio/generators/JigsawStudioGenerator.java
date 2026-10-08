@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.platform.studio.generators;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarTopology;
 import art.arcane.iris.core.runtime.jigsaw.JigsawStudioActivation;
@@ -424,7 +425,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private RenderedBay buildRenderedBay(JigsawStudioBay workcell, JigsawStudioVariant variant) {
-        IrisJigsawPiece piece = request.source().getJigsawPieceLoader().load(variant.pieceKey(), false);
+        IrisJigsawPiece piece = StructureResources.piece(request.source(), variant.pieceKey());
         if (piece == null) {
             return RenderedBay.invalid(
                     workcell.bounds().dimensions(),

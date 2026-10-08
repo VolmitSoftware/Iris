@@ -124,7 +124,13 @@ public class PackTypeBukkitPurityGateTest {
             "art.arcane.iris.engine.object.prefab.IrisObject",
             "art.arcane.iris.engine.object.image.IrisImage",
             "art.arcane.iris.engine.object.image.IrisImageMap",
-            "art.arcane.iris.engine.object.prefab.matter.IrisMatterObject",
+            "art.arcane.iris.engine.object.prefab.matter.IrisMatterObject");
+
+    /**
+     * Iris's classes that built-in modules' resource kinds read from a pack with the same Gson, so they are roots
+     * as much as the loaders' (see {@code StructureResources}).
+     */
+    private static final List<String> MODULE_RESOURCE_ROOTS = List.of(
             "art.arcane.iris.engine.object.structure.IrisStructure",
             "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool",
             "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece");
@@ -488,6 +494,7 @@ public class PackTypeBukkitPurityGateTest {
     /** The Gson roots, the extra pack-reachable types, and every {@code @Snippet} class. */
     private static List<String> gateTypes() throws Exception {
         Set<String> types = new LinkedHashSet<>(GSON_REGISTERED_ROOTS);
+        types.addAll(MODULE_RESOURCE_ROOTS);
         types.addAll(ADDITIONAL_PACK_TYPES);
         types.addAll(snippetTypes());
         return new ArrayList<>(types);

@@ -1,5 +1,6 @@
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.BrokenPackException;
@@ -262,7 +263,7 @@ public class CommandJigsaw implements DirectorExecutor {
         if (data == null) {
             return;
         }
-        IrisStructure irisStructure = data.load(IrisStructure.class, structure, false);
+        IrisStructure irisStructure = StructureResources.structure(data, structure);
         if (irisStructure == null) {
             sendError(commandSender, "No Iris jigsaw structure '" + structure + "' exists in this pack.");
             return;
@@ -1215,7 +1216,7 @@ public class CommandJigsaw implements DirectorExecutor {
     static JigsawStudioLayout loadPersistedLayout(ActiveContext context) throws IOException {
         IrisData source = context.request().source();
         source.invalidateStructureResources();
-        IrisStructure structure = source.load(IrisStructure.class, context.request().structureKey(), false);
+        IrisStructure structure = StructureResources.structure(source, context.request().structureKey());
         if (structure == null) {
             throw new IOException("The structure could not be reloaded after the graph transaction");
         }
@@ -1274,10 +1275,9 @@ public class CommandJigsaw implements DirectorExecutor {
     }
 
     static String nextThemeKey(ActiveContext context) throws IOException {
-        IrisStructure structure = context.request().source().load(
-                IrisStructure.class,
-                context.request().structureKey(),
-                false);
+        IrisStructure structure = StructureResources.structure(
+                context.request().source(),
+                context.request().structureKey());
         if (structure == null) {
             throw new IOException("The active jigsaw structure could not be loaded");
         }
@@ -1749,7 +1749,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Open a Jigsaw Studio project first.");
                 return;
             }
-            IrisJigsawPiece piece = context.request().source().getJigsawPieceLoader().load(pieceKey);
+            IrisJigsawPiece piece = StructureResources.piece(context.request().source(), pieceKey);
             if (piece == null) {
                 sendError(this, "No jigsaw piece '" + pieceKey + "' exists in this pack.");
                 return;

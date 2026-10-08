@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.actuator.BiomeModule;
 import art.arcane.iris.engine.actuator.DecorantModule;
 import art.arcane.iris.engine.actuator.TerrainModule;
@@ -43,7 +44,8 @@ import java.util.stream.Stream;
 /**
  * The one {@link ModuleHost} every pack load uses: Iris's built-in modules, the built-in module API
  * package exposed to packs, Iris's own JSON fields, the reserved {@code iris} namespace, Iris's pack object
- * model as host types, a jar copy directory under the plugin's cache, and Iris's log.
+ * model as host types, the pack folders Iris reads itself, a jar copy directory under the plugin's cache, and
+ * Iris's log.
  */
 public final class IrisModuleHost {
     /** Exposed to pack modules, with its subpackages; see its package documentation. */
@@ -83,6 +85,7 @@ public final class IrisModuleHost {
                 .reservingNamespaces(RESERVED_NAMESPACE)
                 .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(HOST_TYPE_PACKAGE)
+                .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))
                 .copyingJarsTo(jarCopyRoot())
                 .loggingTo(new IrisApiLogger(PackModules.class.getName()));
     }

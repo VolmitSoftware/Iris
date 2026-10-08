@@ -19,7 +19,8 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.UpperDimensionContext;
-import art.arcane.iris.engine.actuator.IrisDecorantActuator;
+import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
+import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedModifier;
 import art.arcane.iris.engine.object.world.biome.InferredType;
@@ -60,12 +61,14 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
     private final RNG rng;
     private final PlatformBlockState AIR = B.getState("CAVE_AIR");
     private final PlatformBlockState LAVA = B.getState("LAVA");
-    private final IrisDecorantActuator decorant;
+    private final IrisSurfaceDecorator surfaceDecorator;
+    private final IrisCeilingDecorator ceilingDecorator;
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
         rng = new RNG(getEngine().getSeedManager().getCarve());
-        decorant = new IrisDecorantActuator(engine);
+        surfaceDecorator = new IrisSurfaceDecorator(engine);
+        ceilingDecorator = new IrisCeilingDecorator(engine);
     }
 
     @Override
@@ -637,14 +640,14 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                 ? new IrisDecorator[0]
                 : floorBiome.getDecoratorBucket(IrisDecorationPart.NONE);
         if (surfaceDecorators.length > 0 && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz)) {
-            decorant.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, floorBiome, InferredType.CAVE, zone.getFloor() - 1, zone.airThickness());
+            surfaceDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, floorBiome, InferredType.CAVE, zone.getFloor() - 1, zone.airThickness());
         }
 
         IrisDecorator[] ceilingDecorators = ceilingBiome == null
                 ? new IrisDecorator[0]
                 : ceilingBiome.getDecoratorBucket(IrisDecorationPart.CEILING);
         if (ceilingDecorators.length > 0 && zone.getCeiling() + 1 < maxY && B.isSolid(output.getRaw(rx, zone.getCeiling() + 1, rz))) {
-            decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, ceilingBiome, InferredType.CAVE, zone.getCeiling(), zone.airThickness());
+            ceilingDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, ceilingBiome, InferredType.CAVE, zone.getCeiling(), zone.airThickness());
         }
     }
 

@@ -30,6 +30,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.FeatureSettings;
 import com.volmit.host.PlacementOutcome;
+import com.volmit.host.LoadedPack;
 import com.volmit.host.PlacementRunner;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.mantle.BlockBox;
@@ -70,11 +71,12 @@ public final class ModuleObjectPlacement {
         Objects.requireNonNull(config, "Object placement config is required.");
         Objects.requireNonNull(rng, "Object placement RNG is required.");
         Objects.requireNonNull(data, "Object placement data is required.");
-        ResolvedGraph graph = data.getModules().pack().placement();
+        LoadedPack pack = data.getModules().pack();
+        ResolvedGraph graph = pack.placement();
         GeneratedObject geometry = geometryOf(object, config);
         BlockBox area = PlacementArea.around(object, geometry, config, x, z, graph.reach().blocks());
         PlatformBlockStates states = new PlatformBlockStates(ModuleObjectPlacement::platformState);
-        ObjectPlacerEdit edit = new ObjectPlacerEdit(placer, area, states, listener);
+        ObjectPlacerEdit edit = new ObjectPlacerEdit(placer, area, states, listener, () -> mantle(placer.getEngine(), area, pack));
         IrisPlacement placement = new IrisPlacement(object, config, placer, cave, x, requestedY, z, data, states, edit);
         PackResourceIds ids = new PackResourceIds(data.getDataFolder());
         String objectKey = keyOf(object);
@@ -107,6 +109,13 @@ public final class ModuleObjectPlacement {
             return IrisPlacementInputs.noTerrain(area);
         }
         return new IrisTerrainSampler(engine, ids, area.minX(), area.minZ(), area.maxX(), area.maxZ());
+    }
+
+    private static PlacementMantle mantle(Engine engine, BlockBox area, LoadedPack pack) {
+        if (engine == null) {
+            throw new UnsupportedOperationException("This placement runs without an Iris engine, so it has no mantle");
+        }
+        return new PlacementMantle(engine, area, pack.catalog().mantle());
     }
 
     private static FeatureSettings worldSettings(Engine engine, PackResourceIds ids) {

@@ -17,6 +17,7 @@ import art.arcane.iris.builtin.blocks.BlocksStages;
 import art.arcane.iris.builtin.bore.BoreStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.InMemoryMantle;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.core.modules.PackResourceFixture;
 import art.arcane.iris.core.modules.ObjectPlacementResult;
@@ -32,10 +33,15 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
+import com.volmit.mantle.Mantle;
+import com.volmit.mantle.MantleCodec;
+import com.volmit.mantle.MantleKey;
+import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.ObjectTransform;
@@ -60,6 +66,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -445,6 +452,63 @@ public class IrisObjectPlacementRegressionTest {
 
         assertTrue(result.isPlaced());
         assertEquals(List.of(PackResourceFixture.OAK), found);
+    }
+
+    private static final MantleKey<String> MARKS = new MantleKey<>("test:mark/spot", String.class);
+    private static final MantleCodec<String> TEXT = new MantleCodec<>() {
+        public int version() { return 1; }
+        public void write(java.io.DataOutput output, String value) throws IOException { output.writeUTF(value); }
+        public String read(java.io.DataInput input, int storedVersion) throws IOException { return input.readUTF(); }
+    };
+
+    /** Marks the mantle beside the anchor. */
+    private static final class MarkModule implements IrisModule {
+        private static final PlacementStage<Void> MARK = Stage.placement("test:mark/spot");
+
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:mark", "Mark", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(MARK).requires(BlocksStages.COMPLETE).run(context -> {
+                Mantle mantle = context.access().mantle();
+                mantle.layer(MARKS).set(0, ANCHOR_Y, 0, "first");
+                mantle.layer(MARKS).set(1, ANCHOR_Y, 0, "second");
+            });
+        }
+
+        @Override
+        public void register(FeatureRegistry registry) {
+            registry.registerMantle(MARKS, MantleLifetime.GENERATION, TEXT);
+        }
+    }
+
+    @Test
+    public void aPlacementStageMarksTheMantleWithTheCommitOfThePlacement() throws IOException {
+        InMemoryMantle storage = new InMemoryMantle(16);
+        storage.bindTo(engine);
+        usePack(List.of(new MarkModule()));
+
+        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(engine), null);
+
+        assertTrue(result.isPlaced());
+        assertEquals("first", storage.value(MARKS, TEXT, 0, ANCHOR_Y, 0));
+        assertEquals("second", storage.value(MARKS, TEXT, 1, ANCHOR_Y, 0));
+    }
+
+    @Test
+    public void aRejectedPlacementLeavesTheMantleUnmarked() throws IOException {
+        InMemoryMantle storage = new InMemoryMantle(16);
+        storage.bindTo(engine);
+        usePack(List.of(new MarkModule(), new VetoModule()));
+
+        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(engine), null);
+
+        assertFalse(result.isPlaced());
+        assertNull(storage.value(MARKS, TEXT, 0, ANCHOR_Y, 0));
+        assertNull(storage.value(MARKS, TEXT, 1, ANCHOR_Y, 0));
     }
 
     /** Lays the pack's oak on its side, a quarter turn about X, through the placement's object transformer. */

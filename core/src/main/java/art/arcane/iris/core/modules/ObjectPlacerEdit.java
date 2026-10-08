@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * One placement's writes, buffered over an Iris object placer until IrisApi commits them. Reads see the
@@ -50,14 +51,22 @@ final class ObjectPlacerEdit implements PlacementEdit {
     private final BlockBox bounds;
     private final PlatformBlockStates states;
     private final BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener;
+    private final Supplier<PlacementMantle> mantleSource;
     private final Map<BlockPosition, PlacedBlock> blocks = new LinkedHashMap<>();
     private final List<PlacedMarker> markers = new ArrayList<>();
     private final List<BlockPosition> objectBlocks = new ArrayList<>();
+    private PlacementMantle mantle;
     private State state = State.OPEN;
 
-    /** {@code listener} hears each object block after the commit, as Iris placements report them; null for none. */
+    /**
+     * {@code listener} hears each object block after the commit, as Iris placements report them; null for none.
+     * {@code mantleSource} makes the placement's mantle the first time a stage asks for it, and fails when the
+     * placement has none.
+     */
     ObjectPlacerEdit(IObjectPlacer placer, BlockBox bounds, PlatformBlockStates states,
-                     BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener) {
+                     BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener,
+                     Supplier<PlacementMantle> mantleSource) {
+        this.mantleSource = mantleSource;
         this.placer = placer;
         this.bounds = bounds;
         this.states = states;
@@ -95,7 +104,10 @@ final class ObjectPlacerEdit implements PlacementEdit {
     @Override
     public Mantle mantle() {
         requireOpen();
-        throw new UnsupportedOperationException("Mantle access from placement stages is not bridged to Iris yet");
+        if (mantle == null) {
+            mantle = mantleSource.get();
+        }
+        return mantle;
     }
 
     /** Marks a buffered write as one of the object's own blocks, which the listener hears after the commit. */
@@ -108,6 +120,7 @@ final class ObjectPlacerEdit implements PlacementEdit {
     public void commit() {
         requireOpen();
         state = State.FAILED;
+        commitMantle();
         writeBlocks();
         writeMarkers();
         reportObjectBlocks();
@@ -116,10 +129,24 @@ final class ObjectPlacerEdit implements PlacementEdit {
 
     @Override
     public void close() {
+        discardMantle();
         blocks.clear();
         markers.clear();
         objectBlocks.clear();
         state = State.CLOSED;
+    }
+
+    /** First, so a mantle chunk that is missing fails the commit before any block is written. */
+    private void commitMantle() {
+        if (mantle != null) {
+            mantle.commit();
+        }
+    }
+
+    private void discardMantle() {
+        if (mantle != null) {
+            mantle.close();
+        }
     }
 
     private void writeBlocks() {

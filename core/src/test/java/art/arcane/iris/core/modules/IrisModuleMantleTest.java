@@ -105,7 +105,7 @@ public class IrisModuleMantleTest {
 
     private MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
         return chunks.computeIfAbsent(((long) chunkX << 32) ^ (chunkZ & 0xffffffffL), ignored ->
-                new MantleChunk<>(SECTIONS, chunkX, chunkZ, new Sections(), MantleHooks.NONE));
+                new MantleChunk<>(SECTIONS, chunkX, chunkZ, new InMemoryMantle.Sections(), MantleHooks.NONE));
     }
 
     private IrisModuleMantle mantle(BlockBox bounds) {
@@ -320,28 +320,6 @@ public class IrisModuleMantleTest {
         }
 
         assertEquals(List.of(PackResourceFixture.OAK), found);
-    }
-
-    /** Iris's in-memory mantle sections, without the engine's static state that would bind a platform for every later test. */
-    private static final class Sections implements MantleDataAdapter<Matter> {
-        public Matter createSection() { return new IrisMatter(16, 16, 16); }
-        public Matter readSection(CountingDataInputStream input) { throw new UnsupportedOperationException(); }
-        public void writeSection(Matter section, DataOutputStream output) { throw new UnsupportedOperationException(); }
-        public void trimSection(Matter section) { section.trimSlices(); }
-        public boolean isSectionEmpty(Matter section) { return section.getSliceMap().isEmpty(); }
-        public Class<?> classifyValue(Object value) { return value.getClass(); }
-        public <T> void set(Matter section, int x, int y, int z, Class<?> type, T value) { throw new UnsupportedOperationException(); }
-        public <T> void remove(Matter section, int x, int y, int z, Class<T> type) { throw new UnsupportedOperationException(); }
-        public <T> T get(Matter section, int x, int y, int z, Class<T> type) { return section.<T>slice(type).get(x, y, z); }
-        public boolean hasSlice(Matter section, Class<?> type) { return section.hasSlice(type); }
-        public void deleteSlice(Matter section, Class<?> type) { section.deleteSlice(type); }
-
-        public <T> void iterate(Matter section, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
-            MatterSlice<T> slice = section.getSlice(type);
-            if (slice != null) {
-                slice.iterateSync(iterator);
-            }
-        }
     }
 
     private static byte[] bytes(ModuleLayerValues values) throws IOException {

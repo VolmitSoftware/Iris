@@ -306,7 +306,7 @@ public class IrisDimension extends IrisRegistrant {
     private int caveLavaHeight = 8;
     @RegistryListFunction(ComponentFlagFunction.class)
     @ArrayType(type = String.class)
-    @Desc("Collection of disabled components")
+    @Desc("Mantle passes to skip in this dimension, by flag: CARVED (caves), OBJECT (objects), FLOATING_OBJECT (objects on floating islands) or JIGSAW (structures).")
     private KList<MantleFlag> disabledComponents = new KList<>();
 
     public int getMaxHeight() {

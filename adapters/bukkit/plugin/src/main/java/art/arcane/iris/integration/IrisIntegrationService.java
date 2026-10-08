@@ -6,6 +6,7 @@ import art.arcane.iris.generation.runtime.IrisTelemetrySnapshot;
 import art.arcane.iris.Iris;
 import art.arcane.iris.generation.runtime.EngineTelemetrySnapshot;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.world.task.J;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import art.arcane.volmlib.integration.IntegrationHandshakeRequest;
 import art.arcane.volmlib.integration.IntegrationHandshakeResponse;
@@ -13,6 +14,9 @@ import art.arcane.volmlib.integration.IntegrationHeartbeat;
 import art.arcane.volmlib.integration.IntegrationMetricDescriptor;
 import art.arcane.volmlib.integration.IntegrationMetricGroup;
 import art.arcane.volmlib.integration.IntegrationMetricSample;
+import art.arcane.volmlib.integration.IntegrationMetricPublisher;
+import art.arcane.volmlib.integration.IntegrationMetricSnapshot;
+import art.arcane.volmlib.integration.IntegrationSnapshotProvider;
 import art.arcane.volmlib.integration.IntegrationMetricSchema;
 import art.arcane.volmlib.integration.IntegrationProtocolNegotiator;
 import art.arcane.volmlib.integration.IntegrationProtocolVersion;
@@ -30,7 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public class IrisIntegrationService implements IrisService, IntegrationServiceContract {
+public class IrisIntegrationService implements IrisService, IntegrationSnapshotProvider {
     private static final IntegrationProtocolVersion CURRENT_PROTOCOL = new IntegrationProtocolVersion(1, 2);
     private static final Set<IntegrationProtocolVersion> SUPPORTED_PROTOCOLS = Set.of(
             new IntegrationProtocolVersion(1, 0),
@@ -41,6 +45,7 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
             "handshake",
             "heartbeat",
             "metrics",
+            IntegrationSnapshotProvider.CAPABILITY,
             "metric-groups",
             "iris-engine-metrics",
             "iris-world-metrics"
@@ -63,6 +68,9 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
     );
 
     private final Supplier<IrisTelemetrySnapshot> telemetrySupplier;
+    private final IntegrationMetricPublisher snapshots = new IntegrationMetricPublisher(
+            IntegrationMetricSchema.irisKeys().size(), 30_000L);
+    private int snapshotTaskId = -1;
 
     public IrisIntegrationService() {
         this(IrisIntegrationService::currentTelemetry);
@@ -77,11 +85,17 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
     @Override
     public void onEnable() {
         Bukkit.getServicesManager().register(IntegrationServiceContract.class, this, Iris.instance, ServicePriority.Normal);
+        snapshotTaskId = J.ar(this::publishSnapshots, 20);
         Iris.verbose("Integration provider registered for Iris");
     }
 
     @Override
     public void onDisable() {
+        if (snapshotTaskId != -1) {
+            J.car(snapshotTaskId);
+            snapshotTaskId = -1;
+        }
+        snapshots.clear();
         Bukkit.getServicesManager().unregister(IntegrationServiceContract.class, this);
     }
 
@@ -186,6 +200,20 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
                     : sample);
         }
         return Map.copyOf(selected);
+    }
+
+    @Override
+    public IntegrationMetricSnapshot snapshotMetrics(Set<String> metricKeys) {
+        return snapshots.snapshotMetrics(metricKeys, System.currentTimeMillis());
+    }
+
+    void publishSnapshots() {
+        IntegrationMetricPublisher.Demand demand = snapshots.demandedKeys(System.currentTimeMillis());
+        if (demand.keys().isEmpty()) {
+            return;
+        }
+        Map<String, IntegrationMetricSample> samples = sampleMetrics(demand.keys());
+        snapshots.publish(demand, System.currentTimeMillis(), samples);
     }
 
     @Override

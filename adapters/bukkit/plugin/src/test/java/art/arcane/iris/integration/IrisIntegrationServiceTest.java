@@ -5,19 +5,66 @@ import art.arcane.iris.generation.runtime.IrisTelemetrySnapshot;
 import art.arcane.iris.generation.runtime.EngineTelemetrySnapshot;
 import art.arcane.volmlib.integration.IntegrationMetricGroup;
 import art.arcane.volmlib.integration.IntegrationMetricSample;
+import art.arcane.volmlib.integration.IntegrationMetricSnapshot;
+import art.arcane.volmlib.integration.IntegrationSnapshotProvider;
 import art.arcane.volmlib.integration.IntegrationMetricSchema;
 import org.junit.Test;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.ServicesManager;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class IrisIntegrationServiceTest {
+    @Test
+    public void disableClearsPublishedSnapshots() {
+        IrisIntegrationService service = new IrisIntegrationService(() -> IrisTelemetrySnapshot.EMPTY);
+        Set<String> keys = Set.of(IntegrationMetricSchema.IRIS_WORLD_COUNT);
+        service.snapshotMetrics(keys);
+        service.publishSnapshots();
+        long generation = service.snapshotMetrics(keys).generation();
+        try (MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getServicesManager).thenReturn(Mockito.mock(ServicesManager.class));
+            service.onDisable();
+        }
+        assertTrue(service.snapshotMetrics(keys).samples().isEmpty());
+        assertTrue(service.snapshotMetrics(keys).generation() > generation);
+    }
+
+    @Test
+    public void snapshotRequestsDoNotCollectAndKeepOriginalTelemetryTime() {
+        long sampledAt = System.currentTimeMillis() - 5_000L;
+        IrisTelemetrySnapshot source = telemetry(List.of(), IrisTelemetrySnapshot.PregenSnapshot.INACTIVE, sampledAt);
+        AtomicInteger reads = new AtomicInteger();
+        IrisIntegrationService service = new IrisIntegrationService(() -> {
+            reads.incrementAndGet();
+            return source;
+        });
+        Set<String> keys = Set.of(IntegrationMetricSchema.IRIS_WORLD_COUNT);
+        assertTrue(service.capabilities().contains(IntegrationSnapshotProvider.CAPABILITY));
+        service.publishSnapshots();
+        assertEquals(0, reads.get());
+        assertTrue(service.snapshotMetrics(keys).samples().isEmpty());
+        assertEquals(0, reads.get());
+
+        service.publishSnapshots();
+        IntegrationMetricSnapshot publication = service.snapshotMetrics(keys);
+        assertEquals(1, reads.get());
+        assertEquals(sampledAt, publication.samples().get(IntegrationMetricSchema.IRIS_WORLD_COUNT).sampledAtMs());
+        assertTrue(publication.capturedAtMs() >= sampledAt);
+        assertEquals(publication, service.snapshotMetrics(keys));
+        assertEquals(1, reads.get());
+    }
+
     @Test
     public void unavailableTelemetryDoesNotPublishFalseZeroes() {
         IrisIntegrationService service = new IrisIntegrationService(() -> IrisTelemetrySnapshot.EMPTY);

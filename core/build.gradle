@@ -311,7 +311,6 @@ List<String> unusedVolmLibClasses = [
     'art/arcane/volmlib/util/hud/HudTitleService',
     'art/arcane/volmlib/util/scheduling/GroupedExecutor',
     'art/arcane/volmlib/util/scheduling/SchedulerRuntime',
-    'art/arcane/volmlib/util/scheduling/SchedulerUtils',
     'art/arcane/volmlib/util/scheduling/TaskExecutor',
     'art/arcane/volmlib/util/parallel/StreamUtilsSupport',
     'art/arcane/volmlib/util/parallel/SyncExecutorSupport',

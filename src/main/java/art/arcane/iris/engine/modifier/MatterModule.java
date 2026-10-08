@@ -22,6 +22,13 @@ import art.arcane.iris.builtin.deposit.DepositStages;
 import art.arcane.iris.builtin.floating.FloatingStages;
 import art.arcane.iris.builtin.matter.MatterStages;
 import art.arcane.iris.core.modules.IrisChunk;
+import art.arcane.iris.engine.UpperDimensionContext;
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.volmlib.util.documentation.ChunkCoordinates;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.ChunkStageContext;
@@ -29,12 +36,14 @@ import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:matter}: copies the blocks the mantle planned for the chunk, its objects and structures,
- * into it. A thin wrapper around the engine mantle's own insertion. It orders itself after deposits without
- * requiring them, since deposits run only where a level declares some.
+ * into it, unless the dimension turns the mantle off ({@code useMantle}). Where an upper dimension sits above,
+ * blocks at or above its surface are left out. It orders itself after deposits without requiring them, since
+ * deposits run only where a level declares some.
  */
 public final class MatterModule implements IrisModule {
     private static final String VERSION = "built-in";
     private static final int CHUNK_SHIFT = 4;
+    private static final int CHUNK_COLUMNS = 16 * 16;
 
     @Override
     public ModuleInfo info() {
@@ -54,6 +63,55 @@ public final class MatterModule implements IrisModule {
         if (chunk.bypassesMantleStages()) {
             return;
         }
-        chunk.engine().getMantle().insertMatter(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT, chunk.blocks(), chunk.multicore());
+        chunk.state(MatterInsertion.class, MatterInsertion::new).insert(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT, chunk.blocks());
+    }
+
+    /** Copies the mantle's blocks into chunks for one engine runtime. */
+    static final class MatterInsertion {
+        private final Engine engine;
+
+        MatterInsertion(Engine engine) {
+            this.engine = engine;
+        }
+
+        /** Copies the blocks the mantle holds for chunk {@code x}, {@code z} into {@code blocks}. */
+        @ChunkCoordinates
+        void insert(int x, int z, Hunk<PlatformBlockState> blocks) {
+            if (!engine.getDimension().isUseMantle()) {
+                return;
+            }
+
+            UpperDimensionContext upperCtx = engine.getUpperContext();
+            boolean protectUpper = upperCtx != null;
+
+            MantleChunk<Matter> chunk = engine.getMantle().getMantle().getChunk(x, z).use();
+            try {
+                if (protectUpper) {
+                    int chunkBlockX = x << CHUNK_SHIFT;
+                    int chunkBlockZ = z << CHUNK_SHIFT;
+                    int gap = engine.getDimension().getUpperDimensionGap();
+                    int[] upperYs = new int[CHUNK_COLUMNS];
+                    for (int i = 0; i < CHUNK_COLUMNS; i++) {
+                        int lx = i >> 4;
+                        int lz = i & 15;
+                        int worldX = chunkBlockX + lx;
+                        int worldZ = chunkBlockZ + lz;
+                        int he = (int) Math.round(engine.getComplex().getHeightStream().get((double) worldX, (double) worldZ));
+                        int rawUpper = upperCtx.getUpperSurfaceY(worldX, worldZ);
+                        upperYs[i] = Math.max(rawUpper, he + gap);
+                    }
+                    chunk.iterate(PlatformBlockState.class, (lx, y, lz, value) -> {
+                        int colIdx = (lx << 4) | (lz & 15);
+                        if (y < upperYs[colIdx]) {
+                            blocks.set(lx, y, lz, value);
+                        }
+                    });
+                } else {
+                    chunk.iterate(PlatformBlockState.class, (lx, y, lz, value) -> blocks.set(lx, y, lz, value));
+                }
+            } finally {
+                chunk.release();
+            }
+        }
     }
 }

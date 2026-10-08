@@ -93,6 +93,13 @@ public final class IrisObjectVacuum {
         return 0;
     }
 
+    /** The lowest height vacuum may target, one above the dimension's bottom (placer heights start at 0 there). */
+    public static final int LOWEST_TARGET_Y = 1;
+
+    public static int clampTargetY(int targetY, int lowestY, int highestY) {
+        return Math.max(lowestY, Math.min(highestY, targetY));
+    }
+
     public static int columnTargetY(int dx, int dz, int lowX, int highX, int lowZ, int highZ,
                                     double effectiveRadius, double falloff, int originalY, int meetY) {
         double factor = columnInfluence(

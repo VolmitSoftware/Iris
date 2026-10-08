@@ -84,8 +84,8 @@ public final class VacuumModule implements IrisModule {
         private final double waveAmplitude;
         private final double waveScale;
         private final SimplexNoise waves;
-        private final int worldMin;
-        private final int worldMax;
+        private final int lowestY;
+        private final int highestY;
 
         private Bend(PlacementStageContext context, PreparedPlacement prepared, Engine engine) {
             ObjectPlaceMode mode = prepared.mode();
@@ -101,8 +101,8 @@ public final class VacuumModule implements IrisModule {
             this.waveAmplitude = IrisObjectVacuum.resolveWaveAmplitude(settings);
             this.waveScale = IrisObjectVacuum.resolveWaveScale(settings);
             this.waves = mode == ObjectPlaceMode.VACUUM_WAVY && waveAmplitude > 0 ? new SimplexNoise(WAVE_SEED) : null;
-            this.worldMin = engine.getMinHeight();
-            this.worldMax = worldMin + engine.getHeight() - 1;
+            this.lowestY = IrisObjectVacuum.LOWEST_TARGET_Y;
+            this.highestY = engine.getHeight() - 1;
         }
 
         private void apply(int baseY, int topY) {
@@ -124,7 +124,7 @@ public final class VacuumModule implements IrisModule {
             if (targetY == originalY) {
                 return;
             }
-            targetY = Math.max(worldMin + 1, Math.min(worldMax, targetY));
+            targetY = IrisObjectVacuum.clampTargetY(targetY, lowestY, highestY);
             if (targetY > originalY) {
                 raise(x, z, originalY, targetY);
             } else if (targetY < originalY) {

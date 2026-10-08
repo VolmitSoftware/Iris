@@ -47,6 +47,7 @@ import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.structure.StructureIndexService;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.spi.PlatformBiome;
@@ -386,7 +387,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public Set<String> getObjectsAt(int x, int z) {
-        return getMantle().getObjectComponent().guess(x, z);
+        return ObjectModule.placing(this).guess(x, z);
     }
 
     @Override

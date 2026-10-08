@@ -20,11 +20,18 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.deposit.DepositSettings;
+import art.arcane.iris.builtin.structure.StructureStages;
 import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
+import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ValueKind;
+import com.volmit.stage.MantleStage;
+import com.volmit.stage.Stage;
+import com.volmit.stage.StageGraph;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -42,6 +49,8 @@ public class BuiltInGenerationGraphTest {
             "iris:biome/write", "iris:terrain/shape", "iris:carve/apply", "iris:post/smooth", "iris:floating/solids",
             "iris:deposit/ores", "iris:matter/insert", "iris:decorant/decorate", "iris:floating/decorate",
             "iris:perfection/surface", "iris:custom/blocks");
+    private static final List<String> EXPECTED_MANTLE_ORDER = List.of(
+            "iris:carve/caves", "iris:objects/place", "iris:floating/objects", "iris:structure/place");
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -56,12 +65,27 @@ public class BuiltInGenerationGraphTest {
     }
 
     @Test
-    public void cavesArePlannedInTheMantleOneBlockIntoEachNeighbor() throws IOException {
+    public void mantleStagesRunCavesObjectsFloatingObjectsThenStructures() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             ResolvedGraph mantle = pack.mantle();
 
-            assertEquals(List.of("iris:carve/caves"), ids(mantle));
-            assertEquals(1, mantle.reach().blocks());
+            assertEquals(mantle.describe(), EXPECTED_MANTLE_ORDER, ids(mantle));
+            assertEquals("blended cave walls reach one block into each neighbor", 1,
+                    mantle.stages().getFirst().reachBlocks(mock(PackSettings.class)));
+        }
+    }
+
+    @Test
+    public void aPackMantleStageCanOrderItselfAfterIrisStructures() throws IOException {
+        MantleStage<Void> mark = Stage.mantle("test:marks/mark");
+        IrisModule marks = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:marks", "Marks", "1"); }
+            public void install(StageGraph graph) { graph.define(mark).requires(StructureStages.PLACE).run(context -> { }); }
+        };
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of(marks))) {
+            List<String> order = ids(pack.mantle());
+
+            assertEquals(order.toString(), order.size() - 1, order.indexOf("test:marks/mark"));
         }
     }
 

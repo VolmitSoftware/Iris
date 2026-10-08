@@ -13,7 +13,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class MantleFloatingObjectComponentInvertedPlacementTest {
+public class FloatingObjectPlacingInvertedPlacementTest {
 
     private FloatingObjectFootprint footprint(int lowestSolidKeyY, int highestSolidKeyY, int tallestKx, int tallestKz) throws Exception {
         return footprint(lowestSolidKeyY, highestSolidKeyY, tallestKx, tallestKz, new long[0]);
@@ -67,21 +67,21 @@ public class MantleFloatingObjectComponentInvertedPlacementTest {
     public void invertedBaseY_anchorsOriginalLowestSolidBelowBottomFace() throws Exception {
         FloatingObjectFootprint footprint = footprint(5, 30, 2, 3);
 
-        assertEquals(104, MantleFloatingObjectComponent.invertedBaseY(100, footprint));
+        assertEquals(104, FloatingObjectPlacing.invertedBaseY(100, footprint));
     }
 
     @Test
     public void invertedBaseX_usesTopFootprintAnchor() throws Exception {
         FloatingObjectFootprint footprint = footprint(5, 30, 2, 3);
 
-        assertEquals(106, MantleFloatingObjectComponent.invertedBaseX(100, 8, footprint));
+        assertEquals(106, FloatingObjectPlacing.invertedBaseX(100, 8, footprint));
     }
 
     @Test
     public void invertedBaseZ_mirrorsTopFootprintAnchor() throws Exception {
         FloatingObjectFootprint footprint = footprint(5, 30, 2, 3);
 
-        assertEquals(111, MantleFloatingObjectComponent.invertedBaseZ(100, 8, footprint));
+        assertEquals(111, FloatingObjectPlacing.invertedBaseZ(100, 8, footprint));
     }
 
     @Test
@@ -89,7 +89,7 @@ public class MantleFloatingObjectComponentInvertedPlacementTest {
         FloatingObjectFootprint footprint = footprint(5, 30, 2, 3);
         IrisObjectRotation rotation = IrisObjectRotation.xFlip180WithY(90);
 
-        assertEquals(111, MantleFloatingObjectComponent.invertedBaseX(100, 8, footprint, rotation));
+        assertEquals(111, FloatingObjectPlacing.invertedBaseX(100, 8, footprint, rotation));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class MantleFloatingObjectComponentInvertedPlacementTest {
         FloatingObjectFootprint footprint = footprint(5, 30, 2, 3);
         IrisObjectRotation rotation = IrisObjectRotation.xFlip180WithY(90);
 
-        assertEquals(110, MantleFloatingObjectComponent.invertedBaseZ(100, 8, footprint, rotation));
+        assertEquals(110, FloatingObjectPlacing.invertedBaseZ(100, 8, footprint, rotation));
     }
 
     @Test
@@ -105,7 +105,7 @@ public class MantleFloatingObjectComponentInvertedPlacementTest {
         FloatingObjectFootprint footprint = footprint(5, 30, 2, 3);
         IrisObjectRotation rotation = IrisObjectRotation.xFlip180WithY(270);
 
-        assertEquals(104, MantleFloatingObjectComponent.invertedBaseY(100, footprint, rotation));
+        assertEquals(104, FloatingObjectPlacing.invertedBaseY(100, footprint, rotation));
     }
 
     @Test
@@ -115,11 +115,11 @@ public class MantleFloatingObjectComponentInvertedPlacementTest {
         long[] cells = {0L, 1L << 32};
         FloatingObjectFootprint footprint = footprint(0, 0, 0, 0, cells);
 
-        assertTrue(MantleFloatingObjectComponent.isFootprintFlat(
+        assertTrue(FloatingObjectPlacing.isFootprintFlat(
                 footprint, 15, 0, 109,
                 (x, z) -> z == 0 && (x == 15 || x == 16) ? sample : null,
                 entry, 2));
-        assertFalse(MantleFloatingObjectComponent.isFootprintFlat(
+        assertFalse(FloatingObjectPlacing.isFootprintFlat(
                 footprint, 15, 0, 109,
                 (x, z) -> x == 15 && z == 0 ? sample : null,
                 entry, 2));

@@ -1,0 +1,85 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.core.modules;
+
+import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisFeature;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.PackSettings;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * The settings an engine's pack declares, for working out mantle stage reaches when the pack loads: the
+ * engine's dimension, then every region it can reach, then every biome. Iris's built-in mantle stages size
+ * their reach from Iris's own pack data instead of module settings; they reach the engine through
+ * {@link #of(PackSettings)}.
+ */
+public final class IrisPackSettings implements PackSettings {
+    private static final String DIMENSION = "dimension";
+    private static final String REGION = "region";
+    private static final String BIOME = "biome";
+
+    private final Engine engine;
+    private final PackResourceIds ids;
+
+    IrisPackSettings(Engine engine) {
+        this.engine = engine;
+        this.ids = new PackResourceIds(engine.getData().getDataFolder());
+    }
+
+    /** Iris's own view of {@code settings}, which Iris hands to every reach it works out. */
+    public static IrisPackSettings of(PackSettings settings) {
+        if (!(settings instanceof IrisPackSettings irisSettings)) {
+            throw new IllegalArgumentException("Built-in reaches are worked out from an Iris engine's pack, not " + settings);
+        }
+        return irisSettings;
+    }
+
+    /** The engine whose pack is loading. */
+    public Engine engine() {
+        return engine;
+    }
+
+    @Override
+    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+        IrisDimension dimension = engine.getDimension();
+        List<Entry<F>> entries = new ArrayList<>();
+        addEntry(entries, featureType, Target.DIMENSION, DIMENSION, dimension);
+        for (IrisRegion region : dimension.getAllRegions(engine)) {
+            addEntry(entries, featureType, Target.REGION, REGION, region);
+        }
+        for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
+            addEntry(entries, featureType, Target.BIOME, BIOME, biome);
+        }
+        return List.copyOf(entries);
+    }
+
+    private <F extends IrisFeature> void addEntry(List<Entry<F>> entries, Class<F> featureType, Target level, String kind,
+                                                  IrisRegistrant owner) {
+        owner.getModuleSettings().find(featureType)
+                .ifPresent(value -> entries.add(new Entry<>(level, ids.of(kind, owner.getLoadKey()), value)));
+    }
+}

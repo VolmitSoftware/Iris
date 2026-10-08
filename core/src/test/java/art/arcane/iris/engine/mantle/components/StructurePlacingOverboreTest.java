@@ -6,18 +6,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class IrisStructureComponentOverboreTest {
+public class StructurePlacingOverboreTest {
     @Test
     public void ordinaryMarkersAreSeparatedFromStructureMarkers() {
-        assertTrue(IrisStructureComponent.isOrdinaryObjectMarker("trees/oak@42"));
-        assertFalse(IrisStructureComponent.isOrdinaryObjectMarker(
+        assertTrue(StructurePlacing.isOrdinaryObjectMarker("trees/oak@42"));
+        assertFalse(StructurePlacing.isOrdinaryObjectMarker(
                 "@iris-structure:v1:dHJlZXMvb2Fr:42:bWluZWNyYWZ0Om1hbnNpb24"));
-        assertFalse(IrisStructureComponent.isOrdinaryObjectMarker("not-a-marker"));
+        assertFalse(StructurePlacing.isOrdinaryObjectMarker("not-a-marker"));
     }
 
     @Test
     public void collidingObjectSearchCoversTheWholeMarkerOwnedObject() {
-        IrisStructureComponent.ObjectMarkerBounds bounds = IrisStructureComponent.markerSearchBounds(
+        StructurePlacing.ObjectMarkerBounds bounds = StructurePlacing.markerSearchBounds(
                 20, 64, -8, 21, 66, -7, 7, 12, 384);
 
         assertEquals(14, bounds.minX());
@@ -30,7 +30,7 @@ public class IrisStructureComponentOverboreTest {
 
     @Test
     public void collidingObjectSearchClampsToTheWorldHeight() {
-        IrisStructureComponent.ObjectMarkerBounds bounds = IrisStructureComponent.markerSearchBounds(
+        StructurePlacing.ObjectMarkerBounds bounds = StructurePlacing.markerSearchBounds(
                 0, 2, 0, 0, 379, 0, 1, 12, 384);
 
         assertEquals(0, bounds.minY());

@@ -19,74 +19,103 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.IrisMantleComponent;
+import art.arcane.iris.engine.mantle.MantleComponent;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.MantleRunner;
 import com.volmit.host.ResolvedGraph;
+import com.volmit.host.ResolvedStage;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
- * Runs the pack's mantle pipeline, Iris's built-in mantle stages included, as one of Iris's mantle components:
- * once for every chunk the mantle prepares around a generating chunk, as far as the pipeline's declared reach.
- * It is the first pass, where carving has always run, so Iris's object, floating object and structure passes
- * see the caves and whatever else mantle stages wrote. It is disabled while the pack has no mantle stages.
+ * Runs one mantle stage of the pack, Iris's built-in ones included, as a mantle component of its own: a pass of
+ * Iris's mantle at the stage's place in the resolved order, so the stage sees everything earlier stages wrote
+ * into the chunks around it. Its radius is the stage's reach, worked out from the pack when the components are
+ * built; its flag comes from {@link MantleStageFlags}, so a dimension's {@code disabledComponents} turns it off.
  */
-public final class ModuleMantleComponent extends IrisMantleComponent {
-    /** Marks a mantle chunk whose module stages have run. */
-    public static final MantleFlag FLAG = MantleFlag.of(MantleFlag.MIN_ORDINAL);
-    /** The first pass: the carving stage it runs had priority 0 as a component of its own. */
-    private static final int PRIORITY = 0;
+public final class ModuleMantleComponent implements MantleComponent {
+    private final Engine engine;
+    private final LoadedPack pack;
+    private final MantleRunner runner;
+    private final ResolvedStage stage;
+    private final MantleFlag flag;
+    private final int priority;
+    private final int reachBlocks;
+    private final boolean enabled;
 
-    /** Whether the pack has mantle stages; asked on every chunk, so kept until the next hotload. */
-    private volatile Boolean hasStages;
+    private ModuleMantleComponent(Engine engine, LoadedPack pack, MantleRunner runner, ResolvedStage stage,
+                                  MantleFlag flag, int priority, int reachBlocks, boolean enabled) {
+        this.engine = engine;
+        this.pack = pack;
+        this.runner = runner;
+        this.stage = stage;
+        this.flag = flag;
+        this.priority = priority;
+        this.reachBlocks = reachBlocks;
+        this.enabled = enabled;
+    }
 
-    public ModuleMantleComponent(EngineMantle engineMantle) {
-        super(engineMantle, FLAG, PRIORITY);
+    /**
+     * One component per mantle stage of the engine's pack, in resolved order, each its own pass. A stage whose
+     * flag is in {@code disabled} is turned off.
+     */
+    public static List<ModuleMantleComponent> forPack(Engine engine, Set<MantleFlag> disabled) {
+        return forPack(engine, engine.getData().getModules().pack(), disabled);
+    }
+
+    static List<ModuleMantleComponent> forPack(Engine engine, LoadedPack pack, Set<MantleFlag> disabled) {
+        ResolvedGraph graph = pack.mantle();
+        MantleRunner runner = new MantleRunner(graph);
+        IrisPackSettings settings = new IrisPackSettings(engine);
+        List<MantleFlag> flags = MantleStageFlags.assign(graph.stages());
+        List<ModuleMantleComponent> components = new ArrayList<>(flags.size());
+        for (int position = 0; position < flags.size(); position++) {
+            ResolvedStage stage = graph.stages().get(position);
+            MantleFlag flag = flags.get(position);
+            components.add(new ModuleMantleComponent(engine, pack, runner, stage, flag, position,
+                    stage.reachBlocks(settings), !disabled.contains(flag)));
+        }
+        return List.copyOf(components);
+    }
+
+    /** The stage this component runs. */
+    public ResolvedStage stage() {
+        return stage;
+    }
+
+    @Override
+    public int getPriority() {
+        return priority;
+    }
+
+    @Override
+    public int getRadius() {
+        return reachBlocks;
+    }
+
+    @Override
+    public MantleFlag getFlag() {
+        return flag;
     }
 
     @Override
     public boolean isEnabled() {
-        return super.isEnabled() && hasStages();
-    }
-
-    @Override
-    public void hotload() {
-        super.hotload();
-        hasStages = null;
-    }
-
-    @Override
-    protected int computeRadius() {
-        return pipeline().reach().blocks();
+        return enabled;
     }
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-        Engine engine = getEngineMantle().getEngine();
-        IrisMantleChunk chunk = new IrisMantleChunk(engine, writer, x, z, context);
-        chunk.runBound(() -> generate(engine.getData().getModules().pack(), engine, x, z, getRadius(), writer::acquireChunk));
+        new IrisMantleChunk(engine, writer, x, z, context).runBound(() -> generate(x, z, writer::acquireChunk));
     }
 
-    /** Runs the mantle stages of chunk {@code x}, {@code z}, with the mantle chunks within {@code reachBlocks} of it. */
-    static void generate(LoadedPack pack, Engine engine, int x, int z, int reachBlocks, IrisModuleMantle.Chunks chunks) {
+    /** Runs the stage for chunk {@code x}, {@code z}, with the mantle chunks within the stage's reach of it. */
+    void generate(int x, int z, IrisModuleMantle.Chunks chunks) {
         IrisMantleGenerationContext inputs = new IrisMantleGenerationContext(engine, x, z, reachBlocks, chunks, pack.catalog().mantle());
-        long seed = ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x, z);
-        new MantleRunner(pack.mantle()).generate(inputs, seed);
-    }
-
-    private boolean hasStages() {
-        Boolean known = hasStages;
-        if (known == null) {
-            known = !pipeline().stages().isEmpty();
-            hasStages = known;
-        }
-        return known;
-    }
-
-    private ResolvedGraph pipeline() {
-        return getEngineMantle().getEngine().getData().getModules().pack().mantle();
+        runner.generate(stage.stage(), inputs, ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x, z));
     }
 }

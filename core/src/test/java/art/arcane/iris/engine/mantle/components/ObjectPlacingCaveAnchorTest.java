@@ -7,16 +7,16 @@ import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class MantleObjectComponentCaveAnchorTest {
+public class ObjectPlacingCaveAnchorTest {
     @Test
     public void biomeOwnedPlacementsRejectForeignCaveBands() {
         IrisBiome frozen = biome("carving/ice");
         IrisBiome deepDark = biome("carving/standard-deepdark");
         IrisBiome surface = biome("frozen/ice-spikes");
 
-        assertFalse(MantleObjectComponent.caveAnchorBiomeConflicts(frozen, surface, "carving/ice"));
-        assertTrue(MantleObjectComponent.caveAnchorBiomeConflicts(deepDark, surface, "carving/ice"));
-        assertFalse(MantleObjectComponent.caveAnchorBiomeConflicts(deepDark, surface, null));
+        assertFalse(ObjectPlacing.caveAnchorBiomeConflicts(frozen, surface, "carving/ice"));
+        assertTrue(ObjectPlacing.caveAnchorBiomeConflicts(deepDark, surface, "carving/ice"));
+        assertFalse(ObjectPlacing.caveAnchorBiomeConflicts(deepDark, surface, null));
     }
 
     @Test
@@ -25,10 +25,10 @@ public class MantleObjectComponentCaveAnchorTest {
         MatterCavern water = new MatterCavern(true, "", (byte) 1);
         MatterCavern lava = new MatterCavern(true, "", (byte) 2);
 
-        assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(false, water, 20, 8));
-        assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(false, lava, 20, 8));
-        assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(false, air, 8, 8));
-        assertTrue(MantleObjectComponent.acceptsCaveAnchorFluid(false, air, 9, 8));
+        assertFalse(ObjectPlacing.acceptsCaveAnchorFluid(false, water, 20, 8));
+        assertFalse(ObjectPlacing.acceptsCaveAnchorFluid(false, lava, 20, 8));
+        assertFalse(ObjectPlacing.acceptsCaveAnchorFluid(false, air, 8, 8));
+        assertTrue(ObjectPlacing.acceptsCaveAnchorFluid(false, air, 9, 8));
     }
 
     @Test
@@ -36,9 +36,9 @@ public class MantleObjectComponentCaveAnchorTest {
         MatterCavern water = new MatterCavern(true, "", (byte) 1);
         MatterCavern forcedAir = new MatterCavern(true, "", (byte) 3);
 
-        assertTrue(MantleObjectComponent.acceptsCaveAnchorFluid(true, water, 20, 8));
-        assertTrue(MantleObjectComponent.acceptsCaveAnchorFluid(false, forcedAir, 0, 8));
-        assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(
+        assertTrue(ObjectPlacing.acceptsCaveAnchorFluid(true, water, 20, 8));
+        assertTrue(ObjectPlacing.acceptsCaveAnchorFluid(false, forcedAir, 0, 8));
+        assertFalse(ObjectPlacing.acceptsCaveAnchorFluid(
                 true,
                 new MatterCavern(false, "", (byte) 0),
                 20,

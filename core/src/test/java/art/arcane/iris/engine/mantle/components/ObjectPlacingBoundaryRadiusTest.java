@@ -5,7 +5,6 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.mantle.MantleComponent;
 import art.arcane.iris.engine.mantle.MantlePass;
 import art.arcane.iris.engine.mantle.MatterGenerator;
@@ -28,6 +27,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.collection.KList;
+import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -52,10 +52,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-public class MantleObjectComponentBoundaryRadiusTest {
+public class ObjectPlacingBoundaryRadiusTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -92,7 +91,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setRotation(IrisObjectRotation.of(90, 0, 0))
                 .setTranslate(new IrisObjectTranslate().setX(3).setY(4));
 
-        assertEquals(53, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 48, 7), placement));
+        assertEquals(53, ObjectPlacing.calculatePlacementReach(new IrisBlockVector(5, 48, 7), placement));
     }
 
     @Test
@@ -103,7 +102,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setMode(ObjectPlaceMode.VACUUM)
                 .setVacuumSettings(new IrisVacuumSettings().setRadius(12));
 
-        assertEquals(43, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 4, 3), placement));
+        assertEquals(43, ObjectPlacing.calculatePlacementReach(new IrisBlockVector(5, 4, 3), placement));
     }
 
     @Test
@@ -126,11 +125,9 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
-        EngineMantle engineMantle = mock(EngineMantle.class);
-        when(engineMantle.getEngine()).thenReturn(engine);
-        when(engineMantle.getData()).thenReturn(data);
+        when(engine.getData()).thenReturn(data);
 
-        assertEquals(53, new MantleObjectComponent(engineMantle).getRadius());
+        assertEquals(53, new ObjectPlacing(engine).reach());
     }
 
     @Test
@@ -157,17 +154,19 @@ public class MantleObjectComponentBoundaryRadiusTest {
         IrisData data = mock(IrisData.class);
         when(data.getObjectLoader()).thenReturn(objectLoader);
 
-        EngineMantle engineMantle = mock(EngineMantle.class);
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getMantle()).thenReturn(engineMantle);
-        when(engineMantle.getEngine()).thenReturn(engine);
-        when(engineMantle.getData()).thenReturn(data);
+        when(engine.getData()).thenReturn(data);
 
-        MantleObjectComponent component = spy(new MantleObjectComponent(engineMantle));
-        assertEquals(33, component.getRadius());
-        int chunkRadius = Math.ceilDiv(component.getRadius(), 16);
+        int reach = new ObjectPlacing(engine).reach();
+        assertEquals(33, reach);
+        int chunkRadius = Math.ceilDiv(reach, 16);
         assertEquals(3, chunkRadius);
+        MantleComponent component = mock(MantleComponent.class);
+        when(component.getRadius()).thenReturn(reach);
+        when(component.getFlag()).thenReturn(ReservedFlag.OBJECT);
+        when(component.isEnabled()).thenReturn(true);
+        when(component.getPrerequisiteFlags()).thenReturn(MantleComponent.EMPTY_PREREQUISITES);
 
         Mantle<Matter> mantle = mock(Mantle.class);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);

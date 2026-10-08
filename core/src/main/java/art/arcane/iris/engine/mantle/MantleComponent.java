@@ -18,17 +18,16 @@
 
 package art.arcane.iris.engine.mantle;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.iris.util.common.parallel.BurstExecutor;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * One pass of the mantle: {@link MatterGenerator} runs every component of a priority for each chunk within its
+ * radius plus every later pass's radius around a generating chunk, before the next priority starts. Iris's
+ * components are the pack's mantle stages, one each ({@code ModuleMantleComponent}).
+ */
 public interface MantleComponent extends Comparable<MantleComponent> {
     int getPriority();
 
@@ -51,32 +50,6 @@ public interface MantleComponent extends Comparable<MantleComponent> {
         return false;
     }
 
-    default IrisData getData() {
-        return getEngineMantle().getData();
-    }
-
-    default IrisDimension getDimension() {
-        return getEngineMantle().getEngine().getDimension();
-    }
-
-    default IrisComplex getComplex() {
-        return getEngineMantle().getComplex();
-    }
-
-    default long seed() {
-        return getEngineMantle().getEngine().getSeedManager().getMantle();
-    }
-
-    default BurstExecutor burst() {
-        return getEngineMantle().getEngine().burst().burst();
-    }
-
-    EngineMantle getEngineMantle();
-
-    default Mantle<Matter> getMantle() {
-        return getEngineMantle().getMantle();
-    }
-
     MantleFlag getFlag();
 
     default MantleFlag[] getPrerequisiteFlags() {
@@ -86,10 +59,6 @@ public interface MantleComponent extends Comparable<MantleComponent> {
     MantleFlag[] EMPTY_PREREQUISITES = new MantleFlag[0];
 
     boolean isEnabled();
-
-    void setEnabled(boolean b);
-
-    void hotload();
 
     @ChunkCoordinates
     void generateLayer(MantleWriter writer, int x, int z, ChunkContext context);

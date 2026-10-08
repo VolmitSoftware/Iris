@@ -21,6 +21,8 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.engine.actuator.BiomeModule;
 import art.arcane.iris.engine.actuator.DecorantModule;
 import art.arcane.iris.engine.actuator.TerrainModule;
+import art.arcane.iris.engine.mantle.components.ObjectModule;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.modifier.CarveModule;
 import art.arcane.iris.engine.modifier.CustomModule;
 import art.arcane.iris.engine.modifier.DepositModule;
@@ -65,8 +67,9 @@ public final class IrisModuleHost {
     }
 
     private static List<IrisModule> generationModules() {
-        return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new PostModule(), new FloatingModule(),
-                new DepositModule(), new MatterModule(), new DecorantModule(), new PerfectionModule(), new CustomModule());
+        return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
+                new PostModule(), new FloatingModule(), new DepositModule(), new MatterModule(), new DecorantModule(),
+                new PerfectionModule(), new CustomModule());
     }
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */

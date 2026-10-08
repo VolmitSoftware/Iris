@@ -22,7 +22,6 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
@@ -50,7 +49,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class MantleFloatingObjectComponentBoundaryRadiusTest {
+public class FloatingObjectPlacingBoundaryRadiusTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -107,10 +106,8 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
 
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
-        EngineMantle engineMantle = mock(EngineMantle.class);
-        when(engineMantle.getEngine()).thenReturn(engine);
-        when(engineMantle.getData()).thenReturn(data);
+        when(engine.getData()).thenReturn(data);
 
-        assertEquals(33, new MantleFloatingObjectComponent(engineMantle).getRadius());
+        assertEquals(33, new FloatingObjectPlacing(engine).reach());
     }
 }

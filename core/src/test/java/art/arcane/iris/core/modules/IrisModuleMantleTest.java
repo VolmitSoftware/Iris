@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -193,7 +194,7 @@ public class IrisModuleMantleTest {
 
         try (LoadedPack pack = LoadedPack.load(folder.newFolder("pack").toPath(),
                 ModuleHost.of(List.of(veins)).copyingJarsTo(folder.newFolder("copies").toPath()))) {
-            ModuleMantleComponent.generate(pack, engine, 0, 0, pack.mantle().reach().blocks(), this::chunk);
+            ModuleMantleComponent.forPack(engine, pack, Set.of()).getFirst().generate(0, 0, this::chunk);
 
             IrisModuleMantle neighbor = new IrisModuleMantle(new BlockBox(16, MIN_Y, 0, 32, 0, 16), MIN_Y, this::chunk, pack.catalog().mantle());
             assertEquals("vein", neighbor.layer(planned).get(20, -30, 3));

@@ -105,8 +105,8 @@ public class CaveObjectPlacementTransactionTest {
         transaction.set(4, 70, 7, mock(PlatformBlockState.class));
 
         assertEquals(CaveObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
-        assertEquals(71, MantleObjectComponent.caveAnchorScanUpperBound(128, 80, 10));
-        assertEquals(61, MantleObjectComponent.caveAnchorScanUpperBound(128, 80, 20));
+        assertEquals(71, ObjectPlacing.caveAnchorScanUpperBound(128, 80, 10));
+        assertEquals(61, ObjectPlacing.caveAnchorScanUpperBound(128, 80, 20));
     }
 
     private IObjectPlacer createPlacer(int worldHeight, int surfaceHeight, int caveFloor, int caveCeiling) {

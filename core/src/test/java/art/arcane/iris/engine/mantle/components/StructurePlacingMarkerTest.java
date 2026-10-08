@@ -18,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisStructureComponentMarkerTest {
+public class StructurePlacingMarkerTest {
     @Test
     public void markerFilterAcceptsOnlyStorageContainers() {
         PlatformBlockState storage = mock(PlatformBlockState.class);
@@ -26,16 +26,16 @@ public class IrisStructureComponentMarkerTest {
         when(storage.isStorageChest()).thenReturn(true);
         when(solid.isStorageChest()).thenReturn(false);
 
-        assertTrue(IrisStructureComponent.shouldWriteStructureMarker(storage));
-        assertFalse(IrisStructureComponent.shouldWriteStructureMarker(solid));
-        assertFalse(IrisStructureComponent.shouldWriteStructureMarker(null));
+        assertTrue(StructurePlacing.shouldWriteStructureMarker(storage));
+        assertFalse(StructurePlacing.shouldWriteStructureMarker(solid));
+        assertFalse(StructurePlacing.shouldWriteStructureMarker(null));
     }
 
     @Test
     public void placementIdIsStableAndCoordinateSensitive() {
-        int first = IrisStructureComponent.structurePlacementId("structures/village", "pieces/house", 20, -14, 35);
-        int repeated = IrisStructureComponent.structurePlacementId("structures/village", "pieces/house", 20, -14, 35);
-        int moved = IrisStructureComponent.structurePlacementId("structures/village", "pieces/house", 21, -14, 35);
+        int first = StructurePlacing.structurePlacementId("structures/village", "pieces/house", 20, -14, 35);
+        int repeated = StructurePlacing.structurePlacementId("structures/village", "pieces/house", 20, -14, 35);
+        int moved = StructurePlacing.structurePlacementId("structures/village", "pieces/house", 21, -14, 35);
 
         assertEquals(first, repeated);
         assertNotEquals(first, moved);
@@ -48,9 +48,9 @@ public class IrisStructureComponentMarkerTest {
         when(solid.isAir()).thenReturn(false);
         when(air.isAir()).thenReturn(true);
 
-        assertTrue(IrisStructureComponent.isOccupiedStructureState(solid));
-        assertFalse(IrisStructureComponent.isOccupiedStructureState(air));
-        assertFalse(IrisStructureComponent.isOccupiedStructureState(null));
+        assertTrue(StructurePlacing.isOccupiedStructureState(solid));
+        assertFalse(StructurePlacing.isOccupiedStructureState(air));
+        assertFalse(StructurePlacing.isOccupiedStructureState(null));
     }
 
     @Test
@@ -58,8 +58,8 @@ public class IrisStructureComponentMarkerTest {
         IrisStructureLocator.ResolvedPlacement resolved = resolvedPlacement(
                 NativeStructureSuppression.NONE, new KList<>());
 
-        assertNull(IrisStructureComponent.resolvedPiecesOrNull(resolved, 4, -3));
-        IrisStructureComponent.requireAppliedPieces(resolvedWithOnePiece(NativeStructureSuppression.NONE),
+        assertNull(StructurePlacing.resolvedPiecesOrNull(resolved, 4, -3));
+        StructurePlacing.requireAppliedPieces(resolvedWithOnePiece(NativeStructureSuppression.NONE),
                 4, -3, 1);
     }
 
@@ -69,7 +69,7 @@ public class IrisStructureComponentMarkerTest {
                 NativeStructureSuppression.REPLACE_SOURCE, new KList<>());
 
         assertReplacementFailure(
-                () -> IrisStructureComponent.resolvedPiecesOrNull(resolved, 4, -3),
+                () -> StructurePlacing.resolvedPiecesOrNull(resolved, 4, -3),
                 "placement application received no assembled pieces");
     }
 
@@ -79,7 +79,7 @@ public class IrisStructureComponentMarkerTest {
                 NativeStructureSuppression.REPLACE_SOURCE);
 
         assertReplacementFailure(
-                () -> IrisStructureComponent.requireAppliedPieces(resolved, 4, -3, 1),
+                () -> StructurePlacing.requireAppliedPieces(resolved, 4, -3, 1),
                 "object placement rejected 1 of 1 assembled piece(s)");
     }
 

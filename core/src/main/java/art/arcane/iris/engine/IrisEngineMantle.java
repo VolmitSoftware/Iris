@@ -27,16 +27,11 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.mantle.MantleComponent;
 import art.arcane.iris.engine.mantle.MantlePass;
-import art.arcane.iris.engine.mantle.components.MantleFloatingObjectComponent;
-import art.arcane.iris.engine.mantle.components.MantleObjectComponent;
-import art.arcane.iris.engine.mantle.components.IrisStructureComponent;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.matter.IrisMatterContext;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.mantle.io.Lz4IOWorkerCodecSupport;
 import art.arcane.volmlib.util.mantle.runtime.IOWorker;
@@ -44,7 +39,6 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
 import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
-import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.matter.IrisMatter;
@@ -60,9 +54,7 @@ import lombok.ToString;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -73,110 +65,61 @@ import java.util.function.Supplier;
 public class IrisEngineMantle implements EngineMantle {
     private final Engine engine;
     private final Mantle<Matter> mantle;
+    /** The pack's mantle stages, one component each, built when first needed after the pack loads. */
     @Getter(AccessLevel.NONE)
-    private final KMap<Integer, KList<MantleComponent>> components;
-    private final KMap<MantleFlag, MantleComponent> registeredComponents = new KMap<>();
-    private final AtomicCache<List<MantlePass>> componentsCache = new AtomicCache<>();
-    private final AtomicCache<Set<MantleFlag>> disabledFlags = new AtomicCache<>();
-    private final MantleObjectComponent object;
+    private final AtomicCache<List<ModuleMantleComponent>> stageComponents = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    private final AtomicCache<List<MantlePass>> passes = new AtomicCache<>();
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
         this.mantle = createMantle(engine);
-        components = new KMap<>();
-        object = new MantleObjectComponent(this);
-        registerComponent(object);
-        registerComponent(new MantleFloatingObjectComponent(this));
-        registerComponent(new IrisStructureComponent(this));
-        registerComponent(new ModuleMantleComponent(this));
     }
 
     @Override
     public int getRadius() {
-        if (components.isEmpty()) return 0;
-        return getComponents().getFirst().passChunkRadius();
+        List<MantlePass> passes = getComponents();
+        return passes.isEmpty() ? 0 : passes.getFirst().passChunkRadius();
     }
 
     @Override
     public int getRealRadius() {
-        if (components.isEmpty()) return 0;
-        return getComponents().getLast().passChunkRadius();
+        List<MantlePass> passes = getComponents();
+        return passes.isEmpty() ? 0 : passes.getLast().passChunkRadius();
     }
 
+    /** One pass per mantle stage, in the stage graph's order. */
     @Override
     public List<MantlePass> getComponents() {
-        return componentsCache.aquire(() -> {
-            List<List<MantleComponent>> passes = components.keySet()
-                    .stream()
-                    .sorted()
-                    .map(components::get)
-                    .map(List::<MantleComponent>copyOf)
-                    .filter(pass -> !pass.isEmpty())
-                    .toList();
-
-            MantlePass[] built = new MantlePass[passes.size()];
-            int downstreamBlockRadius = 0;
-            for (int i = passes.size() - 1; i >= 0; i--) {
-                List<MantleComponent> pass = passes.get(i);
-                int passBlockRadius = pass.stream()
-                        .filter(MantleComponent::isEnabled)
-                        .mapToInt(MantleComponent::getRadius)
-                        .max()
-                        .orElse(0);
-                int passInputRadius = pass.stream()
-                        .filter(MantleComponent::isEnabled)
-                        .mapToInt(MantleComponent::getInputRadius)
-                        .max()
-                        .orElse(0);
-                int invocationRadius = downstreamBlockRadius + passBlockRadius;
-                built[i] = new MantlePass(pass, Math.ceilDiv(invocationRadius, 16), downstreamBlockRadius);
-                downstreamBlockRadius = invocationRadius + passInputRadius;
-            }
-
-            return List.of(built);
-        });
-    }
-
-    @Override
-    public Map<MantleFlag, MantleComponent> getRegisteredComponents() {
-        return Collections.unmodifiableMap(registeredComponents);
-    }
-
-    @Override
-    public boolean registerComponent(MantleComponent c) {
-        if (registeredComponents.putIfAbsent(c.getFlag(), c) != null) return false;
-        c.setEnabled(!getDisabledFlags().contains(c.getFlag()));
-        components.computeIfAbsent(c.getPriority(), k -> new KList<>()).add(c);
-        componentsCache.reset();
-        return true;
-    }
-
-    @Override
-    public KList<MantleFlag> getComponentFlags() {
-        return new KList<>(registeredComponents.keySet());
+        return passes.aquire(() -> passesOf(stageComponents()));
     }
 
     @Override
     public void hotload() {
-        disabledFlags.reset();
-        for (MantleComponent component : registeredComponents.values()) {
-            component.hotload();
-            component.setEnabled(!getDisabledFlags().contains(component.getFlag()));
+        stageComponents.reset();
+        passes.reset();
+    }
+
+    private List<ModuleMantleComponent> stageComponents() {
+        return stageComponents.aquire(() -> ModuleMantleComponent.forPack(engine, Set.copyOf(getDimension().getDisabledComponents())));
+    }
+
+    /**
+     * Each pass must complete its own reach plus the reach of every later pass, or a later pass reads chunks this
+     * one never wrote. Disabled components reach nothing.
+     */
+    private static List<MantlePass> passesOf(List<? extends MantleComponent> components) {
+        MantlePass[] built = new MantlePass[components.size()];
+        int downstreamBlockRadius = 0;
+        for (int i = components.size() - 1; i >= 0; i--) {
+            MantleComponent component = components.get(i);
+            int passBlockRadius = component.isEnabled() ? component.getRadius() : 0;
+            int passInputRadius = component.isEnabled() ? component.getInputRadius() : 0;
+            int invocationRadius = downstreamBlockRadius + passBlockRadius;
+            built[i] = new MantlePass(List.of(component), Math.ceilDiv(invocationRadius, 16), downstreamBlockRadius);
+            downstreamBlockRadius = invocationRadius + passInputRadius;
         }
-        componentsCache.reset();
-    }
-
-    private Set<MantleFlag> getDisabledFlags() {
-        return disabledFlags.aquire(() -> {
-            KList<MantleFlag> disabled = new KList<>();
-            disabled.addAll(getDimension().getDisabledComponents());
-            return Set.copyOf(disabled);
-        });
-    }
-
-    @Override
-    public MantleObjectComponent getObjectComponent() {
-        return object;
+        return List.of(built);
     }
 
     private static Mantle<Matter> createMantle(Engine engine) {

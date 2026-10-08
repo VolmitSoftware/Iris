@@ -178,11 +178,6 @@ public class MatterGeneratorConcurrencyTest {
         }
 
         @Override
-        public EngineMantle getEngineMantle() {
-            return null;
-        }
-
-        @Override
         public MantleFlag getFlag() {
             return flag;
         }
@@ -190,14 +185,6 @@ public class MatterGeneratorConcurrencyTest {
         @Override
         public boolean isEnabled() {
             return true;
-        }
-
-        @Override
-        public void setEnabled(boolean enabled) {
-        }
-
-        @Override
-        public void hotload() {
         }
 
         @Override

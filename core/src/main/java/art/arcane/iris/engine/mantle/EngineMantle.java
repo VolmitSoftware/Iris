@@ -25,7 +25,6 @@ import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.mantle.components.MantleObjectComponent;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.volmlib.util.collection.KList;
@@ -46,7 +45,6 @@ import art.arcane.iris.spi.PlatformBlockState;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public interface EngineMantle extends MatterGenerator {
@@ -62,14 +60,6 @@ public interface EngineMantle extends MatterGenerator {
 
     @UnmodifiableView
     List<MantlePass> getComponents();
-
-    @UnmodifiableView
-    Map<MantleFlag, MantleComponent> getRegisteredComponents();
-
-    boolean registerComponent(MantleComponent c);
-
-    @UnmodifiableView
-    KList<MantleFlag> getComponentFlags();
 
     void hotload();
 
@@ -230,8 +220,6 @@ public interface EngineMantle extends MatterGenerator {
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
-
-    MantleObjectComponent getObjectComponent();
 
     default boolean isCovered(int x, int z) {
         int s = getRealRadius();

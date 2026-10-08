@@ -25,7 +25,7 @@ public class IrisStructureFoundationWriteTest {
         PlatformBlockState deepslateBricks = mock(PlatformBlockState.class);
         when(palette.get(rng, 12, -247, -18, data)).thenReturn(deepslateBricks);
 
-        IrisStructureComponent.writeFoundationSupport(
+        StructurePlacing.writeFoundationSupport(
                 writer, palette, rng, data, 12, 9, -18, -256);
 
         InOrder order = inOrder(palette, writer);
@@ -42,7 +42,7 @@ public class IrisStructureFoundationWriteTest {
         IrisData data = mock(IrisData.class);
 
         try {
-            IrisStructureComponent.writeFoundationSupport(
+            StructurePlacing.writeFoundationSupport(
                     writer, palette, rng, data, 12, 9, -18, -256);
         } catch (IllegalStateException error) {
             assertTrue(error.getMessage().contains("12,-247,-18"));

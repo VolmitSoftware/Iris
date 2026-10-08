@@ -22,7 +22,6 @@ import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineAssignedModifier;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
@@ -51,31 +50,37 @@ import art.arcane.iris.spi.PlatformBlockState;
 
 import java.util.Map;
 
-public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState> {
+/**
+ * Applies the caves the mantle planned to a chunk's blocks for {@link CarveModule}: carves each cave zone, paints
+ * its floor and ceiling with the cave biomes' layers, fills fluids and lava and decorates the cave surfaces.
+ * One per engine runtime, holding the carve stream's random.
+ */
+public class CaveApplying {
     private static final byte LIQUID_FLUID = 1;
     private static final ThreadLocal<IrisCarveScratch> SCRATCH = ThreadLocal.withInitial(IrisCarveScratch::new);
     private static final int CAVE_BIOME_BLEND_RADIUS = 3;
     private static final int CAVE_BIOME_BLEND_CENTER_WEIGHT = 4;
     private static final int CAVE_BIOME_BLEND_TOTAL_WEIGHT = 8;
     private static final MatterCavern BASIC_CAVERN = new MatterCavern(true, "", (byte) 0);
+    private final Engine engine;
     private final RNG rng;
     private final PlatformBlockState AIR = B.getState("CAVE_AIR");
     private final PlatformBlockState LAVA = B.getState("LAVA");
     private final IrisSurfaceDecorator surfaceDecorator;
     private final IrisCeilingDecorator ceilingDecorator;
 
-    public IrisCarveModifier(Engine engine) {
-        super(engine, "Carve");
-        rng = new RNG(getEngine().getSeedManager().getCarve());
+    public CaveApplying(Engine engine) {
+        this.engine = engine;
+        rng = new RNG(engine.getSeedManager().getCarve());
         surfaceDecorator = new IrisSurfaceDecorator(engine);
         ceilingDecorator = new IrisCeilingDecorator(engine);
     }
 
-    @Override
+    /** Applies the caves to the chunk at chunk coordinates {@code x}, {@code z}. */
     @ChunkCoordinates
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void apply(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch caveStopwatch = PrecisionStopwatch.start();
-        Mantle<Matter> mantle = getEngine().getMantle().getMantle();
+        Mantle<Matter> mantle = engine.getMantle().getMantle();
         IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
         IrisCarveScratch scratch = SCRATCH.get();
@@ -85,8 +90,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         CarveColumnMask[] boundaryMasks = scratch.boundaryMasks;
         int[] surfaceHeights = scratch.surfaceHeights;
         Map<String, IrisBiome> customBiomeCache = scratch.customBiomeCache;
-        UpperDimensionContext upperCtx = getEngine().getUpperContext();
-        boolean protectUpper = upperCtx != null && !getEngine().getDimension().isUpperDimensionCarving();
+        UpperDimensionContext upperCtx = engine.getUpperContext();
+        boolean protectUpper = upperCtx != null && !engine.getDimension().isUpperDimensionCarving();
         int[] upperSurfaceHeights = protectUpper ? scratch.getOrCreateUpperSurfaceHeights() : null;
         int chunkBlockX = PowerOfTwoCoordinates.chunkToBlock(x);
         int chunkBlockZ = PowerOfTwoCoordinates.chunkToBlock(z);
@@ -98,7 +103,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                 int worldX = localX + chunkBlockX;
                 int worldZ = localZ + chunkBlockZ;
                 int rawUpper = upperCtx.getUpperSurfaceY(worldX, worldZ);
-                int gap = getEngine().getDimension().getUpperDimensionGap();
+                int gap = engine.getDimension().getUpperDimensionGap();
                 upperSurfaceHeights[columnIndex] = Math.max(rawUpper, surfaceHeights[columnIndex] + gap);
             }
         }
@@ -106,8 +111,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         MantleChunk<Matter> mantleChunk = mantle.getChunk(x, z).use();
         try {
             PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
-            int worldHeightSpan = getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight();
-            int caveLavaHeight = getEngine().getDimension().getCaveLavaHeight();
+            int worldHeightSpan = engine.getWorld().maxHeight() - engine.getWorld().minHeight();
+            int caveLavaHeight = engine.getDimension().getCaveLavaHeight();
             mantleChunk.iterate(MatterCavern.class, (xx, yy, zz, cavern) -> {
                 if (cavern == null) {
                     return;
@@ -159,7 +164,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                 addInternalWallsFromMasks(walls, columnMasks);
             }
             addCrossChunkBoundaryWalls(mantle, mantleChunk, walls, boundaryMasks, x, z, surfaceHeights);
-            getEngine().getMetrics().getCarveResolve().put(resolveStopwatch.getMilliseconds());
+            engine.getMetrics().getCarveResolve().put(resolveStopwatch.getMilliseconds());
 
             PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
             try {
@@ -172,7 +177,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                             : resolveCustomBiome(customBiomeCache, customBiome);
 
                     if (biome != null) {
-                        PlatformBlockState data = biome.getWall().get(rng, worldX, yy, worldZ, getData());
+                        PlatformBlockState data = biome.getWall().get(rng, worldX, yy, worldZ, engine.getData());
                         int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
 
                         if (data != null && B.isSolid(output.getRaw(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
@@ -213,10 +218,10 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                     }
                 }
             } finally {
-                getEngine().getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
+                engine.getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
             }
         } finally {
-            getEngine().getMetrics().getCave().put(caveStopwatch.getMilliseconds());
+            engine.getMetrics().getCave().put(caveStopwatch.getMilliseconds());
             mantleChunk.release();
         }
     }
@@ -331,7 +336,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
                 maxSurfaceY = surfaceHeights[index];
             }
         }
-        int maxY = Math.min(getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight() - 1, maxSurfaceY + 1);
+        int maxY = Math.min(engine.getWorld().maxHeight() - engine.getWorld().minHeight() - 1, maxSurfaceY + 1);
         if (maxY < 1) {
             return;
         }
@@ -426,12 +431,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         int y = firstHeight;
 
         while (y >= 0) {
-            if (y <= getEngine().getHeight()) {
+            if (y <= engine.getHeight()) {
                 if (y == buf + 1) {
                     buf = y;
                     zone.ceiling = buf;
                 } else {
-                    if (zone.isValid(getEngine())) {
+                    if (zone.isValid(engine)) {
                         processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, resolverState, caveBiomeCache, customBiomeCache);
                     }
                     zone = new CaveZone();
@@ -443,7 +448,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
             y = columnMask.nextSetBit(y + 1);
         }
 
-        if (zone.isValid(getEngine())) {
+        if (zone.isValid(engine)) {
             processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, resolverState, caveBiomeCache, customBiomeCache);
         }
     }
@@ -511,7 +516,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
 
         if (floorBiome != null) {
             KList<PlatformBlockState> floorLayers = floorBiome.generateLayers(
-                    getDimension(), worldX, worldZ, rng, 3, zoneFloor, getData(), getComplex());
+                    engine.getDimension(), worldX, worldZ, rng, 3, zoneFloor, engine.getData(), engine.getComplex());
             for (int i = 0; i < zoneFloor - 1; i++) {
                 if (!floorLayers.hasIndex(i)) {
                     break;
@@ -534,9 +539,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         }
 
         if (ceilingBiome != null) {
-            int worldMaxY = getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight();
+            int worldMaxY = engine.getWorld().maxHeight() - engine.getWorld().minHeight();
             KList<PlatformBlockState> ceilingLayers = ceilingBiome.generateCeilingLayers(
-                    getDimension(), worldX, worldZ, rng, 3, zoneCeiling, getData(), getComplex());
+                    engine.getDimension(), worldX, worldZ, rng, 3, zoneCeiling, engine.getData(), engine.getComplex());
             for (int i = 0; i < ceilingLayers.size(); i++) {
                 int ceilingY = zoneCeiling + i + 1;
                 if (ceilingY >= worldMaxY) {
@@ -561,7 +566,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
      * Deterministic per seed and position, thread-order independent, allocation free.
      */
     private boolean markerRoll(int x, int y, int z, long salt) {
-        long h = (getEngine().getSeedManager().getCarve() + salt) ^ BlockPosition.toLong(x, y, z);
+        long h = (engine.getSeedManager().getCarve() + salt) ^ BlockPosition.toLong(x, y, z);
         h = (h ^ (h >>> 30)) * 0xBF58476D1CE4E5B9L;
         h = (h ^ (h >>> 27)) * 0x94D049BB133111EBL;
         h ^= h >>> 31;
@@ -597,7 +602,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         }
 
         if (floorBiome != null) {
-            KList<PlatformBlockState> floorBlocks = floorBiome.generateLayers(getDimension(), xx, zz, rng, 3, zone.floor, getData(), getComplex());
+            KList<PlatformBlockState> floorBlocks = floorBiome.generateLayers(engine.getDimension(), xx, zz, rng, 3, zone.floor, engine.getData(), engine.getComplex());
             for (int i = 0; i < zone.floor - 1; i++) {
                 if (!floorBlocks.hasIndex(i)) {
                     break;
@@ -617,7 +622,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
         }
 
         if (ceilingBiome != null) {
-            KList<PlatformBlockState> ceilingBlocks = ceilingBiome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling, getData(), getComplex());
+            KList<PlatformBlockState> ceilingBlocks = ceilingBiome.generateCeilingLayers(engine.getDimension(), xx, zz, rng, 3, zone.ceiling, engine.getData(), engine.getComplex());
             for (int i = 0; i < ceilingBlocks.size(); i++) {
                 int cy = zone.ceiling + i + 1;
                 if (cy >= maxY) {
@@ -743,7 +748,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
             return cachedBiome;
         }
 
-        IrisBiome resolvedBiome = getEngine().getCaveBiome(x, y, z, resolverState);
+        IrisBiome resolvedBiome = engine.getCaveBiome(x, y, z, resolverState);
         if (resolvedBiome != null) {
             caveBiomeCache.put(key, resolvedBiome);
         }
@@ -755,7 +760,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<PlatformBlockState
             return customBiomeCache.get(customBiome);
         }
 
-        IrisBiome loaded = getEngine().getData().getBiomeLoader().load(customBiome);
+        IrisBiome loaded = engine.getData().getBiomeLoader().load(customBiome);
         customBiomeCache.put(customBiome, loaded);
         return loaded;
     }

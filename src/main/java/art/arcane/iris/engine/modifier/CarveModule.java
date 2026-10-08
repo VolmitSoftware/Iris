@@ -34,7 +34,7 @@ import com.volmit.stage.StageGraph;
  * Module {@code iris:carve}: caves. A mantle stage plans them into the mantle, reaching one block into each
  * neighboring chunk where blended cave walls cross the border; a chunk stage later cuts them out of the chunk's
  * terrain. The mantle stage is a port of what was Iris's carving mantle component, its work done by
- * {@link CaveCarving}, one per engine runtime. The chunk stage is a thin wrapper around {@link IrisCarveModifier}.
+ * {@link CaveCarving}, one per engine runtime. The chunk stage's work is done by {@link CaveApplying}.
  */
 public final class CarveModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -66,7 +66,7 @@ public final class CarveModule implements IrisModule {
         if (chunk.bypassesMantleStages()) {
             return;
         }
-        chunk.state(IrisCarveModifier.class, IrisCarveModifier::new).modify(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT,
+        chunk.state(CaveApplying.class, CaveApplying::new).apply(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT,
                 chunk.blocks(), chunk.multicore(), chunk.context());
     }
 

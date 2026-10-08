@@ -16,10 +16,9 @@ mantle components outside the stage graph any more. Their stage constants, and t
 types packs may read, live in `src/main/java/art/arcane/iris/builtin`, the package Iris exposes to pack
 modules; their stage bodies live beside the features they replace.
 
-`iris:biome` and `iris:deposit` (chunk stages) and every mantle stage (caves, objects, floating objects,
-structures) are full ports: the module owns its logic and per-engine state, and the mantle stages work out
-their reach from the pack when it loads. The other chunk stages are thin wrappers that run the existing
-actuator or modifier unchanged.
+Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
+work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
+by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.
 
 Iris core and these sources still depend on each other. The Iris host build therefore compiles them
 together as one source set. This keeps the existing class names and platform artifacts while the

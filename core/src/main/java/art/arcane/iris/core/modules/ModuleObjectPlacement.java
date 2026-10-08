@@ -85,7 +85,7 @@ public final class ModuleObjectPlacement {
                 geometry, new BlockPosition(x, requestedY, z));
         IrisPlacementInputs inputs = new IrisPlacementInputs(worldSeed, terrain(engine, ids, area),
                 new PlacementModuleSettings(worldSettings(engine, ids), config.getModuleSettings(), source),
-                new PlacerBlockView(placer, area, states));
+                new PlacerBlockView(placer, area, states), data.getPackResources());
         long seed = ModuleSeeds.placement(worldSeed, objectKey, x, requestedY, z);
         PlacementOutcome outcome = placement.runBound(() -> new PlacementRunner(graph)
                 .place(request, edit, inputs, seed, config.getModuleSettings().placement(source)));

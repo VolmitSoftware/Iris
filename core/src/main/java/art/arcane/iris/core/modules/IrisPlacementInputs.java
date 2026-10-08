@@ -36,8 +36,10 @@ final class IrisPlacementInputs implements PlacementContext {
     private final TerrainSampler terrain;
     private final FeatureSettings settings;
     private final BlockView blocks;
+    private final PackResources resources;
 
-    IrisPlacementInputs(long worldSeed, TerrainSampler terrain, FeatureSettings settings, BlockView blocks) {
+    IrisPlacementInputs(long worldSeed, TerrainSampler terrain, FeatureSettings settings, BlockView blocks, PackResources resources) {
+        this.resources = resources;
         this.worldSeed = worldSeed;
         this.terrain = terrain;
         this.settings = settings;
@@ -95,6 +97,6 @@ final class IrisPlacementInputs implements PlacementContext {
 
     @Override
     public PackResources resources() {
-        throw new UnsupportedOperationException("Pack resources for placement stages" + NOT_BRIDGED);
+        return resources;
     }
 }

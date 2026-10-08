@@ -31,8 +31,8 @@ import java.util.Collection;
 
 /**
  * One chunk of an Iris engine as an IrisApi mantle invocation: the mantle around the chunk as far as the
- * pipeline reaches, Iris's terrain streams over the same area and the pack's module settings. Pack resources
- * are not bridged yet; a stage that asks for them fails with an error saying so.
+ * pipeline reaches, Iris's terrain streams over the same area, the pack's module settings and the pack
+ * snapshot's resources.
  */
 final class IrisMantleGenerationContext implements MantleGenerationContext {
     private static final int CHUNK_SHIFT = 4;
@@ -90,7 +90,6 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
 
     @Override
     public PackResources resources() {
-        throw new UnsupportedOperationException("Pack resources for module stages are not bridged to Iris yet;"
-                + " modules cannot use them until a built-in port needs them");
+        return engine.getData().getPackResources();
     }
 }

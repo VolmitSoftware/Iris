@@ -195,4 +195,28 @@ public class ModuleChunkGenerationTest {
         when(state.key()).thenReturn(key);
         return state;
     }
+
+    @Test
+    public void aChunkStageFindsTheSnapshotsPackResources() throws IOException {
+        IrisData data = engine.getData();
+        PackResourceFixture.serve(data);
+        List<Object> found = new ArrayList<>();
+        IrisModule finder = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:finder", "Finder", "1"); }
+            public void install(StageGraph graph) {
+                graph.define(Stage.chunk("test:finder/oak")).run(context ->
+                        found.add(context.resources().find(PackResourceFixture.oakKey(folder.getRoot())).orElseThrow()));
+            }
+        };
+
+        try (LoadedPack finderPack = LoadedPack.load(folder.newFolder("finder-pack").toPath(),
+                ModuleHost.of(List.of(finder)).copyingJarsTo(folder.newFolder("finder-copies").toPath()))) {
+            when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
+            when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(new IrisBiome());
+
+            ModuleChunkGeneration.generate(finderPack, engine, 0, 0, blocks, null, false, null, ModuleChunkGenerationTest::platformState);
+        }
+
+        assertEquals(List.of(PackResourceFixture.OAK), found);
+    }
 }

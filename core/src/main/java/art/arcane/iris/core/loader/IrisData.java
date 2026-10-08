@@ -31,6 +31,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.ObjectPlacementSettingsReader;
 import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
@@ -73,6 +74,8 @@ import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.iris.util.project.context.IrisContext;
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
@@ -109,6 +112,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private final boolean datapackCompiler;
     private volatile boolean closed = false;
     private final PackModuleSet modules;
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private volatile IrisPackResources packResources;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -505,6 +511,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
         gson = builder.create();
         loaders = replacement;
+        packResources = new IrisPackResources(this);
 
         for (Engine engine : getEngines()) {
             engine.hotload();

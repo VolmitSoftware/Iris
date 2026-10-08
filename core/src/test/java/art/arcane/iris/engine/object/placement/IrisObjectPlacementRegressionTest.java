@@ -18,6 +18,7 @@ import art.arcane.iris.builtin.bore.BoreStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.core.modules.PackResourceFixture;
 import art.arcane.iris.core.modules.ObjectPlacementResult;
 import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.engine.IrisComplex;
@@ -405,6 +406,41 @@ public class IrisObjectPlacementRegressionTest {
         public void install(StageGraph graph) {
             graph.define(VETO).requires(BoreStages.CLEAR, BlocksStages.COMPLETE).run(context -> context.reject("veto"));
         }
+    }
+
+    /** Looks up the pack's oak through the placement's resources. */
+    private static final class FindModule implements IrisModule {
+        private static final PlacementStage<Void> FIND = Stage.placement("test:find/oak");
+        private final java.io.File packFolder;
+        private final List<Object> found;
+
+        private FindModule(java.io.File packFolder, List<Object> found) {
+            this.packFolder = packFolder;
+            this.found = found;
+        }
+
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:find", "Find", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(FIND).requires(BlocksStages.COMPLETE).run(context ->
+                    found.add(context.resources().find(PackResourceFixture.oakKey(packFolder)).orElseThrow()));
+        }
+    }
+
+    @Test
+    public void aPlacementStageFindsTheSnapshotsPackResources() throws IOException {
+        PackResourceFixture.serve(data);
+        List<Object> found = new ArrayList<>();
+        usePack(List.of(new FindModule(folder.getRoot(), found)));
+
+        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(engine), null);
+
+        assertTrue(result.isPlaced());
+        assertEquals(List.of(PackResourceFixture.OAK), found);
     }
 
     @Test

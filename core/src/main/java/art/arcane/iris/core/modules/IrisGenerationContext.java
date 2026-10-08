@@ -33,11 +33,9 @@ import java.util.Collection;
 /**
  * One chunk of an Iris engine as an IrisApi chunk invocation: the chunk's block hunk, Iris's terrain
  * streams, the pack's module settings and the chunk's mantle, which IrisApi gives chunk stages read-only.
- * Pack resources are not bridged yet; a stage that asks for them fails the chunk with an error saying so,
- * rather than seeing an empty pack.
+ * Pack resources are the pack snapshot's, shared by every invocation of it.
  */
 final class IrisGenerationContext implements GenerationContext {
-    private static final String NOT_BRIDGED = " is not bridged to Iris yet; modules cannot use it until a built-in port needs it";
     /** Chunk stages write only their own chunk. */
     private static final int CHUNK_STAGE_REACH = 0;
     private static final int CHUNK_WIDTH = 16;
@@ -110,6 +108,6 @@ final class IrisGenerationContext implements GenerationContext {
 
     @Override
     public PackResources resources() {
-        throw new UnsupportedOperationException("Pack resources for module stages" + NOT_BRIDGED);
+        return engine.getData().getPackResources();
     }
 }

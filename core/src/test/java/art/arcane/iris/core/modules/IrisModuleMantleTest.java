@@ -291,6 +291,37 @@ public class IrisModuleMantleTest {
         assertTrue(chunks.containsKey(1L << 32));
     }
 
+    @Test
+    public void aMantleStageFindsTheSnapshotsPackResources() throws IOException {
+        List<Object> found = new ArrayList<>();
+        IrisModule finder = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("iris:finder", "Finder", "1"); }
+            public void install(StageGraph graph) {
+                graph.define(Stage.mantle("iris:finder/oak")).reach(0).run(context ->
+                        found.add(context.resources().find(PackResourceFixture.oakKey(folder.getRoot())).orElseThrow()));
+            }
+        };
+        Engine engine = mock(Engine.class);
+        IrisData data = mock(IrisData.class);
+        SeedManager seeds = mock(SeedManager.class);
+        when(engine.getData()).thenReturn(data);
+        when(data.getDataFolder()).thenReturn(folder.getRoot());
+        PackResourceFixture.serve(data);
+        when(engine.getSeedManager()).thenReturn(seeds);
+        when(engine.getDimension()).thenReturn(new IrisDimension());
+        when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(new IrisBiome());
+        when(engine.getMinHeight()).thenReturn(MIN_Y);
+        when(engine.getHeight()).thenReturn(SECTIONS * 16);
+
+        try (LoadedPack pack = LoadedPack.load(folder.newFolder("finder-pack").toPath(),
+                ModuleHost.of(List.of(finder)).copyingJarsTo(folder.newFolder("finder-copies").toPath()))) {
+            ModuleMantleComponent.forPack(engine, pack, Set.of()).getFirst().generate(0, 0, this::chunk);
+        }
+
+        assertEquals(List.of(PackResourceFixture.OAK), found);
+    }
+
     /** Iris's in-memory mantle sections, without the engine's static state that would bind a platform for every later test. */
     private static final class Sections implements MantleDataAdapter<Matter> {
         public Matter createSection() { return new IrisMatter(16, 16, 16); }

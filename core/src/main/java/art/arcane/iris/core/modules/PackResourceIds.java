@@ -35,12 +35,23 @@ final class PackResourceIds {
     private static final Pattern NOT_PATH = Pattern.compile("[^a-z0-9_./-]");
     private static final String REPLACEMENT = "_";
     private static final String UNNAMED_PACK = "pack";
+    private static final String PACK_PATH = "pack";
 
     private final String namespace;
 
     PackResourceIds(File packFolder) {
         String name = NOT_NAMESPACE.matcher(packFolder.getName().toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT);
         this.namespace = name.isEmpty() ? UNNAMED_PACK : name;
+    }
+
+    /** The namespace of every id this pack's resources have. */
+    String namespace() {
+        return namespace;
+    }
+
+    /** The pack itself: its namespace with the path {@code pack}. */
+    ResourceId packId() {
+        return new ResourceId(namespace, PACK_PATH);
     }
 
     /** {@code key} of a resource whose type its use makes clear, such as a biome in a biome sample. */

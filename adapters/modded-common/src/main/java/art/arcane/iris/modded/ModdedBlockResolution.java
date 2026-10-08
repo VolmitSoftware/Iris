@@ -22,15 +22,19 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.modded.api.ModdedBlockData;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.PlatformFace;
 import art.arcane.volmlib.util.data.UnresolvedKeyLog;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.FallingBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.PointedDripstoneBlock;
@@ -455,6 +459,34 @@ public final class ModdedBlockResolution {
 
     public static boolean isOccluding(BlockState state) {
         return state.getBlock().defaultBlockState().isRedstoneConductor(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
+    }
+
+    public static boolean isLog(BlockState state) {
+        return state.is(BlockTags.LOGS);
+    }
+
+    public static boolean isLeaves(BlockState state) {
+        return state.is(BlockTags.LEAVES);
+    }
+
+    public static boolean hasGravity(BlockState state) {
+        return state.getBlock() instanceof FallingBlock;
+    }
+
+    /** Whether the face of the support is sturdy enough to hold a block against it, without a world to ask. */
+    public static boolean canAttach(BlockState support, PlatformFace face) {
+        return support.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, directionOf(face));
+    }
+
+    private static Direction directionOf(PlatformFace face) {
+        return switch (face) {
+            case UP -> Direction.UP;
+            case DOWN -> Direction.DOWN;
+            case NORTH -> Direction.NORTH;
+            case SOUTH -> Direction.SOUTH;
+            case EAST -> Direction.EAST;
+            case WEST -> Direction.WEST;
+        };
     }
 
     public static boolean isFluid(BlockState state) {

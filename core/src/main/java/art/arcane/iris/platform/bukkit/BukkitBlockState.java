@@ -20,9 +20,12 @@ package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformFace;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import org.bukkit.Bukkit;
 import org.bukkit.Tag;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockSupport;
 import org.bukkit.block.data.BlockData;
 
 import java.util.LinkedHashMap;
@@ -52,7 +55,9 @@ public final class BukkitBlockState implements PlatformBlockState {
     private volatile Boolean lit;
     private volatile Boolean updatable;
     private volatile Boolean foliage;
-    private volatile Boolean treeBlock;
+    private volatile Boolean log;
+    private volatile Boolean leaves;
+    private volatile Boolean gravity;
     private volatile Boolean foliagePlantable;
     private volatile Boolean decorant;
     private volatile Boolean storage;
@@ -263,13 +268,49 @@ public final class BukkitBlockState implements PlatformBlockState {
     }
 
     @Override
-    public boolean isTreeBlock() {
-        Boolean cached = treeBlock;
+    public boolean isLog() {
+        Boolean cached = log;
         if (cached == null) {
-            cached = Tag.LOGS.isTagged(data.getMaterial()) || Tag.LEAVES.isTagged(data.getMaterial());
-            treeBlock = cached;
+            cached = Tag.LOGS.isTagged(data.getMaterial());
+            log = cached;
         }
         return cached;
+    }
+
+    @Override
+    public boolean isLeaves() {
+        Boolean cached = leaves;
+        if (cached == null) {
+            cached = Tag.LEAVES.isTagged(data.getMaterial());
+            leaves = cached;
+        }
+        return cached;
+    }
+
+    @Override
+    public boolean hasGravity() {
+        Boolean cached = gravity;
+        if (cached == null) {
+            cached = data.getMaterial().hasGravity();
+            gravity = cached;
+        }
+        return cached;
+    }
+
+    @Override
+    public boolean canAttach(PlatformBlockState support, PlatformFace face) {
+        return ((BlockData) support.nativeHandle()).isFaceSturdy(blockFaceOf(face), BlockSupport.FULL);
+    }
+
+    private static BlockFace blockFaceOf(PlatformFace face) {
+        return switch (face) {
+            case UP -> BlockFace.UP;
+            case DOWN -> BlockFace.DOWN;
+            case NORTH -> BlockFace.NORTH;
+            case SOUTH -> BlockFace.SOUTH;
+            case EAST -> BlockFace.EAST;
+            case WEST -> BlockFace.WEST;
+        };
     }
 
     @Override

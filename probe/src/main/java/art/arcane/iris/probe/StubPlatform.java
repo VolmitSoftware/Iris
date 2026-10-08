@@ -28,6 +28,7 @@ import art.arcane.iris.spi.PlatformBiomeWriter;
 import art.arcane.iris.spi.PlatformBlockProperty;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformEntityType;
+import art.arcane.iris.spi.PlatformFace;
 import art.arcane.iris.spi.PlatformItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
@@ -166,13 +167,33 @@ public final class StubPlatform implements IrisPlatform {
         }
 
         @Override
-        public boolean isTreeBlock() {
+        public boolean isLog() {
             String blockKey = blockKey();
             return blockKey.endsWith("_log")
                     || blockKey.endsWith("_wood")
                     || blockKey.endsWith("_stem")
-                    || blockKey.endsWith("_hyphae")
-                    || blockKey.endsWith("_leaves");
+                    || blockKey.endsWith("_hyphae");
+        }
+
+        @Override
+        public boolean isLeaves() {
+            return blockKey().endsWith("_leaves");
+        }
+
+        @Override
+        public boolean hasGravity() {
+            String blockKey = blockKey();
+            return blockKey.endsWith(":sand")
+                    || blockKey.endsWith(":red_sand")
+                    || blockKey.endsWith(":gravel")
+                    || blockKey.endsWith("_concrete_powder")
+                    || blockKey.endsWith("anvil");
+        }
+
+        /** The stub has no shapes: every solid block is sturdy on every face. */
+        @Override
+        public boolean canAttach(PlatformBlockState support, PlatformFace face) {
+            return support.isSolid();
         }
 
         @Override
@@ -565,6 +586,17 @@ public final class StubPlatform implements IrisPlatform {
         @Override
         public PlatformBlockState blockOrNull(String key, boolean warn) {
             return StubBlockState.of(key);
+        }
+
+        /** The stub knows the tags of the block traits it has: logs, leaves and the falling blocks. */
+        @Override
+        public boolean isInTag(PlatformBlockState block, String tag) {
+            return switch (tag) {
+                case "minecraft:logs" -> block.isLog();
+                case "minecraft:leaves" -> block.isLeaves();
+                case "minecraft:sand" -> block.key().endsWith(":sand") || block.key().endsWith(":red_sand");
+                default -> false;
+            };
         }
 
         @Override

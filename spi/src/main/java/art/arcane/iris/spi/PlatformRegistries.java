@@ -55,6 +55,13 @@ public interface PlatformRegistries {
     PlatformBlockState blockOrNull(String key, boolean warn);
 
     /**
+     * Whether {@code block} is in the block tag named {@code tag}, a namespaced key such as
+     * {@code minecraft:logs}. A tag the platform does not know has no members, so it answers false. Goes through the
+     * platform's tag lookup on each call: not for the per-block generation path.
+     */
+    boolean isInTag(PlatformBlockState block, String tag);
+
+    /**
      * The interned air state. Never null; identity-comparable across calls.
      */
     PlatformBlockState air();

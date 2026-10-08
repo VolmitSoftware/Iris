@@ -35,9 +35,11 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.common.reflect.KeyedType;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
+import org.bukkit.Tag;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
@@ -74,6 +76,16 @@ public final class BukkitRegistries implements PlatformRegistries {
     public PlatformBlockState blockOrNull(String key, boolean warn) {
         BlockData data = BukkitBlockResolution.resolveOrNull(key, warn);
         return data == null ? null : BukkitBlockState.of(data);
+    }
+
+    @Override
+    public boolean isInTag(PlatformBlockState block, String tag) {
+        NamespacedKey tagKey = NamespacedKey.fromString(tag);
+        if (tagKey == null) {
+            return false;
+        }
+        Tag<Material> blockTag = Bukkit.getTag(Tag.REGISTRY_BLOCKS, tagKey, Material.class);
+        return blockTag != null && blockTag.isTagged(((BlockData) block.nativeHandle()).getMaterial());
     }
 
     @Override

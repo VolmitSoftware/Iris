@@ -477,6 +477,11 @@ public class SchemaBuilderParityTest {
         }
 
         @Override
+        public boolean isInTag(PlatformBlockState block, String tag) {
+            return false;
+        }
+
+        @Override
         public PlatformBlockState deepSlateOre(PlatformBlockState block, PlatformBlockState ore) {
             return null;
         }

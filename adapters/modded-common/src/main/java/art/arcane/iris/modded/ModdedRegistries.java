@@ -34,6 +34,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -72,6 +73,15 @@ public final class ModdedRegistries implements PlatformRegistries {
     @Override
     public PlatformBlockState blockOrNull(String key, boolean warn) {
         return ModdedBlockResolution.getOrNull(key, warn);
+    }
+
+    @Override
+    public boolean isInTag(PlatformBlockState block, String tag) {
+        Identifier identifier = Identifier.tryParse(tag);
+        if (identifier == null) {
+            return false;
+        }
+        return ((BlockState) block.nativeHandle()).is(TagKey.create(Registries.BLOCK, identifier));
     }
 
     @Override

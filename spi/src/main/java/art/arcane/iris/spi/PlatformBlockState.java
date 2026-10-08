@@ -120,7 +120,25 @@ public interface PlatformBlockState {
     /**
      * Whether this is part of a tree - tagged as a log or as leaves.
      */
-    boolean isTreeBlock();
+    default boolean isTreeBlock() {
+        return isLog() || isLeaves();
+    }
+
+    /**
+     * Whether this block is tagged as a log, in the platform's block tags.
+     */
+    boolean isLog();
+
+    /**
+     * Whether this block is tagged as leaves, in the platform's block tags.
+     */
+    boolean isLeaves();
+
+    /**
+     * Whether this block falls when nothing holds it up - sand, gravel, concrete powder, anvils and the like, as
+     * the platform's own falling block type decides.
+     */
+    boolean hasGravity();
 
     /**
      * Whether foliage can be planted on top of this block.
@@ -163,6 +181,13 @@ public interface PlatformBlockState {
      * decoration. Passing a state from a different adapter fails at runtime.
      */
     boolean canPlaceOnto(PlatformBlockState onto);
+
+    /**
+     * Whether this block can attach to the {@code face} of {@code support}, ignoring every other neighbour: the
+     * support's face is sturdy enough to hold a torch, a ladder or a button against it, which is the platform's own
+     * full-face support test. Passing a state from a different adapter fails at runtime.
+     */
+    boolean canAttach(PlatformBlockState support, PlatformFace face);
 
     /**
      * Whether the two states are the same block with the same properties. Prefer this to {@code equals}, which

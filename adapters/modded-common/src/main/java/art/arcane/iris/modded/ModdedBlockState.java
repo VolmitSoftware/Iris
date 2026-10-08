@@ -19,8 +19,8 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformFace;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
@@ -45,7 +45,9 @@ public final class ModdedBlockState implements PlatformBlockState {
     private volatile Boolean fluid;
     private volatile Boolean water;
     private volatile Boolean foliage;
-    private volatile Boolean treeBlock;
+    private volatile Boolean log;
+    private volatile Boolean leaves;
+    private volatile Boolean gravity;
     private volatile Boolean decorant;
 
     private ModdedBlockState(BlockState state, Map<Property<?>, Comparable<?>> parsedProperties, String key, String deferredPlacementKey) {
@@ -251,13 +253,38 @@ public final class ModdedBlockState implements PlatformBlockState {
     }
 
     @Override
-    public boolean isTreeBlock() {
-        Boolean cached = treeBlock;
+    public boolean isLog() {
+        Boolean cached = log;
         if (cached == null) {
-            cached = state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES);
-            treeBlock = cached;
+            cached = ModdedBlockResolution.isLog(state);
+            log = cached;
         }
         return cached;
+    }
+
+    @Override
+    public boolean isLeaves() {
+        Boolean cached = leaves;
+        if (cached == null) {
+            cached = ModdedBlockResolution.isLeaves(state);
+            leaves = cached;
+        }
+        return cached;
+    }
+
+    @Override
+    public boolean hasGravity() {
+        Boolean cached = gravity;
+        if (cached == null) {
+            cached = ModdedBlockResolution.hasGravity(state);
+            gravity = cached;
+        }
+        return cached;
+    }
+
+    @Override
+    public boolean canAttach(PlatformBlockState support, PlatformFace face) {
+        return ModdedBlockResolution.canAttach((BlockState) support.nativeHandle(), face);
     }
 
     @Override

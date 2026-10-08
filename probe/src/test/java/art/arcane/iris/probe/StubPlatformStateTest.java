@@ -3,6 +3,8 @@ package art.arcane.iris.probe;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformFace;
+import art.arcane.iris.spi.PlatformRegistries;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -57,6 +59,29 @@ public final class StubPlatformStateTest {
         assertFalse(lava.isSolid());
         assertFalse(stone.isFluid());
         assertTrue(stone.isSolid());
+    }
+
+    @Test
+    public void answersLogLeavesGravityTagsAndFaceSupport() {
+        PlatformBlockState log = state("minecraft:oak_log[axis=y]");
+        PlatformBlockState leaves = state("minecraft:oak_leaves[distance=7]");
+        PlatformBlockState sand = state("minecraft:sand");
+        PlatformBlockState stone = state("minecraft:stone");
+        PlatformBlockState torch = state("minecraft:wall_torch");
+
+        assertTrue(log.isLog());
+        assertFalse(log.isLeaves());
+        assertTrue(leaves.isLeaves());
+        assertTrue(log.isTreeBlock() && leaves.isTreeBlock());
+        assertFalse(stone.isTreeBlock());
+        assertTrue(sand.hasGravity());
+        assertFalse(stone.hasGravity());
+        PlatformRegistries registries = IrisPlatforms.get().registries();
+        assertTrue(registries.isInTag(log, "minecraft:logs"));
+        assertFalse(registries.isInTag(leaves, "minecraft:logs"));
+        assertFalse(registries.isInTag(log, "pack:unknown"));
+        assertTrue(torch.canAttach(stone, PlatformFace.NORTH));
+        assertFalse(torch.canAttach(state("minecraft:air"), PlatformFace.NORTH));
     }
 
     private PlatformBlockState state(String key) {

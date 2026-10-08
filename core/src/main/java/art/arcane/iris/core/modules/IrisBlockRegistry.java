@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformFace;
 import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
@@ -28,10 +29,8 @@ import com.volmit.resource.ResourceId;
 
 /**
  * IrisApi's view of the bound platform's blocks. States convert through their keys, as {@link PlatformBlockStates}
- * does; the platform decides which blocks exist, so a key it does not know fails. Traits answer from what the
- * platform's block states can tell. Three traits ({@code GRAVITY}, {@code LOG}, {@code LEAVES}), tags and
- * attachment to a face are not offered by the platform layer yet, and asking for them throws
- * {@link UnsupportedOperationException} rather than guessing.
+ * does; the platform decides which blocks exist, so a key it does not know fails. Traits, tags and attachment to
+ * a face are the platform's own answers: its block tags, its falling blocks and its face support.
  */
 final class IrisBlockRegistry implements BlockRegistry {
     @Override
@@ -55,18 +54,20 @@ final class IrisBlockRegistry implements BlockRegistry {
             case BLOCK_ENTITY -> platform.hasTileEntity();
             case CUSTOM -> platform.isCustom();
             case NEEDS_UPDATE -> platform.isUpdatable();
-            case GRAVITY, LOG, LEAVES -> throw unsupported("The " + trait + " trait");
+            case GRAVITY -> platform.hasGravity();
+            case LOG -> platform.isLog();
+            case LEAVES -> platform.isLeaves();
         };
     }
 
     @Override
     public boolean inTag(BlockState state, ResourceId tag) {
-        throw unsupported("Block tags");
+        return IrisPlatforms.get().registries().isInTag(platformState(state.key()), tag.toString());
     }
 
     @Override
     public boolean canAttach(BlockState state, BlockState support, BlockFace face) {
-        throw unsupported("Attachment to a face");
+        return platformState(state.key()).canAttach(platformState(support.key()), PlatformFace.valueOf(face.name()));
     }
 
     private static PlatformBlockState platformState(String key) {
@@ -75,9 +76,5 @@ final class IrisBlockRegistry implements BlockRegistry {
             throw new IllegalArgumentException("Unknown block: " + key);
         }
         return state;
-    }
-
-    private static UnsupportedOperationException unsupported(String what) {
-        return new UnsupportedOperationException(what + " cannot be answered yet: Iris's platform layer does not offer it");
     }
 }

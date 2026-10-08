@@ -4,6 +4,7 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformFace;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import org.junit.AfterClass;
@@ -198,7 +199,22 @@ public class TreePlausibilizerTest {
         }
 
         @Override
-        public boolean isTreeBlock() {
+        public boolean isLog() {
+            return false;
+        }
+
+        @Override
+        public boolean isLeaves() {
+            return false;
+        }
+
+        @Override
+        public boolean hasGravity() {
+            return false;
+        }
+
+        @Override
+        public boolean canAttach(PlatformBlockState support, PlatformFace face) {
             return false;
         }
 

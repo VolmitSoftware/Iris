@@ -124,6 +124,7 @@ public class CaveApplyingBoundarySupportTest {
         PlatformBlockState state = mock(PlatformBlockState.class);
         doReturn(key).when(state).key();
         doReturn(solid).when(state).isSolid();
+        doReturn(key.equals("minecraft:sand")).when(state).hasGravity();
         return state;
     }
 }

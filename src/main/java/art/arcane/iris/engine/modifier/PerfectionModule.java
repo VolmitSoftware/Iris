@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.floating.FloatingStages;
 import art.arcane.iris.builtin.perfection.PerfectionStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.dimension.IrisDimensionModeType;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Module {@code iris:perfection}: on overworld chunks, turns ores back into the stone around them when the
+ * Module {@code iris:perfection}: turns ores back into the stone around them when the
  * dimension hides its ores, then removes decorations whose block below cannot hold them, again until none
  * is left, since removing one can strand the one above.
  */
@@ -60,16 +60,13 @@ public final class PerfectionModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(PerfectionStages.SURFACE).run(PerfectionModule::perfect);
+        graph.define(PerfectionStages.SURFACE).requires(FloatingStages.DECORATE).run(PerfectionModule::perfect);
     }
 
     private static void perfect(ChunkStageContext context) {
         IrisChunk chunk = IrisChunk.current();
         Engine engine = chunk.engine();
         IrisDimension dimension = engine.getDimension();
-        if (dimension.getMode().getType() != IrisDimensionModeType.OVERWORLD) {
-            return;
-        }
         PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
         Hunk<PlatformBlockState> blocks = chunk.blocks();
         if (dimension.isHideOresForHiddenOre()) {

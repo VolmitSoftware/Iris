@@ -33,7 +33,6 @@ import art.arcane.iris.engine.object.terrain.IrisBiomeLayerGenerator;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.deposit.IrisBiomeOres;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
@@ -225,9 +224,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
-    @ArrayType(min = 1, type = IrisDepositGenerator.class)
-    @Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
-    private KList<IrisDepositGenerator> deposits = new KList<>();
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("Multiplier applied to the frequency of every ore deposit whose center is inside this biome. A value of 0.4 keeps 40% of ore veins while leaving non-ore deposits unchanged.")

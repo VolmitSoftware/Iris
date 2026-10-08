@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineAssignedModifier;
+import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositHeightDistribution;
@@ -41,41 +41,37 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 
-public class IrisDepositModifier extends EngineAssignedModifier<PlatformBlockState> {
+import java.util.List;
+
+/**
+ * Places deposit clumps into one chunk for {@link DepositModule}: one per engine runtime, holding the deposit
+ * stream's random. Each generator gets its own random, derived from the chunk and its position in the list.
+ */
+public class DepositPlacer extends EngineAssignedComponent {
     private final RNG rng;
 
-    public IrisDepositModifier(Engine engine) {
+    public DepositPlacer(Engine engine) {
         super(engine, "Deposit");
         rng = new RNG(getEngine().getSeedManager().getDeposit());
     }
 
-    @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    /** Runs {@code generators}, in order, on the chunk at chunk coordinates {@code x}, {@code z}. */
+    public void generate(List<IrisDepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore,
+                         ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        generateDeposits(output, Math.floorDiv(x, 16), Math.floorDiv(z, 16), multicore, context);
+        generateDeposits(generators, terrain, x, z, multicore, context);
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    public void generateDeposits(Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore, ChunkContext context) {
-        IrisRegion region = context.getRegion().get(7, 7);
-        IrisBiome biome = context.getBiome().get(7, 7);
+    private void generateDeposits(List<IrisDepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z,
+                                  boolean multicore, ChunkContext context) {
         BurstExecutor burst = burst().burst(multicore);
 
         long seed = x * 341873128712L + z * 132897987541L;
         long mask = 0;
         MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
         try {
-            for (IrisDepositGenerator k : getDimension().getDeposits()) {
-                long finalSeed = seed * ++mask;
-                burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
-            }
-
-            for (IrisDepositGenerator k : region.getDeposits()) {
-                long finalSeed = seed * ++mask;
-                burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
-            }
-
-            for (IrisDepositGenerator k : biome.getDeposits()) {
+            for (IrisDepositGenerator k : generators) {
                 long finalSeed = seed * ++mask;
                 burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
             }

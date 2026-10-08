@@ -1,7 +1,6 @@
 art/arcane/iris/engine/actuator/**
 art/arcane/iris/engine/decorator/**
 art/arcane/iris/engine/modifier/**
-art/arcane/iris/engine/mode/**
 art/arcane/iris/engine/mantle/components/**
 art/arcane/iris/engine/object/**
 art/arcane/iris/engine/image/**

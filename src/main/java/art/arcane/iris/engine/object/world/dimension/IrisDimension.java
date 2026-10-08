@@ -35,7 +35,6 @@ import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
@@ -250,9 +249,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(360)
     @Desc("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
     private double dimensionAngleDeg = 0;
-    @Required
-    @Desc("Define the mode of this dimension (required!)")
-    private IrisDimensionMode mode = new IrisDimensionMode();
     @MinNumber(0)
     @MaxNumber(8192)
     @Desc("Coordinate fracturing applies noise to the input coordinates. This creates the 'iris swirls' and wavy features. The distance pushes these waves further into places they shouldnt be. This is a block value multiplier.")
@@ -281,9 +277,6 @@ public class IrisDimension extends IrisRegistrant {
     private boolean useMantle = true;
     @Desc("Prevent Leaf decay as if placed in creative mode")
     private boolean preventLeafDecay = false;
-    @ArrayType(min = 1, type = IrisDepositGenerator.class)
-    @Desc("Define global deposit generators")
-    private KList<IrisDepositGenerator> deposits = new KList<>();
     @ArrayType(min = 1, type = IrisDepositVariant.class)
     @Desc("Dimension-wide deposit ore remap rules. Each entry declares a vertical band and a source->replacement block id map. Applied after biome and region rules; first matching dimension rule wins.")
     private KList<IrisDepositVariant> depositVariants = new KList<>();

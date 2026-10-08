@@ -18,10 +18,8 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.deposit.DepositSettings;
-import art.arcane.iris.builtin.deposit.DepositStages;
-import art.arcane.iris.builtin.floating.FloatingStages;
-import art.arcane.iris.builtin.terrain.TerrainStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
 import com.volmit.IrisModule;
@@ -52,10 +50,10 @@ public final class DepositModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(DepositStages.ORES)
+        graph.define(IrisStages.Deposit.ORES)
                 .when(DepositSettings.class)
-                .requires(TerrainStages.SHAPE)
-                .softAfter(FloatingStages.SOLIDS.ref())
+                .requires(IrisStages.Terrain.SHAPE)
+                .softAfter(IrisStages.Floating.SOLIDS.ref())
                 .run(DepositModule::place);
     }
 

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.prepare.PrepareStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.placer.HeightmapObjectPlacer;
@@ -54,9 +54,9 @@ public final class PrepareModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(PrepareStages.SLOPE).produce(PrepareModule::slope);
-        graph.define(PrepareStages.TRANSFORMS)
-                .requires(PrepareStages.SLOPE)
+        graph.define(IrisStages.Prepare.SLOPE).produce(PrepareModule::slope);
+        graph.define(IrisStages.Prepare.TRANSFORMS)
+                .requires(IrisStages.Prepare.SLOPE)
                 .produce(PrepareModule::transforms);
     }
 
@@ -107,7 +107,7 @@ public final class PrepareModule implements IrisModule {
 
     private static PreparedPlacement transforms(PlacementStageContext context) {
         IrisPlacement placement = IrisPlacement.current();
-        IrisObjectPlacement config = context.output(PrepareStages.SLOPE);
+        IrisObjectPlacement config = context.output(IrisStages.Prepare.SLOPE);
         IrisObject object = placement.object();
         RNG rng = new RNG(context.random().nextLong());
         IObjectPlacer terrain = config.getHeightmap() == null ? placement.placer()

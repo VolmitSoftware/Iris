@@ -18,10 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.blocks.BlocksStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
-import art.arcane.iris.builtin.prepare.PrepareStages;
-import art.arcane.iris.builtin.vacuum.VacuumStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
@@ -53,15 +51,15 @@ public final class VacuumModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(VacuumStages.TERRAIN)
-                .requires(BlocksStages.WRITE, BlocksStages.COMPLETE, PrepareStages.TRANSFORMS)
+        graph.define(IrisStages.Vacuum.TERRAIN)
+                .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
                 .reach(IrisObjectVacuum.MAX_RADIUS_BLOCKS)
                 .run(VacuumModule::bendTerrain);
     }
 
     private static void bendTerrain(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
-        WrittenBlocks written = context.output(BlocksStages.WRITE);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
         Engine engine = prepared.terrain().getEngine();
         if (!prepared.mode().isVacuum() || written.isEmpty() || engine == null) {
             return;

@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.carve.CarveStages;
-import art.arcane.iris.builtin.objects.ObjectStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.engine.framework.Engine;
@@ -44,7 +43,7 @@ public final class ObjectModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(ObjectStages.PLACE).requires(CarveStages.CAVES).reach(ObjectModule::reach).run(ObjectModule::place);
+        graph.define(IrisStages.Objects.PLACE).requires(IrisStages.Carve.CAVES).reach(ObjectModule::reach).run(ObjectModule::place);
     }
 
     private static void place(MantleStageContext context) {

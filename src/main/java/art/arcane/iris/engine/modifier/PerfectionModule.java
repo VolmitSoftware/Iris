@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.floating.FloatingStages;
-import art.arcane.iris.builtin.perfection.PerfectionStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
@@ -60,7 +59,7 @@ public final class PerfectionModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(PerfectionStages.SURFACE).requires(FloatingStages.DECORATE).run(PerfectionModule::perfect);
+        graph.define(IrisStages.Perfection.SURFACE).requires(IrisStages.Floating.DECORATE).run(PerfectionModule::perfect);
     }
 
     private static void perfect(ChunkStageContext context) {

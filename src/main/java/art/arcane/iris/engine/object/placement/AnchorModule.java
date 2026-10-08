@@ -18,10 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.AnchorHeight;
-import art.arcane.iris.builtin.anchor.AnchorStages;
-import art.arcane.iris.builtin.prepare.PrepareStages;
-import art.arcane.iris.builtin.validate.ValidateStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
@@ -46,17 +44,17 @@ public final class AnchorModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(AnchorStages.HEIGHT)
-                .requires(PrepareStages.TRANSFORMS)
+        graph.define(IrisStages.Anchor.HEIGHT)
+                .requires(IrisStages.Prepare.TRANSFORMS)
                 .produce(AnchorModule::height);
-        graph.define(AnchorStages.FINAL)
-                .requires(AnchorStages.HEIGHT, ValidateStages.COLLISIONS)
+        graph.define(IrisStages.Anchor.FINAL)
+                .requires(IrisStages.Anchor.HEIGHT, IrisStages.Validate.COLLISIONS)
                 .produce(AnchorModule::finalHeight);
     }
 
     private static AnchorHeight height(PlacementStageContext context) {
         IrisPlacement placement = IrisPlacement.current();
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         boolean structurePiece = prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE;
         if (!config.isFromBottom() && placement.requestedY() < 0) {
@@ -80,7 +78,7 @@ public final class AnchorModule implements IrisModule {
     }
 
     private static AnchorHeight finalHeight(PlacementStageContext context) {
-        int y = context.output(AnchorStages.HEIGHT).y() + context.output(PrepareStages.TRANSFORMS).randomY();
+        int y = context.output(IrisStages.Anchor.HEIGHT).y() + context.output(IrisStages.Prepare.TRANSFORMS).randomY();
         IrisPlacement.current().anchoredAt(y);
         return new AnchorHeight(y);
     }

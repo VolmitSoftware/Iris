@@ -18,12 +18,9 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.AnchorStages;
-import art.arcane.iris.builtin.blocks.BlocksStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
-import art.arcane.iris.builtin.bore.BoreStages;
-import art.arcane.iris.builtin.prepare.PrepareStages;
 import art.arcane.iris.core.modules.BlockEntities;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.object.marker.IrisMarker;
@@ -70,26 +67,26 @@ public final class BlocksModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(BlocksStages.WRITE)
-                .requires(PrepareStages.TRANSFORMS, AnchorStages.FINAL, BoreStages.CLEAR)
+        graph.define(IrisStages.Blocks.WRITE)
+                .requires(IrisStages.Prepare.TRANSFORMS, IrisStages.Anchor.FINAL, IrisStages.Bore.CLEAR)
                 .accumulate(WrittenBlocks::new, BlocksModule::write);
-        graph.define(BlocksStages.MARKERS)
-                .requires(BlocksStages.WRITE, PrepareStages.TRANSFORMS)
+        graph.define(IrisStages.Blocks.MARKERS)
+                .requires(IrisStages.Blocks.WRITE, IrisStages.Prepare.TRANSFORMS)
                 .run(BlocksModule::placeMarkers);
-        graph.define(BlocksStages.COMPLETE)
-                .requires(BlocksStages.WRITE, BlocksStages.MARKERS)
+        graph.define(IrisStages.Blocks.COMPLETE)
+                .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.MARKERS)
                 .run(context -> {
                 });
     }
 
     private static void write(BlockStageContext context, WrittenBlocks written) {
         IrisPlacement placement = IrisPlacement.current();
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         PlacementWorld world = new PlacementWorld(context.access(), placement.states());
         ObjectBlock block = context.block();
         BlockPosition offset = prepared.transform(block.position());
-        int anchorY = context.output(AnchorStages.FINAL).y();
+        int anchorY = context.output(IrisStages.Anchor.FINAL).y();
         PlatformBlockState data = sourceState(block, placement, prepared);
         TileData tile = block.blockEntity().map(BlockEntities::tileOf).orElse(null);
         if (!config.getEdit().isEmpty()) {
@@ -189,12 +186,12 @@ public final class BlocksModule implements IrisModule {
      */
     private static void placeMarkers(PlacementStageContext context) {
         IrisPlacement placement = IrisPlacement.current();
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         if (config.getMarkers().isEmpty() || prepared.terrain().getEngine() == null) {
             return;
         }
-        WrittenBlocks written = context.output(BlocksStages.WRITE);
+        WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
         PlacementWorld world = new PlacementWorld(context.access(), placement.states());
         RNG markerRandom = new RNG(context.random().nextLong());
         int salt = 0;

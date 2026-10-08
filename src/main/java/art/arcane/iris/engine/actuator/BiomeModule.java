@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.biome.BiomeStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -55,7 +55,7 @@ public final class BiomeModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(BiomeStages.WRITE).run(BiomeModule::write);
+        graph.define(IrisStages.Biome.WRITE).run(BiomeModule::write);
     }
 
     private static void write(ChunkStageContext context) {

@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.carve.CarveStages;
-import art.arcane.iris.builtin.post.PostStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -40,7 +39,7 @@ public final class PostModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(PostStages.SMOOTH).requires(CarveStages.APPLY).run(PostModule::smooth);
+        graph.define(IrisStages.Post.SMOOTH).requires(IrisStages.Carve.APPLY).run(PostModule::smooth);
     }
 
     private static void smooth(ChunkStageContext context) {

@@ -18,9 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.deposit.DepositStages;
-import art.arcane.iris.builtin.floating.FloatingStages;
-import art.arcane.iris.builtin.matter.MatterStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
@@ -52,9 +50,9 @@ public final class MatterModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(MatterStages.INSERT)
-                .requires(FloatingStages.SOLIDS)
-                .softAfter(DepositStages.ORES.ref())
+        graph.define(IrisStages.Matter.INSERT)
+                .requires(IrisStages.Floating.SOLIDS)
+                .softAfter(IrisStages.Deposit.ORES.ref())
                 .run(MatterModule::insert);
     }
 

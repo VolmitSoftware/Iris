@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.decorant.DecorantStages;
-import art.arcane.iris.builtin.matter.MatterStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
@@ -56,7 +55,7 @@ public final class DecorantModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(DecorantStages.DECORATE).requires(MatterStages.INSERT).run(DecorantModule::decorate);
+        graph.define(IrisStages.Decorant.DECORATE).requires(IrisStages.Matter.INSERT).run(DecorantModule::decorate);
     }
 
     private static void decorate(ChunkStageContext context) {

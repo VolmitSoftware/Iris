@@ -18,10 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.decorant.DecorantStages;
-import art.arcane.iris.builtin.floating.FloatingStages;
-import art.arcane.iris.builtin.objects.ObjectStages;
-import art.arcane.iris.builtin.post.PostStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
@@ -51,10 +48,10 @@ public final class FloatingModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(FloatingStages.OBJECTS).softAfter(ObjectStages.PLACE.ref()).reach(FloatingModule::objectReach)
+        graph.define(IrisStages.Floating.OBJECTS).softAfter(IrisStages.Objects.PLACE.ref()).reach(FloatingModule::objectReach)
                 .run(FloatingModule::objects);
-        graph.define(FloatingStages.SOLIDS).requires(PostStages.SMOOTH).run(FloatingModule::solids);
-        graph.define(FloatingStages.DECORATE).requires(DecorantStages.DECORATE).run(FloatingModule::decorate);
+        graph.define(IrisStages.Floating.SOLIDS).requires(IrisStages.Post.SMOOTH).run(FloatingModule::solids);
+        graph.define(IrisStages.Floating.DECORATE).requires(IrisStages.Decorant.DECORATE).run(FloatingModule::decorate);
     }
 
     private static void objects(MantleStageContext context) {

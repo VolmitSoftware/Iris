@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.terrain.TerrainStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.IrisComplex;
@@ -58,7 +58,7 @@ public final class TerrainModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(TerrainStages.SHAPE).run(TerrainModule::shape);
+        graph.define(IrisStages.Terrain.SHAPE).run(TerrainModule::shape);
     }
 
     private static void shape(ChunkStageContext context) {

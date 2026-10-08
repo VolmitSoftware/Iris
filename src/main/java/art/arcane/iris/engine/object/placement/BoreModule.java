@@ -18,10 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.AnchorStages;
-import art.arcane.iris.builtin.bore.BoreStages;
-import art.arcane.iris.builtin.prepare.PrepareStages;
-import art.arcane.iris.builtin.validate.ValidateStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import com.volmit.IrisModule;
@@ -38,19 +35,19 @@ public final class BoreModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(BoreStages.CLEAR)
-                .requires(AnchorStages.FINAL, ValidateStages.COLLISIONS)
+        graph.define(IrisStages.Bore.CLEAR)
+                .requires(IrisStages.Anchor.FINAL, IrisStages.Validate.COLLISIONS)
                 .run(BoreModule::clear);
     }
 
     private static void clear(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         if (!config.isBore()) {
             return;
         }
         IrisPlacement placement = IrisPlacement.current();
-        WorldVolume volume = WorldVolume.of(placement, prepared, context.output(AnchorStages.FINAL).y());
+        WorldVolume volume = WorldVolume.of(placement, prepared, context.output(IrisStages.Anchor.FINAL).y());
         PlacementWorld world = new PlacementWorld(context.access(), placement.states());
         for (int x = volume.minX(); x <= volume.maxX(); x++) {
             for (int y = volume.minY() - config.getBoreExtendMinY(); y <= volume.maxY() + config.getBoreExtendMaxY(); y++) {

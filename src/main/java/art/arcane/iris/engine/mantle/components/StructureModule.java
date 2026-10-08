@@ -18,9 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.floating.FloatingStages;
-import art.arcane.iris.builtin.objects.ObjectStages;
-import art.arcane.iris.builtin.structure.StructureStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.engine.framework.Engine;
@@ -45,7 +43,7 @@ public final class StructureModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(StructureStages.PLACE).requires(ObjectStages.PLACE).softAfter(FloatingStages.OBJECTS.ref())
+        graph.define(IrisStages.Structure.PLACE).requires(IrisStages.Objects.PLACE).softAfter(IrisStages.Floating.OBJECTS.ref())
                 .reach(StructureModule::reach).run(StructureModule::place);
     }
 

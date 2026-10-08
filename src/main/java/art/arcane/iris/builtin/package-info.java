@@ -17,15 +17,15 @@
  */
 
 /**
- * The public face of Iris's built-in modules: their stage constants and the settings and output types
- * of those stages. {@link art.arcane.iris.core.modules.IrisModuleHost} exposes this package, with its
+ * The public face of Iris's built-in modules: every stage constant, in {@link art.arcane.iris.builtin.IrisStages},
+ * and the settings and output types of those stages. {@link art.arcane.iris.core.modules.IrisModuleHost} exposes this package, with its
  * subpackages, to pack modules, so a pack jar can {@code requires(...)} a built-in stage and read its
  * output. Everything here is part of what packs compile against.
  * <p>
  * Keep implementation out of it: stage bodies and anything that uses Iris internals live in the
- * built-in module classes outside this package, which packs cannot see. One subpackage per built-in
- * module, named after the module path, such as {@code art.arcane.iris.builtin.deposit} for
- * {@code iris:deposit}.
+ * built-in module classes outside this package, which packs cannot see. Settings and output types go in one
+ * subpackage per built-in module, named after the module path, such as {@code art.arcane.iris.builtin.deposit}
+ * for {@code iris:deposit}.
  * <p>
  * Some built-in stages produce Iris's own types, such as the placement settings of {@code iris:prepare}. A
  * pack module can require such a stage to run after it, but cannot read its output: the pack load rejects

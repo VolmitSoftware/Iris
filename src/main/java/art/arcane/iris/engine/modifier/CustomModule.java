@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.custom.CustomStages;
-import art.arcane.iris.builtin.perfection.PerfectionStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.engine.framework.Engine;
@@ -52,7 +51,7 @@ public final class CustomModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(CustomStages.BLOCKS).requires(PerfectionStages.SURFACE).run(CustomModule::record);
+        graph.define(IrisStages.Custom.BLOCKS).requires(IrisStages.Perfection.SURFACE).run(CustomModule::record);
     }
 
     private static void record(ChunkStageContext context) {

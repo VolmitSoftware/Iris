@@ -18,9 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.AnchorStages;
-import art.arcane.iris.builtin.prepare.PrepareStages;
-import art.arcane.iris.builtin.validate.ValidateStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
@@ -57,29 +55,29 @@ public final class ValidateModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(ValidateStages.SURFACE)
-                .requires(AnchorStages.HEIGHT)
+        graph.define(IrisStages.Validate.SURFACE)
+                .requires(IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkSurface);
-        graph.define(ValidateStages.LIMITS)
-                .requires(ValidateStages.SURFACE, AnchorStages.HEIGHT)
+        graph.define(IrisStages.Validate.LIMITS)
+                .requires(IrisStages.Validate.SURFACE, IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkLimits);
-        graph.define(ValidateStages.STRUCTURES)
-                .requires(ValidateStages.LIMITS, AnchorStages.HEIGHT)
+        graph.define(IrisStages.Validate.STRUCTURES)
+                .requires(IrisStages.Validate.LIMITS, IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkNativeStructures);
-        graph.define(ValidateStages.COLLISIONS)
-                .requires(ValidateStages.STRUCTURES, AnchorStages.HEIGHT)
+        graph.define(IrisStages.Validate.COLLISIONS)
+                .requires(IrisStages.Validate.STRUCTURES, IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkCollisions);
     }
 
     private static void checkSurface(PlacementStageContext context) {
         IrisPlacement placement = IrisPlacement.current();
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         if (config.isForcePlace() || config.isFromBottom() || prepared.mode() == ObjectPlaceMode.FLOATING
                 || prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             return;
         }
-        int y = context.output(AnchorStages.HEIGHT).y();
+        int y = context.output(IrisStages.Anchor.HEIGHT).y();
         boolean sampled = placement.requestedY() < 0;
         if (sampled && config.getCarvingSupport().supportsSurface() && isOnBedrock(prepared, y)) {
             warnImplausibleBedrockPlacement(placement, config, y);
@@ -109,12 +107,12 @@ public final class ValidateModule implements IrisModule {
 
     private static void checkLimits(PlacementStageContext context) {
         IrisPlacement placement = IrisPlacement.current();
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         if (config.isForcePlace() || prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             return;
         }
-        int y = context.output(AnchorStages.HEIGHT).y();
+        int y = context.output(IrisStages.Anchor.HEIGHT).y();
         int rotated = prepared.rotatedCenterY();
         int translated = prepared.translatedCenterY();
         if (placement.requestedY() < 0 && prepared.mode() != ObjectPlaceMode.FLOATING && !config.isUnderwater()
@@ -131,11 +129,11 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void checkNativeStructures(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         if (prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             return;
         }
-        int y = context.output(AnchorStages.HEIGHT).y() + prepared.randomY();
+        int y = context.output(IrisStages.Anchor.HEIGHT).y() + prepared.randomY();
         if (meetsNativeStructure(context, IrisPlacement.current(), prepared, y)) {
             context.reject("native-structure");
         }
@@ -200,7 +198,7 @@ public final class ValidateModule implements IrisModule {
 
     private static void checkCollisions(PlacementStageContext context) {
         IrisPlacement placement = IrisPlacement.current();
-        PreparedPlacement prepared = context.output(PrepareStages.TRANSFORMS);
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
         if (config.isForcePlace() || prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE
                 || (config.getAllowedCollisions().isEmpty() && config.getForbiddenCollisions().isEmpty())) {
@@ -210,7 +208,7 @@ public final class ValidateModule implements IrisModule {
         if (engine == null) {
             throw new IllegalStateException("Object placement requires active Iris data for collision settings.");
         }
-        WorldVolume volume = WorldVolume.of(placement, prepared, context.output(AnchorStages.HEIGHT).y() + prepared.randomY());
+        WorldVolume volume = WorldVolume.of(placement, prepared, context.output(IrisStages.Anchor.HEIGHT).y() + prepared.randomY());
         if (collidesWithForbiddenObject(engine, config, volume)) {
             context.reject("object-collision");
         }

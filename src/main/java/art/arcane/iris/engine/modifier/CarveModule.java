@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.carve.CarveStages;
-import art.arcane.iris.builtin.terrain.TerrainStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.engine.mantle.components.CaveCarving;
@@ -49,8 +48,8 @@ public final class CarveModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(CarveStages.CAVES).reach(CAVE_REACH_BLOCKS).run(CarveModule::planCaves);
-        graph.define(CarveStages.APPLY).requires(TerrainStages.SHAPE).run(CarveModule::applyCaves);
+        graph.define(IrisStages.Carve.CAVES).reach(CAVE_REACH_BLOCKS).run(CarveModule::planCaves);
+        graph.define(IrisStages.Carve.APPLY).requires(IrisStages.Terrain.SHAPE).run(CarveModule::applyCaves);
     }
 
     private static void planCaves(MantleStageContext context) {

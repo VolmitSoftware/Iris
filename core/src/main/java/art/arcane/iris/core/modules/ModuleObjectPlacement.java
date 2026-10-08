@@ -72,7 +72,7 @@ public final class ModuleObjectPlacement {
         Objects.requireNonNull(data, "Object placement data is required.");
         ResolvedGraph graph = data.getModules().pack().placement();
         GeneratedObject geometry = geometryOf(object, config);
-        BlockBox area = PlacementArea.around(geometry, config, x, z, graph.reach().blocks());
+        BlockBox area = PlacementArea.around(object, geometry, config, x, z, graph.reach().blocks());
         PlatformBlockStates states = new PlatformBlockStates(ModuleObjectPlacement::platformState);
         ObjectPlacerEdit edit = new ObjectPlacerEdit(placer, area, states, listener);
         IrisPlacement placement = new IrisPlacement(object, config, placer, cave, x, requestedY, z, data, states, edit);

@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
@@ -27,7 +28,9 @@ import com.volmit.object.GeneratedObject;
 /**
  * The columns one object placement may read and write: every column the object reaches in any rotation
  * around its anchor, moved by its translation and surface warp, widened by one block for neighbor reads and
- * by the placement pipeline's reach. Heights are not bounded; the placer keeps writes inside its world.
+ * by the placement pipeline's reach. The object reaches as far as its blocks or its declared size, whichever
+ * is larger, since boring and terrain bends cover the declared size. Heights are not bounded; the placer
+ * keeps writes inside its world.
  */
 final class PlacementArea {
     private static final int NEIGHBOR_READ_BLOCKS = 1;
@@ -35,10 +38,21 @@ final class PlacementArea {
     private PlacementArea() {
     }
 
-    static BlockBox around(GeneratedObject object, IrisObjectPlacement config, int x, int z, int pipelineReachBlocks) {
-        int reach = rotationRadius(object.bounds()) + translationLength(config.getTranslate())
+    static BlockBox around(IrisObject object, GeneratedObject geometry, IrisObjectPlacement config, int x, int z,
+                           int pipelineReachBlocks) {
+        int objectRadius = Math.max(rotationRadius(geometry.bounds()), rotationRadius(declaredBox(object)));
+        int reach = objectRadius + translationLength(config.getTranslate())
                 + warpMargin(config.getWarp()) + NEIGHBOR_READ_BLOCKS + pipelineReachBlocks;
         return new BlockBox(x - reach, Integer.MIN_VALUE, z - reach, x + reach + 1, Integer.MAX_VALUE, z + reach + 1);
+    }
+
+    /** The object's declared size around its center, which its block offsets count from. */
+    private static BlockBox declaredBox(IrisObject object) {
+        int centerX = object.getCenter().getBlockX();
+        int centerY = object.getCenter().getBlockY();
+        int centerZ = object.getCenter().getBlockZ();
+        return new BlockBox(-centerX, -centerY, -centerZ,
+                Math.max(1, object.getW()) - centerX, Math.max(1, object.getH()) - centerY, Math.max(1, object.getD()) - centerZ);
     }
 
     /** The farthest any block of {@code bounds} lies from the origin, which rotations turn around. */

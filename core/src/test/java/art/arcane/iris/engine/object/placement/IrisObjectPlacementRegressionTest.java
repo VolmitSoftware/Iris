@@ -150,6 +150,17 @@ public class IrisObjectPlacementRegressionTest {
     }
 
     @Test
+    public void boreCoversTheDeclaredSizeBeyondTheObjectsBlocks() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        IrisObject object = new IrisObject(5, 1, 5);
+        object.setUnsigned(2, 0, 2, solid);
+
+        assertEquals(ANCHOR_Y, object.place(0, ANCHOR_Y, 0, placer, placement().setBore(true), new RNG(2L), data));
+
+        assertEquals(24, placer.writesOf(keyOf(IrisObject.States.AIR)).size());
+    }
+
+    @Test
     public void collisionCheckUsesTheTransformedBounds() {
         PlacedObject forbidden = new PlacedObject(null, object("forbidden"), 1, 0, 0);
         when(engine.getObjectPlacement(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {

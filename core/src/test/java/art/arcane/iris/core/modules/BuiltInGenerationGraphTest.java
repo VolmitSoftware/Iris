@@ -18,9 +18,9 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.deposit.DepositSettings;
-import art.arcane.iris.builtin.structure.StructureStages;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -80,7 +80,7 @@ public class BuiltInGenerationGraphTest {
         MantleStage<Void> mark = Stage.mantle("test:marks/mark");
         IrisModule marks = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:marks", "Marks", "1"); }
-            public void install(StageGraph graph) { graph.define(mark).requires(StructureStages.PLACE).run(context -> { }); }
+            public void install(StageGraph graph) { graph.define(mark).requires(IrisStages.Structure.PLACE).run(context -> { }); }
         };
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of(marks))) {
             List<String> order = ids(pack.mantle());

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.floating.FloatingStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
@@ -123,7 +123,7 @@ public class PerfectionModuleTest {
 
         @Override
         public void install(StageGraph graph) {
-            graph.define(FloatingStages.DECORATE).run(context -> {
+            graph.define(IrisStages.Floating.DECORATE).run(context -> {
             });
         }
     }

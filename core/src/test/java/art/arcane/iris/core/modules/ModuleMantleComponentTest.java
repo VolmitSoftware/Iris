@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.structure.StructureStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
@@ -62,7 +62,7 @@ public class ModuleMantleComponentTest {
     private final IrisModule marks = new IrisModule() {
         public ModuleInfo info() { return ModuleInfo.of("test:marks", "Marks", "1"); }
         public void install(StageGraph graph) {
-            graph.define(Stage.mantle(MARK_STAGE)).requires(StructureStages.PLACE).reach(settings -> MARK_REACH).run(context -> { });
+            graph.define(Stage.mantle(MARK_STAGE)).requires(IrisStages.Structure.PLACE).reach(settings -> MARK_REACH).run(context -> { });
         }
     };
     private final IrisData data = mock(IrisData.class);

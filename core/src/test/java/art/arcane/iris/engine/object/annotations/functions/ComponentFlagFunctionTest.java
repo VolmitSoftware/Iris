@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.annotations.functions;
 
-import art.arcane.iris.builtin.structure.StructureStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import com.volmit.IrisModule;
@@ -28,7 +28,7 @@ public class ComponentFlagFunctionTest {
         IrisModule moss = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:moss", "Moss", "1"); }
             public void install(StageGraph graph) {
-                graph.define(Stage.mantle("test:moss/veins")).requires(StructureStages.PLACE).reach(8).run(context -> { });
+                graph.define(Stage.mantle("test:moss/veins")).requires(IrisStages.Structure.PLACE).reach(8).run(context -> { });
             }
         };
         IrisData data = mock(IrisData.class);

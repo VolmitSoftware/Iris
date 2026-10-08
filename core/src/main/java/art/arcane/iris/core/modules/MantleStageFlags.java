@@ -18,10 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.carve.CarveStages;
-import art.arcane.iris.builtin.floating.FloatingStages;
-import art.arcane.iris.builtin.objects.ObjectStages;
-import art.arcane.iris.builtin.structure.StructureStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import com.volmit.host.ResolvedStage;
@@ -40,10 +37,10 @@ import java.util.Optional;
  */
 public final class MantleStageFlags {
     private static final List<BuiltIn> BUILT_IN = List.of(
-            new BuiltIn(CarveStages.CAVES.id(), ReservedFlag.CARVED),
-            new BuiltIn(ObjectStages.PLACE.id(), ReservedFlag.OBJECT),
-            new BuiltIn(FloatingStages.OBJECTS.id(), ReservedFlag.FLOATING_OBJECT),
-            new BuiltIn(StructureStages.PLACE.id(), ReservedFlag.JIGSAW));
+            new BuiltIn(IrisStages.Carve.CAVES.id(), ReservedFlag.CARVED),
+            new BuiltIn(IrisStages.Objects.PLACE.id(), ReservedFlag.OBJECT),
+            new BuiltIn(IrisStages.Floating.OBJECTS.id(), ReservedFlag.FLOATING_OBJECT),
+            new BuiltIn(IrisStages.Structure.PLACE.id(), ReservedFlag.JIGSAW));
 
     private MantleStageFlags() {
     }

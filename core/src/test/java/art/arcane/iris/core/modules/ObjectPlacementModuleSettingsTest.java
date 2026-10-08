@@ -18,8 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.anchor.AnchorStages;
-import art.arcane.iris.builtin.blocks.BlocksStages;
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -94,8 +93,8 @@ public class ObjectPlacementModuleSettingsTest {
 
         @Override
         public void install(StageGraph graph) {
-            graph.define(TOP).when(GlowSettings.class).requires(BlocksStages.COMPLETE, AnchorStages.FINAL).run((context, glow) -> {
-                int y = context.output(AnchorStages.FINAL).y() + 1;
+            graph.define(TOP).when(GlowSettings.class).requires(IrisStages.Blocks.COMPLETE, IrisStages.Anchor.FINAL).run((context, glow) -> {
+                int y = context.output(IrisStages.Anchor.FINAL).y() + 1;
                 context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(glow.getFirst().value().block), Optional.empty()));
             });
         }

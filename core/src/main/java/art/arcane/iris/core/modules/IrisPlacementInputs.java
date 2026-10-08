@@ -30,8 +30,7 @@ import com.volmit.world.TerrainSampler;
 
 /** The read-only IrisApi inputs of one Iris object placement. */
 final class IrisPlacementInputs implements PlacementContext {
-    private static final String NOT_BRIDGED = " is not bridged to Iris yet; modules cannot use it until a built-in port needs it";
-
+    private final ObjectTransformer objects = new IrisObjectTransformer();
     private final long worldSeed;
     private final TerrainSampler terrain;
     private final FeatureSettings settings;
@@ -82,7 +81,7 @@ final class IrisPlacementInputs implements PlacementContext {
 
     @Override
     public ObjectTransformer objects() {
-        throw new UnsupportedOperationException("Object transforms for placement stages" + NOT_BRIDGED);
+        return objects;
     }
 
     @Override

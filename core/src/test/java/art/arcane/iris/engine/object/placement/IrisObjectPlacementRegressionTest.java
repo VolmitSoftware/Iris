@@ -35,6 +35,10 @@ import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
+import com.volmit.mantle.BlockBox;
+import com.volmit.object.GeneratedObject;
+import com.volmit.object.ObjectBlock;
+import com.volmit.object.ObjectTransform;
 import com.volmit.host.LoadedPack;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStage;
@@ -441,6 +445,44 @@ public class IrisObjectPlacementRegressionTest {
 
         assertTrue(result.isPlaced());
         assertEquals(List.of(PackResourceFixture.OAK), found);
+    }
+
+    /** Lays the pack's oak on its side, a quarter turn about X, through the placement's object transformer. */
+    private static final class TurnModule implements IrisModule {
+        private static final PlacementStage<Void> TURN = Stage.placement("test:turn/oak");
+        private final java.io.File packFolder;
+        private final List<GeneratedObject> turned;
+
+        private TurnModule(java.io.File packFolder, List<GeneratedObject> turned) {
+            this.packFolder = packFolder;
+            this.turned = turned;
+        }
+
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:turn", "Turn", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(TURN).requires(BlocksStages.COMPLETE).run(context -> turned.add(context.objects().transform(
+                    context.resources().require(PackResourceFixture.oakKey(packFolder)),
+                    new ObjectTransform(90, 0, 0, 1, 1, 1, false, false, false))));
+        }
+    }
+
+    @Test
+    public void aPlacementStageTurnsAnObjectThroughTheObjectTransformer() throws IOException {
+        PackResourceFixture.serve(data);
+        List<GeneratedObject> turned = new ArrayList<>();
+        usePack(List.of(new TurnModule(folder.getRoot(), turned)));
+
+        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(engine), null);
+
+        assertTrue(result.isPlaced());
+        assertEquals(List.of(new BlockPosition(0, 0, 0), new BlockPosition(0, 0, 1)),
+                turned.getFirst().blocks().stream().map(ObjectBlock::position).toList());
+        assertEquals("the oak's leaves moved with the turn", new BlockBox(0, 0, 0, 1, 1, 2), turned.getFirst().bounds());
     }
 
     @Test

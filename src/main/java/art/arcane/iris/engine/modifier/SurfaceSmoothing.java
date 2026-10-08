@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineAssignedModifier;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -32,20 +31,26 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.PlatformBlockState;
 
-public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState> {
+/**
+ * Smooths the carved surface for {@link PostModule}: floating nibs, single-block bumps and potholes, walls under
+ * steep faces, slabs on steps, waterlogging and the foliage that lost its ground. One per engine runtime,
+ * holding the post stream's random.
+ */
+public class SurfaceSmoothing {
     private static final class States {
         private static final PlatformBlockState AIR = B.getState("AIR");
     }
 
+    private final Engine engine;
     private final RNG rng;
 
-    public IrisPostModifier(Engine engine) {
-        super(engine, "Post");
-        rng = new RNG(getEngine().getSeedManager().getPost());
+    public SurfaceSmoothing(Engine engine) {
+        this.engine = engine;
+        rng = new RNG(engine.getSeedManager().getPost());
     }
 
-    @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    /** Smooths the chunk whose first block is {@code x}, {@code z}. */
+    public void smooth(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         // The post stage runs sequentially on production (multicore false); an uncontended
         // monitor per probe is still a monitor times ~10k probes per chunk.
@@ -54,7 +59,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
         int depth = output.getDepth();
         int planeWidth = width + 2;
         int[] heights = heightPlane(x, z, width, depth, planeWidth);
-        IrisDimension dimension = getDimension();
+        IrisDimension dimension = engine.getDimension();
         boolean walls = dimension.isPostProcessingWalls();
         boolean slabs = dimension.isPostProcessingSlabs();
         int fluidHeight = dimension.getFluidHeight();
@@ -64,7 +69,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
             }
         }
 
-        getEngine().getMetrics().getPost().put(p.getMilliseconds());
+        engine.getMetrics().getPost().put(p.getMilliseconds());
     }
 
     /**
@@ -74,7 +79,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
      */
     private int[] heightPlane(int x, int z, int width, int depth, int planeWidth) {
         int[] heights = new int[planeWidth * (depth + 2)];
-        EngineMantle mantle = getEngine().getMantle();
+        EngineMantle mantle = engine.getMantle();
 
         for (int j = -1; j <= depth; j++) {
             boolean edge = j == -1 || j == depth;
@@ -177,7 +182,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
                     int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
 
                     for (int i = h; i > h - max; i--) {
-                        PlatformBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
+                        PlatformBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, engine.getData());
 
                         if (d != null) {
                             if (isAirOrWater(x, i, z, originX, originZ, currentData)) {
@@ -206,7 +211,7 @@ public class IrisPostModifier extends EngineAssignedModifier<PlatformBlockState>
             //@done
             {
                 IrisSlopeClip sc = biome.getSlab().getSlopeCondition();
-                PlatformBlockState d = sc.isValid(getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, getData()) : null;
+                PlatformBlockState d = sc.isValid(engine.getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, engine.getData()) : null;
 
                 if (d != null) {
                     boolean cancel = B.isAir(d);

@@ -27,8 +27,8 @@ import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
 
 /**
- * Module {@code iris:post}: smooths the carved surface. A thin wrapper: the stage runs {@link IrisPostModifier}
- * unchanged, one per engine runtime, except while maintenance regeneration bypasses the mantle.
+ * Module {@code iris:post}: smooths the carved surface with {@link SurfaceSmoothing}, except while maintenance
+ * regeneration bypasses the mantle.
  */
 public final class PostModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -48,7 +48,7 @@ public final class PostModule implements IrisModule {
         if (chunk.bypassesMantleStages()) {
             return;
         }
-        chunk.state(IrisPostModifier.class, IrisPostModifier::new)
-                .modify(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
+        chunk.state(SurfaceSmoothing.class, SurfaceSmoothing::new)
+                .smooth(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
     }
 }

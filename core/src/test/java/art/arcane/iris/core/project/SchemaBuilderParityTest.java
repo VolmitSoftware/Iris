@@ -59,11 +59,25 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.core.modules.PackModuleSet;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisFeature;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
+import com.volmit.config.Feature;
+import com.volmit.host.LoadedPack;
+import com.volmit.host.ModuleHost;
+import com.volmit.host.schema.PackSchema;
+import com.volmit.stage.Stage;
+import com.volmit.stage.StageGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -241,6 +255,23 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
+    public void objectPlacementSchemaRendersModuleSettingsUnderTheirIdAndAlias() throws IOException {
+        JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(glowModuleSchema())).construct();
+        JSONObject properties = rootProperties(schema);
+        String definition = definitionKey(properties.getJSONObject("example:glow"));
+        JSONObject level = schema.getJSONObject("definitions").getJSONObject(definition)
+                .getJSONObject("properties").getJSONObject("level");
+
+        assertEquals(definition, definitionKey(properties.getJSONObject("glow")));
+        assertEquals("integer", level.getString("type"));
+        assertEquals(1, level.getInt("minimum"));
+        assertEquals(15, level.getInt("maximum"));
+        assertEquals(7, level.getInt("default"));
+        assertEquals("How bright the glow is", level.getString("description"));
+        assertTrue(schema.toString().contains("{\"not\":{\"required\":[\"glow\",\"example:glow\"]}}"));
+    }
+
+    @Test
     public void dimensionSchemaExposesSurfaceSupportDefaults() {
         JSONObject properties = rootProperties(
                 new SchemaBuilder(IrisDimension.class, structureSchemaData()).construct());
@@ -285,7 +316,17 @@ public class SchemaBuilderParityTest {
     }
 
     private static IrisData structureSchemaData() {
+        return structureSchemaData(new PackSchema(List.of(), List.of()));
+    }
+
+    /** {@code modules} is what the pack's modules add to its JSON. */
+    private static IrisData structureSchemaData(PackSchema modules) {
         IrisData data = mock(IrisData.class);
+        LoadedPack pack = mock(LoadedPack.class);
+        PackModuleSet moduleSet = mock(PackModuleSet.class);
+        when(pack.schema()).thenReturn(modules);
+        when(moduleSet.pack()).thenReturn(pack);
+        when(data.getModules()).thenReturn(moduleSet);
         ResourceLoader<IrisStructure> structureLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisExpression> expressionLoader = mock(ResourceLoader.class);
@@ -590,6 +631,35 @@ public class SchemaBuilderParityTest {
 
         @Override
         public void reportError(Throwable error) {
+        }
+    }
+
+    private static PackSchema glowModuleSchema() throws IOException {
+        Path root = Files.createTempDirectory("glow-pack");
+        try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
+                ModuleHost.of(List.of(new GlowModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
+            return pack.schema();
+        }
+    }
+
+    @Feature(id = "example:glow", name = "Glow", alias = "glow", targets = Target.OBJECT_PLACEMENT)
+    public static final class GlowSettings implements IrisFeature {
+        @com.volmit.config.Desc("How bright the glow is")
+        @com.volmit.config.MinNumber(1)
+        @com.volmit.config.MaxNumber(15)
+        private int level = 7;
+    }
+
+    public static final class GlowModule implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("example:glow", "Glow", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(Stage.placement("example:glow/light")).when(GlowSettings.class).run((context, glow) -> {
+            });
         }
     }
 }

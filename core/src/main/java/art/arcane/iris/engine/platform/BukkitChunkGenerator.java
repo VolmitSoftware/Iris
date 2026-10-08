@@ -152,7 +152,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.folder = new ReactiveFolder(
                 dataLocation,
                 (_a, _b, _c) -> hotloadFromWatcher(),
-                new KList<>(".iob", ".json"),
+                new KList<>(".iob", ".json", ".jar"),
                 new KList<>(".iris"),
                 new KList<>()
         );

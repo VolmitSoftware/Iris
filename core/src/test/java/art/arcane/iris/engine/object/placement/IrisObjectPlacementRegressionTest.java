@@ -19,6 +19,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPlacementPack;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.core.modules.ObjectPlacementResult;
+import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
@@ -65,8 +66,6 @@ import static org.mockito.Mockito.when;
 
 public class IrisObjectPlacementRegressionTest {
     private static final int ANCHOR_Y = 80;
-    private static final String SNOW_LAYER = "minecraft:snow[layers=1]";
-    private static final String CAVE_AIR = "minecraft:cave_air";
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -143,7 +142,7 @@ public class IrisObjectPlacementRegressionTest {
         int resultY = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
         // The object's own blocks replace the bored air below, so only the extension stays air.
-        List<BlockWrite> airWrites = placer.writesOf(CAVE_AIR);
+        List<BlockWrite> airWrites = placer.writesOf(keyOf(IrisObject.States.AIR));
         assertEquals(3, airWrites.size());
         assertTrue(airWrites.stream().allMatch(write -> write.y() == resultY + 1));
         assertTrue(airWrites.stream().allMatch(write -> write.x() == 0));
@@ -196,7 +195,7 @@ public class IrisObjectPlacementRegressionTest {
 
         object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-        List<BlockWrite> snowWrites = placer.writesOf(SNOW_LAYER);
+        List<BlockWrite> snowWrites = placer.writesOf(keyOf(IrisObject.States.SNOW_LAYERS[0]));
         assertEquals(1, snowWrites.size());
         assertEquals(ANCHOR_Y, snowWrites.get(0).y());
     }
@@ -502,7 +501,7 @@ public class IrisObjectPlacementRegressionTest {
         List<BlockWrite> center = placer.writes().stream().filter(write -> write.x() == 0 && write.z() == 0).toList();
         assertEquals(List.of(82, 81, 83), center.stream().map(BlockWrite::y).toList());
         assertEquals(solid.key(), center.get(0).state().key());
-        assertEquals(SNOW_LAYER, center.get(2).state().key());
+        assertEquals(keyOf(IrisObject.States.SNOW_LAYERS[0]), center.get(2).state().key());
     }
 
     @Test
@@ -572,6 +571,14 @@ public class IrisObjectPlacementRegressionTest {
         IrisObject object = lineObject(1);
         object.setLoadKey(key);
         return object;
+    }
+
+    /**
+     * The key a placement writes a built-in state under. Iris resolves its built-in states once per JVM, with
+     * whichever platform a test bound first, so tests name them by their own keys.
+     */
+    private static String keyOf(PlatformBlockState builtIn) {
+        return PlatformBlockStates.namespaced(builtIn.key());
     }
 
     private static PlatformBlockState state(String key, boolean solid) {

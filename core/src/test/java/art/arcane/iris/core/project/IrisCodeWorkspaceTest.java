@@ -20,6 +20,7 @@ import org.mockito.Answers;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,6 +88,23 @@ public class IrisCodeWorkspaceTest {
                 first, Files.readAllBytes(file.toPath()));
         assertEquals("Unchanged workspace content must not be rewritten",
                 stamp.toMillis(), Files.getLastModifiedTime(file.toPath()).toMillis());
+    }
+
+    @Test
+    public void aPackWhoseModulesFailToLoadGetsNoWorkspaceUntilItsJarsAreFixed() throws Exception {
+        File pack = temporaryFolder.newFolder("broken-modules");
+        Path brokenJar = Files.createDirectories(pack.toPath().resolve("modules")).resolve("broken.jar");
+        Files.writeString(brokenJar, "not a jar");
+        IrisCodeWorkspace workspace = new IrisCodeWorkspace(new IrisProject(pack));
+
+        assertFalse(workspace.updateWorkspace());
+        data = IrisData.get(pack);
+        assertFalse(workspace.getCodeWorkspaceFile().exists());
+
+        Files.delete(brokenJar);
+
+        assertTrue(workspace.updateWorkspace());
+        assertTrue(workspace.getCodeWorkspaceFile().isFile());
     }
 
     @Test

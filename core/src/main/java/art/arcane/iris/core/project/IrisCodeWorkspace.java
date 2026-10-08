@@ -21,6 +21,7 @@ package art.arcane.iris.core.project;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.plugin.VolmitSender;
@@ -31,6 +32,7 @@ import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import com.volmit.host.schema.ObjectType;
 import org.dom4j.Document;
 import org.dom4j.Element;
 
@@ -38,6 +40,7 @@ import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -46,6 +49,10 @@ import java.util.UUID;
 
 @SuppressWarnings("ALL")
 public class IrisCodeWorkspace {
+    private static final String SNIPPET_SCHEMA_FOLDER = ".iris/schema/snippet/";
+    private static final String SCHEMA_SUFFIX = "-schema.json";
+    private static final int SNIPPET_MATCH_DEPTH = 8;
+
     private final IrisProject project;
 
     public IrisCodeWorkspace(IrisProject project) {
@@ -95,6 +102,9 @@ public class IrisCodeWorkspace {
     private boolean updateWorkspace(boolean immediateSchemas) {
         project.getPath().mkdirs();
         File ws = getCodeWorkspaceFile();
+        if (!loadsPackModules(IrisData.get(project.getPath()))) {
+            return false;
+        }
 
         // Render before touching the file: a config-generation failure has nothing to do with
         // the existing workspace file, and deleting it before a rethrowing rebuild silently
@@ -123,6 +133,23 @@ public class IrisCodeWorkspace {
         }
 
         return false;
+    }
+
+    /**
+     * Schemas describe the pack's modules or nothing, so a pack whose modules fail to load gets no workspace.
+     * Modules whose jars changed are loaded again, and the pack's resources with them.
+     */
+    private boolean loadsPackModules(IrisData data) {
+        if (data.getModules().reloadIfJarsChanged()) {
+            data.hotloaded();
+        }
+        try {
+            data.getModules().pack();
+            return true;
+        } catch (PackModulesException failure) {
+            IrisLogging.error("Not opening the code workspace of " + project.getName() + ": " + failure.getMessage());
+            return false;
+        }
     }
 
     public JSONObject createCodeWorkspaceConfig() {
@@ -180,17 +207,8 @@ public class IrisCodeWorkspace {
         for (Class<?> snippetClass : sortedSnippets(dm.resolveSnippets())) {
             try {
                 String snipType = snippetClass.getDeclaredAnnotation(Snippet.class).value();
-                JSONObject schemaEntry = new JSONObject();
-                KList<String> fileMatches = new KList<>();
-
-                for (int depth = 1; depth < 8; depth++) {
-                    fileMatches.add("/snippet/" + snipType + Form.repeat("/*", depth) + ".json");
-                }
-
-                schemaEntry.put("fileMatch", new JSONArray(fileMatches.toArray()));
-                schemaEntry.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
-                schemaEntries.add(schemaEntry);
-                File schemaFile = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
+                schemaEntries.add(snippetSchemaEntry(snipType));
+                File schemaFile = new File(dm.getDataFolder(), SNIPPET_SCHEMA_FOLDER + snipType + SCHEMA_SUFFIX);
                 if (immediateSchemas) {
                     IO.writeAll(schemaFile, new SchemaBuilder(snippetClass, dm).construct().toString(4));
                 } else {
@@ -211,6 +229,10 @@ public class IrisCodeWorkspace {
             }
         }
 
+        for (ObjectType type : dm.getModules().pack().schema().snippets()) {
+            schemaEntries.add(moduleSnippetSchema(dm, type, immediateSchemas));
+        }
+
         schemaEntries.sort(Comparator.comparing(entry -> entry.getString("url")));
         for (JSONObject entry : schemaEntries) {
             schemas.put(entry);
@@ -227,6 +249,38 @@ public class IrisCodeWorkspace {
         }
 
         return ws;
+    }
+
+    /** A module's snippet type gets its own schema for the files under {@code snippet/<name>/}, as Iris's snippets do. */
+    private static JSONObject moduleSnippetSchema(IrisData data, ObjectType type, boolean immediate) {
+        String name = type.snippet().orElseThrow();
+        JSONObject entry = snippetSchemaEntry(name);
+        File schemaFile = new File(data.getDataFolder(), SNIPPET_SCHEMA_FOLDER + name + SCHEMA_SUFFIX);
+        if (immediate) {
+            writeSchema(schemaFile, SchemaBuilder.moduleSnippet(type, data));
+        } else {
+            J.attemptAsync(() -> writeSchema(schemaFile, SchemaBuilder.moduleSnippet(type, data)));
+        }
+        return entry;
+    }
+
+    private static JSONObject snippetSchemaEntry(String snippetFolder) {
+        KList<String> fileMatches = new KList<>();
+        for (int depth = 1; depth < SNIPPET_MATCH_DEPTH; depth++) {
+            fileMatches.add("/snippet/" + snippetFolder + Form.repeat("/*", depth) + ".json");
+        }
+        JSONObject entry = new JSONObject();
+        entry.put("fileMatch", new JSONArray(fileMatches.toArray()));
+        entry.put("url", "./" + SNIPPET_SCHEMA_FOLDER + snippetFolder + SCHEMA_SUFFIX);
+        return entry;
+    }
+
+    private static void writeSchema(File schemaFile, JSONObject schema) {
+        try {
+            IO.writeAll(schemaFile, schema.toString(4));
+        } catch (IOException failure) {
+            throw new UncheckedIOException("Could not write schema " + schemaFile.getAbsolutePath(), failure);
+        }
     }
 
     private void updateIntelliJSchemaMappings(JSONArray schemas) {

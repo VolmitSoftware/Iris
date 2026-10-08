@@ -264,7 +264,7 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
                 watch.folder = new ReactiveFolder(
                         engine.getData().getDataFolder(),
                         (KList<File> created, KList<File> changed, KList<File> deleted) -> hotload(dimensionId, generator, engine),
-                        new KList<>(".iob", ".json"),
+                        new KList<>(".iob", ".json", ".jar"),
                         new KList<>(".iris"),
                         new KList<>());
                 return;

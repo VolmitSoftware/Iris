@@ -25,6 +25,10 @@ import art.arcane.iris.spi.PlatformNumericRange;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.ModuleTargets;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.core.structure.StructureSchemaKeys;
 import art.arcane.iris.engine.framework.ListFunction;
 import art.arcane.iris.engine.object.annotations.ArrayType;
@@ -52,6 +56,9 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import com.volmit.config.Reference;
+import com.volmit.host.schema.ObjectType;
+import com.volmit.host.schema.TextFormat;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.GraphicsEnvironment;
@@ -81,12 +88,18 @@ public class SchemaBuilder {
     private final IrisData data;
     private JSONArray potionTypes;
     private JSONArray enchantTypes;
+    private ModuleSchemaRenderer moduleSchemas;
 
     public SchemaBuilder(Class<?> root, IrisData data) {
         this.data = data;
         warnings = new KList<>();
         this.definitions = new KMap<>();
         this.root = root;
+    }
+
+    /** The schema of a module snippet file, which holds one object of {@code type}. */
+    public static JSONObject moduleSnippet(ObjectType type, IrisData data) {
+        return new SchemaBuilder(type.getClass(), data).moduleSchemas().snippetFileSchema(type);
     }
 
     public JSONObject construct() {
@@ -336,6 +349,7 @@ public class SchemaBuilder {
         }
 
         buildProperties(properties, required, extended, c);
+        addModuleFeatures(c, properties, extended);
 
         if (required.length() > 0) {
             o.put("required", required);
@@ -348,6 +362,58 @@ public class SchemaBuilder {
 
 
         return buildSnippet(o, c);
+    }
+
+    /** The pack modules' settings at the target whose JSON {@code c} is, such as a biome's. */
+    private void addModuleFeatures(Class<?> c, JSONObject properties, JSONArray constraints) {
+        ModuleTargets.ofResource(c).ifPresent(target -> moduleSchemas().addFeatures(target, properties, constraints));
+    }
+
+    private ModuleSchemaRenderer moduleSchemas() {
+        if (moduleSchemas == null) {
+            moduleSchemas = new ModuleSchemaRenderer(data.getModules().pack().schema(), definitions,
+                    this::completeReference, data::getPossibleSnippets);
+        }
+        return moduleSchemas;
+    }
+
+    /** Completion for a module option that names something, from the same lists Iris's own fields use. */
+    private void completeReference(JSONObject property, Reference reference, TextFormat format) {
+        switch (reference) {
+            case BLOCK -> {
+                if (format == TextFormat.BLOCK_STATE) {
+                    putRegistryEnumOrPrefixRef(property, "enum-block-state", "enum-block-type", this::blockTypes,
+                            ModuleSchemaRenderer.blockStatePattern());
+                } else {
+                    putRegistryEnumRef(property, "enum-block-type", this::blockTypes);
+                }
+            }
+            case ITEM -> putRegistryEnumRef(property, "enum-item-type", this::itemTypes);
+            case ENTITY -> putRegistryEnumRef(property, "enum-entity-type", this::entityTypes);
+            case BIOME -> putRegistryEnumRef(property, "enum-biome-type", this::biomeTypes);
+            case STRUCTURE -> putRegistryEnumRef(property, "enum-vanilla-structure", this::vanillaStructures);
+            case POTION_EFFECT -> putRegistryEnumRef(property, "enum-potion-effect-type", this::potionTypes);
+            case ENCHANTMENT -> putRegistryEnumRef(property, "enum-enchantment", this::enchantTypes);
+            case PACK_BIOME -> putPackResourceRef(property, IrisBiome.class);
+            case PACK_REGION -> putPackResourceRef(property, IrisRegion.class);
+            case PACK_OBJECT -> putPackResourceRef(property, IrisObject.class);
+        }
+    }
+
+    /** Points {@code property} at the keys of the pack's resources of {@code type}; null when the pack has no such loader. */
+    private ResourceLoader<?> putPackResourceRef(JSONObject property, Class<?> type) {
+        ResourceLoader<?> loader = data.getLoaders().get(type);
+        if (loader == null) {
+            return null;
+        }
+        String key = "erz" + loader.getFolderName();
+        if (!definitions.containsKey(key)) {
+            JSONObject keys = new JSONObject();
+            keys.put("enum", new JSONArray(loader.getPossibleKeys()));
+            definitions.put(key, keys);
+        }
+        property.put("$ref", "#/definitions/" + key);
+        return loader;
     }
 
     private void buildProperties(JSONObject properties, JSONArray required, JSONArray extended, Class<?> c) {
@@ -429,19 +495,10 @@ public class SchemaBuilder {
 
                 if (k.isAnnotationPresent(RegistryListResource.class)) {
                     RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
-                    ResourceLoader<?> loader = data.getLoaders().get(rr.value());
+                    ResourceLoader<?> loader = putPackResourceRef(prop, rr.value());
 
                     if (loader != null) {
-                        String key = "erz" + loader.getFolderName();
-
-                        if (!definitions.containsKey(key)) {
-                            JSONObject j = new JSONObject();
-                            j.put("enum", new JSONArray(loader.getPossibleKeys()));
-                            definitions.put(key, j);
-                        }
-
                         fancyType = "Iris " + loader.getResourceTypeName();
-                        prop.put("$ref", "#/definitions/" + key);
                         description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getFolderName() + " (use ctrl+space for auto complete!)");
                     } else {
                         IrisLogging.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
@@ -638,20 +695,11 @@ public class SchemaBuilder {
 
                             if (k.isAnnotationPresent(RegistryListResource.class)) {
                                 RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
-                                ResourceLoader<?> loader = data.getLoaders().get(rr.value());
+                                JSONObject items = new JSONObject();
+                                ResourceLoader<?> loader = putPackResourceRef(items, rr.value());
 
                                 if (loader != null) {
                                     fancyType = "List<" + loader.getResourceTypeName() + ">";
-                                    String key = "erz" + loader.getFolderName();
-
-                                    if (!definitions.containsKey(key)) {
-                                        JSONObject j = new JSONObject();
-                                        j.put("enum", new JSONArray(loader.getPossibleKeys()));
-                                        definitions.put(key, j);
-                                    }
-
-                                    JSONObject items = new JSONObject();
-                                    items.put("$ref", "#/definitions/" + key);
                                     prop.put("items", items);
                                     description.add(SYMBOL_TYPE__N + "  Must be a valid " + loader.getResourceTypeName() + " (use ctrl+space for auto complete!)");
                                 } else {

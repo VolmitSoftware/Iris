@@ -22,20 +22,28 @@ import art.arcane.iris.spi.IrisLogging;
 import com.volmit.host.LoadedPack;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * The modules of one pack folder, loaded with {@link IrisModuleHost} the first time something needs
  * them and closed with the pack data that owns them. A failed load is reported once and remembered, so
- * every later use fails with the same error instead of loading the jars again.
+ * every later use fails with the same error instead of loading the jars again. Studio can load them
+ * again after the jars in {@code <pack>/modules} change.
  */
 public final class PackModuleSet implements AutoCloseable {
     private enum State { NOT_LOADED, LOADED, FAILED, CLOSED }
+
+    private static final String MODULES_FOLDER = "modules";
+    private static final String JAR_EXTENSION = ".jar";
 
     private final File packFolder;
     private State state = State.NOT_LOADED;
     private LoadedPack pack;
     private ModuleSettingsDecoder settings;
     private PackModulesException failure;
+    private List<String> loadedJars = List.of();
 
     public PackModuleSet(File packFolder) {
         this.packFolder = packFolder;
@@ -52,14 +60,35 @@ public final class PackModuleSet implements AutoCloseable {
         return settings;
     }
 
+    /**
+     * Forgets the loaded modules, or the failure to load them, when the pack's module jars changed since,
+     * so the next use loads the jars as they are now. Only for studio: anything built from the old modules,
+     * such as resources read with their settings, must be reloaded too.
+     *
+     * @return whether the jars changed
+     */
+    public synchronized boolean reloadIfJarsChanged() {
+        if (state == State.NOT_LOADED || state == State.CLOSED || jarFingerprint().equals(loadedJars)) {
+            return false;
+        }
+        release(State.NOT_LOADED);
+        return true;
+    }
+
     @Override
     public synchronized void close() {
+        release(State.CLOSED);
+    }
+
+    private void release(State next) {
         if (state == State.LOADED) {
             pack.close();
         }
         pack = null;
         settings = null;
-        state = State.CLOSED;
+        failure = null;
+        loadedJars = List.of();
+        state = next;
     }
 
     private void requireLoaded() {
@@ -73,6 +102,7 @@ public final class PackModuleSet implements AutoCloseable {
     }
 
     private void load() {
+        loadedJars = jarFingerprint();
         try {
             LoadedPack loaded = LoadedPack.load(packFolder.toPath(), IrisModuleHost.get());
             pack = loaded;
@@ -84,5 +114,17 @@ public final class PackModuleSet implements AutoCloseable {
             IrisLogging.error(failure.getMessage());
             throw failure;
         }
+    }
+
+    /** Each module jar's name, size and modification time, in name order. */
+    private List<String> jarFingerprint() {
+        File[] jars = new File(packFolder, MODULES_FOLDER).listFiles(file -> file.isFile() && file.getName().endsWith(JAR_EXTENSION));
+        if (jars == null) {
+            return List.of();
+        }
+        return Arrays.stream(jars)
+                .sorted(Comparator.comparing(File::getName))
+                .map(jar -> jar.getName() + ":" + jar.length() + ":" + jar.lastModified())
+                .toList();
     }
 }

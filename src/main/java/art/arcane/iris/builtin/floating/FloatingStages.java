@@ -19,10 +19,13 @@
 package art.arcane.iris.builtin.floating;
 
 import com.volmit.stage.ChunkStage;
+import com.volmit.stage.MantleStage;
 import com.volmit.stage.Stage;
 
 /** Module {@code iris:floating}: the floating islands of floating child biomes. */
 public final class FloatingStages {
+    /** Places the objects on and under the islands into the mantle, after the dimension's other objects. */
+    public static final MantleStage<Void> OBJECTS = Stage.mantle("iris:floating/objects");
     /** Writes the islands' solid blocks. */
     public static final ChunkStage<Void> SOLIDS = Stage.chunk("iris:floating/solids");
     /** Decorates the islands' tops and bottoms once the chunk's own decoration is done. */

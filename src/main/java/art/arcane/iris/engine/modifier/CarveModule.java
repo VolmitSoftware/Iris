@@ -24,7 +24,6 @@ import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.engine.mantle.components.CaveCarving;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.ChunkStageContext;
@@ -71,8 +70,11 @@ public final class CarveModule implements IrisModule {
                 chunk.blocks(), chunk.multicore(), chunk.context());
     }
 
-    /** A dimension turns carving off with {@code carvingEnabled}, or by listing {@code CARVED} in {@code disabledComponents}. */
+    /**
+     * A dimension turns carving off with {@code carvingEnabled}. Listing {@code CARVED} in {@code disabledComponents}
+     * also does: Iris then skips this stage's mantle pass like any disabled component.
+     */
     private static boolean carves(IrisDimension dimension) {
-        return dimension.isCarvingEnabled() && !dimension.getDisabledComponents().contains(ReservedFlag.CARVED);
+        return dimension.isCarvingEnabled();
     }
 }

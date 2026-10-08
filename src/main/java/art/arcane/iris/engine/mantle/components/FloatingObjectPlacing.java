@@ -22,9 +22,7 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.data.cache.Cache;
-import art.arcane.iris.engine.mantle.ComponentFlag;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.IrisMantleComponent;
+import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
@@ -43,7 +41,6 @@ import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.io.File;
@@ -53,23 +50,29 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
-@ComponentFlag(ReservedFlag.FLOATING_OBJECT)
-public class MantleFloatingObjectComponent extends IrisMantleComponent {
+/**
+ * Places the objects of floating child biomes on and under their islands into the mantle for
+ * {@link art.arcane.iris.engine.modifier.FloatingModule}. One per engine runtime. Its reach is the
+ * largest placement reach of any floating object the dimension's biomes can place, at least 16 blocks.
+ */
+public class FloatingObjectPlacing {
     private static final int INVERTED_PICK_ATTEMPTS = 8;
     private static final IrisObjectRotation ROTATION_NONE = IrisObjectRotation.of(0, 0, 0);
 
-    public MantleFloatingObjectComponent(EngineMantle engineMantle) {
-        super(engineMantle, ReservedFlag.FLOATING_OBJECT, 2);
+    private final Engine engine;
+
+    public FloatingObjectPlacing(Engine engine) {
+        this.engine = engine;
     }
 
-    @Override
-    public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+    /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
+    public void place(MantleWriter writer, int x, int z, ChunkContext context) {
         IrisComplex complex = context.getComplex();
-        IrisData data = getData();
+        IrisData data = engine.getData();
         int minX = x << 4;
         int minZ = z << 4;
-        RNG chunkRng = new RNG(Cache.key(x, z) + seed() + 0x0FA710BEL);
-        FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(getEngineMantle(), context.getFloatingIslandBoundarySampler());
+        RNG chunkRng = new RNG(Cache.key(x, z) + engine.getSeedManager().getMantle() + 0x0FA710BEL);
+        FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(engine.getMantle(), context.getFloatingIslandBoundarySampler());
 
         FloatingIslandSample.clearChunkMemo();
 
@@ -543,14 +546,14 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         };
     }
 
-    @Override
-    protected int computeRadius() {
+    /** How far, in blocks along X and Z, placements may write beyond their chunk. */
+    public int reach() {
         int maxObjectExtent = 16;
         Map<String, IrisBlockVector> sizeCache = new HashMap<>();
         Set<String> warnedLargeObjects = new HashSet<>();
         try {
-            IrisData data = getData();
-            for (IrisBiome biome : getDimension().getReachableBiomes(this::getData)) {
+            IrisData data = engine.getData();
+            for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
                 KList<IrisFloatingChildBiomes> entries = biome.getFloatingChildBiomes();
                 if (entries == null || entries.isEmpty()) {
                     continue;
@@ -599,7 +602,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                         size = IrisObject.sampleSize(file);
                         sizeCache.put(objectKey, size);
                     }
-                    int reach = MantleObjectComponent.calculatePlacementReach(size, placement);
+                    int reach = ObjectPlacing.calculatePlacementReach(size, placement);
                     if (reach > 128 && warnedLargeObjects.add(objectKey)) {
                         IrisLogging.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
                     }

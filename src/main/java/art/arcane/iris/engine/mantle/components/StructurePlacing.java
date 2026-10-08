@@ -27,9 +27,7 @@ import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
 import art.arcane.iris.engine.framework.StructurePlacementMarker;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.mantle.ComponentFlag;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.IrisMantleComponent;
+import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -56,7 +54,6 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -65,19 +62,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-@ComponentFlag(ReservedFlag.JIGSAW)
-public class IrisStructureComponent extends IrisMantleComponent {
+/**
+ * Places the Iris structures of the dimension, its regions and biomes into the mantle for
+ * {@link StructureModule}: their pieces, foundations, bores and carves, clearing object trees they
+ * intersect. One per engine runtime. Its reach is the largest structure any placement can produce.
+ */
+public class StructurePlacing {
     private static final MatterCavern CARVE_CAVERN = new MatterCavern(true, "", (byte) 3);
 
-    public IrisStructureComponent(EngineMantle engineMantle) {
-        super(engineMantle, ReservedFlag.JIGSAW, 3);
+    private final Engine engine;
+
+    public StructurePlacing(Engine engine) {
+        this.engine = engine;
     }
 
-    @Override
+    /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
     @ChunkCoordinates
-    public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+    public void place(MantleWriter writer, int x, int z, ChunkContext context) {
         for (IrisStructurePlacement placement : StructurePlacementScope.placementsAt(
-                getEngineMantle().getEngine(), x, z)) {
+                engine, x, z)) {
             if (!placement.hasIrisStructures()) {
                 continue;
             }
@@ -88,7 +91,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
     @ChunkCoordinates
     private void placeFromPlacement(MantleWriter writer, IrisStructurePlacement placement, int cx, int cz) {
         IrisStructureLocator.ResolvedPlacement resolved = IrisStructureLocator.resolvePlacement(
-                getEngineMantle().getEngine(), placement, cx, cz);
+                engine, placement, cx, cz);
         if (resolved == null) {
             return;
         }
@@ -173,7 +176,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                                  boolean surfaceStructure) {
         IrisMaterialPalette palette = Objects.requireNonNull(
                 settings.getPalette(), "Structure stilt palette must not be null");
-        int mantleOffset = getEngineMantle().getEngine().getMinHeight();
+        int mantleOffset = engine.getMinHeight();
         int maxDepth = Math.max(1, settings.getMaxDepth());
         for (Long2IntMap.Entry column : columns.long2IntEntrySet()) {
             int worldX = StructureFoundationPlanner.unpackX(column.getLongKey());
@@ -184,7 +187,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
             if (foundationState == null || !foundationState.isSolid()) {
                 continue;
             }
-            int terrainHeight = getEngineMantle().trueHeight(worldX, worldZ);
+            int terrainHeight = engine.getMantle().trueHeight(worldX, worldZ);
             int groundY = StructureFoundationPlanner.findGroundY(
                     foundationY, maxDepth, 0,
                     y -> {
@@ -203,7 +206,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
             }
             StructureFoundationPlanner.fillSupportColumn(foundationY, groundY, y -> {
                 writeFoundationSupport(
-                        writer, palette, rng, getData(), worldX, y, worldZ, mantleOffset);
+                        writer, palette, rng, engine.getData(), worldX, y, worldZ, mantleOffset);
             });
         }
     }
@@ -259,14 +262,14 @@ public class IrisStructureComponent extends IrisMantleComponent {
         int maxX = bounds[3] + pad;
         int maxY = bounds[4] + Math.max(0, terrain.getCeilingPadding());
         int maxZ = bounds[5] + pad;
-        int worldMin = getEngineMantle().getEngine().getMinHeight() + 1;
-        int worldMax = getEngineMantle().getEngine().getMinHeight() + getEngineMantle().getEngine().getHeight() - 1;
+        int worldMin = engine.getMinHeight() + 1;
+        int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         minY = Math.max(minY, worldMin);
         maxY = Math.min(maxY, worldMax);
         if (maxX < minX || maxY < minY || maxZ < minZ) {
             return;
         }
-        int mantleOffset = getEngineMantle().getEngine().getMinHeight();
+        int mantleOffset = engine.getMinHeight();
         for (int bx = minX; bx <= maxX; bx++) {
             for (int by = minY; by <= maxY; by++) {
                 for (int bz = minZ; bz <= maxZ; bz++) {
@@ -287,9 +290,9 @@ public class IrisStructureComponent extends IrisMantleComponent {
         int head = Math.max(0, terrain.getCeilingPadding());
         int floorCut = Math.max(0, terrain.getFloorPadding());
         double strength = terrain.resolvedErosionStrength();
-        int mantleOffset = getEngineMantle().getEngine().getMinHeight();
-        int worldMin = getEngineMantle().getEngine().getMinHeight() + 1;
-        int worldMax = getEngineMantle().getEngine().getMinHeight() + getEngineMantle().getEngine().getHeight() - 1;
+        int mantleOffset = engine.getMinHeight();
+        int worldMin = engine.getMinHeight() + 1;
+        int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         int upExtension = shape.maximumCeilingExtension(head, strength);
 
         if (shape == IrisStructureCarveShape.BOX) {
@@ -309,7 +312,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         CNG blob = null;
         CNG roll = null;
         if (eroded) {
-            RNG noiseRng = new RNG(seed() + Cache.key(bounds[0], bounds[2]));
+            RNG noiseRng = new RNG(engine.getSeedManager().getMantle() + Cache.key(bounds[0], bounds[2]));
             blob = CNG.signature(noiseRng);
             roll = CNG.signature(noiseRng.nextParallelRNG(0x2A17));
         }
@@ -404,8 +407,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
     }
 
     private void clearIntersectingObjectTrees(MantleWriter writer, IrisStructureLocator.ResolvedPlacement resolved) {
-        int mantleOffset = getEngineMantle().getEngine().getMinHeight();
-        int worldHeight = getEngineMantle().getEngine().getHeight();
+        int mantleOffset = engine.getMinHeight();
+        int worldHeight = engine.getHeight();
         Map<String, ObjectMarkerBounds> intersectingObjects = new HashMap<>();
         for (PlacedStructurePiece piece : resolved.pieces()) {
             for (IrisBlockVector local : piece.getObject().getBlocks().keys()) {
@@ -450,7 +453,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         if (decoded == null) {
             return;
         }
-        IrisObject object = getData().load(IrisObject.class, decoded.objectKey(), false);
+        IrisObject object = engine.getData().load(IrisObject.class, decoded.objectKey(), false);
         if (object == null) {
             return;
         }
@@ -543,7 +546,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         if (mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
             config.setForcePlace(true);
         }
-        int placeY = (y == -1) ? -1 : y - getEngineMantle().getEngine().getMinHeight();
+        int placeY = (y == -1) ? -1 : y - engine.getMinHeight();
         String marker = structurePlacementMarker(structure, p, objectKey);
         return object.place(p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
@@ -552,7 +555,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
             if (marker != null && shouldWriteStructureMarker(state)) {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
-        }, null, getData());
+        }, null, engine.getData());
     }
 
     static boolean shouldWriteStructureMarker(PlatformBlockState state) {
@@ -578,15 +581,15 @@ public class IrisStructureComponent extends IrisMantleComponent {
         return StructurePlacementMarker.encodeStructure(objectKey, placementId, structureKey);
     }
 
-    @Override
-    protected int computeRadius() {
-        IrisDimension dimension = getDimension();
+    /** How far, in blocks along X and Z, placements may write beyond their chunk. */
+    public int reach() {
+        IrisDimension dimension = engine.getDimension();
         int maxBlocks = 0;
 
-        for (IrisRegion region : dimension.getAllRegions(this::getData)) {
+        for (IrisRegion region : dimension.getAllRegions(engine)) {
             maxBlocks = Math.max(maxBlocks, maxBlocksFrom(region.getStructures()));
         }
-        for (IrisBiome biome : dimension.getReachableBiomes(this::getData)) {
+        for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
             maxBlocks = Math.max(maxBlocks, maxBlocksFrom(biome.getStructures()));
         }
         maxBlocks = Math.max(maxBlocks, maxBlocksFrom(dimension.getStructures()));
@@ -605,7 +608,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                     || terrain.resolvedMode() == IrisStructureTerrainMode.BORE
                     ? Math.max(0, terrain.getHorizontalPadding()) : 0;
             for (String key : placement.getStructures()) {
-                IrisStructure structure = getData().load(IrisStructure.class, key, false);
+                IrisStructure structure = engine.getData().load(IrisStructure.class, key, false);
                 if (structure != null) {
                     max = Math.max(max, Math.max(1, structure.getMaxSizeChunks()) * 16 + carvePadding);
                 }

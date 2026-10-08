@@ -26,9 +26,6 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
-import art.arcane.iris.engine.mantle.ComponentFlag;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.IrisMantleComponent;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
@@ -55,7 +52,6 @@ import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
@@ -74,16 +70,23 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-@ComponentFlag(ReservedFlag.OBJECT)
-public class MantleObjectComponent extends IrisMantleComponent {
+/**
+ * Places the objects of the dimension's regions and biomes into the mantle for
+ * {@link ObjectModule}: surface, cave and upper-dimension objects, and procedural objects, one chunk at a
+ * time after the caves they anchor in are planned. One per engine runtime. Its reach is the largest
+ * placement reach of any object the dimension can place.
+ */
+public class ObjectPlacing {
     private static final long CAVE_REJECT_LOG_THROTTLE_MS = 5000L;
     private static final int BEDROCK_CLEARANCE = 6;
     private static final byte LIQUID_FORCED_AIR = 3;
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
 
-    public MantleObjectComponent(EngineMantle engineMantle) {
-        super(engineMantle, ReservedFlag.OBJECT, 1);
+    private final Engine engine;
+
+    public ObjectPlacing(Engine engine) {
+        this.engine = engine;
     }
 
     private static String placementMarker(IrisObject object, int id, String context) {
@@ -111,21 +114,21 @@ public class MantleObjectComponent extends IrisMantleComponent {
         placer.setData(x, y, z, TreeBlockMaterial.of(data));
     }
 
-    @Override
-    public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+    /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
+    public void place(MantleWriter writer, int x, int z, ChunkContext context) {
         IrisComplex complex = context.getComplex();
         boolean traceRegen = isRegenTraceThread();
-        RNG rng = applyNoise(x, z, Cache.key(x, z) + seed());
+        RNG rng = applyNoise(x, z, Cache.key(x, z) + engine.getSeedManager().getMantle());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = complex.getRegionStream().get(xxx, zzz);
         IrisBiome surfaceBiome = complex.getTrueBiomeStream().get(xxx, zzz);
-        int surfaceY = getEngineMantle().getEngine().getHeight(xxx, zzz, true);
+        int surfaceY = engine.getHeight(xxx, zzz, true);
         IrisBiome caveBiome = resolveCaveObjectBiome(xxx, zzz, surfaceY, surfaceBiome);
         if (IrisSettings.get().getGeneral().isDebug() && (x & 31) == 0 && (z & 31) == 0) {
             int carvedBlocks = 0;
             int minY = 1;
-            int maxY = Math.min(getEngineMantle().getEngine().getHeight() - 1, surfaceY - 14);
+            int maxY = Math.min(engine.getHeight() - 1, surfaceY - 14);
             for (int sy = minY; sy < maxY; sy++) {
                 if (writer.isCarved(8 + (x << 4), sy, 8 + (z << 4))) {
                     carvedBlocks++;
@@ -153,8 +156,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
         ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, complex, traceRegen);
         placeProceduralObjects(writer, rng, x, z, surfaceBiome, caveBiome, region);
-        UpperDimensionContext upperCtx = getEngineMantle().getEngine().getUpperContext();
-        IrisDimension dimension = getDimension();
+        UpperDimensionContext upperCtx = engine.getUpperContext();
+        IrisDimension dimension = engine.getDimension();
         if (upperCtx != null && dimension.isUpperDimensionObjects()) {
             placeUpperObjects(writer, rng, x, z, xxx, zzz, surfaceY, upperCtx, dimension, complex, traceRegen);
         }
@@ -183,7 +186,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     private IrisBiome resolveCaveObjectBiome(int x, int z, int surfaceY, IrisBiome surfaceBiome) {
         int legacySampleY = Math.max(1, surfaceY - 48);
-        IrisBiome legacyCaveBiome = getEngineMantle().getEngine().getCaveBiome(x, legacySampleY, z);
+        IrisBiome legacyCaveBiome = engine.getCaveBiome(x, legacySampleY, z);
         if (legacyCaveBiome == null) {
             legacyCaveBiome = surfaceBiome;
         }
@@ -192,7 +195,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         IrisBiome ladderChoice = null;
         for (int sampleDepth : sampleDepths) {
             int sampleY = Math.max(1, surfaceY - sampleDepth);
-            IrisBiome sampled = getEngineMantle().getEngine().getCaveBiome(x, sampleY, z);
+            IrisBiome sampled = engine.getCaveBiome(x, sampleY, z);
             boolean sameSurface = sampled == surfaceBiome;
             if (!sameSurface && sampled != null && surfaceBiome != null) {
                 String sampledKey = sampled.getLoadKey();
@@ -435,7 +438,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName()) : basePlacer;
             int density = Math.max(1, p.getDensity());
             for (int i = 0; i < density; i++) {
-                IrisObject variant = p.getVariantObject(getData(), rng);
+                IrisObject variant = p.getVariantObject(engine.getData(), rng);
                 if (variant == null) {
                     if (golden) {
                         IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
@@ -473,7 +476,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 int zz = caveAnchor == null ? rng.i(blockZ, blockZ + 16) : caveAnchor.z();
                 int id = rng.i(0, Integer.MAX_VALUE);
                 if (golden) {
-                    KList<IrisObject> pool = p.getVariantObjects(getData());
+                    KList<IrisObject> pool = p.getVariantObjects(engine.getData());
                     IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
                             + " placement=" + p.getName()
                             + " densityIndex=" + i
@@ -521,7 +524,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             if (treePlacement && marker != null) {
                                 writeTreeMaterial(placer, b.getX(), b.getY(), b.getZ(), data);
                             }
-                        }, null, getData());
+                        }, null, engine.getData());
                     }
                     if (golden) {
                         IrisLogging.debug("Goldendebug procedural result: chunk=" + x + "," + z
@@ -582,7 +585,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             underwater,
                             writer.getDataIfPresent(candidateX, candidateY, candidateZ, MatterCavern.class),
                             candidateY,
-                            getDimension().getCaveLavaHeight())) {
+                            engine.getDimension().getCaveLavaHeight())) {
                 continue;
             }
             return new CavePlacementAnchor(candidateX, candidateY, candidateZ);
@@ -629,7 +632,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
                 transaction.setData(block.getX(), block.getY(), block.getZ(), MatterStructurePOI.BURIED_TREASURE);
             }
-        }, null, getData());
+        }, null, engine.getData());
         if (result < 0) {
             transaction.discard();
             return new ContainedPlacementResult(result, CaveObjectPlacementTransaction.CommitResult.EMPTY);
@@ -655,7 +658,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int rejected = 0;
         int nullObjects = 0;
         int errors = 0;
-        int density = objectPlacement.getDensity(rng, x, z, getData());
+        int density = objectPlacement.getDensity(rng, x, z, engine.getData());
         boolean golden = GoldenDebugObjectPlacer.isGoldenDebugChunk(chunkX, chunkZ);
 
         for (int i = 0; i < density; i++) {
@@ -699,7 +702,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     if (effectivePlacement.isDolphinTarget() && effectivePlacement.isUnderwater() && B.isStorageChest(data)) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
                     }
-                }, null, getData());
+                }, null, engine.getData());
 
                 if (result >= 0) {
                     placed++;
@@ -746,7 +749,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
         if (expectedCaveBiomeKey == null) {
             return false;
         }
-        Engine engine = getEngineMantle().getEngine();
         IrisBiome at = engine.getCaveBiome(x, y, z);
         IrisBiome surface = engine.getSurfaceBiome(x, z);
         return caveAnchorBiomeConflicts(at, surface, expectedCaveBiomeKey);
@@ -788,7 +790,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int errors = 0;
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
-        int density = objectPlacement.getDensity(rng, minX, minZ, getData());
+        int density = objectPlacement.getDensity(rng, minX, minZ, engine.getData());
         IrisCaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
         if (objectPlacement.getMode() == ObjectPlaceMode.CEILING_HANG) {
             anchorMode = IrisCaveAnchorMode.CEILING;
@@ -1025,11 +1027,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
             boolean traceRegen,
             String scope
     ) {
-        int chunkHeight = getEngineMantle().getEngine().getHeight();
+        int chunkHeight = engine.getHeight();
         int upperGap = dimension.getUpperDimensionGap();
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
-        int density = objectPlacement.getDensity(rng, minX, minZ, getData());
+        int density = objectPlacement.getDensity(rng, minX, minZ, engine.getData());
 
         for (int i = 0; i < density; i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
@@ -1039,7 +1041,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
             int xx = rng.i(minX, minX + 16);
             int zz = rng.i(minZ, minZ + 16);
-            int columnLowerSurfaceY = getEngineMantle().getEngine().getHeight(xx, zz, true);
+            int columnLowerSurfaceY = engine.getHeight(xx, zz, true);
             int rawUpperSurface = upperCtx.getUpperSurfaceY(xx, zz);
             int upperSurfaceY = Math.max(rawUpperSurface, columnLowerSurfaceY + upperGap);
             if (upperSurfaceY >= chunkHeight - 2) {
@@ -1073,7 +1075,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
                     writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
                 }
-            }, null, getData());
+            }, null, engine.getData());
 
             if (traceRegen) {
                 IrisLogging.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ
@@ -1164,7 +1166,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     /** Dimension acts as the floor: it can force support on and widen the buffer, never weaken either. */
     private IrisObjectPlacement applyDimensionSurfaceSupport(IrisObjectPlacement placement) {
-        IrisDimension dimension = getDimension();
+        IrisDimension dimension = engine.getDimension();
         boolean require = placement.isRequireSurfaceSupport() && dimension.isRequireObjectSurfaceSupport();
         int buffer = Math.max(placement.getSurfaceSupportBuffer(), dimension.getObjectSurfaceSupportBuffer());
         if (require == placement.isRequireSurfaceSupport() && buffer == placement.getSurfaceSupportBuffer()) {
@@ -1249,7 +1251,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     private KList<Integer> scanCaveAnchorColumn(MantleWriter writer, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, int x, int z, CaveAnchorCache anchorCache) {
-        int height = getEngineMantle().getEngine().getHeight();
+        int height = engine.getHeight();
         int step = Math.max(1, anchorScanStep);
         int surfaceY = anchorCache.getSurfaceHeight(x, z);
         int maxAnchorExclusive = caveAnchorScanUpperBound(height, surfaceY, objectMinDepthBelowSurface);
@@ -1316,7 +1318,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     private IrisCaveProfile resolveCaveProfile(IrisCaveProfile preferred, IrisCaveProfile secondary) {
-        IrisCaveProfile dimensionProfile = getDimension().getCaveProfile();
+        IrisCaveProfile dimensionProfile = engine.getDimension().getCaveProfile();
         if (preferred != null && preferred.isEnabled()) {
             return preferred;
         }
@@ -1416,8 +1418,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
     @BlockCoordinates
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
         Set<String> f = new KSet<>();
-        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
+        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, engine.getData()); i++) {
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(engine.getComplex(), rng));
             if (v == null) {
                 continue;
             }
@@ -1430,9 +1432,9 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     public Set<String> guess(int x, int z) {
         // todo The guess doesnt bring into account that the placer may return -1
-        RNG rng = applyNoise(x, z, Cache.key(x, z) + seed());
-        IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
-        IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
+        RNG rng = applyNoise(x, z, Cache.key(x, z) + engine.getSeedManager().getMantle());
+        IrisBiome biome = engine.getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
+        IrisRegion region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
         Set<String> v = new KSet<>();
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
@@ -1449,19 +1451,20 @@ public class MantleObjectComponent extends IrisMantleComponent {
         return v;
     }
 
-    protected int computeRadius() {
-        IrisDimension dimension = getDimension();
+    /** How far, in blocks along X and Z, placements may write beyond their chunk. */
+    public int reach() {
+        IrisDimension dimension = engine.getDimension();
         KMap<String, IrisBlockVector> sizeCache = new KMap<>();
         KSet<String> warnedLargeObjects = new KSet<>();
         int radius = 0;
-        for (IrisRegion region : dimension.getAllRegions(this::getData)) {
+        for (IrisRegion region : dimension.getAllRegions(engine)) {
             if (region == null) {
                 continue;
             }
             radius = Math.max(radius, computePlacementRadius(region.getObjects(), sizeCache, warnedLargeObjects));
             radius = Math.max(radius, computeProceduralRadius(region.getProceduralObjects()));
         }
-        for (IrisBiome biome : dimension.getReachableBiomes(this::getData)) {
+        for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
             if (biome == null) {
                 continue;
             }
@@ -1510,7 +1513,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             if (placement == null) {
                 continue;
             }
-            KList<IrisObject> variants = placement.getVariantObjects(getData());
+            KList<IrisObject> variants = placement.getVariantObjects(engine.getData());
             if (variants == null) {
                 continue;
             }
@@ -1578,7 +1581,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private IrisBlockVector loadObjectSize(KMap<String, IrisBlockVector> sizeCache, String objectKey) {
         return sizeCache.computeIfAbsent(objectKey, k -> {
             try {
-                return IrisObject.sampleSize(getData().getObjectLoader().findFile(objectKey));
+                return IrisObject.sampleSize(engine.getData().getObjectLoader().findFile(objectKey));
             } catch (IOException e) {
                 IrisLogging.reportError(e);
             }
@@ -1641,7 +1644,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 return surfaceY;
             }
 
-            surfaceY = getEngineMantle().getEngine().getHeight(x, z);
+            surfaceY = engine.getHeight(x, z);
             surfaceHeights.put(columnKey, surfaceY);
             return surfaceY;
         }

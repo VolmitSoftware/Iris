@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.core.link.Identifier;
+import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -10,6 +11,8 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
@@ -23,6 +26,16 @@ import static org.mockito.Mockito.when;
 
 /** A custom block goes into the mantle as its placement key and is replaced by its base state, in a chunk the mantle flags as having some. */
 public class CustomModuleTest {
+    @Before
+    public void bindPlatform() {
+        UsableBlockPlatform.bind();
+    }
+
+    @After
+    public void unbindPlatform() {
+        UsableBlockPlatform.unbind();
+    }
+
     private static final int CHUNK_X = 3;
     private static final int CHUNK_Z = -2;
     private static final int Y = 20;

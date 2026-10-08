@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -8,10 +9,7 @@ import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -20,9 +18,6 @@ import art.arcane.volmlib.util.math.RNG;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -31,7 +26,6 @@ import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,13 +41,13 @@ public class TerrainModuleTest {
 
     @After
     public void unbindPlatform() {
-        IrisPlatforms.unbind();
+        UsableBlockPlatform.unbind();
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void aColumnIsBedrockThenRockThenLayersThenFluid() {
-        bindPlatform();
+        UsableBlockPlatform.bind();
         TerrainModule.TerrainShaper shaper = new TerrainModule.TerrainShaper(engine());
         Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 64, 16);
         IrisBiome biome = mock(IrisBiome.class);
@@ -109,27 +103,5 @@ public class TerrainModuleTest {
         when(engine.getSeedManager()).thenReturn(seeds);
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
         return engine;
-    }
-
-    private void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        // B keeps the first registries any test binds, and the shaper reads its bedrock from it once, so every answer must be usable by the tests that run after this one.
-        Map<String, PlatformBlockState> states = new HashMap<>();
-        when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
-                invocation.<String>getArgument(0).toLowerCase(Locale.ROOT), this::usableBlock));
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    private PlatformBlockState usableBlock(String name) {
-        String key = name.contains(":") ? name : "minecraft:" + name;
-        PlatformBlockState block = mock(PlatformBlockState.class);
-        when(block.key()).thenReturn(key);
-        when(block.materialKey()).thenReturn(key.split("\\[", 2)[0]);
-        when(block.isSolid()).thenReturn(!key.contains("air"));
-        when(block.isOccluding()).thenReturn(!key.contains("air"));
-        return block;
     }
 }

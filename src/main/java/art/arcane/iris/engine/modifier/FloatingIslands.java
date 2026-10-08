@@ -25,7 +25,6 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.decorator.FloatingDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineAssignedModifier;
 import art.arcane.iris.engine.framework.EngineDecorator;
 import art.arcane.iris.engine.object.terrain.floating.FloatingBottomPaletteMode;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
@@ -53,10 +52,16 @@ import java.util.IdentityHashMap;
 
 import static art.arcane.iris.engine.mantle.EngineMantle.AIR;
 
-public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<PlatformBlockState> {
+/**
+ * Fills and decorates the floating islands of the dimension's floating child biomes for {@link FloatingModule}:
+ * the islands' solids (top layers, bottom palette, sea surface) and, later, the decoration on their tops. One
+ * per engine runtime, holding the islands' random.
+ */
+public class FloatingIslands {
     public static final long FLOATING_BASE_SEED_SALT = 0x5EED_F107_00F1B10CL;
     private static final Runnable NOOP_DECORATION_MISS = () -> {
     };
+    private final Engine engine;
     private final RNG rng;
     private final EngineDecorator seaSurfaceDecorator;
 
@@ -198,20 +203,20 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
         }
     }
 
-    public IrisFloatingChildBiomeModifier(Engine engine) {
-        super(engine, "FloatingChildBiomes");
+    public FloatingIslands(Engine engine) {
+        this.engine = engine;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
     }
 
-    @Override
-    public void onModify(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    /** Fills the islands' solids into the chunk whose first block is {@code x}, {@code z}. */
+    public void fillSolids(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         int chunkHeight = output.getHeight();
-        IrisData data = getData();
-        IrisDimension dimension = getDimension();
-        IrisComplex complex = getComplex();
-        long baseSeed = getEngine().getSeedManager().getTerrain() ^ FLOATING_BASE_SEED_SALT;
+        IrisData data = engine.getData();
+        IrisDimension dimension = engine.getDimension();
+        IrisComplex complex = engine.getComplex();
+        long baseSeed = engine.getSeedManager().getTerrain() ^ FLOATING_BASE_SEED_SALT;
         FloatingIslandBoundarySampler boundarySampler = context.getFloatingIslandBoundarySampler();
         FloatingIslandSample.clearChunkMemo();
 
@@ -223,7 +228,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
                 if (parent == null || parent.getFloatingChildBiomes() == null || parent.getFloatingChildBiomes().isEmpty()) {
                     continue;
                 }
-                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, getEngine(), boundarySampler);
+                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
                 if (sample == null) {
                     continue;
                 }
@@ -289,14 +294,15 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
             }
         }
 
-        getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
+        engine.getMetrics().getTerrain().put(p.getMilliseconds());
     }
 
+    /** Decorates the tops of the islands in the chunk whose first block is {@code x}, {@code z}. */
     public void decorateColumns(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
         int chunkHeight = output.getHeight();
-        IrisData data = getData();
-        IrisComplex complex = getComplex();
-        long baseSeed = getEngine().getSeedManager().getTerrain() ^ FLOATING_BASE_SEED_SALT;
+        IrisData data = engine.getData();
+        IrisComplex complex = engine.getComplex();
+        long baseSeed = engine.getSeedManager().getTerrain() ^ FLOATING_BASE_SEED_SALT;
         FloatingIslandBoundarySampler boundarySampler = context.getFloatingIslandBoundarySampler();
 
         for (int xf = 0; xf < 16; xf++) {
@@ -307,7 +313,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
                 if (parent == null || parent.getFloatingChildBiomes() == null || parent.getFloatingChildBiomes().isEmpty()) {
                     continue;
                 }
-                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, getEngine(), boundarySampler);
+                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
                 if (sample == null) {
                     continue;
                 }
@@ -325,7 +331,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
                     if (above == null || above.isAir()) {
                         try {
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
-                            FloatingDecorator.decorateColumn(getEngine(), target, IrisDecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
+                            FloatingDecorator.decorateColumn(engine, target, IrisDecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
                             IrisLogging.reportError(e);
                         }
@@ -388,7 +394,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
                     matter = createSkyBiomeMatter(target, wx, wz);
                     matterByEntry.put(entry, matter);
                 }
-                getEngine().getMantle().getMantle().set(wx, y, wz, matter);
+                engine.getMantle().getMantle().set(wx, y, wz, matter);
             }
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -397,10 +403,10 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Platf
 
     private MatterBiomeInject createSkyBiomeMatter(IrisBiome target, int wx, int wz) {
         if (target.isCustom()) {
-            IrisBiomeCustom custom = target.getCustomBiome(rng, getEngine(), wx, 0, wz);
-            return BiomeInjectMatter.get(IrisPlatforms.get().biomeWriter().biomeIdFor(getDimension().getLoadKey() + ":" + custom.getId()));
+            IrisBiomeCustom custom = target.getCustomBiome(rng, engine, wx, 0, wz);
+            return BiomeInjectMatter.get(IrisPlatforms.get().biomeWriter().biomeIdFor(engine.getDimension().getLoadKey() + ":" + custom.getId()));
         }
 
-        return BiomeInjectMatter.get(IrisPlatforms.get().biomeWriter().biomeIdFor(target.getSkyBiomeKey(rng, getEngine(), wx, 0, wz)));
+        return BiomeInjectMatter.get(IrisPlatforms.get().biomeWriter().biomeIdFor(target.getSkyBiomeKey(rng, engine, wx, 0, wz)));
     }
 }

@@ -22,7 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.modifier.IrisFloatingChildBiomeModifier;
+import art.arcane.iris.engine.modifier.FloatingIslands;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -43,7 +43,7 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
         this.data = engineMantle.getData();
         this.engine = engineMantle.getEngine();
         this.chunkHeight = engine.getHeight();
-        this.baseSeed = engine.getSeedManager().getTerrain() ^ IrisFloatingChildBiomeModifier.FLOATING_BASE_SEED_SALT;
+        this.baseSeed = engine.getSeedManager().getTerrain() ^ FloatingIslands.FLOATING_BASE_SEED_SALT;
         this.boundarySampler = boundarySampler;
         this.sampleCache = new Long2ObjectOpenHashMap<>();
         this.resolvedSamples = new LongOpenHashSet();

@@ -39,7 +39,7 @@ import com.volmit.stage.StageGraph;
  * dimension's other objects, their solids after smoothing and their decoration after the chunk's own. The
  * mantle stage is a port of what was Iris's floating object mantle component, its work done by
  * {@link FloatingObjectPlacing}, whose reach is the pack's largest floating object placement. The chunk
- * stages are a thin wrapper: both run {@link IrisFloatingChildBiomeModifier} unchanged, one per engine runtime.
+ * stages' work is done by {@link FloatingIslands}.
  */
 public final class FloatingModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -68,7 +68,7 @@ public final class FloatingModule implements IrisModule {
 
     private static void solids(ChunkStageContext context) {
         IrisChunk chunk = IrisChunk.current();
-        islands(chunk).modify(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
+        islands(chunk).fillSolids(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
     }
 
     private static void decorate(ChunkStageContext context) {
@@ -80,7 +80,7 @@ public final class FloatingModule implements IrisModule {
         return engine.getGeneration().state(FloatingObjectPlacing.class, FloatingObjectPlacing::new);
     }
 
-    private static IrisFloatingChildBiomeModifier islands(IrisChunk chunk) {
-        return chunk.state(IrisFloatingChildBiomeModifier.class, IrisFloatingChildBiomeModifier::new);
+    private static FloatingIslands islands(IrisChunk chunk) {
+        return chunk.state(FloatingIslands.class, FloatingIslands::new);
     }
 }

@@ -49,11 +49,11 @@ public final class ModuleChunkGeneration {
 
     /** {@code x} and {@code z} are the chunk's first block, as engine stages receive them. */
     public static void generate(Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context) {
-        generate(engine.getData().getModules().pack(), engine, x, z, blocks,
+        generate(engine.getData().getModules().pack(), engine, x, z, blocks, context,
                 context.getRegion().get(CHUNK_CENTER, CHUNK_CENTER), context.getBiome().get(CHUNK_CENTER, CHUNK_CENTER), B::getState);
     }
 
-    static void generate(LoadedPack pack, Engine engine, int x, int z, Hunk<PlatformBlockState> blocks,
+    static void generate(LoadedPack pack, Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context,
                          IrisRegion centerRegion, IrisBiome centerBiome, Function<String, PlatformBlockState> platformStates) {
         ResolvedGraph chunk = pack.chunk();
         if (chunk.stages().isEmpty()) {
@@ -63,6 +63,6 @@ public final class ModuleChunkGeneration {
         IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z,
                 new BlockStateHunk(blocks, platformStates), chunk.reach().blocks());
         long seed = ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
-        new ChunkRunner(chunk).generate(inputs, seed, settings);
+        new IrisChunk(engine, x, z, blocks, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed, settings));
     }
 }

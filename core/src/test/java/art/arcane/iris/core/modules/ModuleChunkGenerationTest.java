@@ -139,7 +139,7 @@ public class ModuleChunkGenerationTest {
     }
 
     private void generate(IrisBiome biome) {
-        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, new IrisRegion(), biome, ModuleChunkGenerationTest::platformState);
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, new IrisRegion(), biome, ModuleChunkGenerationTest::platformState);
     }
 
     private static PillarSettings pillar(int x) {

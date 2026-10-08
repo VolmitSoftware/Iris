@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.modifier.PerfectionModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
@@ -26,6 +27,7 @@ import com.volmit.host.PackModules;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * The one {@link ModuleHost} every pack load uses: Iris's built-in modules, the built-in module API
@@ -48,7 +50,7 @@ public final class IrisModuleHost {
 
     /** The modules every pack loads before its own: Iris's built-in features. */
     public static List<IrisModule> builtInModules() {
-        return PlacementModules.all();
+        return Stream.concat(PlacementModules.all().stream(), Stream.of(new PerfectionModule())).toList();
     }
 
     private static ModuleHost build() {

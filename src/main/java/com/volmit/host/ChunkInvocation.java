@@ -36,11 +36,6 @@ final class ChunkInvocation implements ChunkStageContext {
     }
 
     @Override
-    public int originY() {
-        return inputs.originY();
-    }
-
-    @Override
     public int originZ() {
         return inputs.originZ();
     }

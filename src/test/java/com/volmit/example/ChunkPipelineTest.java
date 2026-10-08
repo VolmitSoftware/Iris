@@ -40,8 +40,8 @@ class ChunkPipelineTest {
     private static final int SIZE = 4;
     private static final int HEIGHT = 8;
     private static final int CHUNK = 16;
-    private static final int MIN_Y = -64;
-    private static final int MAX_Y = 320;
+    private static final int BOTTOM = 0;
+    private static final int TOP = 384;
     private static final BlockState AIR = new BlockState("minecraft:air");
     private static final BlockState GRASS = new BlockState("minecraft:grass_block");
     private static final ResourceId DIMENSION = ResourceId.parse("pack:dimension/overworld");
@@ -136,18 +136,18 @@ class ChunkPipelineTest {
     @Test
     void mantleStagesWriteBeyondTheirChunkAndChunkStagesReadTheirOwnPart() {
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(new VeinModule())), Map.of(), Set.of(), Set.of());
-        var vein = new Entry<>(Target.BIOME, PLAINS, new VeinSettings(12, -60));
+        var vein = new Entry<>(Target.BIOME, PLAINS, new VeinSettings(12, 4));
         int reach = loaded.mantle().stages().getFirst().reachBlocks(new DeclaredSettings(vein));
         assertEquals(3, reach, "a 12 block vein from the centre column runs 3 blocks into the next chunk");
         var mantle = new MemoryMantle();
-        var reachArea = new BlockBox(-reach, MIN_Y, -reach, CHUNK + reach, MAX_Y, CHUNK + reach);
+        var reachArea = new BlockBox(-reach, BOTTOM, -reach, CHUNK + reach, TOP, CHUNK + reach);
 
         new MantleRunner(loaded.mantle()).generate(VeinModule.PLAN,
                 TestContexts.mantle(0, 0, ColumnSettings.everywhere(vein), mantle.within(reachArea)), TestContexts.SEED);
-        assertEquals(1, mantle.get(VeinModule.ORE, 18, -60, 7), "the vein runs on into the next chunk");
+        assertEquals(1, mantle.get(VeinModule.ORE, 18, 4, 7), "the vein runs on into the next chunk");
 
         var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, AIR);
-        var chunkArea = new BlockBox(0, MIN_Y, 0, CHUNK, MAX_Y, CHUNK);
+        var chunkArea = new BlockBox(0, BOTTOM, 0, CHUNK, TOP, CHUNK);
         new ChunkRunner(loaded.chunk()).generate(
                 TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED);
         assertEquals(VeinModule.ORE_BLOCK, blocks.get(7, 4, 7));
@@ -167,7 +167,7 @@ class ChunkPipelineTest {
         };
         var builder = new StageGraphBuilder();
         builder.install(DiscoveredModule.builtIn(module));
-        var inputs = TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(new BlockBox(0, MIN_Y, 0, CHUNK, MAX_Y, CHUNK)));
+        var inputs = TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(new BlockBox(0, BOTTOM, 0, CHUNK, TOP, CHUNK)));
 
         var failure = assertThrows(UnsupportedOperationException.class,
                 () -> new ChunkRunner(builder.resolve(Pipeline.CHUNK)).generate(inputs, TestContexts.SEED));

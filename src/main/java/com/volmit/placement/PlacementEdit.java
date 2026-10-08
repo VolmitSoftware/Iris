@@ -1,6 +1,7 @@
 package com.volmit.placement;
 
-/** Host-owned buffered placement writes, in world coordinates, including cross-chunk writes.
+/** Host-owned buffered placement writes, with world X and Z and Y as the height above the
+ * dimension's bottom (0 = bottom), including cross-chunk writes.
  * All reads see the overlay. Block/entity/marker/mantle mutations participate in one commit.
  * Out-of-bounds access fails, never clips. The host excludes competing writers and handles
  * block entity replacement/removal when states change. Nested mantle edits are unsupported.

@@ -3,7 +3,8 @@ package com.volmit.world;
 import java.util.Objects;
 import java.util.OptionalInt;
 
-/** Pre-modification terrain sample in world coordinates.
+/** Pre-modification terrain sample of one world column. Heights are above the dimension's bottom
+ * (0 = bottom).
  * surfaceY is the top solid surface height, not the first air block. fluidY is the top fluid
  * block when present. Slope is nonnegative height change per horizontal block.
  * This is the host's terrain field, not a scan of current edited blocks.

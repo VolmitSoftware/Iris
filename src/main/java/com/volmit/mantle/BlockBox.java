@@ -2,7 +2,10 @@ package com.volmit.mantle;
 
 import java.util.Objects;
 
-/** World block bounds, minimum inclusive and maximum exclusive. Empty boxes are valid. */
+/** Block bounds, minimum inclusive and maximum exclusive. Empty boxes are valid. X and Z are world coordinates;
+ * Y is the height above the dimension's bottom (0 = bottom). Boxes of local volumes, such as an object's
+ * bounds, use that volume's own coordinates.
+ */
 public record BlockBox(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
     public BlockBox {
         if (minX > maxX || minY > maxY || minZ > maxZ) {

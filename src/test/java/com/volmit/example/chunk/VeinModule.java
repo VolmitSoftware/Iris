@@ -71,10 +71,10 @@ public final class VeinModule implements IrisModule {
 
     private static void place(ChunkStageContext context) {
         var blocks = context.hunk(BlockState.class);
-        var chunk = new BlockBox(context.originX(), context.originY(), context.originZ(),
-                context.originX() + blocks.getWidth(), context.originY() + blocks.getHeight(), context.originZ() + blocks.getDepth());
+        var chunk = new BlockBox(context.originX(), 0, context.originZ(),
+                context.originX() + blocks.getWidth(), blocks.getHeight(), context.originZ() + blocks.getDepth());
         context.mantle().layer(ORE).visit(chunk, (x, y, z, planned) ->
-                blocks.set(x - context.originX(), y - context.originY(), z - context.originZ(), ORE_BLOCK));
+                blocks.set(x - context.originX(), y, z - context.originZ(), ORE_BLOCK));
     }
 
     private static final class IntegerCodec implements MantleCodec<Integer> {

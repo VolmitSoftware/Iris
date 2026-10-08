@@ -5,7 +5,9 @@ import com.volmit.world.BlockPosition;
 import java.util.Map;
 import java.util.Objects;
 
-/** Marker metadata in world coordinates. */
+/** Marker metadata. The position has world X and Z and a Y that is the height above the dimension's bottom
+ * (0 = bottom).
+ */
 public record PlacedMarker(BlockPosition position, ResourceId type, Map<String, String> attributes) {
     public PlacedMarker {
         Objects.requireNonNull(position, "position");

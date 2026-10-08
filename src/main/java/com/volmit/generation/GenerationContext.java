@@ -7,9 +7,10 @@ import com.volmit.world.TerrainSampler;
 
 /** Per-invocation chunk generation inputs. Must not be retained after execution. */
 public interface GenerationContext extends InvocationContext {
-    /** World block coordinates corresponding to local volume coordinates (0, 0, 0). */
+    /** World coordinates of the local volume's first column. The volume starts at the dimension's bottom:
+     * local y is the height above it (0 = bottom block).
+     */
     int originX();
-    int originY();
     int originZ();
 
     TerrainSampler terrain();

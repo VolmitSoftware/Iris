@@ -471,12 +471,23 @@ stage that never draws never creates its stream.
 Object generators are not stages. `ObjectGenerationContext.random()` stays, a `WorldRandom` seeded
 from the variant seed the host chooses.
 
+## Coordinates
+
+X and Z are world coordinates. Y is the height above the dimension's bottom: 0 is always the dimension's
+bottom block, whatever its minimum height is in the platform, so Y is never negative. That applies to
+every value that carries a height: `TerrainSample` heights, `TerrainSampler` and `BlockView` positions and
+bounds, `BlockPalette` and `NoiseSampler` sample positions, `PlacedBlock` and `PlacedMarker` positions,
+placement anchors, `Mantle` positions and bounds, and a chunk `Hunk`'s local y. `BlockBox` carries
+whichever coordinates its owner defines; an object's bounds are local to the object, and a placed
+footprint can extend below height 0 where the object overhangs the bottom. The host converts to and from
+the platform's Y at its boundary.
+
 ## Chunk invocations
 
 `ChunkRunner.generate(inputs, invocationSeed)` runs active chunk stages once each in resolved order.
 `GenerationContext.hunk(type)` returns the host-owned local volume of that value type, shared by
-all stages of the invocation. Hunk coordinates are local; samples and mantle coordinates are
-world blocks. A chunk stage writes only its own chunk and reads the mantle: the runner hands it a view
+all stages of the invocation. Hunk coordinates are local. Samples and mantle coordinates use
+world X and Z, and Y as the height above the dimension's bottom. A chunk stage writes only its own chunk and reads the mantle: the runner hands it a view
 whose writes throw. The runner does no neighbor scheduling or rollback. A failed invocation must stop
 the host from publishing the chunk.
 
@@ -770,6 +781,6 @@ Exact signatures for these families should follow their first real port.
 ## Readiness gate
 
 A feature replaces its legacy implementation only when existing pack JSON works, representative
-seeds match promised output, negative heights and chunk boundaries pass, concurrent execution is
+seeds match promised output, dimensions whose bottom is below world Y 0 and chunk boundaries pass, concurrent execution is
 deterministic, reload caches expire and failures cannot publish partial chunks. Until then the
 legacy path stays available.

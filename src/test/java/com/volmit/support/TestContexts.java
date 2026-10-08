@@ -26,7 +26,6 @@ public final class TestContexts {
     public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks, FeatureSettings settings, Mantle mantle) {
         return new GenerationContext() {
             public int originX() { return 0; }
-            public int originY() { return -64; }
             public int originZ() { return 0; }
             public long worldSeed() { return SEED; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }

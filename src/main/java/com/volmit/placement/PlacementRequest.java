@@ -6,7 +6,8 @@ import com.volmit.resource.ResourceId;
 import com.volmit.world.BlockPosition;
 import java.util.Objects;
 
-/** One placement attempt. Geometry is already transformed; anchor is a world block position.
+/** One placement attempt. Geometry is already transformed; anchor is a world block position (world X and Z, Y as the height
+ * above the dimension's bottom).
  * World position = local position - object anchor + request anchor. Arithmetic never wraps.
  * id identifies this attempt within the host's generation plan.
  */

@@ -1,8 +1,9 @@
 package com.volmit.mantle;
 
 /**
- * Invocation-scoped access to typed mantle data. Coordinates are world block coordinates,
- * including negative Y; the host translates them to storage coordinates.
+ * Invocation-scoped access to typed mantle data. X and Z are world block coordinates; Y is
+ * the height above the dimension's bottom (0 = bottom), so it is never negative. The host translates
+ * them to storage coordinates.
  *
  * <p>The host owns chunk acquisition, release, persistence and the permitted access area.
  * Out-of-area access throws IndexOutOfBoundsException. Access after the invocation ends

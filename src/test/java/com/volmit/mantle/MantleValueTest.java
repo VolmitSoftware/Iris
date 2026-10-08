@@ -6,14 +6,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MantleValueTest {
     @Test
-    void boundsUseWorldCoordinatesAndExclusiveMaximum() {
-        var box = new BlockBox(-16, -64, -16, 16, 320, 16);
-        assertTrue(box.contains(-16, -64, -16));
-        assertTrue(box.contains(15, 319, 15));
+    void boundsUseWorldXZHeightsAboveTheBottomAndExclusiveMaximum() {
+        var box = new BlockBox(-16, 0, -16, 16, 384, 16);
+        assertTrue(box.contains(-16, 0, -16));
+        assertTrue(box.contains(15, 383, 15));
         assertFalse(box.contains(16, 0, 0));
-        assertFalse(box.contains(0, 320, 0));
+        assertFalse(box.contains(0, 384, 0));
         assertFalse(box.contains(0, 0, 16));
-        assertFalse(box.contains(0, -65, 0));
+        assertFalse(box.contains(0, -1, 0));
         assertTrue(box.contains(box));
         assertTrue(box.contains(new BlockBox(0, 0, 0, 1, 1, 1)));
         assertFalse(box.contains(new BlockBox(-17, 0, 0, 1, 1, 1)));
@@ -26,7 +26,7 @@ class MantleValueTest {
         assertThrows(IllegalArgumentException.class, () -> new BlockBox(0, 1, 0, 1, 0, 1));
         assertThrows(IllegalArgumentException.class, () -> new BlockBox(0, 0, 1, 1, 1, 0));
         assertFalse(new BlockBox(0, 0, 0, 0, 0, 0).contains(0, 0, 0));
-        var extremes = new BlockBox(Integer.MIN_VALUE, -64, 0, Integer.MAX_VALUE, 320, 1);
+        var extremes = new BlockBox(Integer.MIN_VALUE, 0, 0, Integer.MAX_VALUE, 384, 1);
         assertTrue(extremes.contains(Integer.MIN_VALUE, 0, 0));
     }
 

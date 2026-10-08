@@ -131,9 +131,9 @@ class ApiValuesTest {
     @Test
     void placementAlignsAnchorsAndCheckedArithmeticNeverWraps() {
         var object = new GeneratedObject(new BlockBox(-1, -1, -1, 2, 2, 2), new BlockPosition(1, 1, 1), List.of(), List.of());
-        var request = new PlacementRequest(ResourceId.parse("test:placement"), object, new BlockPosition(-16, -64, -16));
-        assertEquals(new BlockPosition(-16, -64, -16), request.worldPosition(object.anchor()));
-        assertEquals(new BlockBox(-18, -66, -18, -15, -63, -15), request.footprint());
+        var request = new PlacementRequest(ResourceId.parse("test:placement"), object, new BlockPosition(-16, 64, -16));
+        assertEquals(new BlockPosition(-16, 64, -16), request.worldPosition(object.anchor()));
+        assertEquals(new BlockBox(-18, 62, -18, -15, 65, -15), request.footprint());
         var overflow = new PlacementRequest(request.id(), object, new BlockPosition(Integer.MAX_VALUE, 0, 0));
         assertThrows(ArithmeticException.class, overflow::footprint);
     }

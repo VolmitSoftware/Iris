@@ -11,8 +11,8 @@ public final class VeinSettings implements IrisFeature {
     @Desc("Blocks along X, starting at the chunk's centre column")
     private int length = 12;
 
-    @Desc("World height of the vein")
-    private int y = -60;
+    @Desc("Height of the vein above the dimension's bottom")
+    private int y = 4;
 
     public VeinSettings() {}
 

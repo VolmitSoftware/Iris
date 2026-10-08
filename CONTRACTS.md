@@ -84,6 +84,9 @@ running Iris is the pack publisher's responsibility.
   (`FeatureSchema.shorthand()`), and render the schema to accept both forms.
 - Name the packages of the classes Iris describes itself with `ModuleHost.describingHostTypesIn(...)`,
   decode them as Iris does, and render each `HostKind` with Iris's own description of the class.
+- Hand modules heights above the dimension's bottom (0 = bottom block, whatever the platform's minimum
+  height is) in every value that carries Y: samples, bounds, block views, placement edits, the mantle,
+  hunks. X and Z stay world coordinates. Convert in one place at the boundary.
 - Preserve pack field names and defaults, seed derivation, RNG draw order, coordinate
   conventions and iteration order where existing worlds must not change. Per-stage streams do not
   reproduce Iris's current shared draws; matching them where worlds must stay the same is adapter

@@ -83,6 +83,14 @@ declares each settings type once.
 A feature whose settings class has exactly one option may be written as that option's value, such as
 `"snow": 0.5` for `"snow": {"amount": 0.5}` or a bare list for a class holding one list.
 
+## Coordinates
+
+X and Z are world coordinates. Y is always the height above the dimension's bottom: 0 is the bottom block
+of the dimension, whatever its minimum height is in the platform, so Y is never negative. This holds for
+every API value that carries a height: terrain and biome samples, `BlockBox` bounds of the terrain
+sampler, block views, placement edits and the mantle, hunks, block palettes and noise samplers. The host
+converts to and from the platform's own Y at its boundary; modules never see it.
+
 ## Random streams
 
 Stages and object generators draw from `com.volmit.random.WorldRandom`, an IrisApi type whose every

@@ -1,6 +1,8 @@
 package com.volmit.world;
 
-/** A block position. Owning contracts specify whether it is local or world space. */
+/** A block position. Owning contracts specify whether it is local or in the world. A world position has
+ * world X and Z and a Y that is the height above the dimension's bottom (0 = bottom).
+ */
 public record BlockPosition(int x, int y, int z) implements Comparable<BlockPosition> {
     public BlockPosition add(BlockPosition offset) {
         return new BlockPosition(Math.addExact(x, offset.x), Math.addExact(y, offset.y), Math.addExact(z, offset.z));

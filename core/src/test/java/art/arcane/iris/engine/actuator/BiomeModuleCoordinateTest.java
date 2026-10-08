@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisBiomeActuatorCoordinateTest {
+public class BiomeModuleCoordinateTest {
     @After
     public void unbindPlatform() {
         IrisPlatforms.unbind();
@@ -43,7 +43,7 @@ public class IrisBiomeActuatorCoordinateTest {
     public void derivativeScatterUsesEachWorldColumnCoordinate() {
         bindPlatform();
         Engine engine = engine();
-        IrisBiomeActuator actuator = new IrisBiomeActuator(engine);
+        BiomeModule.BiomeWriter writer = new BiomeModule.BiomeWriter(engine);
         Hunk<PlatformBiome> output = mock(Hunk.class);
         when(output.getWidth()).thenReturn(2);
         when(output.getDepth()).thenReturn(2);
@@ -64,7 +64,7 @@ public class IrisBiomeActuatorCoordinateTest {
         ChunkContext context = mock(ChunkContext.class);
         when(context.getBiome()).thenReturn(biomeCache);
 
-        actuator.onActuate(100, -200, output, false, context);
+        writer.write(100, -200, output, context);
 
         assertEquals(List.of("100,-200", "100,-199", "101,-200", "101,-199"), samples);
     }

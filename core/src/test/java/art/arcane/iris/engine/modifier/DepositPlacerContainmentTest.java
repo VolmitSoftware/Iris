@@ -31,34 +31,34 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisDepositModifierContainmentTest {
+public class DepositPlacerContainmentTest {
     @Test
     public void depositSurfaceLimitKeepsEveryColumnSevenBlocksBuried() {
-        assertEquals(73, IrisDepositModifier.depositSurfaceLimit(80));
-        assertEquals(24, IrisDepositModifier.depositSurfaceLimit(31));
-        assertEquals(80, IrisDepositModifier.depositSurfaceLimit(80, 0));
+        assertEquals(73, DepositPlacer.depositSurfaceLimit(80));
+        assertEquals(24, DepositPlacer.depositSurfaceLimit(31));
+        assertEquals(80, DepositPlacer.depositSurfaceLimit(80, 0));
     }
 
     @Test
     public void placementScopeSeparatesTerrainFromFloatingSolids() {
-        assertTrue(IrisDepositModifier.placementSurfaceAllows(
+        assertTrue(DepositPlacer.placementSurfaceAllows(
                 IrisDepositPlacementScope.TERRAIN, 70, 80, 7));
-        assertFalse(IrisDepositModifier.placementSurfaceAllows(
+        assertFalse(DepositPlacer.placementSurfaceAllows(
                 IrisDepositPlacementScope.TERRAIN, 74, 80, 7));
-        assertFalse(IrisDepositModifier.placementSurfaceAllows(
+        assertFalse(DepositPlacer.placementSurfaceAllows(
                 IrisDepositPlacementScope.ABOVE_TERRAIN, 80, 80, 0));
-        assertTrue(IrisDepositModifier.placementSurfaceAllows(
+        assertTrue(DepositPlacer.placementSurfaceAllows(
                 IrisDepositPlacementScope.ABOVE_TERRAIN, 81, 80, 0));
-        assertTrue(IrisDepositModifier.placementSurfaceAllows(
+        assertTrue(DepositPlacer.placementSurfaceAllows(
                 IrisDepositPlacementScope.FULL_HEIGHT, 1, 80, 64));
-        assertTrue(IrisDepositModifier.placementSurfaceAllows(
+        assertTrue(DepositPlacer.placementSurfaceAllows(
                 IrisDepositPlacementScope.FULL_HEIGHT, 700, 80, 64));
     }
 
     @Test
     public void variantHeightUsesAbsoluteWorldY() {
-        assertEquals(-32, IrisDepositModifier.absoluteWorldY(-64, 32));
-        assertEquals(96, IrisDepositModifier.absoluteWorldY(0, 96));
+        assertEquals(-32, DepositPlacer.absoluteWorldY(-64, 32));
+        assertEquals(96, DepositPlacer.absoluteWorldY(0, 96));
     }
 
     @Test
@@ -69,27 +69,27 @@ public class IrisDepositModifierContainmentTest {
         when(air.isAir()).thenReturn(true);
         when(fluid.isFluid()).thenReturn(true);
 
-        assertTrue(IrisDepositModifier.canReplaceDepositTarget(solid));
-        assertFalse(IrisDepositModifier.canReplaceDepositTarget(air));
-        assertFalse(IrisDepositModifier.canReplaceDepositTarget(fluid));
-        assertFalse(IrisDepositModifier.canReplaceDepositTarget(null));
+        assertTrue(DepositPlacer.canReplaceDepositTarget(solid));
+        assertFalse(DepositPlacer.canReplaceDepositTarget(air));
+        assertFalse(DepositPlacer.canReplaceDepositTarget(fluid));
+        assertFalse(DepositPlacer.canReplaceDepositTarget(null));
     }
 
     @Test
     public void oreFrequencyMultiplierKeepsConfiguredShareOfVeins() {
-        assertTrue(IrisDepositModifier.passesOreFrequency(0.4D, 0.399D));
-        assertFalse(IrisDepositModifier.passesOreFrequency(0.4D, 0.4D));
-        assertTrue(IrisDepositModifier.passesOreFrequency(1D, 0.999D));
-        assertFalse(IrisDepositModifier.passesOreFrequency(0D, 0D));
+        assertTrue(DepositPlacer.passesOreFrequency(0.4D, 0.399D));
+        assertFalse(DepositPlacer.passesOreFrequency(0.4D, 0.4D));
+        assertTrue(DepositPlacer.passesOreFrequency(1D, 0.999D));
+        assertFalse(DepositPlacer.passesOreFrequency(0D, 0D));
     }
 
     @Test
     public void largerVeinsRemainCenteredAndInsideTheChunk() {
-        assertEquals(6, IrisDepositModifier.clampDepositCenter(6, 5, 16));
-        assertEquals(2, IrisDepositModifier.clampDepositCenter(1, 5, 16));
-        assertEquals(13, IrisDepositModifier.clampDepositCenter(14, 5, 16));
-        assertEquals(2, IrisDepositModifier.clampDepositCenter(1, 4, 16));
-        assertEquals(14, IrisDepositModifier.clampDepositCenter(15, 4, 16));
+        assertEquals(6, DepositPlacer.clampDepositCenter(6, 5, 16));
+        assertEquals(2, DepositPlacer.clampDepositCenter(1, 5, 16));
+        assertEquals(13, DepositPlacer.clampDepositCenter(14, 5, 16));
+        assertEquals(2, DepositPlacer.clampDepositCenter(1, 4, 16));
+        assertEquals(14, DepositPlacer.clampDepositCenter(15, 4, 16));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class IrisDepositModifierContainmentTest {
         boolean sampledBelowBottom = false;
         boolean sampledAboveBottom = false;
         for (int i = 0; i < 2_000; i++) {
-            int y = IrisDepositModifier.sampleHeight(
+            int y = DepositPlacer.sampleHeight(
                     IrisDepositHeightDistribution.UNIFORM, uniform, -80, 80, 20);
             sampledBelowBottom |= y < 0;
             sampledAboveBottom |= y > 20;
@@ -106,7 +106,7 @@ public class IrisDepositModifierContainmentTest {
 
         assertTrue(sampledBelowBottom);
         assertTrue(sampledAboveBottom);
-        assertEquals(14, IrisDepositModifier.sampleHeight(
+        assertEquals(14, DepositPlacer.sampleHeight(
                 IrisDepositHeightDistribution.UNIFORM, uniform, 14, 14, 10));
     }
 
@@ -114,7 +114,7 @@ public class IrisDepositModifierContainmentTest {
     public void clippedHeightProviderPreservesLegacyTerrainClipping() {
         RNG rng = new RNG(44L);
         for (int i = 0; i < 2_000; i++) {
-            int y = IrisDepositModifier.sampleHeight(
+            int y = DepositPlacer.sampleHeight(
                     IrisDepositHeightDistribution.CLIPPED_UNIFORM, rng, -80, 80, 20);
             assertTrue(y >= 0);
             assertTrue(y <= 20);
@@ -129,7 +129,7 @@ public class IrisDepositModifierContainmentTest {
         long total = 0L;
         int samples = 100_000;
         for (int i = 0; i < samples; i++) {
-            int y = IrisDepositModifier.sampleHeight(
+            int y = DepositPlacer.sampleHeight(
                     IrisDepositHeightDistribution.TRIANGLE, rng, -32, 32, 32);
             total += y;
             if (Math.abs(y) <= 4) {
@@ -146,11 +146,11 @@ public class IrisDepositModifierContainmentTest {
 
     @Test
     public void exposureDiscardRequiresAdjacentAirAndPassingChanceRoll() {
-        assertFalse(IrisDepositModifier.shouldDiscardExposed(1D, 0D, false));
-        assertTrue(IrisDepositModifier.shouldDiscardExposed(1D, 0.999D, true));
-        assertTrue(IrisDepositModifier.shouldDiscardExposed(0.5D, 0.499D, true));
-        assertFalse(IrisDepositModifier.shouldDiscardExposed(0.5D, 0.5D, true));
-        assertFalse(IrisDepositModifier.shouldDiscardExposed(0D, 0D, true));
+        assertFalse(DepositPlacer.shouldDiscardExposed(1D, 0D, false));
+        assertTrue(DepositPlacer.shouldDiscardExposed(1D, 0.999D, true));
+        assertTrue(DepositPlacer.shouldDiscardExposed(0.5D, 0.499D, true));
+        assertFalse(DepositPlacer.shouldDiscardExposed(0.5D, 0.5D, true));
+        assertFalse(DepositPlacer.shouldDiscardExposed(0D, 0D, true));
     }
 
     @Test
@@ -167,9 +167,9 @@ public class IrisDepositModifierContainmentTest {
             }
         }
 
-        assertFalse(IrisDepositModifier.isAdjacentToAir(data, 1, 1, 1));
+        assertFalse(DepositPlacer.isAdjacentToAir(data, 1, 1, 1));
         data.setRaw(2, 1, 1, air);
-        assertTrue(IrisDepositModifier.isAdjacentToAir(data, 1, 1, 1));
-        assertFalse(IrisDepositModifier.isAdjacentToAir(data, 0, 0, 0));
+        assertTrue(DepositPlacer.isAdjacentToAir(data, 1, 1, 1));
+        assertFalse(DepositPlacer.isAdjacentToAir(data, 0, 0, 0));
     }
 }

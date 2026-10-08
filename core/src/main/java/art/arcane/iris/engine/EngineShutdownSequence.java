@@ -218,8 +218,8 @@ final class EngineShutdownSequence {
             }
         });
         failure = runCleanup(failure, () -> {
-            if (assembly.mode != null) {
-                assembly.mode.close();
+            if (assembly.generation != null) {
+                assembly.generation.close();
             }
         });
         failure = runCleanup(failure, () -> {
@@ -241,7 +241,7 @@ final class EngineShutdownSequence {
         }
         failure = runCleanup(failure, engineRuntime.worldManager()::close);
         failure = runCleanup(failure, engineRuntime.effects()::close);
-        failure = runCleanup(failure, engineRuntime.mode()::close);
+        failure = runCleanup(failure, engineRuntime.generation()::close);
         failure = runCleanup(failure, engineRuntime.complex()::close);
         failure = runCleanup(failure, () -> engineRuntime.hash32().cancel(true));
         return failure;

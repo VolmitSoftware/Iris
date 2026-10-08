@@ -18,7 +18,16 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.actuator.BiomeModule;
+import art.arcane.iris.engine.actuator.DecorantModule;
+import art.arcane.iris.engine.actuator.TerrainModule;
+import art.arcane.iris.engine.modifier.CarveModule;
+import art.arcane.iris.engine.modifier.CustomModule;
+import art.arcane.iris.engine.modifier.DepositModule;
+import art.arcane.iris.engine.modifier.FloatingModule;
+import art.arcane.iris.engine.modifier.MatterModule;
 import art.arcane.iris.engine.modifier.PerfectionModule;
+import art.arcane.iris.engine.modifier.PostModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
@@ -50,9 +59,14 @@ public final class IrisModuleHost {
         return Holder.HOST;
     }
 
-    /** The modules every pack loads before its own: Iris's built-in features. */
+    /** The modules every pack loads before its own: Iris's built-in features, placement and the chunk generation every world runs. */
     public static List<IrisModule> builtInModules() {
-        return Stream.concat(PlacementModules.all().stream(), Stream.of(new PerfectionModule())).toList();
+        return Stream.concat(PlacementModules.all().stream(), generationModules().stream()).toList();
+    }
+
+    private static List<IrisModule> generationModules() {
+        return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new PostModule(), new FloatingModule(),
+                new DepositModule(), new MatterModule(), new DecorantModule(), new PerfectionModule(), new CustomModule());
     }
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */

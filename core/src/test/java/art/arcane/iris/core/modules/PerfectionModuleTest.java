@@ -18,19 +18,23 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.floating.FloatingStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.modifier.PerfectionModule;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.dimension.IrisDimensionModeType;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.hunk.Hunk;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
+import com.volmit.stage.StageGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,6 +42,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -69,7 +74,7 @@ public class PerfectionModuleTest {
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);
         pack = LoadedPack.load(folder.newFolder("pack").toPath(),
-                ModuleHost.of(IrisModuleHost.builtInModules()).copyingJarsTo(folder.newFolder("copies").toPath()));
+                ModuleHost.of(List.of(new PerfectionModule(), new FloatingDecorationStub())).copyingJarsTo(folder.newFolder("copies").toPath()));
         engine = mock(Engine.class);
         IrisData data = mock(IrisData.class);
         SeedManager seeds = mock(SeedManager.class);
@@ -92,7 +97,7 @@ public class PerfectionModuleTest {
     }
 
     @Test
-    public void overworldChunksLoseDecorationsTheirGroundCannotHold() {
+    public void chunksLoseDecorationsTheirGroundCannotHold() {
         PlatformBlockState floating = decorant(false);
         PlatformBlockState rooted = decorant(true);
         blocks.set(0, 1, 0, floating);
@@ -105,19 +110,22 @@ public class PerfectionModuleTest {
         assertSame(ground, blocks.get(0, 0, 0));
     }
 
-    @Test
-    public void otherWorldModesKeepEveryDecoration() {
-        dimension.getMode().setType(IrisDimensionModeType.SUPERFLAT);
-        PlatformBlockState floating = decorant(false);
-        blocks.set(0, 1, 0, floating);
-
-        generate();
-
-        assertSame(floating, blocks.get(0, 1, 0));
+    private void generate() {
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, false, null, key -> block(key, false));
     }
 
-    private void generate() {
-        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, key -> block(key, false));
+    /** The stage perfection runs after; perfection needs it installed, not doing anything. */
+    private static final class FloatingDecorationStub implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("iris:floating", "Floating islands", "test");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(FloatingStages.DECORATE).run(context -> {
+            });
+        }
     }
 
     private static PlatformBlockState decorant(boolean held) {

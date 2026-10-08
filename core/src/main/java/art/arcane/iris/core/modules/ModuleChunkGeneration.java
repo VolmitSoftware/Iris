@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -30,7 +31,8 @@ import com.volmit.host.ResolvedGraph;
 import java.util.function.Function;
 
 /**
- * Runs the pack's resolved chunk graph on a chunk. A stage is active where any column of the chunk has its
+ * Runs the pack's resolved chunk graph on a chunk, Iris's built-in stages included: this is how every chunk
+ * generates. A stage is active where any column of the chunk has its
  * settings at the dimension, the column's region or its biome (see {@link ChunkModuleSettings}). A failing
  * stage fails the chunk.
  * <p>
@@ -43,13 +45,14 @@ public final class ModuleChunkGeneration {
     private ModuleChunkGeneration() {
     }
 
-    /** {@code x} and {@code z} are the chunk's first block, as engine stages receive them. */
-    public static void generate(Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context) {
-        generate(engine.getData().getModules().pack(), engine, x, z, blocks, context, B::getState);
+    /** {@code x} and {@code z} are the chunk's first block. */
+    public static void generate(Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes,
+                                boolean multicore, ChunkContext context) {
+        generate(engine.getData().getModules().pack(), engine, x, z, blocks, biomes, multicore, context, B::getState);
     }
 
-    static void generate(LoadedPack pack, Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context,
-                         Function<String, PlatformBlockState> platformStates) {
+    static void generate(LoadedPack pack, Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes,
+                         boolean multicore, ChunkContext context, Function<String, PlatformBlockState> platformStates) {
         ResolvedGraph chunk = pack.chunk();
         if (chunk.stages().isEmpty()) {
             return;
@@ -60,7 +63,7 @@ public final class ModuleChunkGeneration {
         try (PinnedMantleChunk mantle = new PinnedMantleChunk(engine, chunkX, chunkZ)) {
             IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z, new BlockStateHunk(blocks, platformStates), mantle,
                     pack.catalog().mantle());
-            new IrisChunk(engine, x, z, blocks, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed));
+            new IrisChunk(engine, x, z, blocks, biomes, multicore, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed));
         }
     }
 }

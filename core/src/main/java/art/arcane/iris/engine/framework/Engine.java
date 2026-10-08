@@ -88,7 +88,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         return null;
     }
 
-    EngineMode getMode();
+    EngineGeneration getGeneration();
 
     EnginePlatformHooks getPlatformHooks();
 

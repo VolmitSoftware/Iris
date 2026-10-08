@@ -15,7 +15,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class MantleCarvingComponentTop2BlendTest {
+public class CaveCarvingTop2BlendTest {
     private static Constructor<?> weightedProfileConstructor;
     private static Method limitMethod;
     private static Field profileField;
@@ -23,10 +23,10 @@ public class MantleCarvingComponentTop2BlendTest {
 
     @BeforeClass
     public static void setup() throws Exception {
-        Class<?> weightedProfileClass = Class.forName("art.arcane.iris.engine.mantle.components.MantleCarvingComponent$WeightedProfile");
+        Class<?> weightedProfileClass = Class.forName("art.arcane.iris.engine.mantle.components.CaveCarving$WeightedProfile");
         weightedProfileConstructor = weightedProfileClass.getDeclaredConstructor(IrisCaveProfile.class, double[].class, double.class, Class.forName("art.arcane.iris.engine.object.value.IrisRange"), int.class);
         weightedProfileConstructor.setAccessible(true);
-        limitMethod = MantleCarvingComponent.class.getDeclaredMethod("limitAndMergeBlendedProfiles", List.class, int.class, int.class);
+        limitMethod = CaveCarving.class.getDeclaredMethod("limitAndMergeBlendedProfiles", List.class, int.class, int.class);
         limitMethod.setAccessible(true);
         profileField = weightedProfileClass.getDeclaredField("profile");
         profileField.setAccessible(true);

@@ -30,7 +30,7 @@ import art.arcane.iris.core.service.IrisApiEventSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.core.tools.WorldMaintenance;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineMode;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EnginePlatformHooks;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -137,7 +137,7 @@ public final class BukkitEnginePlatformHooks implements EnginePlatformHooks {
             return false;
         }
         boolean maintenanceActive = WorldMaintenance.isWorldMaintenanceActive(world.identity());
-        return EngineMode.shouldDisableContextCacheForMaintenance(maintenanceActive, isPregeneratorActive(engine));
+        return EngineGeneration.shouldDisableContextCacheForMaintenance(maintenanceActive, isPregeneratorActive(engine));
     }
 
     @Override

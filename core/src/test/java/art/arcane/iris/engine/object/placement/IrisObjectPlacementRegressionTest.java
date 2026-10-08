@@ -16,7 +16,7 @@ import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.builtin.blocks.BlocksStages;
 import art.arcane.iris.builtin.bore.BoreStages;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.BuiltInPlacementPack;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.core.modules.ObjectPlacementResult;
 import art.arcane.iris.core.modules.PlatformBlockStates;
@@ -88,7 +88,7 @@ public class IrisObjectPlacementRegressionTest {
 
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
-        BuiltInPlacementPack.seedWorld(engine, 7L);
+        BuiltInPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
         usePack(List.of());
@@ -107,7 +107,7 @@ public class IrisObjectPlacementRegressionTest {
         if (pack != null) {
             pack.close();
         }
-        pack = BuiltInPlacementPack.serve(data, folder, packModules);
+        pack = BuiltInPack.serve(data, folder, packModules);
     }
 
     /** Platform states by key, the way a registry answers them; keys without a namespace are Minecraft's. */

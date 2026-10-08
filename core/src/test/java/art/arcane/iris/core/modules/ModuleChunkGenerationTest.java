@@ -135,7 +135,7 @@ public class ModuleChunkGenerationTest {
         IrisBiome pillared = configured(new IrisBiome(), pillar(3));
         when(engine.getSurfaceBiome(anyInt(), anyInt())).thenAnswer(call -> call.getArgument(0, Integer.class) == 15 ? pillared : plain);
 
-        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, ModuleChunkGenerationTest::platformState);
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, false, null, ModuleChunkGenerationTest::platformState);
 
         assertEquals("minecraft:oak_log[axis=y]", blocks.get(3, 2, 0).key());
     }
@@ -175,7 +175,7 @@ public class ModuleChunkGenerationTest {
     private void generate(IrisBiome biome) {
         when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
         when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(biome);
-        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, ModuleChunkGenerationTest::platformState);
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, false, null, ModuleChunkGenerationTest::platformState);
     }
 
     private static PillarSettings pillar(int x) {

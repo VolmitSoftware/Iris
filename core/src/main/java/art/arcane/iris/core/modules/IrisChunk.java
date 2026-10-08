@@ -19,17 +19,18 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
- * Iris's own view of the chunk whose module stages are running: the engine, Iris's block hunk and the
- * chunk's sampled context. Iris's built-in chunk stages read them through {@link #current()}, bound on the
- * generating thread while the chunk graph runs, and work on Iris's block states directly; pack modules
- * cannot see this class.
+ * Iris's own view of the chunk whose module stages are running: the engine, Iris's block and biome hunks and
+ * the chunk's sampled context. Iris's built-in chunk stages read them through {@link #current()}, bound on the
+ * generating thread while the chunk graph runs, and work on Iris's types directly; pack modules cannot see
+ * this class.
  */
 public final class IrisChunk {
     private static final ScopedValue<IrisChunk> CURRENT = ScopedValue.newInstance();
@@ -38,13 +39,18 @@ public final class IrisChunk {
     private final int originX;
     private final int originZ;
     private final Hunk<PlatformBlockState> blocks;
+    private final Hunk<PlatformBiome> biomes;
+    private final boolean multicore;
     private final ChunkContext context;
 
-    IrisChunk(Engine engine, int originX, int originZ, Hunk<PlatformBlockState> blocks, ChunkContext context) {
+    IrisChunk(Engine engine, int originX, int originZ, Hunk<PlatformBlockState> blocks, Hunk<PlatformBiome> biomes,
+              boolean multicore, ChunkContext context) {
         this.engine = engine;
         this.originX = originX;
         this.originZ = originZ;
         this.blocks = blocks;
+        this.biomes = biomes;
+        this.multicore = multicore;
         this.context = context;
     }
 
@@ -79,8 +85,28 @@ public final class IrisChunk {
         return blocks;
     }
 
+    /** The chunk's biomes, indexed like {@link #blocks()}. */
+    public Hunk<PlatformBiome> biomes() {
+        return biomes;
+    }
+
+    /** Whether stages may spread their work over threads. */
+    public boolean multicore() {
+        return multicore;
+    }
+
     /** What the engine sampled for this chunk, such as its biomes and heights. */
     public ChunkContext context() {
         return context;
+    }
+
+    /** The {@code type} state of this engine runtime, such as an actuator; see {@link art.arcane.iris.engine.framework.EngineGeneration#state}. */
+    public <T> T state(Class<T> type, Function<Engine, T> create) {
+        return engine.getGeneration().state(type, create);
+    }
+
+    /** Whether stages backed by the mantle skip this chunk, as maintenance regeneration on Folia requires. */
+    public boolean bypassesMantleStages() {
+        return engine.getGeneration().bypassesMantleStages();
     }
 }

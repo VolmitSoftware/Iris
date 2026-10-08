@@ -29,15 +29,16 @@ import com.volmit.host.MantleRunner;
 import com.volmit.host.ResolvedGraph;
 
 /**
- * Runs the pack's mantle pipeline as one of Iris's mantle components: once for every chunk the mantle prepares
- * around a generating chunk, as far as the pipeline's declared reach. It is the last pass, so its stages see what
- * Iris's own components wrote, and it is disabled while the pack has no mantle stages.
+ * Runs the pack's mantle pipeline, Iris's built-in mantle stages included, as one of Iris's mantle components:
+ * once for every chunk the mantle prepares around a generating chunk, as far as the pipeline's declared reach.
+ * It is the first pass, where carving has always run, so Iris's object, floating object and structure passes
+ * see the caves and whatever else mantle stages wrote. It is disabled while the pack has no mantle stages.
  */
 public final class ModuleMantleComponent extends IrisMantleComponent {
     /** Marks a mantle chunk whose module stages have run. */
     public static final MantleFlag FLAG = MantleFlag.of(MantleFlag.MIN_ORDINAL);
-    /** After every Iris component, whatever priority they use. */
-    private static final int PRIORITY = Integer.MAX_VALUE;
+    /** The first pass: the carving stage it runs had priority 0 as a component of its own. */
+    private static final int PRIORITY = 0;
 
     /** Whether the pack has mantle stages; asked on every chunk, so kept until the next hotload. */
     private volatile Boolean hasStages;
@@ -65,7 +66,8 @@ public final class ModuleMantleComponent extends IrisMantleComponent {
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         Engine engine = getEngineMantle().getEngine();
-        generate(engine.getData().getModules().pack(), engine, x, z, getRadius(), writer::acquireChunk);
+        IrisMantleChunk chunk = new IrisMantleChunk(engine, writer, x, z, context);
+        chunk.runBound(() -> generate(engine.getData().getModules().pack(), engine, x, z, getRadius(), writer::acquireChunk));
     }
 
     /** Runs the mantle stages of chunk {@code x}, {@code z}, with the mantle chunks within {@code reachBlocks} of it. */

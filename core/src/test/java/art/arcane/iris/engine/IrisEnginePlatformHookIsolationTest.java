@@ -1,9 +1,8 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineMode;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mode.ModeOverworld;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -25,7 +24,7 @@ public class IrisEnginePlatformHookIsolationTest {
             "art/arcane/iris/platform/bukkit/",
             "org/bukkit/"
     );
-    private static final List<String> BUKKIT_MODE_CLASSES = List.of(
+    private static final List<String> BUKKIT_GENERATION_CLASSES = List.of(
             "art/arcane/iris/core/tools/IrisToolbelt",
             "art/arcane/iris/spi/IrisServices",
             "art/arcane/iris/util/common/scheduling/J",
@@ -59,9 +58,9 @@ public class IrisEnginePlatformHookIsolationTest {
         assertNoClassLinks(IrisEngineMantle.class, BUKKIT_ENGINE_CLASSES);
         assertNoClassLinks(Class.forName(IrisEngineMantle.class.getName() + "$1"), BUKKIT_ENGINE_CLASSES);
         assertNoClassLinks(Engine.class, ENGINE_POLICY_CLASSES);
-        assertNoClassLinks(EngineMode.class, PLATFORM_POLICY_CLASSES);
+        assertNoClassLinks(EngineGeneration.class, PLATFORM_POLICY_CLASSES);
         assertNoClassLinks(EngineMantle.class, PLATFORM_POLICY_CLASSES);
-        assertNoClassLinks(ModeOverworld.class, BUKKIT_MODE_CLASSES);
+        assertNoClassLinks(EngineGeneration.class, BUKKIT_GENERATION_CLASSES);
     }
 
     private static void assertNoClassLinks(Class<?> type, List<String> forbiddenClasses) throws IOException {

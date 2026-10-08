@@ -27,7 +27,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.mantle.MantleComponent;
 import art.arcane.iris.engine.mantle.MantlePass;
-import art.arcane.iris.engine.mantle.components.MantleCarvingComponent;
 import art.arcane.iris.engine.mantle.components.MantleFloatingObjectComponent;
 import art.arcane.iris.engine.mantle.components.MantleObjectComponent;
 import art.arcane.iris.engine.mantle.components.IrisStructureComponent;
@@ -46,7 +45,6 @@ import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
 import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.volmlib.util.matter.IrisMatter;
@@ -86,7 +84,6 @@ public class IrisEngineMantle implements EngineMantle {
         this.engine = engine;
         this.mantle = createMantle(engine);
         components = new KMap<>();
-        registerComponent(new MantleCarvingComponent(this));
         object = new MantleObjectComponent(this);
         registerComponent(object);
         registerComponent(new MantleFloatingObjectComponent(this));
@@ -173,9 +170,6 @@ public class IrisEngineMantle implements EngineMantle {
         return disabledFlags.aquire(() -> {
             KList<MantleFlag> disabled = new KList<>();
             disabled.addAll(getDimension().getDisabledComponents());
-            if (!getDimension().isCarvingEnabled()) {
-                disabled.addIfMissing(ReservedFlag.CARVED);
-            }
             return Set.copyOf(disabled);
         });
     }

@@ -43,7 +43,7 @@ public class BuiltInPlacementGraphTest {
 
     @Test
     public void writesTheObjectAndFindsItsStiltLayersInOneBlockPass() throws IOException {
-        try (LoadedPack pack = BuiltInPlacementPack.serve(mock(IrisData.class), folder, List.of())) {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             ResolvedGraph graph = pack.placement();
 
             assertEquals(graph.describe(), EXPECTED_ORDER, graph.stages().stream().map(stage -> stage.stage().id().toString()).toList());

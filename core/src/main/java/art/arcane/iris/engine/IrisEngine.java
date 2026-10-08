@@ -23,7 +23,7 @@ import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineEffects;
 import art.arcane.iris.engine.framework.EngineMetrics;
-import art.arcane.iris.engine.framework.EngineMode;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EnginePlatformHooks;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.framework.NativeStructureVolumeMemo;
@@ -148,7 +148,6 @@ public class IrisEngine implements Engine {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     volatile LifecycleState lifecycleState;
-    private final AtomicBoolean modeFallbackLogged;
     private final AtomicBoolean prefetchSaveStarted;
 
     /**
@@ -201,7 +200,6 @@ public class IrisEngine implements Engine {
         mantle = new IrisEngineMantle(this);
         IrisLogging.debug("[IrisEngine timing] new IrisEngineMantle=" + (M.ms() - _t0) + "ms");
         cleaning = new AtomicBoolean(false);
-        modeFallbackLogged = new AtomicBoolean(false);
         prefetchSaveStarted = new AtomicBoolean(false);
         sealInitialGenerationSession();
 
@@ -511,13 +509,13 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public EngineMode getMode() {
+    public EngineGeneration getGeneration() {
         RuntimeAssembly assembly = runtimeAssembly.get();
-        if (assembly != null && assembly.mode != null) {
-            return assembly.mode;
+        if (assembly != null && assembly.generation != null) {
+            return assembly.generation;
         }
-        EngineRuntime current = runtimeBuilder.requireRuntime("access the engine mode");
-        return current.mode();
+        EngineRuntime current = runtimeBuilder.requireRuntime("access the engine generation");
+        return current.generation();
     }
 
     @Override
@@ -635,8 +633,7 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                EngineMode activeMode = getMode();
-                activeMode.generate(x, z, blocks, vbiomes, multicore, lease.sessionId());
+                getGeneration().generate(x, z, blocks, vbiomes, multicore, lease.sessionId());
             }
 
             boolean skipRealFlag = platformHooks.shouldBypassMantleStages(this);

@@ -33,15 +33,17 @@ import java.util.stream.Stream;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Test packs whose placement graph is Iris's built-in modules followed by the given pack modules. */
-public final class BuiltInPlacementPack {
-    private BuiltInPlacementPack() {
+/** Test packs of Iris's built-in modules followed by the given pack modules, loaded as Iris's module host loads them. */
+public final class BuiltInPack {
+    private BuiltInPack() {
     }
 
     /** Loads the pack and lets the mocked {@code data} serve it, as a pack's data serves its modules. Close it after the test. */
     public static LoadedPack serve(IrisData data, TemporaryFolder folder, List<IrisModule> packModules) throws IOException {
         List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), packModules.stream()).toList();
-        LoadedPack pack = LoadedPack.load(folder.newFolder().toPath(), ModuleHost.of(modules).copyingJarsTo(folder.newFolder().toPath()));
+        LoadedPack pack = LoadedPack.load(folder.newFolder().toPath(), ModuleHost.of(modules)
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
+                .copyingJarsTo(folder.newFolder().toPath()));
         PackModuleSet moduleSet = mock(PackModuleSet.class);
         when(moduleSet.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(moduleSet);

@@ -9,7 +9,7 @@ import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.BuiltInPlacementPack;
+import art.arcane.iris.core.modules.BuiltInPack;
 import com.volmit.host.LoadedPack;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
@@ -82,10 +82,10 @@ public class IrisObjectSurfaceSupportPlacementTest {
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
         when(engine.getComplex()).thenReturn(complex);
-        BuiltInPlacementPack.seedWorld(engine, 7L);
+        BuiltInPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
-        pack = BuiltInPlacementPack.serve(data, folder, List.of());
+        pack = BuiltInPack.serve(data, folder, List.of());
     }
 
     @After

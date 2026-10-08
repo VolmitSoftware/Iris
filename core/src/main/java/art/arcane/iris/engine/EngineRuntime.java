@@ -19,7 +19,7 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.framework.EngineEffects;
-import art.arcane.iris.engine.framework.EngineMode;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
 
@@ -35,7 +35,7 @@ record EngineRuntime(
         IrisComplex complex,
         UpperDimensionContext upperContext,
         EngineEffects effects,
-        EngineMode mode,
+        EngineGeneration generation,
         EngineWorldManager worldManager,
         CompletableFuture<Long> hash32,
         BiomeMaxes biomeMaxes
@@ -52,7 +52,7 @@ record EngineRuntime(
                 nextComplex,
                 nextUpperContext,
                 effects,
-                mode,
+                generation,
                 worldManager,
                 hash32,
                 nextBiomeMaxes);

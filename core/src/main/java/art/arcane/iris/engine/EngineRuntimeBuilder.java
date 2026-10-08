@@ -25,7 +25,7 @@ import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
 import art.arcane.iris.engine.framework.EngineEffects;
 import art.arcane.iris.engine.framework.EngineEffectsProvider;
-import art.arcane.iris.engine.framework.EngineMode;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
 import art.arcane.iris.engine.framework.EngineWorldManagerProvider;
@@ -33,8 +33,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.dimension.IrisDimensionMode;
-import art.arcane.iris.engine.object.world.dimension.IrisDimensionModeType;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.util.project.context.IrisContext;
@@ -86,8 +84,7 @@ final class EngineRuntimeBuilder {
             engine.getMantle().hotload();
             IrisLogging.debug("[IrisEngine timing] mantle.hotload=" + (M.ms() - started) + "ms");
             started = M.ms();
-            assembly.mode = createMode();
-            IrisLogging.debug("[IrisEngine timing] setupMode=" + (M.ms() - started) + "ms");
+            assembly.generation = new EngineGeneration(engine);
             started = M.ms();
             assembly.worldManager = IrisServices.get(EngineWorldManagerProvider.class).create(engine);
             if (assembly.worldManager == null) {
@@ -201,39 +198,6 @@ final class EngineRuntimeBuilder {
         return null;
     }
 
-    private EngineMode createMode() {
-        Throwable configuredFailure = null;
-        try {
-            IrisDimensionMode configuredMode = engine.getDimension().getMode();
-            if (configuredMode == null) {
-                configuredMode = new IrisDimensionMode();
-                engine.getDimension().setMode(configuredMode);
-            }
-            EngineMode configured = configuredMode.create(engine);
-            if (configured == null) {
-                throw new IllegalStateException("Dimension mode factory returned null");
-            }
-            return configured;
-        } catch (Throwable e) {
-            configuredFailure = e;
-            IrisLogging.reportError(e);
-            if (engine.getModeFallbackLogged().compareAndSet(false, true)) {
-                IrisLogging.warn("Failed to initialize configured dimension mode for " + engine.getDimension().getLoadKey() + ", falling back to OVERWORLD mode.");
-            }
-        }
-
-        try {
-            EngineMode fallback = IrisDimensionModeType.OVERWORLD.create(engine);
-            if (fallback == null) {
-                throw new IllegalStateException("OVERWORLD mode factory returned null");
-            }
-            return fallback;
-        } catch (Throwable fallbackFailure) {
-            fallbackFailure.addSuppressed(configuredFailure);
-            throw new IllegalStateException("Both configured and fallback Iris engine modes failed.", fallbackFailure);
-        }
-    }
-
     BiomeMaxes computeBiomeMaxes() {
         double objectDensity = 0D;
         double layerDensity = 0D;
@@ -297,7 +261,7 @@ final class EngineRuntimeBuilder {
         IrisComplex complex;
         UpperDimensionContext upperContext;
         EngineEffects effects;
-        EngineMode mode;
+        EngineGeneration generation;
         EngineWorldManager worldManager;
         CompletableFuture<Long> hash32;
 
@@ -307,7 +271,7 @@ final class EngineRuntimeBuilder {
         }
 
         EngineRuntime freeze(BiomeMaxes biomeMaxes) {
-            if (complex == null || effects == null || mode == null || worldManager == null || hash32 == null) {
+            if (complex == null || effects == null || generation == null || worldManager == null || hash32 == null) {
                 throw new IllegalStateException("Cannot publish an incomplete Iris engine runtime.");
             }
             return new EngineRuntime(
@@ -316,7 +280,7 @@ final class EngineRuntimeBuilder {
                     complex,
                     upperContext,
                     effects,
-                    mode,
+                    generation,
                     worldManager,
                     hash32,
                     biomeMaxes);

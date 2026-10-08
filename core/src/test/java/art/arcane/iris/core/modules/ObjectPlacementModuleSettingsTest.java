@@ -118,7 +118,7 @@ public class ObjectPlacementModuleSettingsTest {
         IrisPlatforms.bind(platform);
 
         data = mock(IrisData.class);
-        pack = BuiltInPlacementPack.serve(data, folder, List.of(new GlowModule()));
+        pack = BuiltInPack.serve(data, folder, List.of(new GlowModule()));
         ModuleSettingsDecoder decoder = new ModuleSettingsDecoder(pack.catalog(), folder.getRoot().toPath(), Gson::new);
         gson = new GsonBuilder().registerTypeAdapterFactory(new ObjectPlacementSettingsReader(() -> decoder)).create();
     }

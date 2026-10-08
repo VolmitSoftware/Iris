@@ -31,9 +31,8 @@ import java.util.Collection;
 import java.util.Objects;
 
 /**
- * The mantle a placement's stages see: the engine's mantle around the placement, in the placer's coordinates
- * (the placer's own height, where 0 is the bottom of the dimension, so a stage's mantle writes land where its
- * block writes do). Everything a stage writes is buffered in one mantle edit of the placement: it reaches the
+ * The mantle a placement's stages see: the engine's mantle around the placement, with IrisApi's heights, which are
+ * the placer's own (0 is the bottom of the dimension), so a stage's mantle writes land where its block writes do. Everything a stage writes is buffered in one mantle edit of the placement: it reaches the
  * mantle only when {@link #commit()} runs with the placement's own commit, and {@link #close()} discards it.
  * IrisApi keeps stages from opening edits of their own: the placement owns this one.
  * <p>
@@ -48,9 +47,9 @@ final class PlacementMantle implements Mantle, AutoCloseable {
 
     PlacementMantle(Engine engine, BlockBox area, Collection<MantleRegistration<?>> layers) {
         this.bounds = area;
-        this.storedBounds = new BlockBox(area.minX(), 0, area.minZ(), area.maxX(), engine.getHeight(), area.maxZ());
+        this.storedBounds = ApiHeights.columns(engine, area.minX(), area.minZ(), area.maxX(), area.maxZ());
         this.chunks = new PinnedMantleChunks(engine);
-        this.placement = new IrisModuleMantle(storedBounds, 0, chunks, layers).edit();
+        this.placement = new IrisModuleMantle(storedBounds, chunks, layers).edit();
     }
 
     @Override

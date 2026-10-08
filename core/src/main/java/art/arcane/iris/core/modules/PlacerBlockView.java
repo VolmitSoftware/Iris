@@ -23,7 +23,10 @@ import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.world.BlockView;
 
-/** The blocks an Iris object placer holds before a placement's writes, within the placement area. */
+/**
+ * The blocks an Iris object placer holds before a placement's writes, within the placement area. The placer's
+ * heights count from the dimension's bottom, like IrisApi's.
+ */
 final class PlacerBlockView implements BlockView {
     private final IObjectPlacer placer;
     private final BlockBox bounds;
@@ -41,10 +44,10 @@ final class PlacerBlockView implements BlockView {
     }
 
     @Override
-    public BlockState get(int worldX, int worldY, int worldZ) {
-        if (!bounds.contains(worldX, worldY, worldZ)) {
-            throw new IndexOutOfBoundsException("Block " + worldX + ", " + worldY + ", " + worldZ + " is outside the placement area " + bounds);
+    public BlockState get(int worldX, int y, int worldZ) {
+        if (!bounds.contains(worldX, y, worldZ)) {
+            throw new IndexOutOfBoundsException("Block " + worldX + ", " + y + ", " + worldZ + " is outside the placement area " + bounds);
         }
-        return states.toApi(placer.get(worldX, worldY, worldZ));
+        return states.toApi(placer.get(worldX, y, worldZ));
     }
 }

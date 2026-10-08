@@ -44,7 +44,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
- * Iris's mantle as IrisApi's {@link Mantle}, in world coordinates, over the chunks one invocation may touch.
+ * Iris's mantle as IrisApi's {@link Mantle}, in world X and Z and heights above the dimension's bottom (which is
+ * how the mantle stores them), over the chunks one invocation may touch.
  * Every module layer a block holds lives in one {@link ModuleLayerValues} slice, so a layer needs no slice type
  * of its own and a layer no loaded module registers survives unchanged. Only registered layers can be used.
  * Changing a block's values is atomic per mantle chunk, so stages running on neighboring chunks at once never
@@ -66,15 +67,12 @@ final class IrisModuleMantle implements Mantle {
     }
 
     private final BlockBox bounds;
-    private final int minY;
     private final Chunks chunks;
     private final Map<String, MantleRegistration<?>> registrations;
     private BufferedEdit openEdit;
 
-    /** @param minY the world height of the mantle's lowest block */
-    IrisModuleMantle(BlockBox bounds, int minY, Chunks chunks, Collection<MantleRegistration<?>> registrations) {
+    IrisModuleMantle(BlockBox bounds, Chunks chunks, Collection<MantleRegistration<?>> registrations) {
         this.bounds = bounds;
-        this.minY = minY;
         this.chunks = chunks;
         this.registrations = registrations.stream().collect(Collectors.toMap(registration -> registration.key().id(), Function.identity()));
     }
@@ -125,7 +123,7 @@ final class IrisModuleMantle implements Mantle {
 
         @Override
         public T get(int x, int y, int z) {
-            ModuleLayerValues values = valuesAt(chunkAt(x, y, z), x, y - minY, z);
+            ModuleLayerValues values = valuesAt(chunkAt(x, y, z), x, y, z);
             return values == null ? null : values.get(key, codec);
         }
 
@@ -175,9 +173,8 @@ final class IrisModuleMantle implements Mantle {
             MantleChunk<Matter> chunk = requireChunk(chunkX, chunkZ);
             int originX = chunkX << CHUNK_SHIFT;
             int originZ = chunkZ << CHUNK_SHIFT;
-            chunk.iterate(ModuleLayerValues.class, (localX, mantleY, localZ, values) -> {
+            chunk.iterate(ModuleLayerValues.class, (localX, y, localZ, values) -> {
                 int x = originX + localX;
-                int y = mantleY + minY;
                 int z = originZ + localZ;
                 if (values.has(key.id()) && area.contains(x, y, z)) {
                     stored.add(new Stored<>(x, y, z, values.get(key, codec)));
@@ -361,12 +358,11 @@ final class IrisModuleMantle implements Mantle {
     /** Replaces the values of one block under the chunk's lock, so concurrent stages on neighboring chunks keep each other's layers. */
     private void change(int x, int y, int z, UnaryOperator<ModuleLayerValues> change) {
         MantleChunk<Matter> chunk = chunkAt(x, y, z);
-        int mantleY = y - minY;
         synchronized (chunk) {
-            ModuleLayerValues current = valuesAt(chunk, x, mantleY, z);
+            ModuleLayerValues current = valuesAt(chunk, x, y, z);
             ModuleLayerValues changed = change.apply(current == null ? ModuleLayerValues.EMPTY : current);
-            MatterSlice<ModuleLayerValues> slice = chunk.getOrCreate(mantleY >> SECTION_SHIFT).slice(ModuleLayerValues.class);
-            slice.set(x & LOCAL_MASK, mantleY & LOCAL_MASK, z & LOCAL_MASK, changed.isEmpty() ? null : changed);
+            MatterSlice<ModuleLayerValues> slice = chunk.getOrCreate(y >> SECTION_SHIFT).slice(ModuleLayerValues.class);
+            slice.set(x & LOCAL_MASK, y & LOCAL_MASK, z & LOCAL_MASK, changed.isEmpty() ? null : changed);
         }
     }
 

@@ -59,7 +59,7 @@ final class IrisPlacementInputs implements PlacementContext {
             }
 
             @Override
-            public BiomeSample biome(int worldX, int worldY, int worldZ) {
+            public BiomeSample biome(int worldX, int y, int worldZ) {
                 throw withoutEngine();
             }
         };

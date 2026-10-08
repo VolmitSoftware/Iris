@@ -31,7 +31,8 @@ import java.util.OptionalInt;
 /**
  * Iris's terrain streams for one invocation. The streams are computed, not prepared, so the bounds are
  * only the area the invocation may touch: a chunk or a placement widened by the pipeline's reach, at
- * full height.
+ * full height. Heights, in the bounds and in the samples, are above the dimension's bottom, as the engine's
+ * streams give them.
  */
 final class IrisTerrainSampler implements TerrainSampler {
     private static final int CHUNK_WIDTH_BLOCKS = 16;
@@ -50,7 +51,7 @@ final class IrisTerrainSampler implements TerrainSampler {
     IrisTerrainSampler(Engine engine, PackResourceIds ids, int minX, int minZ, int maxX, int maxZ) {
         this.engine = engine;
         this.ids = ids;
-        this.bounds = new BlockBox(minX, engine.getMinHeight(), minZ, maxX, engine.getMinHeight() + engine.getHeight(), maxZ);
+        this.bounds = ApiHeights.columns(engine, minX, minZ, maxX, maxZ);
     }
 
     @Override
@@ -69,19 +70,19 @@ final class IrisTerrainSampler implements TerrainSampler {
     }
 
     @Override
-    public BiomeSample biome(int worldX, int worldY, int worldZ) {
-        requireInside(worldX, worldY, worldZ);
+    public BiomeSample biome(int worldX, int y, int worldZ) {
+        requireInside(worldX, y, worldZ);
         IrisBiome surface = engine.getSurfaceBiome(worldX, worldZ);
-        Optional<IrisBiome> cave = Optional.ofNullable(engine.getCaveBiome(worldX, worldY, worldZ));
+        Optional<IrisBiome> cave = Optional.ofNullable(engine.getCaveBiome(worldX, y, worldZ));
         return new BiomeSample(
                 ids.of(engine.getRegion(worldX, worldZ).getLoadKey()),
                 ids.of(surface.getLoadKey()),
                 cave.map(biome -> ids.of(biome.getLoadKey())));
     }
 
-    private void requireInside(int worldX, int worldY, int worldZ) {
-        if (!bounds.contains(worldX, worldY, worldZ)) {
-            throw new IndexOutOfBoundsException("Block " + worldX + ", " + worldY + ", " + worldZ + " is outside the sampled area " + bounds);
+    private void requireInside(int worldX, int y, int worldZ) {
+        if (!bounds.contains(worldX, y, worldZ)) {
+            throw new IndexOutOfBoundsException("Block " + worldX + ", " + y + ", " + worldZ + " is outside the sampled area " + bounds);
         }
     }
 }

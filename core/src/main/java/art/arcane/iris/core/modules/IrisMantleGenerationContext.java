@@ -53,9 +53,9 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
         this.originZ = chunkZ << CHUNK_SHIFT;
         this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, reachBlocks);
         this.settings = new ChunkModuleSettings(engine, ids);
-        BlockBox reach = new BlockBox(originX - reachBlocks, engine.getMinHeight(), originZ - reachBlocks,
-                originX + CHUNK_WIDTH + reachBlocks, engine.getMinHeight() + engine.getHeight(), originZ + CHUNK_WIDTH + reachBlocks);
-        this.mantle = new IrisModuleMantle(reach, engine.getMinHeight(), chunks, layers);
+        BlockBox reach = ApiHeights.columns(engine, originX - reachBlocks, originZ - reachBlocks,
+                originX + CHUNK_WIDTH + reachBlocks, originZ + CHUNK_WIDTH + reachBlocks);
+        this.mantle = new IrisModuleMantle(reach, chunks, layers);
     }
 
     @Override

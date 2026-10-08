@@ -30,7 +30,6 @@ import art.arcane.iris.engine.modifier.IrisCarveModifier;
 import art.arcane.iris.engine.modifier.IrisCustomModifier;
 import art.arcane.iris.engine.modifier.IrisDepositModifier;
 import art.arcane.iris.engine.modifier.IrisFloatingChildBiomeModifier;
-import art.arcane.iris.engine.modifier.IrisPerfectionModifier;
 import art.arcane.iris.engine.modifier.IrisPostModifier;
 import art.arcane.iris.spi.IrisLogging;
 
@@ -49,7 +48,6 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         IrisCarveModifier cave = new IrisCarveModifier(getEngine());
         IrisPostModifier post = new IrisPostModifier(getEngine());
         IrisDepositModifier deposit = new IrisDepositModifier(getEngine());
-        IrisPerfectionModifier perfection = new IrisPerfectionModifier(getEngine());
         IrisCustomModifier custom = new IrisCustomModifier(getEngine());
         IrisFloatingChildBiomeModifier floatingChildBiomes = new IrisFloatingChildBiomeModifier(getEngine());
         EngineStage sBiome = (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c);
@@ -91,7 +89,6 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         };
         EngineStage sFloatingTerrainSolid = (x, z, k, p, m, c) -> floatingChildBiomes.modify(x, z, k, m, c);
         EngineStage sFloatingDecorate = (x, z, k, p, m, c) -> floatingChildBiomes.decorateColumns(x, z, k, m, c);
-        EngineStage sPerfection = (x, z, k, p, m, c) -> perfection.modify(x, z, k, m, c);
         EngineStage sCustom = (x, z, k, p, m, c) -> {
             if (shouldBypassMantleStages()) {
                 return;
@@ -115,7 +112,6 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         registerStage(sInsertMatter);
         registerStage(sDecorant);
         registerStage(sFloatingDecorate);
-        registerStage(sPerfection);
         registerStage(sCustom);
     }
 

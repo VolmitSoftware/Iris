@@ -22,20 +22,25 @@ import art.arcane.iris.engine.framework.Engine;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.GenerationContext;
+import com.volmit.host.MantleRegistration;
+import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.resource.PackResources;
 import com.volmit.world.TerrainSampler;
 
+import java.util.Collection;
+
 /**
  * One chunk of an Iris engine as an IrisApi chunk invocation: the chunk's block hunk, Iris's terrain
- * streams and the pack's module settings. Mantle access and pack resources are not bridged yet; a stage
- * that asks for them fails the chunk with an error saying so, rather than seeing an empty mantle or
- * pack.
+ * streams, the pack's module settings and the chunk's mantle, which IrisApi gives chunk stages read-only.
+ * Pack resources are not bridged yet; a stage that asks for them fails the chunk with an error saying so,
+ * rather than seeing an empty pack.
  */
 final class IrisGenerationContext implements GenerationContext {
     private static final String NOT_BRIDGED = " is not bridged to Iris yet; modules cannot use it until a built-in port needs it";
     /** Chunk stages write only their own chunk. */
     private static final int CHUNK_STAGE_REACH = 0;
+    private static final int CHUNK_WIDTH = 16;
 
     private final Engine engine;
     private final int originX;
@@ -43,8 +48,10 @@ final class IrisGenerationContext implements GenerationContext {
     private final BlockStateHunk blocks;
     private final IrisTerrainSampler terrain;
     private final ChunkModuleSettings settings;
+    private final IrisModuleMantle mantle;
 
-    IrisGenerationContext(Engine engine, int originX, int originZ, BlockStateHunk blocks) {
+    IrisGenerationContext(Engine engine, int originX, int originZ, BlockStateHunk blocks, IrisModuleMantle.Chunks mantleChunks,
+                          Collection<MantleRegistration<?>> mantleLayers) {
         PackResourceIds ids = new PackResourceIds(engine.getData().getDataFolder());
         this.engine = engine;
         this.originX = originX;
@@ -52,6 +59,9 @@ final class IrisGenerationContext implements GenerationContext {
         this.blocks = blocks;
         this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, CHUNK_STAGE_REACH);
         this.settings = new ChunkModuleSettings(engine, ids);
+        BlockBox chunk = new BlockBox(originX, engine.getMinHeight(), originZ,
+                originX + CHUNK_WIDTH, engine.getMinHeight() + engine.getHeight(), originZ + CHUNK_WIDTH);
+        this.mantle = new IrisModuleMantle(chunk, engine.getMinHeight(), mantleChunks, mantleLayers);
     }
 
     @Override
@@ -81,7 +91,7 @@ final class IrisGenerationContext implements GenerationContext {
 
     @Override
     public Mantle mantle() {
-        throw new UnsupportedOperationException("Mantle access from module stages" + NOT_BRIDGED);
+        return mantle;
     }
 
     @Override

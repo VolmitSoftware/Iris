@@ -54,8 +54,13 @@ public final class ModuleChunkGeneration {
         if (chunk.stages().isEmpty()) {
             return;
         }
-        IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z, new BlockStateHunk(blocks, platformStates));
-        long seed = ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
-        new IrisChunk(engine, x, z, blocks, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed));
+        int chunkX = x >> CHUNK_SHIFT;
+        int chunkZ = z >> CHUNK_SHIFT;
+        long seed = ModuleSeeds.chunk(engine.getSeedManager().getSeed(), chunkX, chunkZ);
+        try (PinnedMantleChunk mantle = new PinnedMantleChunk(engine, chunkX, chunkZ)) {
+            IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z, new BlockStateHunk(blocks, platformStates), mantle,
+                    pack.catalog().mantle());
+            new IrisChunk(engine, x, z, blocks, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed));
+        }
     }
 }

@@ -23,6 +23,7 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.slices.EntityMatter;
 import art.arcane.iris.util.project.matter.slices.IdentifierMatter;
+import art.arcane.iris.util.project.matter.slices.ModuleLayerMatter;
 import art.arcane.iris.util.project.matter.slices.NativeStructureOwnershipMatter;
 import art.arcane.iris.util.project.matter.slices.PlatformBlockMatter;
 import art.arcane.iris.util.project.matter.slices.SpawnerMatter;
@@ -48,6 +49,7 @@ public final class IrisMatterSupport {
 
         IrisMatter.registerSliceType(new EntityMatter());
         IrisMatter.registerSliceType(new IdentifierMatter());
+        IrisMatter.registerSliceType(new ModuleLayerMatter());
         IrisMatter.registerSliceType(new NativeStructureOwnershipMatter());
         IrisMatter.registerSliceType(new PlatformBlockMatter());
         IrisMatter.registerSliceType(new SpawnerMatter());

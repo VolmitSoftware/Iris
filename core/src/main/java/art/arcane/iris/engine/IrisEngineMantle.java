@@ -20,6 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleMantleComponent;
 import art.arcane.iris.core.tools.WorldMaintenance;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
@@ -90,6 +91,7 @@ public class IrisEngineMantle implements EngineMantle {
         registerComponent(object);
         registerComponent(new MantleFloatingObjectComponent(this));
         registerComponent(new IrisStructureComponent(this));
+        registerComponent(new ModuleMantleComponent(this));
     }
 
     @Override

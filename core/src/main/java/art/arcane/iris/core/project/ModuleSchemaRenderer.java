@@ -38,7 +38,8 @@ import java.util.function.Function;
 /**
  * Renders the settings a pack's modules add, described by IrisApi as a {@link PackSchema}, into the JSON
  * schema studio writes: each feature as a property of its target under its id and, for built-ins, its
- * alias, each settings class once as a definition, references as completion lists.
+ * alias, each settings class once as a definition, references as completion lists. Settings with one option
+ * also accept that option's bare value; Iris's own classes in built-in settings use Iris's own definitions.
  */
 final class ModuleSchemaRenderer {
     private static final String DEFINITION_PREFIX = "module-";
@@ -52,17 +53,24 @@ final class ModuleSchemaRenderer {
         void complete(JSONObject property, Reference reference, TextFormat format);
     }
 
+    /** The definition key of Iris's own description of one of its classes, built the first time it is asked for. */
+    interface HostDefinitions {
+        String definition(String typeName);
+    }
+
     private final PackSchema schema;
     private final Map<String, JSONObject> definitions;
     private final ReferenceCompletions references;
+    private final HostDefinitions hostDefinitions;
     private final Function<String, List<String>> snippetFiles;
 
     /** {@code snippetFiles} lists the snippet references a pack has for a snippet folder, such as {@code snippet/thick}. */
     ModuleSchemaRenderer(PackSchema schema, Map<String, JSONObject> definitions, ReferenceCompletions references,
-                         Function<String, List<String>> snippetFiles) {
+                         HostDefinitions hostDefinitions, Function<String, List<String>> snippetFiles) {
         this.schema = schema;
         this.definitions = definitions;
         this.references = references;
+        this.hostDefinitions = hostDefinitions;
         this.snippetFiles = snippetFiles;
     }
 
@@ -91,9 +99,13 @@ final class ModuleSchemaRenderer {
         return file;
     }
 
+    /** The settings object, or with exactly one option also that option's bare value. */
     private JSONObject featureProperty(FeatureSchema feature) {
-        JSONObject property = new JSONObject();
-        property.put("$ref", DEFINITION_REF + definition(feature.settings().name()));
+        JSONObject object = new JSONObject();
+        object.put("$ref", DEFINITION_REF + definition(feature.settings().name()));
+        JSONObject property = feature.shorthand()
+                .map(option -> new JSONObject().put("anyOf", new JSONArray(List.of(object, optionSchema(option)))))
+                .orElse(object);
         String description = feature.name() + " (" + feature.id() + "), from module " + feature.module().name()
                 + " (" + feature.module().id() + ")" + (feature.settings().description().isEmpty() ? "" : ". " + feature.settings().description());
         property.put("description", description);
@@ -197,6 +209,7 @@ final class ModuleSchemaRenderer {
                 value.put("additionalProperties", valueSchema(map.value()));
             }
             case ValueKind.ObjectKind object -> value.put("$ref", DEFINITION_REF + definition(object.type()));
+            case ValueKind.HostKind host -> value.put("$ref", DEFINITION_REF + hostDefinitions.definition(host.type()));
         }
         return value;
     }

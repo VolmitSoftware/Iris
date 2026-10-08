@@ -23,16 +23,18 @@ import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
 import com.volmit.resource.ResourceId;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Module settings during one object placement: the placement's own at {@link Target#OBJECT_PLACEMENT},
- * the world's at every other target. A placement without an engine sees no world settings.
+ * Module settings during one object placement: the world's levels at the column, followed by the placement's
+ * own entry. A placement without an engine sees no world settings.
  */
 final class PlacementModuleSettings implements FeatureSettings {
     private static final FeatureSettings NO_WORLD = new FeatureSettings() {
         @Override
-        public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, Target target, int worldX, int worldY, int worldZ) {
+        public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
             return List.of();
         }
     };
@@ -53,12 +55,14 @@ final class PlacementModuleSettings implements FeatureSettings {
     }
 
     @Override
-    public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, Target target, int worldX, int worldY, int worldZ) {
-        if (target != Target.OBJECT_PLACEMENT) {
-            return world.at(featureType, target, worldX, worldY, worldZ);
+    public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
+        List<Entry<F>> worldEntries = world.at(featureType, worldX, worldZ);
+        Optional<F> own = placement.find(featureType);
+        if (own.isEmpty()) {
+            return worldEntries;
         }
-        return placement.find(featureType)
-                .map(value -> List.of(new Entry<>(source, source, value)))
-                .orElse(List.of());
+        List<Entry<F>> entries = new ArrayList<>(worldEntries);
+        entries.add(new Entry<>(Target.OBJECT_PLACEMENT, source, own.get()));
+        return List.copyOf(entries);
     }
 }

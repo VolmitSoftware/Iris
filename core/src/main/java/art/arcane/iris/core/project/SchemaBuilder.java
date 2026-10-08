@@ -372,9 +372,32 @@ public class SchemaBuilder {
     private ModuleSchemaRenderer moduleSchemas() {
         if (moduleSchemas == null) {
             moduleSchemas = new ModuleSchemaRenderer(data.getModules().pack().schema(), definitions,
-                    this::completeReference, data::getPossibleSnippets);
+                    this::completeReference, this::hostDefinition, data::getPossibleSnippets);
         }
         return moduleSchemas;
+    }
+
+    /** Iris's own definition of one of its classes that a built-in module's settings hold, as Iris's fields describe it. */
+    private String hostDefinition(String typeName) {
+        Class<?> type = hostType(typeName);
+        String key = objectDefinitionKey(type);
+        if (!definitions.containsKey(key)) {
+            definitions.put(key, new JSONObject());
+            definitions.put(key, buildProperties(type));
+        }
+        return key;
+    }
+
+    private static Class<?> hostType(String typeName) {
+        try {
+            return Class.forName(typeName, false, SchemaBuilder.class.getClassLoader());
+        } catch (ClassNotFoundException missing) {
+            throw new IllegalStateException("Built-in settings name Iris class " + typeName + ", which Iris does not have", missing);
+        }
+    }
+
+    private static String objectDefinitionKey(Class<?> type) {
+        return "obj-" + type.getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
     }
 
     /** Completion for a module option that names something, from the same lists Iris's own fields use. */
@@ -653,7 +676,7 @@ public class SchemaBuilder {
                     }
                 } else {
                     fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
-                    String key = "obj-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
+                    String key = objectDefinitionKey(k.getType());
                     if (!definitions.containsKey(key)) {
                         definitions.put(key, new JSONObject());
                         definitions.put(key, buildProperties(k.getType()));
@@ -681,7 +704,7 @@ public class SchemaBuilder {
                         case "number" -> fancyType = "List of Numbers";
                         case "object" -> {
                             fancyType = "List of " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + "s (Objects)";
-                            String key = "obj-" + t.type().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
+                            String key = objectDefinitionKey(t.type());
                             if (!definitions.containsKey(key)) {
                                 definitions.put(key, new JSONObject());
                                 definitions.put(key, buildProperties(t.type()));

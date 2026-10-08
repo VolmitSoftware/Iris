@@ -34,6 +34,8 @@ import com.volmit.world.TerrainSampler;
  */
 final class IrisGenerationContext implements GenerationContext {
     private static final String NOT_BRIDGED = " is not bridged to Iris yet; modules cannot use it until a built-in port needs it";
+    /** Chunk stages write only their own chunk. */
+    private static final int CHUNK_STAGE_REACH = 0;
 
     private final Engine engine;
     private final int originX;
@@ -42,13 +44,13 @@ final class IrisGenerationContext implements GenerationContext {
     private final IrisTerrainSampler terrain;
     private final ChunkModuleSettings settings;
 
-    IrisGenerationContext(Engine engine, int originX, int originZ, BlockStateHunk blocks, int reachBlocks) {
+    IrisGenerationContext(Engine engine, int originX, int originZ, BlockStateHunk blocks) {
         PackResourceIds ids = new PackResourceIds(engine.getData().getDataFolder());
         this.engine = engine;
         this.originX = originX;
         this.originZ = originZ;
         this.blocks = blocks;
-        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, reachBlocks);
+        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, CHUNK_STAGE_REACH);
         this.settings = new ChunkModuleSettings(engine, ids);
     }
 

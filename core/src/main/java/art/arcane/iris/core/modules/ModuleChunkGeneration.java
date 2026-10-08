@@ -19,29 +19,25 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.volmit.host.ChunkRunner;
-import com.volmit.host.ConfiguredSettings;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ResolvedGraph;
 
 import java.util.function.Function;
 
 /**
- * Runs the pack's resolved chunk graph on a chunk Iris has generated. Its stages are active where the
- * chunk's dimension, region or biome configures their settings (see {@link ChunkModuleSettings}). A
- * failing stage fails the chunk.
+ * Runs the pack's resolved chunk graph on a chunk. A stage is active where any column of the chunk has its
+ * settings at the dimension, the column's region or its biome (see {@link ChunkModuleSettings}). A failing
+ * stage fails the chunk.
  * <p>
  * Stages write the chunk's own block hunk, so a block written beyond the chunk fails instead of being
- * clipped. The pipeline's reach widens the terrain they may sample; mantle access is not bridged yet.
+ * clipped, and read the mantle the mantle pipeline prepared.
  */
 public final class ModuleChunkGeneration {
-    private static final int CHUNK_CENTER = 7;
     private static final int CHUNK_SHIFT = 4;
 
     private ModuleChunkGeneration() {
@@ -49,20 +45,17 @@ public final class ModuleChunkGeneration {
 
     /** {@code x} and {@code z} are the chunk's first block, as engine stages receive them. */
     public static void generate(Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context) {
-        generate(engine.getData().getModules().pack(), engine, x, z, blocks, context,
-                context.getRegion().get(CHUNK_CENTER, CHUNK_CENTER), context.getBiome().get(CHUNK_CENTER, CHUNK_CENTER), B::getState);
+        generate(engine.getData().getModules().pack(), engine, x, z, blocks, context, B::getState);
     }
 
     static void generate(LoadedPack pack, Engine engine, int x, int z, Hunk<PlatformBlockState> blocks, ChunkContext context,
-                         IrisRegion centerRegion, IrisBiome centerBiome, Function<String, PlatformBlockState> platformStates) {
+                         Function<String, PlatformBlockState> platformStates) {
         ResolvedGraph chunk = pack.chunk();
         if (chunk.stages().isEmpty()) {
             return;
         }
-        ConfiguredSettings settings = ChunkModuleSettings.configured(engine.getDimension(), centerRegion, centerBiome);
-        IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z,
-                new BlockStateHunk(blocks, platformStates), chunk.reach().blocks());
+        IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z, new BlockStateHunk(blocks, platformStates));
         long seed = ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
-        new IrisChunk(engine, x, z, blocks, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed, settings));
+        new IrisChunk(engine, x, z, blocks, context).runBound(() -> new ChunkRunner(chunk).generate(inputs, seed));
     }
 }

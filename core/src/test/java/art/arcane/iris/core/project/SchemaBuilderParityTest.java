@@ -255,14 +255,16 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
-    public void objectPlacementSchemaRendersModuleSettingsUnderTheirIdAndAlias() throws IOException {
+    public void objectPlacementSchemaRendersModuleSettingsUnderTheirIdAndAliasWithTheirShorthand() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(glowModuleSchema())).construct();
         JSONObject properties = rootProperties(schema);
-        String definition = definitionKey(properties.getJSONObject("example:glow"));
+        JSONArray forms = properties.getJSONObject("example:glow").getJSONArray("anyOf");
+        String definition = definitionKey(forms.getJSONObject(0));
         JSONObject level = schema.getJSONObject("definitions").getJSONObject(definition)
                 .getJSONObject("properties").getJSONObject("level");
 
-        assertEquals(definition, definitionKey(properties.getJSONObject("glow")));
+        assertEquals(definition, definitionKey(properties.getJSONObject("glow").getJSONArray("anyOf").getJSONObject(0)));
+        assertEquals("settings with one option also take its bare value", "integer", forms.getJSONObject(1).getString("type"));
         assertEquals("integer", level.getString("type"));
         assertEquals(1, level.getInt("minimum"));
         assertEquals(15, level.getInt("maximum"));

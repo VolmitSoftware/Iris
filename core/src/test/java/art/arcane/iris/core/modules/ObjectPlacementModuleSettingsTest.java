@@ -96,7 +96,7 @@ public class ObjectPlacementModuleSettingsTest {
         public void install(StageGraph graph) {
             graph.define(TOP).when(GlowSettings.class).requires(BlocksStages.COMPLETE, AnchorStages.FINAL).run((context, glow) -> {
                 int y = context.output(AnchorStages.FINAL).y() + 1;
-                context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(glow.block), Optional.empty()));
+                context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(glow.getFirst().value().block), Optional.empty()));
             });
         }
     }
@@ -119,7 +119,7 @@ public class ObjectPlacementModuleSettingsTest {
 
         data = mock(IrisData.class);
         pack = BuiltInPlacementPack.serve(data, folder, List.of(new GlowModule()));
-        ModuleSettingsDecoder decoder = new ModuleSettingsDecoder(pack.catalog(), folder.getRoot().toPath());
+        ModuleSettingsDecoder decoder = new ModuleSettingsDecoder(pack.catalog(), folder.getRoot().toPath(), Gson::new);
         gson = new GsonBuilder().registerTypeAdapterFactory(new ObjectPlacementSettingsReader(() -> decoder)).create();
     }
 

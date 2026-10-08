@@ -22,10 +22,8 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.dimension.IrisDimensionModeType;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -119,7 +117,7 @@ public class PerfectionModuleTest {
     }
 
     private void generate() {
-        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, new IrisRegion(), new IrisBiome(), key -> block(key, false));
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, key -> block(key, false));
     }
 
     private static PlatformBlockState decorant(boolean held) {

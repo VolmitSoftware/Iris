@@ -142,7 +142,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     private IrisData(File dataFolder, boolean datapackCompiler) {
         this.dataFolder = dataFolder;
-        this.modules = new PackModuleSet(dataFolder);
+        this.modules = new PackModuleSet(dataFolder, this::getGson);
         this.id = RNG.r.imax();
         this.datapackCompiler = datapackCompiler;
         if (datapackCompiler) {

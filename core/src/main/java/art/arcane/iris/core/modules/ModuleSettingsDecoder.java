@@ -31,6 +31,7 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
+import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Snippet;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.FeatureDescriptor;
@@ -49,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -56,6 +58,10 @@ import java.util.stream.Stream;
  * that target, under its id or, for built-ins, its alias. Settings are created with their no-argument
  * constructor and the JSON is read into them, so an omitted option keeps its default. A {@link Snippet}
  * type may be written as {@code "snippet/<name>"}, read from {@code snippet/<snippet folder>/<name>.json}.
+ * <p>
+ * Settings with exactly one option may be written as that option's value: {@code "snow": 0.5} reads as
+ * {@code "snow": {"amount": 0.5}}. Iris's own classes that built-in settings hold (see
+ * {@link IrisModuleHost#isHostType}) are read by Iris's pack Gson, exactly as Iris reads them elsewhere.
  */
 public final class ModuleSettingsDecoder {
     private static final String SNIPPET_PREFIX = "snippet/";
@@ -66,12 +72,16 @@ public final class ModuleSettingsDecoder {
     private final Map<Target, Set<String>> keys = new EnumMap<>(Target.class);
     private final Path packFolder;
     private final Gson gson;
+    private final Supplier<Gson> irisGson;
 
-    ModuleSettingsDecoder(FeatureCatalog catalog, Path packFolder) {
+    /** @param irisGson the pack's own Gson, which reads Iris's classes */
+    ModuleSettingsDecoder(FeatureCatalog catalog, Path packFolder, Supplier<Gson> irisGson) {
         this.packFolder = packFolder;
+        this.irisGson = irisGson;
         this.gson = new GsonBuilder()
                 .registerTypeAdapter(BlockState.class, textAdapter(BlockState::parse, BlockState::key))
                 .registerTypeAdapter(ResourceId.class, textAdapter(ResourceId::parse, ResourceId::toString))
+                .registerTypeAdapterFactory(new HostTypes())
                 .registerTypeAdapterFactory(new SnippetReferences())
                 .create();
         for (Target target : Target.values()) {
@@ -112,7 +122,7 @@ public final class ModuleSettingsDecoder {
 
     private IrisFeature read(FeatureDescriptor<?> feature, Object value, String key, String resource) {
         try {
-            IrisFeature decoded = gson.fromJson(JSONObject.valueToString(value), feature.type());
+            IrisFeature decoded = gson.fromJson(JSONObject.valueToString(asObject(feature, value)), feature.type());
             if (decoded == null) {
                 throw new JsonParseException("the value is null");
             }
@@ -121,6 +131,23 @@ public final class ModuleSettingsDecoder {
             throw new IllegalArgumentException("Cannot read settings " + feature.id() + " under \"" + key + "\" in "
                     + resource + ": " + failure.getMessage(), failure);
         }
+    }
+
+    /** A bare value of settings with exactly one option, as the object holding it; anything else unchanged. */
+    private static Object asObject(FeatureDescriptor<?> feature, Object value) {
+        if (value instanceof JSONObject || isSnippetReference(feature, value)) {
+            return value;
+        }
+        List<OptionsMetadata.Option> options = feature.options().options();
+        if (options.size() != 1) {
+            throw new JsonParseException("write an object; only settings with exactly one option may be written as that"
+                    + " option's value, and these have " + options.size());
+        }
+        return new JSONObject().put(options.getFirst().name(), value);
+    }
+
+    private static boolean isSnippetReference(FeatureDescriptor<?> feature, Object value) {
+        return feature.type().isAnnotationPresent(Snippet.class) && value instanceof String text && text.startsWith(SNIPPET_PREFIX);
     }
 
     private static List<FeatureDescriptor<?>> settingsAt(FeatureCatalog catalog, Target target) {
@@ -153,6 +180,27 @@ public final class ModuleSettingsDecoder {
                 return parse.apply(in.nextString());
             }
         }.nullSafe();
+    }
+
+    /** Reads and writes Iris's own classes with the pack's Gson, asked at each use so a hotloaded pack's applies. */
+    private final class HostTypes implements TypeAdapterFactory {
+        @Override
+        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+            if (!IrisModuleHost.isHostType(type.getRawType())) {
+                return null;
+            }
+            return new TypeAdapter<T>() {
+                @Override
+                public void write(JsonWriter out, T value) throws IOException {
+                    irisGson.get().getAdapter(type).write(out, value);
+                }
+
+                @Override
+                public T read(JsonReader in) throws IOException {
+                    return irisGson.get().getAdapter(type).read(in);
+                }
+            };
+        }
     }
 
     /** Lets a {@link Snippet} type be written as a reference to a snippet file. */

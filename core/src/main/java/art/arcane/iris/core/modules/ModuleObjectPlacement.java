@@ -88,7 +88,7 @@ public final class ModuleObjectPlacement {
                 new PlacerBlockView(placer, area, states));
         long seed = ModuleSeeds.placement(worldSeed, objectKey, x, requestedY, z);
         PlacementOutcome outcome = placement.runBound(() -> new PlacementRunner(graph)
-                .place(request, edit, inputs, seed, config.getModuleSettings().configured()));
+                .place(request, edit, inputs, seed, config.getModuleSettings().placement(source)));
         return outcome.isPlaced()
                 ? ObjectPlacementResult.placed(placement.anchorY())
                 : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());

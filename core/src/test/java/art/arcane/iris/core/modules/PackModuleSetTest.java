@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import com.google.gson.Gson;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -37,7 +38,7 @@ public class PackModuleSetTest {
 
     @Test
     public void loadsOnFirstUseAndClosesWithItsOwner() throws IOException {
-        PackModuleSet modules = new PackModuleSet(folder.newFolder("plain"));
+        PackModuleSet modules = new PackModuleSet(folder.newFolder("plain"), Gson::new);
 
         assertSame(modules.pack(), modules.pack());
         assertTrue(modules.pack().packModules().isEmpty());
@@ -50,7 +51,7 @@ public class PackModuleSetTest {
     public void aFailedLoadIsRememberedWithThePackNamed() throws IOException {
         File pack = folder.newFolder("broken");
         Files.writeString(Files.createDirectories(pack.toPath().resolve("modules")).resolve("empty.jar"), "not a jar");
-        PackModuleSet modules = new PackModuleSet(pack);
+        PackModuleSet modules = new PackModuleSet(pack, Gson::new);
 
         PackModulesException first = assertThrows(PackModulesException.class, modules::pack);
         PackModulesException second = assertThrows(PackModulesException.class, modules::settings);

@@ -20,14 +20,15 @@ package art.arcane.iris.core.modules;
 
 import com.volmit.IrisFeature;
 import com.volmit.host.ConfiguredSettings;
+import com.volmit.resource.ResourceId;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Module settings one dimension, region or biome declares, at most one value per settings type.
+ * Module settings one dimension, region, biome or object placement declares, at most one value per settings
+ * type. Each is one level's entry: levels stack and are never merged (see {@link ChunkModuleSettings}).
  */
 public final class ModuleSettings {
     public static final ModuleSettings NONE = new ModuleSettings(Map.of());
@@ -54,20 +55,8 @@ public final class ModuleSettings {
         return values.isEmpty();
     }
 
-    /** These settings, each type that {@code moreSpecific} also declares taking its value instead. */
-    public ModuleSettings overriddenBy(ModuleSettings moreSpecific) {
-        if (moreSpecific.isEmpty()) {
-            return this;
-        }
-        if (isEmpty()) {
-            return moreSpecific;
-        }
-        Map<Class<? extends IrisFeature>, IrisFeature> merged = new LinkedHashMap<>(values);
-        merged.putAll(moreSpecific.values);
-        return new ModuleSettings(merged);
-    }
-
-    public ConfiguredSettings configured() {
-        return isEmpty() ? ConfiguredSettings.none() : ConfiguredSettings.of(values.values().toArray(IrisFeature[]::new));
+    /** These settings as one placement's own, declared by {@code source}. */
+    public ConfiguredSettings placement(ResourceId source) {
+        return isEmpty() ? ConfiguredSettings.none() : ConfiguredSettings.placement(source, values.values().toArray(IrisFeature[]::new));
     }
 }

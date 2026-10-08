@@ -43,12 +43,14 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -78,7 +80,8 @@ public class ModuleChunkGenerationTest {
 
         @Override
         public void install(StageGraph graph) {
-            graph.define(Stage.chunk("iris:pillar/raise")).when(PillarSettings.class).run((context, pillar) -> {
+            graph.define(Stage.chunk("iris:pillar/raise")).when(PillarSettings.class).run((context, pillars) -> {
+                PillarSettings pillar = pillars.getLast().value();
                 com.volmit.hunk.Hunk<BlockState> chunk = context.hunk(BlockState.class);
                 chunk.set(0, 1, 0, chunk.get(0, 0, 0));
                 chunk.set(pillar.x, 2, 0, pillar.block);
@@ -104,6 +107,37 @@ public class ModuleChunkGenerationTest {
     @After
     public void closePack() {
         pack.close();
+    }
+
+    @Test
+    public void everyLevelThatConfiguresTheSettingsIsItsOwnEntryInLevelOrder() {
+        List<List<String>> seen = new ArrayList<>();
+        ChunkModuleSettings settings = new ChunkModuleSettings(engine, new PackResourceIds(folder.getRoot()));
+        IrisRegion region = configured(new IrisRegion(), pillar(1));
+        region.setLoadKey("hot");
+        IrisBiome biome = configured(new IrisBiome(), pillar(2));
+        biome.setLoadKey("desert/dunes");
+        when(engine.getRegion(5, 6)).thenReturn(region);
+        when(engine.getSurfaceBiome(5, 6)).thenReturn(biome);
+        when(engine.getDimension()).thenReturn(configured(new IrisDimension(), pillar(0)));
+
+        settings.at(PillarSettings.class, 5, 6).forEach(entry -> seen.add(List.of(entry.level().name(), entry.source().toString())));
+
+        String pack = folder.getRoot().getName().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_.-]", "_");
+        assertEquals(List.of(List.of("DIMENSION", pack + ":dimension/null"), List.of("REGION", pack + ":region/hot"),
+                List.of("BIOME", pack + ":biome/desert/dunes")), seen);
+    }
+
+    @Test
+    public void stagesRunWhereAnyColumnOfTheChunkConfiguresThem() {
+        when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
+        IrisBiome plain = new IrisBiome();
+        IrisBiome pillared = configured(new IrisBiome(), pillar(3));
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenAnswer(call -> call.getArgument(0, Integer.class) == 15 ? pillared : plain);
+
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, ModuleChunkGenerationTest::platformState);
+
+        assertEquals("minecraft:oak_log[axis=y]", blocks.get(3, 2, 0).key());
     }
 
     @Test
@@ -139,7 +173,9 @@ public class ModuleChunkGenerationTest {
     }
 
     private void generate(IrisBiome biome) {
-        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, new IrisRegion(), biome, ModuleChunkGenerationTest::platformState);
+        when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(biome);
+        ModuleChunkGeneration.generate(pack, engine, 0, 0, blocks, null, ModuleChunkGenerationTest::platformState);
     }
 
     private static PillarSettings pillar(int x) {

@@ -18,7 +18,14 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.volmlib.util.json.JSONObject;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import com.volmit.FeatureRegistry;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
@@ -69,6 +76,16 @@ public class ModuleSettingsDecoderTest {
         private int size = 1;
     }
 
+    @Feature(id = "iris:moss/cover", name = "Cover", alias = "cover", targets = Target.BIOME)
+    public static final class CoverSettings implements IrisFeature {
+        private double amount = 1;
+    }
+
+    @Feature(id = "iris:moss/marks", name = "Marks", alias = "marks", targets = Target.BIOME)
+    public static final class MarksSettings implements IrisFeature {
+        private List<IrisPosition> marks = List.of();
+    }
+
     public static final class MossModule implements IrisModule {
         @Override
         public ModuleInfo info() {
@@ -80,13 +97,20 @@ public class ModuleSettingsDecoderTest {
             graph.define(Stage.chunk("iris:moss/spread")).when(MossSettings.class).run((context, moss) -> {
             });
         }
+
+        @Override
+        public void register(FeatureRegistry registry) {
+            registry.registerSettings(CoverSettings.class);
+            registry.registerSettings(MarksSettings.class);
+        }
     }
 
     @Before
     public void loadPack() throws IOException {
         packFolder = folder.newFolder("pack").toPath();
-        pack = LoadedPack.load(packFolder, ModuleHost.of(List.of(new MossModule())).copyingJarsTo(folder.newFolder("copies").toPath()));
-        decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder);
+        pack = LoadedPack.load(packFolder, ModuleHost.of(List.of(new MossModule()))
+                .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));
+        decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);
     }
 
     @After
@@ -148,17 +172,42 @@ public class ModuleSettingsDecoderTest {
 
     @Test
     public void listsTheKeysModulesReadPerTarget() {
-        assertEquals(Set.of("iris:moss", "moss"), decoder.keys(Target.BIOME));
+        assertEquals(Set.of("iris:moss", "moss", "iris:moss/cover", "cover", "iris:moss/marks", "marks"), decoder.keys(Target.BIOME));
         assertEquals(Set.of(), decoder.keys(Target.DIMENSION));
     }
 
     @Test
-    public void moreSpecificSettingsReplaceLessSpecificOnesOfTheSameType() {
-        ModuleSettings region = decoder.decode(Target.REGION, new JSONObject("{\"moss\": {\"radius\": 2}}"), "region hot");
-        ModuleSettings biome = decoder.decode(Target.BIOME, new JSONObject("{\"moss\": {\"radius\": 5}}"), "biome desert/dunes");
+    public void settingsWithOneOptionReadABareValueAsThatOption() {
+        assertEquals(0.5, decoder.decode(Target.BIOME, new JSONObject("{\"cover\": 0.5}"), "biome desert/dunes")
+                .find(CoverSettings.class).orElseThrow().amount, 0);
+        assertEquals(0.25, decoder.decode(Target.BIOME, new JSONObject("{\"cover\": {\"amount\": 0.25}}"), "biome desert/dunes")
+                .find(CoverSettings.class).orElseThrow().amount, 0);
 
-        assertEquals(5, region.overriddenBy(biome).find(MossSettings.class).orElseThrow().radius);
-        assertEquals(2, region.overriddenBy(ModuleSettings.NONE).find(MossSettings.class).orElseThrow().radius);
-        assertEquals(5, ModuleSettings.NONE.overriddenBy(biome).find(MossSettings.class).orElseThrow().radius);
+        IllegalArgumentException several = assertThrows(IllegalArgumentException.class, () -> moss("{\"moss\": 4}"));
+        assertEquals("Cannot read settings iris:moss under \"moss\" in biome desert/dunes: write an object; only settings with exactly"
+                + " one option may be written as that option's value, and these have 4", several.getMessage());
+    }
+
+    @Test
+    public void irisClassesInBuiltInSettingsAreReadByThePacksGson() {
+        IrisPosition marked = new IrisPosition(1, 2, 3);
+        Gson iris = new GsonBuilder().registerTypeAdapter(IrisPosition.class, new TypeAdapter<IrisPosition>() {
+            @Override
+            public void write(JsonWriter out, IrisPosition value) throws IOException {
+                out.value("marked");
+            }
+
+            @Override
+            public IrisPosition read(JsonReader in) throws IOException {
+                in.nextString();
+                return marked;
+            }
+        }).create();
+        ModuleSettingsDecoder withIrisGson = new ModuleSettingsDecoder(pack.catalog(), packFolder, () -> iris);
+
+        List<IrisPosition> marks = withIrisGson.decode(Target.BIOME, new JSONObject("{\"marks\": [\"a\", \"b\"]}"), "biome desert/dunes")
+                .find(MarksSettings.class).orElseThrow().marks;
+
+        assertEquals(List.of(marked, marked), marks);
     }
 }

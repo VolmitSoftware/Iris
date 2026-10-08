@@ -20,26 +20,23 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
-import com.volmit.host.ConfiguredSettings;
-import com.volmit.resource.ResourceId;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Module settings at world positions, for one engine.
- * <p>
- * The settings that activate a chunk's stages come from its dimension, then the region and then the
- * biome at the chunk's center column, each type taking the most specific declaration: a biome's value
- * replaces its region's, a region's the dimension's. Iris resolves single-valued settings, such as a
- * cave profile, the same way. {@link #at} keeps the targets apart, as {@link FeatureSettings} promises.
+ * Module settings at world columns, for one engine: the dimension's entry, then the entry of the column's
+ * region, then the one of its surface biome. Each level that declares the settings is its own entry; levels
+ * stack and are never merged, so a module sees all of them and decides what several mean.
  */
 final class ChunkModuleSettings implements FeatureSettings {
+    private static final String DIMENSION = "dimension";
+    private static final String REGION = "region";
+    private static final String BIOME = "biome";
+
     private final Engine engine;
     private final PackResourceIds ids;
 
@@ -48,34 +45,21 @@ final class ChunkModuleSettings implements FeatureSettings {
         this.ids = ids;
     }
 
-    static ConfiguredSettings configured(IrisDimension dimension, IrisRegion region, IrisBiome biome) {
-        return settingsOf(dimension)
-                .overriddenBy(settingsOf(region))
-                .overriddenBy(settingsOf(biome))
-                .configured();
-    }
-
     @Override
-    public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, Target target, int worldX, int worldY, int worldZ) {
-        return switch (target) {
-            case DIMENSION -> entries(featureType, "dimension", engine.getDimension());
-            case REGION -> entries(featureType, "region", engine.getRegion(worldX, worldZ));
-            case BIOME -> entries(featureType, "biome", engine.getSurfaceBiome(worldX, worldZ));
-            case OBJECT_PLACEMENT -> List.of();
-        };
+    public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
+        List<Entry<F>> entries = new ArrayList<>(Target.values().length);
+        addEntry(entries, featureType, Target.DIMENSION, DIMENSION, engine.getDimension());
+        addEntry(entries, featureType, Target.REGION, REGION, engine.getRegion(worldX, worldZ));
+        addEntry(entries, featureType, Target.BIOME, BIOME, engine.getSurfaceBiome(worldX, worldZ));
+        return entries.isEmpty() ? List.of() : List.copyOf(entries);
     }
 
-    private <F extends IrisFeature> List<Entry<F>> entries(Class<F> featureType, String kind, IrisRegistrant owner) {
+    private <F extends IrisFeature> void addEntry(List<Entry<F>> entries, Class<F> featureType, Target level, String kind,
+                                                  IrisRegistrant owner) {
         if (owner == null) {
-            return List.of();
+            return;
         }
-        ResourceId source = ids.of(kind, owner.getLoadKey());
-        return owner.getModuleSettings().find(featureType)
-                .map(value -> List.of(new Entry<>(source, source, value)))
-                .orElse(List.of());
-    }
-
-    private static ModuleSettings settingsOf(IrisRegistrant owner) {
-        return owner == null ? ModuleSettings.NONE : owner.getModuleSettings();
+        owner.getModuleSettings().find(featureType)
+                .ifPresent(value -> entries.add(new Entry<>(level, ids.of(kind, owner.getLoadKey()), value)));
     }
 }

@@ -19,12 +19,14 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.spi.IrisLogging;
+import com.google.gson.Gson;
 import com.volmit.host.LoadedPack;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * The modules of one pack folder, loaded with {@link IrisModuleHost} the first time something needs
@@ -39,14 +41,17 @@ public final class PackModuleSet implements AutoCloseable {
     private static final String JAR_EXTENSION = ".jar";
 
     private final File packFolder;
+    private final Supplier<Gson> irisGson;
     private State state = State.NOT_LOADED;
     private LoadedPack pack;
     private ModuleSettingsDecoder settings;
     private PackModulesException failure;
     private List<String> loadedJars = List.of();
 
-    public PackModuleSet(File packFolder) {
+    /** @param irisGson the pack's own Gson, which reads the Iris classes built-in settings hold */
+    public PackModuleSet(File packFolder, Supplier<Gson> irisGson) {
         this.packFolder = packFolder;
+        this.irisGson = irisGson;
     }
 
     /** The loaded pack, its built-in modules included. */
@@ -106,7 +111,7 @@ public final class PackModuleSet implements AutoCloseable {
         try {
             LoadedPack loaded = LoadedPack.load(packFolder.toPath(), IrisModuleHost.get());
             pack = loaded;
-            settings = new ModuleSettingsDecoder(loaded.catalog(), packFolder.toPath());
+            settings = new ModuleSettingsDecoder(loaded.catalog(), packFolder.toPath(), irisGson);
             state = State.LOADED;
         } catch (RuntimeException loadFailure) {
             failure = new PackModulesException(packFolder, loadFailure);

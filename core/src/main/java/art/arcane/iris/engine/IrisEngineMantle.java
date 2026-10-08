@@ -58,7 +58,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
 @Data
@@ -118,7 +117,7 @@ public class IrisEngineMantle implements EngineMantle {
     }
 
     private List<ModuleMantleComponent> stageComponents() {
-        return stageComponents.aquire(() -> ModuleMantleComponent.forPack(engine, Set.copyOf(getDimension().getDisabledComponents())));
+        return stageComponents.aquire(() -> ModuleMantleComponent.forPack(engine, getDimension().getDisabledComponents()));
     }
 
     /**

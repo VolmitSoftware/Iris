@@ -33,9 +33,10 @@ import java.util.Optional;
 
 /**
  * The mantle flag of each mantle stage: it marks a mantle chunk whose stage has run, and names the stage in a
- * dimension's {@code disabledComponents}. Iris's own mantle stages keep the flags their mantle components had,
- * so packs that disable {@code CARVED} keep doing so and existing worlds stay marked. Every other stage gets a
- * custom flag in resolved order, so adding or removing a pack mantle stage can renumber the stages after it.
+ * dimension's {@code disabledComponents} when it is one of Iris's own. Iris's own mantle stages keep the flags
+ * their mantle components had, so packs that disable {@code CARVED} keep doing so and existing worlds stay
+ * marked. Every other stage gets a custom flag in resolved order, so adding or removing a pack mantle stage can
+ * renumber the stages after it; those flags stay internal and a dimension names such a stage by its id.
  */
 public final class MantleStageFlags {
     private static final List<BuiltIn> BUILT_IN = List.of(
@@ -50,6 +51,15 @@ public final class MantleStageFlags {
     /** The flags of Iris's own mantle stages, in their order, which a dimension can list in {@code disabledComponents}. */
     public static List<MantleFlag> builtIn() {
         return BUILT_IN.stream().map(BuiltIn::flag).toList();
+    }
+
+    /** The ids of the mantle stages that have no flag of their own, which a dimension names by id in {@code disabledComponents}. */
+    public static List<String> packStageIds(List<ResolvedStage> stages) {
+        return stages.stream()
+                .map(stage -> stage.stage().id())
+                .filter(id -> builtInFlag(id).isEmpty())
+                .map(ResourceId::toString)
+                .toList();
     }
 
     /** One flag per stage, in the order of {@code stages}. */
@@ -71,7 +81,7 @@ public final class MantleStageFlags {
         return List.copyOf(flags);
     }
 
-    private static Optional<MantleFlag> builtInFlag(ResourceId stage) {
+    static Optional<MantleFlag> builtInFlag(ResourceId stage) {
         return BUILT_IN.stream().filter(builtIn -> builtIn.stage().equals(stage)).map(BuiltIn::flag).findFirst();
     }
 

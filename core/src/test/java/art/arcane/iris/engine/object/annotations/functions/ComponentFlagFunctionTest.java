@@ -1,35 +1,40 @@
-/*
- * Iris is a World Generator for Minecraft Servers
- * Copyright (c) 2026 Arcane Arts (Volmit Software)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package art.arcane.iris.engine.object.annotations.functions;
 
+import art.arcane.iris.builtin.structure.StructureStages;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
+import com.volmit.host.LoadedPack;
+import com.volmit.stage.Stage;
+import com.volmit.stage.StageGraph;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-/** Studio offers the flags of Iris's own mantle stages for a dimension's disabledComponents, caves included. */
+/** Studio offers the flags of Iris's own mantle stages for a dimension's disabledComponents, then the pack's mantle stage ids. */
 public class ComponentFlagFunctionTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     @Test
-    public void offersTheFlagsOfIrisMantleStagesInTheirOrder() {
-        assertEquals(List.of("CARVED", "OBJECT", "FLOATING_OBJECT", "JIGSAW"), new ComponentFlagFunction().apply(mock(IrisData.class)));
+    public void offersTheFlagsOfIrisMantleStagesInTheirOrderThenThePacksMantleStageIds() throws IOException {
+        IrisModule moss = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:moss", "Moss", "1"); }
+            public void install(StageGraph graph) {
+                graph.define(Stage.mantle("test:moss/veins")).requires(StructureStages.PLACE).reach(8).run(context -> { });
+            }
+        };
+        IrisData data = mock(IrisData.class);
+
+        try (LoadedPack ignored = BuiltInPack.serve(data, folder, List.of(moss))) {
+            assertEquals(List.of("CARVED", "OBJECT", "FLOATING_OBJECT", "JIGSAW", "test:moss/veins"), new ComponentFlagFunction().apply(data));
+        }
     }
 }

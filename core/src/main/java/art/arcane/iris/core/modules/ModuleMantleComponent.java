@@ -29,14 +29,14 @@ import com.volmit.host.ResolvedGraph;
 import com.volmit.host.ResolvedStage;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Runs one mantle stage of the pack, Iris's built-in ones included, as a mantle component of its own: a pass of
  * Iris's mantle at the stage's place in the resolved order, so the stage sees everything earlier stages wrote
  * into the chunks around it. Its radius is the stage's reach, worked out from the pack when the components are
- * built; its flag comes from {@link MantleStageFlags}, so a dimension's {@code disabledComponents} turns it off.
+ * built; a dimension's {@code disabledComponents} turns it off, by its flag when it is one of Iris's own, or by its id.
  */
 public final class ModuleMantleComponent implements MantleComponent {
     private final Engine engine;
@@ -61,15 +61,17 @@ public final class ModuleMantleComponent implements MantleComponent {
     }
 
     /**
-     * One component per mantle stage of the engine's pack, in resolved order, each its own pass. A stage whose
-     * flag is in {@code disabled} is turned off.
+     * One component per mantle stage of the engine's pack, in resolved order, each its own pass. A stage named in
+     * {@code disabledComponents} is turned off; a name that matches no stage is warned about.
      */
-    public static List<ModuleMantleComponent> forPack(Engine engine, Set<MantleFlag> disabled) {
-        return forPack(engine, engine.getData().getModules().pack(), disabled);
+    public static List<ModuleMantleComponent> forPack(Engine engine, Collection<String> disabledComponents) {
+        return forPack(engine, engine.getData().getModules().pack(), disabledComponents);
     }
 
-    static List<ModuleMantleComponent> forPack(Engine engine, LoadedPack pack, Set<MantleFlag> disabled) {
+    static List<ModuleMantleComponent> forPack(Engine engine, LoadedPack pack, Collection<String> disabledComponents) {
         ResolvedGraph graph = pack.mantle();
+        DisabledComponents disabled = new DisabledComponents(disabledComponents);
+        disabled.warnAboutUnknown(graph.stages());
         MantleRunner runner = new MantleRunner(graph);
         IrisPackSettings settings = new IrisPackSettings(engine);
         List<MantleFlag> flags = MantleStageFlags.assign(graph.stages());
@@ -78,7 +80,7 @@ public final class ModuleMantleComponent implements MantleComponent {
             ResolvedStage stage = graph.stages().get(position);
             MantleFlag flag = flags.get(position);
             components.add(new ModuleMantleComponent(engine, pack, runner, stage, flag, position,
-                    stage.reachBlocks(settings), !disabled.contains(flag)));
+                    stage.reachBlocks(settings), !disabled.disables(stage)));
         }
         return List.copyOf(components);
     }

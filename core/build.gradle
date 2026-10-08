@@ -53,10 +53,9 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
 dependencies {
     api(project(':spi'))
 
-    // IrisApi, from the sibling checkout (gradle/irisapi-resolution.settings.gradle). compileOnly on
-    // purpose: how the API reaches a server at runtime is undecided, so it is not shaded into the
-    // plugin or mod jars, and a built jar cannot load packs until that is decided.
-    compileOnly('com.volmit:IrisApi')
+    // IrisApi, from the sibling checkout (gradle/irisapi-resolution.settings.gradle). Shaded without
+    // relocation: pack modules compile against com.volmit and the pack loader exposes that package.
+    implementation('com.volmit:IrisApi')
 
     // Provided or Classpath
     compileOnly(libs.lombok)

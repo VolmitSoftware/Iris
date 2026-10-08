@@ -21,7 +21,6 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.builtin.decorant.DecorantStages;
 import art.arcane.iris.builtin.matter.MatterStages;
 import art.arcane.iris.core.modules.IrisChunk;
-import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.decorator.IrisShoreLineDecorator;
@@ -68,12 +67,9 @@ public final class DecorantModule implements IrisModule {
     /** What decorating keeps for one engine runtime: one decorator per kind of place. */
     static final class Decorating {
         private static final Predicate<PlatformBlockState> PREDICATE_SOLID = (s) -> s != null && !B.isAirOrFluid(s);
-        /** Decorating the cave biomes' floors and ceilings is not wired up yet, so the cave biome is never looked up. */
-        private static final boolean RAY_DECORATES_CAVES = false;
 
         private final Engine engine;
         private final IrisSurfaceDecorator surfaceDecorator;
-        private final IrisCeilingDecorator ceilingDecorator;
         private final EngineDecorator seaSurfaceDecorator;
         private final EngineDecorator seaFloorDecorator;
         private final EngineDecorator shoreLineDecorator;
@@ -81,7 +77,6 @@ public final class DecorantModule implements IrisModule {
         Decorating(Engine engine) {
             this.engine = engine;
             surfaceDecorator = new IrisSurfaceDecorator(engine);
-            ceilingDecorator = new IrisCeilingDecorator(engine);
             seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
             shoreLineDecorator = new IrisShoreLineDecorator(engine);
             seaFloorDecorator = new IrisSeaFloorDecorator(engine);
@@ -100,17 +95,13 @@ public final class DecorantModule implements IrisModule {
                 int height;
                 int realX = Math.round(x + i);
                 int realZ;
-                IrisBiome biome, cave;
+                IrisBiome biome;
                 for (int j = 0; j < output.getDepth(); j++) {
-                    boolean solid;
-                    int emptyFor = 0;
-                    int lastSolid = 0;
                     realZ = Math.round(z + j);
                     height = context.getRoundedHeight(i, j);
                     biome = context.getBiome().get(i, j);
-                    cave = RAY_DECORATES_CAVES ? context.getCave().get(i, j) : null;
 
-                    if (biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
+                    if (biome.getDecorators().isEmpty()) {
                         continue;
                     }
 
@@ -134,23 +125,6 @@ public final class DecorantModule implements IrisModule {
 
                     if (height >= 0 && height < output.getHeight()) {
                         surfaceDecorator.decorate(i, j, realX, realZ, output, biome, height, engine.getHeight() - height);
-                    }
-
-                    if (cave != null && cave.getDecorators().isNotEmpty()) {
-                        for (int k = Math.min(height, output.getHeight() - 1); k > 0; k--) {
-                            solid = PREDICATE_SOLID.test(output.get(i, k, j));
-
-                            if (solid) {
-                                if (emptyFor > 0) {
-                                    surfaceDecorator.decorate(i, j, realX, realZ, output, cave, k, lastSolid);
-                                    ceilingDecorator.decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
-                                    emptyFor = 0;
-                                }
-                                lastSolid = k;
-                            } else {
-                                emptyFor++;
-                            }
-                        }
                     }
                 }
             }

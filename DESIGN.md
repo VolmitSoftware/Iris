@@ -22,14 +22,18 @@ flowchart TD
     Settings --> Catalog[Frozen feature catalog]
     Register --> Catalog
     Resolve --> Placement[Placement graph]
+    Resolve --> MantleGraph[Mantle graph]
     Resolve --> Chunk[Chunk graph]
     Catalog --> Schema[PackSchema for studio]
     Schema --> Render[Host JSON Schema and workspace]
     Catalog --> Decode[Host JSON decoding]
     Decode --> Configured[ConfiguredSettings per invocation]
     Configured --> Placement
+    Configured --> MantleGraph
     Configured --> Chunk
     Placement --> Edit[Buffered placement edit]
+    MantleGraph --> MantleData[Mantle around the chunk]
+    MantleData --> Chunk
     Chunk --> Hunk[Local hunks]
     Edit --> Publish[Host publication]
     Hunk --> Publish
@@ -283,7 +287,7 @@ the texts and are tested on their own.
 
 ## Stages
 
-A stage is a constant created by `Stage.placement`, `Stage.placementBlock` or `Stage.chunk`. Its
+A stage is a constant created by `Stage.placement`, `Stage.placementBlock`, `Stage.chunk` or `Stage.mantle`. Its
 identity is that object. Another module that wants to depend on it references the owner's
 constant, which makes the dependency a compile-time one. A copy with the same id is rejected at
 resolve time.
@@ -293,6 +297,7 @@ resolve time.
 | `PlacementStage<O>` | PLACEMENT | once per placement attempt | `PlacementStageContext` |
 | `BlockStage<O>` | PLACEMENT | once per object block, in a block pass | `BlockStageContext` |
 | `ChunkStage<O>` | CHUNK | once per chunk invocation | `ChunkStageContext` |
+| `MantleStage<O>` | MANTLE | once per chunk, before the chunks it reaches generate | `MantleStageContext` |
 
 Rules enforced by `StageGraphBuilder` and the resolver:
 
@@ -349,18 +354,33 @@ the invocation.
 
 The graph is resolved once per pack load. Activation is decided per invocation:
 
-1. The host passes `ConfiguredSettings`, at most one value per settings type, for the placement
-   or chunk. Merging dimension, region, biome and placement declarations is host policy.
+1. The invocation gets `ConfiguredSettings`: for each settings type, the entries configured for it, in
+   level order. For a placement the host passes the placement's own declarations. For a chunk or mantle
+   invocation the runner collects them itself from `FeatureSettings`: every distinct entry, by level and
+   source, of the chunk's 16 by 16 columns.
 2. The invocation looks up each distinct `when` type once.
-3. One pass in resolved order marks a stage active when its settings are present (or it has no
+3. One pass in resolved order marks a stage active when its settings have an entry (or it has no
    condition) and every stage it requires is active.
 
 So an inactive requirement deactivates its dependents. That is not an error. Soft edges never
 affect activation. The cost per invocation is two small arrays and one pass over stages and
-REQUIRED edges. The settings value is passed to the body as its second argument.
+REQUIRED edges, plus, for chunks, one settings read per column and conditioned type. The entries are
+passed to the body as its second argument, a never-empty `List<FeatureSettings.Entry<S>>`.
 
-For chunks, activation is per chunk. A stage that varies inside the chunk still reads
-`ctx.settings().at(...)` per position.
+A chunk stage is active when any column of the chunk configures it, so a biome border inside a chunk
+never hides a feature on either side. The body then reads `ctx.settings().at(type, x, z)` per column,
+or at the chunk's centre column (local 7, 7) for behaviour that happens once per chunk.
+
+### Settings levels
+
+Settings are declared at levels: the dimension, a region, a biome (the column's surface biome) and a
+placement. `FeatureSettings.at(type, x, z)` returns one entry per level that declares the type at that
+column, in that order, each with its level, the declaring resource and the value. Levels stack: there is
+no "most specific wins" and no field merge. A module decides what several entries mean: deposits run
+once per entry, a surface block may take the most specific. The alternatives each hide a decision from
+the module: overriding would make a biome's deposits silently drop the dimension's, merging would need a
+rule per field. Something spanning several columns reads at one origin column: per chunk the centre
+column, per placed object the column it is anchored at. Cave biomes are not a level.
 
 ### Diagnostics
 
@@ -453,11 +473,29 @@ from the variant seed the host chooses.
 
 ## Chunk invocations
 
-`ChunkRunner.generate(inputs, invocationSeed, settings)` runs active chunk stages once each in resolved order.
+`ChunkRunner.generate(inputs, invocationSeed)` runs active chunk stages once each in resolved order.
 `GenerationContext.hunk(type)` returns the host-owned local volume of that value type, shared by
 all stages of the invocation. Hunk coordinates are local; samples and mantle coordinates are
-world blocks. The runner does no neighbor scheduling or rollback. A failed invocation must stop
+world blocks. A chunk stage writes only its own chunk and reads the mantle: the runner hands it a view
+whose writes throw. The runner does no neighbor scheduling or rollback. A failed invocation must stop
 the host from publishing the chunk.
+
+## Mantle invocations
+
+Some work writes beyond its chunk: a carver whose tunnels cross chunk borders, a vein running on into
+the next chunk. A chunk stage cannot do that, because the host may already have generated the
+neighbor. Such work is a mantle stage. `MantleRunner.generate(inputs, invocationSeed)` runs the active
+mantle stages of one chunk in resolved order, against the mantle around it (`MantleGenerationContext`:
+origin, terrain, settings, mantle), without a block hunk. The host runs it for every chunk within the
+mantle pipeline's reach of a chunk, each chunk once, before that chunk generates, so a chunk's mantle is
+complete when its chunk stages read it. In Iris it is one mantle component whose radius is the
+pipeline's reach.
+
+The mantle pipeline is the only place that writes the mantle during generation, and mantle and chunk
+pipelines meet only through mantle layers: an edge between them is a cross-pipeline edge and fails the
+load. Within one invocation, stages can still require each other and read outputs. Across chunks they
+cannot: a mantle stage that reads another mantle stage's layer outside its own chunk sees whatever has
+run there so far, which depends on the order the host generates chunks in.
 
 ## Reach
 
@@ -466,16 +504,18 @@ past the object's trunk. The host has to prepare that area, and the mantle in it
 runs. Stages declare it in their definition:
 
 ```java
-graph.define(CARVE).reach(32).writesMantle(CarveModule.CAVES).run(CarveModule::carve);
+graph.define(CARVE).reach(32).writesMantle(CaveModule.CAVES).run(CaveModule::carve);   // CARVE is a mantle stage
 ```
 
 - `reach(blocks)`: how far, in blocks along X and Z, the stage writes blocks or mantle values beyond
-  its footprint. The footprint is the chunk's 16 by 16 columns for a chunk stage and the X/Z bounds of
-  the placed object for a placement or block stage. Whole columns: height is not limited, because
-  Iris prepares chunks and mantle as full columns. Leaving it out means 0. Declaring it twice or
+  its footprint. The footprint is the chunk's 16 by 16 columns for a mantle stage and the X/Z bounds of
+  the placed object for a placement or block stage. A chunk stage writes only its chunk; declaring a
+  reach above 0 on one fails the install, naming mantle stages as the place for the work. Whole
+  columns: height is not limited, because Iris prepares chunks and mantle as full columns. Leaving it out means 0. Declaring it twice or
   negative fails while the module installs.
 - `writesMantle(layers...)`: the mantle layers the stage writes. Every layer must be registered by
-  some module with the same value type, or the pack load fails naming stage and layer.
+  some module with the same value type, or the pack load fails naming stage and layer. Chunk stages
+  cannot declare any.
 
 Each resolved stage carries its `StageReach`. `ResolvedGraph.reach()` collects a `PipelineReach`:
 the largest reach of the pipeline's stages, and per mantle layer the largest reach of the stages
@@ -485,7 +525,8 @@ decided once per pack load. `describe()` lists each stage's reach.
 One number per stage, not per layer: a stage that writes two layers at different distances declares
 the larger. The host can still size each layer's mantle from the per-layer maximum. Reads are not
 declared separately: the host prepares the pipeline's reach around every chunk or placement, so a
-stage may read what others wrote that far out. A stage that must read farther declares that distance
+stage may read what others wrote that far out (for mantle stages, see the ordering caveat under Mantle
+invocations). A stage that must read farther declares that distance
 as its reach. Terrain samples are computed, not prepared, and need nothing.
 
 ## Settings, geometry and storage
@@ -501,6 +542,13 @@ ids and alias collisions per attachment target, including reserved host fields.
 `OptionsMetadata` reads field metadata, in declaration order; it does not decode JSON.
 
 ### JSON keys and aliases
+
+A feature whose settings class has exactly one option may be written as that option's value instead of
+an object holding it: `"snow": 0.5` for `"snow": {"amount": 0.5}`, or a bare JSON list for a class holding
+one list. Existing pack JSON writes several settings that way, and keeping the format meant either this
+rule or a compatibility layer per key. `FeatureSchema.shorthand()` returns the option when there is
+exactly one, the host decodes a value that is not a JSON object into it, and renders the schema to accept
+both forms. A `@Snippet` class written as a `"snippet/..."` string stays a snippet reference.
 
 Packs write a feature's settings under its feature id at each of its targets:
 `"example:moss": {...}`. The id is unique, namespaced and owned by one module, so two modules can never
@@ -572,7 +620,16 @@ already keep module fields from colliding with them.
 | `List<E>`, `E[]` | `ListKind(E, false)` |
 | `Set<E>` | `ListKind(E, true)` |
 | `Map<String, V>` | `MapKind(V)` |
+| a class in a host type package, in built-in settings | `HostKind(class name)` |
 | any other concrete class | `ObjectKind(class name)` |
+
+Host types are classes the host describes in studio itself, such as Iris's palettes and noise styles,
+which built-in settings keep while their features move into modules. The host names their packages with
+`ModuleHost.describingHostTypesIn(...)`; the builder neither reads their fields nor describes them, and
+the host renders its own description where a `HostKind` appears. Pack modules' settings cannot use them:
+pack modules never see host classes anyway, and a host type in their settings fails the load. Without
+this, built-in settings would have to replace every Iris type with a describable copy before any feature
+could move.
 
 Everything else fails the load with the field, its settings and its module named, and what fits
 instead:

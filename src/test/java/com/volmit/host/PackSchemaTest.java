@@ -4,7 +4,9 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.config.Reference;
 import com.volmit.example.chunk.GrassModule;
 import com.volmit.example.chunk.TerrainModule;
+import com.volmit.example.hosttypes.Palette;
 import com.volmit.example.placement.PlacementModules;
+import com.volmit.example.terrain.LayersModule;
 import com.volmit.host.schema.FeatureRole;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
@@ -15,6 +17,7 @@ import com.volmit.host.schema.ValueKind.BooleanKind;
 import com.volmit.host.schema.ValueKind.DecimalKind;
 import com.volmit.host.schema.ValueKind.EnumConstant;
 import com.volmit.host.schema.ValueKind.EnumKind;
+import com.volmit.host.schema.ValueKind.HostKind;
 import com.volmit.host.schema.ValueKind.IntegerKind;
 import com.volmit.host.schema.ValueKind.ListKind;
 import com.volmit.host.schema.ValueKind.MapKind;
@@ -40,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class PackSchemaTest {
     private static final ModuleHost NO_BUILT_INS = ModuleHost.of(List.of());
     private static final String FLORA = "example:flora";
+    private static final String HOST_TYPES = "com.volmit.example.hosttypes";
     private static final String FLORA_SOURCE = "settings example:flora (module example:flora from modules/flora.jar)";
     private static final String NO_STAGES = "";
 
@@ -338,10 +342,49 @@ class PackSchemaTest {
                 false, OptionalDouble.empty(), OptionalDouble.empty(), Optional.of("minecraft:grass_block")), grass.settings().options().getFirst());
     }
 
+    @Test
+    void builtInSettingsMayHoldHostTypesWhichTheHostDescribesItself() {
+        var builtIns = List.<com.volmit.IrisModule>of(new LayersModule());
+        var schema = schemaOf(pack("layers"), ModuleHost.of(builtIns).describingHostTypesIn(HOST_TYPES));
+
+        var layers = schema.fields(Target.BIOME).getFirst();
+        var option = layers.settings().options().getFirst();
+        assertEquals(new ListKind(new HostKind(Palette.class.getName()), false), option.kind());
+        assertEquals(Optional.of(List.of()), option.defaultValue());
+        assertTrue(schema.types().stream().noneMatch(type -> type.name().equals(Palette.class.getName())),
+                "the host describes its own types, so their fields are never read");
+        assertEquals(Optional.of(option), layers.shorthand(), "one option: packs may write the bare list");
+
+        var undeclared = assertThrows(IllegalArgumentException.class, () -> schemaOf(pack("layers"), ModuleHost.of(builtIns)));
+        assertTrue(undeclared.getMessage().startsWith("Field " + Palette.class.getName() + ".anything of settings iris:layers"),
+                undeclared.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> NO_BUILT_INS.describingHostTypesIn("not a package"));
+    }
+
+    @Test
+    void packModulesCannotUseHostTypes() {
+        var host = NO_BUILT_INS.exposing(HOST_TYPES).describingHostTypesIn(HOST_TYPES);
+        assertEquals("Field pack.flora.FloraSettings.palette of " + FLORA_SOURCE + " uses " + Palette.class.getName()
+                        + ", a class the host describes itself, which only settings of modules that ship with the host may use; "
+                        + ValueKinds.SUPPORTED_TYPES,
+                loadFailure(host, "private " + Palette.class.getName() + " palette;").getMessage());
+    }
+
+    @Test
+    void onlySettingsWithOneOptionHaveAShorthand() {
+        var flora = floraSchema().fields(Target.BIOME).getFirst();
+        assertEquals(Optional.empty(), flora.shorthand());
+    }
+
     /** A pack whose module example:flora registers pack.flora.FloraSettings with {@code body} as its class body. */
     private IllegalArgumentException loadFailure(String body, String... otherSources) {
+        return loadFailure(NO_BUILT_INS, body, otherSources);
+    }
+
+    private IllegalArgumentException loadFailure(ModuleHost host, String body, String... otherSources) {
         var jar = module("pack.flora.FloraModule", FLORA,
                 "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                .compileAgainstHostOf(Palette.class)
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
 
@@ -362,7 +405,7 @@ class PackSchemaTest {
         }
         var pack = pack("broken-" + ++brokenPacks);
         jar.writeInto(pack, "flora.jar");
-        return assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, NO_BUILT_INS));
+        return assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, host));
     }
 
     private void assertLoadFails(String expected, String body, String... otherSources) {

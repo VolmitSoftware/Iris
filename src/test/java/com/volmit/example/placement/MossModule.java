@@ -3,6 +3,7 @@ package com.volmit.example.placement;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
@@ -10,6 +11,7 @@ import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
 import com.volmit.stage.StageRef;
 import com.volmit.world.BlockPosition;
+import java.util.List;
 import java.util.Optional;
 
 /** Third-party module: turns the ground under the anchor into moss. It requires the core
@@ -33,7 +35,8 @@ public final class MossModule implements IrisModule {
                 .run(MossModule::spread);
     }
 
-    private static void spread(PlacementStageContext context, MossSettings moss) {
+    private static void spread(PlacementStageContext context, List<Entry<MossSettings>> settings) {
+        var moss = settings.getFirst().value();    // a placement declares its settings once
         var anchor = context.output(AnchorModule.HEIGHT).anchor();
         var access = context.access();
         int groundY = anchor.y() - 1;

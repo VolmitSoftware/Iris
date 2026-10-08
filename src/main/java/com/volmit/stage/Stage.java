@@ -9,7 +9,7 @@ import java.util.Objects;
  * The output type is Void for stages that only act; otherwise dependents read it through
  * {@link StageContext#output(Stage)}. Block stages accumulate their output across the pass.
  */
-public abstract sealed class Stage<O> permits PlacementStage, BlockStage, ChunkStage {
+public abstract sealed class Stage<O> permits PlacementStage, BlockStage, ChunkStage, MantleStage {
     private final ResourceId id;
     private final Class<O> outputType;
 
@@ -44,6 +44,14 @@ public abstract sealed class Stage<O> permits PlacementStage, BlockStage, ChunkS
 
     public static <O> ChunkStage<O> chunk(String id, Class<O> outputType) {
         return new ChunkStage<>(id, outputType);
+    }
+
+    public static MantleStage<Void> mantle(String id) {
+        return new MantleStage<>(id, Void.class);
+    }
+
+    public static <O> MantleStage<O> mantle(String id, Class<O> outputType) {
+        return new MantleStage<>(id, outputType);
     }
 
     public final ResourceId id() {

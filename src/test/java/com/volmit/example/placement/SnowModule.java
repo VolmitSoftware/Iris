@@ -3,6 +3,7 @@ package com.volmit.example.placement;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.PlacementStage;
@@ -11,6 +12,7 @@ import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
 import com.volmit.stage.StageRef;
 import com.volmit.world.BlockPosition;
+import java.util.List;
 import java.util.Optional;
 
 /** Port of PlacementModuleSnow: collect written tops, then cover them after the finishing work
@@ -40,7 +42,8 @@ public final class SnowModule implements IrisModule {
                 .run(SnowModule::cover);
     }
 
-    private static void cover(PlacementStageContext context, SnowSettings snow) {
+    private static void cover(PlacementStageContext context, List<Entry<SnowSettings>> settings) {
+        var snow = settings.getFirst().value();    // a placement declares its settings once
         var layer = SNOW.withProperty("layers", Integer.toString(snow.layers()));
         var access = context.access();
         for (var top : context.output(COLLECT).tops()) {

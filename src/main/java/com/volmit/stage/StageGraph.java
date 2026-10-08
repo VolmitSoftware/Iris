@@ -12,4 +12,6 @@ public interface StageGraph {
     <O> BlockStageDefinition<O> define(BlockStage<O> stage);
 
     <O> StageDefinition<ChunkStageContext, O> define(ChunkStage<O> stage);
+
+    <O> StageDefinition<MantleStageContext, O> define(MantleStage<O> stage);
 }

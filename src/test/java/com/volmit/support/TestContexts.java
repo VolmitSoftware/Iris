@@ -2,6 +2,7 @@ package com.volmit.support;
 
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.GenerationContext;
+import com.volmit.generation.MantleGenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.object.ObjectTransformer;
@@ -18,6 +19,11 @@ public final class TestContexts {
     private TestContexts() {}
 
     public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks) {
+        return generation(hunks, null, null);
+    }
+
+    /** The chunk at the origin; a null {@code settings} or {@code mantle} fails when used. */
+    public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks, FeatureSettings settings, Mantle mantle) {
         return new GenerationContext() {
             public int originX() { return 0; }
             public int originY() { return -64; }
@@ -25,14 +31,27 @@ public final class TestContexts {
             public long worldSeed() { return SEED; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
-            public FeatureSettings settings() { throw new AssertionError("Unused settings"); }
-            public Mantle mantle() { throw new AssertionError("Unused mantle"); }
+            public FeatureSettings settings() { return used(settings, "settings"); }
+            public Mantle mantle() { return used(mantle, "mantle"); }
             @SuppressWarnings("unchecked")
             public <T> Hunk<T> hunk(Class<T> type) {
                 var hunk = hunks.get(type);
                 if (hunk == null) throw new IllegalArgumentException("No hunk of " + type.getName());
                 return (Hunk<T>) hunk;
             }
+        };
+    }
+
+    /** The mantle invocation of the chunk whose first block is ({@code originX}, {@code originZ}). */
+    public static MantleGenerationContext mantle(int originX, int originZ, FeatureSettings settings, Mantle mantle) {
+        return new MantleGenerationContext() {
+            public int originX() { return originX; }
+            public int originZ() { return originZ; }
+            public long worldSeed() { return SEED; }
+            public PackResources resources() { throw new AssertionError("Unused resources"); }
+            public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
+            public FeatureSettings settings() { return settings; }
+            public Mantle mantle() { return mantle; }
         };
     }
 
@@ -52,5 +71,10 @@ public final class TestContexts {
                 return blocks;
             }
         };
+    }
+
+    private static <T> T used(T value, String name) {
+        if (value == null) throw new AssertionError("Unused " + name);
+        return value;
     }
 }

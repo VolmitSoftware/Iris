@@ -10,7 +10,7 @@ import java.util.stream.IntStream;
 
 /** Pipeline-independent state of one invocation: activation, settings, stage outputs and stage
  * random streams, all indexed by resolved position. Activation is computed once up front in resolved
- * order: a stage is active when its settings are configured (or it has no condition) and every
+ * order: a stage is active when its settings have an entry (or it has no condition) and every
  * stage it requires is active, so inactivity cascades to dependents. Cost is one pass over stages
  * and requirement edges plus one settings lookup per distinct settings type. A stage's stream is
  * created when it first draws and depends only on the invocation seed and the stage id.
@@ -131,7 +131,8 @@ final class StageInvocation {
         var types = graph.settingsTypes();
         var values = new Object[types.size()];
         for (int slot = 0; slot < values.length; slot++) {
-            values[slot] = settings.find((Class<? extends IrisFeature>) types.get(slot)).orElse(null);
+            var entries = settings.find((Class<? extends IrisFeature>) types.get(slot));
+            values[slot] = entries.isEmpty() ? null : entries;
         }
         return values;
     }

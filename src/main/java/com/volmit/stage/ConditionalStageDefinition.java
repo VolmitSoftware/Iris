@@ -1,9 +1,10 @@
 package com.volmit.stage;
 
+import com.volmit.IrisFeature;
 import com.volmit.mantle.MantleKey;
 
-/** An invocation stage active only where its settings are configured; bodies receive them. */
-public interface ConditionalStageDefinition<C extends StageContext, S, O> {
+/** An invocation stage active only where its settings are configured; bodies receive every configured entry. */
+public interface ConditionalStageDefinition<C extends StageContext, S extends IrisFeature, O> {
     ConditionalStageDefinition<C, S, O> requires(Stage<?>... stages);
 
     ConditionalStageDefinition<C, S, O> softAfter(StageRef... stages);

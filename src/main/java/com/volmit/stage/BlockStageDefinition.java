@@ -15,9 +15,8 @@ public interface BlockStageDefinition<O> {
 
     BlockStageDefinition<O> softBefore(StageRef... stages);
 
-    /** Declares how far, in blocks along X and Z, this stage writes blocks or mantle values beyond its
-     * footprint: the chunk for a chunk stage, the placed object's X/Z bounds for a placement stage. The
-     * host prepares that much around every chunk or placement of the pipeline. Leaving it out means 0.
+    /** Declares how far, in blocks along X and Z, this stage writes blocks or mantle values beyond the
+     * placed object's X/Z bounds. The host prepares that much around every placement. Leaving it out means 0.
      */
     BlockStageDefinition<O> reach(int blocks);
 

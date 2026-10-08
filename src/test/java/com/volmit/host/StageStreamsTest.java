@@ -131,7 +131,7 @@ class StageStreamsTest {
         var graph = resolve(Pipeline.CHUNK, module("a:mod", stages -> stages.define(Stage.chunk("a:mod/ores"))
                 .run(context -> drawn.add((long) context.random().nextInt(BOUND)))));
 
-        new ChunkRunner(graph).generate(TestContexts.generation(Map.of()), TestContexts.SEED, ConfiguredSettings.none());
+        new ChunkRunner(graph).generate(TestContexts.generation(Map.of()), TestContexts.SEED);
 
         assertEquals(firstDraws(TestContexts.SEED, "a:mod/ores", 1), drawn);
     }

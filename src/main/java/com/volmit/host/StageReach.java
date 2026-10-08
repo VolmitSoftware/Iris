@@ -8,8 +8,8 @@ import java.util.Objects;
 /** What one stage declares it writes outside its footprint.
  *
  * @param blocks how far, in blocks along X and Z, the stage writes blocks or mantle values beyond its
- *     footprint: the chunk's 16 by 16 columns for a chunk stage, the X/Z bounds of the placed object
- *     for a placement stage. 0 means only inside it. Height is not limited: the footprint is whole
+ *     footprint: the chunk's 16 by 16 columns for a mantle stage, the X/Z bounds of the placed object
+ *     for a placement stage. 0 means only inside it, and is all a chunk stage may declare. Height is not limited: the footprint is whole
  *     columns.
  * @param mantleLayers the mantle layers the stage writes, each once, in declaration order
  */

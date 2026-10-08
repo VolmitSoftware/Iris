@@ -14,14 +14,16 @@ types that carry them and lists what the Iris adapter still owes.
 | Randomness independent of other modules | `StageContext.random()`, host `StageStreams`, invocation seed passed to the runners |
 | Random values identical on every JDK | `WorldRandom`, pinned by `WorldRandomTest` |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
-| Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` |
+| Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` (entries per type; any column of a chunk) |
+| Stacked settings levels, read per column | `FeatureSettings.at(type, x, z)`, `FeatureSettings.Entry` (level, source, value) |
 | Typed results between modules | stage outputs, `StageContext.output` |
 | Per-block work with single-pass cost | `BlockStage`, fused block passes |
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
-| Reference execution | host `PlacementRunner`, `ChunkRunner` |
+| Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner` |
+| Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages read the mantle only |
 | Annotated settings | `IrisFeature`, `@Feature` (id as JSON key, built-in alias), config annotations, `OptionsMetadata` |
 | Area a stage writes | `reach(blocks)`, `writesMantle(...)` on stage definitions, host `StageReach`, `PipelineReach` |
-| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind`) |
+| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema` with `shorthand()`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` |
@@ -73,8 +75,15 @@ running Iris is the pack publisher's responsibility.
 
 - Port the engine as ordinary modules. Keep `iris:*` stage ids stable once packs or addons
   depend on them, because soft references and diagnostics use them.
-- Build `ConfiguredSettings` per placement and per chunk from decoded pack JSON, with explicit
-  precedence between dimension, region, biome and placement declarations.
+- Answer `FeatureSettings.at(type, x, z)` with one entry per level that declares the type at that
+  column: the dimension, the column's region, its surface biome and, in a placement, the placement, in
+  that order. Never merge or override levels. Pass each placement's own declarations as
+  `ConfiguredSettings.placement(...)`; the chunk and mantle runners collect a chunk's settings
+  themselves.
+- Decode a value that is not a JSON object into settings with exactly one option
+  (`FeatureSchema.shorthand()`), and render the schema to accept both forms.
+- Name the packages of the classes Iris describes itself with `ModuleHost.describingHostTypesIn(...)`,
+  decode them as Iris does, and render each `HostKind` with Iris's own description of the class.
 - Preserve pack field names and defaults, seed derivation, RNG draw order, coordinate
   conventions and iteration order where existing worlds must not change. Per-stage streams do not
   reproduce Iris's current shared draws; matching them where worlds must stay the same is adapter
@@ -84,6 +93,9 @@ running Iris is the pack publisher's responsibility.
 - Prepare the area a placement or chunk may read or write, including neighbors: the pipeline's
   `reach()` around the chunk or the placed object's bounds, each mantle layer by its own maximum.
   Never clip.
+- Run the mantle pipeline (`MantleRunner`) for every chunk within its reach of a chunk, each chunk once,
+  before that chunk generates, with the mantle widened by the reach. Give chunk stages that chunk's
+  mantle; `ChunkRunner` makes it read-only.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.

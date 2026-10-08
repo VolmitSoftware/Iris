@@ -374,7 +374,7 @@ class StageGraphTest {
         place(graph, flatEdit(), ConfiguredSettings.none());
         assertEquals(List.of("unrelated"), events);
         events.clear();
-        place(graph, flatEdit(), ConfiguredSettings.of(new Toggle()));
+        place(graph, flatEdit(), ConfiguredSettings.placement(ResourceId.parse("test:placement"), new Toggle()));
         assertEquals(List.of("toggled", "dependent:1", "unrelated"), events);
     }
 
@@ -452,6 +452,8 @@ class StageGraphTest {
         var empty = resolve(Pipeline.CHUNK);
         assertThrows(IllegalArgumentException.class, () -> new PlacementRunner(empty));
         assertThrows(IllegalArgumentException.class, () -> new ChunkRunner(resolve(Pipeline.PLACEMENT)));
+        assertThrows(IllegalArgumentException.class, () -> new MantleRunner(empty));
+        assertThrows(IllegalArgumentException.class, () -> new ChunkRunner(resolve(Pipeline.MANTLE)));
         assertTrue(empty.describe().contains("CHUNK pipeline: 0 stages, 0 block passes"));
     }
 
@@ -463,9 +465,9 @@ class StageGraphTest {
     void reachIsDeclaredPerStageAndCollectedPerPipelineAndLayer() {
         var depth = new MantleKey<>("test:reach/depth", Integer.class);
         var marks = new MantleKey<>("test:reach/marks", String.class);
-        var carve = Stage.chunk("test:reach/carve");
-        var mark = Stage.chunk("test:reach/mark");
-        var plain = Stage.chunk("test:reach/plain");
+        var carve = Stage.mantle("test:reach/carve");
+        var mark = Stage.mantle("test:reach/mark");
+        var plain = Stage.mantle("test:reach/plain");
         var paint = Stage.placementBlock("test:reach/paint");
         var reach = module("test:reach", stages -> {
             stages.define(carve).reach(24).writesMantle(depth).run(context -> {});
@@ -473,40 +475,58 @@ class StageGraphTest {
             stages.define(plain).run(context -> {});
             stages.define(paint).reach(2).run(context -> {});
         });
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(reach, depth, marks))), Map.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(reach, depth, marks))), Map.of(), Set.of(), Set.of());
 
-        assertEquals(new StageReach(24, List.of(depth)), loaded.chunk().stages().getFirst().reach());
-        assertEquals(StageReach.NONE, loaded.chunk().stages().get(2).reach(), "an undeclared reach is 0 with no layers");
-        assertEquals(new PipelineReach(24, Map.of("test:reach/depth", 24, "test:reach/marks", 8)), loaded.chunk().reach());
+        assertEquals(new StageReach(24, List.of(depth)), loaded.mantle().stages().getFirst().reach());
+        assertEquals(StageReach.NONE, loaded.mantle().stages().get(2).reach(), "an undeclared reach is 0 with no layers");
+        assertEquals(new PipelineReach(24, Map.of("test:reach/depth", 24, "test:reach/marks", 8)), loaded.mantle().reach());
         assertEquals(new PipelineReach(2, Map.of()), loaded.placement().reach());
-        assertTrue(loaded.chunk().describe().contains("      reach 24 blocks, writes mantle test:reach/depth\n"), loaded.chunk().describe());
-        assertTrue(loaded.chunk().describe().contains("      reach 8 blocks, writes mantle test:reach/depth, test:reach/marks\n"));
+        assertEquals(new PipelineReach(0, Map.of()), loaded.chunk().reach());
+        assertTrue(loaded.mantle().describe().contains("      reach 24 blocks, writes mantle test:reach/depth\n"), loaded.mantle().describe());
+        assertTrue(loaded.mantle().describe().contains("      reach 8 blocks, writes mantle test:reach/depth, test:reach/marks\n"));
     }
 
     @Test
     void reachMustBeValidAndNameRegisteredLayers() {
         var depth = new MantleKey<>("test:reach/depth", Integer.class);
-        var carve = Stage.chunk("test:reach/carve");
+        var carve = Stage.mantle("test:reach/carve");
 
-        var negative = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
+        var negative = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.MANTLE,
                 module("test:reach", stages -> stages.define(carve).reach(-1).run(context -> {}))));
         assertEquals("Stage test:reach/carve (module test:reach) declares a negative reach of -1 blocks", negative.getMessage());
-        var twice = assertThrows(IllegalStateException.class, () -> resolve(Pipeline.CHUNK,
+        var twice = assertThrows(IllegalStateException.class, () -> resolve(Pipeline.MANTLE,
                 module("test:reach", stages -> stages.define(carve).reach(1).reach(2).run(context -> {}))));
         assertEquals("Stage test:reach/carve (module test:reach) already declares a reach of 1 blocks", twice.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
+        assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.MANTLE,
                 module("test:reach", stages -> stages.define(carve).writesMantle(depth, depth).run(context -> {}))));
 
         var unregistered = assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(
-                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {})))), Map.of(), Set.of()));
+                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {})))), Map.of(), Set.of(), Set.of()));
         assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth, which no module registers;"
                 + " its owner registers it with FeatureRegistry.registerMantle", unregistered.getMessage());
 
         var asText = new MantleKey<>("test:reach/depth", String.class);
         var mismatch = assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(
-                module("test:reach", stages -> stages.define(carve).writesMantle(asText).run(context -> {})), depth))), Map.of(), Set.of()));
+                module("test:reach", stages -> stages.define(carve).writesMantle(asText).run(context -> {})), depth))), Map.of(), Set.of(), Set.of()));
         assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth as java.lang.String,"
                 + " but it is registered as java.lang.Integer", mismatch.getMessage());
+    }
+
+    @Test
+    void chunkStagesNeitherReachBeyondTheirChunkNorWriteTheMantle() {
+        var depth = new MantleKey<>("test:reach/depth", Integer.class);
+        var carve = Stage.chunk("test:reach/carve");
+
+        var reach = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
+                module("test:reach", stages -> stages.define(carve).reach(8).run(context -> {}))));
+        assertEquals("Stage test:reach/carve (module test:reach) is a chunk stage and declares a reach of 8 blocks, but chunk"
+                + " stages write only their own chunk and read the mantle; define work that writes the mantle or reaches beyond"
+                + " its chunk as a mantle stage (Stage.mantle), which runs before the chunks it reaches", reach.getMessage());
+        var writes = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
+                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {}))));
+        assertTrue(writes.getMessage().startsWith("Stage test:reach/carve (module test:reach) is a chunk stage and declares mantle writes"),
+                writes.getMessage());
+        assertDoesNotThrow(() -> resolve(Pipeline.CHUNK, module("test:reach", stages -> stages.define(carve).reach(0).run(context -> {}))));
     }
 
     /** {@code module}, also registering {@code layers}. */

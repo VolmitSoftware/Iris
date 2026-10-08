@@ -3,6 +3,7 @@ package com.volmit.host;
 import com.volmit.IrisFeature;
 import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
+import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageRef;
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ final class StageDeclaration {
 
     void reach(int blocks) {
         checkOpen();
+        if (blocks > 0) requireOutsideChunkPipeline("a reach of " + blocks + " blocks");
         if (reachBlocks != null) {
             throw new IllegalStateException("Stage " + this + " already declares a reach of " + reachBlocks + " blocks");
         }
@@ -65,6 +67,7 @@ final class StageDeclaration {
 
     void writesMantle(MantleKey<?>... layers) {
         checkOpen();
+        requireOutsideChunkPipeline("mantle writes");
         for (var layer : layers) {
             Objects.requireNonNull(layer, "mantle layer");
             if (mantleLayers.stream().anyMatch(declared -> declared.id().equals(layer.id()))) {
@@ -145,6 +148,14 @@ final class StageDeclaration {
                 ? "declares output " + stage.outputType().getSimpleName()
                 : "declares no output";
         return "Stage " + this + " " + declared + "; define it with " + alternativeMethod + "(...)";
+    }
+
+    /** Chunk stages write only their own chunk: the host may already have generated its neighbors. */
+    private void requireOutsideChunkPipeline(String declared) {
+        if (stage.pipeline() != Pipeline.CHUNK) return;
+        throw new IllegalArgumentException("Stage " + this + " is a chunk stage and declares " + declared
+                + ", but chunk stages write only their own chunk and read the mantle; define work that writes the"
+                + " mantle or reaches beyond its chunk as a mantle stage (Stage.mantle), which runs before the chunks it reaches");
     }
 
     private void checkOpen() {

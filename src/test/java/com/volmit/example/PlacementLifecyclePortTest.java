@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** The ported slice of Iris's place() lifecycle, composed only from module-owned stages. */
 class PlacementLifecyclePortTest {
+    private static final ResourceId PLACEMENT = ResourceId.parse("pack:object/tree");
     private static final BlockState PLANKS = new BlockState("minecraft:oak_planks");
     private static final int ANCHOR_GROUND = 10;
     private static final int SURROUNDING_GROUND = 7;
@@ -149,7 +150,7 @@ class PlacementLifecyclePortTest {
     @Test
     void placesObjectThenStiltSnowAndMossFromTypedOutputs() {
         var edit = place(resolve(PlacementModules.all()),
-                ConfiguredSettings.of(new StiltSettings(), new SnowSettings(2), new MossSettings()));
+                ConfiguredSettings.placement(PLACEMENT, new StiltSettings(), new SnowSettings(2), new MossSettings()));
 
         var bottom = placed(0, 0, 0);
         var corner = placed(1, 0, 0);
@@ -191,17 +192,17 @@ class PlacementLifecyclePortTest {
         modules.add(capModule);
         var graph = resolve(modules);
 
-        var withoutStilt = place(graph, ConfiguredSettings.of(new SnowSettings(), new MossSettings()));
+        var withoutStilt = place(graph, ConfiguredSettings.placement(PLACEMENT, new SnowSettings(), new MossSettings()));
         assertEquals(TestTerrain.AIR, withoutStilt.publishedAt(5, 20, 5));
         assertEquals(MossModule.MOSS, withoutStilt.publishedAt(0, ANCHOR_GROUND - 1, 0));
 
-        var withStilt = place(graph, ConfiguredSettings.of(new StiltSettings()));
+        var withStilt = place(graph, ConfiguredSettings.placement(PLACEMENT, new StiltSettings()));
         assertEquals(PLANKS, withStilt.publishedAt(5, 20, 5));
     }
 
     @Test
     void loadingThePortCatalogsEveryConditioningSettingsType() {
-        var loaded = LoadedModules.load(PlacementModules.builtIns(), Map.of(), Set.of());
+        var loaded = LoadedModules.load(PlacementModules.builtIns(), Map.of(), Set.of(), Set.of());
 
         assertEquals(List.of("example:moss", "iris:snow", "iris:stilt"),
                 loaded.catalog().settings().stream().map(settings -> settings.id().toString()).toList());

@@ -2,6 +2,7 @@ package com.volmit.example.placement;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.object.ObjectBlock;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.BlockStage;
@@ -10,6 +11,7 @@ import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
+import java.util.List;
 import java.util.Optional;
 
 /** Port of PlacementModuleStilt: collect the lowest layer per block, then fill down after writes. */
@@ -34,7 +36,8 @@ public final class StiltModule implements IrisModule {
                 .run(StiltModule::fill);
     }
 
-    private static void fill(PlacementStageContext context, StiltSettings stilt) {
+    private static void fill(PlacementStageContext context, List<Entry<StiltSettings>> settings) {
+        var stilt = settings.getFirst().value();    // a placement declares its settings once
         var anchor = context.output(AnchorModule.HEIGHT);
         for (var block : context.output(BOUNDS).lowestLayer()) {
             var bottom = anchor.worldPosition(context.request(), block.position());

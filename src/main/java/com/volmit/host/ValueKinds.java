@@ -10,6 +10,7 @@ import com.volmit.host.schema.ValueKind.BooleanKind;
 import com.volmit.host.schema.ValueKind.DecimalKind;
 import com.volmit.host.schema.ValueKind.EnumConstant;
 import com.volmit.host.schema.ValueKind.EnumKind;
+import com.volmit.host.schema.ValueKind.HostKind;
 import com.volmit.host.schema.ValueKind.IntegerKind;
 import com.volmit.host.schema.ValueKind.ListKind;
 import com.volmit.host.schema.ValueKind.MapKind;
@@ -29,9 +30,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Maps a settings field's declared type and {@code @Ref} to the JSON it takes. Classes that are none
- * of the built-in kinds become object kinds through the given function. Throws
- * {@link SettingsTypeProblem} for a type or reference that does not fit.
+/** Maps a settings field's declared type and {@code @Ref} to the JSON it takes. Host types become host
+ * kinds where the settings may use them; other classes that are none of the built-in kinds become object
+ * kinds through the given function. Throws {@link SettingsTypeProblem} for a type or reference that does
+ * not fit.
  */
 final class ValueKinds {
     static final String SUPPORTED_TYPES = "settings fields can be booleans, numbers, String, ResourceId, BlockState, enums, "
@@ -44,9 +46,14 @@ final class ValueKinds {
     private static final Set<Reference> PACK_REFERENCES = EnumSet.of(Reference.PACK_BIOME, Reference.PACK_REGION, Reference.PACK_OBJECT);
 
     private final Function<Class<?>, ObjectKind> objects;
+    private final HostTypes hostTypes;
+    private final boolean hostTypesAllowed;
 
-    ValueKinds(Function<Class<?>, ObjectKind> objects) {
+    /** {@code hostTypesAllowed} is whether the settings belong to a module that ships with the host. */
+    ValueKinds(Function<Class<?>, ObjectKind> objects, HostTypes hostTypes, boolean hostTypesAllowed) {
         this.objects = objects;
+        this.hostTypes = hostTypes;
+        this.hostTypesAllowed = hostTypesAllowed;
     }
 
     ValueKind of(OptionsMetadata.Option option) {
@@ -64,6 +71,7 @@ final class ValueKinds {
     }
 
     private ValueKind classKind(Class<?> type, Reference reference) {
+        if (hostTypes.contains(type)) return hostKind(type, reference);
         if (type == String.class) return text(TextFormat.PLAIN, reference);
         if (type == ResourceId.class) return text(TextFormat.RESOURCE_ID, reference);
         if (type == BlockState.class) return blockState(reference);
@@ -80,6 +88,7 @@ final class ValueKinds {
 
     private ValueKind genericKind(ParameterizedType generic, Reference reference) {
         var raw = (Class<?>) generic.getRawType();
+        if (hostTypes.contains(raw)) return hostKind(raw, reference);
         var arguments = generic.getActualTypeArguments();
         if (raw == List.class || raw == Set.class) return new ListKind(kind(arguments[0], reference), raw == Set.class);
         if (raw == Map.class) return mapKind(generic, arguments, reference);
@@ -92,6 +101,13 @@ final class ValueKinds {
         requireNoReference(generic, reference);
         if (arguments[0] != String.class) throw unsupported(generic, "; map keys must be String");
         return new MapKind(kind(arguments[1], null));
+    }
+
+    private HostKind hostKind(Class<?> type, Reference reference) {
+        requireNoReference(type, reference);
+        if (hostTypesAllowed) return new HostKind(type.getName());
+        throw new SettingsTypeProblem("uses " + type.getName() + ", a class the host describes itself, which only settings of"
+                + " modules that ship with the host may use; " + SUPPORTED_TYPES);
     }
 
     private static ValueKind text(TextFormat format, Reference reference) {

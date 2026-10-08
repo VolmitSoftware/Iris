@@ -6,6 +6,8 @@ import com.volmit.stage.BlockStage;
 import com.volmit.stage.BlockStageDefinition;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.ChunkStageContext;
+import com.volmit.stage.MantleStage;
+import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
@@ -60,6 +62,11 @@ public final class StageGraphBuilder implements StageGraph {
 
     @Override
     public <O> StageDefinition<ChunkStageContext, O> define(ChunkStage<O> stage) {
+        return new InvocationStageDraft<>(declare(stage));
+    }
+
+    @Override
+    public <O> StageDefinition<MantleStageContext, O> define(MantleStage<O> stage) {
         return new InvocationStageDraft<>(declare(stage));
     }
 

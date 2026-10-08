@@ -63,6 +63,16 @@ public sealed interface ValueKind {
         }
     }
 
+    /** A value of the class named {@code type}, which the host describes itself, such as one of Iris's
+     * palettes or noise styles. Only built-in modules' settings use these (see
+     * {@link com.volmit.host.ModuleHost#describingHostTypesIn}); the host renders its own description.
+     */
+    record HostKind(String type) implements ValueKind {
+        public HostKind {
+            Objects.requireNonNull(type, "type");
+        }
+    }
+
     /** An enum constant and its {@code @Desc}, or an empty description. */
     record EnumConstant(String name, String description) {
         public EnumConstant {

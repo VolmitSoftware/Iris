@@ -1,0 +1,81 @@
+package com.volmit.support;
+
+import com.volmit.mantle.BlockBox;
+import com.volmit.mantle.Mantle;
+import com.volmit.mantle.MantleEdit;
+import com.volmit.mantle.MantleKey;
+import com.volmit.mantle.MantleLayer;
+import com.volmit.mantle.MantleVisitor;
+import com.volmit.world.BlockPosition;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+/** An in-memory mantle over fixed bounds; an invocation sees it through {@link #within(BlockBox)}. */
+public final class MemoryMantle {
+    private static final Comparator<BlockPosition> VISIT_ORDER = Comparator.comparingInt(BlockPosition::x)
+            .thenComparingInt(BlockPosition::y).thenComparingInt(BlockPosition::z);
+
+    private final Map<String, TreeMap<BlockPosition, Object>> layers = new HashMap<>();
+
+    /** A view that accepts reads and writes inside {@code bounds} only. */
+    public Mantle within(BlockBox bounds) {
+        return new Mantle() {
+            public BlockBox bounds() { return bounds; }
+            public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds); }
+            public MantleEdit edit() { throw new UnsupportedOperationException("Edits are not used in these tests"); }
+        };
+    }
+
+    public <T> T get(MantleKey<T> key, int x, int y, int z) {
+        return key.type().cast(values(key).get(new BlockPosition(x, y, z)));
+    }
+
+    private TreeMap<BlockPosition, Object> values(MantleKey<?> key) {
+        return layers.computeIfAbsent(key.id(), ignored -> new TreeMap<>(VISIT_ORDER));
+    }
+
+    private final class Layer<T> implements MantleLayer<T> {
+        private final MantleKey<T> key;
+        private final BlockBox bounds;
+
+        Layer(MantleKey<T> key, BlockBox bounds) {
+            this.key = key;
+            this.bounds = bounds;
+        }
+
+        public T get(int x, int y, int z) {
+            requireInside(x, y, z);
+            return MemoryMantle.this.get(key, x, y, z);
+        }
+
+        public void set(int x, int y, int z, T value) {
+            requireInside(x, y, z);
+            values(key).put(new BlockPosition(x, y, z), key.type().cast(value));
+        }
+
+        public void remove(int x, int y, int z) {
+            requireInside(x, y, z);
+            values(key).remove(new BlockPosition(x, y, z));
+        }
+
+        public void visit(BlockBox area, MantleVisitor<T> visitor) {
+            if (!bounds.contains(area)) throw new IndexOutOfBoundsException("Outside the mantle view: " + area);
+            values(key).forEach((position, value) -> {
+                if (area.contains(position.x(), position.y(), position.z())) {
+                    visitor.accept(position.x(), position.y(), position.z(), key.type().cast(value));
+                }
+            });
+        }
+
+        public void clear(BlockBox area) {
+            if (!bounds.contains(area)) throw new IndexOutOfBoundsException("Outside the mantle view: " + area);
+            values(key).keySet().removeIf(position -> area.contains(position.x(), position.y(), position.z()));
+        }
+
+        private void requireInside(int x, int y, int z) {
+            if (!bounds.contains(x, y, z)) throw new IndexOutOfBoundsException("Outside the mantle view: " + x + "," + y + "," + z);
+        }
+    }
+}

@@ -26,14 +26,15 @@ final class PackSchemaBuilder {
     private static final char FOLDER_SEPARATOR = '/';
 
     private final List<DiscoveredModule> modules;
-    private final TypeDrafts drafts = new TypeDrafts();
+    private final TypeDrafts drafts;
 
-    private PackSchemaBuilder(List<DiscoveredModule> modules) {
+    private PackSchemaBuilder(List<DiscoveredModule> modules, HostTypes hostTypes) {
         this.modules = modules;
+        this.drafts = new TypeDrafts(hostTypes);
     }
 
-    static PackSchema describe(FeatureCatalog catalog, List<DiscoveredModule> modules) {
-        return new PackSchemaBuilder(modules).describe(catalog);
+    static PackSchema describe(FeatureCatalog catalog, List<DiscoveredModule> modules, HostTypes hostTypes) {
+        return new PackSchemaBuilder(modules, hostTypes).describe(catalog);
     }
 
     private PackSchema describe(FeatureCatalog catalog) {

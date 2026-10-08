@@ -13,12 +13,14 @@ import java.util.Set;
  * settings types stages are conditioned on), its description for studio and one resolved graph per
  * pipeline.
  */
-public record LoadedModules(FeatureCatalog catalog, PackSchema schema, ResolvedGraph placement, ResolvedGraph chunk) {
+public record LoadedModules(
+        FeatureCatalog catalog, PackSchema schema, ResolvedGraph placement, ResolvedGraph chunk, ResolvedGraph mantle) {
     public LoadedModules {
         Objects.requireNonNull(catalog, "catalog");
         Objects.requireNonNull(schema, "schema");
         Objects.requireNonNull(placement, "placement");
         Objects.requireNonNull(chunk, "chunk");
+        Objects.requireNonNull(mantle, "mantle");
     }
 
     /** Pass the built-in modules together with {@link PackModules#modules()} of the pack.
@@ -26,11 +28,14 @@ public record LoadedModules(FeatureCatalog catalog, PackSchema schema, ResolvedG
      * @param reservedHostFields JSON fields the host itself uses, per attachment target
      * @param reservedNamespaces namespaces only built-in modules may use, such as {@code iris}; a
      *     pack module whose id uses one fails the load
+     * @param hostTypePackages packages whose classes the host describes itself, each with its
+     *     subpackages; only built-in modules' settings may use them (see {@link ModuleHost#describingHostTypesIn})
      */
     public static LoadedModules load(
             List<DiscoveredModule> modules,
             Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
-            Collection<String> reservedNamespaces) {
+            Collection<String> reservedNamespaces,
+            Collection<String> hostTypePackages) {
         var reserved = ReservedNamespaces.of(reservedNamespaces);
         modules.forEach(reserved::requireAllowed);
         var registry = new ModuleRegistry(reservedHostFields);
@@ -40,12 +45,13 @@ public record LoadedModules(FeatureCatalog catalog, PackSchema schema, ResolvedG
         }
         stages.settingsTypes(registry::registeredByOwner).forEach(registry::registerStageSettings);
         var catalog = registry.freeze();
-        var schema = PackSchemaBuilder.describe(catalog, modules);
+        var schema = PackSchemaBuilder.describe(catalog, modules, HostTypes.of(hostTypePackages));
         var placement = stages.resolve(Pipeline.PLACEMENT);
         var chunk = stages.resolve(Pipeline.CHUNK);
+        var mantle = stages.resolve(Pipeline.MANTLE);
         requireRegisteredMantleLayers(catalog, placement);
-        requireRegisteredMantleLayers(catalog, chunk);
-        return new LoadedModules(catalog, schema, placement, chunk);
+        requireRegisteredMantleLayers(catalog, mantle);
+        return new LoadedModules(catalog, schema, placement, chunk, mantle);
     }
 
     /** A stage's reach names the layers it writes; a layer nobody registered has no codec or lifetime. */

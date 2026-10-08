@@ -17,7 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Describes every class reachable from the settings of a pack, each once. A class is recorded before
+/** Describes every class reachable from the settings of a pack, each once, except host types, which the
+ * host describes itself. A class is recorded before
  * its fields are described, so a class that contains itself, directly or through others, ends the
  * walk at its own name. Each class is instantiated once with its no-argument constructor, the way the
  * host creates settings before decoding JSON into them, and its fields' values there are the defaults.
@@ -26,6 +27,11 @@ final class TypeDrafts {
     private final Map<Class<?>, TypeDraft> drafts = new LinkedHashMap<>();
     private final Set<Class<?>> describing = new HashSet<>();
     private final Map<String, Class<?>> names = new HashMap<>();
+    private final HostTypes hostTypes;
+
+    TypeDrafts(HostTypes hostTypes) {
+        this.hostTypes = hostTypes;
+    }
 
     /** One described class: its metadata and its options with their kinds and raw default values. */
     record TypeDraft(Class<?> type, SchemaSource source, OptionsMetadata metadata, List<OptionDraft> options) {}
@@ -63,7 +69,8 @@ final class TypeDrafts {
     private TypeDraft draft(Class<?> type, SchemaSource source) {
         var metadata = inspect(type, source);
         var instance = instantiate(type, source);
-        var kinds = new ValueKinds(nested -> object(nested, source));
+        var kinds = new ValueKinds(nested -> object(nested, source), hostTypes,
+                source.module().source() == DiscoveredModule.Source.HOST);
         var options = metadata.options().stream()
                 .map(option -> new OptionDraft(option, kind(option, kinds, source), defaultValue(option.field(), instance, source)))
                 .toList();

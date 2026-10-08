@@ -24,14 +24,16 @@ public final class MossModule implements IrisModule {
              .when(MossSettings.class)                      // only where a pack configures moss
              .requires(AnchorModule.HEIGHT, BlocksModule.COMPLETE)
              .softAfter(StageRef.of("iris:snow/finish"))    // ordering only, if snow is installed
-             .run((ctx, moss) -> spread(ctx.output(AnchorModule.HEIGHT), moss));
+             .run((ctx, moss) -> spread(ctx.output(AnchorModule.HEIGHT), moss.getFirst().value()));
     }
 }
 ```
 
-- `Stage.placement`, `Stage.placementBlock` and `Stage.chunk` create stages for the placement
-  pipeline (once per attempt), the placement pipeline (once per object block) and the chunk
-  pipeline. Pass an output class to give a stage a typed output.
+- `Stage.placement`, `Stage.placementBlock`, `Stage.chunk` and `Stage.mantle` create stages for the
+  placement pipeline (once per attempt), the placement pipeline (once per object block), the chunk
+  pipeline (once per chunk, writing only that chunk) and the mantle pipeline (once per chunk, before
+  the chunks it reaches generate, writing only the mantle). Pass an output class to give a stage a
+  typed output.
 - A stage id starts with the id of the module that defines it and `/`: module `example:moss`
   defines `example:moss/spread`, never `example:other/...`. Module ids therefore contain no `/`.
   Defining an id twice fails.
@@ -40,6 +42,8 @@ public final class MossModule implements IrisModule {
 - `softAfter` and `softBefore` take ids and only order. There is no hard "before".
 - `run(...)` ends a stage without output, `produce(...)` a stage with output and
   `accumulate(initial, collector)` a block stage whose accumulator becomes its output.
+- `when(settingsType)` runs the stage only where those settings are configured, and the body gets every
+  configured entry (see Settings levels below).
 - `ctx.output(stage)` works only for stages the current stage transitively requires.
 - `ctx.random()` is the stage's own random stream, derived from the invocation seed and the stage
   id. Installing or removing other modules, or how much they draw, never changes what a stage
@@ -53,6 +57,32 @@ for module `iris:snow`. A settings type named in `when(...)` needs a feature id 
 module naming it owns in that sense, or its owner must have registered it, so another module may
 still condition its stages on it, as moss does on `iris:snow`.
 
+## Settings levels
+
+Settings can be declared at several levels: the dimension, a region, a biome and, in a placement, the
+placement itself. Each level's declaration is its own entry, and levels stack: nothing is merged and no
+level overrides another. A module decides what several entries mean, such as running a deposit once per
+entry, or using the most specific one.
+
+```java
+for (var entry : ctx.settings().at(DepositSettings.class, worldX, worldZ)) {   // every level at this column
+    entry.level();   // DIMENSION, REGION, BIOME or OBJECT_PLACEMENT, in that order
+    entry.source();  // the declaring resource, such as overworld:biome/desert/dunes
+    entry.value();   // the decoded settings
+}
+```
+
+Settings are read per column, at the column's surface biome. A chunk or mantle stage conditioned with
+`when(...)` runs when any column of the chunk has an entry, so a biome border inside a chunk never
+hides a feature, and its body receives every distinct entry of the chunk. It then reads
+`ctx.settings().at(...)` per column, or at the chunk's centre column (local 7, 7) for something that
+happens once per chunk. Something that spans several columns, such as a placed object, uses the column
+it treats as its origin. In a placement the body receives the placement's own entry; a placement
+declares each settings type once.
+
+A feature whose settings class has exactly one option may be written as that option's value, such as
+`"snow": 0.5` for `"snow": {"amount": 0.5}` or a bare list for a class holding one list.
+
 ## Random streams
 
 Stages and object generators draw from `com.volmit.random.WorldRandom`, an IrisApi type whose every
@@ -64,20 +94,29 @@ JDK may change, so use `pick` and `shuffle` instead of `Collections.shuffle`. Bo
 unbiased, `nextDouble` never returns its bound, and invalid bounds throw. It is not thread-safe: a
 stage uses its own stream within one invocation and must not share or keep it.
 
-## Reach
+## The mantle pipeline and reach
 
-A stage that writes outside its chunk or object declares how far, so the host can prepare that area
-and its mantle first:
+A chunk stage writes only its own chunk: the host may already have generated its neighbors. Work that
+writes the mantle or reaches beyond its chunk, such as a carver or a vein that runs on into the next
+chunk, is a mantle stage. The host runs the mantle pipeline for every chunk within the pipeline's reach
+of a chunk before that chunk generates, so the chunk's mantle is complete when its chunk stages read it.
+The two pipelines meet only in the mantle.
 
 ```java
-graph.define(CARVE).reach(32).writesMantle(CarveModule.CAVES).run(CarveModule::carve);
+public static final MantleStage<Void> CARVE = Stage.mantle("example:caves/carve");
+public static final ChunkStage<Void> APPLY = Stage.chunk("example:caves/apply");
+
+graph.define(CARVE).when(CaveSettings.class).reach(32).writesMantle(CAVES).run(CaveModule::carve);
+graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and writes blocks
 ```
 
 `reach(blocks)` is the distance in blocks along X and Z beyond the stage's footprint: the chunk for a
-chunk stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
+mantle stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
 It defaults to 0. `writesMantle(...)` names the mantle layers the stage writes; each must be
-registered by some module. `pack.chunk().reach()` and `pack.placement().reach()` give the host the
-largest reach of a pipeline and the largest per mantle layer.
+registered by some module. A chunk stage that declares either fails the install, and its mantle is
+read-only. `pack.mantle().reach()` and `pack.placement().reach()` give the host the largest reach of a
+pipeline and the largest per mantle layer. A mantle stage should not rely on what other mantle stages
+wrote in other chunks: whether they have run there yet depends on which chunk the host generates first.
 
 ## Module jars
 
@@ -188,6 +227,11 @@ public final class FloraSettings implements IrisFeature {
   a short key existing pack JSON uses; a pack module that sets one fails the load. One JSON object may
   not hold both.
 - Options keep the order the class declares them in, a superclass's first.
+- Settings with exactly one option have a shorthand: packs may write the option's value instead of an
+  object, and `FeatureSchema.shorthand()` says so.
+- Built-in settings may hold classes the host describes itself, such as Iris's palettes, which the host
+  names with `ModuleHost.describingHostTypesIn(...)`. They appear as `HostKind` and pack modules cannot
+  use them.
 - Settings named in `when(...)` and object generator settings are described automatically. Settings
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
   `registry.registerSettings(WindSettings.class)` in `register`. Their feature id follows the module
@@ -211,6 +255,7 @@ var host = ModuleHost.of(builtInModules)
         .exposing("art.arcane.iris.engine.modules")     // besides the API
         .reservingNamespaces("iris")
         .reservingFields(reservedHostFields)
+        .describingHostTypesIn("art.arcane.iris.engine.object")   // classes the host describes itself
         .copyingJarsTo(cacheDirectory)                    // default: java.io.tmpdir
         .loggingTo(serverLogger);                         // a System.Logger; default: System.getLogger
 
@@ -219,18 +264,20 @@ try (var pack = LoadedPack.load(packRoot, host)) {
     System.out.println(pack.placement().describe());
 
     var placer = new PlacementRunner(pack.placement());
-    PlacementOutcome outcome = placer.place(request, edit, inputs, placementSeed, ConfiguredSettings.of(stilt, snow));
+    PlacementOutcome outcome = placer.place(request, edit, inputs, placementSeed,
+            ConfiguredSettings.placement(objectId, stilt, snow));
 
-    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed, chunkSettings);
+    new MantleRunner(pack.mantle()).generate(mantleContext, chunkSeed);   // each chunk within reach, first
+    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed);
 }   // stop using the runners before the pack closes
 ```
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
-once, here), the host packages pack modules may use, the JSON fields the host itself uses and the
-reserved namespaces. Each method adds to what earlier calls configured. Package names, namespaces and
+once, here), the host packages pack modules may use, the JSON fields the host itself uses, the
+reserved namespaces and the packages of the classes it describes itself. Each method adds to what earlier calls configured. Package names, namespaces and
 reserved field names are checked when it is built. `LoadedPack.load`
 loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
-describes them for studio and resolves both pipelines. It returns a complete pack or throws with nothing left open. `close()`
+describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
 uses, stay available for tests and special cases.
 
@@ -373,7 +420,9 @@ concurrent invocations and must not keep views, streams or mutable state.
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
 rejection and rollback, install-order determinism, id ownership of stages, settings, objects and
-mantle keys, reach per stage, pipeline and mantle layer (`StageGraphTest`, `ModuleRegistryTest`), and per-stage random streams: inserting a module
+mantle keys, reach per stage, pipeline and mantle layer, chunk stages that declare reach or mantle
+writes (`StageGraphTest`, `ModuleRegistryTest`), settings entries per type in level order
+(`ConfiguredSettingsTest`), and per-stage random streams: inserting a module
 that draws leaves the other stages' draws unchanged, block stages draw one stream across their pass,
 and the derivation is pinned to values computed from its specification (`StageStreamsTest`).
 `WorldRandomTest` pins every `WorldRandom` method, bounds and edge cases to values computed by an
@@ -385,7 +434,8 @@ descriptions, required, bounds, defaults (floats, nulls, sets, maps, objects, a 
 enums, collections, references, nested classes with a cycle, snippets, object generator settings,
 explicit registration, built-in modules, the same result whatever the jar order, and the load error
 for each unsupported field type, misplaced `@Ref` (pack kinds on `ResourceId` included), unusable
-class, bad or repeated snippet name and pack snippet outside its module's folder.
+class, bad or repeated snippet name and pack snippet outside its module's folder, host types in built-in
+settings (and the load error when a pack module uses one), and the one-option shorthand.
 `DiscoveredModuleTest` checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go
@@ -407,5 +457,7 @@ which JDK packages they may not use. `PackModulesAddExportsTest` runs in its own
 `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`; it checks that the exported package then
 loads and that other internal packages are still reported. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
 ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
-snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline. There
+snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline whose
+`ChunkPipelineTest` checks any-column activation, per-column reads, stacked levels, a mantle stage
+writing into the next chunk that a chunk stage then reads, and the read-only mantle of chunk stages. There
 is no Minecraft integration or production storage in these tests.

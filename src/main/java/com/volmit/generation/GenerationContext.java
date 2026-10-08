@@ -15,7 +15,9 @@ public interface GenerationContext extends InvocationContext {
     TerrainSampler terrain();
     FeatureSettings settings();
 
-    /** Non-null mantle access scoped to this invocation; the host owns its lifetime. */
+    /** Non-null mantle access scoped to this invocation; the host owns its lifetime. Chunk stages read it
+     * only: the mantle pipeline has finished around the chunk, and writes throw.
+     */
     Mantle mantle();
 
     /** The host-owned local volume of the given value type, shared by all stages of this

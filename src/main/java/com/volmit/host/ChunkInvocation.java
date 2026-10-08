@@ -11,7 +11,7 @@ import com.volmit.stage.Stage;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
 
-/** The context every stage of one chunk invocation receives. */
+/** The context every stage of one chunk invocation receives. The mantle is read-only. */
 final class ChunkInvocation implements ChunkStageContext {
     private final StageInvocation stages;
     private final GenerationContext inputs;
@@ -57,7 +57,7 @@ final class ChunkInvocation implements ChunkStageContext {
 
     @Override
     public Mantle mantle() {
-        return inputs.mantle();
+        return new ReadOnlyMantle(inputs.mantle());
     }
 
     @Override

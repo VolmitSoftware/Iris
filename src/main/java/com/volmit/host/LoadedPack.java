@@ -29,7 +29,7 @@ public final class LoadedPack implements AutoCloseable {
         this.loaded = loaded;
     }
 
-    /** Loads the pack's module jars, installs them with the host's built-in modules and resolves both
+    /** Loads the pack's module jars, installs them with the host's built-in modules and resolves the
      * pipelines. Fails with the first load error, naming the jar or module at fault.
      */
     public static LoadedPack load(Path packRoot, ModuleHost host) {
@@ -37,7 +37,7 @@ public final class LoadedPack implements AutoCloseable {
         var packModules = PackModules.load(packRoot, host.exposedHostPackages(), host.jarCopyRoot(), host.logger());
         try {
             var loaded = LoadedModules.load(host.withPackModules(packModules.modules()),
-                    host.reservedHostFields(), host.reservedNamespaces());
+                    host.reservedHostFields(), host.reservedNamespaces(), host.hostTypePackages());
             return new LoadedPack(packModules, loaded);
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(packModules, failure);
@@ -72,6 +72,10 @@ public final class LoadedPack implements AutoCloseable {
 
     public ResolvedGraph chunk() {
         return loaded.chunk();
+    }
+
+    public ResolvedGraph mantle() {
+        return loaded.mantle();
     }
 
     @Override

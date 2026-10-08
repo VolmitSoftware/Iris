@@ -39,4 +39,12 @@ public record FeatureSchema(
         Objects.requireNonNull(settings, "settings");
         targets = Collections.unmodifiableSet(EnumSet.copyOf(targets));
     }
+
+    /** The settings' only option, when they have exactly one. Packs may then write that option's value
+     * directly instead of an object holding it, such as {@code "snow": 0.5} for {@code "snow": {"amount": 0.5}},
+     * and the host decodes a value that is not a JSON object into it.
+     */
+    public Optional<SchemaOption> shorthand() {
+        return settings.options().size() == 1 ? Optional.of(settings.options().getFirst()) : Optional.empty();
+    }
 }

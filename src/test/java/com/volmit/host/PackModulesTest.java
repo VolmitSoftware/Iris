@@ -44,7 +44,7 @@ class PackModulesTest {
     private static LoadedModules loadWithBuiltIns(PackModules packModules) {
         var modules = new ArrayList<>(PlacementModules.builtIns());
         modules.addAll(packModules.modules());
-        return LoadedModules.load(modules, Map.of(), Set.of());
+        return LoadedModules.load(modules, Map.of(), Set.of(), Set.of());
     }
 
     /** Versioned entries of a multi-release jar are read like any class, so they must be real class files. */
@@ -343,7 +343,7 @@ class PackModulesTest {
 
         try (var packModules = PackModules.load(pack)) {
             assertEquals(List.of(new MissingClasses(origin("user.jar"), List.of(OPTIONAL_CLASS))), packModules.missingClasses());
-            assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of()));
+            assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of()));
         }
     }
 
@@ -477,7 +477,7 @@ class PackModulesTest {
                 .writeInto(pack, "beta.jar");
 
         try (var packModules = PackModules.load(pack)) {
-            var loaded = LoadedModules.load(packModules.modules(), Map.of(), Set.of());
+            var loaded = LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of());
             assertTrue(loaded.placement().stages().stream().anyMatch(stage -> stage.stage().id().toString().equals("beta:core/size")));
             var beta = packModules.modules().getLast().module().getClass();
             assertEquals(0, beta.getDeclaredField("SHARED").getAnnotations().length,
@@ -494,7 +494,7 @@ class PackModulesTest {
         try (var packModules = PackModules.load(pack, List.of(BUILT_IN_PACKAGE))) {
             var modules = new ArrayList<>(List.of(DiscoveredModule.builtIn(new CarveModule())));
             modules.addAll(packModules.modules());
-            var order = LoadedModules.load(modules, Map.of(), Set.of()).placement().stages().stream()
+            var order = LoadedModules.load(modules, Map.of(), Set.of(), Set.of()).placement().stages().stream()
                     .map(stage -> stage.stage().id().toString()).toList();
             assertEquals(List.of("iris:carve/clear", "user:core/carved"), order);
         }
@@ -572,7 +572,7 @@ class PackModulesTest {
                 .writeInto(pack, "once.jar");
 
         try (var packModules = PackModules.load(pack)) {
-            var loaded = assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of()));
+            var loaded = assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of()));
             assertEquals("once:core", packModules.modules().getFirst().info().id().toString());
             assertEquals(1, loaded.placement().stages().size());
         }
@@ -591,7 +591,7 @@ class PackModulesTest {
                 .writeInto(pack, "beta.jar");
 
         try (var packModules = PackModules.load(pack)) {
-            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of())),
+            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of())),
                     "Module beta:core from " + origin("beta.jar") + " failed to link or initialize a class while installing",
                     "java.lang.NoSuchMethodError", "pack.lib.Lib.added()");
         }
@@ -603,7 +603,7 @@ class PackModulesTest {
         module("pack.two.Duplicate", "dup:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "two.jar");
 
         try (var packModules = PackModules.load(pack)) {
-            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of())),
+            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of())),
                     "Duplicate module dup:core from " + origin("two.jar") + "; already loaded from " + origin("one.jar"));
         }
     }
@@ -625,7 +625,7 @@ class PackModulesTest {
                 .writeInto(pack, "foreign.jar");
 
         try (var packModules = PackModules.load(pack)) {
-            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of())),
+            assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of())),
                     "Stage mine:other/work must start with mine:core/, the id of its defining module mine:core from " + origin("foreign.jar"));
         }
     }
@@ -640,8 +640,8 @@ class PackModulesTest {
             assertEquals("Module iris:stilt from " + origin("stilt.jar") + " uses reserved namespace 'iris', which only "
                     + "modules that ship with the host may use; give the module a namespace of its own, which its stages, "
                     + "settings ids and mantle keys then use too",
-                    failure(() -> LoadedModules.load(packModules.modules(), Map.of(), RESERVED_NAMESPACES)));
-            assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of()));
+                    failure(() -> LoadedModules.load(packModules.modules(), Map.of(), RESERVED_NAMESPACES, Set.of())));
+            assertDoesNotThrow(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of()));
         }
     }
 
@@ -654,13 +654,13 @@ class PackModulesTest {
         try (var packModules = PackModules.load(pack, List.of(BUILT_IN_PACKAGE))) {
             var modules = new ArrayList<>(List.of(DiscoveredModule.builtIn(new CarveModule())));
             modules.addAll(packModules.modules());
-            assertDoesNotThrow(() -> LoadedModules.load(modules, Map.of(), RESERVED_NAMESPACES));
+            assertDoesNotThrow(() -> LoadedModules.load(modules, Map.of(), RESERVED_NAMESPACES, Set.of()));
         }
     }
 
     @Test
     void invalidReservedNamespaceFails() {
         assertEquals("Reserved namespace 'iris:core' is not a namespace; name one such as iris, without ':' or a path",
-                failure(() -> LoadedModules.load(List.of(), Map.of(), Set.of("iris:core"))));
+                failure(() -> LoadedModules.load(List.of(), Map.of(), Set.of("iris:core"), Set.of())));
     }
 }

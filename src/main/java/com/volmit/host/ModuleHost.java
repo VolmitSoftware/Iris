@@ -14,7 +14,8 @@ import java.util.TreeSet;
 
 /** The host's side of every pack load, the same for all packs: its built-in modules, the host
  * packages pack modules may use besides the Iris API, the JSON fields the host itself uses (which no
- * built-in alias may take), and the namespaces only built-in modules may use. Build it once and pass it to every
+ * built-in alias may take), the namespaces only built-in modules may use and the packages of the
+ * classes the host describes itself. Build it once and pass it to every
  * {@link LoadedPack#load(java.nio.file.Path, ModuleHost)}.
  *
  * <pre>{@code
@@ -25,8 +26,8 @@ import java.util.TreeSet;
  * }</pre>
  *
  * Every method adds to what earlier calls configured, so a host can build the configuration in steps.
- * Built-in modules' {@code info()} is read here, once. Exposed package names, reserved namespaces and
- * reserved field names are checked here, so a mistake fails when the host starts rather than at the
+ * Built-in modules' {@code info()} is read here, once. Exposed package names, reserved namespaces,
+ * host type packages and reserved field names are checked here, so a mistake fails when the host starts rather than at the
  * first pack load.
  */
 public record ModuleHost(
@@ -34,6 +35,7 @@ public record ModuleHost(
         Set<String> exposedHostPackages,
         Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
         Set<String> reservedNamespaces,
+        Set<String> hostTypePackages,
         Path jarCopyRoot,
         System.Logger logger) {
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
@@ -43,10 +45,12 @@ public record ModuleHost(
         exposedHostPackages = Set.copyOf(exposedHostPackages);
         reservedHostFields = copyOf(reservedHostFields);
         reservedNamespaces = Set.copyOf(reservedNamespaces);
+        hostTypePackages = Set.copyOf(hostTypePackages);
         Objects.requireNonNull(jarCopyRoot, "jarCopyRoot");
         Objects.requireNonNull(logger, "logger");
         ExposedPackages.apiAnd(exposedHostPackages);
         ReservedNamespaces.of(reservedNamespaces);
+        HostTypes.of(hostTypePackages);
         requireFieldNames(reservedHostFields);
     }
 
@@ -55,7 +59,7 @@ public record ModuleHost(
      */
     public static ModuleHost of(List<? extends IrisModule> builtInModules) {
         var builtIns = builtInModules.stream().map(DiscoveredModule::builtIn).toList();
-        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), systemTemporaryDirectory(),
+        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
                 System.getLogger(PackModules.class.getName()));
     }
 
@@ -64,13 +68,13 @@ public record ModuleHost(
      */
     public ModuleHost exposing(String... packages) {
         return new ModuleHost(builtIns, union(exposedHostPackages, packages), reservedHostFields, reservedNamespaces,
-                jarCopyRoot, logger);
+                hostTypePackages, jarCopyRoot, logger);
     }
 
     /** This configuration with {@code namespaces} reserved for built-in modules. */
     public ModuleHost reservingNamespaces(String... namespaces) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, union(reservedNamespaces, namespaces),
-                jarCopyRoot, logger);
+                hostTypePackages, jarCopyRoot, logger);
     }
 
     /** This configuration with {@code fields} also reserved as JSON fields the host itself uses,
@@ -78,21 +82,33 @@ public record ModuleHost(
      */
     public ModuleHost reservingFields(Map<FeatureAttachment.Target, Set<String>> fields) {
         return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields), reservedNamespaces,
-                jarCopyRoot, logger);
+                hostTypePackages, jarCopyRoot, logger);
+    }
+
+    /** This configuration with the classes in {@code packages}, each with its subpackages, described by
+     * the host itself: built-in settings may hold them, such as Iris's palettes, and the pack's
+     * {@link com.volmit.host.schema.PackSchema} names them as {@link com.volmit.host.schema.ValueKind.HostKind}
+     * instead of describing their fields. Pack modules' settings cannot use them.
+     */
+    public ModuleHost describingHostTypesIn(String... packages) {
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces,
+                union(hostTypePackages, packages), jarCopyRoot, logger);
     }
 
     /** This configuration copying module jars into new directories below {@code directory}, such as a
      * cache directory of the host, which is created when missing. The last call wins.
      */
     public ModuleHost copyingJarsTo(Path directory) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, directory, logger);
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, hostTypePackages,
+                directory, logger);
     }
 
     /** This configuration logging each pack load's module summary and missing-classes warning to
      * {@code logger}, such as an adapter to the host's own log. The last call wins.
      */
     public ModuleHost loggingTo(System.Logger logger) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, jarCopyRoot, logger);
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, hostTypePackages,
+                jarCopyRoot, logger);
     }
 
     /** The built-in modules followed by a pack's modules, in the order {@link LoadedModules} installs them. */

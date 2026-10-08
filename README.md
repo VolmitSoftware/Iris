@@ -16,6 +16,11 @@ mantle components outside the stage graph any more. Their stage constants, and t
 types packs may read, live in `src/main/java/art/arcane/iris/builtin`, the package Iris exposes to pack
 modules; their stage bodies live beside the features they replace.
 
+Built-in modules also own pack resources and checks of their own. `iris:structure` reads structures, jigsaw
+pools and jigsaw pieces as resource kinds (`StructureResources`), from the folders and files packs have always
+used, and checks them with its validator (`StructureValidator`: assembly samples and vanilla structure
+replacement) wherever Iris validates a pack; Iris core has no loader or validator of its own for them any more.
+
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.

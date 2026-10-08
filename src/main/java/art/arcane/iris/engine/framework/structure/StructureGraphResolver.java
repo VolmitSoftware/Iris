@@ -32,12 +32,12 @@ final class IrisDataStructureGraphResolver implements StructureGraphResolver {
 
     @Override
     public IrisJigsawPool loadPool(String key) {
-        return data.load(IrisJigsawPool.class, key, false);
+        return StructureResources.pool(data, key);
     }
 
     @Override
     public IrisJigsawPiece loadPiece(String key) {
-        return data.load(IrisJigsawPiece.class, key, false);
+        return StructureResources.piece(data, key);
     }
 
     @Override

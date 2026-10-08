@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
@@ -608,7 +609,7 @@ public class StructurePlacing {
                     || terrain.resolvedMode() == IrisStructureTerrainMode.BORE
                     ? Math.max(0, terrain.getHorizontalPadding()) : 0;
             for (String key : placement.getStructures()) {
-                IrisStructure structure = engine.getData().load(IrisStructure.class, key, false);
+                IrisStructure structure = StructureResources.structure(engine.getData(), key);
                 if (structure != null) {
                     max = Math.max(max, Math.max(1, structure.getMaxSizeChunks()) * 16 + carvePadding);
                 }

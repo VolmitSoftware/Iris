@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
@@ -502,7 +503,7 @@ public final class IrisStructureLocator {
         if (selectedKey == null || selectedKey.isBlank()) {
             throw new IllegalStateException("Iris structure placement selected a blank structure key");
         }
-        IrisStructure structure = engine.getData().load(IrisStructure.class, selectedKey, false);
+        IrisStructure structure = StructureResources.structure(engine.getData(), selectedKey);
         if (structure == null) {
             throw new IllegalStateException("Iris structure placement references missing structure '"
                     + selectedKey + "'");
@@ -1024,7 +1025,7 @@ public final class IrisStructureLocator {
             if (structureKey == null || structureKey.isBlank()) {
                 continue;
             }
-            IrisStructure structure = data.load(IrisStructure.class, structureKey, false);
+            IrisStructure structure = StructureResources.structure(data, structureKey);
             if (structure == null) {
                 continue;
             }
@@ -1085,7 +1086,7 @@ public final class IrisStructureLocator {
                 continue;
             }
             for (String structureKey : placement.getStructures()) {
-                IrisStructure structure = data.load(IrisStructure.class, structureKey, false);
+                IrisStructure structure = StructureResources.structure(data, structureKey);
                 if (structure == null) {
                     throw new IllegalStateException(
                             "Iris structure placement references missing structure '" + structureKey + "'");
@@ -1208,7 +1209,7 @@ public final class IrisStructureLocator {
                             ? "REPLACE_SOURCE contains a blank Iris structure reference"
                             : "Iris structure placement contains a blank structure reference");
                 }
-                IrisStructure structure = data.load(IrisStructure.class, structureKey, false);
+                IrisStructure structure = StructureResources.structure(data, structureKey);
                 if (structure == null) {
                     throw new IllegalStateException((replacesNative
                             ? "REPLACE_SOURCE references missing Iris structure '"

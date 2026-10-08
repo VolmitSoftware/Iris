@@ -22,6 +22,9 @@ import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.engine.framework.structure.StructureValidator;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.PackSettings;
@@ -32,6 +35,10 @@ import com.volmit.stage.StageGraph;
  * Module {@code iris:structure}: Iris structures, written into the mantle after objects, whose trees they clear
  * where they intersect, and after floating objects. A port of what was Iris's structure mantle component, its
  * work done by {@link StructurePlacing}, one per engine runtime. Its reach is the pack's largest structure.
+ * <p>
+ * The module owns the pack's structures, jigsaw pools and jigsaw pieces as resource kinds
+ * ({@link StructureResources}), read from the folders packs have always used, and checks them with
+ * {@link StructureValidator} wherever Iris validates a pack.
  */
 public final class StructureModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -45,6 +52,12 @@ public final class StructureModule implements IrisModule {
     public void install(StageGraph graph) {
         graph.define(IrisStages.Structure.PLACE).requires(IrisStages.Objects.PLACE).softAfter(IrisStages.Floating.OBJECTS.ref())
                 .reach(StructureModule::reach).run(StructureModule::place);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        StructureResources.kinds().forEach(registry::registerResourceKind);
+        registry.registerValidator(new StructureValidator());
     }
 
     private static void place(MantleStageContext context) {

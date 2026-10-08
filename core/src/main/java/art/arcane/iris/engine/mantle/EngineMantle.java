@@ -20,6 +20,8 @@ package art.arcane.iris.engine.mantle;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.GenerationLayers;
+import art.arcane.iris.core.modules.ModuleLayerValues;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
@@ -253,6 +255,7 @@ public interface EngineMantle extends MatterGenerator {
                 MantleSliceRetention.deleteUnlessRetained(chunk, MatterFluidBody.class);
                 MantleSliceRetention.deleteUnlessRetained(chunk, MatterMarker.class);
                 MantleSliceRetention.deleteUnlessRetained(chunk, TreeBlockMaterial.class);
+                removeGenerationLayersUnlessRetained(chunk);
                 chunk.trimSlices();
             });
         } finally {
@@ -268,11 +271,24 @@ public interface EngineMantle extends MatterGenerator {
                 MantleSliceRetention.deleteUnlessRetained(chunk, UpdateMatter.class);
                 MantleSliceRetention.deleteUnlessRetained(chunk, MatterCavern.class);
                 MantleSliceRetention.deleteUnlessRetained(chunk, MatterFluidBody.class);
+                removeGenerationLayersUnlessRetained(chunk);
                 chunk.trimSlices();
             });
         } finally {
             chunk.release();
         }
+    }
+
+    /** The pack's module mantle layers that cleanup removes; none unless the engine's pack registers some. */
+    default GenerationLayers getGenerationLayers() {
+        return GenerationLayers.NONE;
+    }
+
+    private void removeGenerationLayersUnlessRetained(MantleChunk<Matter> chunk) {
+        if (MantleSliceRetention.isRetained(ModuleLayerValues.class)) {
+            return;
+        }
+        getGenerationLayers().removeFrom(chunk);
     }
 
     default int getUnloadRegionCount() {

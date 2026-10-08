@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -75,6 +76,16 @@ public final class ModuleLayerValues {
         }
         TreeMap<String, LayerValue> changed = new TreeMap<>(layers);
         changed.remove(layerId);
+        return changed.isEmpty() ? EMPTY : new ModuleLayerValues(changed);
+    }
+
+    /** These values without any of {@code layerIds}'. */
+    public ModuleLayerValues withoutAll(Set<String> layerIds) {
+        if (layerIds.stream().noneMatch(layers::containsKey)) {
+            return this;
+        }
+        TreeMap<String, LayerValue> changed = new TreeMap<>(layers);
+        changed.keySet().removeAll(layerIds);
         return changed.isEmpty() ? EMPTY : new ModuleLayerValues(changed);
     }
 

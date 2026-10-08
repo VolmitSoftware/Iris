@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.mantle;
 
 import art.arcane.iris.core.link.Identifier;
+import art.arcane.iris.core.modules.GenerationLayers;
+import art.arcane.iris.core.modules.ModuleLayerValues;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,6 +117,31 @@ public class EngineMantleCleanupTest {
         fixture.engineMantle().forceCleanupChunk(7, -4);
 
         verifyCleanup(fixture.chunk());
+    }
+
+    @Test
+    public void bothCleanupsRemoveThePacksGenerationLayers() {
+        CleanupFixture fixture = cleanupFixture();
+        GenerationLayers layers = mock(GenerationLayers.class);
+        doReturn(layers).when(fixture.engineMantle()).getGenerationLayers();
+        doReturn(true).when(fixture.engineMantle()).isCovered(7, -4);
+
+        fixture.engineMantle().cleanupChunk(7, -4);
+        fixture.engineMantle().forceCleanupChunk(7, -4);
+
+        verify(layers, times(2)).removeFrom(fixture.chunk());
+    }
+
+    @Test
+    public void retainedModuleLayersSurviveCleanup() {
+        MantleSliceRetention.retain(ModuleLayerValues.class.getCanonicalName());
+        CleanupFixture fixture = cleanupFixture();
+        GenerationLayers layers = mock(GenerationLayers.class);
+        doReturn(layers).when(fixture.engineMantle()).getGenerationLayers();
+
+        fixture.engineMantle().forceCleanupChunk(7, -4);
+
+        verify(layers, never()).removeFrom(any());
     }
 
     @SuppressWarnings("unchecked")

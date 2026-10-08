@@ -20,7 +20,9 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.GenerationLayers;
 import art.arcane.iris.core.modules.ModuleMantleComponent;
+import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.core.tools.WorldMaintenance;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
@@ -70,6 +72,8 @@ public class IrisEngineMantle implements EngineMantle {
     private final AtomicCache<List<ModuleMantleComponent>> stageComponents = new AtomicCache<>();
     @Getter(AccessLevel.NONE)
     private final AtomicCache<List<MantlePass>> passes = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    private final AtomicCache<GenerationLayers> generationLayers = new AtomicCache<>();
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -98,6 +102,19 @@ public class IrisEngineMantle implements EngineMantle {
     public void hotload() {
         stageComponents.reset();
         passes.reset();
+        generationLayers.reset();
+    }
+
+    /** A pack whose modules fail to load keeps its module layers: without the modules, nothing says which are short-lived. */
+    @Override
+    public GenerationLayers getGenerationLayers() {
+        return generationLayers.aquire(() -> {
+            try {
+                return GenerationLayers.of(engine.getData().getModules().pack().catalog().mantle());
+            } catch (PackModulesException failedLoad) {
+                return GenerationLayers.NONE;
+            }
+        });
     }
 
     private List<ModuleMantleComponent> stageComponents() {

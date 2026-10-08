@@ -41,7 +41,9 @@ import com.volmit.host.MantleRegistration;
 import com.volmit.host.ModuleHost;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.MantleCodec;
+import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
+import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
@@ -167,6 +169,93 @@ public class IrisModuleMantleTest {
         assertEquals(Integer.valueOf(4), read.get(DEPTHS, NUMBER));
         ModuleLayerValues withoutCodecs = ModuleLayerValues.read(input(bytes(written))).without(MARKS.id());
         assertArrayEquals(bytes(ModuleLayerValues.EMPTY.with(DEPTHS, NUMBER, 4)), bytes(withoutCodecs));
+    }
+
+    @Test
+    public void anEditBuffersChangesAcrossLayersUntilItCommits() {
+        IrisModuleMantle mantle = mantle(new BlockBox(-16, MIN_Y, -16, 32, 0, 32));
+        mantle.layer(MARKS).set(1, -60, 1, "stored");
+        mantle.layer(MARKS).set(2, -60, 1, "removed");
+        List<String> visited = new ArrayList<>();
+
+        try (MantleEdit edit = mantle.edit()) {
+            edit.layer(MARKS).set(20, -50, 0, "added");
+            edit.layer(MARKS).remove(2, -60, 1);
+            edit.layer(DEPTHS).set(20, -50, 0, 3);
+            edit.layer(MARKS).visit(new BlockBox(-16, MIN_Y, -16, 32, 0, 32), (x, y, z, value) -> visited.add(value + "@" + x));
+
+            assertEquals("added", edit.layer(MARKS).get(20, -50, 0));
+            assertNull(edit.layer(MARKS).get(2, -60, 1));
+            assertNull("the mantle is unchanged until the commit", mantle.layer(MARKS).get(20, -50, 0));
+            assertEquals("removed", mantle.layer(MARKS).get(2, -60, 1));
+            edit.commit();
+        }
+
+        assertEquals(List.of("stored@1", "added@20"), visited);
+        assertEquals("added", mantle.layer(MARKS).get(20, -50, 0));
+        assertEquals(Integer.valueOf(3), mantle.layer(DEPTHS).get(20, -50, 0));
+        assertNull(mantle.layer(MARKS).get(2, -60, 1));
+        assertEquals("stored", mantle.layer(MARKS).get(1, -60, 1));
+    }
+
+    @Test
+    public void aClosedEditChangesNothingAndAnOpenEditKeepsTheMantleReadOnly() {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, MIN_Y, 0, 16, 0, 16));
+        MantleEdit edit = mantle.edit();
+        MantleLayer<String> marks = edit.layer(MARKS);
+        marks.set(1, -60, 1, "discarded");
+
+        assertThrows(IllegalStateException.class, () -> mantle.layer(MARKS).set(0, -60, 0, "direct"));
+        assertThrows(IllegalStateException.class, mantle::edit);
+        assertThrows(UnsupportedOperationException.class, edit::edit);
+        assertThrows(IndexOutOfBoundsException.class, () -> marks.set(16, -60, 0, "out"));
+        edit.close();
+        edit.close();
+
+        assertNull(mantle.layer(MARKS).get(1, -60, 1));
+        IllegalStateException closed = assertThrows(IllegalStateException.class, () -> marks.get(1, -60, 1));
+        assertEquals("This mantle edit is closed; open a new one with edit()", closed.getMessage());
+        assertThrows(IllegalStateException.class, edit::commit);
+        mantle.layer(MARKS).set(0, -60, 0, "direct");
+        mantle.edit().commit();
+    }
+
+    @Test
+    public void aCommitThatCannotReachEveryChunkPublishesNothing() {
+        IrisModuleMantle mantle = new IrisModuleMantle(new BlockBox(0, MIN_Y, 0, 32, 0, 16), MIN_Y,
+                (chunkX, chunkZ) -> chunkX == 0 ? chunk(chunkX, chunkZ) : null, LAYERS);
+        MantleEdit edit = mantle.edit();
+        edit.layer(MARKS).set(1, -60, 1, "first");
+        edit.layer(MARKS).set(20, -60, 1, "unprepared");
+
+        assertThrows(IllegalStateException.class, edit::commit);
+        assertNull(mantle.layer(MARKS).get(1, -60, 1));
+        assertThrows(IllegalStateException.class, edit::commit);
+        assertThrows(IllegalStateException.class, () -> mantle.layer(MARKS).set(2, -60, 1, "still open"));
+        edit.close();
+        mantle.layer(MARKS).set(2, -60, 1, "after close");
+    }
+
+    @Test
+    public void cleanupRemovesGenerationLayersAndKeepsPersistentAndUnknownOnes() throws IOException {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, MIN_Y, 0, 16, 0, 16));
+        mantle.layer(MARKS).set(1, -60, 1, "short-lived");
+        mantle.layer(DEPTHS).set(1, -60, 1, 7);
+        mantle.layer(MARKS).set(2, -10, 3, "alone");
+        MantleKey<String> unknown = new MantleKey<>("iris:gone/layer", String.class);
+        ModuleLayerValues fromDisk = ModuleLayerValues.read(input(bytes(ModuleLayerValues.EMPTY.with(unknown, TEXT, "kept")
+                .with(MARKS, TEXT, "old"))));
+        chunk(0, 0).getOrCreate((-30 - MIN_Y) >> 4).slice(ModuleLayerValues.class).set(4, (-30 - MIN_Y) & 15, 4, fromDisk);
+
+        GenerationLayers.of(LAYERS).removeFrom(chunk(0, 0));
+
+        assertNull(mantle.layer(MARKS).get(1, -60, 1));
+        assertEquals(Integer.valueOf(7), mantle.layer(DEPTHS).get(1, -60, 1));
+        assertNull("a block left without values holds nothing", chunk(0, 0).get((-10 - MIN_Y) >> 4)
+                .<ModuleLayerValues>slice(ModuleLayerValues.class).get(2, (-10 - MIN_Y) & 15, 3));
+        assertNull(mantle.layer(MARKS).get(4, -30, 4));
+        ModuleLayerValues left = chunk(0, 0).get((-30 - MIN_Y) >> 4).<ModuleLayerValues>slice(ModuleLayerValues.class).get(4, (-30 - MIN_Y) & 15, 4);
+        assertEquals("a layer no module registers stays", "kept", left.get(unknown, TEXT));
     }
 
     @Test

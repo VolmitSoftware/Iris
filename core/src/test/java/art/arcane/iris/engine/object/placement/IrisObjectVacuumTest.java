@@ -190,4 +190,18 @@ public class IrisObjectVacuumTest {
         badScale.setWaveScale(0);
         assertEquals("non-positive scale falls back to the default", 5.0, IrisObjectVacuum.resolveWaveScale(badScale), 0.0001);
     }
+
+    @Test
+    public void targetsAreClampedInPlacerHeightsOfADimensionStartingBelowZero() {
+        int minecraftMinY = -64;
+        int dimensionHeight = 384;
+        int highestY = dimensionHeight - 1;
+        int heightOfMinecraftY256 = 256 - minecraftMinY;
+
+        assertEquals("terrain above Minecraft Y 256 must be reachable",
+                heightOfMinecraftY256 + 40, IrisObjectVacuum.clampTargetY(heightOfMinecraftY256 + 40, IrisObjectVacuum.LOWEST_TARGET_Y, highestY));
+        assertEquals(highestY, IrisObjectVacuum.clampTargetY(dimensionHeight + 50, IrisObjectVacuum.LOWEST_TARGET_Y, highestY));
+        assertEquals("never below one above the bottom", 1, IrisObjectVacuum.clampTargetY(0, IrisObjectVacuum.LOWEST_TARGET_Y, highestY));
+        assertEquals(1, IrisObjectVacuum.clampTargetY(minecraftMinY, IrisObjectVacuum.LOWEST_TARGET_Y, highestY));
+    }
 }

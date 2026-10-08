@@ -11,6 +11,7 @@ import com.volmit.host.schema.FeatureRole;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
 import com.volmit.host.schema.PackSchema;
+import com.volmit.host.schema.ResourceKindSchema;
 import com.volmit.host.schema.SchemaOption;
 import com.volmit.host.schema.TextFormat;
 import com.volmit.host.schema.ValueKind.BooleanKind;
@@ -23,7 +24,10 @@ import com.volmit.host.schema.ValueKind.ListKind;
 import com.volmit.host.schema.ValueKind.MapKind;
 import com.volmit.host.schema.ValueKind.ObjectKind;
 import com.volmit.host.schema.ValueKind.ReferenceKind;
+import com.volmit.host.schema.ValueKind.ResourceReferenceKind;
 import com.volmit.host.schema.ValueKind.TextKind;
+import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKind;
 import com.volmit.support.TestModuleJar;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -580,5 +584,134 @@ class PackSchemaTest {
         var settings = schemaOf(pack, NO_BUILT_INS).type("pack.flora.FloraSettings");
 
         assertEquals(List.of("zeta", "alpha", "omega", "beta"), settings.options().stream().map(SchemaOption::name).toList());
+    }
+
+    private static final String CASTLE = "example:castle";
+    private static final String CASTLE_MEMBERS = """
+            public void register(com.volmit.FeatureRegistry registry) {
+                registry.registerResourceKind(com.volmit.resource.ResourceKind.of("example:castle/keep", "keeps", Keep.class));
+                registry.registerSettings(CastleSettings.class);
+            }
+            """;
+
+    private static TestModuleJar castle() {
+        return module("pack.castle.CastleModule", CASTLE, CASTLE_MEMBERS, NO_STAGES)
+                .source("pack.castle.Keep", """
+                        package pack.castle;
+
+                        import com.volmit.config.*;
+
+                        @Desc("A keep of a castle")
+                        public final class Keep {
+                            @Desc("Towers on the walls") @MinNumber(1)
+                            private int towers = 4;
+                            @ResourceRef(Keep.class)
+                            private String next = "";
+                        }
+                        """)
+                .source("pack.castle.CastleSettings", """
+                        package pack.castle;
+
+                        import com.volmit.FeatureAttachment.Target;
+                        import com.volmit.IrisFeature;
+                        import com.volmit.config.*;
+                        import java.util.List;
+
+                        @Feature(id = "example:castle", name = "Castle", targets = Target.BIOME)
+                        public final class CastleSettings implements IrisFeature {
+                            @ResourceRef(Keep.class)
+                            private List<String> keeps = List.of("main");
+                        }
+                        """);
+    }
+
+    private PackSchema castleSchema(ModuleHost host) {
+        var pack = pack("castle-" + ++brokenPacks);
+        castle().writeInto(pack, "castle.jar");
+        return schemaOf(pack, host);
+    }
+
+    @Test
+    void describesResourceKindsLikeSettingsAndReferencesToThem() {
+        var schema = castleSchema(NO_BUILT_INS);
+        var keepKind = ResourceId.parse("example:castle/keep");
+
+        var kind = schema.resources().getFirst();
+        assertEquals(new ResourceKindSchema(keepKind, kind.module(), "keeps", new ObjectKind("pack.castle.Keep")), kind);
+        assertEquals(CASTLE, kind.module().id().toString());
+        assertSame(kind, schema.resource(keepKind));
+        var keep = schema.type("pack.castle.Keep");
+        assertEquals("A keep of a castle", keep.description());
+        assertEquals(new SchemaOption("towers", new IntegerKind(), "Towers on the walls", false, OptionalDouble.of(1),
+                OptionalDouble.empty(), Optional.of(4L)), keep.options().getFirst());
+        assertEquals(new ResourceReferenceKind(keepKind), keep.options().get(1).kind(), "a resource may name others of its kind");
+        var keeps = schema.fields(Target.BIOME).getFirst().settings().options().getFirst();
+        assertEquals(new ListKind(new ResourceReferenceKind(keepKind), false), keeps.kind());
+        assertEquals(Optional.of(List.of("main")), keeps.defaultValue());
+    }
+
+    @Test
+    void builtInKindsMayReadIntoHostTypesWhichTheHostDescribesItself() {
+        var builtIn = registering("iris:palettes", ResourceKind.of("iris:palettes/palette", "palettes", Palette.class));
+        var schema = schemaOf(pack("palettes"), ModuleHost.of(List.of(builtIn)).describingHostTypesIn(HOST_TYPES));
+
+        assertEquals(new HostKind(Palette.class.getName()), schema.resources().getFirst().type());
+        assertTrue(schema.types().isEmpty(), "the host describes its own types");
+    }
+
+    @Test
+    void kindFoldersBelongToOneKindAndNeverToTheHost() {
+        var builtIn = registering("iris:keeps", ResourceKind.of("iris:keeps/keep", "keeps", Palette.class));
+        var shared = assertThrows(IllegalArgumentException.class, () -> castleSchema(ModuleHost.of(List.of(builtIn))));
+        assertEquals("resource kind example:castle/keep of module example:castle from modules/castle.jar reads folder 'keeps',"
+                + " which resource kind iris:keeps/keep of module iris:keeps from host classpath reads already; a folder holds"
+                + " one kind, so give one of them a folder of its own", shared.getMessage());
+
+        var reserved = assertThrows(IllegalArgumentException.class, () -> castleSchema(NO_BUILT_INS.reservingFolders("keeps")));
+        assertEquals("Resource kind example:castle/keep of module example:castle from modules/castle.jar reads folder 'keeps',"
+                + " which the host reads itself; give the kind a folder of its own", reserved.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> NO_BUILT_INS.reservingFolders("not/a/folder"));
+    }
+
+    @Test
+    void packKindsCannotReadIntoHostTypes() {
+        var jar = module("pack.castle.CastleModule", CASTLE, """
+                public void register(com.volmit.FeatureRegistry registry) {
+                    registry.registerResourceKind(com.volmit.resource.ResourceKind.of("example:castle/palette", "palettes",
+                            %s.class));
+                }
+                """.formatted(Palette.class.getName()), NO_STAGES).compileAgainstHostOf(Palette.class);
+        var pack = pack("castle-host-type");
+        jar.writeInto(pack, "castle.jar");
+        var host = NO_BUILT_INS.exposing(HOST_TYPES).describingHostTypesIn(HOST_TYPES);
+
+        var failure = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, host));
+        assertEquals("Resource kind example:castle/palette of module example:castle from modules/castle.jar reads into "
+                + Palette.class.getName() + ", a class the host describes itself, which only modules that ship with the host"
+                + " may use; read the files into a class of the module", failure.getMessage());
+    }
+
+    @Test
+    void resourceReferencesNameARegisteredKindOnPlainText() {
+        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer), but no"
+                + " module of the pack registers a resource kind read into that class; name the class of a kind registered with"
+                + " FeatureRegistry.registerResourceKind", "@ResourceRef(Integer.class) private String keep;");
+        assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer) on int,"
+                + " but @ResourceRef fits only String and lists, sets and arrays of it", "@ResourceRef(Integer.class) private int count;");
+        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer) on"
+                + " ResourceId, but packs name a kind's resources by key without a namespace, such as castle/start; use String",
+                "@ResourceRef(Integer.class) private ResourceId keep;");
+        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has both @Ref(BLOCK) and"
+                + " @ResourceRef(java.lang.Integer); an option names one kind of thing, so keep one",
+                "@Ref(Reference.BLOCK) @ResourceRef(Integer.class) private String keep;");
+    }
+
+    /** A built-in module {@code id} that registers {@code kind}. */
+    private static com.volmit.IrisModule registering(String id, ResourceKind<?> kind) {
+        return new com.volmit.IrisModule() {
+            public com.volmit.ModuleInfo info() { return com.volmit.ModuleInfo.of(id, "Kinds", "test"); }
+            public void install(com.volmit.stage.StageGraph graph) {}
+            public void register(com.volmit.FeatureRegistry registry) { registry.registerResourceKind(kind); }
+        };
     }
 }

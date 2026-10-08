@@ -13,9 +13,11 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
         options = List.copyOf(options);
     }
 
-    /** One field of a settings type. {@code minimum}, {@code maximum} and {@code reference} are null when not declared. */
+    /** One field of a settings type. {@code minimum}, {@code maximum}, {@code reference} and {@code resource} are null
+     * when not declared; {@code resource} is the class of {@link ResourceRef}.
+     */
     public record Option(Field field, String description, boolean required,
-                         Double minimum, Double maximum, Reference reference) {
+                         Double minimum, Double maximum, Reference reference, Class<?> resource) {
         public String name() {
             return field.getName();
         }
@@ -45,6 +47,7 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                 var min = field.getAnnotation(MinNumber.class);
                 var max = field.getAnnotation(MaxNumber.class);
                 var ref = field.getAnnotation(Ref.class);
+                var resourceRef = field.getAnnotation(ResourceRef.class);
                 if ((min != null || max != null) && !isNumeric(field.getType())) {
                     throw new IllegalArgumentException("Numeric bounds on nonnumeric option: " + field.getName());
                 }
@@ -55,7 +58,7 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                 }
                 options.add(new Option(field, desc == null ? "" : desc.value(), field.isAnnotationPresent(Required.class),
                         min == null ? null : min.value(), max == null ? null : max.value(),
-                        ref == null ? null : ref.value()));
+                        ref == null ? null : ref.value(), resourceRef == null ? null : resourceRef.value()));
             }
         }
         var desc = type.getAnnotation(Desc.class);

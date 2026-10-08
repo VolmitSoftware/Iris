@@ -2,7 +2,7 @@
 
 Status: pack module loading (`LoadedPack`), the stage graph, per-stage random streams, both
 pipelines' reference executors, settings catalog and its description for studio, geometry,
-resources and typed storage contracts
+resources, module resource kinds, validators and typed storage contracts
 exist and are tested without the Iris
 engine. Provider and runtime families at the end are design notes, not Java interfaces.
 
@@ -16,7 +16,7 @@ phase or hook has special status in the API.
 ```mermaid
 flowchart TD
     Modules[Built-in and addon modules] --> Install[install: define stages]
-    Modules --> Register[register: geometry, mantle layers]
+    Modules --> Register[register: geometry, mantle layers, resource kinds, validators]
     Install --> Resolve[Resolve per pipeline at pack load]
     Install --> Settings[when settings types]
     Settings --> Catalog[Frozen feature catalog]
@@ -646,6 +646,7 @@ already keep module fields from colliding with them.
 | `List<E>`, `E[]` | `ListKind(E, false)` |
 | `Set<E>` | `ListKind(E, true)` |
 | `Map<String, V>` | `MapKind(V)` |
+| `String` with `@ResourceRef(Type.class)` | `ResourceReferenceKind(id of the kind read into Type)` |
 | a class in a host type package, in built-in settings | `HostKind(class name)` |
 | any other concrete class | `ObjectKind(class name)` |
 
@@ -731,10 +732,60 @@ them, so `OptionsMetadata` reads it with `java.lang.classfile`. A settings class
 from a jar or a class directory, which every module class does. Which settings an error names first follows feature id order too, so the same
 pack always fails with the same message.
 
+## Pack resource kinds
+
+Iris loads its pack resources (biomes, regions, objects, structures...) with one hard-coded loader per type,
+so core knew every feature class that had a folder. A module now declares a kind of pack resource itself:
+`FeatureRegistry.registerResourceKind(ResourceKind.of(id, folder, type))`. The host reads every `.json` file below
+`<pack>/<folder>/` into a new `type` and serves it through `PackResources.find` and `PackResources.ids`, like
+the resources it serves itself.
+
+- **Identity.** A file's key is its path below the folder without `.json`; its id is `<pack namespace>:<key>`,
+  the form every pack resource has. The JSON inside keeps unprefixed keys, the class's field names; namespacing
+  pack JSON is a later decision. The kind's own id follows the module id like stage ids, feature ids and mantle
+  keys (`ModuleInfo.ownsId`), and names the kind in errors and studio.
+- **Folders.** The module chooses the folder, one folder name directly below the pack root, so a kind that takes
+  over one of Iris's own keeps the folder and format packs already use. A nested path would let one kind's folder
+  sit inside another's, whose files the host would then read twice. One folder holds one kind. The host's own
+  folders are reserved with `ModuleHost.reservingFolders`. Either conflict fails the pack load in `ModuleRegistry`,
+  naming both owners; the host is named as "the host".
+- **Type.** `PackResources` selects a kind by the requested type, so one class backs at most one kind and
+  `find(new ResourceKey<>(id, Keep.class))` needs no kind id. The class must be concrete; like settings it needs a
+  no-argument constructor, checked when the pack's description is built.
+- **Reading.** The host creates the instance with that constructor and reads the JSON into it, exactly as it
+  decodes settings, so a missing field keeps its default and studio's defaults are what packs get.
+- **Lifetime.** A resource is read once per pack snapshot and every caller gets the same instance, so resources
+  are values: nobody may change one. A reload is a new snapshot (`snapshotId()` changes) that reads the files
+  again. A file that fails to read is an error from `find`, not an absent resource.
+- **Host types.** A built-in module may read a kind into a class the host describes itself (`describingHostTypesIn`),
+  so a built-in feature can become a module before its classes are rewritten against IrisApi's annotations; studio
+  then renders the host's own description of the class. A pack module's kind of a host type fails the load.
+- **Studio.** `PackSchema.resources()` lists each kind with its folder and the files' type, an `ObjectKind`
+  described in `types()` or a `HostKind`. The host writes a schema per kind for the files below its folder. An
+  option that names a resource of a kind carries `@ResourceRef(Keep.class)`: a class, not a kind id, so the
+  reference is checked by the compiler and matches how `PackResources` selects kinds. It becomes
+  `ResourceReferenceKind(kindId)`, and studio completes the kind's keys. Keys are pack paths without a
+  namespace, so only `String` fits, like the pack references of `@Ref`. A class that backs no kind of the pack
+  fails the load.
+
+## Validators
+
+A module registers `Validator`s with `FeatureRegistry.registerValidator`. The host runs them wherever it validates
+a pack, alongside its own checks, with a `ValidationContext`: the pack's `PackResources` (module kinds included),
+its `PackSettings` (every entry of every dimension, region and biome of the pack, reachable or not, since a
+validator checks files rather than one world) and `report(Problem)`.
+
+A `Problem` has a `Severity`, a `Subject` and a message. `ERROR` stops the pack from loading, `WARNING` is only
+shown: the two outcomes Iris's own validators have. The subject is a resource id or a file path below the pack
+root; one id can name resources of several kinds, so a file is the clearer subject where the kind matters. The
+host shows the subject with the message. A validator that throws fails the pack's validation with an error
+naming its module; the other validators still run. `FeatureCatalog.validators()` lists them by module id, each
+module's in registration order, so the order never depends on discovery.
+
 ## Not implemented
 
-- Iris host wiring: JSON decoding and validation, rendering `PackSchema` into Iris's schema and
-  workspace files, resource loaders, platform block adapters, storage and codecs.
+- Host wiring, which lives in Iris: JSON decoding and validation, rendering `PackSchema` into Iris's schema and
+  workspace files, reading module resource kinds, running validators, platform block adapters, storage and codecs.
 - Legacy random compatibility. Existing Iris features draw from shared, positional generators in a
   fixed order. Where existing worlds are promised to stay the same, the adapter has to reproduce
   those draws inside the ported stages; per-stage streams will not match them on their own.

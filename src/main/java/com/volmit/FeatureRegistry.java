@@ -4,12 +4,14 @@ import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
+import com.volmit.resource.ResourceKind;
 import com.volmit.stage.StageGraph;
+import com.volmit.validation.Validator;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON fields must be unique per attachment target, including the
- * settings types stages name in {@code when(...)}. Feature IDs and mantle keys a module registers
- * are its module id or start with it and {@code /}, such as {@code iris:snow} or {@code iris:snow/depth}.
+ * settings types stages name in {@code when(...)}. Feature IDs, mantle keys and resource kind ids a module
+ * registers are its module id or start with it and {@code /}, such as {@code iris:snow} or {@code iris:snow/depth}.
  */
 public interface FeatureRegistry {
     /** Registers a layer before pack loading. Null arguments throw NullPointerException;
@@ -30,4 +32,14 @@ public interface FeatureRegistry {
      * {@link StageGraph}).
      */
     void registerSettings(Class<? extends IrisFeature> settingsType);
+
+    /** Declares a kind of pack resource this module reads: the JSON files under the kind's folder, served through
+     * {@link com.volmit.resource.PackResources} by the kind's type and described for studio from its class like
+     * settings. The pack load fails when another kind has the same id, type or folder, or the folder is one the
+     * host reads itself; the error names both owners.
+     */
+    <T> void registerResourceKind(ResourceKind<T> kind);
+
+    /** Adds a check the host runs over the whole pack wherever it validates packs. */
+    void registerValidator(Validator validator);
 }

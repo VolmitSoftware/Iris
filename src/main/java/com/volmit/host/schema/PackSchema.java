@@ -1,6 +1,7 @@
 package com.volmit.host.schema;
 
 import com.volmit.FeatureAttachment;
+import com.volmit.resource.ResourceId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -10,16 +11,27 @@ import java.util.Objects;
  * studio completion. It holds module-provided entries only: the host describes its own fields.
  *
  * <p>Everything is in a fixed order, so the same modules always give the same description: features
- * by id, the features of a target by JSON key, types by name, snippets by snippet name, options and
- * enum constants in declaration order.
+ * and resource kinds by id, the features of a target by JSON key, types by name, snippets by snippet name,
+ * options and enum constants in declaration order.
  *
  * @param features every catalogued settings type of the pack's modules, built-in ones included
- * @param types every class reachable from those settings, each once
+ * @param resources every resource kind of the pack's modules, built-in ones included
+ * @param types every class reachable from those settings and resource kinds, each once
  */
-public record PackSchema(List<FeatureSchema> features, List<ObjectType> types) {
+public record PackSchema(List<FeatureSchema> features, List<ResourceKindSchema> resources, List<ObjectType> types) {
     public PackSchema {
         features = features.stream().sorted(Comparator.comparing(FeatureSchema::id)).toList();
+        resources = resources.stream().sorted(Comparator.comparing(ResourceKindSchema::id)).toList();
         types = types.stream().sorted(Comparator.comparing(ObjectType::name)).toList();
+    }
+
+    /** The resource kind {@code id}, such as the one a {@link ValueKind.ResourceReferenceKind} names. */
+    public ResourceKindSchema resource(ResourceId id) {
+        Objects.requireNonNull(id, "id");
+        return resources.stream()
+                .filter(kind -> kind.id().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No resource kind: " + id));
     }
 
     /** The module features of one attachment target, by JSON key. */

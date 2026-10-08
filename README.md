@@ -51,9 +51,9 @@ public final class MossModule implements IrisModule {
   The stream is a `WorldRandom` (see Random streams below).
 
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators,
-mantle layers and settings no stage names (see Settings for studio). Their feature ids and mantle
-keys are the module id or start with it and `/`, like stage ids: `iris:snow` or `iris:snow/depth`
-for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
+mantle layers, settings no stage names (see Settings for studio), pack resource kinds and validators
+(see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
+like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
 module naming it owns in that sense, or its owner must have registered it, so another module may
 still condition its stages on it, as moss does on `iris:snow`.
 
@@ -145,6 +145,64 @@ static int reach(PackSettings settings) {
 A mantle stage may rely on what earlier stages wrote around its chunk, but not on what a stage of its
 own pass wrote in other chunks: whether it has run there yet depends on which chunk the host generates
 first.
+
+## Pack resources of a module
+
+A module can own a kind of pack file, the way Iris owns biomes and objects: every JSON file below one folder
+of the pack, each read into a new instance of a class of the module.
+
+```java
+public static final ResourceKind<Keep> KEEPS = ResourceKind.of("example:castle/keep", "keeps", Keep.class);
+
+public void register(FeatureRegistry registry) {
+    registry.registerResourceKind(KEEPS);           // reads <pack>/keeps/**/*.json
+}
+
+// anywhere the pack's resources are at hand, such as a stage or a validator
+Keep keep = resources.require(KEEPS.key(new ResourceId(resources.packId().namespace(), "towers/north")));
+List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in id order
+```
+
+- A file's key is its path below the folder without `.json` (`towers/north`), and its id is
+  `<pack namespace>:<key>`, like every pack resource. JSON keys inside the file are the class's field names.
+- The kind's id follows the module id. The folder is one folder name directly below the pack root; the module
+  chooses it, so a kind that replaces one of Iris's own keeps the folder and file format packs already have.
+- One folder holds one kind and one class backs one kind: `PackResources` finds resources by type. Two kinds
+  claiming one folder, or a folder the host reads itself (`ModuleHost.reservingFolders`), fail the pack load,
+  naming both owners.
+- The host creates each resource with the class's no-argument constructor and reads the JSON into it, as it does
+  settings, so an omitted field keeps its default. It reads a resource once per pack load and hands every caller
+  the same instance, so resources are values nobody may change. A reload (studio hotload) reads them again.
+- Studio describes the files from the class like settings: `@Desc`, `@MinNumber`, `@Required` and the rest. An
+  option that names a resource of a kind carries `@ResourceRef(Keep.class)` on a `String`, or a list, set or
+  array of them, and studio completes the kind's keys. Built-in kinds may read into a class the host describes
+  itself, as built-in settings may hold one.
+
+```
+Resource kind example:castle/keep of module example:castle from modules/castle.jar reads folder 'biomes', which the host reads itself; give the kind a folder of its own
+```
+
+## Validators
+
+A module checks the pack for problems it cares about with a `Validator`. The host runs every validator of the
+pack wherever it validates packs (when a pack loads, when studio opens it, on request) and reports their
+problems with its own.
+
+```java
+registry.registerValidator(pack -> {
+    for (ResourceId id : pack.resources().ids(Keep.class)) {
+        Keep keep = pack.resources().require(KEEPS.key(id));
+        if (keep.towers() > 8) {
+            pack.report(Problem.error(Subject.file("keeps/" + id.path() + ".json"), "Keep has " + keep.towers() + " towers; at most 8 fit."));
+        }
+    }
+});
+```
+
+A validator sees the pack's resources, module kinds included, and `pack.settings()`: every settings entry of
+every dimension, region and biome of the pack. It reports each `Problem` with a severity and its subject, a
+resource id or a file below the pack root. An `ERROR` stops the pack from loading; a `WARNING` is only shown.
+A validator reports and returns; one that throws fails the pack's validation, naming its module.
 
 ## Module jars
 
@@ -251,6 +309,9 @@ public final class FloraSettings implements IrisFeature {
   `PACK_OBJECT` of the pack. The pack kinds fit `String` only, in the form packs use (`desert/dunes`),
   never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.
+- `@ResourceRef(Keep.class)` says that a `String`, or a list, set or array of them, names a resource of the
+  module resource kind read into that class, by its key (see Pack resources of a module). The class must back a
+  kind of the pack; anywhere else, or together with `@Ref`, it fails the load.
 - Packs write settings under the feature id. Built-in modules may also set `@Feature(alias = "stilt")`,
   a short key existing pack JSON uses; a pack module that sets one fails the load. One JSON object may
   not hold both.
@@ -284,6 +345,7 @@ var host = ModuleHost.of(builtInModules)
         .reservingNamespaces("iris")
         .reservingFields(reservedHostFields)
         .describingHostTypesIn("art.arcane.iris.engine.object")   // classes the host describes itself
+        .reservingFolders("biomes", "regions", "objects")         // pack folders the host reads itself
         .copyingJarsTo(cacheDirectory)                    // default: java.io.tmpdir
         .loggingTo(serverLogger);                         // a System.Logger; default: System.getLogger
 
@@ -305,7 +367,7 @@ try (var pack = LoadedPack.load(packRoot, host)) {
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
 once, here), the host packages pack modules may use, the JSON fields the host itself uses, the
-reserved namespaces and the packages of the classes it describes itself. Each method adds to what earlier calls configured. Package names, namespaces and
+reserved namespaces, the packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names, namespaces and
 reserved field names are checked when it is built. `LoadedPack.load`
 loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
 describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
@@ -378,8 +440,8 @@ Pack overworld uses 2 modules:
 A pack without jars logs `Pack overworld uses no modules: no jars in its modules directory`.
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
-together with explicitly registered settings and geometry and mantle registrations, describes them
-and resolves both pipelines. Graph errors
+together with explicitly registered settings, geometry and mantle registrations, resource kinds and
+validators (`catalog().resourceKinds()`, `catalog().validators()`), describes them and resolves the pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do reserved namespaces and feature ids or mantle keys outside the
 module's id. Errors about one module name its jar or "host classpath", and so does a module
@@ -405,10 +467,14 @@ no JSON. The host renders it and merges it with its own fields:
   description, required, minimum, maximum and default value.
 - `ValueKind` is sealed: `BooleanKind`, `IntegerKind`, `DecimalKind`, `TextKind(format)`,
   `ReferenceKind(reference, format)`, `EnumKind(type, constants)`, `ListKind(element, unique)`,
-  `MapKind(value)` and `ObjectKind(type)`, which names an entry of `types()`. `TextFormat` is `PLAIN`,
+  `MapKind(value)`, `ObjectKind(type)`, which names an entry of `types()`, `HostKind(type)` and
+  `ResourceReferenceKind(kind)`. `TextFormat` is `PLAIN`,
   `RESOURCE_ID` or `BLOCK_STATE`.
 - `snippets()` and `objectGenerators()` pick the types with a snippet name and the object generator
   features.
+- `resources()`: every resource kind, by id. A `ResourceKindSchema` has the kind's id, module, folder and the
+  files' type: an `ObjectKind` naming an entry of `types()`, or a `HostKind` for a built-in kind whose class the
+  host describes itself. `ResourceReferenceKind(kind)` is an option naming a resource of a kind by its key.
 
 For the stilt example the host sees one `OBJECT_PLACEMENT` feature. The records are abridged:
 
@@ -431,8 +497,9 @@ and closes the edit in every case. Stages get buffered `PlacementAccess` without
 
 - `ResourceId` requires a namespace. `ResourceKey<T>` pairs it with a public type.
 - `PackResources` serves one immutable pack snapshot; caches must not survive a reload.
-  It serves pack objects (`GeneratedObject`), biomes (`PackBiome`) and regions (`PackRegion`); the
-  requested type selects the kind, so `BiomeSample` ids look up directly.
+  It serves pack objects (`GeneratedObject`), biomes (`PackBiome`), regions (`PackRegion`) and every module
+  resource kind; the requested type selects the kind, so `BiomeSample` ids look up directly. `ids(type)` lists
+  a kind.
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
   platform. `BlockPalette` and `NoiseSampler` are typed resources.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
@@ -470,7 +537,11 @@ explicit registration, built-in modules, the same result whatever the jar order,
 for each unsupported field type, misplaced `@Ref` (pack kinds on `ResourceId` included), unusable
 class, bad or repeated snippet name and pack snippet outside its module's folder, host types in built-in
 settings (and the load error when a pack module uses one), and the one-option shorthand.
-`DiscoveredModuleTest` checks that `info()` is read once. `LoadedPackTest` loads a pack with
+`PackSchemaTest` also loads a module jar with a resource kind: the kind's files described from its class,
+`@ResourceRef` options as references to the kind, built-in kinds of host types, the load error for a pack kind
+of a host type, for a folder two kinds claim or the host reserves, and for a misplaced `@ResourceRef`.
+`ModuleRegistryTest` checks kind ids, types and folders, and the validator order. `DiscoveredModuleTest`
+checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go
 away on close and on failure, that errors name the original jar, and which leftover directories a

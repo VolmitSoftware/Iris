@@ -4,7 +4,10 @@ import com.volmit.host.schema.FeatureRole;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
 import com.volmit.host.schema.PackSchema;
+import com.volmit.host.schema.ResourceKindSchema;
 import com.volmit.host.schema.SchemaOption;
+import com.volmit.host.schema.ValueKind;
+import com.volmit.resource.ResourceId;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -15,10 +18,10 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-/** Describes a loaded pack's catalogued settings for studio. Fails the load, naming the class, field
- * and module, on settings the host could not render: an unsupported field type, a misplaced
- * {@code @Ref}, a class without a usable no-argument constructor, a snippet name used twice or a pack
- * class's snippet name outside its module's path.
+/** Describes a loaded pack's catalogued settings and resource kinds for studio. Fails the load, naming the class,
+ * field and module, on what the host could not render: an unsupported field type, a misplaced {@code @Ref} or
+ * {@code @ResourceRef}, a class without a usable no-argument constructor, a snippet name used twice, a pack
+ * class's snippet name outside its module's path, or a pack module's resource kind read into a host type.
  */
 final class PackSchemaBuilder {
     private static final Pattern SNIPPET_NAME = Pattern.compile("[a-z0-9_.-]+(/[a-z0-9_.-]+)*");
@@ -28,20 +31,49 @@ final class PackSchemaBuilder {
     private final List<DiscoveredModule> modules;
     private final TypeDrafts drafts;
 
-    private PackSchemaBuilder(List<DiscoveredModule> modules, HostTypes hostTypes) {
+    private final HostTypes hostTypes;
+
+    private PackSchemaBuilder(FeatureCatalog catalog, List<DiscoveredModule> modules, HostTypes hostTypes) {
         this.modules = modules;
-        this.drafts = new TypeDrafts(hostTypes);
+        this.hostTypes = hostTypes;
+        this.drafts = new TypeDrafts(hostTypes, type -> resourceKindOf(catalog, type));
     }
 
     static PackSchema describe(FeatureCatalog catalog, List<DiscoveredModule> modules, HostTypes hostTypes) {
-        return new PackSchemaBuilder(modules, hostTypes).describe(catalog);
+        return new PackSchemaBuilder(catalog, modules, hostTypes).describe(catalog);
     }
 
     private PackSchema describe(FeatureCatalog catalog) {
         var features = catalogued(catalog).map(this::draft).toList();
+        var resources = catalog.resourceKinds().stream().map(this::describe).toList();
         requireUniqueSnippets();
         var types = completeTypes();
-        return new PackSchema(features.stream().map(feature -> feature.complete(types)).toList(), List.copyOf(types.values()));
+        return new PackSchema(features.stream().map(feature -> feature.complete(types)).toList(), resources,
+                List.copyOf(types.values()));
+    }
+
+    private static Optional<ResourceId> resourceKindOf(FeatureCatalog catalog, Class<?> type) {
+        return catalog.resourceKinds().stream()
+                .map(ResourceKindRegistration::kind)
+                .filter(kind -> kind.type() == type)
+                .map(com.volmit.resource.ResourceKind::id)
+                .findFirst();
+    }
+
+    /** A built-in kind may read into a class the host describes itself, as built-in settings may hold one. */
+    private ResourceKindSchema describe(ResourceKindRegistration registration) {
+        var kind = registration.kind();
+        var module = registration.module();
+        return new ResourceKindSchema(kind.id(), module.info(), kind.folder(), fileType(registration));
+    }
+
+    private ValueKind fileType(ResourceKindRegistration registration) {
+        var type = registration.kind().type();
+        if (!hostTypes.contains(type)) return drafts.resourceKind(SchemaSource.resourceKind(registration.kind(), registration.module()));
+        if (registration.module().source() == DiscoveredModule.Source.HOST) return new ValueKind.HostKind(type.getName());
+        throw new IllegalArgumentException("Resource kind " + registration.kind().id() + " of module " + registration.module()
+                + " reads into " + type.getName() + ", a class the host describes itself, which only modules that ship with"
+                + " the host may use; read the files into a class of the module");
     }
 
     /** One catalogued settings type and why it is in the catalog. */
@@ -66,7 +98,7 @@ final class PackSchemaBuilder {
 
     private FeatureDraft draft(Catalogued catalogued) {
         var owner = ownerOf(catalogued.descriptor());
-        drafts.settings(new SchemaSource(catalogued.descriptor(), owner));
+        drafts.settings(SchemaSource.settings(catalogued.descriptor(), owner));
         return new FeatureDraft(catalogued, owner);
     }
 

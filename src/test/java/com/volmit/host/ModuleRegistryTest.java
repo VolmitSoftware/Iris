@@ -3,6 +3,8 @@ package com.volmit.host;
 import com.volmit.*;
 import com.volmit.config.Feature;
 import com.volmit.mantle.*;
+import com.volmit.resource.ResourceKind;
+import com.volmit.validation.Validator;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
@@ -128,14 +130,14 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
             public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
         };
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
         assertEquals(1, loaded.catalog().objects().size());
         assertEquals(1, loaded.placement().stages().size());
         assertTrue(loaded.chunk().stages().isEmpty());
 
         var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("shared"));
-        assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), reserved, Set.of(), Set.of()));
+        assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), reserved, Set.of(), Set.of(), Set.of()));
     }
 
     @Test
@@ -180,12 +182,70 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
         };
 
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
 
         var unowned = assertThrows(IllegalArgumentException.class,
-                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of()));
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of(), Set.of()));
         assertTrue(unowned.getMessage().contains("which none of the modules naming it in when(...) owns"), unowned.getMessage());
+    }
+
+    static class Castle {}
+    static class Pool {}
+
+    @Test
+    void resourceKindsHaveOwnedIdsAndOneIdTypeAndFolderEach() {
+        var registry = new ModuleRegistry(Map.of(), Set.of("biomes"));
+        var castles = ResourceKind.of("test:core/castle", "castles", Castle.class);
+        registerAs(registry, "test:core", kinds -> {
+            kinds.registerResourceKind(castles);
+            var duplicate = assertThrows(IllegalArgumentException.class, () -> kinds.registerResourceKind(castles));
+            assertEquals("Duplicate resource kind: test:core/castle of module test:core from host classpath", duplicate.getMessage());
+        });
+
+        var foreign = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:other",
+                kinds -> kinds.registerResourceKind(ResourceKind.of("test:core/pool", "pools", Pool.class))));
+        assertEquals("Resource kind test:core/pool must be test:other or start with test:other/, the id of its registering"
+                + " module test:other from host classpath", foreign.getMessage());
+
+        var sameType = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:other",
+                kinds -> kinds.registerResourceKind(ResourceKind.of("test:other/castle", "keeps", Castle.class))));
+        assertEquals("resource kind test:other/castle of module test:other from host classpath reads into " + Castle.class.getName()
+                + ", which resource kind test:core/castle of module test:core from host classpath reads into already; resources"
+                + " are found by their type, so each kind needs a class of its own", sameType.getMessage());
+
+        var sameFolder = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:other",
+                kinds -> kinds.registerResourceKind(ResourceKind.of("test:other/pool", "castles", Pool.class))));
+        assertEquals("resource kind test:other/pool of module test:other from host classpath reads folder 'castles', which"
+                + " resource kind test:core/castle of module test:core from host classpath reads already; a folder holds one kind,"
+                + " so give one of them a folder of its own", sameFolder.getMessage());
+
+        var hostFolder = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:other",
+                kinds -> kinds.registerResourceKind(ResourceKind.of("test:other/pool", "biomes", Pool.class))));
+        assertEquals("Resource kind test:other/pool of module test:other from host classpath reads folder 'biomes', which the"
+                + " host reads itself; give the kind a folder of its own", hostFolder.getMessage());
+
+        assertThrows(IllegalStateException.class, () -> registry.registerResourceKind(ResourceKind.of("test:core/pool", "pools", Pool.class)));
+        assertEquals(List.of(castles), registry.freeze().resourceKinds().stream().map(ResourceKindRegistration::kind).toList());
+        assertEquals("test:core", registry.freeze().resourceKinds().getFirst().module().info().id().toString());
+    }
+
+    @Test
+    void validatorsAreCataloguedByModuleIdInTheOrderEachModuleRegisteredThem() {
+        var registry = new ModuleRegistry();
+        Validator first = pack -> {};
+        Validator second = pack -> {};
+        Validator other = pack -> {};
+        registerAs(registry, "test:zeta", validators -> validators.registerValidator(other));
+        registerAs(registry, "test:alpha", validators -> {
+            validators.registerValidator(first);
+            validators.registerValidator(second);
+        });
+
+        assertThrows(IllegalStateException.class, () -> registry.registerValidator(pack -> {}));
+        assertEquals(List.of(first, second, other), registry.freeze().validators().stream().map(ValidatorRegistration::validator).toList());
+        assertEquals("test:alpha", registry.freeze().validators().getFirst().module().info().id().toString());
+        assertThrows(IllegalStateException.class, () -> registry.registerValidator(pack -> {}), "registration has ended");
     }
 
     private static MantleCodec<String> codec(int version) {

@@ -26,7 +26,9 @@ types that carry them and lists what the Iris adapter still owes.
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema` with `shorthand()`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette` |
-| Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources`, `PackBiome`, `PackRegion` |
+| Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
+| Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
+| Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.hunk`, reference `ArrayHunk<T>` |
 | Sparse geometry and transforms | `ObjectGenerator`, `GeneratedObject`, `ObjectTransform`, `ObjectTransformer` |
@@ -39,7 +41,7 @@ invocation seed and its id, so other modules never change its draws. Every value
 defined by IrisApi (`WorldRandom`), not by the JDK, so a JDK update never changes a world.
 
 A module owns its id (`ns:name`, no `/`) and the ids below it (`ns:name/...`). Its stage ids are
-below it; feature ids and mantle keys it registers are its id or below it; a settings type in
+below it; feature ids, mantle keys and resource kind ids it registers are its id or below it; a settings type in
 `when(...)` is owned in that sense by a module that names it. Pack modules cannot use the
 namespaces the host reserves.
 
@@ -67,6 +69,10 @@ module or non-exported JDK package, or one missing from an exposed package fails
 naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
 its package is one the module declares optional with `ModuleInfo.withOptionalPackages(...)`
 (`PackageName`). That declaration never excuses a load error.
+
+A resource kind reads one folder directly below the pack root, with a class no other kind uses; a folder two
+kinds claim, or one the host reads itself, fails the pack load naming both owners. Resources of a kind are
+values, read once per pack snapshot. Validators only report: an `ERROR` blocks the pack, a `WARNING` is shown.
 
 There is no API version gating. Packs ship their module jars, so their compatibility with the
 running Iris is the pack publisher's responsibility.
@@ -134,6 +140,16 @@ running Iris is the pack publisher's responsibility.
 - Load the pack again and rebuild the schema files after a module jar in `<pack>/modules` changes.
 - Create settings with their no-argument constructor and decode JSON into that instance, so an
   omitted field keeps the default studio shows.
+- Read every module resource kind (`catalog().resourceKinds()`) from `<pack>/<folder>/**/*.json` the way settings
+  are decoded, keyed by path without `.json`, id `<pack namespace>:<key>`, and serve it through
+  `PackResources.find` by type and `PackResources.ids`. Read each resource once per pack snapshot, fail `find` for a
+  file that does not read, and read the files again on every reload.
+- Reserve the folders the host reads itself with `ModuleHost.reservingFolders(...)`.
+- Write a studio schema per kind for the files below its folder (the host's own description for a `HostKind`), and
+  complete `ResourceReferenceKind` options, and the host's own references to a kind's class, with the kind's keys.
+- Run every validator (`catalog().validators()`) wherever the host validates packs, after its own checks: an
+  `ERROR` blocks the pack, a `WARNING` is shown; show each problem with its subject. A validator that throws is an
+  error naming its module, and the others still run.
 
 ## Open
 

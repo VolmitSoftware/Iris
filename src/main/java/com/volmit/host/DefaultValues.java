@@ -11,6 +11,7 @@ import com.volmit.host.schema.ValueKind.ListKind;
 import com.volmit.host.schema.ValueKind.MapKind;
 import com.volmit.host.schema.ValueKind.ObjectKind;
 import com.volmit.host.schema.ValueKind.ReferenceKind;
+import com.volmit.host.schema.ValueKind.ResourceReferenceKind;
 import com.volmit.host.schema.ValueKind.TextKind;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ final class DefaultValues {
             case BooleanKind _ -> Optional.of(value);
             case IntegerKind _ -> Optional.of(((Number) value).longValue());
             case DecimalKind _ -> decimal((Number) value);
-            case TextKind _, ReferenceKind _ -> Optional.of(text(value));
+            case TextKind _, ReferenceKind _, ResourceReferenceKind _ -> Optional.of(text(value));
             case EnumKind _ -> Optional.of(((Enum<?>) value).name());
             case ListKind list -> list(elements(value), list);
             case MapKind map -> map((Map<?, ?>) value, map.value());

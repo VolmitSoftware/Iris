@@ -1,6 +1,7 @@
 package com.volmit.host.schema;
 
 import com.volmit.config.Reference;
+import com.volmit.resource.ResourceId;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,6 +30,15 @@ public sealed interface ValueKind {
         public ReferenceKind {
             Objects.requireNonNull(reference, "reference");
             Objects.requireNonNull(format, "format");
+        }
+    }
+
+    /** A string naming a resource of the module resource kind {@code kind} by its key in the pack, such as
+     * {@code castle/start}; see {@link PackSchema#resource}.
+     */
+    record ResourceReferenceKind(ResourceId kind) implements ValueKind {
+        public ResourceReferenceKind {
+            Objects.requireNonNull(kind, "kind");
         }
     }
 

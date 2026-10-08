@@ -10,8 +10,8 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Everything one pack load derives from its modules: the frozen feature catalog (including the
- * settings types stages are conditioned on), its description for studio and one resolved graph per
- * pipeline.
+ * settings types stages are conditioned on, resource kinds and validators), its description for studio and one
+ * resolved graph per pipeline.
  */
 public record LoadedModules(
         FeatureCatalog catalog, PackSchema schema, ResolvedGraph placement, ResolvedGraph chunk, ResolvedGraph mantle) {
@@ -30,15 +30,18 @@ public record LoadedModules(
      *     pack module whose id uses one fails the load
      * @param hostTypePackages packages whose classes the host describes itself, each with its
      *     subpackages; only built-in modules' settings may use them (see {@link ModuleHost#describingHostTypesIn})
+     * @param reservedFolders pack folders the host reads itself, which no resource kind may read (see
+     *     {@link ModuleHost#reservingFolders})
      */
     public static LoadedModules load(
             List<DiscoveredModule> modules,
             Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
             Collection<String> reservedNamespaces,
-            Collection<String> hostTypePackages) {
+            Collection<String> hostTypePackages,
+            Collection<String> reservedFolders) {
         var reserved = ReservedNamespaces.of(reservedNamespaces);
         modules.forEach(reserved::requireAllowed);
-        var registry = new ModuleRegistry(reservedHostFields);
+        var registry = new ModuleRegistry(reservedHostFields, Set.copyOf(reservedFolders));
         var stages = new StageGraphBuilder();
         for (var discovered : modules) {
             installModule(discovered, stages, registry);

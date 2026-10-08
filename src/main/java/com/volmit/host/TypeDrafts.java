@@ -3,6 +3,7 @@ package com.volmit.host;
 import com.volmit.config.OptionsMetadata;
 import com.volmit.host.schema.ValueKind;
 import com.volmit.host.schema.ValueKind.ObjectKind;
+import com.volmit.resource.ResourceId;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
@@ -15,10 +16,12 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
-/** Describes every class reachable from the settings of a pack, each once, except host types, which the
- * host describes itself. A class is recorded before
+/** Describes every class reachable from the settings and resource kinds of a pack, each once, except host types,
+ * which the host describes itself. A class is recorded before
  * its fields are described, so a class that contains itself, directly or through others, ends the
  * walk at its own name. Each class is instantiated once with its no-argument constructor, the way the
  * host creates settings before decoding JSON into them, and its fields' values there are the defaults.
@@ -28,9 +31,12 @@ final class TypeDrafts {
     private final Set<Class<?>> describing = new HashSet<>();
     private final Map<String, Class<?>> names = new HashMap<>();
     private final HostTypes hostTypes;
+    private final Function<Class<?>, Optional<ResourceId>> resourceKinds;
 
-    TypeDrafts(HostTypes hostTypes) {
+    /** @param resourceKinds the id of the resource kind read into a class, which {@code @ResourceRef} options name */
+    TypeDrafts(HostTypes hostTypes, Function<Class<?>, Optional<ResourceId>> resourceKinds) {
         this.hostTypes = hostTypes;
+        this.resourceKinds = resourceKinds;
     }
 
     /** One described class: its metadata and its options with their kinds and raw default values. */
@@ -41,12 +47,20 @@ final class TypeDrafts {
 
     /** Describes a catalogued settings type and everything it reaches. */
     ObjectKind settings(SchemaSource source) {
-        var type = source.feature().type();
+        return root("Settings type", source);
+    }
+
+    /** Describes the class a resource kind reads its files into and everything it reaches. */
+    ObjectKind resourceKind(SchemaSource source) {
+        return root("Resource type", source);
+    }
+
+    private ObjectKind root(String label, SchemaSource source) {
+        var type = source.type();
         try {
             return object(type, source);
         } catch (SettingsTypeProblem problem) {
-            throw new IllegalArgumentException("Settings type " + type.getName() + " of " + source + " "
-                    + problem.getMessage());
+            throw new IllegalArgumentException(label + " " + type.getName() + " of " + source + " " + problem.getMessage());
         }
     }
 
@@ -69,7 +83,7 @@ final class TypeDrafts {
     private TypeDraft draft(Class<?> type, SchemaSource source) {
         var metadata = inspect(type, source);
         var instance = instantiate(type, source);
-        var kinds = new ValueKinds(nested -> object(nested, source), hostTypes,
+        var kinds = new ValueKinds(nested -> object(nested, source), hostTypes, resourceKinds,
                 source.module().source() == DiscoveredModule.Source.HOST);
         var options = metadata.options().stream()
                 .map(option -> new OptionDraft(option, kind(option, kinds, source), defaultValue(option.field(), instance, source)))

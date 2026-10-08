@@ -16,6 +16,7 @@ import com.volmit.host.schema.ValueKind.ListKind;
 import com.volmit.host.schema.ValueKind.MapKind;
 import com.volmit.host.schema.ValueKind.ObjectKind;
 import com.volmit.host.schema.ValueKind.ReferenceKind;
+import com.volmit.host.schema.ValueKind.ResourceReferenceKind;
 import com.volmit.host.schema.ValueKind.TextKind;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKey;
@@ -27,12 +28,13 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Maps a settings field's declared type and {@code @Ref} to the JSON it takes. Host types become host
- * kinds where the settings may use them; other classes that are none of the built-in kinds become object
- * kinds through the given function. Throws {@link SettingsTypeProblem} for a type or reference that does
+/** Maps a settings field's declared type, {@code @Ref} and {@code @ResourceRef} to the JSON it takes. Host types
+ * become host kinds where the settings may use them; other classes that are none of the built-in kinds become
+ * object kinds through the given function. Throws {@link SettingsTypeProblem} for a type or reference that does
  * not fit.
  */
 final class ValueKinds {
@@ -47,38 +49,52 @@ final class ValueKinds {
 
     private final Function<Class<?>, ObjectKind> objects;
     private final HostTypes hostTypes;
+    private final Function<Class<?>, Optional<ResourceId>> resourceKinds;
     private final boolean hostTypesAllowed;
 
-    /** {@code hostTypesAllowed} is whether the settings belong to a module that ships with the host. */
-    ValueKinds(Function<Class<?>, ObjectKind> objects, HostTypes hostTypes, boolean hostTypesAllowed) {
+    /** {@code resourceKinds} gives the id of the resource kind read into a class; {@code hostTypesAllowed} is
+     * whether the settings belong to a module that ships with the host.
+     */
+    ValueKinds(Function<Class<?>, ObjectKind> objects, HostTypes hostTypes, Function<Class<?>, Optional<ResourceId>> resourceKinds,
+               boolean hostTypesAllowed) {
         this.objects = objects;
         this.hostTypes = hostTypes;
+        this.resourceKinds = resourceKinds;
         this.hostTypesAllowed = hostTypesAllowed;
     }
 
     ValueKind of(OptionsMetadata.Option option) {
-        return kind(option.type(), option.reference());
+        return kind(option.type(), new Naming(option.reference(), option.resource()));
     }
 
-    /** {@code reference} is the field's {@code @Ref}, or null; lists, sets and arrays pass it to their elements. */
-    private ValueKind kind(Type type, Reference reference) {
+    /** What a text option names: the field's {@code @Ref} and the class of its {@code @ResourceRef}, each null when absent. */
+    private record Naming(Reference reference, Class<?> resource) {
+        static final Naming NONE = new Naming(null, null);
+
+        boolean isEmpty() {
+            return reference == null && resource == null;
+        }
+    }
+
+    /** Lists, sets and arrays pass {@code naming} on to their elements. */
+    private ValueKind kind(Type type, Naming naming) {
         return switch (type) {
-            case Class<?> plain -> classKind(plain, reference);
-            case ParameterizedType generic -> genericKind(generic, reference);
-            case GenericArrayType array -> new ListKind(kind(array.getGenericComponentType(), reference), false);
+            case Class<?> plain -> classKind(plain, naming);
+            case ParameterizedType generic -> genericKind(generic, naming);
+            case GenericArrayType array -> new ListKind(kind(array.getGenericComponentType(), naming), false);
             default -> throw unsupported(type, ", which is not a concrete type; name the type, such as List<String>");
         };
     }
 
-    private ValueKind classKind(Class<?> type, Reference reference) {
-        if (hostTypes.contains(type)) return hostKind(type, reference);
-        if (type == String.class) return text(TextFormat.PLAIN, reference);
-        if (type == ResourceId.class) return text(TextFormat.RESOURCE_ID, reference);
-        if (type == BlockState.class) return blockState(reference);
-        if (type.isArray()) return new ListKind(kind(type.getComponentType(), reference), false);
+    private ValueKind classKind(Class<?> type, Naming naming) {
+        if (hostTypes.contains(type)) return hostKind(type, naming);
+        if (type == String.class) return text(TextFormat.PLAIN, naming);
+        if (type == ResourceId.class) return text(TextFormat.RESOURCE_ID, naming);
+        if (type == BlockState.class) return blockState(naming);
+        if (type.isArray()) return new ListKind(kind(type.getComponentType(), naming), false);
         if (isCollection(type)) throw unsupported(type, " without type arguments; " + DECLARE_COLLECTION);
         if (type == ResourceKey.class) throw resourceKey(type);
-        requireNoReference(type, reference);
+        requireNoNaming(type, naming);
         if (BOOLEANS.contains(type)) return new BooleanKind();
         if (INTEGERS.contains(type)) return new IntegerKind();
         if (DECIMALS.contains(type)) return new DecimalKind();
@@ -86,34 +102,52 @@ final class ValueKinds {
         return objects.apply(type);
     }
 
-    private ValueKind genericKind(ParameterizedType generic, Reference reference) {
+    private ValueKind genericKind(ParameterizedType generic, Naming naming) {
         var raw = (Class<?>) generic.getRawType();
-        if (hostTypes.contains(raw)) return hostKind(raw, reference);
+        if (hostTypes.contains(raw)) return hostKind(raw, naming);
         var arguments = generic.getActualTypeArguments();
-        if (raw == List.class || raw == Set.class) return new ListKind(kind(arguments[0], reference), raw == Set.class);
-        if (raw == Map.class) return mapKind(generic, arguments, reference);
+        if (raw == List.class || raw == Set.class) return new ListKind(kind(arguments[0], naming), raw == Set.class);
+        if (raw == Map.class) return mapKind(generic, arguments, naming);
         if (isCollection(raw)) throw unsupported(generic, "; " + DECLARE_COLLECTION);
         if (raw == ResourceKey.class) throw resourceKey(generic);
         throw unsupported(generic, "; only List, Set and Map may have type arguments");
     }
 
-    private ValueKind mapKind(ParameterizedType generic, Type[] arguments, Reference reference) {
-        requireNoReference(generic, reference);
+    private ValueKind mapKind(ParameterizedType generic, Type[] arguments, Naming naming) {
+        requireNoNaming(generic, naming);
         if (arguments[0] != String.class) throw unsupported(generic, "; map keys must be String");
-        return new MapKind(kind(arguments[1], null));
+        return new MapKind(kind(arguments[1], Naming.NONE));
     }
 
-    private HostKind hostKind(Class<?> type, Reference reference) {
-        requireNoReference(type, reference);
+    private HostKind hostKind(Class<?> type, Naming naming) {
+        requireNoNaming(type, naming);
         if (hostTypesAllowed) return new HostKind(type.getName());
         throw new SettingsTypeProblem("uses " + type.getName() + ", a class the host describes itself, which only settings of"
                 + " modules that ship with the host may use; " + SUPPORTED_TYPES);
     }
 
-    private static ValueKind text(TextFormat format, Reference reference) {
+    private ValueKind text(TextFormat format, Naming naming) {
+        if (naming.resource() != null) return resourceReference(format, naming);
+        var reference = naming.reference();
         if (reference == null) return new TextKind(format);
         if (format == TextFormat.RESOURCE_ID && PACK_REFERENCES.contains(reference)) throw packReferenceOnResourceId(reference);
         return new ReferenceKind(reference, format);
+    }
+
+    /** Packs name a kind's resources by key without a namespace, as they name their biomes, so only plain text holds one. */
+    private ValueKind resourceReference(TextFormat format, Naming naming) {
+        var resource = naming.resource();
+        if (naming.reference() != null) {
+            throw new SettingsTypeProblem("has both @Ref(" + naming.reference() + ") and @ResourceRef(" + resource.getName()
+                    + "); an option names one kind of thing, so keep one");
+        }
+        if (format != TextFormat.PLAIN) {
+            throw new SettingsTypeProblem("has @ResourceRef(" + resource.getName() + ") on ResourceId, but packs name a kind's"
+                    + " resources by key without a namespace, such as castle/start; use String");
+        }
+        return resourceKinds.apply(resource).map(ResourceReferenceKind::new).orElseThrow(() -> new SettingsTypeProblem(
+                "has @ResourceRef(" + resource.getName() + "), but no module of the pack registers a resource kind read into"
+                        + " that class; name the class of a kind registered with FeatureRegistry.registerResourceKind"));
     }
 
     /** Packs name their biomes, regions and objects by path without a namespace, so a ResourceId could not hold one. */
@@ -122,8 +156,15 @@ final class ValueKinds {
                 + " regions and objects by path without a namespace, such as desert/dunes; use String");
     }
 
-    private static ValueKind blockState(Reference reference) {
-        if (reference == null || reference == Reference.BLOCK) return new ReferenceKind(Reference.BLOCK, TextFormat.BLOCK_STATE);
+    private static ValueKind blockState(Naming naming) {
+        var reference = naming.reference();
+        if (naming.resource() == null && (reference == null || reference == Reference.BLOCK)) {
+            return new ReferenceKind(Reference.BLOCK, TextFormat.BLOCK_STATE);
+        }
+        if (naming.resource() != null) {
+            throw new SettingsTypeProblem("has @ResourceRef(" + naming.resource().getName() + ") on BlockState, which always"
+                    + " names a block; remove the @ResourceRef or use String");
+        }
         throw new SettingsTypeProblem("has @Ref(" + reference + ") on BlockState, which always names a block;"
                 + " remove the @Ref or use String or ResourceId");
     }
@@ -145,10 +186,14 @@ final class ValueKinds {
         }
     }
 
-    private static void requireNoReference(Type type, Reference reference) {
-        if (reference == null) return;
-        throw new SettingsTypeProblem("has @Ref(" + reference + ") on " + type.getTypeName()
-                + ", but @Ref fits only String and ResourceId and lists, sets and arrays of them");
+    private static void requireNoNaming(Type type, Naming naming) {
+        if (naming.isEmpty()) return;
+        if (naming.reference() != null) {
+            throw new SettingsTypeProblem("has @Ref(" + naming.reference() + ") on " + type.getTypeName()
+                    + ", but @Ref fits only String and ResourceId and lists, sets and arrays of them");
+        }
+        throw new SettingsTypeProblem("has @ResourceRef(" + naming.resource().getName() + ") on " + type.getTypeName()
+                + ", but @ResourceRef fits only String and lists, sets and arrays of it");
     }
 
     /** ResourceKey's type argument is the Java class a resource loads as, which tells studio nothing to list. */

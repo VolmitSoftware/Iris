@@ -9,6 +9,8 @@ import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKind;
+import com.volmit.validation.Validator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,8 +23,10 @@ import java.util.Set;
  * immutable. IDs are unique across feature kinds, and every feature id is its JSON key. Aliases,
  * which only built-in modules may set, are unique per attachment target and may not equal the
  * host JSON fields passed in to reserve them. Modules register through
- * {@link #register(DiscoveredModule)}; object feature ids, mantle keys and explicitly registered
- * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}). A failed registration leaves the registry unchanged. A failed module callback
+ * {@link #register(DiscoveredModule)}; object feature ids, mantle keys, resource kind ids and explicitly registered
+ * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
+ * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
+ * files. A failed registration leaves the registry unchanged. A failed module callback
  * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
  * settings.
  */
@@ -34,6 +38,9 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
     private final Map<Field, String> fields = new HashMap<>();
+    private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
+    private final List<ValidatorRegistration> validators = new ArrayList<>();
+    private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
     private DiscoveredModule registering;
@@ -43,7 +50,13 @@ public final class ModuleRegistry implements FeatureRegistry {
     }
 
     public ModuleRegistry(Map<FeatureAttachment.Target, Set<String>> reservedFields) {
+        this(reservedFields, Set.of());
+    }
+
+    /** @param reservedFolders folders below the pack root that the host reads itself, which no resource kind may read */
+    public ModuleRegistry(Map<FeatureAttachment.Target, Set<String>> reservedFields, Set<String> reservedFolders) {
         reserveHostFields(reservedFields);
+        this.reservedFolders = Set.copyOf(reservedFolders);
     }
 
     /** Lets the module register its contributions through {@link IrisModule#register}. */
@@ -96,6 +109,26 @@ public final class ModuleRegistry implements FeatureRegistry {
         registeredByOwner.add(settingsType);
     }
 
+    @Override
+    public <T> void registerResourceKind(ResourceKind<T> kind) {
+        checkOpen();
+        Objects.requireNonNull(kind, "kind");
+        requireOwnedId("Resource kind", kind.id());
+        var registration = new ResourceKindRegistration(kind, registering);
+        requireUnclaimedKind(registration);
+        resourceKinds.put(kind.id(), registration);
+    }
+
+    @Override
+    public void registerValidator(Validator validator) {
+        checkOpen();
+        Objects.requireNonNull(validator, "validator");
+        if (registering == null) {
+            throw new IllegalStateException("Validator " + validator + " registered outside IrisModule.register");
+        }
+        validators.add(new ValidatorRegistration(validator, registering));
+    }
+
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
      * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type. Call
      * it after every module has registered, so the owner is known.
@@ -116,7 +149,7 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators);
         }
         return catalog;
     }
@@ -144,6 +177,28 @@ public final class ModuleRegistry implements FeatureRegistry {
         if (info.ownsId(id)) return;
         throw new IllegalArgumentException(registration + " " + id + " must be " + info.id() + " or start with "
                 + info.idPrefix() + ", the id of its registering module " + registering);
+    }
+
+    /** One id, one type and one folder per kind: the host finds resources by type and reads each folder as one kind. */
+    private void requireUnclaimedKind(ResourceKindRegistration added) {
+        var kind = added.kind();
+        if (resourceKinds.containsKey(kind.id())) {
+            throw new IllegalArgumentException("Duplicate resource kind: " + kind.id() + " of module " + added.module());
+        }
+        if (reservedFolders.contains(kind.folder())) {
+            throw new IllegalArgumentException("Resource kind " + kind.id() + " of module " + added.module() + " reads folder '"
+                    + kind.folder() + "', which the host reads itself; give the kind a folder of its own");
+        }
+        for (var existing : resourceKinds.values()) {
+            if (existing.kind().type() == kind.type()) {
+                throw new IllegalArgumentException(added + " reads into " + kind.type().getName() + ", which " + existing
+                        + " reads into already; resources are found by their type, so each kind needs a class of its own");
+            }
+            if (existing.kind().folder().equals(kind.folder())) {
+                throw new IllegalArgumentException(added + " reads folder '" + kind.folder() + "', which " + existing
+                        + " reads already; a folder holds one kind, so give one of them a folder of its own");
+            }
+        }
     }
 
     private void reserveHostFields(Map<FeatureAttachment.Target, Set<String>> reservedFields) {

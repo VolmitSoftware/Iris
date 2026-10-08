@@ -6,6 +6,9 @@ import com.volmit.mantle.BlockBox;
 import com.volmit.object.*;
 import com.volmit.placement.PlacementRequest;
 import com.volmit.resource.*;
+import com.volmit.validation.Problem;
+import com.volmit.validation.Severity;
+import com.volmit.validation.Subject;
 import com.volmit.world.*;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
@@ -167,5 +170,39 @@ class ApiValuesTest {
         assertThrows(UnsupportedOperationException.class, () -> arid.caveBiomes().add(desert.id()));
         assertThrows(IllegalArgumentException.class,
                 () -> new PackRegion(arid.id(), "Arid", 0, land, List.of(), List.of(), List.of()));
+    }
+
+    static final class Keep {}
+
+    @Test
+    void resourceKindsReadOneFolderIntoAConcreteClass() {
+        var kind = ResourceKind.of("test:castle/keep", "keeps", Keep.class);
+        var id = ResourceId.parse("overworld:castle/main");
+
+        assertEquals(new ResourceKey<>(id, Keep.class), kind.key(id));
+        assertTrue(ResourceKind.isFolderName("jigsaw-pools"));
+        for (String folder : List.of("", ".", "..", "a/b", "Keeps", "a b")) {
+            var failure = assertThrows(IllegalArgumentException.class, () -> ResourceKind.of("test:castle/keep", folder, Keep.class));
+            assertTrue(failure.getMessage().startsWith("Folder '" + folder + "' of resource kind test:castle/keep is not a folder name"),
+                    failure.getMessage());
+        }
+        assertThrows(IllegalArgumentException.class, () -> ResourceKind.of("test:castle/keep", "keeps", Runnable.class));
+        assertThrows(IllegalArgumentException.class, () -> ResourceKind.of("test:castle/keep", "keeps", int.class));
+        assertThrows(IllegalArgumentException.class, () -> ResourceKind.of("keep", "keeps", Keep.class));
+    }
+
+    @Test
+    void problemsConcernAResourceOrAFileBelowThePackRoot() {
+        var error = Problem.error(Subject.file("structures/castle.json"), "Castle never assembles.");
+        var warning = Problem.warning(Subject.resource(ResourceId.parse("overworld:castle")), "Castle is large.");
+
+        assertEquals(Severity.ERROR, error.severity());
+        assertEquals("structures/castle.json", error.subject().toString());
+        assertEquals(Severity.WARNING, warning.severity());
+        assertEquals("overworld:castle", warning.subject().toString());
+        for (String path : List.of("", "/structures/castle.json", "../castle.json", "structures/../castle.json", "a//b", "a\\b", "./a")) {
+            assertThrows(IllegalArgumentException.class, () -> Subject.file(path), path);
+        }
+        assertThrows(IllegalArgumentException.class, () -> Problem.error(Subject.file("a.json"), " "));
     }
 }

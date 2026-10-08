@@ -16,3 +16,4 @@ art/arcane/iris/engine/framework/StructurePlacementMarker.java
 art/arcane/iris/engine/framework/StructureVerticalBounds.java
 art/arcane/iris/engine/framework/PlacedObject.java
 art/arcane/iris/engine/framework/PlacedStructurePiece.java
+art/arcane/iris/builtin/**

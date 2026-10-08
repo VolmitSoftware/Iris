@@ -21,10 +21,11 @@ package art.arcane.iris.engine.object.prefab;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacementRunner;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.core.modules.ObjectGeometry;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
@@ -40,6 +41,7 @@ import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.object.GeneratedObject;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -64,7 +66,7 @@ import java.util.function.BiConsumer;
  * <p>
  * The heavy behaviour lives in package-private collaborators that read this state directly:
  * {@link IrisObjectIO} (binary persistence), {@link IrisObjectShaping} (boring, shrinkwrap, block classification),
- * {@link IrisObjectTransforms} (rotation, scaling, interpolated upscaling) and {@link IrisObjectPlacementRunner}
+ * {@link IrisObjectTransforms} (rotation, scaling, interpolated upscaling) and {@link ModuleObjectPlacement}
  * (world placement).
  */
 @Accessors(chain = true)
@@ -87,6 +89,7 @@ public class IrisObject extends IrisRegistrant {
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
     public transient final AtomicCache<FloatingObjectFootprint> floatingFootprint = new AtomicCache<>();
+    private transient final AtomicCache<GeneratedObject> geometry = new AtomicCache<>();
     @Getter
     public VectorMap<PlatformBlockState> blocks;
     @Getter
@@ -220,8 +223,7 @@ public class IrisObject extends IrisRegistrant {
             blocks.put(v, block);
         }
 
-        surfaceSupportOffsets.reset();
-        floatingFootprint.reset();
+        forgetDerivedShapes();
     }
 
     public void setUnsignedTile(int x, int y, int z, TileData tile) {
@@ -232,6 +234,8 @@ public class IrisObject extends IrisRegistrant {
         } else {
             states.put(v, tile);
         }
+
+        forgetDerivedShapes();
     }
 
     public void setUnsigned(int x, int y, int z, Block block, boolean legacy) {
@@ -250,8 +254,7 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
-        surfaceSupportOffsets.reset();
-        floatingFootprint.reset();
+        forgetDerivedShapes();
     }
 
     public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
@@ -270,8 +273,21 @@ public class IrisObject extends IrisRegistrant {
         return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
     }
 
+    /** The height the object was placed at, or -1 when the placement rejected it. */
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, PlatformBlockState> listener, CarveResult c, IrisData rdata) {
-        return new IrisObjectPlacementRunner(this).place(x, yv, z, oplacer, config, rng, listener, c, rdata);
+        return ModuleObjectPlacement.place(this, x, yv, z, oplacer, config, rng, listener, c, rdata).heightOrRejected();
+    }
+
+    /** This object as IrisApi geometry, read once until its blocks change. */
+    public GeneratedObject getGeometry() {
+        return geometry.aquireOrThrow(() -> ObjectGeometry.of(this));
+    }
+
+    /** Drops what is computed from the blocks, after they change. */
+    void forgetDerivedShapes() {
+        surfaceSupportOffsets.reset();
+        floatingFootprint.reset();
+        geometry.reset();
     }
 
     public KList<IrisBlockVector> getSurfaceSupportOffsets() {

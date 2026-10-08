@@ -175,6 +175,7 @@ public final class IrisObjectShaping {
         try {
             if (!self.smartBored) {
                 bore.forEach((v, s) -> self.blocks.computeIfAbsent(v, (vv) -> s));
+                self.forgetDerivedShapes();
                 self.smartBored = true;
             }
         } finally {
@@ -259,8 +260,7 @@ public final class IrisObjectShaping {
         self.shrinkOffset = offset;
         self.blocks = b;
         self.states = s;
-        self.surfaceSupportOffsets.reset();
-        self.floatingFootprint.reset();
+        self.forgetDerivedShapes();
     }
 
     public static void clean(IrisObject self) {
@@ -272,8 +272,7 @@ public final class IrisObjectShaping {
 
         self.blocks = d;
         self.states = dx;
-        self.surfaceSupportOffsets.reset();
-        self.floatingFootprint.reset();
+        self.forgetDerivedShapes();
     }
 
     public static boolean shouldStilt(PlatformBlockState state) {

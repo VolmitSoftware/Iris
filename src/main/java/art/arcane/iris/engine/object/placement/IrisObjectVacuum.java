@@ -21,6 +21,8 @@ package art.arcane.iris.engine.object.placement;
 public final class IrisObjectVacuum {
     private static final double DEFAULT_WAVE_AMPLITUDE = 3.0;
     private static final double DEFAULT_WAVE_SCALE = 5.0;
+    /** The widest bend, as the settings allow it; placements prepare this much around every object. */
+    public static final int MAX_RADIUS_BLOCKS = 128;
 
     private IrisObjectVacuum() {
     }
@@ -42,7 +44,7 @@ public final class IrisObjectVacuum {
         if (settings != null && settings.getRadius() > 0) {
             radius = settings.getRadius();
         }
-        return Math.max(0, radius);
+        return Math.max(0, Math.min(MAX_RADIUS_BLOCKS, radius));
     }
 
     public static int resolveStep(ObjectPlaceMode mode) {

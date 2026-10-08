@@ -93,8 +93,7 @@ public final class IrisObjectIO {
     }
 
     static void readLegacy(IrisObject self, InputStream in) throws IOException {
-        self.surfaceSupportOffsets.reset();
-        self.floatingFootprint.reset();
+        self.forgetDerivedShapes();
         DataInputStream din = new DataInputStream(in);
         self.w = din.readInt();
         self.h = din.readInt();
@@ -126,8 +125,7 @@ public final class IrisObjectIO {
     }
 
     static void read(IrisObject self, InputStream in) throws Throwable {
-        self.surfaceSupportOffsets.reset();
-        self.floatingFootprint.reset();
+        self.forgetDerivedShapes();
         DataInputStream din = new DataInputStream(in);
         self.w = din.readInt();
         self.h = din.readInt();

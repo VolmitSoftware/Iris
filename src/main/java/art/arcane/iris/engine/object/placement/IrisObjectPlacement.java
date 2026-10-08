@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
@@ -197,6 +198,8 @@ public class IrisObjectPlacement {
     @SerializedName(value = "forcePlace", alternate = {"force"})
     private boolean forcePlace = false;
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
+    /** The pack modules' settings this placement declares, decoded with it. */
+    private transient ModuleSettings moduleSettings = ModuleSettings.NONE;
 
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
@@ -241,6 +244,7 @@ public class IrisObjectPlacement {
         p.setAllowedCollisions(allowedCollisions);
         p.setForbiddenCollisions(forbiddenCollisions);
         p.setForcePlace(forcePlace);
+        p.setModuleSettings(moduleSettings);
         return p;
     }
 

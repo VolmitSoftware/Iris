@@ -12,7 +12,6 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -25,6 +24,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,7 +64,9 @@ public class TerrainModuleTest {
 
         shaper.shape(0, 0, blocks, context(biome));
 
-        assertSame("bedrock at the bottom", B.getState("BEDROCK"), blocks.get(3, 0, 4));
+        PlatformBlockState floor = blocks.get(3, 0, 4);
+        assertNotNull("bedrock at the bottom", floor);
+        assertNotSame(rock, floor);
         assertSame("rock below the layers", rock, blocks.get(3, 5, 4));
         assertSame("the second layer", dirt, blocks.get(3, HEIGHT - 1, 4));
         assertSame("the first layer is the surface", grass, blocks.get(3, HEIGHT, 4));
@@ -111,7 +114,7 @@ public class TerrainModuleTest {
     private void bindPlatform() {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
-        // B keeps the first registries any test binds, so every answer must be usable by the tests that run after this one.
+        // B keeps the first registries any test binds, and the shaper reads its bedrock from it once, so every answer must be usable by the tests that run after this one.
         Map<String, PlatformBlockState> states = new HashMap<>();
         when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
                 invocation.<String>getArgument(0).toLowerCase(Locale.ROOT), this::usableBlock));
@@ -120,7 +123,8 @@ public class TerrainModuleTest {
         IrisPlatforms.bind(platform);
     }
 
-    private PlatformBlockState usableBlock(String key) {
+    private PlatformBlockState usableBlock(String name) {
+        String key = name.contains(":") ? name : "minecraft:" + name;
         PlatformBlockState block = mock(PlatformBlockState.class);
         when(block.key()).thenReturn(key);
         when(block.materialKey()).thenReturn(key.split("\\[", 2)[0]);

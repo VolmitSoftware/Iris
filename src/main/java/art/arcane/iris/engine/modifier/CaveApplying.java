@@ -27,7 +27,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
@@ -697,16 +696,7 @@ public class CaveApplying {
     }
 
     static boolean isGravityAffected(PlatformBlockState state) {
-        if (state == null) {
-            return false;
-        }
-        String key = IrisProceduralBlocks.materialKey(state);
-        return key.equals("minecraft:sand")
-                || key.equals("minecraft:red_sand")
-                || key.equals("minecraft:gravel")
-                || key.equals("minecraft:suspicious_sand")
-                || key.equals("minecraft:suspicious_gravel")
-                || key.endsWith("_concrete_powder");
+        return state != null && state.hasGravity();
     }
 
     private IrisBiome resolveCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z, IrisDimensionCarvingResolver.State resolverState) {

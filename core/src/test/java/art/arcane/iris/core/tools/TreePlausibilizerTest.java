@@ -214,6 +214,16 @@ public class TreePlausibilizerTest {
         }
 
         @Override
+        public PlatformBlockState mirrorX() {
+            return this;
+        }
+
+        @Override
+        public PlatformBlockState mirrorZ() {
+            return this;
+        }
+
+        @Override
         public boolean canAttach(PlatformBlockState support, PlatformFace face) {
             return false;
         }

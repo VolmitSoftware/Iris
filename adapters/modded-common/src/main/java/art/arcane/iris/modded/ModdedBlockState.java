@@ -21,6 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
@@ -280,6 +281,26 @@ public final class ModdedBlockState implements PlatformBlockState {
             gravity = cached;
         }
         return cached;
+    }
+
+    @Override
+    public PlatformBlockState mirrorX() {
+        return mirrored(Mirror.FRONT_BACK);
+    }
+
+    @Override
+    public PlatformBlockState mirrorZ() {
+        return mirrored(Mirror.LEFT_RIGHT);
+    }
+
+    private PlatformBlockState mirrored(Mirror mirror) {
+        BlockState mirroredState = state.mirror(mirror);
+        if (mirroredState == state) {
+            return this;
+        }
+        return deferredPlacementKey == null
+                ? of(mirroredState, null)
+                : deferred(mirroredState, null, deferredPlacementKey);
     }
 
     @Override

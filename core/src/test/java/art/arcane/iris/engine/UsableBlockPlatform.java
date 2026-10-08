@@ -59,6 +59,8 @@ public final class UsableBlockPlatform {
         when(block.materialKey()).thenReturn(key.split("\\[", 2)[0]);
         when(block.isSolid()).thenReturn(!key.contains("air"));
         when(block.isOccluding()).thenReturn(!key.contains("air"));
+        when(block.mirrorX()).thenReturn(block);
+        when(block.mirrorZ()).thenReturn(block);
         return block;
     }
 }

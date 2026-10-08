@@ -190,6 +190,16 @@ public final class StubPlatform implements IrisPlatform {
                     || blockKey.endsWith("anvil");
         }
 
+        @Override
+        public PlatformBlockState mirrorX() {
+            return mirrorState(this, "east", "west", 16);
+        }
+
+        @Override
+        public PlatformBlockState mirrorZ() {
+            return mirrorState(this, "north", "south", 8);
+        }
+
         /** The stub has no shapes: every solid block is sturdy on every face. */
         @Override
         public boolean canAttach(PlatformBlockState support, PlatformFace face) {
@@ -281,6 +291,33 @@ public final class StubPlatform implements IrisPlatform {
             rotateFaceProperties(rotation, properties, spinX, spinY, spinZ);
         }
         return StubBlockState.of(parsed.serialize());
+    }
+
+    /**
+     * Swaps what the two sides name: {@code facing}, and the connected side properties of fences and the like,
+     * and mirrors the 16 step {@code rotation} of signs and banners. {@code rotationMirror} is the segment that
+     * maps to itself, 16 for a mirror along X and 8 for one along Z, as Minecraft mirrors them. The stub knows
+     * no other shape-dependent property.
+     */
+    private static PlatformBlockState mirrorState(StubBlockState state, String side, String opposite, int rotationMirror) {
+        ParsedState parsed = ParsedState.parse(state.key());
+        Map<String, String> properties = parsed.properties();
+        String facing = properties.get("facing");
+        if (side.equals(facing) || opposite.equals(facing)) {
+            properties.put("facing", side.equals(facing) ? opposite : side);
+        }
+        String sideValue = properties.get(side);
+        String oppositeValue = properties.get(opposite);
+        if (sideValue != null && oppositeValue != null) {
+            properties.put(side, oppositeValue);
+            properties.put(opposite, sideValue);
+        }
+        String rotation = properties.get("rotation");
+        if (rotation != null) {
+            properties.put("rotation", Integer.toString(Math.floorMod(rotationMirror - Integer.parseInt(rotation), 16)));
+        }
+        String mirrored = parsed.serialize();
+        return mirrored.equals(state.key()) ? state : StubBlockState.of(mirrored);
     }
 
     private static PlatformBlockState mergeStates(PlatformBlockState base, PlatformBlockState update) {

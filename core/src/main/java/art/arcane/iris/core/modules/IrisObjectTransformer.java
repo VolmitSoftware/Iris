@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
@@ -37,8 +38,10 @@ import java.util.Map;
 /**
  * Transforms geometry with the rotation Iris places objects with ({@link IrisObjectRotation}, its axis order
  * included) about the anchor, turning block states with the object so stairs and logs face the way it does.
- * A Y mirror flips positions the way Iris hangs an object from a ceiling, without changing block states.
- * Iris has no way to mirror along X or Z, or to scale geometry, so those requests fail with
+ * Mirrors come first, as {@link ObjectTransform} says: an X or Z mirror flips positions about the anchor and
+ * mirrors block states through the platform's own mirror, so stairs and doors face the mirrored way. A Y mirror
+ * flips positions the way Iris hangs an object from a ceiling, without changing block states, since blocks have
+ * no mirror along Y. Iris has no way to scale geometry, so that request fails with
  * {@link UnsupportedOperationException} rather than changing the request. Blocks that a turn by an angle that is
  * not a quarter turn sends to one position keep the last one, as Iris overwrites them when it places.
  */
@@ -66,9 +69,6 @@ final class IrisObjectTransformer implements ObjectTransformer {
     }
 
     private static void requireSupported(ObjectTransform transform) {
-        if (transform.mirrorX() || transform.mirrorZ()) {
-            throw new UnsupportedOperationException("Iris can mirror an object along Y only, not along X or Z: " + transform);
-        }
         if (transform.scaleX() != NO_SCALE || transform.scaleY() != NO_SCALE || transform.scaleZ() != NO_SCALE) {
             throw new UnsupportedOperationException("Iris cannot scale an object's geometry: " + transform);
         }
@@ -97,20 +97,30 @@ final class IrisObjectTransformer implements ObjectTransformer {
     /** One requested turn about an anchor. */
     private static final class Turn {
         private final BlockPosition anchor;
+        private final boolean mirrorX;
         private final boolean mirrorY;
+        private final boolean mirrorZ;
         private final IrisObjectRotation rotation;
         private final PlatformBlockStates states = new PlatformBlockStates(key -> IrisPlatforms.get().registries().block(key));
 
         Turn(BlockPosition anchor, ObjectTransform transform) {
             this.anchor = anchor;
+            this.mirrorX = transform.mirrorX();
             this.mirrorY = transform.mirrorY();
+            this.mirrorZ = transform.mirrorZ();
             this.rotation = IrisObjectRotation.of(transform.rotationX(), transform.rotationY(), transform.rotationZ());
         }
 
         BlockPosition position(BlockPosition local) {
             IrisBlockVector offset = new IrisBlockVector(local.x() - anchor.x(), local.y() - anchor.y(), local.z() - anchor.z());
+            if (mirrorX) {
+                offset.setX(-offset.getX());
+            }
             if (mirrorY) {
                 offset.setY(-offset.getY());
+            }
+            if (mirrorZ) {
+                offset.setZ(-offset.getZ());
             }
             IrisBlockVector turned = rotation.rotate(offset, NO_SPIN, NO_SPIN, NO_SPIN);
             return new BlockPosition(anchor.x() + (int) Math.round(turned.getX()), anchor.y() + (int) Math.round(turned.getY()),
@@ -118,7 +128,12 @@ final class IrisObjectTransformer implements ObjectTransformer {
         }
 
         com.volmit.block.BlockState state(ObjectBlock block) {
-            return states.toApi(rotation.rotate(states.toPlatform(block.state()), NO_SPIN, NO_SPIN, NO_SPIN));
+            return states.toApi(rotation.rotate(mirrored(states.toPlatform(block.state())), NO_SPIN, NO_SPIN, NO_SPIN));
+        }
+
+        private PlatformBlockState mirrored(PlatformBlockState state) {
+            PlatformBlockState result = mirrorX ? state.mirrorX() : state;
+            return mirrorZ ? result.mirrorZ() : result;
         }
     }
 }

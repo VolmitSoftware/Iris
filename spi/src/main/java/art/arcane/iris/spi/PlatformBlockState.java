@@ -183,6 +183,20 @@ public interface PlatformBlockState {
     boolean canPlaceOnto(PlatformBlockState onto);
 
     /**
+     * This state as it looks when the block is mirrored along X, so that a block at x lands at -x: east and west
+     * swap, and so does everything that faces or leans toward them (stairs, doors, signs, vines). The platform's
+     * own mirror decides what changes. Returns this state when mirroring changes nothing. Never mutates the
+     * receiver.
+     */
+    PlatformBlockState mirrorX();
+
+    /**
+     * This state as it looks when the block is mirrored along Z, so that a block at z lands at -z: north and south
+     * swap, and so does everything that faces or leans toward them. See {@link #mirrorX()}.
+     */
+    PlatformBlockState mirrorZ();
+
+    /**
      * Whether this block can attach to the {@code face} of {@code support}, ignoring every other neighbour: the
      * support's face is sturdy enough to hold a torch, a ladder or a button against it, which is the platform's own
      * full-face support test. Passing a state from a different adapter fails at runtime.

@@ -27,6 +27,7 @@ import org.bukkit.Tag;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockSupport;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.structure.Mirror;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -295,6 +296,22 @@ public final class BukkitBlockState implements PlatformBlockState {
             gravity = cached;
         }
         return cached;
+    }
+
+    @Override
+    public PlatformBlockState mirrorX() {
+        return mirrored(Mirror.FRONT_BACK);
+    }
+
+    @Override
+    public PlatformBlockState mirrorZ() {
+        return mirrored(Mirror.LEFT_RIGHT);
+    }
+
+    private PlatformBlockState mirrored(Mirror mirror) {
+        BlockData copy = data.clone();
+        copy.mirror(mirror);
+        return of(copy);
     }
 
     @Override

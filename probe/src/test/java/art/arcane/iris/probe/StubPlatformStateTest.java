@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public final class StubPlatformStateTest {
@@ -82,6 +83,21 @@ public final class StubPlatformStateTest {
         assertFalse(registries.isInTag(log, "pack:unknown"));
         assertTrue(torch.canAttach(stone, PlatformFace.NORTH));
         assertFalse(torch.canAttach(state("minecraft:air"), PlatformFace.NORTH));
+    }
+
+    @Test
+    public void mirrorsFacingSidesAndRotationLikeMinecraftDoes() {
+        assertEquals("minecraft:oak_stairs[facing=west,half=bottom]", state("minecraft:oak_stairs[facing=east,half=bottom]").mirrorX().key());
+        assertEquals("minecraft:oak_stairs[facing=north,half=bottom]", state("minecraft:oak_stairs[facing=north,half=bottom]").mirrorX().key());
+        assertEquals("minecraft:oak_stairs[facing=south,half=bottom]", state("minecraft:oak_stairs[facing=north,half=bottom]").mirrorZ().key());
+        assertEquals("minecraft:oak_fence[north=true,east=false,south=false,west=false]",
+                state("minecraft:oak_fence[north=true,east=false,south=false,west=false]").mirrorX().key());
+        assertEquals("minecraft:oak_fence[north=false,east=false,south=true,west=false]",
+                state("minecraft:oak_fence[north=true,east=false,south=false,west=false]").mirrorZ().key());
+        assertEquals("minecraft:oak_sign[rotation=12]", state("minecraft:oak_sign[rotation=4]").mirrorX().key());
+        assertEquals("minecraft:oak_sign[rotation=4]", state("minecraft:oak_sign[rotation=4]").mirrorZ().key());
+        PlatformBlockState stone = state("minecraft:stone");
+        assertSame("a block with nothing to mirror is itself", stone, stone.mirrorX());
     }
 
     private PlatformBlockState state(String key) {

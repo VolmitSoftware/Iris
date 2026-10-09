@@ -615,7 +615,7 @@ never equal a feature id.
   the load; only a built-in class and a pack class can collide that way.
 - A `SchemaOption` per field that `OptionsMetadata` selects, which means instance fields that are
   not transient, inherited ones included, in declaration order. Each has its name, `ValueKind`,
-  `@Desc`, `@Required`, `@MinNumber`/`@MaxNumber` and the default value.
+  `@Desc`, `@Required`, `@MinNumber`/`@MaxNumber`, `@MinItems` and the default value.
 
 ### Value kinds
 

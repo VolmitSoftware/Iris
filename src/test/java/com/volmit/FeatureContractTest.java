@@ -52,6 +52,29 @@ class FeatureContractTest {
         @MinNumber(0) private String value;
     }
 
+    static class MinItemsOnList {
+        @MinItems(1) private java.util.List<String> values = java.util.List.of("a");
+        @MinItems(2) private java.util.Set<String> unique = java.util.Set.of();
+        @MinItems(0) private String[] array = {};
+    }
+
+    static class MinItemsOnText {
+        @MinItems(1) private String value;
+    }
+
+    static class NegativeMinItems {
+        @MinItems(-1) private java.util.List<String> values;
+    }
+
+    @Test
+    void minItemsFitsListsSetsAndArraysOnly() {
+        var options = OptionsMetadata.inspect(MinItemsOnList.class).options();
+
+        assertEquals(java.util.List.of(1, 2, 0), options.stream().map(OptionsMetadata.Option::minItems).toList());
+        assertThrows(IllegalArgumentException.class, () -> OptionsMetadata.inspect(MinItemsOnText.class));
+        assertThrows(IllegalArgumentException.class, () -> OptionsMetadata.inspect(NegativeMinItems.class));
+    }
+
     @Test
     void rejectsInconsistentAnnotationBounds() {
         assertThrows(IllegalArgumentException.class, () -> OptionsMetadata.inspect(InvalidOptions.class));

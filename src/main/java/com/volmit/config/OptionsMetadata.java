@@ -13,11 +13,11 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
         options = List.copyOf(options);
     }
 
-    /** One field of a settings type. {@code minimum}, {@code maximum}, {@code reference} and {@code resource} are null
-     * when not declared; {@code resource} is the class of {@link ResourceRef}.
+    /** One field of a settings type. {@code minimum}, {@code maximum}, {@code minItems}, {@code reference} and
+     * {@code resource} are null when not declared; {@code resource} is the class of {@link ResourceRef}.
      */
     public record Option(Field field, String description, boolean required,
-                         Double minimum, Double maximum, Reference reference, Class<?> resource) {
+                         Double minimum, Double maximum, Integer minItems, Reference reference, Class<?> resource) {
         public String name() {
             return field.getName();
         }
@@ -46,6 +46,7 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                 var desc = field.getAnnotation(Desc.class);
                 var min = field.getAnnotation(MinNumber.class);
                 var max = field.getAnnotation(MaxNumber.class);
+                var minItems = field.getAnnotation(MinItems.class);
                 var ref = field.getAnnotation(Ref.class);
                 var resourceRef = field.getAnnotation(ResourceRef.class);
                 if ((min != null || max != null) && !isNumeric(field.getType())) {
@@ -56,8 +57,13 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                         || (min != null && max != null && min.value() > max.value())) {
                     throw new IllegalArgumentException("Invalid bounds for option: " + field.getName());
                 }
+                if (minItems != null && (!isCollection(field.getType()) || minItems.value() < 0)) {
+                    throw new IllegalArgumentException("Invalid @MinItems on option: " + field.getName()
+                            + "; it fits lists, sets and arrays, and its value is not negative");
+                }
                 options.add(new Option(field, desc == null ? "" : desc.value(), field.isAnnotationPresent(Required.class),
                         min == null ? null : min.value(), max == null ? null : max.value(),
+                        minItems == null ? null : minItems.value(),
                         ref == null ? null : ref.value(), resourceRef == null ? null : resourceRef.value()));
             }
         }
@@ -74,6 +80,10 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
             classes.addFirst(current);
         }
         return classes;
+    }
+
+    private static boolean isCollection(Class<?> type) {
+        return List.class.isAssignableFrom(type) || java.util.Set.class.isAssignableFrom(type) || type.isArray();
     }
 
     private static boolean isNumeric(Class<?> type) {

@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.function.Function;
 import static com.volmit.support.TestModuleJar.displayName;
 import static com.volmit.support.TestModuleJar.module;
@@ -90,7 +91,7 @@ class PackSchemaTest {
                 private ResourceId palette = ResourceId.parse("example:flora/default");
                 @Ref(Reference.BLOCK)
                 private String ground = "minecraft:grass_block";
-                @Ref(Reference.PACK_BIOME)
+                @Ref(Reference.PACK_BIOME) @MinItems(1)
                 private List<String> biomes = List.of("plains", "forest");
                 @Ref(Reference.ITEM)
                 private ResourceId[] drops = {};
@@ -227,9 +228,9 @@ class PackSchemaTest {
                         "drops", "flower", "season", "seasons", "weights", "patch", "extra"),
                 settings.options().stream().map(SchemaOption::name).toList());
         assertEquals(new SchemaOption("density", new IntegerKind(), "Plants per chunk", true,
-                OptionalDouble.of(0), OptionalDouble.of(64), Optional.of(4L)), option(settings, "density"));
+                OptionalDouble.of(0), OptionalDouble.of(64), OptionalInt.empty(), Optional.of(4L)), option(settings, "density"));
         assertEquals(new SchemaOption("chance", new DecimalKind(), "", false,
-                OptionalDouble.empty(), OptionalDouble.empty(), Optional.of(0.25)), option(settings, "chance"));
+                OptionalDouble.empty(), OptionalDouble.empty(), OptionalInt.empty(), Optional.of(0.25)), option(settings, "chance"));
         assertEquals(Optional.of(0.1), option(settings, "spread").defaultValue(), "floats keep their own decimal form");
         assertEquals(new IntegerKind(), option(settings, "seedOffset").kind());
         assertEquals(Optional.empty(), option(settings, "seedOffset").defaultValue(), "a null field has no default");
@@ -264,6 +265,8 @@ class PackSchemaTest {
         assertEquals(new ReferenceKind(Reference.BLOCK, TextFormat.PLAIN), option(settings, "ground").kind());
         assertEquals(new ListKind(new ReferenceKind(Reference.PACK_BIOME, TextFormat.PLAIN), false), option(settings, "biomes").kind());
         assertEquals(Optional.of(List.of("plains", "forest")), option(settings, "biomes").defaultValue());
+        assertEquals(OptionalInt.of(1), option(settings, "biomes").minItems(), "@MinItems is described");
+        assertEquals(OptionalInt.empty(), option(settings, "drops").minItems());
         assertEquals(new ListKind(new ReferenceKind(Reference.ITEM, TextFormat.RESOURCE_ID), false), option(settings, "drops").kind());
         assertEquals(new ReferenceKind(Reference.BLOCK, TextFormat.BLOCK_STATE), option(settings, "flower").kind(),
                 "BlockState names a block without @Ref");
@@ -304,7 +307,7 @@ class PackSchemaTest {
         assertEquals(FeatureRole.SETTINGS, wind.role());
         assertEquals("example:flora/wind", wind.id().toString());
         assertEquals(new SchemaOption("strength", new DecimalKind(), "How far plants sway", false,
-                OptionalDouble.empty(), OptionalDouble.empty(), Optional.of(1.5)), option(wind.settings(), "strength"));
+                OptionalDouble.empty(), OptionalDouble.empty(), OptionalInt.empty(), Optional.of(1.5)), option(wind.settings(), "strength"));
     }
 
     @Test
@@ -337,11 +340,11 @@ class PackSchemaTest {
         assertEquals("Stilts", stilt.module().name());
         assertEquals(new ObjectType("com.volmit.example.placement.StiltSettings", "Fills the space below an object down to the ground",
                 Optional.empty(), List.of(new SchemaOption("maxDepth", new IntegerKind(), "Maximum blocks filled below each lowest object block",
-                false, OptionalDouble.of(1), OptionalDouble.empty(), Optional.of(16L)))), stilt.settings());
+                false, OptionalDouble.of(1), OptionalDouble.empty(), OptionalInt.empty(), Optional.of(16L)))), stilt.settings());
 
         var grass = schema.fields(Target.BIOME).getFirst();
         assertEquals(new SchemaOption("block", new ReferenceKind(Reference.BLOCK, TextFormat.BLOCK_STATE), "Block placed on top of each column",
-                false, OptionalDouble.empty(), OptionalDouble.empty(), Optional.of("minecraft:grass_block")), grass.settings().options().getFirst());
+                false, OptionalDouble.empty(), OptionalDouble.empty(), OptionalInt.empty(), Optional.of("minecraft:grass_block")), grass.settings().options().getFirst());
     }
 
     @Test
@@ -674,7 +677,7 @@ class PackSchemaTest {
         var keep = schema.type("pack.castle.Keep");
         assertEquals("A keep of a castle", keep.description());
         assertEquals(new SchemaOption("towers", new IntegerKind(), "Towers on the walls", false, OptionalDouble.of(1),
-                OptionalDouble.empty(), Optional.of(4L)), keep.options().getFirst());
+                OptionalDouble.empty(), OptionalInt.empty(), Optional.of(4L)), keep.options().getFirst());
         assertEquals(new ResourceReferenceKind(keepKind), keep.options().get(1).kind(), "a resource may name others of its kind");
         var keeps = schema.fields(Target.BIOME).getFirst().settings().options().getFirst();
         assertEquals(new ListKind(new ResourceReferenceKind(keepKind), false), keeps.kind());

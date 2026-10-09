@@ -3,8 +3,11 @@ package com.volmit.host.schema;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.OptionalInt;
 
 /** One option of an {@link ObjectType}: a field of a settings class.
+ *
+ * <p>{@code minItems} is the least length of a list, set or array option ({@link com.volmit.config.MinItems}).
  *
  * <p>{@code defaultValue} is the field's value in an instance made by the class's no-argument
  * constructor, as plain JSON-shaped Java values: {@code Boolean}, {@code Long} for integer kinds,
@@ -22,6 +25,7 @@ public record SchemaOption(
         boolean required,
         OptionalDouble minimum,
         OptionalDouble maximum,
+        OptionalInt minItems,
         Optional<Object> defaultValue) {
     public SchemaOption {
         Objects.requireNonNull(name, "name");
@@ -29,6 +33,7 @@ public record SchemaOption(
         Objects.requireNonNull(description, "description");
         Objects.requireNonNull(minimum, "minimum");
         Objects.requireNonNull(maximum, "maximum");
+        Objects.requireNonNull(minItems, "minItems");
         Objects.requireNonNull(defaultValue, "defaultValue");
     }
 }

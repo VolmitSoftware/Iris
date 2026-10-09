@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -192,7 +193,11 @@ final class PackSchemaBuilder {
     private static SchemaOption schemaOption(TypeDrafts.OptionDraft draft, DefaultValues defaults) {
         var option = draft.option();
         return new SchemaOption(option.name(), draft.kind(), option.description(), option.required(),
-                bound(option.minimum()), bound(option.maximum()), defaults.of(draft.defaultValue(), draft.kind()));
+                bound(option.minimum()), bound(option.maximum()), minItems(option.minItems()), defaults.of(draft.defaultValue(), draft.kind()));
+    }
+
+    private static OptionalInt minItems(Integer value) {
+        return value == null ? OptionalInt.empty() : OptionalInt.of(value);
     }
 
     private static OptionalDouble bound(Double value) {

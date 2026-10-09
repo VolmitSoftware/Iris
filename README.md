@@ -381,8 +381,8 @@ public final class FloraSettings implements IrisFeature {
 }
 ```
 
-- `@Desc` on a class, field or enum constant is its description. `@Required`, `@MinNumber` and
-  `@MaxNumber` are checks for the host to render.
+- `@Desc` on a class, field or enum constant is its description. `@Required`, `@MinNumber`, `@MaxNumber` and
+  `@MinItems` (the least length of a list, set or array) are checks for the host to render.
 - Every settings class, nested ones included, needs a no-argument constructor, which may be private.
   The host creates settings with it, and the field values of that instance are the defaults studio
   shows.
@@ -610,7 +610,7 @@ no JSON. The host renders it and merges it with its own fields:
   settings `ObjectType`.
 - `types()`: every class reachable from module settings, once each, by name. An `ObjectType` has the
   class name, description, snippet name and options. A `SchemaOption` has name, `ValueKind`,
-  description, required, minimum, maximum and default value.
+  description, required, minimum, maximum, minimum item count and default value.
 - `ValueKind` is sealed: `BooleanKind`, `IntegerKind`, `DecimalKind`, `TextKind(format)`,
   `ReferenceKind(reference, format)`, `EnumKind(type, constants)`, `ListKind(element, unique)`,
   `MapKind(value)`, `ObjectKind(type)`, which names an entry of `types()`, `HostKind(type)`,
@@ -669,7 +669,7 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
 - `Hunk<T>` is a dense local volume; `ArrayHunk<T>` is the bounds-checked reference.
 - The `mantle` package keeps namespaced typed layers, codecs, lifetimes and buffered edits.
 - `IrisFeature`, `@Feature`, the config annotations (`@Desc`, `@Required`, `@MinNumber`,
-  `@MaxNumber`, `@Snippet`, `@Ref`) and `OptionsMetadata` describe settings.
+  `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`) and `OptionsMetadata` describe settings.
 
 Invocation views and random streams expire when the invocation ends. Stage bodies are shared by
 concurrent invocations and must not keep views, streams or mutable state; what a module keeps per world lives in the

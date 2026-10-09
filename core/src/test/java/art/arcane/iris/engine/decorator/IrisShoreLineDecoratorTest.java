@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.decorator;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
@@ -8,7 +9,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
@@ -95,7 +95,7 @@ public class IrisShoreLineDecoratorTest {
         IrisData data = mock(IrisData.class);
         IrisBiome biome = mock(IrisBiome.class);
         IrisDecorator decorator = mock(IrisDecorator.class);
-        IrisSlopeClip slope = mock(IrisSlopeClip.class);
+        SlopeClip slope = mock(SlopeClip.class);
         PlatformBlockState decorant = mock(PlatformBlockState.class);
         ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
 

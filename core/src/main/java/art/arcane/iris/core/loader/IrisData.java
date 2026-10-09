@@ -734,11 +734,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
-        if (!typeToken.getRawType().isAnnotationPresent(Snippet.class)) {
+        String snippetType = snippetFolder(typeToken.getRawType());
+        if (snippetType == null) {
             return null;
         }
 
-        String snippetType = typeToken.getRawType().getDeclaredAnnotation(Snippet.class).value();
         String snippedBase = "snippet/" + snippetType + "/";
 
         return new TypeAdapter<>() {
@@ -786,6 +786,17 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 return null;
             }
         };
+    }
+
+    /** The snippet folder of a class Iris's or a built-in module's {@code @Snippet} names, or null. */
+    private static String snippetFolder(Class<?> type) {
+        if (type.isAnnotationPresent(Snippet.class)) {
+            return type.getDeclaredAnnotation(Snippet.class).value();
+        }
+        if (type.isAnnotationPresent(com.volmit.config.Snippet.class)) {
+            return type.getDeclaredAnnotation(com.volmit.config.Snippet.class).value();
+        }
+        return null;
     }
 
     public KList<String> getPossibleSnippets(String f) {

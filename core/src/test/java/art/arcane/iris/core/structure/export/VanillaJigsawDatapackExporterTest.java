@@ -1,6 +1,6 @@
 package art.arcane.iris.core.structure.export;
 
-import art.arcane.iris.engine.object.placement.IrisObjectReplace;
+import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
 import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
@@ -268,7 +268,7 @@ public class VanillaJigsawDatapackExporterTest {
         graph.structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
         graph.structure.setMaxDepth(21);
         graph.structure.setMaxSizeChunks(9);
-        graph.structure.getEdit().add(new IrisObjectReplace());
+        graph.structure.getEdit().add(new ObjectReplace());
         graph.structure.getLoot().add("loot/test");
         graph.structure.getThemeSets().add(new IrisJigsawThemeSet("variant-1", 1));
         graph.structure.setRequireCaps(true);

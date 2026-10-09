@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
@@ -17,7 +19,6 @@ import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.placement.IrisVacuumSettings;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisPlatform;
@@ -100,7 +101,7 @@ public class ObjectPlacingBoundaryRadiusTest {
                 .setScale(new IrisObjectScale().setSize(2D))
                 .setWarp(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).setMultiplier(10D))
                 .setMode(ObjectPlaceMode.VACUUM)
-                .setVacuumSettings(new IrisVacuumSettings().setRadius(12));
+                .setVacuumSettings(TestSettings.of(VacuumSettings.class, "{\"radius\":12}"));
 
         assertEquals(43, ObjectPlacing.calculatePlacementReach(new IrisBlockVector(5, 4, 3), placement));
     }

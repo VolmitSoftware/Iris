@@ -82,6 +82,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -403,13 +404,7 @@ public class SchemaBuilder {
 
     /** Iris's own definition of one of its classes that a built-in module's settings hold, as Iris's fields describe it. */
     private String hostDefinition(String typeName) {
-        Class<?> type = hostType(typeName);
-        String key = objectDefinitionKey(type);
-        if (!definitions.containsKey(key)) {
-            definitions.put(key, new JSONObject());
-            definitions.put(key, buildProperties(type));
-        }
-        return key;
+        return objectDefinition(hostType(typeName));
     }
 
     private static Class<?> hostType(String typeName) {
@@ -418,6 +413,24 @@ public class SchemaBuilder {
         } catch (ClassNotFoundException missing) {
             throw new IllegalStateException("Built-in settings name Iris class " + typeName + ", which Iris does not have", missing);
         }
+    }
+
+    /** The definition key of a class an Iris field holds: the module's own description of a held type, else Iris's. */
+    private String objectDefinition(Class<?> type) {
+        if (isHeldType(type)) {
+            return moduleSchemas().definition(type.getName());
+        }
+        String key = objectDefinitionKey(type);
+        if (!definitions.containsKey(key)) {
+            definitions.put(key, new JSONObject());
+            definitions.put(key, buildProperties(type));
+        }
+        return key;
+    }
+
+    /** Whether a built-in module registered {@code type} because Iris's classes hold it, so its fields are the module's. */
+    private boolean isHeldType(Class<?> type) {
+        return type.isAnnotationPresent(com.volmit.config.Desc.class) && moduleSchemas().describes(type.getName());
     }
 
     private static String objectDefinitionKey(Class<?> type) {
@@ -738,12 +751,7 @@ public class SchemaBuilder {
                     }
                 } else {
                     fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
-                    String key = objectDefinitionKey(k.getType());
-                    if (!definitions.containsKey(key)) {
-                        definitions.put(key, new JSONObject());
-                        definitions.put(key, buildProperties(k.getType()));
-                    }
-                    prop.put("$ref", "#/definitions/" + key);
+                    prop.put("$ref", "#/definitions/" + objectDefinition(k.getType()));
                 }
             }
             case "array" -> {
@@ -766,13 +774,8 @@ public class SchemaBuilder {
                         case "number" -> fancyType = "List of Numbers";
                         case "object" -> {
                             fancyType = "List of " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + "s (Objects)";
-                            String key = objectDefinitionKey(t.type());
-                            if (!definitions.containsKey(key)) {
-                                definitions.put(key, new JSONObject());
-                                definitions.put(key, buildProperties(t.type()));
-                            }
                             JSONObject items = new JSONObject();
-                            items.put("$ref", "#/definitions/" + key);
+                            items.put("$ref", "#/definitions/" + objectDefinition(t.type()));
                             prop.put("items", items);
                         }
                         case "string" -> {
@@ -895,16 +898,16 @@ public class SchemaBuilder {
         boolean present = !typeDesc.isBlank();
         if (present) d.add(typeDesc);
 
-        Snippet snippet = k.getType().getDeclaredAnnotation(Snippet.class);
-        if (snippet == null) {
+        Optional<String> snippetFolder = snippetFolder(k.getType());
+        if (snippetFolder.isEmpty()) {
             ArrayType array = k.getType().getDeclaredAnnotation(ArrayType.class);
             if (array != null) {
-                snippet = array.type().getDeclaredAnnotation(Snippet.class);
+                snippetFolder = snippetFolder(array.type());
             }
         }
 
-        if (snippet != null) {
-            String sm = snippet.value();
+        if (snippetFolder.isPresent()) {
+            String sm = snippetFolder.get();
             if (present) d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
             present = false;
@@ -938,6 +941,16 @@ public class SchemaBuilder {
         prop.put("description", desc);
         prop.put("x-intellij-html-description", hDesc);
         return buildSnippet(prop, k.getType());
+    }
+
+    /** The snippet folder of a class, as Iris's or the module's {@code @Snippet} names it. */
+    private static Optional<String> snippetFolder(Class<?> type) {
+        Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
+        if (snippet != null) {
+            return Optional.of(snippet.value());
+        }
+        com.volmit.config.Snippet moduleSnippet = type.getDeclaredAnnotation(com.volmit.config.Snippet.class);
+        return moduleSnippet == null ? Optional.empty() : Optional.of(moduleSnippet.value());
     }
 
     private JSONObject buildSnippet(JSONObject prop, Class<?> type) {
@@ -1007,15 +1020,14 @@ public class SchemaBuilder {
     @NotNull
     private <T> String addEnum(Class<?> type, JSONObject prop, KList<String> description, T[] values, Function<T, String> function) {
         JSONArray a = new JSONArray();
-        boolean advanced = type.isAnnotationPresent(Desc.class);
+        boolean advanced = type.isAnnotationPresent(Desc.class) || type.isAnnotationPresent(com.volmit.config.Desc.class);
         for (T gg : values) {
             if (advanced) {
                 try {
                     JSONObject j = new JSONObject();
                     String name = function.apply(gg);
                     j.put("const", name);
-                    Desc dd = type.getField(name).getAnnotation(Desc.class);
-                    String desc = dd == null ? ("No Description for " + name) : dd.value();
+                    String desc = constantDescription(type, name);
                     j.put("description", desc);
                     j.put("x-intellij-html-description", desc.replace("\n", "<br>"));
                     a.put(j);
@@ -1038,6 +1050,16 @@ public class SchemaBuilder {
         prop.put("$ref", "#/definitions/" + key);
         description.add(SYMBOL_TYPE__N + "  Must be a valid " + type.getSimpleName().replaceAll("\\QIris\\E", "") + " (use ctrl+space for auto complete!)");
         return type.getSimpleName().replaceAll("\\QIris\\E", "");
+    }
+
+    private static String constantDescription(Class<?> enumType, String name) throws NoSuchFieldException {
+        Field constant = enumType.getField(name);
+        Desc described = constant.getAnnotation(Desc.class);
+        if (described != null) {
+            return described.value();
+        }
+        com.volmit.config.Desc moduleDescribed = constant.getAnnotation(com.volmit.config.Desc.class);
+        return moduleDescribed == null ? "No Description for " + name : moduleDescribed.value();
     }
 
     private JSONObject buildBlockPropertyJson(PlatformBlockProperty property) {
@@ -1114,7 +1136,8 @@ public class SchemaBuilder {
             return "object";
         }
 
-        if (!c.isAnnotationPresent(Desc.class) && c.getCanonicalName().startsWith("art.arcane.iris.")) {
+        if (!c.isAnnotationPresent(Desc.class) && !c.isAnnotationPresent(com.volmit.config.Desc.class)
+                && c.getCanonicalName().startsWith("art.arcane.iris.")) {
             warnings.addIfMissing("Unsupported Type: " + c.getCanonicalName() + " Did you forget @Desc?");
         }
 
@@ -1134,6 +1157,10 @@ public class SchemaBuilder {
     private String getDescription(Class<?> r) {
         if (r.isAnnotationPresent(Desc.class)) {
             return r.getDeclaredAnnotation(Desc.class).value();
+        }
+
+        if (r.isAnnotationPresent(com.volmit.config.Desc.class)) {
+            return r.getDeclaredAnnotation(com.volmit.config.Desc.class).value();
         }
 
         if (!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("art.arcane.")) {

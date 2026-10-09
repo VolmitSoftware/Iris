@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.prefab;
 
-import art.arcane.iris.engine.object.prefab.IrisAxisRotationClamp;
+import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -10,10 +10,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class IrisAxisRotationClampPurityTest {
-    private static IrisAxisRotationClamp unlimited(double interval) {
-        IrisAxisRotationClamp clamp = new IrisAxisRotationClamp();
-        clamp.setEnabled(true);
-        clamp.setInterval(interval);
+    private static AxisRotationClamp unlimited(double interval) {
+        AxisRotationClamp clamp = AxisRotationClamp.of(true, false, 0, 0, interval);
         return clamp;
     }
 
@@ -24,9 +22,9 @@ public class IrisAxisRotationClampPurityTest {
 
     @Test
     public void getRadiansDoesNotMutateIntervalWhenUnlimited() {
-        IrisAxisRotationClamp clamp = unlimited(0);
+        AxisRotationClamp clamp = unlimited(0);
         clamp.getRadians(37);
-        assertEquals(0D, clamp.getInterval(), 0D);
+        assertEquals(0D, clamp.interval(), 0D);
     }
 
     @Test
@@ -43,8 +41,8 @@ public class IrisAxisRotationClampPurityTest {
 
     @Test
     public void equalsAndHashCodeSurviveRepeatedGetRadians() {
-        IrisAxisRotationClamp a = unlimited(0);
-        IrisAxisRotationClamp b = unlimited(0);
+        AxisRotationClamp a = unlimited(0);
+        AxisRotationClamp b = unlimited(0);
         a.getRadians(123);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
@@ -52,7 +50,7 @@ public class IrisAxisRotationClampPurityTest {
 
     @Test
     public void concurrentGetRadiansLeavesIntervalUntouched() throws InterruptedException {
-        IrisAxisRotationClamp shared = unlimited(0);
+        AxisRotationClamp shared = unlimited(0);
         List<Thread> threads = new ArrayList<>();
         for (int t = 0; t < 8; t++) {
             Thread thread = new Thread(() -> {
@@ -66,6 +64,6 @@ public class IrisAxisRotationClampPurityTest {
         for (Thread thread : threads) {
             thread.join();
         }
-        assertTrue("interval must stay at the authored value", shared.getInterval() == 0D);
+        assertTrue("interval must stay at the authored value", shared.interval() == 0D);
     }
 }

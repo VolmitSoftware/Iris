@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.data.cache.LazyBoundedCache;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.prefab.TileData;
@@ -51,9 +52,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * the seed the palette's old {@code RNG} had.
  */
 final class IrisBlockRegistry implements BlockRegistry {
+    /** Enough for the palettes of a pack with their world seeds; seeds that differ per call (a placement's) wear out the oldest. */
+    private static final int PALETTE_CACHE_SIZE = 256;
+
     private final IrisData data;
     private final Map<BlockSpec, IrisBlockData> specs = new ConcurrentHashMap<>();
-    private final Map<SeededPalette, PaletteSampler> palettes = new ConcurrentHashMap<>();
+    private final LazyBoundedCache<SeededPalette, PaletteSampler> palettes = new LazyBoundedCache<>(PALETTE_CACHE_SIZE);
 
     /** @param data the pack whose {@code blocks} folder custom blocks come from */
     IrisBlockRegistry(IrisData data) {

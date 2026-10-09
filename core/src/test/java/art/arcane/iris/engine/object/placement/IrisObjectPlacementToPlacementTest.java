@@ -1,5 +1,9 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.blocks.ObjectReplace;
+import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
 import art.arcane.iris.engine.object.marker.IrisObjectMarker;
@@ -7,11 +11,7 @@ import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.placement.IrisObjectLimit;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisObjectReplace;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
-import art.arcane.iris.engine.object.placement.IrisStiltSettings;
 import art.arcane.iris.engine.object.placement.IrisTree;
 import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
@@ -32,15 +32,15 @@ public class IrisObjectPlacementToPlacementTest {
     public void toPlacement_preservesInheritedPlacementMetadata() {
         IrisObjectPlacement source = new IrisObjectPlacement();
         IrisObjectRotation rotation = new IrisObjectRotation();
-        IrisObjectLimit clamp = new IrisObjectLimit();
+        ObjectLimit clamp = new ObjectLimit();
         IrisStyledRange densityStyle = new IrisStyledRange();
         densityStyle.setMin(7D);
         densityStyle.setMax(7D);
-        IrisStiltSettings stiltSettings = new IrisStiltSettings();
+        StiltSettings stiltSettings = new StiltSettings();
         KList<IrisObjectMarker> markers = new KList<>();
         IrisNoiseGenerator heightmap = new IrisNoiseGenerator(false);
         IrisGeneratorStyle warp = NoiseStyle.SIMPLEX.style();
-        KList<IrisObjectReplace> edit = new KList<>();
+        KList<ObjectReplace> edit = new KList<>();
         IrisObjectTranslate translate = new IrisObjectTranslate();
         IrisObjectScale scale = new IrisObjectScale();
         KList<IrisObjectLoot> loot = new KList<>();
@@ -48,10 +48,10 @@ public class IrisObjectPlacementToPlacementTest {
         KList<IrisTree> trees = new KList<>();
         KList<String> allowedCollisions = new KList<>();
         KList<String> forbiddenCollisions = new KList<>();
-        IrisSlopeClip slopeCondition = new IrisSlopeClip();
+        SlopeClip slopeCondition = new SlopeClip();
 
         markers.add(new IrisObjectMarker());
-        edit.add(new IrisObjectReplace());
+        edit.add(new ObjectReplace());
         loot.add(new IrisObjectLoot());
         vanillaLoot.add(new IrisObjectVanillaLoot());
         trees.add(new IrisTree());

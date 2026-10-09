@@ -663,7 +663,7 @@ public class ObjectPlacing {
 
         for (int i = 0; i < density; i++) {
             attempts++;
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng), engine);
             if (v == null) {
                 nullObjects++;
                 if (traceRegen) {
@@ -801,7 +801,7 @@ public class ObjectPlacing {
 
         for (int i = 0; i < density; i++) {
             attempts++;
-            IrisObject object = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
+            IrisObject object = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng), engine);
             if (object == null) {
                 nullObjects++;
                 if (traceRegen) {
@@ -1034,7 +1034,7 @@ public class ObjectPlacing {
         int density = objectPlacement.getDensity(rng, minX, minZ, engine.getData());
 
         for (int i = 0; i < density; i++) {
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng));
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(complex, rng), engine);
             if (v == null) {
                 continue;
             }
@@ -1419,7 +1419,7 @@ public class ObjectPlacing {
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
         Set<String> f = new KSet<>();
         for (int i = 0; i < objectPlacement.getDensity(rng, x, z, engine.getData()); i++) {
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(engine.getComplex(), rng));
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(engine.getComplex(), rng), engine);
             if (v == null) {
                 continue;
             }

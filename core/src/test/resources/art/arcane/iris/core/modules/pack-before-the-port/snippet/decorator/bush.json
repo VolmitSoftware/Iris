@@ -1,0 +1,22 @@
+{
+    "chance": 0.03,
+    "style": {
+        "style": "CLOVER_HERMITE",
+        "zoom": 0.52,
+        "exponent": 2.5,
+        "axialFracturing": true
+    },
+    "slopeCondition":{
+        "maximumSlope": 5
+    },
+    "palette": [
+        {
+            "block": "minecraft:bush",
+            "weight": 1
+        },
+                {
+            "block": "minecraft:air",
+            "weight": 4
+        }
+    ]
+}

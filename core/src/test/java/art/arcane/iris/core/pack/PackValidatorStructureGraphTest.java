@@ -494,7 +494,7 @@ public class PackValidatorStructureGraphTest {
         List<String> errors = validateWithJigsawMetadata(pack, 80, 0, 129, 0);
 
         assertTrue(errors.toString(), errors.stream().anyMatch(message ->
-                message.contains("iris:structure.adjustments[0]")
+                message.contains("importedStructures.adjustments[0]")
                         && message.contains("129-block maximum start element")
                         && message.contains("128-block (8-chunk)")));
     }
@@ -502,7 +502,7 @@ public class PackValidatorStructureGraphTest {
     @Test
     public void lastMatchingNaturalTerrainAdjustmentControlsEnvelopeValidation() throws Exception {
         File pack = temporaryFolder.newFolder("natural-adjustment-precedence");
-        write(pack, "dimensions/main.json", "{\"iris:structure\":{\"adjustments\":["
+        write(pack, "dimensions/main.json", "{\"importedStructures\":{\"adjustments\":["
                 + "{\"match\":[\"test:structure\"],\"terrain\":{\"mode\":\"ENCASE\","
                 + "\"horizontalPadding\":128}},"
                 + "{\"match\":[\"test:structure\"],\"terrain\":{\"mode\":\"PRESERVE\"}}]}}}");
@@ -823,7 +823,7 @@ public class PackValidatorStructureGraphTest {
     private File nativeAdjustmentEnvelopePack(String name, String match, String mode,
                                               int horizontalPadding) throws Exception {
         File pack = temporaryFolder.newFolder(name);
-        write(pack, "dimensions/main.json", "{\"iris:structure\":{\"adjustments\":[{"
+        write(pack, "dimensions/main.json", "{\"importedStructures\":{\"adjustments\":[{"
                 + "\"match\":[\"" + match + "\"],\"terrain\":{\"mode\":\"" + mode
                 + "\",\"horizontalPadding\":" + horizontalPadding + "}}]}}}");
         return pack;

@@ -1,0 +1,37 @@
+{
+    "chance": 0.01,
+    "style": {
+        "style": "CELLULAR",
+        "zoom": 0.3,
+        "exponent": 1.5,
+        "axialFracturing": true,
+        "fracture": {
+            "multiplier": 55,
+            "axialFracturing": true,
+            "style": "NOWHERE",
+            "zoom": 0.15,
+            "fracture": {
+                "axialFracturing": true,
+                "style": "STATIC",
+                "multiplier": 18
+            }
+        }
+    },
+    "slopeCondition":{
+        "maximumSlope": 5
+    },
+    "palette": [
+        {
+            "block": "minecraft:tall_dry_grass",
+            "weight": 1
+        },
+        {
+            "block": "minecraft:short_dry_grass",
+            "weight": 1
+        },
+        {
+            "block": "minecraft:air",
+            "weight": 3
+        }
+    ]
+}

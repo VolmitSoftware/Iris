@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -32,12 +33,12 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The deposit generators packs have always written, now under {@code "iris:deposit": {"generators": [...]}}, read into {@link DepositGenerator}, a settings class of IrisApi types only,
- * with the values Iris's own deposit generator class read from the same JSON.
+ * The deposit generators packs have always written, the {@code "deposits": [...]} list, read into {@link DepositGenerator},
+ * a settings class of IrisApi types only, with the values Iris's own deposit generator class read from the same JSON.
  */
 public class DepositSettingsDecodingTest {
     private static final String REGION_DEPOSITS = """
-            {"iris:deposit": {"generators": [
+            {"deposits": [
               {"minHeight": 15, "maxPerChunk": 26, "maxHeight": 410, "minPerChunk": 4, "minSize": 3, "maxSize": 8,
                "palette": [{"block": "minecraft:iron_ore"}, {"block": "minecraft:coal_ore"}], "varience": 4},
               {"heightDistribution": "TRIANGLE", "placementScope": "FULL_HEIGHT", "surfaceClearance": 0, "shape": "VANILLA_ELLIPSOID",
@@ -47,7 +48,7 @@ public class DepositSettingsDecodingTest {
               "snippet/deposit/diamonds",
               "snippet/diamonds",
               {}
-            ]}}
+            ]}
             """;
 
     @Rule
@@ -142,20 +143,39 @@ public class DepositSettingsDecodingTest {
     }
 
     @Test
-    public void theOldBareListUnderTheOldKeyIsNotSettings() {
-        JSONObject old = new JSONObject("{\"deposits\": [{\"maxHeight\": 16}]}");
+    public void theFeatureIdIsNotAKey() {
+        JSONObject byId = new JSONObject("{\"iris:deposit\": [{\"maxHeight\": 16}]}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.REGION, old, "region forests"));
-        assertFalse(decoder.keys(Target.REGION).contains("deposits"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Target.REGION, byId, "region forests"));
+        assertEquals(Set.of("deposits"), decoder.keys(Target.REGION));
     }
 
     @Test
-    public void aBareListUnderTheFeatureIdIsRefused() {
-        JSONObject bare = new JSONObject("{\"iris:deposit\": [{\"maxHeight\": 16}]}");
+    public void anObjectOfOptionsUnderDepositsIsRefused() {
+        JSONObject object = new JSONObject("{\"deposits\": {\"generators\": [{\"maxHeight\": 16}]}}");
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, bare, "region forests"));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, object, "region forests"));
 
-        assertTrue(refused.getMessage(), refused.getMessage().contains("write the settings as an object"));
+        assertEquals("Cannot read settings iris:deposit under \"deposits\" in region forests: write a list, [...], of the generators,"
+                + " not an object of options", refused.getMessage());
+    }
+
+    @Test
+    public void nullUnderDepositsIsRefused() {
+        JSONObject nothing = new JSONObject("{\"deposits\": null}");
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, nothing, "region forests"));
+
+        assertTrue(refused.getMessage(), refused.getMessage().contains("under \"deposits\" in region forests: the value is null; write a list"));
+    }
+
+    @Test
+    public void aWronglyShapedGeneratorNamesTheKeyAndTheFile() {
+        JSONObject broken = new JSONObject("{\"deposits\": [{\"maxHeight\": \"tall\"}]}");
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, broken, "region forests"));
+
+        assertTrue(refused.getMessage(), refused.getMessage().startsWith("Cannot read settings iris:deposit under \"deposits\" in region forests: "));
     }
 
     private List<DepositGenerator> deposits(String regionJson) {

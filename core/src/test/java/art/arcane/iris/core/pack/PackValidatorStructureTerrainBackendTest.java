@@ -39,7 +39,7 @@ public class PackValidatorStructureTerrainBackendTest {
                     pack, Set.of("dimension_city", "forest_tower", "plains_farm"), false, errors);
 
             String suffix = ".terrain.mode " + mode + " cannot target editable Iris structures; "
-                    + "use nativeStructures or iris:structure adjustments for native terrain preparation.";
+                    + "use nativeStructures or importedStructures.adjustments for native terrain preparation.";
             assertEquals(List.of(
                     "Dimension 'main' structures[0]" + suffix,
                     "Region 'forest' structures[0]" + suffix,
@@ -87,7 +87,7 @@ public class PackValidatorStructureTerrainBackendTest {
             List<String> errors = new ArrayList<>();
 
             PackDimensionValidator.validateImportedStructurePolicy(
-                    "overworld", new JSONObject().put("iris:structure", policy),
+                    "overworld", new JSONObject().put("importedStructures", policy),
                     errors, new ArrayList<>());
 
             assertTrue(mode + ": " + errors, errors.isEmpty());

@@ -1,0 +1,554 @@
+{
+    "name": "Rough Plains",
+    "derivative": "minecraft:plains",
+    "vanillaDerivative": "minecraft:plains",
+    "layers": [{
+        "palette": [{"block": "minecraft:grass_block"}],
+        "maxHeight": 1,
+        "slopeCondition": {"maximumSlope": 4}
+    }],
+    "wall": {"palette": [
+        {"block": "minecraft:andesite"},
+        {"block": "minecraft:stone"},
+        {"block": "minecraft:cobblestone"}
+    ]},
+    "deposits": [
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 100,
+            "maxPerChunk": 100,
+            "minSize": 17,
+            "maxSize": 17,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 0.65,
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"block": "minecraft:coal_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 220,
+            "maxPerChunk": 220,
+            "minSize": 9,
+            "maxSize": 9,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"block": "minecraft:iron_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 32,
+            "maxPerChunk": 32,
+            "minSize": 10,
+            "maxSize": 10,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"block": "minecraft:copper_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 8,
+            "maxPerChunk": 10,
+            "minSize": 9,
+            "maxSize": 9,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 0.5,
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"block": "minecraft:gold_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 24,
+            "maxPerChunk": 24,
+            "minSize": 8,
+            "maxSize": 8,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"data": {"lit": false}, "block": "minecraft:redstone_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 26,
+            "maxPerChunk": 26,
+            "minSize": 8,
+            "maxSize": 8,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 0.5,
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"block": "minecraft:diamond_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 12,
+            "maxPerChunk": 12,
+            "minSize": 7,
+            "maxSize": 7,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 1.0,
+            "biomeScope": "SURFACE",
+            "includedBiomes": ["temperate/roughplains"],
+            "palette": [{"block": "minecraft:lapis_ore"}],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate"
+            ]
+        }
+    ],
+    "objects": [{
+        "place": [
+            "trees/oak/antioch1",
+            "trees/oak/antioch2",
+            "trees/oak/antioch4",
+            "trees/oak/antioch5",
+            "trees/oak/antioch6",
+            "trees/oak/antioch7",
+            "trees/oak/antioch8",
+            "trees/oak/antioch9",
+            "trees/oak/antioch10",
+            "trees/oak/antioch11",
+            "trees/oak/antioch12",
+            "trees/oak/antioch13",
+            "trees/oak/troofed1",
+            "trees/oak/troofed2",
+            "trees/oak/troofed3",
+            "trees/oak/troofed4",
+            "trees/oak/troofed5",
+            "trees/oak/troofed6",
+            "trees/oak/troofed7",
+            "trees/oak/troofed8",
+            "trees/oak/troofed9",
+            "trees/oak/troofed10"
+
+
+            ],
+        "carvingSupport": "SURFACE_ONLY",
+        "chance": 0.5,
+        "mode": "CENTER_STILT",
+        "stiltSettings":{"yMax": 4, "yRand": 1},
+
+        "rotation": {
+                "yAxis": {
+                    "min": 0,
+                    "max": 270,
+                    "interval": 90,
+                    "enabled": true
+                },
+                "enabled": true
+        },
+         "edit": [{
+                "find": [{"block": "minecraft:oak_leaves",  "data": {}}],
+                "chance": 0.005,
+
+                "replace": {
+                    "style": {
+                        "style": "PERLIN",
+                        "zoom": 0.25
+
+
+                    },
+                    "palette": [
+                        {"block": "minecraft:bee_nest"}
+                    ]
+                }
+            }]
+
+    },
+    {
+        "place": [
+            "trees/mixed/tredwood1",
+            "trees/mixed/tredwood2",
+            "trees/mixed/tredwood3",
+            "trees/mixed/tredwood4",
+            "trees/mixed/tredwood5",
+            "trees/mixed/tredwood6",
+            "trees/mixed/tredwood7",
+            "trees/mixed/tredwood8",
+            "trees/mixed/tredwood9",
+            "trees/mixed/tredwood10"
+            ],
+        "slopeCondition":{
+            "maximumSlope": 2
+        },
+        "carvingSupport": "SURFACE_ONLY",
+        "chance": 0.0025,
+        "mode": "MIN_HEIGHT",
+        "rotation": {
+                "yAxis": {
+                    "min": 0,
+                    "max": 270,
+                    "interval": 90,
+                    "enabled": true
+                },
+                "enabled": true
+        }}],
+
+    "decorators": [
+        {
+            "chance": 0.2,
+            "variance": {
+                "style": "CELLULAR",
+                "zoom": 0.25,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.2,
+                    "multiplier": 10
+                }
+            },
+            "style": {
+                "style": "SIMPLEX",
+                "zoom": 0.2,
+                "fracture": {
+                    "style": "STATIC",
+                    "multiplier": 8
+                }
+            },
+            "palette": [
+                {"block": "minecraft:dandelion"},
+                {"block": "minecraft:poppy"},
+                {"block": "minecraft:blue_orchid"},
+                {"block": "minecraft:allium"},
+                {"block": "minecraft:azure_bluet"},
+                {"block": "minecraft:red_tulip"},
+                {"block": "minecraft:orange_tulip"},
+                {"block": "minecraft:white_tulip"},
+                {"block": "minecraft:pink_tulip"},
+                {"block": "minecraft:oxeye_daisy"},
+                {"block": "minecraft:cornflower"},
+                {"block": "minecraft:lily_of_the_valley"}
+            ]
+        },
+        {
+            "chance": 0.01,
+            "palette": [{"block": "minecraft:tall_grass"}]
+        },
+        {
+            "chance": 0.75,
+            "palette": [{"block": "minecraft:short_grass"}]
+        },
+        {
+            "stackMin": 1,
+            "stackMax": 7,
+            "chance": 0.025,
+            "forcePlace": false,
+            "variance": {"style": "STATIC"},
+            "palette": [
+                {
+                    "data": {
+                        "stage": 0,
+                        "age": 0,
+                        "leaves": "none"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 1,
+                        "age": 0,
+                        "leaves": "none"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 0,
+                        "age": 1,
+                        "leaves": "none"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 1,
+                        "age": 1,
+                        "leaves": "none"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 0,
+                        "age": 0,
+                        "leaves": "small"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 1,
+                        "age": 0,
+                        "leaves": "small"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 0,
+                        "age": 1,
+                        "leaves": "small"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 1,
+                        "age": 1,
+                        "leaves": "small"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 0,
+                        "age": 0,
+                        "leaves": "large"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 1,
+                        "age": 0,
+                        "leaves": "large"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 0,
+                        "age": 1,
+                        "leaves": "large"
+                    },
+                    "block": "minecraft:bamboo"
+                },
+                {
+                    "data": {
+                        "stage": 1,
+                        "age": 1,
+                        "leaves": "large"
+                    },
+                    "block": "minecraft:bamboo"
+                }
+            ],
+            "style": {"style": "STATIC"}
+        },
+         "snippet/decorator/bush"
+    ],
+    "floatingChildBiomes": [
+        {
+            "biome": "mushroom/forest",
+            "rarity": 1,
+            "footprintStyle": {
+                "style": "CELLULAR",
+                "zoom": 0.4,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.18,
+                    "multiplier": 8
+                }
+            },
+            "footprintThreshold": 0.6,
+            "pickerStyle": {"style": "SIMPLEX", "zoom": 4.0},
+            "altitudeStyle": {"style": "SIMPLEX", "zoom": 2.0},
+            "minHeightAboveSurface": 95,
+            "maxHeightAboveSurface": 170,
+            "topShapeMode": "BIOME",
+            "maxTopHeight": 32,
+            "bottomStyle": {
+                "style": "CELLULAR",
+                "zoom": 0.3,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.16,
+                    "multiplier": 5
+                }
+            },
+            "bottomDepthMin": 0,
+            "bottomDepthMax": 5,
+            "bottomExponent": 0.9,
+            "maxThickness": 72,
+            "wallWarpStyle": {
+                "style": "SIMPLEX",
+                "zoom": 0.25,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.14,
+                    "multiplier": 4
+                }
+            },
+            "wallWarpAmplitude": 10.0,
+            "carveStyle": {
+                "style": "CELLULAR",
+                "zoom": 0.3,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.14,
+                    "multiplier": 3
+                }
+            },
+            "carveThreshold": 0.75,
+            "inheritDecorators": true,
+            "inheritObjects": true,
+            "objectShrinkFactor": 0.5
+        },
+        {
+            "biome": "tropical/wilds",
+            "rarity": 1,
+            "footprintStyle": {
+                "style": "CELLULAR_IRIS",
+                "zoom": 0.35,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.16,
+                    "multiplier": 8
+                }
+            },
+            "footprintThreshold": 0.62,
+            "pickerStyle": {"style": "SIMPLEX", "zoom": 4.0},
+            "altitudeStyle": {"style": "SIMPLEX", "zoom": 2.0},
+            "minHeightAboveSurface": 35,
+            "maxHeightAboveSurface": 170,
+            "topShapeMode": "BIOME",
+            "maxTopHeight": 64,
+            "bottomStyle": {
+                "style": "NOWHERE",
+                "zoom": 0.25,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.16,
+                    "multiplier": 4
+                }
+            },
+            "bottomDepthMin": 0,
+            "bottomDepthMax": 5,
+            "bottomExponent": 1.8,
+            "maxThickness": 112,
+            "wallWarpStyle": {
+                "style": "SIMPLEX",
+                "zoom": 0.25,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.14,
+                    "multiplier": 4
+                }
+            },
+            "wallWarpAmplitude": 10.0,
+            "carveStyle": {
+                "style": "CELLULAR",
+                "zoom": 0.3,
+                "fracture": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.14,
+                    "multiplier": 3
+                }
+            },
+            "carveThreshold": 0.7,
+            "inheritDecorators": true,
+            "inheritObjects": true,
+            "objectShrinkFactor": 0.5
+        }
+    ],
+    "generators": [{
+        "generator": "mountain",
+        "max": 50,
+        "min": -15
+    }]
+}

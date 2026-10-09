@@ -70,7 +70,7 @@ public class ChunkSettingsScanTimingTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    @Feature(id = "test:scan", name = "Scan", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+    @Feature(id = "test:scan", name = "Scan", key = "scan", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
     static final class ScanSettings implements IrisFeature {
     }
 

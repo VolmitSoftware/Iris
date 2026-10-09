@@ -61,6 +61,7 @@ public final class BuiltInPack {
         List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), packModules.stream()).toList();
         LoadedPack pack = LoadedPack.load(packFolder, ModuleHost.of(modules)
                 .exposing(IrisModuleHost.BUILT_IN_API_PACKAGE)
+                .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
                 .copyingJarsTo(folder.newFolder().toPath()));
         PackModuleSet moduleSet = mock(PackModuleSet.class);

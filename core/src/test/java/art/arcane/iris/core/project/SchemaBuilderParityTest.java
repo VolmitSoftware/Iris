@@ -26,6 +26,7 @@ import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
@@ -216,10 +217,30 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
+    public void settingsThatAreOneOptionsValueRenderThatValueAsTheKeysOnlyShape() throws IOException {
+        JSONObject properties = rootProperties(new SchemaBuilder(IrisBiome.class, structureSchemaData()).construct());
+
+        JSONObject deposits = properties.getJSONObject("deposits");
+        JSONObject decorators = properties.getJSONObject("decorators");
+        assertEquals("array", deposits.getString("type"));
+        assertEquals("array", decorators.getString("type"));
+        assertEquals(1, decorators.getInt("minItems"));
+        assertEquals("module-art-arcane-iris-builtin-deposit-depositgenerator", definitionKey(deposits.getJSONObject("items")));
+        assertEquals("module-art-arcane-iris-builtin-decorant-decorator", definitionKey(decorators.getJSONObject("items")));
+        for (JSONObject rooted : List.of(deposits, decorators)) {
+            assertFalse("one shape, no alternatives", rooted.has("anyOf"));
+            assertFalse("the list is the value, not a reference to an object of options", rooted.has("$ref"));
+            assertTrue(rooted.getString("description").contains("from module"));
+        }
+        assertFalse("the feature ids are not keys", properties.has("iris:deposit"));
+        assertFalse("the feature ids are not keys", properties.has("iris:decorant"));
+    }
+
+    @Test
     public void structureSettingsRenderTheirFitsWithIrisDefinitionsOfTheSameJson() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData(structureSettingsSchema())).construct();
         JSONObject definitions = schema.getJSONObject("definitions");
-        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("iris:structure")))
+        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("importedStructures")))
                 .getJSONObject("properties");
         JSONObject adjustment = definitions.getJSONObject(definitionKey(settings.getJSONObject("adjustments").getJSONObject("items")))
                 .getJSONObject("properties");
@@ -251,7 +272,7 @@ public class SchemaBuilderParityTest {
     public void structureSettingsAcceptPrefixesWhereTheyMatchFamilies() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData(structureSettingsSchema())).construct();
         JSONObject definitions = schema.getJSONObject("definitions");
-        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("iris:structure")))
+        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("importedStructures")))
                 .getJSONObject("properties");
         JSONObject adjustment = definitions.getJSONObject(definitionKey(settings.getJSONObject("adjustments").getJSONObject("items")))
                 .getJSONObject("properties");
@@ -324,15 +345,15 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
-    public void objectPlacementSchemaRendersModuleSettingsUnderTheirId() throws IOException {
+    public void objectPlacementSchemaRendersModuleSettingsUnderTheirKey() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(glowModuleSchema())).construct();
         JSONObject properties = rootProperties(schema);
-        String definition = definitionKey(properties.getJSONObject("example:glow"));
+        String definition = definitionKey(properties.getJSONObject("glow"));
         JSONObject level = schema.getJSONObject("definitions").getJSONObject(definition)
                 .getJSONObject("properties").getJSONObject("level");
 
-        assertFalse("no alias property", properties.has("glow"));
-        assertFalse("settings are their object only, no bare value form", properties.getJSONObject("example:glow").has("anyOf"));
+        assertFalse("the feature id is not a key", properties.has("example:glow"));
+        assertFalse("settings are their object only, no bare value form", properties.getJSONObject("glow").has("anyOf"));
         assertFalse("no alias constraint", schema.has("allOf"));
         assertEquals("integer", level.getString("type"));
         assertEquals(1, level.getInt("minimum"));
@@ -345,7 +366,7 @@ public class SchemaBuilderParityTest {
     public void moduleSettingsHoldingApiValueTypesUseIrisDescriptionsOfTheSameJson() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(tintModuleSchema())).construct();
         JSONObject definitions = schema.getJSONObject("definitions");
-        JSONObject tint = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("example:tint")))
+        JSONObject tint = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("tint")))
                 .getJSONObject("properties");
 
         assertEquals("@MinItems renders as minItems", 1, tint.getJSONObject("palette").getInt("minItems"));
@@ -785,7 +806,7 @@ public class SchemaBuilderParityTest {
         }
     }
 
-    @Feature(id = "example:tint", name = "Tint", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:tint", name = "Tint", key = "tint", targets = Target.OBJECT_PLACEMENT)
     public static final class TintSettings implements IrisFeature {
         @com.volmit.config.MinItems(1)
         private List<com.volmit.block.BlockSpec> palette = List.of();
@@ -813,7 +834,7 @@ public class SchemaBuilderParityTest {
         }
     }
 
-    @Feature(id = "example:glow", name = "Glow", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Target.OBJECT_PLACEMENT)
     public static final class GlowSettings implements IrisFeature {
         @com.volmit.config.Desc("How bright the glow is")
         @com.volmit.config.MinNumber(1)

@@ -24,9 +24,13 @@ import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
+import art.arcane.iris.builtin.structure.StructureSettings;
 import com.volmit.FeatureAttachment.Target;
+import com.volmit.FeatureRegistry;
+import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.config.Feature;
 import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ResolvedGraph;
@@ -43,9 +47,11 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -96,19 +102,85 @@ public class BuiltInGenerationGraphTest {
     }
 
     @Test
-    public void depositsAreSettingsOfEveryLevelWrittenAsTheirIdWithGenerators() throws IOException {
+    public void depositsAreTheListOfGeneratorsOfEveryLevelWrittenUnderDeposits() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             for (Target level : List.of(Target.DIMENSION, Target.REGION, Target.BIOME)) {
                 FeatureSchema deposits = pack.schema().fields(level).stream()
                         .filter(feature -> feature.settings().name().equals(DepositSettings.class.getName()))
                         .findFirst().orElseThrow();
-                assertEquals("iris:deposit", deposits.key());
-                SchemaOption option = deposits.settings().options().getFirst();
+                assertEquals("deposits", deposits.key());
+                assertEquals(Optional.of("generators"), deposits.root());
+                SchemaOption option = deposits.rootOption().orElseThrow();
                 assertEquals("generators", option.name());
                 ValueKind generators = option.kind();
                 assertEquals("generators are a module class of IrisApi types, not an Iris class",
                         new ValueKind.ListKind(new ValueKind.ObjectKind(DepositGenerator.class.getName()), false), generators);
             }
+        }
+    }
+
+    @Test
+    public void importedStructuresAreAnObjectOfOptionsOfTheDimension() throws IOException {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
+            FeatureSchema structures = pack.schema().fields(Target.DIMENSION).stream()
+                    .filter(feature -> feature.settings().name().equals(StructureSettings.class.getName()))
+                    .findFirst().orElseThrow();
+
+            assertEquals("importedStructures", structures.key());
+            assertEquals(Optional.empty(), structures.root());
+            assertEquals(List.of("disabled", "disabledExact", "undergroundYShift", "datapackOverrides", "frequencyOverrides", "adjustments"),
+                    structures.settings().options().stream().map(SchemaOption::name).toList());
+        }
+    }
+
+    @Test
+    public void theBuiltInKeysAreUniquePerTargetAndNoFieldOfIris() throws IOException {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
+            for (Target target : Target.values()) {
+                List<String> keys = pack.schema().fields(target).stream().map(FeatureSchema::key).toList();
+                assertEquals(target + " " + keys, keys.size(), keys.stream().distinct().count());
+                assertTrue(target + " " + keys, keys.stream().noneMatch(ModuleTargets.reservedFields().get(target)::contains));
+            }
+        }
+    }
+
+    @Test
+    public void aModuleCannotTakeTheKeyOfABuiltInOrAFieldOfIris() {
+        IllegalArgumentException deposits = assertThrows(IllegalArgumentException.class,
+                () -> BuiltInPack.serve(mock(IrisData.class), folder, List.of(new RivalModule(TakesDeposits.class))));
+        assertEquals("region key \"deposits\" is claimed by iris:deposit (host classpath) and test:rival/deposits (host classpath);"
+                + " give one of the settings another key in its @Feature", deposits.getMessage());
+
+        IllegalArgumentException field = assertThrows(IllegalArgumentException.class,
+                () -> BuiltInPack.serve(mock(IrisData.class), folder, List.of(new RivalModule(TakesAHostField.class))));
+        assertEquals("biome key \"generators\" is claimed by Iris and test:rival/generators (host classpath);"
+                + " give one of the settings another key in its @Feature", field.getMessage());
+    }
+
+    @Feature(id = "test:rival/deposits", name = "Rival deposits", key = "deposits", targets = Target.REGION)
+    public static final class TakesDeposits implements IrisFeature {
+    }
+
+    @Feature(id = "test:rival/generators", name = "Rival generators", key = "generators", targets = Target.BIOME)
+    public static final class TakesAHostField implements IrisFeature {
+    }
+
+    private static final class RivalModule implements IrisModule {
+        private final Class<? extends IrisFeature> settings;
+
+        RivalModule(Class<? extends IrisFeature> settings) {
+            this.settings = settings;
+        }
+
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:rival", "Rival", "1");
+        }
+
+        public void install(StageGraph graph) {
+        }
+
+        public void register(FeatureRegistry registry) {
+            registry.registerSettings(settings);
         }
     }
 
@@ -125,7 +197,7 @@ public class BuiltInGenerationGraphTest {
     }
 
     @Test
-    public void decoratorsAreBiomeSettingsWrittenUnderTheirIdWithDecorators() throws IOException {
+    public void decoratorsAreTheBiomesListOfDecoratorsWrittenUnderDecorators() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             for (Target level : List.of(Target.DIMENSION, Target.REGION)) {
                 assertTrue(level + " has no decorators", pack.schema().fields(level).stream()
@@ -134,8 +206,9 @@ public class BuiltInGenerationGraphTest {
             FeatureSchema decorant = pack.schema().fields(Target.BIOME).stream()
                     .filter(feature -> feature.settings().name().equals(DecorantSettings.class.getName()))
                     .findFirst().orElseThrow();
-            assertEquals("iris:decorant", decorant.key());
-            SchemaOption option = decorant.settings().options().getFirst();
+            assertEquals("decorators", decorant.key());
+            assertEquals(Optional.of("decorators"), decorant.root());
+            SchemaOption option = decorant.rootOption().orElseThrow();
             assertEquals("decorators", option.name());
             assertEquals("decorators are a module class of IrisApi types, not an Iris class",
                     new ValueKind.ListKind(new ValueKind.ObjectKind(Decorator.class.getName()), false), option.kind());

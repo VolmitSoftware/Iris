@@ -1,0 +1,487 @@
+{
+    "name": "The Magnetics",
+    "color": "#7B9EC9",
+    "rarity": 15,
+    "landBiomes": [
+        "magnetics/plains",
+        "magnetics/frozen",
+        "magnetics/dunes",
+        "magnetics/mycelium",
+        "magnetics/glass",
+        "magnetics/noise"
+    ],
+    "caveBiomes": [
+        "carving/magnetic-hollows",
+        "carving/flux-crystal-caverns",
+        "carving/polarity-grotto"
+    ],
+    "shoreBiomes": [
+        "temperate/shore/beach",
+        "ocean/shore/beach"
+    ],
+    "seaBiomeZoom": 6,
+    "seaBiomes": [
+        "ocean/deep",
+        "ocean/dark-depth-ocean",
+        "temperate/sea/ocean",
+        "temperate/sea/ocean-deep"
+    ],
+    "landBiomeZoom": 3.5,
+    "shoreBiomeZoom": 0.15,
+    "shoreHeightMin": 1,
+    "shoreHeightMax": 5.2,
+    "shoreHeightZoom": 1.14,
+    "deposits": [
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 100,
+            "maxPerChunk": 100,
+            "minSize": 17,
+            "maxSize": 17,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 0.65,
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:coal_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 220,
+            "maxPerChunk": 220,
+            "minSize": 9,
+            "maxSize": 9,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:iron_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 32,
+            "maxPerChunk": 32,
+            "minSize": 10,
+            "maxSize": 10,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:copper_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 8,
+            "maxPerChunk": 10,
+            "minSize": 9,
+            "maxSize": 9,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 0.5,
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:gold_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 24,
+            "maxPerChunk": 24,
+            "minSize": 8,
+            "maxSize": 8,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "data": {
+                        "lit": false
+                    },
+                    "block": "minecraft:redstone_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 26,
+            "maxPerChunk": 26,
+            "minSize": 8,
+            "maxSize": 8,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 0.5,
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:diamond_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "UNIFORM",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 12,
+            "maxPerChunk": 12,
+            "minSize": 7,
+            "maxSize": 7,
+            "shape": "VANILLA_ELLIPSOID",
+            "discardChanceOnAirExposure": 1.0,
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/dunes",
+                "magnetics/frozen",
+                "magnetics/glass",
+                "magnetics/mycelium",
+                "magnetics/noise",
+                "magnetics/plains"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:lapis_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:sandstone",
+                "minecraft:smooth_sandstone",
+                "minecraft:cut_sandstone",
+                "minecraft:terracotta",
+                "minecraft:calcite",
+                "minecraft:quartz_block",
+                "minecraft:smooth_quartz",
+                "minecraft:glass",
+                "minecraft:light_blue_stained_glass",
+                "minecraft:tinted_glass",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        },
+        {
+            "minHeight": 224,
+            "maxHeight": 736,
+            "heightDistribution": "TRIANGLE",
+            "placementScope": "ABOVE_TERRAIN",
+            "surfaceClearance": 0,
+            "minPerChunk": 96,
+            "maxPerChunk": 96,
+            "minSize": 3,
+            "maxSize": 3,
+            "shape": "VANILLA_ELLIPSOID",
+            "biomeScope": "SURFACE",
+            "includedBiomes": [
+                "magnetics/frozen"
+            ],
+            "palette": [
+                {
+                    "block": "minecraft:emerald_ore"
+                }
+            ],
+            "replaceableBlocks": [
+                "minecraft:stone",
+                "minecraft:granite",
+                "minecraft:diorite",
+                "minecraft:andesite",
+                "minecraft:deepslate",
+                "minecraft:tuff",
+                "minecraft:cobblestone",
+                "minecraft:cobbled_deepslate",
+                "minecraft:calcite",
+                "minecraft:ice",
+                "minecraft:packed_ice",
+                "minecraft:blue_ice"
+            ]
+        }
+    ],
+    "loot": {
+        "mode": "FALLBACK",
+        "multiplier": 0.5,
+        "tables": [
+            "temperate/clutter",
+            "cave/clutter"
+        ]
+    },
+    "caveProfile": {
+        "enabled": true,
+        "verticalRange": {
+            "min": 6,
+            "max": 100
+        },
+        "baseDensityStyle": {
+            "style": "CELLULAR",
+            "zoom": 0.78
+        },
+        "detailDensityStyle": {
+            "style": "SIMPLEX",
+            "zoom": 0.32
+        },
+        "warpStyle": {
+            "style": "SIMPLEX",
+            "zoom": 0.26
+        },
+        "baseWeight": 1.0,
+        "detailWeight": 0.16,
+        "warpStrength": 0.32,
+        "densityThreshold": {
+            "min": -0.08,
+            "max": 0.02,
+            "style": {
+                "style": "SIMPLEX",
+                "zoom": 0.42
+            }
+        },
+        "thresholdBias": 0.06,
+        "sampleStep": 2,
+        "surfaceClearance": 12,
+        "allowSurfaceBreak": false,
+        "surfaceBreakStyle": {
+            "style": "SIMPLEX",
+            "zoom": 0.88
+        },
+        "surfaceBreakNoiseThreshold": 0.99,
+        "surfaceBreakDepth": 4,
+        "surfaceBreakThresholdBoost": 0.02,
+        "objectMinDepthBelowSurface": 14,
+        "defaultObjectAnchor": "FLOOR",
+        "defaultObjectPlaceMode": "ORGANIC_STILT",
+        "anchorScanStep": 1,
+        "anchorSearchAttempts": 12,
+        "allowFluid": true,
+        "fluidMinDepthBelowSurface": 20,
+        "fluidRequiresFloor": true,
+        "allowLava": true,
+        "modules": []
+    },
+    "caveBiomeZoom": 3.3,
+    "entitySpawners": [
+        "temperate/cave",
+        "temperate/hostile",
+        "temperate/passive",
+        "temperate/water"
+    ]
+}

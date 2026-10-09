@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -27,12 +28,12 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The decorators packs have always written, now under {@code "iris:decorant": {"decorators": [...]}} as the migration
- * script leaves them, read into {@link Decorator}, a settings class of IrisApi types only.
+ * The decorators packs have always written, the {@code "decorators": [...]} list, read into {@link Decorator}, a settings
+ * class of IrisApi types only.
  */
 public class DecorantSettingsDecodingTest {
     private static final String BIOME_DECORATORS = """
-            {"name": "Meadow", "iris:decorant": {"decorators": [
+            {"name": "Meadow", "decorators": [
               {"chance": 0.003, "variance": {"style": "STATIC"}, "zoom": 1,
                "palette": [{"block": "minecraft:white_tulip"}, {"block": "minecraft:cornflower", "weight": 3}],
                "style": {"style": "SIMPLEX", "zoom": 4}},
@@ -43,7 +44,7 @@ public class DecorantSettingsDecodingTest {
               "snippet/decorator/bush",
               "snippet/bush",
               {}
-            ]}}
+            ]}
             """;
 
     @Rule
@@ -132,20 +133,21 @@ public class DecorantSettingsDecodingTest {
     }
 
     @Test
-    public void theOldBareListUnderTheOldKeyIsNotSettings() {
-        JSONObject old = new JSONObject("{\"decorators\": [{\"chance\": 1}]}");
+    public void theFeatureIdIsNotAKey() {
+        JSONObject byId = new JSONObject("{\"iris:decorant\": [{\"chance\": 1}]}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, old, "biome meadow"));
-        assertFalse(decoder.keys(Target.BIOME).contains("decorators"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, byId, "biome meadow"));
+        assertEquals(Set.of("decorators", "deposits"), decoder.keys(Target.BIOME));
     }
 
     @Test
-    public void aBareListUnderTheFeatureIdIsRefused() {
-        JSONObject bare = new JSONObject("{\"iris:decorant\": [{\"chance\": 1}]}");
+    public void anObjectOfOptionsUnderDecoratorsIsRefused() {
+        JSONObject object = new JSONObject("{\"decorators\": {\"decorators\": [{\"chance\": 1}]}}");
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.BIOME, bare, "biome meadow"));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.BIOME, object, "biome meadow"));
 
-        assertTrue(refused.getMessage(), refused.getMessage().contains("write the settings as an object"));
+        assertEquals("Cannot read settings iris:decorant under \"decorators\" in biome meadow: write a list, [...], of the decorators,"
+                + " not an object of options", refused.getMessage());
     }
 
     private List<Decorator> decorators(String biomeJson) {

@@ -77,7 +77,7 @@ public class ObjectPlacementModuleSettingsTest {
     private LoadedPack pack;
     private Gson gson;
 
-    @Feature(id = "example:glow", name = "Glow", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Target.OBJECT_PLACEMENT)
     public static final class GlowSettings implements IrisFeature {
         private String block = "minecraft:glowstone";
     }
@@ -130,7 +130,7 @@ public class ObjectPlacementModuleSettingsTest {
 
     @Test
     public void decodesTheSettingsOfEveryNestedPlacement() {
-        Holder holder = gson.fromJson("{\"objects\": [{\"place\": [\"tree\"], \"example:glow\": {\"block\": \"minecraft:sea_lantern\"}},"
+        Holder holder = gson.fromJson("{\"objects\": [{\"place\": [\"tree\"], \"glow\": {\"block\": \"minecraft:sea_lantern\"}},"
                 + " {\"place\": [\"rock\"]}]}", Holder.class);
 
         assertEquals("minecraft:sea_lantern", holder.objects.get(0).getModuleSettings().find(GlowSettings.class).orElseThrow().block);
@@ -139,7 +139,7 @@ public class ObjectPlacementModuleSettingsTest {
 
     @Test
     public void copiesOfAPlacementKeepItsSettings() {
-        IrisObjectPlacement placement = gson.fromJson("{\"place\": [\"tree\"], \"example:glow\": {}}", IrisObjectPlacement.class);
+        IrisObjectPlacement placement = gson.fromJson("{\"place\": [\"tree\"], \"glow\": {}}", IrisObjectPlacement.class);
 
         assertSame(placement.getModuleSettings(), placement.toPlacement("rock").getModuleSettings());
     }
@@ -149,7 +149,7 @@ public class ObjectPlacementModuleSettingsTest {
         IObjectPlacer declaring = placer();
         IObjectPlacer silent = placer();
 
-        place(gson.fromJson("{\"example:glow\": {}}", IrisObjectPlacement.class), declaring);
+        place(gson.fromJson("{\"glow\": {}}", IrisObjectPlacement.class), declaring);
         place(gson.fromJson("{}", IrisObjectPlacement.class), silent);
 
         verify(declaring).set(eq(0), eq(SURFACE_Y + 1), eq(0), any());

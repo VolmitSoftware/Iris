@@ -26,16 +26,17 @@ import java.util.Optional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The dimension's {@code importedStructures} as tools/migrate-pack.py writes it, {@code "iris:structure": {...}}, read into
+ * The dimension's {@code importedStructures} as packs have always written it, read into
  * {@link StructureSettings}, IrisApi types only, with the values Iris's own classes read from the same JSON.
  */
 public class StructureSettingsDecodingTest {
-    /** The overworld test pack's dimensions/overworld.json member after migration, plus the options it leaves out. */
+    /** The overworld test pack's dimensions/overworld.json member, plus the options it leaves out. */
     private static final String MIGRATED_DIMENSION = """
-            {"iris:structure": {
+            {"importedStructures": {
               "datapackOverrides": true,
               "adjustments": [
                 {
@@ -105,8 +106,8 @@ public class StructureSettingsDecodingTest {
 
     @Test
     public void fitsBecomeTheIrisClassesTheOldDimensionFieldReadFromTheSameJson() {
-        JSONObject json = new JSONObject(MIGRATED_DIMENSION).getJSONObject("iris:structure").getJSONArray("adjustments").getJSONObject(0);
-        JSONObject stiltJson = new JSONObject(MIGRATED_DIMENSION).getJSONObject("iris:structure").getJSONArray("adjustments")
+        JSONObject json = new JSONObject(MIGRATED_DIMENSION).getJSONObject("importedStructures").getJSONArray("adjustments").getJSONObject(0);
+        JSONObject stiltJson = new JSONObject(MIGRATED_DIMENSION).getJSONObject("importedStructures").getJSONArray("adjustments")
                 .getJSONObject(3).getJSONObject("stilt");
         List<StructureAdjustment> adjustments = settings(MIGRATED_DIMENSION).adjustments();
         Gson gson = new Gson();
@@ -118,16 +119,28 @@ public class StructureSettingsDecodingTest {
     }
 
     @Test
-    public void theOldKeyIsNotSettingsAndEmptySettingsHaveTheDefaults() {
-        JSONObject old = new JSONObject("{\"importedStructures\": {\"disabled\": [\"minecraft:village\"]}}");
+    public void theFeatureIdIsNotAKeyAndEmptySettingsHaveTheDefaults() {
+        JSONObject byId = new JSONObject("{\"iris:structure\": {\"disabled\": [\"minecraft:village\"]}}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, old, "dimension overworld"));
-        assertFalse(decoder.keys(Target.DIMENSION).contains("importedStructures"));
-        StructureSettings defaults = settings("{\"iris:structure\": {}}");
+        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, byId, "dimension overworld"));
+        assertTrue(decoder.keys(Target.DIMENSION).contains("importedStructures"));
+        assertFalse(decoder.keys(Target.DIMENSION).contains("iris:structure"));
+        StructureSettings defaults = settings("{\"importedStructures\": {}}");
         assertTrue(defaults.datapackOverrides());
         assertEquals(List.of(), defaults.disabled());
         assertEquals(List.of(), defaults.adjustments());
         assertEquals(0, defaults.undergroundYShift());
+    }
+
+    @Test
+    public void aListUnderImportedStructuresIsRefused() {
+        JSONObject list = new JSONObject("{\"importedStructures\": [\"minecraft:village\"]}");
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> decoder.decode(Target.DIMENSION, list, "dimension overworld"));
+
+        assertEquals("Cannot read settings iris:structure under \"importedStructures\" in dimension overworld:"
+                + " write the settings as an object, {\"<option>\": ...}", refused.getMessage());
     }
 
     private StructureSettings settings(String dimensionJson) {

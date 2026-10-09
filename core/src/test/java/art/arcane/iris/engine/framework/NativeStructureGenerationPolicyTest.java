@@ -62,7 +62,7 @@ public class NativeStructureGenerationPolicyTest {
     @Test
     public void generationStatusMessagesAreSharedAcrossPlatforms() {
         assertEquals(
-                "Native structure minecraft:village_plains is disabled by this dimension's iris:structure settings or a module of the pack.",
+                "Native structure minecraft:village_plains is disabled by this dimension's importedStructures settings or a module of the pack.",
                 NativeStructureGenerationPolicy.generationStatusMessage(
                         "minecraft:village_plains", NativeStructureGenerationStatus.DISABLED_BY_PACK));
         assertEquals(

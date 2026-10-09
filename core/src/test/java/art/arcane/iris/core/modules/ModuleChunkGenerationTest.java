@@ -65,7 +65,7 @@ public class ModuleChunkGenerationTest {
     private Engine engine;
     private Hunk<PlatformBlockState> blocks;
 
-    @Feature(id = "iris:pillar", name = "Pillar", targets = {Target.BIOME, Target.REGION, Target.DIMENSION})
+    @Feature(id = "iris:pillar", name = "Pillar", key = "pillar", targets = {Target.BIOME, Target.REGION, Target.DIMENSION})
     public static final class PillarSettings implements IrisFeature {
         private BlockState block = BlockState.parse("minecraft:stone");
         private int x;

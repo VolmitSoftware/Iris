@@ -1,0 +1,107 @@
+{
+    "name": "Mesa Red",
+    "color": "#963D16",
+    "rarity": 1,
+    "derivative": "minecraft:windswept_savanna",
+    "vanillaDerivative": "minecraft:badlands",
+    "generators": [
+        {
+            "min": 50,
+            "max": 70,
+            "generator": "highplains"
+        },
+        {
+            "min": 70,
+            "max": 110,
+            "generator": "mountain"
+        }
+    ],
+    "wall": {
+        "style": {"style": "NOWHERE"},
+        "palette": [
+            {"block": "minecraft:pink_terracotta"},
+            {"block": "minecraft:red_terracotta"},
+            {"block": "minecraft:terracotta"},
+            {"block": "minecraft:light_gray_terracotta"},
+            {"block": "minecraft:brown_terracotta"}
+        ]
+    },
+    "layers": [
+        {
+            "minHeight": 2,
+            "maxHeight": 3,
+            "style": {"style": "STATIC"},
+            "palette": [{"block": "minecraft:pink_terracotta"}]
+        },
+        {
+            "minHeight": 2,
+            "maxHeight": 3,
+            "style": {"style": "STATIC"},
+            "palette": [{"block": "minecraft:red_terracotta"}]
+        },
+        {
+            "minHeight": 2,
+            "maxHeight": 3,
+            "style": {"style": "STATIC"},
+            "palette": [{"block": "minecraft:terracotta"}]
+        },
+        {
+            "minHeight": 2,
+            "maxHeight": 3,
+            "style": {"style": "STATIC"},
+            "palette": [{"block": "minecraft:light_gray_terracotta"}]
+        },
+        {
+            "minHeight": 2,
+            "maxHeight": 3,
+            "style": {"style": "STATIC"},
+            "palette": [{"block": "minecraft:brown_terracotta"}]
+        }
+    ],
+
+    "decorators": [
+        {
+            "chance": 0.009,
+            "variance": {"style": "STATIC"},
+            "zoom": 0.3,
+            "palette": [
+                {
+                    "data": {
+                        "face": "floor",
+                        "powered": false,
+                        "facing": "east"
+                    },
+                    "block": "minecraft:stone_button"
+                },
+                {
+                    "data": {
+                        "face": "floor",
+                        "powered": false,
+                        "facing": "south"
+                    },
+                    "block": "minecraft:stone_button"
+                }
+            ],
+            "style": {"style": "STATIC"}
+        },
+        {
+            "chance": 0.01,
+            "variance": {"style": "STATIC"},
+            "zoom": 0.3,
+            "palette": [{"block": "minecraft:dead_bush"}],
+            "style": {"style": "STATIC"}
+        },
+        "snippet/decorator/dry_grass"
+    ],
+    "lockLayers": true,
+    "deposits": [{
+        "minHeight": 100,
+        "maxPerChunk": 3,
+        "maxHeight": 150,
+        "minPerChunk": 0,
+        "maxSize": 7,
+        "minSize": 3,
+        "palette": [{"block": "minecraft:netherrack"}],
+        "varience": 3
+    }]
+}

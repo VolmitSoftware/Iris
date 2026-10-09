@@ -933,8 +933,16 @@ from a sapling, which drops a block has. A module answers such questions through
   have several providers.
 - **Threading.** The host may call a provider from any thread, several at once. A provider that searches long
   (`StructureLocator.locate`) is called off the server's main thread.
+- **Loot, drops, entities, trees.** `Loot` (`ALL`) asks in two steps, which tables a container draws from and what a
+  table gives, so the host and plugins can change the tables in between. `BlockDrops`, `EntitySpawns` and `SaplingGrowth`
+  return values the host carries out: `ItemDrop` and `EntitySpec` carry every decision the module made (the module draws
+  from its streams in the order the feature always did, which is why `ItemRegistry` answers whether an item can be
+  damaged), and the host reads what only the platform knows (light, the surface below, free space, the blocks around a
+  sapling) through the attempt's conditions or a `Surroundings` view. A service that must hear how its plan went has a
+  second method for it (`EntitySpawns.spawned`, which keeps a spawner's rate limits).
 - **Services now.** `ObjectsAt` (`ALL`): pack object keys a module would place in a chunk, predicted without
-  generating it. `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
+  generating it, and the biomes and regions whose settings place a given object (`PlacedBy`, named by pack keys; the
+  host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
   nearest start of one as a `LocateResult` (`Found`, `NotFound`, `SearchLimitReached`; a sealed interface, so callers
   switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
 - **Why not per-world provider instances.** A factory per world (`world -> provider`) would let a provider hold its

@@ -264,11 +264,17 @@ them up in the pack's catalog instead of knowing the feature.
 
 ```java
 public void register(FeatureRegistry registry) {
-    registry.registerService(ObjectsAt.class, RuinsModule::objectsAt);
+    registry.registerService(ObjectsAt.class, new RuinsObjects());
 }
 
-private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
-    return planted(world).contains(chunkX, chunkZ) ? Set.of("ruins/arch") : Set.of();
+final class RuinsObjects implements ObjectsAt {
+    public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+        return planted(world).contains(chunkX, chunkZ) ? Set.of("ruins/arch") : Set.of();
+    }
+
+    public PlacedBy placedBy(PackWorld world, String objectKey) {
+        return PlacedBy.NOTHING;
+    }
 }
 ```
 
@@ -283,8 +289,12 @@ private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
 
 | Service | Providers | What the host asks |
 | --- | --- | --- |
-| `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it (object search, studio tools). |
+| `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it, and the biomes and regions of the layout that place a given object (`PlacedBy`), so the host can narrow an object search to the areas it can appear in. |
 | `StructureLocator` | `FIRST` | Every structure key the module knows (the structure index), the ones a world places (commands complete them), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Keys match without regard to case. |
+| `SaplingGrowth` | `ALL` | The tree a growing sapling becomes, as a `Growth` of placed blocks (the first module with one wins; none leaves the growth to the platform), and the objects the module places as trees (`TreeObjects`). The host passes `Surroundings` to read the world around the sapling and places the blocks itself. |
+| `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, and the `ItemDrop`s one table gives there. The host puts them together, tells listeners, creates the stacks and shuffles the container. |
+| `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
+| `EntitySpawns` | `ALL` | A `Plan` of entities to spawn in a chunk or at a marker, each `Attempt` an `EntitySpec` with the block, light range and surface it needs; how many appeared (`spawned`); what a marker means (`MarkerRule`); one entity of the pack on request. The host checks light, surface and free space, spawns, and applies the spec. |
 
 ```
 Service example.Clock is provided by module example:alpha from modules/alpha.jar already, and module example:beta from modules/beta.jar provides it too; a pack has one provider of it (Providers.ONE), so remove one of them
@@ -423,6 +433,16 @@ Field com.example.flora.FloraSettings.count of settings example:flora (module ex
 Class com.example.flora.Shape of settings example:flora (module example:flora from modules/flora.jar) has no no-argument constructor; the host creates settings with it and reads their defaults from it, so declare one, private if nothing else should use it
 Snippet name 'patch' of com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) is not under a module of the pack; snippets of pack modules start with their module's id as a folder path, such as 'example/flora/patch' (folder snippet/example/flora/patch/)
 ```
+
+## Items and entities
+
+A service describes an item or an entity as a value after making every random choice, and the host creates it on the
+platform. `ItemDrop` is one stack: the item key as the pack wrote it, the amount, name, lore, enchantments, attribute
+modifiers, damage as a fraction of the item's durability, colours and custom data. `EntitySpec` is one entity: its type
+or the other plugin's mob, flags, equipment (`ItemDrop`s), passengers, attribute modifiers, loot table keys, leash
+holder, spawn effect and console commands. Modules ask the platform about items through `resources.items()`
+(`ItemRegistry.maxDurability(key)`, empty for an item the platform lacks): whether an item can be damaged decides
+whether a loot entry draws a damage roll, so a module needs it to keep its random stream.
 
 ## Values in settings
 

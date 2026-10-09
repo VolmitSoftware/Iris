@@ -49,7 +49,17 @@ class WorldStateExampleTest {
 
         public void register(FeatureRegistry registry) {
             registry.registerLifecycle(this);
-            registry.registerService(ObjectsAt.class, RuinsModule::objectsAt);
+            registry.registerService(ObjectsAt.class, new ObjectsAt() {
+                @Override
+                public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+                    return RuinsModule.objectsAt(world, chunkX, chunkZ);
+                }
+
+                @Override
+                public PlacedBy placedBy(PackWorld world, String objectKey) {
+                    return PlacedBy.NOTHING;
+                }
+            });
         }
 
         @Override

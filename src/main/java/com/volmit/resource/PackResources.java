@@ -1,6 +1,7 @@
 package com.volmit.resource;
 
 import com.volmit.block.BlockRegistry;
+import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -20,6 +21,9 @@ public interface PackResources {
     ResourceId packId();
     UUID snapshotId();
     BlockRegistry blocks();
+
+    /** Asks the platform about items, such as how much damage one takes. */
+    ItemRegistry items();
 
     /** Builds the noise of the {@link com.volmit.noise.NoiseStyle}s the pack's settings describe. */
     NoiseFactory noise();

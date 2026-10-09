@@ -9,7 +9,8 @@ import com.volmit.world.PackWorld;
  * register itself.
  *
  * <p>Order: {@link #packLoaded} for a pack snapshot before the first world using it starts, then
- * {@link #worldStarted} before that world generates anything, and {@link #worldStopped} when it stops. A hotload, or a
+ * {@link #worldStarted} before that world generates anything, then {@link #warmUp} (a slow worldStarted the host may
+ * run off the main thread), and {@link #worldStopped} when it stops. A hotload, or a
  * reload of the pack's resources while worlds run, stops each world of the old snapshot, loads the new snapshot and
  * starts its worlds again, with empty state (see {@link PackWorld}). The host calls the hooks of a pack's modules in
  * module id order and stops them in reverse, one hook at a time, on the thread that starts or stops the world.
@@ -29,6 +30,17 @@ public interface ModuleLifecycle {
      * modules that had started it already get {@link #worldStopped}.
      */
     default void worldStarted(PackWorld world) {}
+
+    /** {@code world} started: builds the caches that make its first chunks fast, which may be slow. Runs after
+     * {@link #worldStarted} of every module. The host may run it off the main thread: synchronously for a server's
+     * worlds, in the background for studio. It waits for every module's warm-up before the world's first generation, so
+     * a hook that is slow delays that, not the start of the world. A world that stops before its warm-up runs may skip it.
+     *
+     * <p>Only build caches in the module's world state ({@link PackWorld#state}): nothing here may change what the world
+     * generates, because the module also works when the warm-up never ran. A hook that throws does not stop the world;
+     * the host reports the failure, naming the module, and the cache is built when first needed.
+     */
+    default void warmUp(PackWorld world) {}
 
     /** {@code world} stops: it generates nothing more with this pack snapshot. Its state is still readable here and is
      * closed afterwards. The host runs every module's hook even when one throws, then reports the failures.

@@ -28,6 +28,7 @@ class LifecycleRunnerTest {
                 registry.registerLifecycle(new ModuleLifecycle() {
                     public void packLoaded(PackResources resources, PackSettings settings) { record("loaded"); }
                     public void worldStarted(PackWorld world) { record("started"); }
+                    public void warmUp(PackWorld world) { record("warmed"); }
                     public void worldStopped(PackWorld world) { record("stopped"); }
 
                     private void record(String hook) {
@@ -84,6 +85,45 @@ class LifecycleRunnerTest {
         }
 
         assertEquals(List.of("stopped test:gamma", "stopped test:beta", "stopped test:alpha"), calls);
+    }
+
+    @Test
+    void warmsUpInModuleIdOrderAfterTheModulesStarted() {
+        var calls = new ArrayList<String>();
+        var runner = runner(module("test:zeta", calls, null), module("test:alpha", calls, null));
+        try (var world = new TestWorld()) {
+            runner.worldStarted(world);
+            runner.warmUp(world);
+        }
+
+        assertEquals(List.of("started test:alpha", "started test:zeta", "warmed test:alpha", "warmed test:zeta"), calls);
+    }
+
+    @Test
+    void everyModuleWarmsUpEvenWhenOneFailsAndEveryFailureIsReported() {
+        var calls = new ArrayList<String>();
+        var runner = runner(module("test:alpha", calls, "warmed"), module("test:beta", calls, null), module("test:gamma", calls, "warmed"));
+        try (var world = new TestWorld()) {
+            var failure = assertThrows(IllegalStateException.class, () -> runner.warmUp(world));
+            assertTrue(failure.getMessage().startsWith("Module test:alpha from host classpath failed while warming up a world"),
+                    failure.getMessage());
+            assertEquals(1, failure.getSuppressed().length);
+            assertTrue(failure.getSuppressed()[0].getMessage().startsWith("Module test:gamma"));
+        }
+
+        assertEquals(List.of("warmed test:alpha", "warmed test:beta", "warmed test:gamma"), calls);
+    }
+
+    @Test
+    void modulesWithoutAWarmUpHookWarmUpNothing() {
+        var module = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:plain", "Plain", "1"); }
+            public void install(StageGraph graph) {}
+            public void register(FeatureRegistry registry) { registry.registerLifecycle(new ModuleLifecycle() {}); }
+        };
+        try (var world = new TestWorld()) {
+            runner(module).warmUp(world);
+        }
     }
 
     @Test

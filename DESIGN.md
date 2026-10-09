@@ -858,7 +858,8 @@ each world a state store and tells modules when worlds start and stop.
   on its own thread, since creation holds one re-entrant lock, and asking for the type being created fails naming the
   chain instead of recursing or deadlocking. A factory that throws keeps nothing. Reads of existing state take no lock.
   `WorldStates` is the reference store hosts use.
-- **Hooks.** `ModuleLifecycle` has `packLoaded(resources, settings)`, `worldStarted(world)` and `worldStopped(world)`,
+- **Hooks.** `ModuleLifecycle` has `packLoaded(resources, settings)`, `worldStarted(world)`, `warmUp(world)` and
+  `worldStopped(world)`,
   each a no-op by default, registered with `FeatureRegistry.registerLifecycle` like validators, so the host knows the
   owning module for errors and orders hooks by module id. A module class may implement it and register itself.
   `packLoaded` runs once per snapshot before its first world starts; a pack that is only validated or edited in studio
@@ -871,8 +872,16 @@ each world a state store and tells modules when worlds start and stop.
 - **Failures.** A failing `packLoaded` or `worldStarted` keeps the world from starting, naming the module, and the
   modules that had started get `worldStopped`. Every `worldStopped` runs even when one fails; the failures are reported
   together. `LifecycleRunner` implements these rules for hosts.
-- **Threading.** Hooks of one world run one at a time on the thread that starts or stops it, in module id order and
-  stops in reverse. State is safe from any thread.
+- **Warm-up.** `warmUp` is a second start hook for caches that take long to build. `worldStarted` runs on the thread
+  that starts the world and delays it, so a studio host would stall its start; `warmUp` lets the host pick: wait for it
+  on the starting thread (server worlds, which must not generate before the caches exist) or run it in the background
+  and make the first generation wait (studio, where the world is usable at once). A world therefore never generates
+  with half-built caches, and a module need not guard its own cache against a still-running warm-up beyond the
+  state store's rules. It only builds caches: a failure is reported per module and does not stop the world, since the
+  cache is built on first use anyway. `LifecycleRunner.warmUp` runs every module's hook even when one fails.
+- **Threading.** `packLoaded`, `worldStarted` and `worldStopped` of one world run one at a time on the thread that
+  starts or stops it, in module id order and stops in reverse; `warmUp` runs where the host chose, after
+  `worldStarted`. State is safe from any thread.
 - **Not added (yet):** a pack-level store shared by the worlds of one snapshot. Every known consumer (decoration
   streams, warm-up, placement workers, structure indexes) is per world; per-world state built from pack data costs
   a little duplication when several worlds share a pack.

@@ -246,6 +246,10 @@ public final class RuinsModule implements IrisModule, ModuleLifecycle {
   holds every entry of the whole pack.
 - `worldStarted(world)` runs before the world generates anything, `worldStopped(world)` when it stops; its state is
   still readable there.
+- `warmUp(world)` runs after every module's `worldStarted` and may be slow: build caches in the world's state there,
+  not in `worldStarted`. The host may run it off the main thread and waits for it before the world's first
+  generation. A failing `warmUp` does not stop the world; the host reports it naming the module and the cache is built
+  when first needed, so never put anything there the world cannot do without.
 - A hotload, or a reload of the pack's resources while worlds run (a tool rewrote files), stops each world, loads the
   new snapshot and starts the worlds again with empty state. State never outlives the resources it was built from.
 - Hooks run in module id order, stops in reverse. A failing `packLoaded` or `worldStarted` stops the world from
@@ -642,6 +646,7 @@ The host keeps one `PackWorld` per world and pack snapshot. `WorldStates` is the
 var lifecycles = new LifecycleRunner(pack.catalog());
 lifecycles.packLoaded(resources, packSettings);     // once per snapshot, before its first world starts
 lifecycles.worldStarted(world);                     // then hand world to every invocation of the world
+lifecycles.warmUp(world);                           // slow cache building, on any thread, before the first generation
 ...
 lifecycles.worldStopped(world);                     // then close the world's WorldStates
 

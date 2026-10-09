@@ -13,6 +13,7 @@ import java.util.Objects;
  * var lifecycles = new LifecycleRunner(pack.catalog());
  * lifecycles.packLoaded(resources, packSettings);   // once per pack snapshot, before its first world starts
  * lifecycles.worldStarted(world);                   // before the world generates anything
+ * lifecycles.warmUp(world);                         // then, possibly on another thread, before its first generation
  * ...
  * lifecycles.worldStopped(world);                   // then close the world's state
  * }</pre>
@@ -57,6 +58,30 @@ public final class LifecycleRunner {
                 stopInReverse(world, index - 1, startFailure);
                 throw startFailure;
             }
+        }
+    }
+
+    /** Runs every {@code warmUp} hook in order, each even when an earlier one threw; afterwards throws the first
+     * failure, naming its module, with the later ones suppressed. The caller picks the thread and waits for this
+     * before the world generates.
+     */
+    public void warmUp(PackWorld world) {
+        Objects.requireNonNull(world, "world");
+        IllegalStateException failure = null;
+        for (var registration : lifecycles) {
+            try {
+                registration.lifecycle().warmUp(world);
+            } catch (RuntimeException warmFailure) {
+                var named = failed("warming up a world", registration, warmFailure);
+                if (failure == null) {
+                    failure = named;
+                } else {
+                    failure.addSuppressed(named);
+                }
+            }
+        }
+        if (failure != null) {
+            throw failure;
         }
     }
 

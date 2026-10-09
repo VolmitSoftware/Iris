@@ -165,7 +165,8 @@ running Iris is the pack publisher's responsibility.
 - Keep one `PackWorld` per world and pack snapshot and pass it to every invocation of the world
   (`InvocationContext.world()`), to service calls and to hooks. Use `WorldStates` (or the same rules) for its store.
 - Call the hooks with `LifecycleRunner`: `packLoaded` once per pack snapshot before its first world starts,
-  `worldStarted` before the world generates anything, `worldStopped` when it stops. On a hotload, and when the pack's
+  `worldStarted` before the world generates anything, `warmUp` after it (on a thread of your choice, and wait for it before
+  the world's first generation; report a failure naming the module and carry on), `worldStopped` when it stops. On a hotload, and when the pack's
   resources are read again while worlds run, stop each world, load the new snapshot and start the world again with
   a new store. Close a stopped world's store only once no invocation uses it any more.
 - A failed `packLoaded` or `worldStarted` keeps the world from starting and names the module; report `worldStopped`

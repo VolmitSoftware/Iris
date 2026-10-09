@@ -26,6 +26,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.block.BlockRegistry;
 import com.volmit.host.ResourceKindRegistration;
+import com.volmit.noise.NoiseFactory;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -57,6 +58,9 @@ import java.util.function.Supplier;
  * another namespace, is absent; any other type fails with {@link IllegalArgumentException}. A resource that exists
  * but cannot be loaded fails with {@link IllegalStateException}. Each resource is built once and kept for the
  * snapshot. The module kinds are looked up the first time one is asked for, which loads the pack's modules.
+ * <p>
+ * Blocks resolve through the platform and the pack's {@code blocks} folder ({@link IrisBlockRegistry}), and noise
+ * styles through Iris's generators, expressions and image maps ({@link IrisNoiseFactory}), both kept per snapshot.
  */
 public final class IrisPackResources implements PackResources {
     private static final String SERVED_TYPES = "GeneratedObject, PackBiome, PackRegion and the types of the pack's module resource kinds";
@@ -64,7 +68,8 @@ public final class IrisPackResources implements PackResources {
     private final IrisData data;
     private final PackResourceIds ids;
     private final UUID snapshotId = UUID.randomUUID();
-    private final BlockRegistry blocks = new IrisBlockRegistry();
+    private final BlockRegistry blocks;
+    private final NoiseFactory noise;
     private final Map<Class<?>, Kind<?>> irisKinds;
     private final Supplier<List<ResourceKind<?>>> moduleKindList;
     private volatile Map<Class<?>, Kind<?>> moduleKinds;
@@ -81,6 +86,8 @@ public final class IrisPackResources implements PackResources {
         this.data = data;
         this.ids = new PackResourceIds(data.getDataFolder());
         this.moduleKindList = moduleKinds;
+        this.blocks = new IrisBlockRegistry(data);
+        this.noise = new IrisNoiseFactory(data);
         this.irisKinds = Map.of(
                 GeneratedObject.class, Kind.<IrisObject, GeneratedObject>ofLoader(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
                 PackBiome.class, Kind.<IrisBiome, PackBiome>ofLoader(ids, data::getBiomeLoader, this::biomeOf),
@@ -100,6 +107,11 @@ public final class IrisPackResources implements PackResources {
     @Override
     public BlockRegistry blocks() {
         return blocks;
+    }
+
+    @Override
+    public NoiseFactory noise() {
+        return noise;
     }
 
     @Override

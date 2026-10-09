@@ -21,6 +21,7 @@ package art.arcane.iris.core.project;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.spi.IrisLogging;
@@ -230,6 +231,9 @@ public class IrisCodeWorkspace {
         }
 
         for (ObjectType type : dm.getModules().pack().schema().snippets()) {
+            if (IrisValues.irisClassOf(type.name()).isPresent()) {
+                continue;
+            }
             schemaEntries.add(moduleSnippetSchema(dm, type, immediateSchemas));
         }
         schemaEntries.addAll(ModuleResourceSchemas.entries(dm, immediateSchemas));
@@ -252,7 +256,10 @@ public class IrisCodeWorkspace {
         return ws;
     }
 
-    /** A module's snippet type gets its own schema for the files under {@code snippet/<name>/}, as Iris's snippets do. */
+    /**
+     * A module's snippet type gets its own schema for the files under {@code snippet/<name>/}, as Iris's snippets do. IrisApi's
+     * value types share their snippet folders with the Iris classes that read the same JSON, whose schemas Iris writes.
+     */
     private static JSONObject moduleSnippetSchema(IrisData data, ObjectType type, boolean immediate) {
         String name = type.snippet().orElseThrow();
         JSONObject entry = snippetSchemaEntry(name);

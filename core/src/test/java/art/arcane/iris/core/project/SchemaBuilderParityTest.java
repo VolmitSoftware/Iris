@@ -275,6 +275,22 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
+    public void moduleSettingsHoldingApiValueTypesUseIrisDescriptionsOfTheSameJson() throws IOException {
+        JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(tintModuleSchema())).construct();
+        JSONObject definitions = schema.getJSONObject("definitions");
+        JSONObject tint = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("example:tint")))
+                .getJSONObject("properties");
+
+        JSONObject spec = definitions.getJSONObject(definitionKey(tint.getJSONObject("palette").getJSONObject("items")));
+        assertEquals("obj-art-arcane-iris-engine-object-material-irisblockdata", definitionKey(spec));
+        assertTrue(definitions.getJSONObject("obj-art-arcane-iris-engine-object-material-irisblockdata").getJSONObject("properties").has("block"));
+        JSONArray style = definitions.getJSONObject(definitionKey(tint.getJSONObject("style"))).getJSONArray("anyOf");
+        assertEquals("obj-art-arcane-iris-engine-object-noise-irisgeneratorstyle", definitionKey(style.getJSONObject(0)));
+        assertEquals("a style may be a snippet, as Iris's styles may", "^snippet/", style.getJSONObject(1).getString("pattern"));
+        assertEquals("any JSON value", 0, tint.getJSONObject("extra").getJSONObject("additionalProperties").length());
+    }
+
+    @Test
     public void dimensionSchemaExposesSurfaceSupportDefaults() {
         JSONObject properties = rootProperties(
                 new SchemaBuilder(IrisDimension.class, structureSchemaData()).construct());
@@ -643,6 +659,34 @@ public class SchemaBuilderParityTest {
         try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
                 ModuleHost.of(List.of(new GlowModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
             return pack.schema();
+        }
+    }
+
+    private static PackSchema tintModuleSchema() throws IOException {
+        Path root = Files.createTempDirectory("tint-pack");
+        try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
+                ModuleHost.of(List.of(new TintModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
+            return pack.schema();
+        }
+    }
+
+    @Feature(id = "example:tint", name = "Tint", targets = Target.OBJECT_PLACEMENT)
+    public static final class TintSettings implements IrisFeature {
+        private List<com.volmit.block.BlockSpec> palette = List.of();
+        private com.volmit.noise.NoiseStyle style = com.volmit.noise.NoiseStyle.of("SIMPLEX");
+        private java.util.Map<String, Object> extra = java.util.Map.of();
+    }
+
+    public static final class TintModule implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("example:tint", "Tint", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(Stage.placement("example:tint/paint")).when(TintSettings.class).run((context, tint) -> {
+            });
         }
     }
 

@@ -57,7 +57,9 @@ import java.util.stream.Stream;
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
  * that target, under its id or, for built-ins, its alias. Settings are created with their no-argument
  * constructor and the JSON is read into them, so an omitted option keeps its default. A {@link Snippet}
- * type may be written as {@code "snippet/<name>"}, read from {@code snippet/<snippet folder>/<name>.json}.
+ * type may be written as {@code "snippet/<name>"} or, as Iris's own snippets are, {@code "snippet/<snippet folder>/<name>"},
+ * both read from {@code snippet/<snippet folder>/<name>.json}. IrisApi's value types ({@code BlockSpec},
+ * {@code NoiseStyle} and the rest) are read like settings, and an {@code Object} as Gson reads any JSON value.
  * <p>
  * Settings with exactly one option may be written as that option's value: {@code "snow": 0.5} reads as
  * {@code "snow": {"amount": 0.5}}. Iris's own classes that built-in settings hold (see
@@ -244,13 +246,20 @@ public final class ModuleSettingsDecoder {
         }
     }
 
+    /** The file name below the snippet folder: {@code snippet/<name>} and {@code snippet/<snippet folder>/<name>} name the same file. */
+    private static String snippetName(String snippetFolder, String reference) {
+        String name = reference.substring(SNIPPET_PREFIX.length());
+        String folderPrefix = snippetFolder + "/";
+        return name.startsWith(folderPrefix) ? name.substring(folderPrefix.length()) : name;
+    }
+
     private String readSnippet(String snippetFolder, String reference) {
         if (!reference.startsWith(SNIPPET_PREFIX)) {
             throw new JsonParseException("\"" + reference + "\" is neither an object nor a snippet reference; write the object,"
                     + " or snippet/<name> for the file " + SNIPPET_FOLDER + "/" + snippetFolder + "/<name>" + JSON_EXTENSION);
         }
         Path folder = packFolder.resolve(SNIPPET_FOLDER).resolve(snippetFolder).normalize();
-        Path file = folder.resolve(reference.substring(SNIPPET_PREFIX.length()) + JSON_EXTENSION).normalize();
+        Path file = folder.resolve(snippetName(snippetFolder, reference) + JSON_EXTENSION).normalize();
         if (!file.startsWith(folder) || !Files.isRegularFile(file)) {
             throw new JsonParseException("Snippet " + reference + " has no file " + packFolder.relativize(file));
         }

@@ -18,13 +18,16 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.validate.ObjectLimit;
+import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.IrisModule;
@@ -51,6 +54,11 @@ public final class ValidateModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:validate", "Placement checks", PlacementModules.VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(ObjectLimit.class);
     }
 
     @Override

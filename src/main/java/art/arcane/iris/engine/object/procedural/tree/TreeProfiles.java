@@ -18,13 +18,14 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeProfile;
+import art.arcane.iris.builtin.objects.tree.TreeProfile;
+
 
 public final class TreeProfiles {
     private TreeProfiles() {
     }
 
-    static double radiusScale(IrisTreeProfile profile) {
+    static double radiusScale(TreeProfile profile) {
         return switch (profile) {
             case OAK, DARK_OAK, CHERRY -> 1.0;
             case BIRCH -> 0.7;
@@ -41,7 +42,7 @@ public final class TreeProfiles {
         };
     }
 
-    static double[][] fractions(IrisTreeProfile profile) {
+    static double[][] fractions(TreeProfile profile) {
         return switch (profile) {
             case OAK -> new double[][]{{0.55, 0.6}, {0.65, 0.9}, {0.75, 1.0}, {0.85, 0.9}, {0.92, 0.65}, {0.98, 0.35}};
             case BIRCH -> new double[][]{{0.6, 0.45}, {0.7, 0.75}, {0.8, 0.85}, {0.88, 0.75}, {0.94, 0.45}, {0.99, 0.2}};
@@ -59,7 +60,7 @@ public final class TreeProfiles {
         };
     }
 
-    static double[][] presetLayers(IrisTreeProfile profile, int height, boolean branchDriven) {
+    static double[][] presetLayers(TreeProfile profile, int height, boolean branchDriven) {
         double scale = radiusScale(profile);
         int baseRadius = Math.max(3, (int) Math.round(height / 2.0 * scale));
         double[][] fractions = fractions(profile);

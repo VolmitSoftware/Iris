@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.tree.TreeDecorator;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeDecorator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
@@ -32,19 +32,19 @@ public final class TreeDecoratorApplier {
     }
 
     public static void apply(TreeBlockCanvas canvas, IrisProceduralTree tree, long baseSeed, List<int[]> branchEndpoints) {
-        KList<IrisTreeDecorator> decorators = tree.getDecorators();
+        KList<TreeDecorator> decorators = tree.getDecorators();
         if (decorators == null || decorators.isEmpty()) {
             return;
         }
         RNG rng = new RNG(baseSeed + 77777L);
 
         for (int idx = 0; idx < decorators.size(); idx++) {
-            IrisTreeDecorator dec = decorators.get(idx);
-            boolean hasBlock = (dec.getBlock() != null && !dec.getBlock().isEmpty()) || TreeTrunkBuilder.paletteSet(dec.getPalette());
+            TreeDecorator dec = decorators.get(idx);
+            boolean hasBlock = (dec.block() != null && !dec.block().isEmpty()) || dec.palette().isPresent();
             if (!hasBlock) {
                 continue;
             }
-            switch (dec.getTarget()) {
+            switch (dec.target()) {
                 case BRANCH_TIP -> branchTip(canvas, dec, idx, branchEndpoints, rng);
                 case TRUNK_SURFACE -> trunkSurface(canvas, dec, idx, rng);
                 case CANOPY_TOP -> canopyTop(canvas, dec, idx, rng);
@@ -59,63 +59,63 @@ public final class TreeDecoratorApplier {
         }
     }
 
-    private static void branchTip(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, List<int[]> branchEndpoints, RNG rng) {
+    private static void branchTip(TreeBlockCanvas canvas, TreeDecorator dec, int idx, List<int[]> branchEndpoints, RNG rng) {
         if (branchEndpoints == null) {
             return;
         }
         for (int[] e : branchEndpoints) {
-            if (rng.nextDouble() > dec.getChance()) {
+            if (rng.nextDouble() > dec.chance()) {
                 continue;
             }
             if (canvas.has(e[0], e[1], e[2])) {
                 continue;
             }
-            String facing = dec.isAxisAware() ? facingAway(e[3], e[4], e[0], e[2]) : null;
+            String facing = dec.axisAware() ? facingAway(e[3], e[4], e[0], e[2]) : null;
             canvas.setDecor(e[0], e[1], e[2], idx, facing);
         }
     }
 
-    private static void trunkSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void trunkSurface(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         String[] facings = {"west", "east", "north", "south"};
         for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
             for (int i = 0; i < sides.length; i++) {
                 int nx = v.x() + sides[i][0];
                 int nz = v.z() + sides[i][1];
-                if (canvas.has(nx, v.y(), nz) || rng.nextDouble() > dec.getChance()) {
+                if (canvas.has(nx, v.y(), nz) || rng.nextDouble() > dec.chance()) {
                     continue;
                 }
-                canvas.setDecor(nx, v.y(), nz, idx, dec.isAxisAware() ? facings[i] : null);
+                canvas.setDecor(nx, v.y(), nz, idx, dec.axisAware() ? facings[i] : null);
             }
         }
     }
 
-    private static void leafSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void leafSurface(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         String[] facings = {"west", "east", "north", "south"};
         for (TreeBlockCanvas.Vec v : new KList<>(canvas.getLeaf())) {
             for (int i = 0; i < sides.length; i++) {
                 int nx = v.x() + sides[i][0];
                 int nz = v.z() + sides[i][1];
-                if (canvas.has(nx, v.y(), nz) || rng.nextDouble() > dec.getChance()) {
+                if (canvas.has(nx, v.y(), nz) || rng.nextDouble() > dec.chance()) {
                     continue;
                 }
-                canvas.setDecor(nx, v.y(), nz, idx, dec.isAxisAware() ? facings[i] : null);
+                canvas.setDecor(nx, v.y(), nz, idx, dec.axisAware() ? facings[i] : null);
             }
         }
     }
 
-    private static void branchSurface(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void branchSurface(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
             int ay = v.y() + 1;
-            if (canvas.has(v.x(), ay, v.z()) || rng.nextDouble() > dec.getChance()) {
+            if (canvas.has(v.x(), ay, v.z()) || rng.nextDouble() > dec.chance()) {
                 continue;
             }
             canvas.setDecor(v.x(), ay, v.z(), idx, null);
         }
     }
 
-    private static void canopyTop(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void canopyTop(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         KMap<Long, Integer> colTop = new KMap<>();
         for (TreeBlockCanvas.Vec v : canvas.getCells().keySet()) {
             long key = pack(v.x(), v.z());
@@ -128,31 +128,31 @@ public final class TreeDecoratorApplier {
             int x = unpackX(e.getKey());
             int z = unpackZ(e.getKey());
             int aboveY = e.getValue() + 1;
-            if (canvas.has(x, aboveY, z) || rng.nextDouble() > dec.getChance()) {
+            if (canvas.has(x, aboveY, z) || rng.nextDouble() > dec.chance()) {
                 continue;
             }
             canvas.setDecor(x, aboveY, z, idx, null);
         }
     }
 
-    private static void canopyBottom(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void canopyBottom(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         KMap<Long, Integer> colBottom = columnLeafBottoms(canvas);
         for (Map.Entry<Long, Integer> e : colBottom.entrySet()) {
             int x = unpackX(e.getKey());
             int z = unpackZ(e.getKey());
             int belowY = e.getValue() - 1;
-            if (canvas.has(x, belowY, z) || rng.nextDouble() > dec.getChance()) {
+            if (canvas.has(x, belowY, z) || rng.nextDouble() > dec.chance()) {
                 continue;
             }
             canvas.setDecor(x, belowY, z, idx, null);
         }
     }
 
-    private static void canopyHang(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
-        int maxLen = Math.max(1, dec.getLength());
+    private static void canopyHang(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
+        int maxLen = Math.max(1, dec.length());
         KMap<Long, Integer> colBottom = columnLeafBottoms(canvas);
         for (Map.Entry<Long, Integer> e : colBottom.entrySet()) {
-            if (rng.nextDouble() > dec.getChance()) {
+            if (rng.nextDouble() > dec.chance()) {
                 continue;
             }
             int x = unpackX(e.getKey());
@@ -168,7 +168,7 @@ public final class TreeDecoratorApplier {
         }
     }
 
-    private static void trunkBase(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void trunkBase(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         int[][] sides = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
         for (TreeBlockCanvas.Vec v : new KList<>(canvas.getTrunk())) {
             if (v.y() != 0) {
@@ -177,7 +177,7 @@ public final class TreeDecoratorApplier {
             for (int[] side : sides) {
                 int nx = v.x() + side[0];
                 int nz = v.z() + side[1];
-                if (canvas.has(nx, 0, nz) || rng.nextDouble() > dec.getChance()) {
+                if (canvas.has(nx, 0, nz) || rng.nextDouble() > dec.chance()) {
                     continue;
                 }
                 canvas.setDecor(nx, 0, nz, idx, null);
@@ -185,7 +185,7 @@ public final class TreeDecoratorApplier {
         }
     }
 
-    private static void trunkTop(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void trunkTop(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         int maxY = Integer.MIN_VALUE;
         for (TreeBlockCanvas.Vec v : canvas.getTrunk()) {
             maxY = Math.max(maxY, v.y());
@@ -198,14 +198,14 @@ public final class TreeDecoratorApplier {
                 continue;
             }
             int aboveY = v.y() + 1;
-            if (canvas.has(v.x(), aboveY, v.z()) || rng.nextDouble() > dec.getChance()) {
+            if (canvas.has(v.x(), aboveY, v.z()) || rng.nextDouble() > dec.chance()) {
                 continue;
             }
             canvas.setDecor(v.x(), aboveY, v.z(), idx, null);
         }
     }
 
-    private static void groundScatter(TreeBlockCanvas canvas, IrisTreeDecorator dec, int idx, RNG rng) {
+    private static void groundScatter(TreeBlockCanvas canvas, TreeDecorator dec, int idx, RNG rng) {
         double cx = 0;
         double cz = 0;
         int count = 0;
@@ -237,7 +237,7 @@ public final class TreeDecoratorApplier {
                 }
                 int x = icx + dx;
                 int z = icz + dz;
-                if (canvas.has(x, 0, z) || rng.nextDouble() > dec.getChance()) {
+                if (canvas.has(x, 0, z) || rng.nextDouble() > dec.chance()) {
                     continue;
                 }
                 canvas.setDecor(x, 0, z, idx, null);

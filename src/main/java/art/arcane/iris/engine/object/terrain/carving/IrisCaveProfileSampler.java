@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -31,7 +32,8 @@ public final class IrisCaveProfileSampler {
     private static final double FLOATING_THRESHOLD_BIAS_SCALE = 0.2D;
 
     private final IrisData data;
-    private final IrisCaveProfile profile;
+    private final CaveProfile profile;
+    private final ResolvedCaveProfile resolved;
     private final CNG baseDensity;
     private final CNG detailDensity;
     private final CNG warpDensity;
@@ -45,24 +47,25 @@ public final class IrisCaveProfileSampler {
     private final boolean hasWarp;
     private final boolean hasModules;
 
-    public IrisCaveProfileSampler(Engine engine, IrisCaveProfile profile) {
+    public IrisCaveProfileSampler(Engine engine, CaveProfile profile) {
         this.data = engine.getData();
         this.profile = profile;
+        this.resolved = ResolvedCaveProfile.of(profile);
         List<ModuleState> moduleStates = new ArrayList<>();
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
-        this.detailDensity = profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
-        this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data);
+        this.baseDensity = resolved.baseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
+        this.detailDensity = resolved.detailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
+        this.warpDensity = resolved.warpStyle().create(baseRng.nextParallelRNG(770_713), data);
         this.thresholdRng = baseRng.nextParallelRNG(489_112);
-        this.baseWeight = profile.getBaseWeight();
-        this.detailWeight = profile.getDetailWeight();
-        this.warpStrength = profile.getWarpStrength();
+        this.baseWeight = profile.baseWeight();
+        this.detailWeight = profile.detailWeight();
+        this.warpStrength = profile.warpStrength();
         this.hasWarp = warpStrength > 0D;
 
         double weight = Math.abs(baseWeight) + Math.abs(detailWeight);
         int index = 0;
-        for (IrisCaveFieldModule module : profile.getModules()) {
-            CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
+        for (ResolvedCaveProfile.Module module : resolved.modules()) {
+            CNG moduleDensity = module.style().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
             ModuleState state = new ModuleState(module, moduleDensity);
             moduleStates.add(state);
             weight += Math.abs(state.weight);
@@ -73,7 +76,7 @@ public final class IrisCaveProfileSampler {
         double normalization = weight <= 0 ? 1D : weight;
         this.inverseNormalization = 1D / normalization;
         this.hasModules = modules.length > 0;
-        this.enabled = profile.isEnabled() && baseDensity != null && detailDensity != null && (!hasWarp || warpDensity != null);
+        this.enabled = profile.enabled() && baseDensity != null && detailDensity != null && (!hasWarp || warpDensity != null);
     }
 
     public boolean shouldCarve(int x, int y, int z, double floatingCarveThreshold) {
@@ -81,7 +84,7 @@ public final class IrisCaveProfileSampler {
             return false;
         }
 
-        double threshold = profile.getDensityThreshold().get(thresholdRng, x, z, data) - profile.getThresholdBias();
+        double threshold = resolved.densityThreshold().get(thresholdRng, x, z, data) - profile.thresholdBias();
         threshold += floatingThresholdBias(floatingCarveThreshold);
         return sampleDensity(x, y, z) <= threshold;
     }
@@ -144,14 +147,14 @@ public final class IrisCaveProfileSampler {
         private final double threshold;
         private final boolean invert;
 
-        private ModuleState(IrisCaveFieldModule module, CNG density) {
-            IrisRange range = module.getVerticalRange();
+        private ModuleState(ResolvedCaveProfile.Module module, CNG density) {
+            IrisRange range = module.verticalRange();
             this.density = density;
             this.minY = (int) Math.floor(range.getMin());
             this.maxY = (int) Math.ceil(range.getMax());
-            this.weight = module.getWeight();
-            this.threshold = module.getThreshold();
-            this.invert = module.isInvert();
+            this.weight = module.weight();
+            this.threshold = module.threshold();
+            this.invert = module.invert();
         }
 
         private boolean isActive(int y) {

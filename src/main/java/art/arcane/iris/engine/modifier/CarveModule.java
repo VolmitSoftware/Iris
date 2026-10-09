@@ -18,6 +18,9 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.carve.CaveFieldModule;
+import art.arcane.iris.builtin.carve.CaveProfile;
+import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisMantleChunk;
@@ -44,6 +47,12 @@ public final class CarveModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:carve", "Caves", VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(CaveProfile.class);
+        registry.registerHeldType(CaveFieldModule.class);
     }
 
     @Override

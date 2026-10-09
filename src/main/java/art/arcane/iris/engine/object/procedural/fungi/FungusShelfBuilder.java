@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.fungi;
 
-import art.arcane.iris.engine.object.procedural.fungi.IrisFungus;
+import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
@@ -29,20 +29,20 @@ public final class FungusShelfBuilder {
     private FungusShelfBuilder() {
     }
 
-    public static void build(Map<Vector3i, FungusCellRole> roles, IrisFungus fungus, RNG rng, long seed) {
-        int radius = Math.max(1, fungus.getShelfRadius());
+    public static void build(Map<Vector3i, FungusCellRole> roles, Fungus fungus, RNG rng, long seed) {
+        int radius = Math.max(1, fungus.shelfRadius());
         double azimuth = rng.d(0.0, Math.PI * 2.0);
         double fanX = Math.sin(azimuth);
         double fanZ = Math.cos(azimuth);
-        int stubHeight = Math.max(0, Math.min(2, fungus.getStemWidth()));
+        int stubHeight = Math.max(0, Math.min(2, fungus.stemWidth()));
 
         for (int y = 0; y < stubHeight; y++) {
             roles.put(new Vector3i(0, y, 0), FungusCellRole.STEM);
         }
 
         int fanY = stubHeight;
-        boolean hasGill = FungusCapBuilder.blockOrPaletteSet(fungus.getGillBlock(), fungus.getGillPalette());
-        boolean hasSpot = FungusCapBuilder.blockOrPaletteSet(fungus.getSpotBlock(), fungus.getSpotPalette());
+        boolean hasGill = FungusCapBuilder.blockOrPaletteSet(fungus.gillBlock(), fungus.gillPalette());
+        boolean hasSpot = FungusCapBuilder.blockOrPaletteSet(fungus.spotBlock(), fungus.spotPalette());
 
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
@@ -59,12 +59,12 @@ public final class FungusShelfBuilder {
                 int y = fanY + lift;
 
                 FungusCellRole role = FungusCellRole.CAP;
-                if (hasSpot && spotNoise(dx, y, dz, seed + 9311L) <= fungus.getSpotChance()) {
+                if (hasSpot && spotNoise(dx, y, dz, seed + 9311L) <= fungus.spotChance()) {
                     role = FungusCellRole.SPOT;
                 }
                 roles.putIfAbsent(new Vector3i(dx, y, dz), role);
 
-                if (hasGill && rollNoise(dx, y - 1, dz, seed + 4111L) <= fungus.getGillChance()) {
+                if (hasGill && rollNoise(dx, y - 1, dz, seed + 4111L) <= fungus.gillChance()) {
                     roles.putIfAbsent(new Vector3i(dx, y - 1, dz), FungusCellRole.GILL);
                 }
             }

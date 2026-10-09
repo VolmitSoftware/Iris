@@ -18,6 +18,10 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
@@ -28,12 +32,10 @@ import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -47,6 +49,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -91,10 +94,10 @@ public class FloatingObjectPlacing {
         // The IdentityHashMaps are lookup indices only. Iteration MUST follow the encounter
         // order of the deterministic 0..255 column scan: identity-hash order changes per JVM
         // run, and the shared chunkRng makes placement output depend on iteration order.
-        IdentityHashMap<IrisFloatingChildBiomes, KList<Integer>> entryColumns = new IdentityHashMap<>();
-        IdentityHashMap<IrisFloatingChildBiomes, KList<Integer>> bottomEntryColumns = new IdentityHashMap<>();
-        KList<IrisFloatingChildBiomes> entryOrder = new KList<>();
-        KList<IrisFloatingChildBiomes> bottomEntryOrder = new KList<>();
+        IdentityHashMap<ResolvedFloatingChild, KList<Integer>> entryColumns = new IdentityHashMap<>();
+        IdentityHashMap<ResolvedFloatingChild, KList<Integer>> bottomEntryColumns = new IdentityHashMap<>();
+        KList<ResolvedFloatingChild> entryOrder = new KList<>();
+        KList<ResolvedFloatingChild> bottomEntryOrder = new KList<>();
         for (int i = 0; i < 256; i++) {
             FloatingIslandSample s = samples[i];
             if (s == null || s.entry == null) {
@@ -104,7 +107,7 @@ public class FloatingObjectPlacing {
                 entryOrder.add(e);
                 return new KList<>();
             }).add(i);
-            IrisFloatingChildBiomes bottomEntry = s.bottomEntry();
+            ResolvedFloatingChild bottomEntry = s.bottomEntry();
             if (bottomEntry != null) {
                 bottomEntryColumns.computeIfAbsent(bottomEntry, e -> {
                     bottomEntryOrder.add(e);
@@ -113,7 +116,7 @@ public class FloatingObjectPlacing {
             }
         }
 
-        for (IrisFloatingChildBiomes entry : entryOrder) {
+        for (ResolvedFloatingChild entry : entryOrder) {
             KList<Integer> columns = entryColumns.get(entry);
             if (columns.isEmpty()) {
                 continue;
@@ -123,7 +126,7 @@ public class FloatingObjectPlacing {
             IrisBiome parent = sampleResolver.parent(minX + (firstKey & 15), minZ + (firstKey >> 4));
             IrisBiome target = entry.getRealBiome(parent, data);
 
-            KList<IrisObjectPlacement> floating = entry.getFloatingObjects();
+            KList<IrisObjectPlacement> floating = new KList<>(entry.settings().floatingObjects());
             if (floating != null && !floating.isEmpty()) {
                 for (IrisObjectPlacement placement : floating) {
                     tryPlaceFloatingChunk(writer, complex, chunkRng, data, placement, columns, minX, minZ, entry);
@@ -131,7 +134,7 @@ public class FloatingObjectPlacing {
             }
 
             KList<IrisObjectPlacement> surface = target != null ? entry.resolveTopObjects(target) : null;
-            KList<IrisObjectPlacement> extras = entry.getExtraObjects();
+            KList<IrisObjectPlacement> extras = new KList<>(entry.settings().extraObjects());
             boolean hasSurface = surface != null && !surface.isEmpty();
             boolean hasExtras = extras != null && !extras.isEmpty();
             KList<Integer> interior = null;
@@ -150,7 +153,7 @@ public class FloatingObjectPlacing {
             }
         }
 
-        for (IrisFloatingChildBiomes entry : bottomEntryOrder) {
+        for (ResolvedFloatingChild entry : bottomEntryOrder) {
             KList<Integer> columns = bottomEntryColumns.get(entry);
             if (columns.isEmpty()) {
                 continue;
@@ -170,7 +173,7 @@ public class FloatingObjectPlacing {
     }
 
     @ChunkCoordinates
-    private void tryPlaceFloatingChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, KList<Integer> columns, int minX, int minZ, IrisFloatingChildBiomes entry) {
+    private void tryPlaceFloatingChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, KList<Integer> columns, int minX, int minZ, ResolvedFloatingChild entry) {
         if (placement == null || columns == null || columns.isEmpty()) {
             return;
         }
@@ -216,7 +219,7 @@ public class FloatingObjectPlacing {
     }
 
     @ChunkCoordinates
-    private void tryPlaceAnchoredChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, IrisFloatingChildBiomes entry) {
+    private void tryPlaceAnchoredChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, ResolvedFloatingChild entry) {
         if (placement == null || columns.isEmpty()) {
             return;
         }
@@ -301,7 +304,7 @@ public class FloatingObjectPlacing {
     }
 
     @ChunkCoordinates
-    private void tryPlaceInvertedChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, IrisFloatingChildBiomes entry) {
+    private void tryPlaceInvertedChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, ResolvedFloatingChild entry) {
         if (placement == null || columns.isEmpty()) {
             return;
         }
@@ -405,7 +408,7 @@ public class FloatingObjectPlacing {
     static boolean isFootprintFlatBottom(FloatingObjectFootprint fp, IrisObjectRotation rotation,
                                          int pickedX, int pickedZ, int pickBottomY,
                                          IslandObjectPlacer.SampleProvider samples,
-                                         IrisFloatingChildBiomes entry, int tolerance) {
+                                         ResolvedFloatingChild entry, int tolerance) {
         IrisBlockVector anchor = invertedFootprintAnchor(fp, rotation);
         long[] cells = fp.footprintXZ();
         if (cells.length == 0) {
@@ -475,7 +478,7 @@ public class FloatingObjectPlacing {
 
     static boolean isFootprintFlat(FloatingObjectFootprint fp, int pickedX, int pickedZ, int pickTopY,
                                    IslandObjectPlacer.SampleProvider samples,
-                                   IrisFloatingChildBiomes entry, int tolerance) {
+                                   ResolvedFloatingChild entry, int tolerance) {
         int tallestKx = fp.getTallestKx();
         int tallestKz = fp.getTallestKz();
         long[] cells = fp.footprintXZ();
@@ -499,7 +502,7 @@ public class FloatingObjectPlacing {
 
     private static KList<Integer> interiorColumns(IslandObjectPlacer.SampleProvider samples,
                                                   KList<Integer> columns, int minX, int minZ,
-                                                  IrisFloatingChildBiomes entry,
+                                                  ResolvedFloatingChild entry,
                                                   IslandObjectPlacer.AnchorFace face) {
         KList<Integer> interior = new KList<>();
         for (int key : columns) {
@@ -554,15 +557,15 @@ public class FloatingObjectPlacing {
         try {
             IrisData data = engine.getData();
             for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-                KList<IrisFloatingChildBiomes> entries = biome.getFloatingChildBiomes();
-                if (entries == null || entries.isEmpty()) {
+                List<FloatingChildBiome> settings = biome.getFloatingChildBiomes();
+                if (settings == null || settings.isEmpty()) {
                     continue;
                 }
-                for (IrisFloatingChildBiomes entry : entries) {
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getFloatingObjects(), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getExtraObjects(), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getTopObjectOverrides(), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getBottomObjectOverrides(), data, sizeCache, warnedLargeObjects));
+                for (ResolvedFloatingChild entry : FloatingChildren.of(engine).of(settings)) {
+                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().floatingObjects()), data, sizeCache, warnedLargeObjects));
+                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().extraObjects()), data, sizeCache, warnedLargeObjects));
+                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().topObjectOverrides()), data, sizeCache, warnedLargeObjects));
+                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().bottomObjectOverrides()), data, sizeCache, warnedLargeObjects));
                     try {
                         IrisBiome target = entry.getRealBiome(biome, data);
                         if (target != null) {

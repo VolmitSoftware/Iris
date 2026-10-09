@@ -83,11 +83,11 @@ public final class FloatingIslandBoundarySampler {
         return field.sample(x, z);
     }
 
-    public OwnershipSample ownership(KList<IrisFloatingChildBiomes> entries, CNG picker, int x, int z) {
+    public OwnershipSample ownership(KList<ResolvedFloatingChild> entries, CNG picker, int x, int z) {
         return ownership(entries, picker, x, z, EDGE_TAPER_WIDTH);
     }
 
-    public OwnershipSample ownership(KList<IrisFloatingChildBiomes> entries, CNG picker, int x, int z,
+    public OwnershipSample ownership(KList<ResolvedFloatingChild> entries, CNG picker, int x, int z,
                                      int taperWidth) {
         int width = FloatingIslandEdgeProfile.clampWidth(taperWidth);
         int chunkX = Math.floorDiv(x, CHUNK_SIZE);
@@ -131,7 +131,7 @@ public final class FloatingIslandBoundarySampler {
                                   int boundaryDistance, double edgeFade) {
     }
 
-    public record OwnershipSample(IrisFloatingChildBiomes owner, int boundaryDistance, double edgeFade) {
+    public record OwnershipSample(ResolvedFloatingChild owner, int boundaryDistance, double edgeFade) {
     }
 
     private record ParentFieldKey(long chunkKey, int taperWidth) {
@@ -175,13 +175,13 @@ public final class FloatingIslandBoundarySampler {
     }
 
     private static final class OwnershipFieldKey {
-        private final KList<IrisFloatingChildBiomes> entries;
+        private final KList<ResolvedFloatingChild> entries;
         private final CNG picker;
         private final int chunkX;
         private final int chunkZ;
         private final int taperWidth;
 
-        private OwnershipFieldKey(KList<IrisFloatingChildBiomes> entries, CNG picker, int chunkX, int chunkZ,
+        private OwnershipFieldKey(KList<ResolvedFloatingChild> entries, CNG picker, int chunkX, int chunkZ,
                                   int taperWidth) {
             this.entries = entries;
             this.picker = picker;
@@ -394,15 +394,15 @@ public final class FloatingIslandBoundarySampler {
         private final FieldGeometry geometry;
         private final int minX;
         private final int minZ;
-        private final IrisFloatingChildBiomes[] owners;
-        private final IdentityHashMap<IrisFloatingChildBiomes, ComponentDistanceField> distances;
+        private final ResolvedFloatingChild[] owners;
+        private final IdentityHashMap<ResolvedFloatingChild, ComponentDistanceField> distances;
 
-        private OwnershipField(KList<IrisFloatingChildBiomes> entries, CNG picker, int chunkX, int chunkZ,
+        private OwnershipField(KList<ResolvedFloatingChild> entries, CNG picker, int chunkX, int chunkZ,
                                int taperWidth) {
             this.geometry = FieldGeometry.forWidth(taperWidth);
             this.minX = (chunkX * CHUNK_SIZE) - geometry.fadeRadius();
             this.minZ = (chunkZ * CHUNK_SIZE) - geometry.fadeRadius();
-            this.owners = new IrisFloatingChildBiomes[geometry.area()];
+            this.owners = new ResolvedFloatingChild[geometry.area()];
             this.distances = new IdentityHashMap<>();
             for (int z = 0; z < geometry.fieldSize(); z++) {
                 for (int x = 0; x < geometry.fieldSize(); x++) {
@@ -410,7 +410,7 @@ public final class FloatingIslandBoundarySampler {
                     owners[geometry.index(x, z)] = IRare.pick(entries, value);
                 }
             }
-            for (IrisFloatingChildBiomes entry : entries) {
+            for (ResolvedFloatingChild entry : entries) {
                 if (entry != null && !distances.containsKey(entry)) {
                     distances.put(entry, buildDistanceField(entry));
                 }
@@ -419,7 +419,7 @@ public final class FloatingIslandBoundarySampler {
 
         private OwnershipSample sample(int x, int z) {
             int index = geometry.index(x - minX, z - minZ);
-            IrisFloatingChildBiomes owner = owners[index];
+            ResolvedFloatingChild owner = owners[index];
             if (owner == null) {
                 return new OwnershipSample(null, 0, 0.0D);
             }
@@ -435,7 +435,7 @@ public final class FloatingIslandBoundarySampler {
             return new OwnershipSample(owner, boundaryDistance, fade);
         }
 
-        private ComponentDistanceField buildDistanceField(IrisFloatingChildBiomes owner) {
+        private ComponentDistanceField buildDistanceField(ResolvedFloatingChild owner) {
             boolean[] owned = new boolean[owners.length];
             byte[] distance = new byte[owners.length];
             boolean[] viable = new boolean[owners.length];

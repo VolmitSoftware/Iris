@@ -18,6 +18,9 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
+
 public final class IrisObjectVacuum {
     private static final double DEFAULT_WAVE_AMPLITUDE = 3.0;
     private static final double DEFAULT_WAVE_SCALE = 5.0;
@@ -28,21 +31,17 @@ public final class IrisObjectVacuum {
     }
 
     public static boolean isVacuumMode(ObjectPlaceMode mode) {
-        return mode == ObjectPlaceMode.VACUUM
-                || mode == ObjectPlaceMode.VACUUM_HIGH
-                || mode == ObjectPlaceMode.VACUUM_FAST
-                || mode == ObjectPlaceMode.VACUUM_ORGANIC
-                || mode == ObjectPlaceMode.VACUUM_WAVY;
+        return mode != null && mode.isVacuum();
     }
 
-    public static int resolveRadius(ObjectPlaceMode mode, IrisVacuumSettings settings) {
+    public static int resolveRadius(ObjectPlaceMode mode, VacuumSettings settings) {
         int radius = switch (mode) {
             case VACUUM_HIGH -> 20;
             case VACUUM_FAST -> 8;
             default -> 12;
         };
-        if (settings != null && settings.getRadius() > 0) {
-            radius = settings.getRadius();
+        if (settings != null && settings.radius() > 0) {
+            radius = settings.radius();
         }
         return Math.max(0, Math.min(MAX_RADIUS_BLOCKS, radius));
     }
@@ -51,22 +50,22 @@ public final class IrisObjectVacuum {
         return mode == ObjectPlaceMode.VACUUM_FAST ? 2 : 1;
     }
 
-    public static double resolveFalloff(IrisVacuumSettings settings) {
-        return settings != null ? Math.max(0.25, settings.getFalloff()) : 2.0;
+    public static double resolveFalloff(VacuumSettings settings) {
+        return settings != null ? Math.max(0.25, settings.falloff()) : 2.0;
     }
 
-    public static double resolveWaveAmplitude(IrisVacuumSettings settings) {
+    public static double resolveWaveAmplitude(VacuumSettings settings) {
         if (settings == null) {
             return DEFAULT_WAVE_AMPLITUDE;
         }
-        return Math.max(0, settings.getWaveAmplitude());
+        return Math.max(0, settings.waveAmplitude());
     }
 
-    public static double resolveWaveScale(IrisVacuumSettings settings) {
+    public static double resolveWaveScale(VacuumSettings settings) {
         if (settings == null) {
             return DEFAULT_WAVE_SCALE;
         }
-        double scale = settings.getWaveScale();
+        double scale = settings.waveScale();
         return scale > 0 ? scale : DEFAULT_WAVE_SCALE;
     }
 

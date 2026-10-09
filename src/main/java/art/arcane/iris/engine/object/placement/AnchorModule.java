@@ -18,11 +18,12 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.AnchorHeight;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.PlacementStageContext;

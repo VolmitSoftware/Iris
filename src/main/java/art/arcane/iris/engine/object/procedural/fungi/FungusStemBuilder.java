@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.fungi;
 
-import art.arcane.iris.engine.object.procedural.fungi.IrisFungus;
+import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.Vector3i;
@@ -29,15 +29,15 @@ public final class FungusStemBuilder {
     private FungusStemBuilder() {
     }
 
-    public static double[] build(Map<Vector3i, PlatformBlockState> stemCells, IrisFungus fungus, int stemHeight, long seed) {
-        int width = Math.max(1, Math.min(3, fungus.getStemWidth()));
-        double maxLean = stemHeight * Math.tan(Math.toRadians(Math.max(0.0, fungus.getStemCurve())));
-        double leanRad = Math.toRadians(fungus.getStemLeanAzimuth());
+    public static double[] build(Map<Vector3i, PlatformBlockState> stemCells, Fungus fungus, int stemHeight, long seed) {
+        int width = Math.max(1, Math.min(3, fungus.stemWidth()));
+        double maxLean = stemHeight * Math.tan(Math.toRadians(Math.max(0.0, fungus.stemCurve())));
+        double leanRad = Math.toRadians(fungus.stemLeanAzimuth());
         double leanX = Math.sin(leanRad);
         double leanZ = Math.cos(leanRad);
-        double waveAmp = Math.max(0.0, fungus.getStemWaveAmplitude());
-        double wavePeriods = fungus.getStemWavePeriods() == 0 ? 1.0 : fungus.getStemWavePeriods();
-        double waveAzimuth = Math.toRadians(fungus.getStemLeanAzimuth() + 90.0);
+        double waveAmp = Math.max(0.0, fungus.stemWaveAmplitude());
+        double wavePeriods = fungus.stemWavePeriods() == 0 ? 1.0 : fungus.stemWavePeriods();
+        double waveAzimuth = Math.toRadians(fungus.stemLeanAzimuth() + 90.0);
         double waveX = Math.sin(waveAzimuth);
         double waveZ = Math.cos(waveAzimuth);
 

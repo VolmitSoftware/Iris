@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.world.region;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.entity.IrisEffect;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.loot.IrisBlockDrops;
@@ -25,7 +26,6 @@ import art.arcane.iris.engine.object.loot.IrisLootReference;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
@@ -131,7 +131,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("How large cave biomes are in this region")
     private double caveBiomeZoom = 1;
     @Desc("Profile-driven 3D cave configuration")
-    private IrisCaveProfile caveProfile = new IrisCaveProfile();
+    private CaveProfile caveProfile = new CaveProfile();
     @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)

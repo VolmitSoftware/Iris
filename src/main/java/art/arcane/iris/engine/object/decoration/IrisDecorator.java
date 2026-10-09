@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.decoration;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
@@ -71,7 +71,7 @@ public class IrisDecorator {
     @Desc("When set, the decorator will never place onto any of these blocks.")
     private KList<IrisBlockData> blacklist;
     @Desc("The slope at which this decorator can be placed. Range from 0 to 10 by default. Calculated from a 3-block radius from the center of the decorator placement.")
-    private IrisSlopeClip slopeCondition = new IrisSlopeClip();
+    private SlopeClip slopeCondition = new SlopeClip();
     @DependsOn({"scaleStack", "stackMin", "stackMax"})
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;

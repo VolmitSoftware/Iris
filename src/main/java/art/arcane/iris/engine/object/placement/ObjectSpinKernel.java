@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.engine.object.prefab.IrisAxisRotationClamp;
+import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
@@ -55,20 +55,20 @@ import art.arcane.iris.util.common.math.IrisBlockVector;
         ySin = Math.sin(yAngle);
     }
 
-    private static int modeOf(IrisAxisRotationClamp clamp) {
+    private static int modeOf(AxisRotationClamp clamp) {
         if (!clamp.isLocked()) {
             return MODE_ANGLE;
         }
 
-        if (Math.abs(clamp.getMax()) % 360D == 180D) {
+        if (Math.abs(clamp.max()) % 360D == 180D) {
             return MODE_FLIP;
         }
 
-        if (clamp.getMax() % 360D == 90D || clamp.getMax() % 360D == -270D) {
+        if (clamp.max() % 360D == 90D || clamp.max() % 360D == -270D) {
             return MODE_QUARTER;
         }
 
-        if (clamp.getMax() == -90D || clamp.getMax() % 360D == 270D) {
+        if (clamp.max() == -90D || clamp.max() % 360D == 270D) {
             return MODE_THREE_QUARTER;
         }
 

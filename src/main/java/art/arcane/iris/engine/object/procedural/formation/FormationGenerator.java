@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.formation;
 
+import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -33,18 +33,18 @@ public final class FormationGenerator {
     private FormationGenerator() {
     }
 
-    public static IrisObject generate(IrisFormation f, int variantIndex, RNG rng, IrisData data) {
-        int lo = Math.min(f.getHeightMin(), f.getHeightMax());
-        int hi = Math.max(f.getHeightMin(), f.getHeightMax());
+    public static IrisObject generate(Formation f, int variantIndex, RNG rng, IrisData data) {
+        int lo = Math.min(f.heightMin(), f.heightMax());
+        int hi = Math.max(f.heightMin(), f.heightMax());
         int height = Math.max(3, rng.i(lo, hi + 1));
 
-        int wLo = Math.min(f.getBaseWidthMin(), f.getBaseWidthMax());
-        int wHi = Math.max(f.getBaseWidthMin(), f.getBaseWidthMax());
+        int wLo = Math.min(f.baseWidthMin(), f.baseWidthMax());
+        int wHi = Math.max(f.baseWidthMin(), f.baseWidthMax());
         double baseRadius = Math.max(1, rng.i(wLo, wHi + 1));
 
         FormationCanvas canvas = new FormationCanvas();
 
-        switch (f.getForm()) {
+        switch (f.form()) {
             case SPIRE -> FormationShapeBuilder.spire(canvas, f, height, baseRadius, rng);
             case HOODOO -> FormationShapeBuilder.hoodoo(canvas, f, height, baseRadius, rng);
             case ARCH -> FormationShapeBuilder.arch(canvas, f, height, baseRadius, rng);

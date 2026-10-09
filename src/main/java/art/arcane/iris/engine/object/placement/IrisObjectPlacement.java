@@ -19,6 +19,14 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.engine.loot.LootResources;
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.carve.CaveAnchorMode;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.blocks.ObjectReplace;
+import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
@@ -34,8 +42,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveAnchorMode;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.core.loader.IrisData;
@@ -97,7 +103,7 @@ public class IrisObjectPlacement {
     @Desc("Rotate this objects placement")
     private IrisObjectRotation rotation = new IrisObjectRotation();
     @Desc("Limit the max height or min height of placement.")
-    private IrisObjectLimit clamp = new IrisObjectLimit();
+    private ObjectLimit clamp = new ObjectLimit();
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
@@ -105,7 +111,7 @@ public class IrisObjectPlacement {
     @Desc("Whether or not this object can be targeted by a dolphin.")
     private boolean isDolphinTarget = false;
     @Desc("The slope at which this object can be placed. Range from 0 to 10 by default. Calculated from a 3-block radius from the center of the object placement.")
-    private IrisSlopeClip slopeCondition = new IrisSlopeClip();
+    private SlopeClip slopeCondition = new SlopeClip();
     @Desc("Set to true to add the rotation of the direction of the slope of the terrain (wherever the slope is going down) to the y-axis rotation of the object." +
             "Rounded to 90 degrees. Adds the *min* rotation of the y axis as well (to still allow you to rotate objects nicely). Discards *max* and *interval* on *yaxis*")
     private boolean rotateTowardsSlope = false;
@@ -119,9 +125,9 @@ public class IrisObjectPlacement {
     @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
     private IrisStyledRange densityStyle = null;
     @Desc("When stilting is enabled, this object will define various properties related to it.")
-    private IrisStiltSettings stiltSettings;
+    private StiltSettings stiltSettings;
     @Desc("When a VACUUM place mode is used, this defines the deformation radius and falloff.")
-    private IrisVacuumSettings vacuumSettings;
+    private VacuumSettings vacuumSettings;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
@@ -148,7 +154,7 @@ public class IrisObjectPlacement {
     @Desc("Set to false to let this placement sit over carved surface openings such as cave entrances.")
     private boolean requireSurfaceSupport = true;
     @Desc("When carving placement is enabled, select which carved-space anchor this placement targets.")
-    private IrisCaveAnchorMode caveAnchorMode = IrisCaveAnchorMode.PROFILE_DEFAULT;
+    private CaveAnchorMode caveAnchorMode = CaveAnchorMode.PROFILE_DEFAULT;
     @Desc("If this is defined, this object wont place on the terrain heightmap, but instead on this virtual heightmap")
     private IrisNoiseGenerator heightmap;
     @Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")
@@ -169,9 +175,9 @@ public class IrisObjectPlacement {
     private IrisGeneratorStyle warp = new IrisGeneratorStyle(NoiseStyle.FLAT);
     @Desc("The placement mode")
     private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
-    @ArrayType(min = 1, type = IrisObjectReplace.class)
+    @ArrayType(min = 1, type = ObjectReplace.class)
     @Desc("Find and replace blocks")
-    private KList<IrisObjectReplace> edit = new KList<>();
+    private KList<ObjectReplace> edit = new KList<>();
     @Desc("Translate this object's placement")
     private IrisObjectTranslate translate = new IrisObjectTranslate();
     @Desc("Scale Objects")

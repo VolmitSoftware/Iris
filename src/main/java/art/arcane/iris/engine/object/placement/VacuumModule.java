@@ -18,6 +18,9 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import com.volmit.FeatureRegistry;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.core.modules.IrisPlacement;
@@ -47,6 +50,11 @@ public final class VacuumModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:vacuum", "Vacuum", PlacementModules.VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(VacuumSettings.class);
     }
 
     @Override
@@ -91,11 +99,11 @@ public final class VacuumModule implements IrisModule {
             this.prepared = prepared;
             this.world = new PlacementWorld(context.access(), placement.states());
             this.complex = engine.getComplex();
-            IrisVacuumSettings settings = prepared.config().getVacuumSettings();
+            VacuumSettings settings = prepared.config().getVacuumSettings();
             this.radius = IrisObjectVacuum.resolveRadius(mode, settings);
             this.step = IrisObjectVacuum.resolveStep(mode);
             this.falloff = IrisObjectVacuum.resolveFalloff(settings);
-            this.jitter = settings != null ? Math.max(0, settings.getOrganicJitter()) : DEFAULT_ORGANIC_JITTER;
+            this.jitter = settings != null ? Math.max(0, settings.organicJitter()) : DEFAULT_ORGANIC_JITTER;
             this.waveAmplitude = IrisObjectVacuum.resolveWaveAmplitude(settings);
             this.waveScale = IrisObjectVacuum.resolveWaveScale(settings);
             this.waves = mode == ObjectPlaceMode.VACUUM_WAVY && waveAmplitude > 0 ? new SimplexNoise(WAVE_SEED) : null;

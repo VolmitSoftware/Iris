@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.tree.TreeBranches;
+import art.arcane.iris.builtin.objects.tree.TreeFunction;
+import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeAzimuthMode;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeBranches;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeFunction;
 import art.arcane.volmlib.util.math.RNG;
 
 public final class TreeFunctions {
@@ -65,7 +65,7 @@ public final class TreeFunctions {
         };
     }
 
-    public static double curveProgress(IrisTreeFunction fn, double t, double steepness) {
+    public static double curveProgress(TreeFunction fn, double t, double steepness) {
         return switch (fn) {
             case LINEAR, CONSTANT, SINE -> t;
             case LOG -> Math.log(1.0 + t * (Math.E - 1.0));
@@ -78,14 +78,14 @@ public final class TreeFunctions {
         };
     }
 
-    public static double branchLength(IrisTreeBranches b, double t) {
-        double base = b.getLengthBase();
-        double crown = b.getLengthCrown();
-        double max = b.getLengthMax();
-        double v = switch (b.getLengthFunction()) {
-            case CONSTANT -> b.getLengthConstant();
+    public static double branchLength(TreeBranches b, double t) {
+        double base = b.lengthBase();
+        double crown = b.lengthCrown();
+        double max = b.lengthMax();
+        double v = switch (b.lengthFunction()) {
+            case CONSTANT -> b.lengthConstant();
             case LINEAR, SINE -> base + (crown - base) * t;
-            case SIGMOID -> max / (1.0 + Math.exp(-b.getLengthSteepness() * (t - 0.5)));
+            case SIGMOID -> max / (1.0 + Math.exp(-b.lengthSteepness() * (t - 0.5)));
             case LOG -> max * Math.log(1.0 + t * (Math.E - 1.0));
             case PARABOLIC -> max * (1.0 - Math.pow(2.0 * t - 1.0, 2));
             case EXPONENTIAL -> geometric(base, crown, t);
@@ -97,24 +97,24 @@ public final class TreeFunctions {
         return Math.max(1.0, v);
     }
 
-    public static double branchProbability(IrisTreeBranches b, double t, long seed) {
-        double std = Math.max(b.getProbabilityStd(), 1e-6);
-        return switch (b.getProbabilityFunction()) {
-            case CONSTANT -> b.getProbabilityConstant();
-            case LINEAR -> b.getProbabilityBase() + (b.getProbabilityCrown() - b.getProbabilityBase()) * t;
-            case SIGMOID -> 1.0 / (1.0 + Math.exp(-b.getProbabilitySteepness() * (t - b.getProbabilityMidpoint())));
-            case TOP_HEAVY -> Math.pow(t, b.getProbabilityExponent());
-            case GAUSSIAN -> Math.exp(-0.5 * Math.pow((t - b.getProbabilityMean()) / std, 2));
-            case NOISE -> valueNoise1D(t * b.getProbabilityScale(), seed);
-            case BOTTOM_HEAVY -> Math.pow(1.0 - t, b.getProbabilityExponent());
-            case PERIODIC -> b.getProbabilityConstant() * Math.pow(Math.max(0.0, Math.sin(2.0 * Math.PI * t * b.getProbabilityPeriods())), 8);
-            case BAND -> Math.abs(t - b.getProbabilityMean()) <= b.getProbabilityStd() ? b.getProbabilityConstant() : 0.0;
-            case INVERSE_GAUSSIAN -> b.getProbabilityConstant() * (1.0 - Math.exp(-0.5 * Math.pow((t - b.getProbabilityMean()) / std, 2)));
-            case EXPONENTIAL_DECAY -> b.getProbabilityConstant() * Math.exp(-b.getProbabilityExponent() * t);
+    public static double branchProbability(TreeBranches b, double t, long seed) {
+        double std = Math.max(b.probabilityStd(), 1e-6);
+        return switch (b.probabilityFunction()) {
+            case CONSTANT -> b.probabilityConstant();
+            case LINEAR -> b.probabilityBase() + (b.probabilityCrown() - b.probabilityBase()) * t;
+            case SIGMOID -> 1.0 / (1.0 + Math.exp(-b.probabilitySteepness() * (t - b.probabilityMidpoint())));
+            case TOP_HEAVY -> Math.pow(t, b.probabilityExponent());
+            case GAUSSIAN -> Math.exp(-0.5 * Math.pow((t - b.probabilityMean()) / std, 2));
+            case NOISE -> valueNoise1D(t * b.probabilityScale(), seed);
+            case BOTTOM_HEAVY -> Math.pow(1.0 - t, b.probabilityExponent());
+            case PERIODIC -> b.probabilityConstant() * Math.pow(Math.max(0.0, Math.sin(2.0 * Math.PI * t * b.probabilityPeriods())), 8);
+            case BAND -> Math.abs(t - b.probabilityMean()) <= b.probabilityStd() ? b.probabilityConstant() : 0.0;
+            case INVERSE_GAUSSIAN -> b.probabilityConstant() * (1.0 - Math.exp(-0.5 * Math.pow((t - b.probabilityMean()) / std, 2)));
+            case EXPONENTIAL_DECAY -> b.probabilityConstant() * Math.exp(-b.probabilityExponent() * t);
         };
     }
 
-    public static double azimuthDegrees(IrisTreeAzimuthMode mode, double t, int index, IrisProceduralTree tree, double constantBase, RNG rng) {
+    public static double azimuthDegrees(TreeAzimuthMode mode, double t, int index, IrisProceduralTree tree, double constantBase, RNG rng) {
         return switch (mode) {
             case CONSTANT -> constantBase;
             case LINEAR -> tree.getAzimuthStart() + (tree.getAzimuthEnd() - tree.getAzimuthStart()) * t;

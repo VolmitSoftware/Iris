@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeAzimuthMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,7 +164,7 @@ public final class TreeTrunkBuilder {
         double progress = TreeFunctions.curveProgress(tree.getTrunkCurve(), t, tree.getCurveSteepness());
         double maxReach = height * Math.tan(Math.toRadians(tree.getLeanAngle()));
         double reach = maxReach * progress;
-        double azDeg = tree.getLeanAzimuthMode() == IrisTreeAzimuthMode.CONSTANT
+        double azDeg = tree.getLeanAzimuthMode() == TreeAzimuthMode.CONSTANT
                 ? tree.getLeanAzimuth()
                 : TreeFunctions.azimuthDegrees(tree.getLeanAzimuthMode(), t, -1, tree, tree.getLeanAzimuth(), null);
         double azRad = Math.toRadians(azDeg);

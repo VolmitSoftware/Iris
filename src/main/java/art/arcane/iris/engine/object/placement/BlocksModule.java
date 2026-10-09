@@ -19,6 +19,10 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.engine.spawn.SpawnResources;
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.blocks.ObjectReplace;
+import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
@@ -30,7 +34,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.collection.KList;
@@ -64,6 +67,11 @@ public final class BlocksModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:blocks", "Object blocks", PlacementModules.VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(ObjectReplace.class);
     }
 
     @Override

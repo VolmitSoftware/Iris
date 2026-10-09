@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +34,7 @@ public final class IslandObjectPlacer implements IObjectPlacer {
 
     private final MantleWriter wrapped;
     private final SampleProvider samples;
-    private final IrisFloatingChildBiomes entry;
+    private final ResolvedFloatingChild entry;
     private final int anchorY;
     private final AnchorFace face;
 
@@ -47,12 +47,12 @@ public final class IslandObjectPlacer implements IObjectPlacer {
     }
 
     public static IslandObjectPlacer top(MantleWriter wrapped, SampleProvider samples,
-                                         IrisFloatingChildBiomes entry, int anchorY) {
+                                         ResolvedFloatingChild entry, int anchorY) {
         return new IslandObjectPlacer(wrapped, new AnchorSettings(samples, entry, anchorY, AnchorFace.TOP));
     }
 
     public static IslandObjectPlacer bottom(MantleWriter wrapped, SampleProvider samples,
-                                            IrisFloatingChildBiomes entry, int anchorY) {
+                                            ResolvedFloatingChild entry, int anchorY) {
         return new IslandObjectPlacer(wrapped, new AnchorSettings(samples, entry, anchorY, AnchorFace.BOTTOM));
     }
 
@@ -157,7 +157,7 @@ public final class IslandObjectPlacer implements IObjectPlacer {
         return wrapped == null ? null : wrapped.getEngine();
     }
 
-    static boolean matchesAnchor(FloatingIslandSample sample, IrisFloatingChildBiomes entry, AnchorFace face) {
+    static boolean matchesAnchor(FloatingIslandSample sample, ResolvedFloatingChild entry, AnchorFace face) {
         if (sample == null) {
             return false;
         }
@@ -212,7 +212,7 @@ public final class IslandObjectPlacer implements IObjectPlacer {
 
     private record AnchorSettings(
             SampleProvider samples,
-            IrisFloatingChildBiomes entry,
+            ResolvedFloatingChild entry,
             int anchorY,
             AnchorFace face
     ) {

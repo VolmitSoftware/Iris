@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -26,8 +25,10 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.PaletteSpec;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Shared low-level helpers for building procedural objects in memory: resolving a
@@ -52,18 +53,36 @@ public final class IrisProceduralBlocks {
         };
     }
 
-    public static boolean paletteSet(IrisMaterialPalette palette) {
-        return palette != null && palette.getPalette() != null && !palette.getPalette().isEmpty();
+    public static boolean paletteSet(PaletteSpec palette) {
+        return palette != null && !palette.palette().isEmpty();
     }
 
-    public static PlatformBlockState resolve(String block, IrisMaterialPalette palette, IrisData data, int x, int y, int z, RNG paletteRng) {
+    public static boolean paletteSet(Optional<PaletteSpec> palette) {
+        return palette.filter(IrisProceduralBlocks::paletteSet).isPresent();
+    }
+
+    public static PlatformBlockState resolve(String block, Optional<PaletteSpec> palette, IrisData data, int x, int y, int z, RNG paletteRng) {
+        return resolve(block, palette.orElse(null), data, x, y, z, paletteRng);
+    }
+
+    public static PlatformBlockState resolve(Optional<String> block, Optional<PaletteSpec> palette, IrisData data, int x, int y, int z, RNG paletteRng) {
+        return resolve(block.orElse(null), palette.orElse(null), data, x, y, z, paletteRng);
+    }
+
+    /** The block of {@code palette} at the position, picked with the seed of {@code paletteRng} as the palette's old class did; else {@code block}. */
+    public static PlatformBlockState resolve(String block, PaletteSpec palette, IrisData data, int x, int y, int z, RNG paletteRng) {
         if (paletteSet(palette)) {
-            return palette.get(paletteRng, x, y, z, data);
+            return pick(palette, data, paletteRng.getSeed(), x, y, z);
         }
         if (block != null && !block.isEmpty()) {
             return B.getStateOrNull(block, false);
         }
         return null;
+    }
+
+    /** The block {@code palette} gives at the position when its noise is seeded with {@code seed}. */
+    public static PlatformBlockState pick(PaletteSpec palette, IrisData data, long seed, int x, int y, int z) {
+        return B.getState(data.getPackResources().blocks().palette(palette, seed).at(x, y, z).key());
     }
 
     public static boolean hasProperty(PlatformBlockState state, String property) {

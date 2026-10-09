@@ -19,6 +19,14 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.objects.coral.Coral;
+import art.arcane.iris.builtin.objects.crystal.Crystal;
+import art.arcane.iris.builtin.objects.formation.Formation;
+import art.arcane.iris.builtin.objects.fungi.Fungus;
+import art.arcane.iris.builtin.objects.ruin.Ruin;
+import art.arcane.iris.builtin.objects.tree.TreeCanopy;
+import art.arcane.iris.builtin.objects.tree.TreeDecorator;
+import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.engine.framework.Engine;
@@ -55,6 +63,14 @@ public final class ObjectModule implements IrisModule {
     public void register(FeatureRegistry registry) {
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
+        registry.registerHeldType(TreeCanopy.class);
+        registry.registerHeldType(TreeDecorator.class);
+        registry.registerHeldType(TreeSecondaryLeaf.class);
+        registry.registerHeldType(Coral.class);
+        registry.registerHeldType(Crystal.class);
+        registry.registerHeldType(Formation.class);
+        registry.registerHeldType(Fungus.class);
+        registry.registerHeldType(Ruin.class);
     }
 
     private static void place(MantleStageContext context) {

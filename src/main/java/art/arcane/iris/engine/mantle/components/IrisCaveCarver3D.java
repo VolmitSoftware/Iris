@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.engine.object.terrain.carving.ResolvedCaveProfile;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveFieldModule;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.util.project.noise.CNG;
@@ -53,7 +53,8 @@ public class IrisCaveCarver3D {
 
     private final Engine engine;
     private final IrisData data;
-    private final IrisCaveProfile profile;
+    private final CaveProfile profile;
+    private final ResolvedCaveProfile resolved;
     private final CNG baseDensity;
     private final CNG detailDensity;
     private final CNG warpDensity;
@@ -81,10 +82,11 @@ public class IrisCaveCarver3D {
     private final int aquiferCeilingY;
     private final ThreadLocal<CaveCarveScratch> scratchCache = ThreadLocal.withInitial(CaveCarveScratch::new);
 
-    public IrisCaveCarver3D(Engine engine, IrisCaveProfile profile) {
+    public IrisCaveCarver3D(Engine engine, CaveProfile profile) {
         this.engine = engine;
         this.data = engine.getData();
         this.profile = profile;
+        this.resolved = ResolvedCaveProfile.of(profile);
         this.carveAir = new MatterCavern(true, "", LIQUID_AIR);
         this.carveFluid = new MatterCavern(true, "", LIQUID_FLUID);
         this.carveLava = new MatterCavern(true, "", LIQUID_LAVA);
@@ -92,26 +94,26 @@ public class IrisCaveCarver3D {
         List<CaveFieldModuleState> moduleStates = new ArrayList<>();
 
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
-        this.detailDensity = profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
-        this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data);
-        this.surfaceBreakDensity = profile.getSurfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), data);
+        this.baseDensity = resolved.baseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
+        this.detailDensity = resolved.detailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
+        this.warpDensity = resolved.warpStyle().create(baseRng.nextParallelRNG(770_713), data);
+        this.surfaceBreakDensity = resolved.surfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), data);
         this.thresholdRng = baseRng.nextParallelRNG(489_112);
-        this.baseWeight = profile.getBaseWeight();
-        this.detailWeight = profile.getDetailWeight();
-        this.warpStrength = profile.getWarpStrength();
+        this.baseWeight = profile.baseWeight();
+        this.detailWeight = profile.detailWeight();
+        this.warpStrength = profile.warpStrength();
         this.hasWarp = this.warpStrength > 0D;
         this.warpResolution = 2;
-        this.allowFluid = profile.isAllowFluid();
-        this.fluidRequiresFloor = profile.isFluidRequiresFloor();
-        this.fluidMinDepthBelowSurface = Math.max(0, profile.getFluidMinDepthBelowSurface());
+        this.allowFluid = profile.allowFluid();
+        this.fluidRequiresFloor = profile.fluidRequiresFloor();
+        this.fluidMinDepthBelowSurface = Math.max(0, profile.fluidMinDepthBelowSurface());
         this.fluidHeight = engine.getDimension().getFluidHeight();
         this.aquiferCeilingY = engine.getHeight() - 1;
 
         double weight = Math.abs(baseWeight) + Math.abs(detailWeight);
         int index = 0;
-        for (IrisCaveFieldModule module : profile.getModules()) {
-            CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
+        for (ResolvedCaveProfile.Module module : resolved.modules()) {
+            CNG moduleDensity = module.style().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
             CaveFieldModuleState state = new CaveFieldModuleState(module, moduleDensity);
             moduleStates.add(state);
             weight += Math.abs(state.weight);
@@ -217,7 +219,7 @@ public class IrisCaveCarver3D {
             double resolvedMinWeight = Math.max(0D, Math.min(1D, minWeight));
             double resolvedThresholdPenalty = Math.max(0D, thresholdPenalty);
             int worldHeight = writer.getMantle().getWorldHeight();
-            IrisRange effectiveVerticalRange = overrideVerticalRange != null ? overrideVerticalRange : profile.getVerticalRange();
+            IrisRange effectiveVerticalRange = overrideVerticalRange != null ? overrideVerticalRange : resolved.verticalRange();
             int minY = Math.max(0, (int) Math.floor(effectiveVerticalRange.getMin()));
             int maxY = Math.min(worldHeight - 1, (int) Math.ceil(effectiveVerticalRange.getMax()));
             if (worldYRange != null) {
@@ -227,16 +229,16 @@ public class IrisCaveCarver3D {
                 minY = Math.max(minY, rangeMinY);
                 maxY = Math.min(maxY, rangeMaxY);
             }
-            int sampleStep = Math.max(1, profile.getSampleStep());
+            int sampleStep = Math.max(1, profile.sampleStep());
             boolean exactSampling = sampleStep <= 2;
-            boolean adaptiveSampling = exactSampling && profile.isAdaptiveSampling();
-            int adaptiveSampleStep = Math.max(2, profile.getAdaptiveSampleStep());
-            double adaptiveThresholdMargin = Math.max(0D, profile.getAdaptiveThresholdMargin());
-            int surfaceClearance = Math.max(0, profile.getSurfaceClearance());
-            int surfaceBreakDepth = Math.max(0, profile.getSurfaceBreakDepth());
-            double surfaceBreakNoiseThreshold = profile.getSurfaceBreakNoiseThreshold();
-            double surfaceBreakThresholdBoost = Math.max(0, profile.getSurfaceBreakThresholdBoost());
-            boolean allowSurfaceBreak = profile.isAllowSurfaceBreak();
+            boolean adaptiveSampling = exactSampling && profile.adaptiveSampling();
+            int adaptiveSampleStep = Math.max(2, profile.adaptiveSampleStep());
+            double adaptiveThresholdMargin = Math.max(0D, profile.adaptiveThresholdMargin());
+            int surfaceClearance = Math.max(0, profile.surfaceClearance());
+            int surfaceBreakDepth = Math.max(0, profile.surfaceBreakDepth());
+            double surfaceBreakNoiseThreshold = profile.surfaceBreakNoiseThreshold();
+            double surfaceBreakThresholdBoost = Math.max(0, profile.surfaceBreakThresholdBoost());
+            boolean allowSurfaceBreak = profile.allowSurfaceBreak();
             if (maxY < minY) {
                 return 0;
             }
@@ -263,10 +265,10 @@ public class IrisCaveCarver3D {
             // IrisStyledRange.get() resolves its CNG per call, which costs a cache-key allocation,
             // a capturing lambda and a shared LRU touch. The CNG is constant for (thresholdRng, data),
             // so resolve it once here and replicate the min==max / isFlat short circuits verbatim.
-            IrisStyledRange densityThreshold = profile.getDensityThreshold();
+            IrisStyledRange densityThreshold = resolved.densityThreshold();
             double thresholdMin = densityThreshold.getMin();
             double thresholdMax = densityThreshold.getMax();
-            double thresholdBias = profile.getThresholdBias();
+            double thresholdBias = profile.thresholdBias();
             CNG thresholdDensity = null;
             double constantThreshold = 0D;
             if (thresholdMin == thresholdMax) {
@@ -2180,7 +2182,7 @@ public class IrisCaveCarver3D {
         }
 
         MatterCavern[] matterByY = scratch.matterByY;
-        boolean allowLava = profile.isAllowLava();
+        boolean allowLava = profile.allowLava();
         int lavaHeight = engine.getDimension().getCaveLavaHeight();
 
         for (int y = minY; y <= maxY; y++) {
@@ -2354,8 +2356,8 @@ public class IrisCaveCarver3D {
         }
 
         double[] verticalEdgeFade = scratch.verticalEdgeFade;
-        int fadeRange = Math.max(0, profile.getVerticalEdgeFade());
-        double fadeStrength = Math.max(0D, profile.getVerticalEdgeFadeStrength());
+        int fadeRange = Math.max(0, profile.verticalEdgeFade());
+        double fadeStrength = Math.max(0D, profile.verticalEdgeFadeStrength());
         if (size <= 0 || fadeRange <= 0 || maxY <= minY || fadeStrength <= 0D) {
             Arrays.fill(verticalEdgeFade, 0, size, 0D);
             return verticalEdgeFade;

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfileSampler;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.core.loader.IrisData;
@@ -28,6 +29,8 @@ import art.arcane.volmlib.util.collection.KList;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.OptionalInt;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -99,20 +102,20 @@ public final class FloatingIslandSample {
         }
     }
 
-    public final IrisFloatingChildBiomes entry;
+    public final ResolvedFloatingChild entry;
     public final int islandBaseY;
     public final int thickness;
     public final int topIdx;
     public final int solidCount;
     public final boolean[] solidMask;
-    private final IrisFloatingChildBiomes[] entryMask;
+    private final ResolvedFloatingChild[] entryMask;
     private transient int cachedBottomIdx = -2;
 
-    private FloatingIslandSample(IrisFloatingChildBiomes entry, int islandBaseY, int thickness, int topIdx, int solidCount, boolean[] solidMask) {
+    private FloatingIslandSample(ResolvedFloatingChild entry, int islandBaseY, int thickness, int topIdx, int solidCount, boolean[] solidMask) {
         this(entry, islandBaseY, thickness, topIdx, solidCount, solidMask, null);
     }
 
-    private FloatingIslandSample(IrisFloatingChildBiomes entry, int islandBaseY, int thickness, int topIdx, int solidCount, boolean[] solidMask, IrisFloatingChildBiomes[] entryMask) {
+    private FloatingIslandSample(ResolvedFloatingChild entry, int islandBaseY, int thickness, int topIdx, int solidCount, boolean[] solidMask, ResolvedFloatingChild[] entryMask) {
         this.entry = entry;
         this.islandBaseY = islandBaseY;
         this.thickness = thickness;
@@ -126,7 +129,7 @@ public final class FloatingIslandSample {
         return new FloatingIslandSample(null, islandBaseY, thickness, topIdx, solidCount, solidMask);
     }
 
-    static FloatingIslandSample constructForTest(IrisFloatingChildBiomes entry, int islandBaseY, int thickness, int topIdx, int solidCount, boolean[] solidMask, IrisFloatingChildBiomes[] entryMask) {
+    static FloatingIslandSample constructForTest(ResolvedFloatingChild entry, int islandBaseY, int thickness, int topIdx, int solidCount, boolean[] solidMask, ResolvedFloatingChild[] entryMask) {
         return new FloatingIslandSample(entry, islandBaseY, thickness, topIdx, solidCount, solidMask, entryMask);
     }
 
@@ -147,7 +150,7 @@ public final class FloatingIslandSample {
         return cachedBottomIdx == -1 ? -1 : islandBaseY + cachedBottomIdx;
     }
 
-    public IrisFloatingChildBiomes entryAt(int maskIndex) {
+    public ResolvedFloatingChild entryAt(int maskIndex) {
         if (entryMask != null && maskIndex >= 0 && maskIndex < entryMask.length && entryMask[maskIndex] != null) {
             return entryMask[maskIndex];
         }
@@ -155,7 +158,7 @@ public final class FloatingIslandSample {
         return entry;
     }
 
-    public IrisFloatingChildBiomes bottomEntry() {
+    public ResolvedFloatingChild bottomEntry() {
         int bottomY = bottomY();
         if (bottomY < 0) {
             return entry;
@@ -172,17 +175,17 @@ public final class FloatingIslandSample {
         return baseSeed ^ ((long) wx * 341873128712L) ^ ((long) wz * 132897987541L);
     }
 
-    private static int maximumEdgeFieldWidth(KList<IrisFloatingChildBiomes> entries, long baseSeed,
+    private static int maximumEdgeFieldWidth(KList<ResolvedFloatingChild> entries, long baseSeed,
                                              IrisData data, IrisBiome parent) {
         int maximumWidth = FloatingIslandEdgeProfile.MIN_WIDTH;
-        for (IrisFloatingChildBiomes entry : entries) {
+        for (ResolvedFloatingChild entry : entries) {
             FloatingIslandEdgeProfile profile = resolveEdgeProfile(entry, baseSeed, data, parent);
             maximumWidth = Math.max(maximumWidth, profile.fieldWidth());
         }
         return maximumWidth;
     }
 
-    private static FloatingIslandEdgeProfile resolveEdgeProfile(IrisFloatingChildBiomes entry, long baseSeed,
+    private static FloatingIslandEdgeProfile resolveEdgeProfile(ResolvedFloatingChild entry, long baseSeed,
                                                                 IrisData data, IrisBiome parent) {
         FloatingIslandEdgeProfile profile = entry.getEdgeTaperProfile(baseSeed, data);
         if (profile != null) {
@@ -193,11 +196,15 @@ public final class FloatingIslandSample {
     }
 
     public static FloatingIslandSample sample(IrisBiome parent, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler) {
-        KList<IrisFloatingChildBiomes> entries = parent.getFloatingChildBiomes();
-        if (entries == null || entries.isEmpty()) {
+        List<FloatingChildBiome> settings = parent.getFloatingChildBiomes();
+        if (settings == null || settings.isEmpty()) {
             return reject(REJECT_NO_ENTRIES);
         }
+        KList<ResolvedFloatingChild> entries = new KList<>(FloatingChildren.of(data).of(settings));
+        return sample(parent, entries, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
+    }
 
+    static FloatingIslandSample sample(IrisBiome parent, KList<ResolvedFloatingChild> entries, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler) {
         int boundaryFieldWidth = maximumEdgeFieldWidth(entries, baseSeed, data, parent);
         int parentBoundaryDistance = boundarySampler.edgeDistance(parent, wx, wz, boundaryFieldWidth);
 
@@ -206,12 +213,12 @@ public final class FloatingIslandSample {
                     parentBoundaryDistance, boundaryFieldWidth);
         }
 
-        IrisFloatingChildBiomes entry;
+        ResolvedFloatingChild entry;
         int ownershipBoundaryDistance = boundaryFieldWidth + 1;
         if (entries.size() == 1) {
             entry = entries.getFirst();
         } else {
-            IrisFloatingChildBiomes reference = entries.getFirst();
+            ResolvedFloatingChild reference = entries.getFirst();
             CNG picker = reference.getPickerCng(baseSeed, data);
             if (picker == null) {
                 warnNullCng("pickerStyle", parent);
@@ -230,7 +237,7 @@ public final class FloatingIslandSample {
                 parentBoundaryDistance, ownershipBoundaryDistance);
     }
 
-    private static FloatingIslandSample sampleMerged(IrisBiome parent, KList<IrisFloatingChildBiomes> entries,
+    private static FloatingIslandSample sampleMerged(IrisBiome parent, KList<ResolvedFloatingChild> entries,
                                                      int wx, int wz, int chunkHeight, long baseSeed, IrisData data,
                                                      Engine engine, FloatingIslandBoundarySampler boundarySampler,
                                                      int parentBoundaryDistance, int boundaryFieldWidth) {
@@ -238,7 +245,7 @@ public final class FloatingIslandSample {
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
 
-        for (IrisFloatingChildBiomes entry : entries) {
+        for (ResolvedFloatingChild entry : entries) {
             FloatingIslandSample sample = sampleEntry(parent, entry, wx, wz, chunkHeight, baseSeed, data, engine,
                     boundarySampler, parentBoundaryDistance, boundaryFieldWidth + 1);
             if (sample == null) {
@@ -266,7 +273,7 @@ public final class FloatingIslandSample {
 
         int thickness = maxY - minY + 1;
         boolean[] solidMask = new boolean[thickness];
-        IrisFloatingChildBiomes[] entryMask = new IrisFloatingChildBiomes[thickness];
+        ResolvedFloatingChild[] entryMask = new ResolvedFloatingChild[thickness];
         int[] entryTopY = new int[thickness];
         Arrays.fill(entryTopY, Integer.MIN_VALUE);
         int solidCount = 0;
@@ -296,12 +303,12 @@ public final class FloatingIslandSample {
             return reject(REJECT_NO_SOLID);
         }
 
-        IrisFloatingChildBiomes topEntry = entryMask[topIdx] == null ? samples.getFirst().entry : entryMask[topIdx];
+        ResolvedFloatingChild topEntry = entryMask[topIdx] == null ? samples.getFirst().entry : entryMask[topIdx];
         LAST_REJECT.get()[0] = REJECT_NONE;
         return new FloatingIslandSample(topEntry, minY, thickness, topIdx, solidCount, solidMask, entryMask);
     }
 
-    private static FloatingIslandSample sampleEntry(IrisBiome parent, IrisFloatingChildBiomes entry, int wx, int wz,
+    private static FloatingIslandSample sampleEntry(IrisBiome parent, ResolvedFloatingChild entry, int wx, int wz,
                                                     int chunkHeight, long baseSeed, IrisData data, Engine engine,
                                                     FloatingIslandBoundarySampler boundarySampler,
                                                     int parentBoundaryDistance, int ownershipBoundaryDistance) {
@@ -311,7 +318,7 @@ public final class FloatingIslandSample {
             warnNullCng("footprintStyle", parent);
             return reject(REJECT_NO_SEED);
         }
-        double threshold = Math.max(0, Math.min(1, entry.getFootprintThreshold()));
+        double threshold = Math.max(0, Math.min(1, entry.settings().footprintThreshold()));
         double signedCut = (threshold * 2.0) - 1.0;
         FloatingIslandBoundarySampler.FootprintSample footprint = boundarySampler.footprint(
                 footprintCng, wx, wz, signedCut, edgeProfile.fieldWidth());
@@ -340,8 +347,8 @@ public final class FloatingIslandSample {
         double altNoise = altitudeCng.noise(wx, wz);
         double altClamped = Math.max(0, Math.min(1, altNoise));
         int worldMin = engine.getWorld().minHeight();
-        int minAlt = Math.max(0, entry.getMinHeightAboveSurface() - worldMin);
-        int maxAlt = Math.max(minAlt, entry.getMaxHeightAboveSurface() - worldMin);
+        int minAlt = Math.max(0, entry.settings().minHeightAboveSurface() - worldMin);
+        int maxAlt = Math.max(minAlt, entry.settings().maxHeightAboveSurface() - worldMin);
         int baseY = minAlt + (int) Math.round(altClamped * (maxAlt - minAlt));
 
         IrisBiome target = entry.getRealBiome(parent, data);
@@ -355,9 +362,9 @@ public final class FloatingIslandSample {
         }
         double bottomNoise = bottomCng.noise(wx, wz);
         double bottomClamped = Math.max(0, Math.min(1, bottomNoise));
-        double bottomShaped = Math.pow(bottomClamped, Math.max(0.1, entry.getBottomExponent()));
-        int minDepth = Math.max(0, entry.getBottomDepthMin());
-        int maxDepth = Math.max(minDepth, entry.getBottomDepthMax());
+        double bottomShaped = Math.pow(bottomClamped, Math.max(0.1, entry.settings().bottomExponent()));
+        int minDepth = Math.max(0, entry.settings().bottomDepthMin());
+        int maxDepth = Math.max(minDepth, entry.settings().bottomDepthMax());
         int depth = roundedEdgeDepth(minDepth, maxDepth, bottomShaped, edgeFade);
         if (topH == 0 && depth == 0) {
             double fullDepth = minDepth + (bottomShaped * (maxDepth - minDepth));
@@ -372,13 +379,13 @@ public final class FloatingIslandSample {
         int topY = baseY + topH;
         int botY = baseY - depth;
 
-        Integer minAbsoluteY = entry.getMinAbsoluteY();
-        if (minAbsoluteY != null && botY < minAbsoluteY - worldMin) {
-            botY = minAbsoluteY - worldMin;
+        OptionalInt minAbsoluteY = entry.settings().minAbsoluteY();
+        if (minAbsoluteY.isPresent() && botY < minAbsoluteY.getAsInt() - worldMin) {
+            botY = minAbsoluteY.getAsInt() - worldMin;
         }
-        Integer maxAbsoluteY = entry.getMaxAbsoluteY();
-        if (maxAbsoluteY != null && topY > maxAbsoluteY - worldMin) {
-            topY = maxAbsoluteY - worldMin;
+        OptionalInt maxAbsoluteY = entry.settings().maxAbsoluteY();
+        if (maxAbsoluteY.isPresent() && topY > maxAbsoluteY.getAsInt() - worldMin) {
+            topY = maxAbsoluteY.getAsInt() - worldMin;
         }
 
         if (botY < 0) {
@@ -392,7 +399,7 @@ public final class FloatingIslandSample {
         }
 
         int thickness = topY - botY + 1;
-        int maxThickness = Math.max(1, entry.getMaxThickness());
+        int maxThickness = Math.max(1, entry.settings().maxThickness());
         if (thickness > maxThickness) {
             botY = topY - maxThickness + 1;
             if (botY < 0) {
@@ -406,11 +413,11 @@ public final class FloatingIslandSample {
 
         boolean[] solidMask = new boolean[thickness];
         CNG wallWarp = entry.getWallWarpCng(baseSeed, data);
-        double warpAmp = Math.max(0, entry.getWallWarpAmplitude());
+        double warpAmp = Math.max(0, entry.settings().wallWarpAmplitude());
         double effectiveWarpAmp = effectiveWallWarpAmplitude(warpAmp, edgeFade);
         IrisCaveProfileSampler carvingProfileSampler = entry.getCarvingProfileSampler(engine, data);
         CNG carve = carvingProfileSampler == null && !entry.hasCarvingReference() ? entry.getCarveCng(baseSeed, data) : null;
-        double carveThreshold = entry.getCarveThreshold();
+        double carveThreshold = entry.settings().carveThreshold();
         boolean useWarp = wallWarp != null && effectiveWarpAmp > 0;
         boolean useProfileCarve = carvingProfileSampler != null;
         boolean useCarve = directCarveEnabled(entry, carvingProfileSampler, carve, carveThreshold);
@@ -477,7 +484,7 @@ public final class FloatingIslandSample {
         return amplitude * fade;
     }
 
-    static boolean directCarveEnabled(IrisFloatingChildBiomes entry, IrisCaveProfileSampler carvingProfileSampler, CNG carve, double carveThreshold) {
+    static boolean directCarveEnabled(ResolvedFloatingChild entry, IrisCaveProfileSampler carvingProfileSampler, CNG carve, double carveThreshold) {
         return carvingProfileSampler == null && (entry == null || !entry.hasCarvingReference()) && carve != null && carveThreshold < 1.0;
     }
 
@@ -768,12 +775,12 @@ public final class FloatingIslandSample {
         }
     }
 
-    private static int computeTopHeight(IrisFloatingChildBiomes entry, IrisBiome target, Engine engine, long baseSeed, int wx, int wz, IrisData data) {
-        int maxTopHeight = Math.max(0, entry.getMaxTopHeight());
+    private static int computeTopHeight(ResolvedFloatingChild entry, IrisBiome target, Engine engine, long baseSeed, int wx, int wz, IrisData data) {
+        int maxTopHeight = Math.max(0, entry.settings().maxTopHeight());
         if (maxTopHeight == 0) {
             return 0;
         }
-        return switch (entry.getTopShapeMode()) {
+        return switch (entry.settings().topShapeMode()) {
             case FLAT -> maxTopHeight;
             case NOISE -> {
                 CNG topCng = entry.getTopShapeCng(baseSeed, data);
@@ -783,7 +790,7 @@ public final class FloatingIslandSample {
                 }
                 double n = topCng.noise(wx, wz);
                 double clamped = Math.max(0, Math.min(1, n));
-                double amp = Math.max(0, Math.min(1, entry.getTopShapeAmp()));
+                double amp = Math.max(0, Math.min(1, entry.settings().topShapeAmp()));
                 yield (int) Math.round(clamped * amp * maxTopHeight);
             }
             case BIOME -> {

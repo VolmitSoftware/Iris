@@ -18,11 +18,13 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
+import art.arcane.iris.builtin.objects.tree.TreeDecorator;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
+import com.volmit.block.PaletteSpec;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeDecorator;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.RNG;
@@ -62,8 +64,8 @@ public final class TreeBlockResolver {
                 if (index < 0 || tree.getDecorators() == null || index >= tree.getDecorators().size()) {
                     return null;
                 }
-                IrisTreeDecorator dec = tree.getDecorators().get(index);
-                PlatformBlockState state = resolveBlock(dec.getBlock(), dec.getPalette(), data, pos, paletteRng);
+                TreeDecorator dec = tree.getDecorators().get(index);
+                PlatformBlockState state = resolveBlock(dec.block(), dec.palette().orElse(null), data, pos, paletteRng);
                 if (state != null && cell.facing() != null && IrisProceduralBlocks.hasProperty(state, "facing")) {
                     try {
                         state = state.withProperty("facing", cell.facing().toLowerCase());
@@ -110,21 +112,25 @@ public final class TreeBlockResolver {
 
     private static String pickWeighted(IrisProceduralTree tree, RNG rng) {
         int total = 0;
-        for (art.arcane.iris.engine.object.procedural.tree.IrisTreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
-            total += Math.max(0, s.getWeight());
+        for (art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
+            total += Math.max(0, s.weight());
         }
         if (total <= 0) {
             return null;
         }
         double r = rng.nextDouble() * total;
         double cumulative = 0;
-        for (art.arcane.iris.engine.object.procedural.tree.IrisTreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
-            cumulative += Math.max(0, s.getWeight());
+        for (art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf s : tree.getWeightedSecondaryLeaves()) {
+            cumulative += Math.max(0, s.weight());
             if (r < cumulative) {
-                return s.getBlock();
+                return s.block();
             }
         }
-        return tree.getWeightedSecondaryLeaves().get(tree.getWeightedSecondaryLeaves().size() - 1).getBlock();
+        return tree.getWeightedSecondaryLeaves().get(tree.getWeightedSecondaryLeaves().size() - 1).block();
+    }
+
+    private static PlatformBlockState resolveBlock(String block, PaletteSpec palette, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {
+        return IrisProceduralBlocks.resolve(block, palette, data, pos.x(), pos.y(), pos.z(), paletteRng);
     }
 
     private static PlatformBlockState resolveBlock(String block, IrisMaterialPalette palette, IrisData data, TreeBlockCanvas.Vec pos, RNG paletteRng) {

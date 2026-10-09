@@ -18,13 +18,14 @@
 
 package art.arcane.iris.engine.object.procedural.crystal;
 
-import art.arcane.iris.engine.object.procedural.crystal.IrisCrystalSurface;
+import art.arcane.iris.builtin.objects.crystal.CrystalSurface;
+
 
 public final class CrystalGeometry {
     private CrystalGeometry() {
     }
 
-    public static double[] surfaceNormal(IrisCrystalSurface surface) {
+    public static double[] surfaceNormal(CrystalSurface surface) {
         return switch (surface) {
             case FLOOR -> new double[]{0.0, 1.0, 0.0};
             case CEILING -> new double[]{0.0, -1.0, 0.0};

@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.object.structure;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisObjectReplace;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;
@@ -96,9 +96,9 @@ public class IrisStructure extends IrisRegistrant {
     @Desc("The place mode used when stamping each piece object into the world.")
     private ObjectPlaceMode placeMode = ObjectPlaceMode.STRUCTURE_PIECE;
 
-    @ArrayType(min = 1, type = IrisObjectReplace.class)
+    @ArrayType(min = 1, type = ObjectReplace.class)
     @Desc("Find-and-replace block edits applied to every piece of this structure, using the exact same syntax as an object's 'edit'. For example, replace stone bricks with obsidian.")
-    private KList<IrisObjectReplace> edit = new KList<>();
+    private KList<ObjectReplace> edit = new KList<>();
 
     @ArrayType(type = String.class, min = 1)
     @RegistryListResource(IrisLootTable.class)

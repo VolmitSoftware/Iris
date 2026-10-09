@@ -19,6 +19,9 @@
 package art.arcane.iris.engine.modifier;
 
 
+import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
+import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
@@ -26,15 +29,12 @@ import art.arcane.iris.engine.decorator.FloatingDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineDecorator;
-import art.arcane.iris.engine.object.terrain.floating.FloatingBottomPaletteMode;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -65,11 +65,11 @@ public class FloatingIslands {
     private final RNG rng;
     private final EngineDecorator seaSurfaceDecorator;
 
-    private static KList<PlatformBlockState> generateBottomPaletteLayers(IrisFloatingChildBiomes entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
-        if (entry == null || entry.getBottomPaletteMode() != FloatingBottomPaletteMode.CUSTOM || entry.getBottomPalette() == null || entry.getBottomPalette().isEmpty()) {
+    private static KList<PlatformBlockState> generateBottomPaletteLayers(ResolvedFloatingChild entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
+        if (entry == null || entry.settings().bottomPaletteMode() != FloatingBottomPaletteMode.CUSTOM || entry.settings().bottomPalette() == null || entry.settings().bottomPalette().isEmpty()) {
             return null;
         }
-        return generatePaletteLayers(dimension, entry.getBottomPalette(), wx, wz, random.nextParallelRNG(0xB0770B), paletteDepth, data, complex);
+        return generatePaletteLayers(dimension, new KList<>(entry.settings().bottomPalette()), wx, wz, random.nextParallelRNG(0xB0770B), paletteDepth, data, complex);
     }
 
     private static KList<PlatformBlockState> generatePaletteLayers(IrisDimension dimension, KList<IrisBiomePaletteLayer> layers, double wx, double wz, RNG random, int maxDepth, IrisData data, IrisComplex complex) {
@@ -86,7 +86,7 @@ public class FloatingIslands {
                 continue;
             }
             double layerDepth = heightGenerator.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / layer.getZoom(), wz / layer.getZoom());
-            IrisSlopeClip slopeClip = layer.getSlopeCondition();
+            SlopeClip slopeClip = layer.getSlopeCondition();
 
             if (slopeClip != null && !slopeClip.isDefault() && complex != null && !slopeClip.isValid(complex.getSlopeStream().get(wx, wz))) {
                 layerDepth = 0;
@@ -127,8 +127,8 @@ public class FloatingIslands {
         return generated;
     }
 
-    private static boolean usesBottomPalette(IrisFloatingChildBiomes entry) {
-        FloatingBottomPaletteMode mode = entry == null || entry.getBottomPaletteMode() == null ? FloatingBottomPaletteMode.DEPTH : entry.getBottomPaletteMode();
+    private static boolean usesBottomPalette(ResolvedFloatingChild entry) {
+        FloatingBottomPaletteMode mode = entry == null || entry.settings().bottomPaletteMode() == null ? FloatingBottomPaletteMode.DEPTH : entry.settings().bottomPaletteMode();
         return mode != FloatingBottomPaletteMode.DEPTH;
     }
 
@@ -138,7 +138,7 @@ public class FloatingIslands {
             bottomDepths[i] = -1;
         }
 
-        IdentityHashMap<IrisFloatingChildBiomes, Integer> depthByEntry = new IdentityHashMap<>();
+        IdentityHashMap<ResolvedFloatingChild, Integer> depthByEntry = new IdentityHashMap<>();
         int max = Math.min(sample.topIdx, sample.solidMask.length - 1);
         for (int k = 0; k <= max; k++) {
             if (!sample.solidMask[k]) {
@@ -148,7 +148,7 @@ public class FloatingIslands {
             if (y < 0 || y >= chunkHeight) {
                 continue;
             }
-            IrisFloatingChildBiomes entry = sample.entryAt(k);
+            ResolvedFloatingChild entry = sample.entryAt(k);
             int depth = depthByEntry.getOrDefault(entry, 0);
             bottomDepths[k] = depth;
             depthByEntry.put(entry, depth + 1);
@@ -157,8 +157,8 @@ public class FloatingIslands {
         return bottomDepths;
     }
 
-    private static PlatformBlockState selectPaletteBlock(IrisFloatingChildBiomes entry, KList<PlatformBlockState> topBlocks, KList<PlatformBlockState> bottomBlocks, int topDepth, int bottomDepth, PlatformBlockState fallbackSolid) {
-        FloatingBottomPaletteMode mode = entry == null || entry.getBottomPaletteMode() == null ? FloatingBottomPaletteMode.DEPTH : entry.getBottomPaletteMode();
+    private static PlatformBlockState selectPaletteBlock(ResolvedFloatingChild entry, KList<PlatformBlockState> topBlocks, KList<PlatformBlockState> bottomBlocks, int topDepth, int bottomDepth, PlatformBlockState fallbackSolid) {
+        FloatingBottomPaletteMode mode = entry == null || entry.settings().bottomPaletteMode() == null ? FloatingBottomPaletteMode.DEPTH : entry.settings().bottomPaletteMode();
         if (mode == FloatingBottomPaletteMode.MIRROR_TOP) {
             return paletteBlock(topBlocks, Math.min(topDepth, bottomDepth), fallbackSolid);
         }
@@ -179,9 +179,9 @@ public class FloatingIslands {
         return block == null ? fallbackSolid : block;
     }
 
-    private PaletteContext createPaletteContext(IrisBiome parent, IrisFloatingChildBiomes entry, IrisDimension dimension, int wx, int wz, long colSeed, int paletteDepth, IrisData data, IrisComplex complex) {
+    private PaletteContext createPaletteContext(IrisBiome parent, ResolvedFloatingChild entry, IrisDimension dimension, int wx, int wz, long colSeed, int paletteDepth, IrisData data, IrisComplex complex) {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
-        int entrySeed = entry == null || entry.getBiome() == null ? 0 : entry.getBiome().hashCode();
+        int entrySeed = entry == null || entry.settings().biome() == null ? 0 : entry.settings().biome().hashCode();
         RNG layerRng = rng.nextParallelRNG((int) (colSeed ^ 0x7A4E ^ entrySeed));
         KList<PlatformBlockState> topBlocks = target == null ? null : target.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
         if (topBlocks == null || topBlocks.isEmpty()) {
@@ -235,8 +235,8 @@ public class FloatingIslands {
 
                 long colSeed = FloatingIslandSample.columnSeed(baseSeed, wx, wz);
                 int paletteDepth = Math.max(4, sample.solidCount + 4);
-                IdentityHashMap<IrisFloatingChildBiomes, PaletteContext> paletteContexts = new IdentityHashMap<>();
-                IdentityHashMap<IrisFloatingChildBiomes, Integer> topDepthByEntry = new IdentityHashMap<>();
+                IdentityHashMap<ResolvedFloatingChild, PaletteContext> paletteContexts = new IdentityHashMap<>();
+                IdentityHashMap<ResolvedFloatingChild, Integer> topDepthByEntry = new IdentityHashMap<>();
                 int[] bottomDepths = bottomDepths(sample, chunkHeight);
                 for (int k = sample.topIdx; k >= 0; k--) {
                     if (!sample.solidMask[k]) {
@@ -246,7 +246,7 @@ public class FloatingIslands {
                     if (y < 0 || y >= chunkHeight) {
                         continue;
                     }
-                    IrisFloatingChildBiomes entry = sample.entryAt(k);
+                    ResolvedFloatingChild entry = sample.entryAt(k);
                     PaletteContext paletteContext = paletteContexts.get(entry);
                     if (paletteContext == null) {
                         paletteContext = createPaletteContext(parent, entry, dimension, wx, wz, colSeed, paletteDepth, data, complex);
@@ -261,10 +261,10 @@ public class FloatingIslands {
                     topDepthByEntry.put(entry, depth + 1);
                 }
 
-                IrisFloatingChildBiomes entry = sample.entry;
-                Integer localFluidHeight = entry.getLocalFluidHeight();
-                if (localFluidHeight != null && localFluidHeight > 0) {
-                    PlatformBlockState fluid = B.getStateOrNull(entry.getFluidBlock());
+                ResolvedFloatingChild entry = sample.entry;
+                int localFluidHeight = entry.settings().localFluidHeight().orElse(0);
+                if (localFluidHeight > 0) {
+                    PlatformBlockState fluid = B.getStateOrNull(entry.settings().fluidBlock());
                     if (fluid == null) {
                         fluid = B.getState("minecraft:water");
                     }
@@ -317,10 +317,10 @@ public class FloatingIslands {
                 if (sample == null) {
                     continue;
                 }
-                IrisFloatingChildBiomes entry = sample.entry;
+                ResolvedFloatingChild entry = sample.entry;
                 IrisBiome target = entry.getRealBiome(parent, data);
 
-                if (!entry.isInheritDecorators() || target == null) {
+                if (!entry.settings().inheritDecorators() || target == null) {
                     continue;
                 }
 
@@ -338,8 +338,8 @@ public class FloatingIslands {
                     }
                 }
 
-                Integer localFluidHeight = entry.getLocalFluidHeight();
-                if (localFluidHeight != null && localFluidHeight > 0) {
+                int localFluidHeight = entry.settings().localFluidHeight().orElse(0);
+                if (localFluidHeight > 0) {
                     int fluidCap = Math.min(sample.thickness - 1, localFluidHeight);
                     int fluidTopY = -1;
                     for (int k = 1; k <= fluidCap; k++) {
@@ -375,7 +375,7 @@ public class FloatingIslands {
 
     private void writeIslandSkyBiomes(IrisBiome parent, int wx, int wz, FloatingIslandSample sample, int chunkHeight, IrisData data) {
         try {
-            IdentityHashMap<IrisFloatingChildBiomes, MatterBiomeInject> matterByEntry = new IdentityHashMap<>();
+            IdentityHashMap<ResolvedFloatingChild, MatterBiomeInject> matterByEntry = new IdentityHashMap<>();
             for (int k = 0; k <= sample.topIdx; k++) {
                 if (!sample.solidMask[k]) {
                     continue;
@@ -384,7 +384,7 @@ public class FloatingIslands {
                 if (y < 0 || y >= chunkHeight) {
                     continue;
                 }
-                IrisFloatingChildBiomes entry = sample.entryAt(k);
+                ResolvedFloatingChild entry = sample.entryAt(k);
                 MatterBiomeInject matter = matterByEntry.get(entry);
                 if (matter == null) {
                     IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);

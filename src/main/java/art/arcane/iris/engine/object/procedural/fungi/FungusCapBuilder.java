@@ -18,8 +18,10 @@
 
 package art.arcane.iris.engine.object.procedural.fungi;
 
-import art.arcane.iris.engine.object.procedural.fungi.IrisFungus;
-import art.arcane.iris.engine.object.procedural.fungi.IrisFungusCapShape;
+import com.volmit.block.PaletteSpec;
+import java.util.Optional;
+import art.arcane.iris.builtin.objects.fungi.FungusCapShape;
+import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
@@ -31,17 +33,17 @@ public final class FungusCapBuilder {
     private FungusCapBuilder() {
     }
 
-    public static void build(Map<Vector3i, FungusCellRole> roles, IrisFungus fungus, int baseRadius, double cx, int baseY, double cz, long seed) {
-        int radius = (int) Math.round(baseRadius + Math.max(0.0, fungus.getCapOverhang()));
-        int thickness = Math.max(1, Math.min(3, fungus.getCapThickness()));
-        double squish = Math.max(0.0, Math.min(1.0, fungus.getCapSquish()));
-        double droop = Math.max(0.0, fungus.getCapDroop());
-        IrisFungusCapShape shape = fungus.getCapShape() == null ? IrisFungusCapShape.DOME : fungus.getCapShape();
+    public static void build(Map<Vector3i, FungusCellRole> roles, Fungus fungus, int baseRadius, double cx, int baseY, double cz, long seed) {
+        int radius = (int) Math.round(baseRadius + Math.max(0.0, fungus.capOverhang()));
+        int thickness = Math.max(1, Math.min(3, fungus.capThickness()));
+        double squish = Math.max(0.0, Math.min(1.0, fungus.capSquish()));
+        double droop = Math.max(0.0, fungus.capDroop());
+        FungusCapShape shape = fungus.capShape() == null ? FungusCapShape.DOME : fungus.capShape();
         int icx = (int) Math.round(cx);
         int icz = (int) Math.round(cz);
 
-        boolean hasGill = blockOrPaletteSet(fungus.getGillBlock(), fungus.getGillPalette());
-        boolean hasSpot = blockOrPaletteSet(fungus.getSpotBlock(), fungus.getSpotPalette());
+        boolean hasGill = blockOrPaletteSet(fungus.gillBlock(), fungus.gillPalette());
+        boolean hasSpot = blockOrPaletteSet(fungus.spotBlock(), fungus.spotPalette());
 
         double apexRise = apexRise(shape, radius) * (1.0 - 0.6 * squish);
         double droopReach = Math.tan(Math.toRadians(droop)) * radius;
@@ -68,9 +70,9 @@ public final class FungusCapBuilder {
                     boolean underside = layer == thickness - 1;
                     boolean topFace = layer == 0;
 
-                    if (underside && hasGill && rollNoise(icx + dx, y, icz + dz, seed + 4111L) <= fungus.getGillChance()) {
+                    if (underside && hasGill && rollNoise(icx + dx, y, icz + dz, seed + 4111L) <= fungus.gillChance()) {
                         role = FungusCellRole.GILL;
-                    } else if (topFace && hasSpot && spotNoise(icx + dx, y, icz + dz, seed + 9311L) <= fungus.getSpotChance()) {
+                    } else if (topFace && hasSpot && spotNoise(icx + dx, y, icz + dz, seed + 9311L) <= fungus.spotChance()) {
                         role = FungusCellRole.SPOT;
                     }
 
@@ -80,7 +82,7 @@ public final class FungusCapBuilder {
         }
     }
 
-    private static double apexRise(IrisFungusCapShape shape, int radius) {
+    private static double apexRise(FungusCapShape shape, int radius) {
         return switch (shape) {
             case DOME -> radius * 0.85;
             case CONICAL -> radius * 1.4;
@@ -90,7 +92,7 @@ public final class FungusCapBuilder {
         };
     }
 
-    private static double capSurface(IrisFungusCapShape shape, double normalized, double apexRise) {
+    private static double capSurface(FungusCapShape shape, double normalized, double apexRise) {
         double n = Math.max(0.0, Math.min(1.0, normalized));
         return switch (shape) {
             case DOME -> apexRise * Math.sqrt(Math.max(0.0, 1.0 - n * n));
@@ -109,10 +111,10 @@ public final class FungusCapBuilder {
         return TreeFunctions.valueNoise3D(Math.floorDiv(x, 2), y, Math.floorDiv(z, 2), seed);
     }
 
-    static boolean blockOrPaletteSet(String block, IrisMaterialPalette palette) {
+    static boolean blockOrPaletteSet(Optional<String> block, Optional<PaletteSpec> palette) {
         if (IrisProceduralBlocks.paletteSet(palette)) {
             return true;
         }
-        return block != null && !block.isEmpty();
+        return block.filter(name -> !name.isEmpty()).isPresent();
     }
 }

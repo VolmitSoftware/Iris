@@ -18,8 +18,9 @@
 
 package art.arcane.iris.engine.object.procedural.crystal;
 
+import art.arcane.iris.builtin.objects.crystal.Crystal;
+import com.volmit.block.PaletteSpec;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.procedural.crystal.IrisCrystal;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -33,7 +34,7 @@ public final class CrystalGenerator {
     private CrystalGenerator() {
     }
 
-    public static IrisObject generate(IrisCrystal crystal, int variantIndex, RNG rng, IrisData data) {
+    public static IrisObject generate(Crystal crystal, int variantIndex, RNG rng, IrisData data) {
         CrystalCanvas canvas = new CrystalCanvas();
         long structureSeed = rng.getSeed();
 
@@ -41,8 +42,8 @@ public final class CrystalGenerator {
         CrystalShardBuilder.build(canvas, crystal, rng);
 
         Map<Vector3i, PlatformBlockState> resolved = new HashMap<>();
-        RNG paletteRng = new RNG(crystal.getSeed());
-        RNG tipRng = new RNG(crystal.getSeed() + (variantIndex * 31337L) + 4099L);
+        RNG paletteRng = new RNG(crystal.seed());
+        RNG tipRng = new RNG(crystal.seed() + (variantIndex * 31337L) + 4099L);
 
         for (Map.Entry<Vector3i, CrystalRole> entry : canvas.getCells().entrySet()) {
             Vector3i position = entry.getKey();
@@ -59,7 +60,7 @@ public final class CrystalGenerator {
         return IrisProceduralBlocks.assemble(resolved);
     }
 
-    private static PlatformBlockState resolveRole(IrisCrystal crystal, CrystalRole role, IrisData data, int x, int y, int z, RNG paletteRng, RNG tipRng) {
+    private static PlatformBlockState resolveRole(Crystal crystal, CrystalRole role, IrisData data, int x, int y, int z, RNG paletteRng, RNG tipRng) {
         return switch (role) {
             case BASE -> resolveBase(crystal, data, x, y, z, paletteRng);
             case SHARD -> resolveShard(crystal, data, x, y, z, paletteRng);
@@ -67,11 +68,11 @@ public final class CrystalGenerator {
         };
     }
 
-    private static PlatformBlockState resolveBase(IrisCrystal crystal, IrisData data, int x, int y, int z, RNG paletteRng) {
-        boolean hasBase = IrisProceduralBlocks.paletteSet(crystal.getBasePalette())
-                || (crystal.getBaseBlock() != null && !crystal.getBaseBlock().isEmpty());
+    private static PlatformBlockState resolveBase(Crystal crystal, IrisData data, int x, int y, int z, RNG paletteRng) {
+        boolean hasBase = IrisProceduralBlocks.paletteSet(crystal.basePalette())
+                || (crystal.baseBlock() != null && !crystal.baseBlock().isEmpty());
         if (hasBase) {
-            PlatformBlockState base = IrisProceduralBlocks.resolve(crystal.getBaseBlock(), crystal.getBasePalette(), data, x, y, z, paletteRng);
+            PlatformBlockState base = IrisProceduralBlocks.resolve(crystal.baseBlock(), crystal.basePalette(), data, x, y, z, paletteRng);
             if (base != null) {
                 return base;
             }
@@ -79,17 +80,17 @@ public final class CrystalGenerator {
         return resolveShard(crystal, data, x, y, z, paletteRng);
     }
 
-    private static PlatformBlockState resolveShard(IrisCrystal crystal, IrisData data, int x, int y, int z, RNG paletteRng) {
-        return IrisProceduralBlocks.resolve(crystal.getBlock(), crystal.getBlockPalette(), data, x, y, z, paletteRng);
+    private static PlatformBlockState resolveShard(Crystal crystal, IrisData data, int x, int y, int z, RNG paletteRng) {
+        return IrisProceduralBlocks.resolve(crystal.block(), crystal.blockPalette(), data, x, y, z, paletteRng);
     }
 
-    private static PlatformBlockState resolveTip(IrisCrystal crystal, IrisData data, int x, int y, int z, RNG paletteRng, RNG tipRng) {
-        boolean hasTip = IrisProceduralBlocks.paletteSet(crystal.getTipPalette())
-                || (crystal.getTipBlock() != null && !crystal.getTipBlock().isEmpty());
+    private static PlatformBlockState resolveTip(Crystal crystal, IrisData data, int x, int y, int z, RNG paletteRng, RNG tipRng) {
+        boolean hasTip = IrisProceduralBlocks.paletteSet(crystal.tipPalette())
+                || (crystal.tipBlock() != null && !crystal.tipBlock().isEmpty());
 
         if (hasTip) {
-            if (tipRng.chance(crystal.getTipChance())) {
-                PlatformBlockState tip = IrisProceduralBlocks.resolve(crystal.getTipBlock(), crystal.getTipPalette(), data, x, y, z, paletteRng);
+            if (tipRng.chance(crystal.tipChance())) {
+                PlatformBlockState tip = IrisProceduralBlocks.resolve(crystal.tipBlock(), crystal.tipPalette(), data, x, y, z, paletteRng);
                 if (tip != null) {
                     return tip;
                 }
@@ -97,9 +98,9 @@ public final class CrystalGenerator {
             return resolveShard(crystal, data, x, y, z, paletteRng);
         }
 
-        if (crystal.isGlow() && crystal.getGlowBlock() != null && !crystal.getGlowBlock().isEmpty()) {
-            if (tipRng.chance(crystal.getTipChance())) {
-                PlatformBlockState glow = IrisProceduralBlocks.resolve(crystal.getGlowBlock(), null, data, x, y, z, paletteRng);
+        if (crystal.glow() && crystal.glowBlock() != null && !crystal.glowBlock().isEmpty()) {
+            if (tipRng.chance(crystal.tipChance())) {
+                PlatformBlockState glow = IrisProceduralBlocks.resolve(crystal.glowBlock(), (PaletteSpec) null, data, x, y, z, paletteRng);
                 if (glow != null) {
                     return glow;
                 }

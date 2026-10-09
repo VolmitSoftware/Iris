@@ -18,8 +18,10 @@
 
 package art.arcane.iris.engine.object.procedural.formation;
 
+import com.volmit.block.PaletteSpec;
+import java.util.Optional;
+import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -30,37 +32,37 @@ public final class FormationBlockResolver {
     private FormationBlockResolver() {
     }
 
-    public static PlatformBlockState resolve(IrisFormation f, IrisData data, FormationCanvas.Role role, Vector3i raw) {
+    public static PlatformBlockState resolve(Formation f, IrisData data, FormationCanvas.Role role, Vector3i raw) {
         int x = raw.getBlockX();
         int y = raw.getBlockY();
         int z = raw.getBlockZ();
-        RNG paletteRng = new RNG(f.getSeed());
+        RNG paletteRng = new RNG(f.seed());
 
         if (role == FormationCanvas.Role.CAP && capDefined(f)) {
-            PlatformBlockState cap = IrisProceduralBlocks.resolve(f.getCapBlock(), f.getCapPalette(), data, x, y, z, paletteRng);
+            PlatformBlockState cap = IrisProceduralBlocks.resolve(f.capBlock(), f.capPalette(), data, x, y, z, paletteRng);
             if (cap != null) {
                 return cap;
             }
         }
 
         if (strataDefined(f)) {
-            IrisMaterialPalette strata = f.getStrataPalette();
-            int thickness = Math.max(1, f.getStrataThickness());
+            PaletteSpec strata = f.strataPalette().orElseThrow();
+            int thickness = Math.max(1, f.strataThickness());
             int band = Math.floorDiv(y, thickness);
-            PlatformBlockState strataState = strata.get(new RNG(f.getSeed() + (band * 31L)), x, band, z, data);
+            PlatformBlockState strataState = IrisProceduralBlocks.pick(strata, data, f.seed() + (band * 31L), x, band, z);
             if (strataState != null) {
                 return strataState;
             }
         }
 
-        return IrisProceduralBlocks.resolve(f.getBlock(), f.getBlockPalette(), data, x, y, z, paletteRng);
+        return IrisProceduralBlocks.resolve(f.block(), f.blockPalette(), data, x, y, z, paletteRng);
     }
 
-    private static boolean capDefined(IrisFormation f) {
-        return IrisProceduralBlocks.paletteSet(f.getCapPalette()) || (f.getCapBlock() != null && !f.getCapBlock().isEmpty());
+    private static boolean capDefined(Formation f) {
+        return IrisProceduralBlocks.paletteSet(f.capPalette()) || f.capBlock().filter(block -> !block.isEmpty()).isPresent();
     }
 
-    private static boolean strataDefined(IrisFormation f) {
-        return IrisProceduralBlocks.paletteSet(f.getStrataPalette());
+    private static boolean strataDefined(Formation f) {
+        return IrisProceduralBlocks.paletteSet(f.strataPalette());
     }
 }

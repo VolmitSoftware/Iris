@@ -11,9 +11,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /** The host's side of every pack load, the same for all packs: its built-in modules, the host
- * packages pack modules may use besides the Iris API, the JSON fields the host itself uses (which no
- * built-in alias may take), the packages of the classes the host describes itself and the pack folders it
- * reads itself (which no resource kind may read). Build it once and pass it to every
+ * packages pack modules may use besides the Iris API, the packages of the classes the host describes itself
+ * and the pack folders it reads itself (which no resource kind may read). Build it once and pass it to every
  * {@link LoadedPack#load(java.nio.file.Path, ModuleHost)}.
  *
  * <pre>{@code

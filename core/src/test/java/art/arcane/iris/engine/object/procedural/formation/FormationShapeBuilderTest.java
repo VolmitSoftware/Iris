@@ -1,8 +1,9 @@
 package art.arcane.iris.engine.object.procedural.formation;
 
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.engine.object.procedural.formation.FormationCanvas;
 import art.arcane.iris.engine.object.procedural.formation.FormationShapeBuilder;
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -65,18 +66,18 @@ public class FormationShapeBuilderTest {
 
     @Test
     public void thinLeaningSpireRetainsAConnectedPointedTip() {
-        IrisFormation formation = baseFormation();
-        formation.setRoughness(0.12);
-        formation.setJitter(0.02);
-        formation.setTopWidth(0);
-        formation.setLean(10);
-        formation.setLeanAzimuth(18);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "roughness", 0.12);
+        TestSettings.with(formation, "jitter", 0.02);
+        TestSettings.with(formation, "topWidth", 0);
+        TestSettings.with(formation, "lean", 10);
+        TestSettings.with(formation, "leanAzimuth", 18);
         FormationCanvas canvas = new FormationCanvas();
         int height = 48;
         FormationShapeBuilder.spire(canvas, formation, height, 1.0, new RNG(137L));
-        double shear = Math.tan(Math.toRadians(formation.getLean())) * (height - 1);
-        int tipX = (int) Math.round(Math.cos(Math.toRadians(formation.getLeanAzimuth())) * shear);
-        int tipZ = (int) Math.round(Math.sin(Math.toRadians(formation.getLeanAzimuth())) * shear);
+        double shear = Math.tan(Math.toRadians(formation.lean())) * (height - 1);
+        int tipX = (int) Math.round(Math.cos(Math.toRadians(formation.leanAzimuth())) * shear);
+        int tipZ = (int) Math.round(Math.sin(Math.toRadians(formation.leanAzimuth())) * shear);
 
         assertEquals(FormationCanvas.Role.CAP, canvas.getCells().get(new Vector3i(tipX, height - 1, tipZ)));
         assertEquals(height - 1, maxY(canvas));
@@ -86,10 +87,10 @@ public class FormationShapeBuilderTest {
 
     @Test
     public void archRetainsGroundedLegsAndAnOpenCenter() {
-        IrisFormation formation = baseFormation();
-        formation.setArchSpan(10);
-        formation.setArchThickness(2);
-        formation.setArchAsymmetry(0.8);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "archSpan", 10);
+        TestSettings.with(formation, "archThickness", 2);
+        TestSettings.with(formation, "archAsymmetry", 0.8);
         FormationCanvas canvas = arch(formation, 149L);
         FormationCanvas repeated = arch(formation, 149L);
         FormationCanvas different = arch(formation, 151L);
@@ -107,17 +108,17 @@ public class FormationShapeBuilderTest {
 
     @Test
     public void zeroAsymmetryKeepsArchMirroredAndThicknessScales() {
-        IrisFormation formation = baseFormation();
-        formation.setRoughness(0.0);
-        formation.setJitter(0.0);
-        formation.setArchSpan(10);
-        formation.setArchAsymmetry(0.0);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "roughness", 0.0);
+        TestSettings.with(formation, "jitter", 0.0);
+        TestSettings.with(formation, "archSpan", 10);
+        TestSettings.with(formation, "archAsymmetry", 0.0);
 
-        formation.setArchThickness(1);
+        TestSettings.with(formation, "archThickness", 1);
         FormationCanvas thin = arch(formation, 173L);
-        formation.setArchThickness(2);
+        TestSettings.with(formation, "archThickness", 2);
         FormationCanvas medium = arch(formation, 173L);
-        formation.setArchThickness(3);
+        TestSettings.with(formation, "archThickness", 3);
         FormationCanvas thick = arch(formation, 173L);
 
         assertEquals(0, unmirroredCells(medium));
@@ -135,51 +136,51 @@ public class FormationShapeBuilderTest {
     }
 
     private FormationCanvas iceberg(long seed) {
-        IrisFormation formation = baseFormation();
-        formation.setIcebergPeaks(4);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "icebergPeaks", 4);
         FormationCanvas canvas = new FormationCanvas();
         FormationShapeBuilder.iceberg(canvas, formation, 20, 5.0, new RNG(seed));
         return canvas;
     }
 
     private FormationCanvas fissure(long seed) {
-        IrisFormation formation = baseFormation();
-        formation.setFractureCount(3);
-        formation.setFractureSeparation(4);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "fractureCount", 3);
+        TestSettings.with(formation, "fractureSeparation", 4);
         FormationCanvas canvas = new FormationCanvas();
         FormationShapeBuilder.fissure(canvas, formation, 18, 4.0, new RNG(seed));
         return canvas;
     }
 
     private FormationCanvas spiral(long seed) {
-        IrisFormation formation = baseFormation();
-        formation.setSpiralTurns(1.75);
-        formation.setSpiralRadius(6);
-        formation.setSpiralThickness(1);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "spiralTurns", 1.75);
+        TestSettings.with(formation, "spiralRadius", 6);
+        TestSettings.with(formation, "spiralThickness", 1);
         FormationCanvas canvas = new FormationCanvas();
         FormationShapeBuilder.spiral(canvas, formation, 20, 4.0, new RNG(seed));
         return canvas;
     }
 
     private FormationCanvas overhang(long seed) {
-        IrisFormation formation = baseFormation();
-        formation.setOverhangReach(14);
-        formation.setOverhangDrop(4);
+        Formation formation = baseFormation();
+        TestSettings.with(formation, "overhangReach", 14);
+        TestSettings.with(formation, "overhangDrop", 4);
         FormationCanvas canvas = new FormationCanvas();
         FormationShapeBuilder.overhang(canvas, formation, 20, 3.0, new RNG(seed));
         return canvas;
     }
 
-    private FormationCanvas arch(IrisFormation formation, long seed) {
+    private FormationCanvas arch(Formation formation, long seed) {
         FormationCanvas canvas = new FormationCanvas();
         FormationShapeBuilder.arch(canvas, formation, 18, 4.0, new RNG(seed));
         return canvas;
     }
 
-    private IrisFormation baseFormation() {
-        IrisFormation formation = new IrisFormation();
-        formation.setRoughness(0.2);
-        formation.setJitter(0.05);
+    private Formation baseFormation() {
+        Formation formation = new Formation();
+        TestSettings.with(formation, "roughness", 0.2);
+        TestSettings.with(formation, "jitter", 0.05);
         return formation;
     }
 

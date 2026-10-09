@@ -1,5 +1,8 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisSurfaceSupport;
@@ -7,7 +10,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -164,13 +166,11 @@ public class IrisSurfaceSupportTest {
 
     @Test
     public void formationDefaultsToWiderBufferThanObjectDefault() {
-        IrisFormation formation = new IrisFormation();
-
         assertEquals(2, new IrisObjectPlacement().getSurfaceSupportBuffer());
-        assertEquals(3, formation.asPlacement().getSurfaceSupportBuffer());
+        assertEquals(3, new ResolvedFormation(new Formation()).asPlacement().getSurfaceSupportBuffer());
 
-        formation.setSurfaceSupportBuffer(0);
-        assertEquals(0, formation.asPlacement().getSurfaceSupportBuffer());
+        Formation flush = TestSettings.with(new Formation(), "surfaceSupportBuffer", 0);
+        assertEquals(0, new ResolvedFormation(flush).asPlacement().getSurfaceSupportBuffer());
     }
 
     private static boolean isUnsupported(IObjectPlacer placer, List<IrisBlockVector> footprint,

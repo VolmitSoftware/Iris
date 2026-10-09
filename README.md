@@ -29,6 +29,11 @@ world's structure index when the world stops, which includes every reload of the
 `iris:decorant` keeps its per-world `Decorating` in the world's state store (`context.world().state(...)`); the other
 built-ins still reach the same store through `IrisChunk.state(...)` / `engine.getGeneration().state(...)`.
 
+Settings move off Iris's classes one feature at a time. `iris:deposit` is the first whose settings are IrisApi types
+only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it in
+`art.arcane.iris.builtin.deposit`), and packs write the same `deposits` JSON as before. What needs Iris (resolving the
+palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
+
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.

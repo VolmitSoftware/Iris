@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * One kind of deposit a dimension, region or biome generates, as packs write it in {@code "deposits": [...]} or under
+ * One kind of deposit a dimension, region or biome generates, as packs write it in the {@code generators} of {@code "iris:deposit"} or under
  * {@code snippet/deposit/}: how many clumps of which blocks, how large, at which heights and in which biomes. A value
  * of IrisApi types only; the deposit module builds the clumps and resolves the blocks.
  */

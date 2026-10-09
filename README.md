@@ -31,7 +31,7 @@ built-ins still reach the same store through `IrisChunk.state(...)` / `engine.ge
 
 Settings move off Iris's classes one feature at a time. `iris:deposit` is the first whose settings are IrisApi types
 only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it in
-`art.arcane.iris.builtin.deposit`), and packs write the same `deposits` JSON as before. What needs Iris (resolving the
+`art.arcane.iris.builtin.deposit`), and packs write `"iris:deposit": {"generators": [...]}` (the old `"deposits": [...]` is converted by the pack migration script). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
 
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages

@@ -44,7 +44,7 @@ class LifecycleRunnerTest {
 
     private static LifecycleRunner runner(IrisModule... modules) {
         var discovered = Arrays.stream(modules).map(DiscoveredModule::builtIn).toList();
-        return new LifecycleRunner(LoadedModules.load(discovered, Set.of(), Set.of()).catalog());
+        return new LifecycleRunner(LoadedModules.load(discovered, Map.of(), Set.of(), Set.of()).catalog());
     }
 
     @Test

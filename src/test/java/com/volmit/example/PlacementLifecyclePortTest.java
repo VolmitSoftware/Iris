@@ -202,7 +202,7 @@ class PlacementLifecyclePortTest {
 
     @Test
     void loadingThePortCatalogsEveryConditioningSettingsType() {
-        var loaded = LoadedModules.load(PlacementModules.builtIns(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(PlacementModules.builtIns(), Map.of(), Set.of(), Set.of());
 
         assertEquals(List.of("example:moss", "iris:snow", "iris:stilt"),
                 loaded.catalog().settings().stream().map(settings -> settings.id().toString()).toList());

@@ -377,7 +377,7 @@ completion from it.
 
 ```java
 @Desc("Plants flowers and bushes")
-@Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)   // packs write "example:flora": {...}
+@Feature(id = "example:flora", name = "Flora", key = "flora", targets = Target.BIOME)   // packs write "flora": {...}
 public final class FloraSettings implements IrisFeature {
     @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
     private int density = 4;                                         // default 4
@@ -414,8 +414,19 @@ public final class FloraSettings implements IrisFeature {
 - `@ResourceRef(Keep.class)` says that a `String`, or a list, set or array of them, names a resource of the
   module resource kind read into that class, by its key (see Pack resources of a module). The class must back a
   kind of the pack; anywhere else, or together with `@Ref`, it fails the load.
-- Packs write settings under the feature id, as the settings object: `"example:moss": {"amount": 0.5}`. There
-  are no aliases and no bare-value form.
+- Packs write settings under the short `key` the feature declares, which is required: a plain JSON field name
+  (not blank, no `:`), the same at every target: `"moss": {"amount": 0.5}`. The id (`example:moss`) stays the
+  feature's identity in the stage graph, logs and `settings.declared(MossSettings.class)`; packs never write it.
+  A key is unique per target across all loaded modules and the host's own JSON fields of that target
+  (`ModuleHost.reservingFields`), so a module cannot take `name` or `generators` for a biome. A clash refuses the pack
+  load with one message naming the key, the target and both claimants (module id and jar, or `Iris` for a host field):
+  `biome key "deposits" is claimed by iris:deposit (host classpath) and acme:ores (modules/acme-ores.jar); give one of the settings another key in its @Feature`.
+- One shape per key. The JSON under a key is the object of the class's options, `"moss": {"amount": 0.5}`, unless the
+  class declares `root`, the name of its only option: then the key holds exactly that option's value and an object is
+  not accepted. With `@Feature(id = "example:flora", key = "flowers", root = "flowers", ...)` over
+  `private List<String> flowers`, packs write `"flowers": ["poppy", "daisy"]`. `root` must name the class's only option
+  (nothing could set another), or the load fails. There is no second form: the studio schema renders one shape and a
+  wrong shape fails with a message naming the key and the file.
 - Options keep the order the class declares them in, a superclass's first.
 - Built-in settings may hold classes the host describes itself, such as Iris's palettes, which the host
   names with `ModuleHost.describingHostTypesIn(...)`. They appear as `HostKind` and pack modules cannot
@@ -462,7 +473,7 @@ Settings describe blocks, noise and ranges with IrisApi's value types, which rea
 | `Object` | any JSON value | as decoded: objects as maps, arrays as lists, numbers as `Double` |
 
 ```java
-@Feature(id = "example:veins", name = "Veins", targets = Target.BIOME)
+@Feature(id = "example:veins", name = "Veins", key = "veins", targets = Target.BIOME)
 public final class VeinSettings implements IrisFeature {
     private List<BlockSpec> palette = List.of(BlockSpec.of("iron_ore"));
     private NoiseStyle density = NoiseStyle.of("SIMPLEX").withZoom(16);
@@ -545,6 +556,7 @@ hold them, and packs write them as Iris always read them.
 // Once, at startup: the same for every pack.
 var host = ModuleHost.of(builtInModules)
         .exposing("art.arcane.iris.engine.modules")     // besides the API
+        .reservingFields(hostJsonFields)                  // JSON fields the host uses per target; no settings key may take one
         .describingHostTypesIn("art.arcane.iris.engine.object")   // classes the host describes itself
         .reservingFolders("biomes", "regions", "objects")         // pack folders the host reads itself
         .copyingJarsTo(cacheDirectory)                    // default: java.io.tmpdir
@@ -567,9 +579,9 @@ try (var pack = LoadedPack.load(packRoot, host)) {
 ```
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
-once, here), the host packages pack modules may use, the
-packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names and
-reserved folders are checked when it is built. `LoadedPack.load`
+once, here), the host packages pack modules may use, the JSON fields it uses itself per target, the
+packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names,
+reserved fields and reserved folders are checked when it is built. `LoadedPack.load`
 loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
 describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
@@ -646,7 +658,7 @@ validators and vanilla structure hooks (`catalog().resourceKinds()`, `catalog().
 `catalog().vanillaStructureHooks()`), describes them and resolves the pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do duplicate module ids and feature ids or mantle keys outside the
-module's id. Errors about one module name its jar or "host classpath", and so does a module
+module's id, and a settings key two features take at one target or that is a reserved host field. Errors about one module name its jar or "host classpath", and so does a module
 that fails to link a class while installing, such as a jar built against an API whose methods have
 since changed:
 
@@ -662,8 +674,9 @@ no JSON. The host renders it and merges it with its own fields:
 
 - `fields(target)`: the module features attached to a target, by JSON key. Each `FeatureSchema` has
   the feature id and name, its role (`SETTINGS` or `OBJECT_GENERATOR`), the owning module's
-  `ModuleInfo`, the JSON key (the id), its targets and the
-  settings `ObjectType`.
+  `ModuleInfo`, the JSON key it declares, its `root` option name when the key holds one option's value
+  (`rootOption()` gives that `SchemaOption`; the host renders that option's schema as the key's value and no
+  object form), its targets and the settings `ObjectType`.
 - `types()`: every class reachable from module settings, once each, by name. An `ObjectType` has the
   class name, description, snippet name and options. A `SchemaOption` has name, `ValueKind`,
   description, required, minimum, maximum, minimum item count and default value.
@@ -681,7 +694,7 @@ no JSON. The host renders it and merges it with its own fields:
 For the stilt example the host sees one `OBJECT_PLACEMENT` feature. The records are abridged:
 
 ```
-FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=iris:stilt, targets=[OBJECT_PLACEMENT],
+FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=stilt, root=Optional.empty, targets=[OBJECT_PLACEMENT],
   settings=ObjectType[name=com.volmit.example.placement.StiltSettings, description=Fills the space below an object down to the ground,
     snippet=Optional.empty, options=[SchemaOption[name=maxDepth, kind=IntegerKind[], description=Maximum blocks filled below each
     lowest object block, required=false, minimum=OptionalDouble[1.0], maximum=OptionalDouble.empty, defaultValue=Optional[16]]]]]
@@ -748,7 +761,7 @@ and the derivation is pinned to values computed from its specification (`StageSt
 `WorldRandomTest` pins every `WorldRandom` method, bounds and edge cases to values computed by an
 independent Python reference (`python3 -B src/test/reference/world_random.py`; the build does not
 need Python) and fails if the type gains an unpinned method or implements `RandomGenerator`.
-`PackSchemaTest` loads module jars and checks their description: features under their targets by id,
+`PackSchemaTest` loads module jars and checks their description: features under their targets by key, a root option,
 options in declaration order,
 descriptions, required, bounds, defaults (floats, nulls, sets, maps, objects, a field holding `this`),
 enums, collections, references, nested classes with a cycle, snippets, object generator settings,

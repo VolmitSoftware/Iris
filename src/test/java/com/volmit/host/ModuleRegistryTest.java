@@ -23,14 +23,22 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModuleRegistryTest {
-    @Feature(id = "test:core/one", name = "One", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/one", name = "One", key = "coreOne", targets = FeatureAttachment.Target.BIOME)
     static class One implements IrisFeature {}
-    @Feature(id = "test:core/two", name = "Two", targets = FeatureAttachment.Target.DIMENSION)
+    @Feature(id = "test:core/two", name = "Two", key = "coreTwo", targets = FeatureAttachment.Target.DIMENSION)
     static class Two implements IrisFeature {}
-    @Feature(id = "test:core/one", name = "Duplicate", targets = FeatureAttachment.Target.REGION)
+    @Feature(id = "test:core/one", name = "Duplicate", key = "coreOne", targets = FeatureAttachment.Target.REGION)
     static class Duplicate implements IrisFeature {}
+    @Feature(id = "test:ores", name = "Ores", key = "deposits", targets = {FeatureAttachment.Target.BIOME, FeatureAttachment.Target.REGION})
+    static class Ores implements IrisFeature {}
+    @Feature(id = "test:minerals", name = "Minerals", key = "deposits", targets = FeatureAttachment.Target.REGION)
+    static class Minerals implements IrisFeature {}
+    @Feature(id = "test:veins", name = "Veins", key = "deposits", targets = FeatureAttachment.Target.DIMENSION)
+    static class Veins implements IrisFeature {}
+    @Feature(id = "test:named", name = "Named", key = "name", targets = FeatureAttachment.Target.BIOME)
+    static class Named implements IrisFeature {}
     static class MissingAnnotation implements IrisFeature {}
-    @Feature(id = "test:core/abstract", name = "Abstract", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/abstract", name = "Abstract", key = "coreAbstract", targets = FeatureAttachment.Target.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
     /** Runs {@code registrations} as the register(...) of a built-in module with the given id. */
@@ -128,7 +136,7 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
             public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
         };
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
         assertEquals(1, loaded.catalog().objects().size());
         assertEquals(1, loaded.placement().stages().size());
@@ -141,10 +149,91 @@ class ModuleRegistryTest {
         var second = ownerOfOne("Second");
 
         var clash = assertThrows(IllegalArgumentException.class,
-                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(first), DiscoveredModule.builtIn(second)), Set.of(), Set.of()));
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(first), DiscoveredModule.builtIn(second)), Map.of(), Set.of(), Set.of()));
 
         assertTrue(clash.getMessage().startsWith("Duplicate module test:core from "), clash.getMessage());
         assertTrue(clash.getMessage().contains("already loaded from "), clash.getMessage());
+    }
+
+    private static IrisModule settingsModule(String id, Class<? extends IrisFeature> settings) {
+        return new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of(id, id, "1"); }
+            public void install(StageGraph graph) {}
+            public void register(FeatureRegistry registry) { registry.registerSettings(settings); }
+        };
+    }
+
+    private static List<DiscoveredModule> discovered(IrisModule... modules) {
+        return java.util.Arrays.stream(modules).map(DiscoveredModule::builtIn).toList();
+    }
+
+    @Test
+    void twoModulesTakingOneKeyAtOneTargetRefuseTheLoadNamingKeyTargetAndBothClaimants() {
+        var ores = settingsModule("test:ores", Ores.class);
+        var minerals = settingsModule("test:minerals", Minerals.class);
+
+        var clash = assertThrows(IllegalArgumentException.class,
+                () -> LoadedModules.load(discovered(ores, minerals), Map.of(), Set.of(), Set.of()));
+
+        assertEquals("region key \"deposits\" is claimed by test:minerals (host classpath) and test:ores (host classpath);"
+                + " give one of the settings another key in its @Feature", clash.getMessage());
+    }
+
+    @Test
+    void theSameKeyAtDifferentTargetsIsNotAClash() {
+        var loaded = LoadedModules.load(discovered(settingsModule("test:ores", Ores.class), settingsModule("test:veins", Veins.class)),
+                Map.of(), Set.of(), Set.of());
+
+        assertEquals(List.of("test:ores", "test:veins"), loaded.catalog().settings().stream().map(value -> value.id().toString()).sorted().toList());
+    }
+
+    @Test
+    void aKeyTheHostUsesAsAFieldOfTheTargetIsRefusedNamingIris() {
+        var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("name", "generators"));
+
+        var clash = assertThrows(IllegalArgumentException.class,
+                () -> LoadedModules.load(discovered(settingsModule("test:named", Named.class)), reserved, Set.of(), Set.of()));
+
+        assertEquals("biome key \"name\" is claimed by Iris and test:named (host classpath);"
+                + " give one of the settings another key in its @Feature", clash.getMessage());
+    }
+
+    @Test
+    void aHostFieldOfAnotherTargetDoesNotTakeTheKey() {
+        var reserved = Map.of(FeatureAttachment.Target.REGION, Set.of("name"));
+
+        var loaded = LoadedModules.load(discovered(settingsModule("test:named", Named.class)), reserved, Set.of(), Set.of());
+
+        assertEquals(1, loaded.catalog().settings().size());
+    }
+
+    @Test
+    void aClashingObjectGeneratorOrStageSettingsTypeClaimsTheKeyToo() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "test:ores", settings -> settings.registerSettings(Ores.class));
+        var object = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:minerals",
+                objects -> objects.registerObject(Minerals.class, ignored -> context -> null)));
+        assertTrue(object.getMessage().startsWith("region key \"deposits\" is claimed by test:minerals (host classpath) and test:ores"), object.getMessage());
+
+        var conditioned = new IrisModule() {
+            static final PlacementStage<Void> WORK = Stage.placement("test:minerals/work");
+            public ModuleInfo info() { return ModuleInfo.of("test:minerals", "Minerals", "1"); }
+            public void install(StageGraph graph) { graph.define(WORK).when(Minerals.class).run((context, minerals) -> {}); }
+            public void register(FeatureRegistry registry) {}
+        };
+        var stage = assertThrows(IllegalArgumentException.class,
+                () -> LoadedModules.load(discovered(settingsModule("test:ores", Ores.class), conditioned), Map.of(), Set.of(), Set.of()));
+        assertTrue(stage.getMessage().startsWith("region key \"deposits\" is claimed by test:minerals (host classpath) and test:ores"), stage.getMessage());
+    }
+
+    @Test
+    void aRefusedKeyLeavesNothingClaimedByTheFailedFeature() {
+        var registry = new ModuleRegistry(Map.of(FeatureAttachment.Target.REGION, Set.of("deposits")), Set.of());
+
+        assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:ores", settings -> settings.registerSettings(Ores.class)));
+
+        registerAs(registry, "test:veins", settings -> settings.registerSettings(Veins.class));
+        assertEquals(List.of("test:veins"), registry.freeze().settings().stream().map(value -> value.id().toString()).toList());
     }
 
     private static IrisModule ownerOfOne(String name) {
@@ -197,11 +286,11 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
         };
 
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
 
         var unowned = assertThrows(IllegalArgumentException.class,
-                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Set.of(), Set.of()));
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of()));
         assertTrue(unowned.getMessage().contains("which none of the modules naming it in when(...) owns"), unowned.getMessage());
     }
 
@@ -210,7 +299,7 @@ class ModuleRegistryTest {
 
     @Test
     void resourceKindsHaveOwnedIdsAndOneIdTypeAndFolderEach() {
-        var registry = new ModuleRegistry(Set.of("biomes"));
+        var registry = new ModuleRegistry(Map.of(), Set.of("biomes"));
         var castles = ResourceKind.of("test:core/castle", "castles", Castle.class);
         registerAs(registry, "test:core", kinds -> {
             kinds.registerResourceKind(castles);

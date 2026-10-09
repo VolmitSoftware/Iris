@@ -14,10 +14,10 @@ class ConfiguredSettingsTest {
     private static final ResourceId BIOME = ResourceId.parse("pack:biome/plains");
     private static final ResourceId OBJECT = ResourceId.parse("pack:object/tree");
 
-    @Feature(id = "test:levels", name = "Levels", targets = {Target.DIMENSION, Target.BIOME, Target.OBJECT_PLACEMENT})
+    @Feature(id = "test:levels", name = "Levels", key = "levels", targets = {Target.DIMENSION, Target.BIOME, Target.OBJECT_PLACEMENT})
     static final class Levels implements IrisFeature {}
 
-    @Feature(id = "test:other", name = "Other", targets = Target.BIOME)
+    @Feature(id = "test:other", name = "Other", key = "other", targets = Target.BIOME)
     static final class Other implements IrisFeature {}
 
     @Test

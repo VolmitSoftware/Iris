@@ -81,7 +81,7 @@ class PackSchemaTest {
             import java.util.*;
 
             @Desc("Plants flowers and bushes")
-            @Feature(id = "example:flora", name = "Flora", targets = {Target.REGION, Target.BIOME})
+            @Feature(id = "example:flora", name = "Flora", key = "flora", targets = {Target.REGION, Target.BIOME})
             public final class FloraSettings implements IrisFeature {
                 @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
                 private int density = 4;
@@ -143,7 +143,7 @@ class PackSchemaTest {
             import com.volmit.IrisFeature;
             import com.volmit.config.*;
 
-            @Feature(id = "example:flora/wind", name = "Wind", targets = Target.DIMENSION)
+            @Feature(id = "example:flora/wind", name = "Wind", key = "floraWind", targets = Target.DIMENSION)
             public final class WindSettings implements IrisFeature {
                 @Desc("How far plants sway")
                 private double strength = 1.5;
@@ -158,7 +158,7 @@ class PackSchemaTest {
             import com.volmit.config.*;
 
             @Snippet("example/flora/bush")
-            @Feature(id = "example:flora/bush", name = "Bush", targets = Target.OBJECT_PLACEMENT)
+            @Feature(id = "example:flora/bush", name = "Bush", key = "floraBush", targets = Target.OBJECT_PLACEMENT)
             public final class BushSettings implements IrisFeature {
                 private int height = 2;
             }
@@ -202,13 +202,13 @@ class PackSchemaTest {
     }
 
     @Test
-    void attachesEveryModuleFeatureToItsTargetsUnderItsId() {
+    void attachesEveryModuleFeatureToItsTargetsUnderItsDeclaredKey() {
         var schema = floraSchema();
 
-        assertEquals(List.of("example:flora"), names(schema.fields(Target.BIOME), FeatureSchema::key));
-        assertEquals(List.of("example:flora"), names(schema.fields(Target.REGION), FeatureSchema::key));
-        assertEquals(List.of("example:flora/wind"), names(schema.fields(Target.DIMENSION), FeatureSchema::key));
-        assertEquals(List.of("example:flora/bush"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
+        assertEquals(List.of("flora"), names(schema.fields(Target.BIOME), FeatureSchema::key));
+        assertEquals(List.of("flora"), names(schema.fields(Target.REGION), FeatureSchema::key));
+        assertEquals(List.of("floraWind"), names(schema.fields(Target.DIMENSION), FeatureSchema::key));
+        assertEquals(List.of("floraBush"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
         assertEquals(List.of("example:flora", "example:flora/bush", "example:flora/wind"), names(schema.features(), FeatureSchema::id));
 
         var flora = schema.features().getFirst();
@@ -336,7 +336,7 @@ class PackSchemaTest {
         var schema = schemaOf(pack("empty"), ModuleHost.of(builtIns));
 
         assertEquals(List.of("example:grass", "example:moss", "iris:snow", "iris:stilt"), names(schema.features(), FeatureSchema::id));
-        assertEquals(List.of("example:moss", "iris:snow", "iris:stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
+        assertEquals(List.of("moss", "snow", "stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
 
         var stilt = schema.fields(Target.OBJECT_PLACEMENT).get(2);
         assertEquals("Stilts", stilt.module().name());
@@ -419,7 +419,7 @@ class PackSchemaTest {
                         import com.volmit.resource.*;
                         import java.util.*;
 
-                        @Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)
+                        @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Target.BIOME)
                         public final class FloraSettings implements IrisFeature {
                         %s
                         }
@@ -434,6 +434,39 @@ class PackSchemaTest {
 
     private void assertLoadFails(String expected, String body, String... otherSources) {
         assertEquals(expected, loadFailure(body, otherSources).getMessage());
+    }
+
+    @Test
+    void settingsWhoseJsonIsOneOptionsValueNameThatOptionAsTheRoot() {
+        var pack = pack("rooted");
+        module("pack.flora.FloraModule", FLORA,
+                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        import com.volmit.FeatureAttachment.Target;
+                        import com.volmit.IrisFeature;
+                        import com.volmit.config.*;
+                        import java.util.*;
+
+                        @Feature(id = "example:flora", name = "Flora", key = "flowers", root = "flowers", targets = Target.BIOME)
+                        public final class FloraSettings implements IrisFeature {
+                            @MinItems(1) private List<String> flowers = List.of("poppy");
+                        }
+                        """)
+                .writeInto(pack, "flora.jar");
+
+        var flora = schemaOf(pack, NO_BUILT_INS).fields(Target.BIOME).getFirst();
+
+        assertEquals("flowers", flora.key());
+        assertEquals(Optional.of("flowers"), flora.root());
+        assertEquals(option(flora.settings(), "flowers"), flora.rootOption().orElseThrow());
+        assertEquals(new ListKind(new TextKind(TextFormat.PLAIN), false), flora.rootOption().orElseThrow().kind());
+    }
+
+    @Test
+    void settingsWithoutARootHaveNoRootOption() {
+        assertEquals(Optional.empty(), floraSchema().features().getFirst().rootOption());
     }
 
     @Test
@@ -455,7 +488,7 @@ class PackSchemaTest {
                         import com.volmit.world.BlockPosition;
                         import java.util.*;
 
-                        @Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)
+                        @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Target.BIOME)
                         public final class FloraSettings implements IrisFeature {
                             private List<BlockSpec> palette = List.of(BlockSpec.of("poppy"));
                             private NoiseStyle style = NoiseStyle.of("SIMPLEX").withZoom(4);
@@ -521,7 +554,7 @@ class PackSchemaTest {
                         import com.volmit.config.Feature;
                         import java.util.*;
 
-                        @Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)
+                        @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Target.BIOME)
                         public final class FloraSettings implements IrisFeature {
                             private Node node = new Node();
                             private double ratio = Double.NaN;
@@ -622,7 +655,7 @@ class PackSchemaTest {
                         package pack.flora;
 
                         @com.volmit.config.Snippet("example/flora")
-                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", key = "flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
                         public final class FloraSettings implements com.volmit.IrisFeature {}
                         """)
                 .writeInto(pack, "flora.jar");
@@ -648,7 +681,7 @@ class PackSchemaTest {
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
 
-                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", key = "flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
                         public final class FloraSettings extends Base implements com.volmit.IrisFeature { private int omega; private int beta; }
                         """)
                 .writeInto(pack, "flora.jar");
@@ -689,7 +722,7 @@ class PackSchemaTest {
                         import com.volmit.config.*;
                         import java.util.List;
 
-                        @Feature(id = "example:castle", name = "Castle", targets = Target.BIOME)
+                        @Feature(id = "example:castle", name = "Castle", key = "castle", targets = Target.BIOME)
                         public final class CastleSettings implements IrisFeature {
                             @ResourceRef(Keep.class)
                             private List<String> keeps = List.of("main");

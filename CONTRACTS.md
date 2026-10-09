@@ -21,7 +21,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
 | Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner` |
 | Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages read the mantle only |
-| Annotated settings | `IrisFeature`, `@Feature` (id as JSON key), config annotations, `OptionsMetadata` |
+| Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, `OptionsMetadata` |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, `FeatureRegistry.registerHeldType`, host `FeatureCatalog.heldTypes()`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
@@ -60,8 +60,9 @@ a working no-argument constructor, a bad or repeated snippet name, or a pack cla
 outside its module's folder. Defaults come from an instance made by that constructor. Options are in
 declaration order.
 
-Packs write settings under the feature id, as the settings object; there are no aliases and no bare-value
-shorthand. The description is in a fixed order and holds module entries only.
+Packs write settings under the short key the feature declares, as the settings object, or as the value of the
+one option its `root` names; there is no second form. A key is unique per target across modules and the host's own
+JSON fields. The description is in a fixed order and holds module entries only.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
@@ -139,7 +140,10 @@ running Iris is the pack publisher's responsibility.
   packs and is part of what packs can break on. Stage output types and settings types that pack
   code uses through those stages must be in exposed packages too. The API is always exposed.
 - Consider showing `PackModules.missingClasses()` in studio.
-- Decode module settings under the feature id, as a JSON object (or a snippet reference for a `@Snippet` type).
+- Pass the host's own JSON fields per target to `ModuleHost.reservingFields(...)`, so a settings key can never
+  shadow one; a clash refuses the pack load.
+- Decode module settings under the declared key, as a JSON object (or a snippet reference for a `@Snippet` type), or,
+  for a feature with a `root`, as exactly that option's value. Render one shape for each.
 - Render `pack.schema()` into studio's files: merge each target's `fields(target)` into the schema
   of the matching Iris file type (dimension, region, biome, object placement) under the key, write `types()` as definitions, a `/snippet/<name>` schema per entry of `snippets()`, and
   completion lists per `Reference` from the server registries and the pack's biome, region and

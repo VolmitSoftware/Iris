@@ -47,7 +47,7 @@ name, version and optional packages; there is no separate descriptor. A pack kee
 
 The host loads a pack with `LoadedPack.load(packRoot, host)`. `ModuleHost` is the host's fixed
 configuration, built once and the same for every pack: built-in modules, exposed host packages,
-host type packages and reserved folders. Each of its methods adds to what earlier calls
+the JSON fields the host uses itself, host type packages and reserved folders. Each of its methods adds to what earlier calls
 configured, and all names are checked when it is built. `LoadedPack` runs `PackModules.load` (below), then
 `LoadedModules.load` on the built-ins followed by the pack's modules. If the second step fails it
 closes the first before rethrowing, so a failed load leaves no class loader or jar copy behind.
@@ -568,13 +568,29 @@ ids. Two modules with one id never get that far: the load fails naming both ("Du
 
 ### JSON keys
 
-Packs write a feature's settings under its feature id at each of its targets, always as the settings
-object: `"example:moss": {...}`. A single option is not written bare (`"example:moss": 0.5` and a bare list
-are not accepted); the object is the one shape, so a class gaining a second option never changes how packs
-read. A `@Snippet` class may be written as a `"snippet/..."` string instead of the object. The id is unique,
-namespaced and owned by one module, so two modules can never claim the same key, and a key can never be one of
-the host's own fields: those have no `:`. There are no short aliases; pack files written for an older
-shape are converted by the host's migration tooling, never by the loader.
+Packs write a feature's settings under the short key its `@Feature` declares (`key`, required), at each of
+its targets: `"moss": {...}`. The feature id (`example:moss`) is the identity everywhere else (stage graph, logs,
+lookups by class) and is never a JSON key. A key is a plain field name, not blank and without `:`.
+
+*Why a declared key and not the id.* Pack authors write these keys by hand, and a biome already says `deposits`,
+`decorators`; `"iris:deposit": {"generators": [...]}` would make every existing pack unreadable and every file longer.
+The id carried an implicit uniqueness guarantee (module ids are unique); a declared key has to be checked instead.
+
+*Uniqueness.* A key is unique per target (dimension, region, biome, object placement), across all loaded modules and
+the host's own JSON fields of that target. The host passes its fields with `ModuleHost.reservingFields` (the same
+fields it reads itself: a module may not take `name` or `generators` for a biome). `ModuleRegistry` claims `(target,
+key)` for every feature it catalogs, settings and object generators alike, including types only a stage names, and a
+clash fails the registration, so the pack load, with one message naming the key, the target and both claimants (feature
+id and the module's jar, or `Iris` for a host field): `biome key "deposits" is claimed by iris:deposit (host classpath)
+and acme:ores (modules/acme-ores.jar)`. Claimants are listed host field first, then built-in features, then pack
+features, then by feature id, so the message does not depend on which module registered first.
+
+*One shape.* The JSON under a key is the object of the class's options, unless `@Feature(root = "<option>")` declares
+that the JSON is that option's value, as `deposits` is a list (`root = "generators"`). Then the key holds exactly that
+value and the object form is not accepted. `root` must name the class's only option. This replaces the one-option
+shorthand wave 2 removed (a bare value accepted as an alternative to the object, so every renderer needed an `anyOf`):
+the class chooses its one shape once, and the decoder, the studio schema and the pack author see only that shape.
+A `@Snippet` class may still be written as a `"snippet/..."` string instead of its object.
 
 `GeneratedObject` is sparse, immutable local geometry with bounds, an anchor, sorted blocks,
 optional block entity payloads and markers. `ObjectGenerator` produces it from settings and a
@@ -597,15 +613,15 @@ classes. The pack load instead collects what modules declare in their settings c
 `LoadedModules.load` builds it right after freezing the catalog (`PackSchemaBuilder`), so a pack
 that loads has a complete description and a settings class the host could not render fails the
 load. It contains every catalogued settings type of every module, built-in ones too, because the
-core engine is modules as well. The host's own JSON fields are not in it; they have no `:`, so they can
-never equal a feature id.
+core engine is modules as well. The host's own JSON fields are not in it; no key may equal one
+(see JSON keys).
 
 ### Shape
 
 - A `FeatureSchema` per catalogued type: feature id and name, role (`SETTINGS` for types named in
   `when(...)` or registered with `registerSettings`, `OBJECT_GENERATOR` for `registerObject`), the
-  owning module's `ModuleInfo`, the JSON key (the feature id), its targets and the
-  settings `ObjectType`. `fields(target)` lists a target's features; a feature attached to several targets appears under
+  owning module's `ModuleInfo`, the JSON key the feature declares, its `root` option when the key holds one
+  option's value (`rootOption()`), its targets and the settings `ObjectType`. `fields(target)` lists a target's features; a feature attached to several targets appears under
   each. The owner is the one module whose id owns the feature id; module ids are unique and contain
   no `/`, so there is never more than one.
 - An `ObjectType` per class reachable from module settings, keyed by binary class name: description,

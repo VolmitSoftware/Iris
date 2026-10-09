@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
@@ -17,12 +18,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
- * immutable. IDs are unique across feature kinds, and every feature id is its JSON key. Modules register through
+ * immutable. IDs are unique across feature kinds. A feature's JSON key (see {@link com.volmit.config.Feature#key})
+ * is unique per attachment target, and may not equal a host JSON field passed in to reserve it; a clash fails the
+ * registration naming the key, the target and both claimants. Modules register through
  * {@link #register(DiscoveredModule)}; object feature ids, mantle keys, resource kind ids and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
@@ -38,6 +42,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<ResourceId> featureIds = new HashSet<>();
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
+    private final Map<KeyAtTarget, KeyClaimant> keyClaimants = new HashMap<>();
     private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
     private final Map<Class<?>, HeldTypeRegistration> heldTypes = new HashMap<>();
     private final List<ValidatorRegistration> validators = new ArrayList<>();
@@ -45,15 +50,20 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final List<ServiceRegistration> services = new ArrayList<>();
     private final List<VanillaStructureHookRegistration> vanillaStructureHooks = new ArrayList<>();
     private final Set<String> reservedFolders;
+    private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
     private DiscoveredModule registering;
 
     public ModuleRegistry() {
-        this(Set.of());
+        this(Map.of(), Set.of());
     }
 
-    /** @param reservedFolders folders below the pack root that the host reads itself, which no resource kind may read */
-    public ModuleRegistry(Set<String> reservedFolders) {
+    /**
+     * @param reservedHostFields JSON fields the host itself uses, per attachment target, which no settings key may take
+     * @param reservedFolders folders below the pack root that the host reads itself, which no resource kind may read
+     */
+    public ModuleRegistry(Map<FeatureAttachment.Target, Set<String>> reservedHostFields, Set<String> reservedFolders) {
+        reservedHostFields.forEach((target, names) -> names.forEach(name -> reserveHostField(target, name)));
         this.reservedFolders = Set.copyOf(reservedFolders);
     }
 
@@ -65,6 +75,7 @@ public final class ModuleRegistry implements FeatureRegistry {
             throw new IllegalStateException("Module " + discovered.info().id() + " registered during " + registering.info().id());
         }
         registering = discovered;
+        registered.add(discovered);
         try {
             discovered.module().register(this);
         } finally {
@@ -80,7 +91,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         var descriptor = FeatureDescriptor.of(featureType);
         requireOwnedId("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
         var registration = new ObjectRegistration<>(descriptor, factory);
-        claim(descriptor);
+        claim(descriptor, registering);
         objects.put(featureType, registration);
     }
 
@@ -102,7 +113,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         var descriptor = FeatureDescriptor.of(settingsType);
         requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
-        catalogSettings(descriptor);
+        catalogSettings(descriptor, registering);
         registeredByOwner.add(settingsType);
     }
 
@@ -182,7 +193,7 @@ public final class ModuleRegistry implements FeatureRegistry {
             return;
         }
         var descriptor = FeatureDescriptor.of(settingsType);
-        catalogSettings(descriptor);
+        catalogSettings(descriptor, ownerOf(descriptor));
     }
 
     /** Whether the module owning {@code settingsType} registered it through {@link #registerSettings}. */
@@ -198,12 +209,19 @@ public final class ModuleRegistry implements FeatureRegistry {
         return catalog;
     }
 
-    private void catalogSettings(FeatureDescriptor<?> descriptor) {
+    private void catalogSettings(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
         if (settings.containsKey(descriptor.type())) {
             return;
         }
-        claim(descriptor);
+        claim(descriptor, owner);
         settings.put(descriptor.type(), descriptor);
+    }
+
+    private DiscoveredModule ownerOf(FeatureDescriptor<?> descriptor) {
+        return registered.stream()
+                .filter(module -> module.info().ownsId(descriptor.id()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No registered module owns feature id " + descriptor.id()));
     }
 
     private void requireOwnedId(String registration, ResourceId id) {
@@ -255,17 +273,74 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
-    private void claim(FeatureDescriptor<?> descriptor) {
+    private void reserveHostField(FeatureAttachment.Target target, String name) {
+        keyClaimants.put(new KeyAtTarget(target, FeatureAttachment.requireFieldName(name)), KeyClaimant.hostField());
+    }
+
+    private void claim(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
+        requireNewFeature(descriptor);
+        requireUnclaimedKeys(descriptor, owner);
+        featureTypes.add(descriptor.type());
+        featureIds.add(descriptor.id());
+        descriptor.attachment().targets().forEach(target ->
+                keyClaimants.put(new KeyAtTarget(target, descriptor.key()), KeyClaimant.of(descriptor, owner)));
+    }
+
+    private void requireNewFeature(FeatureDescriptor<?> descriptor) {
         if (featureTypes.contains(descriptor.type()) || featureIds.contains(descriptor.id())) {
             throw new IllegalArgumentException("Duplicate feature: " + descriptor.id());
         }
-        featureTypes.add(descriptor.type());
-        featureIds.add(descriptor.id());
+    }
+
+    /** One JSON key means one setting at a target: the pack's JSON could not say which one it meant. The message
+     * names the claimants in a fixed order, so it does not depend on which module registered first.
+     */
+    private void requireUnclaimedKeys(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
+        for (var target : descriptor.attachment().targets()) {
+            var earlier = keyClaimants.get(new KeyAtTarget(target, descriptor.key()));
+            if (earlier == null) continue;
+            var later = KeyClaimant.of(descriptor, owner);
+            var first = earlier.compareTo(later) <= 0 ? earlier : later;
+            var second = first == earlier ? later : earlier;
+            throw new IllegalArgumentException(targetName(target) + " key \"" + descriptor.key() + "\" is claimed by " + first
+                    + " and " + second + "; give one of the settings another key in its @Feature");
+        }
+    }
+
+    private static String targetName(FeatureAttachment.Target target) {
+        return target.name().toLowerCase(Locale.ROOT).replace('_', ' ');
     }
 
     private void checkOpen() {
         if (catalog != null) {
             throw new IllegalStateException("Registration has ended");
+        }
+    }
+
+    private record KeyAtTarget(FeatureAttachment.Target target, String key) {}
+
+    /** Who holds a key: a field of the host's own JSON, a built-in module's feature or a pack module's, in that order. */
+    private record KeyClaimant(Source source, String feature, String text) implements Comparable<KeyClaimant> {
+        private enum Source { HOST_FIELD, BUILT_IN, PACK }
+
+        static KeyClaimant hostField() {
+            return new KeyClaimant(Source.HOST_FIELD, "", "Iris");
+        }
+
+        static KeyClaimant of(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
+            var source = owner.source() == DiscoveredModule.Source.HOST ? Source.BUILT_IN : Source.PACK;
+            return new KeyClaimant(source, descriptor.id().toString(), descriptor.id() + " (" + owner.origin() + ")");
+        }
+
+        @Override
+        public int compareTo(KeyClaimant other) {
+            var bySource = source.compareTo(other.source);
+            return bySource != 0 ? bySource : feature.compareTo(other.feature);
+        }
+
+        @Override
+        public String toString() {
+            return text;
         }
     }
 }

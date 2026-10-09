@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FeatureContractTest {
     @Desc("Example settings")
     @Snippet("fill-settings")
-    @Feature(id = "example:fill", name = "Fill", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:fill", name = "Fill", key = "fill", targets = FeatureAttachment.Target.BIOME)
     public static class FillOptions implements IrisFeature {
         @Desc("Replacement value")
         @MinNumber(0)
@@ -39,9 +39,53 @@ class FeatureContractTest {
     void descriptorReadsFeatureIdentityAndAttachment() {
         var descriptor = FeatureDescriptor.of(FillOptions.class);
         assertEquals(ResourceId.parse("example:fill"), descriptor.id());
-        assertEquals("example:fill", descriptor.key());
+        assertEquals("fill", descriptor.key());
+        assertEquals(java.util.Optional.empty(), descriptor.root());
         assertEquals(java.util.Set.of(FeatureAttachment.Target.BIOME), descriptor.attachment().targets());
         assertEquals(1, descriptor.options().options().size());
+    }
+
+    @Feature(id = "example:blank", name = "Blank", key = " ", targets = FeatureAttachment.Target.BIOME)
+    static class BlankKey implements IrisFeature {}
+
+    @Feature(id = "example:namespaced", name = "Namespaced", key = "example:namespaced", targets = FeatureAttachment.Target.BIOME)
+    static class NamespacedKey implements IrisFeature {}
+
+    @Feature(id = "example:list", name = "List", key = "items", root = "items", targets = FeatureAttachment.Target.BIOME)
+    static class ListRoot implements IrisFeature {
+        private java.util.List<String> items = java.util.List.of();
+    }
+
+    @Feature(id = "example:missing", name = "Missing", key = "missing", root = "absent", targets = FeatureAttachment.Target.BIOME)
+    static class RootNamingNoOption implements IrisFeature {
+        private java.util.List<String> items = java.util.List.of();
+    }
+
+    @Feature(id = "example:two", name = "Two", key = "two", root = "items", targets = FeatureAttachment.Target.BIOME)
+    static class RootWithAnotherOption implements IrisFeature {
+        private java.util.List<String> items = java.util.List.of();
+        private int unreachable = 1;
+    }
+
+    @Test
+    void aKeyIsAPlainFieldNameNotAnId() {
+        var blank = assertThrows(IllegalArgumentException.class, () -> FeatureDescriptor.of(BlankKey.class));
+        assertTrue(blank.getMessage().startsWith("Invalid key of feature example:blank: Field must not be blank"), blank.getMessage());
+        var namespaced = assertThrows(IllegalArgumentException.class, () -> FeatureDescriptor.of(NamespacedKey.class));
+        assertTrue(namespaced.getMessage().contains("Field example:namespaced contains ':'"), namespaced.getMessage());
+    }
+
+    @Test
+    void aRootNamesTheOnlyOptionWhoseValueTheKeyHolds() {
+        var descriptor = FeatureDescriptor.of(ListRoot.class);
+        assertEquals("items", descriptor.key());
+        assertEquals(java.util.Optional.of("items"), descriptor.root());
+
+        var absent = assertThrows(IllegalArgumentException.class, () -> FeatureDescriptor.of(RootNamingNoOption.class));
+        assertEquals("Feature root 'absent' of " + RootNamingNoOption.class.getName() + " must name its only option, since the JSON"
+                + " under its key is that option's value; its options are [items]", absent.getMessage());
+        var crowded = assertThrows(IllegalArgumentException.class, () -> FeatureDescriptor.of(RootWithAnotherOption.class));
+        assertTrue(crowded.getMessage().endsWith("its options are [items, unreachable]"), crowded.getMessage());
     }
 
     static class InvalidOptions {

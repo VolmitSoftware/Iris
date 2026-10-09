@@ -16,6 +16,11 @@ public enum Reference {
     BIOME,
     /** A platform structure, such as {@code minecraft:village_plains}. */
     STRUCTURE,
+    /** A platform structure or a prefix naming a family of them: {@code minecraft:village_plains},
+     * {@code minecraft:village} (every village) or {@code nova_structures:} (a whole namespace). */
+    STRUCTURE_PREFIX,
+    /** A platform structure set, such as {@code minecraft:villages}. */
+    STRUCTURE_SET,
     /** A potion effect type, such as {@code minecraft:speed}. */
     POTION_EFFECT,
     /** An enchantment, such as {@code minecraft:sharpness}. */

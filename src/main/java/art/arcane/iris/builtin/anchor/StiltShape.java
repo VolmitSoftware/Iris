@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.placement;
+package art.arcane.iris.builtin.anchor;
 
 /** What a placement mode grows between the object and the ground or ceiling. */
-enum StiltShape {
+public enum StiltShape {
     NONE,
     /** Repeats the bottom layer straight down to the surface. */
     STRAIGHT,

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfileSampler;

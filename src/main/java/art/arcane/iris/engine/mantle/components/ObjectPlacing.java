@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
@@ -44,7 +45,6 @@ import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;

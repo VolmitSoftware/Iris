@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
@@ -34,7 +35,6 @@ import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;

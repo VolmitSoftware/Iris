@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
@@ -34,7 +35,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;

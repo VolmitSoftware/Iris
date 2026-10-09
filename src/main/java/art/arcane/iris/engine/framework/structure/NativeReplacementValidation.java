@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.framework.structure;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.core.pack.PackValidationIo;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.validation.Problem;

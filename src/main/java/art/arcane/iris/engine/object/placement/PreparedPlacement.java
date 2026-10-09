@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.noise.CNG;

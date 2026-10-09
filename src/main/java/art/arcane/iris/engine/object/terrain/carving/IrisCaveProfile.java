@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.object.terrain.carving;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;

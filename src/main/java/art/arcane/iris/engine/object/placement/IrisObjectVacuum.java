@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 
 public final class IrisObjectVacuum {
@@ -30,11 +31,7 @@ public final class IrisObjectVacuum {
     }
 
     public static boolean isVacuumMode(ObjectPlaceMode mode) {
-        return mode == ObjectPlaceMode.VACUUM
-                || mode == ObjectPlaceMode.VACUUM_HIGH
-                || mode == ObjectPlaceMode.VACUUM_FAST
-                || mode == ObjectPlaceMode.VACUUM_ORGANIC
-                || mode == ObjectPlaceMode.VACUUM_WAVY;
+        return mode != null && mode.isVacuum();
     }
 
     public static int resolveRadius(ObjectPlaceMode mode, VacuumSettings settings) {

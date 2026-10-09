@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.object.procedural.ruin;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;

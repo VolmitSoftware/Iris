@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.object.structure;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawMode;

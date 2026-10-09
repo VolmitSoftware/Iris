@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.StiltShape;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.IrisStages;

@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.placement;
+package art.arcane.iris.builtin.anchor;
 
 /** How a placement mode finds the height of an object placed without a requested height. */
-enum AnchorSampling {
+public enum AnchorSampling {
     /** The surface at the object's center, or the floor of the cave it is placed in. */
     CENTER,
     /** The highest surface under any column of the object. */

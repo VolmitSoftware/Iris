@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
@@ -33,7 +34,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;

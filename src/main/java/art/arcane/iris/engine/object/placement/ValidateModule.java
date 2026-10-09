@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;

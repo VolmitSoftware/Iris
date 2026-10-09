@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.placement;
+package art.arcane.iris.builtin.anchor;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 
 @Desc("Object Place modes are useful for positioning objects just right. The default value is CENTER_HEIGHT.")
@@ -115,16 +115,16 @@ public enum ObjectPlaceMode {
     }
 
     /** How a placement without a requested height finds one. */
-    AnchorSampling anchor() {
+    public AnchorSampling anchor() {
         return anchor;
     }
 
     /** The stilt this mode grows under or above the object. */
-    StiltShape stilt() {
+    public StiltShape stilt() {
         return stilt;
     }
 
-    boolean isVacuum() {
-        return IrisObjectVacuum.isVacuumMode(this);
+    public boolean isVacuum() {
+        return this == VACUUM || this == VACUUM_HIGH || this == VACUUM_FAST || this == VACUUM_ORGANIC || this == VACUUM_WAVY;
     }
 }

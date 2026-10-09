@@ -21,15 +21,21 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
+import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.IrisStructureLocator;
+import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLifecycle;
 import com.volmit.config.PackSettings;
+import com.volmit.service.StructureLocator;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.PackWorld;
 
 /**
  * Module {@code iris:structure}: Iris structures, written into the mantle after objects, whose trees they clear
@@ -38,9 +44,11 @@ import com.volmit.stage.StageGraph;
  * <p>
  * The module owns the pack's structures, jigsaw pools and jigsaw pieces as resource kinds
  * ({@link StructureResources}), read from the folders packs have always used, and checks them with
- * {@link StructureValidator} wherever Iris validates a pack.
+ * {@link StructureValidator} wherever Iris validates a pack. It lets Iris find its structures through
+ * {@link StructureLocating}, and forgets a world's structure index when the world stops, which includes every reload of
+ * the pack's structure files.
  */
-public final class StructureModule implements IrisModule {
+public final class StructureModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
     @Override
@@ -58,6 +66,14 @@ public final class StructureModule implements IrisModule {
     public void register(FeatureRegistry registry) {
         StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
+        registry.registerService(StructureLocator.class, new StructureLocating());
+        registry.registerLifecycle(this);
+    }
+
+    /** The structure index is still kept per engine rather than in the world's state, so a stopping world drops it. */
+    @Override
+    public void worldStopped(PackWorld world) {
+        IrisStructureLocator.invalidate(IrisPackWorld.of(world).engine());
     }
 
     private static void place(MantleStageContext context) {

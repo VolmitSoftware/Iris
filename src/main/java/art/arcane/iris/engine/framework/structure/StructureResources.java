@@ -23,6 +23,7 @@ import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
@@ -67,7 +68,12 @@ public final class StructureResources {
 
     /** The key of every structure of the pack, in key order. */
     public static List<String> structureKeys(IrisData data) {
-        return keys(data, STRUCTURES);
+        return structureKeysOf(data.getPackResources());
+    }
+
+    /** The key of every structure of the pack snapshot {@code pack}, in key order. */
+    public static List<String> structureKeysOf(PackResources pack) {
+        return keys(pack, STRUCTURES);
     }
 
     /** The key of every jigsaw piece of the pack, in key order. */
@@ -89,6 +95,10 @@ public final class StructureResources {
 
     /** A key's id has the key as its path, so the path names the resource again wherever a key is expected. */
     private static List<String> keys(IrisData data, ResourceKind<?> kind) {
-        return data.getPackResources().ids(kind.type()).stream().map(ResourceId::path).toList();
+        return keys(data.getPackResources(), kind);
+    }
+
+    private static List<String> keys(PackResources pack, ResourceKind<?> kind) {
+        return pack.ids(kind.type()).stream().map(ResourceId::path).toList();
     }
 }

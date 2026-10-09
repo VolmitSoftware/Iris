@@ -20,6 +20,7 @@ package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
+import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.decorator.IrisShoreLineDecorator;
@@ -37,6 +38,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.PackWorld;
 
 import java.util.function.Predicate;
 
@@ -60,10 +62,15 @@ public final class DecorantModule implements IrisModule {
 
     private static void decorate(ChunkStageContext context) {
         IrisChunk chunk = IrisChunk.current();
-        chunk.state(Decorating.class, Decorating::new).decorate(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.context());
+        decorating(context.world()).decorate(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.context());
     }
 
-    /** What decorating keeps for one engine runtime: one decorator per kind of place. */
+    /** The world's decorating, kept in its state store. */
+    static Decorating decorating(PackWorld world) {
+        return world.state(Decorating.class, Decorating::new);
+    }
+
+    /** What decorating keeps for one world: one decorator per kind of place. */
     static final class Decorating {
         private static final Predicate<PlatformBlockState> PREDICATE_SOLID = (s) -> s != null && !B.isAirOrFluid(s);
 
@@ -72,6 +79,10 @@ public final class DecorantModule implements IrisModule {
         private final EngineDecorator seaSurfaceDecorator;
         private final EngineDecorator seaFloorDecorator;
         private final EngineDecorator shoreLineDecorator;
+
+        Decorating(PackWorld world) {
+            this(IrisPackWorld.of(world).engine());
+        }
 
         Decorating(Engine engine) {
             this.engine = engine;

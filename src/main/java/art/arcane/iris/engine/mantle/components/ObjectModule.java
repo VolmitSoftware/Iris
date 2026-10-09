@@ -21,17 +21,24 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
+import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.PackSettings;
+import com.volmit.service.ObjectsAt;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.PackWorld;
+
+import java.util.Set;
 
 /**
  * Module {@code iris:objects}: the objects the dimension's regions and biomes place, written into the mantle
  * once the caves they may anchor in are planned. A port of what was Iris's object mantle component, its work
- * done by {@link ObjectPlacing}, one per engine runtime. Its reach is the pack's largest object placement.
+ * done by {@link ObjectPlacing}, one per engine runtime. Its reach is the pack's largest object placement. It tells
+ * Iris which objects a chunk would get ({@link ObjectsAt}), for the object search and studio tools.
  */
 public final class ObjectModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -46,6 +53,11 @@ public final class ObjectModule implements IrisModule {
         graph.define(IrisStages.Objects.PLACE).requires(IrisStages.Carve.CAVES).reach(ObjectModule::reach).run(ObjectModule::place);
     }
 
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerService(ObjectsAt.class, ObjectModule::objectsAt);
+    }
+
     private static void place(MantleStageContext context) {
         IrisMantleChunk chunk = IrisMantleChunk.current();
         placing(chunk.engine()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
@@ -55,7 +67,12 @@ public final class ObjectModule implements IrisModule {
         return placing(IrisPackSettings.of(settings).engine()).reach();
     }
 
-    /** The engine runtime's object placing, which {@link Engine#getObjectsAt} also asks. */
+    /** The keys of the objects the surface placements of the chunk's biome and region would place, guessed without generating it. */
+    private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+        return placing(IrisPackWorld.of(world).engine()).guess(chunkX, chunkZ);
+    }
+
+    /** The engine runtime's object placing, which the module's {@link ObjectsAt} also asks. */
     public static ObjectPlacing placing(Engine engine) {
         return engine.getGeneration().state(ObjectPlacing.class, ObjectPlacing::new);
     }

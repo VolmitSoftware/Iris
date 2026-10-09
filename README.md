@@ -21,6 +21,14 @@ pools and jigsaw pieces as resource kinds (`StructureResources`), from the folde
 used, and checks them with its validator (`StructureValidator`: assembly samples and vanilla structure
 replacement) wherever Iris validates a pack; Iris core has no loader or validator of its own for them any more.
 
+Built-in modules answer Iris through IrisApi services instead of Iris reading their features: `iris:objects`
+provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure`
+provides `StructureLocator` (`StructureLocating`: the pack's structure keys for Iris's structure index, the ones a
+world places, and their nearest start for the find commands). `iris:structure` also has a lifecycle hook that drops a
+world's structure index when the world stops, which includes every reload of the pack's structure files.
+`iris:decorant` keeps its per-world `Decorating` in the world's state store (`context.world().state(...)`); the other
+built-ins still reach the same store through `IrisChunk.state(...)` / `engine.getGeneration().state(...)`.
+
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.

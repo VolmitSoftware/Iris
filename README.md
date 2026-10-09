@@ -26,6 +26,14 @@ provides `ObjectsAt` (the objects a chunk would get, for the object search and s
 provides `StructureLocator` (`StructureLocating`: the pack's structure keys for Iris's structure index, the ones a
 world places, and their nearest start for the find commands). `iris:structure` also has a lifecycle hook that drops a
 world's structure index when the world stops, which includes every reload of the pack's structure files.
+`iris:objects` also provides `SaplingGrowth` (`TreeGrowing`: the tree a sapling grows into, as placed blocks, and which
+objects are trees) and says which biomes and regions place an object (`ObjectLocating`, for the object search).
+`iris:loot` owns the loot table resource kind (`LootResources`, folder `loot`), checks the tables and the references to
+them (`LootValidator`), and provides `Loot` (`LootGiving`: which tables a container draws from and the `ItemDrop`s a
+table gives) and `BlockDrops` (`BlockDropping`). `iris:spawn` owns spawners, entities and markers (`SpawnResources`,
+folders `spawners`, `entities`, `markers`) and provides `EntitySpawns` (`EntitySpawning`: what to spawn in a chunk or at
+a marker, as `EntitySpec`s; `EntityResolution` makes the entity's random choices). Iris's Bukkit code creates the items
+and entities from those values (`BukkitItemStacks`, `BukkitEntitySpawner`).
 `iris:decorant` keeps its per-world `Decorating` in the world's state store (`context.world().state(...)`); the other
 built-ins still reach the same store through `IrisChunk.state(...)` / `engine.getGeneration().state(...)`.
 

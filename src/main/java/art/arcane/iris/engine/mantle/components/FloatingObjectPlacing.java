@@ -184,12 +184,12 @@ public class FloatingObjectPlacing {
             if (raw == null) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw);
+            IrisObject obj0 = placement.getScale().get(rng, raw, engine);
             if (obj0 == null) {
                 continue;
             }
             if (entry != null && entry.hasObjectShrink()) {
-                obj0 = entry.getShrinkScale().get(rng, obj0);
+                obj0 = entry.getShrinkScale().get(rng, obj0, engine);
                 if (obj0 == null) {
                     continue;
                 }
@@ -232,12 +232,12 @@ public class FloatingObjectPlacing {
             if (raw == null) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw);
+            IrisObject obj0 = placement.getScale().get(rng, raw, engine);
             if (obj0 == null) {
                 continue;
             }
             if (entry != null && entry.hasObjectShrink()) {
-                obj0 = entry.getShrinkScale().get(rng, obj0);
+                obj0 = entry.getShrinkScale().get(rng, obj0, engine);
                 if (obj0 == null) {
                     continue;
                 }
@@ -317,12 +317,12 @@ public class FloatingObjectPlacing {
             if (raw == null) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw);
+            IrisObject obj0 = placement.getScale().get(rng, raw, engine);
             if (obj0 == null) {
                 continue;
             }
             if (entry != null && entry.hasObjectShrink()) {
-                obj0 = entry.getShrinkScale().get(rng, obj0);
+                obj0 = entry.getShrinkScale().get(rng, obj0, engine);
                 if (obj0 == null) {
                     continue;
                 }

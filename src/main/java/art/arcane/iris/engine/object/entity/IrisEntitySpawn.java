@@ -18,37 +18,22 @@
 
 package art.arcane.iris.engine.object.entity;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.value.IRare;
-import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
-import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.util.common.format.C;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.math.Vector3d;
-import art.arcane.volmlib.util.matter.MatterMarker;
-import art.arcane.volmlib.util.matter.slices.MarkerMatter;
-import art.arcane.iris.util.common.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.entity.Entity;
 
 @Snippet("entity-spawn")
 @Accessors(chain = true)
@@ -75,164 +60,7 @@ public class IrisEntitySpawn implements IRare {
     private transient IrisSpawner referenceSpawner;
     private transient IrisMarker referenceMarker;
 
-    public int spawn(Engine gen, Chunk c, RNG rng) {
-        int spawns = LootResolver.inclusive(rng, minSpawns, maxSpawns);
-        int s = 0;
-
-        if (spawns > 0) {
-            for (int id = 0; id < spawns; id++) {
-                int x = (c.getX() * 16) + rng.i(16);
-                int z = (c.getZ() * 16) + rng.i(16);
-                World world = BukkitWorldBinding.tryBind(gen.getWorld()) ? BukkitWorldBinding.world(gen.getWorld()) : null;
-                int h = gen.getHeight(x, z, true) + (world == null ? -64 : world.getMinHeight());
-                int hf = gen.getHeight(x, z, false) + (world == null ? -64 : world.getMinHeight());
-                Location l = switch (getReferenceSpawner().getGroup()) {
-                    case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
-                    case CAVE -> findCaveSpawnLocation(gen, c, rng);
-                    case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
-                };
-
-                if (l != null) {
-                    if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
-                        if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                            if (spawn100(gen, l) != null) {
-                                s++;
-                            }
-                        }
-                    } else {
-                        if (spawn100(gen, l) != null) {
-                            s++;
-                        }
-                    }
-                }
-            }
-        }
-
-        return s;
-    }
-
-    public int spawn(Engine gen, IrisPosition c, RNG rng) {
-        int spawns = LootResolver.inclusive(rng, minSpawns, maxSpawns);
-        int s = 0;
-
-        if (!BukkitWorldBinding.tryBind(gen.getWorld())) {
-            return 0;
-        }
-
-        World world = BukkitWorldBinding.world(gen.getWorld());
-        if (spawns > 0) {
-
-            if (referenceMarker != null && referenceMarker.shouldExhaust()) {
-                if (J.isFolia()) {
-                    J.a(() -> gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class));
-                } else {
-                    gen.getMantle().getMantle().remove(c.getX(), c.getY() - gen.getWorld().minHeight(), c.getZ(), MatterMarker.class);
-                }
-            }
-
-            for (int id = 0; id < spawns; id++) {
-                Location l = BukkitPlatform.toLocation(c, world).add(0, 1, 0);
-
-                if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
-                    if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                        if (spawn100(gen, l, true) != null) {
-                            s++;
-                        }
-                    }
-                } else {
-                    if (spawn100(gen, l, true) != null) {
-                        s++;
-                    }
-                }
-            }
-        }
-
-        return s;
-    }
-
     public IrisEntity getRealEntity(Engine g) {
-        return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
-    }
-
-    public Entity spawn(Engine g, Location at) {
-        if (getRealEntity(g) == null) {
-            return null;
-        }
-
-        if (LootResolver.oneIn(rng.aquire(() -> new RNG(g.getSeedManager().getEntity())), getRarity())) {
-            return spawn100(g, at);
-        }
-
-        return null;
-    }
-
-    static Location findCaveSpawnLocation(Engine engine, Chunk chunk, RNG rng) {
-        if (J.isFolia()) {
-            return null;
-        }
-        KList<IrisPosition> markers = engine.getMantle().findMarkers(chunk.getX(), chunk.getZ(), MarkerMatter.CAVE_FLOOR);
-        return selectCaveSpawnLocation(markers, chunk.getWorld(), rng);
-    }
-
-    static Location selectCaveSpawnLocation(KList<IrisPosition> markers, World world, RNG rng) {
-        return markers.convert((marker) -> BukkitPlatform.toLocation(marker, world).add(0, 1, 0)).getRandom(rng);
-    }
-
-    private Entity spawn100(Engine g, Location at) {
-        return spawn100(g, at, false);
-    }
-
-    private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
-        try {
-            IrisEntity irisEntity = getRealEntity(g);
-            if (irisEntity == null) { // No entity
-                IrisLogging.debug("      You are trying to spawn an entity that does not exist!");
-                return null;
-            }
-
-            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
-                return null;
-            }
-
-            Vector3d boundingBox = BukkitPlatform.entityBoundingBox(irisEntity.getBukkitType());
-            if (!ignoreSurfaces && boundingBox != null) {
-                boolean isClearForSpawn = isAreaClearForSpawn(at, boundingBox);
-                if (!isClearForSpawn) {
-                    return null;
-                }
-            }
-
-            Entity e = irisEntity.spawn(g, at.add(0.5, 0.5, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
-            if (e != null) {
-                IrisLogging.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
-            }
-
-            return e;
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            IrisLogging.error("      Failed to retrieve real entity @ " + at + " (entity: " + getEntity() + ")");
-            return null;
-        }
-    }
-
-    private boolean isAreaClearForSpawn(Location center, Vector3d boundingBox) {
-        World world = center.getWorld();
-        int startX = center.getBlockX() - (int) (boundingBox.x / 2);
-        int endX = center.getBlockX() + (int) (boundingBox.x / 2);
-        int startY = center.getBlockY();
-        int endY = center.getBlockY() + (int) boundingBox.y;
-        int startZ = center.getBlockZ() - (int) (boundingBox.z / 2);
-        int endZ = center.getBlockZ() + (int) (boundingBox.z / 2);
-
-        for (int x = startX; x <= endX; x++) {
-            for (int y = startY; y <= endY; y++) {
-                for (int z = startZ; z <= endZ; z++) {
-                    if (world.getBlockAt(x, y, z).getType() != Material.AIR) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
+        return ent.aquire(() -> SpawnResources.entity(g.getData(), getEntity()));
     }
 }

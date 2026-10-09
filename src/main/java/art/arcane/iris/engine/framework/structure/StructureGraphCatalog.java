@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -14,10 +15,14 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Compiled structure graphs, kept per resource snapshot of the pack: every reload of the pack's resources starts a new
+ * snapshot ({@link IrisData#getPackResources()}), so nothing stale is ever read and nothing is invalidated by hand.
+ */
 public final class StructureGraphCatalog {
-    private static final Cache<IrisData, ConcurrentMap<String, StructureGraphCompilation>> CACHE =
+    private static final Cache<IrisPackResources, ConcurrentMap<String, StructureGraphCompilation>> CACHE =
             Caffeine.newBuilder().weakKeys().build();
-    private static final Cache<IrisData, ConcurrentMap<String, Boolean>> RUNTIME_OUTPUT =
+    private static final Cache<IrisPackResources, ConcurrentMap<String, Boolean>> RUNTIME_OUTPUT =
             Caffeine.newBuilder().weakKeys().build();
     private static final List<Long> RUNTIME_SAMPLE_SEEDS = List.of(
             0L, 1L, 2L, 3L, 5L, 8L, 13L, 21L, 34L, 55L, 89L, 144L, 233L, 377L, 610L, 987L);
@@ -33,15 +38,8 @@ public final class StructureGraphCatalog {
             return compileAndReport(activeData, activeStructure);
         }
         ConcurrentMap<String, StructureGraphCompilation> catalog = CACHE.get(
-                activeData, ignored -> new ConcurrentHashMap<>());
+                activeData.getPackResources(), ignored -> new ConcurrentHashMap<>());
         return catalog.computeIfAbsent(structureKey, ignored -> compileAndReport(activeData, activeStructure));
-    }
-
-    public static void invalidate(IrisData data) {
-        if (data != null) {
-            CACHE.invalidate(data);
-            RUNTIME_OUTPUT.invalidate(data);
-        }
     }
 
     public static boolean guaranteesRuntimeOutput(IrisData data, IrisStructure structure) {
@@ -55,7 +53,7 @@ public final class StructureGraphCatalog {
             return sampleRuntimeAssembly(activeData, activeStructure);
         }
         ConcurrentMap<String, Boolean> catalog = RUNTIME_OUTPUT.get(
-                activeData, ignored -> new ConcurrentHashMap<>());
+                activeData.getPackResources(), ignored -> new ConcurrentHashMap<>());
         return catalog.computeIfAbsent(
                 structureKey, ignored -> sampleRuntimeAssembly(activeData, activeStructure));
     }

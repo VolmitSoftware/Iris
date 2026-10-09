@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
@@ -196,7 +197,7 @@ public final class BlocksModule implements IrisModule {
         RNG markerRandom = new RNG(context.random().nextLong());
         int salt = 0;
         for (IrisObjectMarker markerConfig : config.getMarkers()) {
-            IrisMarker marker = placement.object().getLoader().getMarkerLoader().load(markerConfig.getMarker());
+            IrisMarker marker = SpawnResources.marker(placement.object().getLoader(), markerConfig.getMarker());
             int markerSalt = salt++;
             if (marker == null) {
                 continue;

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
@@ -271,6 +272,11 @@ public class IrisObjectPlacement {
         return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
     }
 
+    /** Whether a tree placement grows the species the platform calls {@code species} for a sapling area of {@code size}. */
+    public boolean matches(IrisTreeSize size, String species) {
+        return matches(size, TreeType.valueOf(species));
+    }
+
     public boolean matches(IrisTreeSize size, TreeType type) {
         for (IrisTree i : getTrees()) {
             if (i.matches(size, type)) {
@@ -301,7 +307,7 @@ public class IrisObjectPlacement {
             TableCache cache = new TableCache();
 
             cache.merge(getCache(manager, getVanillaLoot(), IrisObjectPlacement::getVanillaTable));
-            cache.merge(getCache(manager, getLoot(), manager.getLootLoader()::load));
+            cache.merge(getCache(manager, getLoot(), key -> LootResources.table(manager, key)));
 
             return cache;
         });

@@ -19,22 +19,17 @@
 package art.arcane.iris.engine.object.loot;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
 import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.inventory.ItemStack;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -73,35 +68,6 @@ public class IrisLootTable extends IrisRegistrant {
     @Desc("The loot in this table")
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> loot = new KList<>();
-
-    public KList<ItemStack> getLoot(boolean debug, long lootSeed, InventorySlotType slot, World world, int x, int y, int z) {
-        KList<ItemStack> lootf = new KList<>();
-        if (loot.isEmpty() || maxTries <= 0) {
-            return lootf;
-        }
-
-        RNG rng = LootResolver.tableRng(lootSeed, this, x, y, z);
-        int m = 0;
-        int c = 0;
-        int mx = Math.max(0, LootResolver.inclusive(rng, getMinPicked(), getMaxPicked()));
-
-        while (m < mx && c++ < getMaxTries()) {
-            int num = rng.nextInt(loot.size());
-
-            IrisLoot l = loot.get(num);
-
-            if (l != null && l.getSlotTypes() == slot) {
-                ItemStack item = l.get(debug, this, rng, lootSeed, num, x, y, z);
-
-                if (item != null && item.getType() != Material.AIR) {
-                    lootf.add(item);
-                    m++;
-                }
-            }
-        }
-
-        return lootf;
-    }
 
     @Override
     public String getFolderName() {

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.Iris;
@@ -39,7 +40,6 @@ import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecisi
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.iris.util.common.format.C;

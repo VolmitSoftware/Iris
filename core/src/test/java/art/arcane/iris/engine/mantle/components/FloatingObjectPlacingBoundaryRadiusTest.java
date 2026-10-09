@@ -18,13 +18,15 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.framework.EngineGeneration;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.spi.IrisPlatform;
@@ -93,8 +95,7 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
         IrisObjectPlacement placement = new IrisObjectPlacement()
                 .setPlace(new KList<>("test/floating"))
                 .setTranslate(new IrisObjectTranslate().setX(32));
-        IrisFloatingChildBiomes floatingChild = new IrisFloatingChildBiomes()
-                .setFloatingObjects(new KList<>(placement));
+        FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "floatingObjects", new KList<>(placement));
         IrisBiome biome = new IrisBiome().setFloatingChildBiomes(new KList<>(floatingChild));
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getReachableBiomes(org.mockito.ArgumentMatchers.any())).thenReturn(new KList<>(biome));
@@ -107,6 +108,7 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
         Engine engine = mock(Engine.class);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getData()).thenReturn(data);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
 
         assertEquals(33, new FloatingObjectPlacing(engine).reach());
     }

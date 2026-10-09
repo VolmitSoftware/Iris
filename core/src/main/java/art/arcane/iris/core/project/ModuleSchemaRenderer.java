@@ -115,8 +115,13 @@ final class ModuleSchemaRenderer {
         return property;
     }
 
+    /** Whether the pack's modules describe the class {@code typeName}. */
+    boolean describes(String typeName) {
+        return schema.types().stream().anyMatch(type -> type.name().equals(typeName));
+    }
+
     /** The definition key of a settings class, built the first time a property names it. */
-    private String definition(String typeName) {
+    String definition(String typeName) {
         String key = DEFINITION_PREFIX + typeName.replace('.', '-').replace('$', '-').toLowerCase(Locale.ROOT);
         if (definitions.containsKey(key)) {
             return key;

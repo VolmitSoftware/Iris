@@ -1,6 +1,7 @@
 package art.arcane.iris.core.structure.export;
 
-import art.arcane.iris.engine.object.placement.IrisObjectReplace;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
 import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
@@ -14,7 +15,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -268,7 +268,7 @@ public class VanillaJigsawDatapackExporterTest {
         graph.structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
         graph.structure.setMaxDepth(21);
         graph.structure.setMaxSizeChunks(9);
-        graph.structure.getEdit().add(new IrisObjectReplace());
+        graph.structure.getEdit().add(new ObjectReplace());
         graph.structure.getLoot().add("loot/test");
         graph.structure.getThemeSets().add(new IrisJigsawThemeSet("variant-1", 1));
         graph.structure.setRequireCaps(true);

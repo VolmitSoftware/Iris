@@ -64,6 +64,7 @@ import art.arcane.iris.core.modules.ModuleResourceFixture;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.FeatureRegistry;
+import art.arcane.iris.core.modules.IrisModuleHost;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.Feature;
@@ -78,12 +79,14 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -293,6 +296,34 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
+    public void objectPlacementSchemaDescribesTheClassesItHoldsFromTheirModules() {
+        JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData()).construct();
+        JSONObject definitions = schema.getJSONObject("definitions");
+        JSONObject properties = rootProperties(schema);
+
+        JSONObject clamp = definitions.getJSONObject(definitionKey(properties.getJSONObject("clamp")));
+        JSONObject clampProperties = clamp.getJSONArray("anyOf").getJSONObject(0).getJSONObject("properties");
+        assertEquals("module-art-arcane-iris-builtin-validate-objectlimit", definitionKey(properties.getJSONObject("clamp")));
+        assertEquals(-2048, clampProperties.getJSONObject("minimumHeight").getInt("minimum"));
+        assertEquals(2048, clampProperties.getJSONObject("maximumHeight").getInt("maximum"));
+        assertEquals("The maximum height for placement (top of object)", clampProperties.getJSONObject("maximumHeight").getString("description"));
+        assertEquals("a held type may be a snippet, as its Iris class was", "^snippet/",
+                clamp.getJSONArray("anyOf").getJSONObject(1).getString("pattern"));
+
+        JSONObject stilt = definitions.getJSONObject(definitionKey(properties.getJSONObject("stiltSettings")));
+        JSONObject stiltProperties = stilt.getJSONArray("anyOf").getJSONObject(0).getJSONObject("properties");
+        assertEquals(48, stiltProperties.getJSONObject("organicMaxScan").getInt("default"));
+        JSONObject palette = definitions.getJSONObject(definitionKey(stiltProperties.getJSONObject("palette")));
+        assertEquals("a held type's palette is Iris's palette", "obj-art-arcane-iris-engine-object-material-irismaterialpalette",
+                definitionKey(palette.getJSONArray("anyOf").getJSONObject(0)));
+
+        JSONObject edit = properties.getJSONObject("edit");
+        JSONObject replace = definitions.getJSONObject(definitionKey(edit.getJSONObject("items")));
+        assertEquals("module-art-arcane-iris-builtin-blocks-objectreplace", definitionKey(edit.getJSONObject("items")));
+        assertEquals(1, replace.getJSONArray("anyOf").getJSONObject(0).getJSONObject("properties").getJSONObject("find").getInt("minItems"));
+    }
+
+    @Test
     public void objectPlacementSchemaRendersModuleSettingsUnderTheirId() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(glowModuleSchema())).construct();
         JSONObject properties = rootProperties(schema);
@@ -379,7 +410,11 @@ public class SchemaBuilderParityTest {
     }
 
     private static IrisData structureSchemaData() {
-        return structureSchemaData(new PackSchema(List.of(), List.of(), List.of()));
+        try {
+            return structureSchemaData(schemaOfBuiltInsWith());
+        } catch (IOException failure) {
+            throw new UncheckedIOException(failure);
+        }
     }
 
     /** {@code modules} is what the pack's modules add to its JSON. */
@@ -704,11 +739,7 @@ public class SchemaBuilderParityTest {
     }
 
     private static PackSchema glowModuleSchema() throws IOException {
-        Path root = Files.createTempDirectory("glow-pack");
-        try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
-                ModuleHost.of(List.of(new GlowModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
-            return pack.schema();
-        }
+        return schemaOfBuiltInsWith(new GlowModule());
     }
 
     /** The schema of {@code iris:structure}'s settings alone, without the module's stages. */
@@ -738,9 +769,18 @@ public class SchemaBuilderParityTest {
     }
 
     private static PackSchema tintModuleSchema() throws IOException {
-        Path root = Files.createTempDirectory("tint-pack");
+        return schemaOfBuiltInsWith(new TintModule());
+    }
+
+    /** What the pack tells studio when Iris's built-in modules and {@code extra} are loaded: Iris's classes hold built-in types. */
+    private static PackSchema schemaOfBuiltInsWith(IrisModule... extra) throws IOException {
+        Path root = Files.createTempDirectory("schema-pack");
+        List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), Stream.of(extra)).toList();
         try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
-                ModuleHost.of(List.of(new TintModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
+                ModuleHost.of(modules)
+                        .exposing(IrisModuleHost.BUILT_IN_API_PACKAGE)
+                        .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
+                        .copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
             return pack.schema();
         }
     }

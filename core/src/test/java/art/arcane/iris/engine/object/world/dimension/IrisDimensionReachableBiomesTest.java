@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.object.world.dimension;
 
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
@@ -141,11 +142,11 @@ public class IrisDimensionReachableBiomesTest {
         return biome;
     }
 
-    private IrisFloatingChildBiomes floating(String biomeKey) {
-        return new IrisFloatingChildBiomes().setBiome(biomeKey);
+    private FloatingChildBiome floating(String biomeKey) {
+        return TestSettings.with(new FloatingChildBiome(), "biome", biomeKey);
     }
 
-    private IrisFloatingChildBiomes floating(String biomeKey, String carvingKey) {
-        return floating(biomeKey).setCarving(carvingKey);
+    private FloatingChildBiome floating(String biomeKey, String carvingKey) {
+        return TestSettings.with(new FloatingChildBiome(), "biome", biomeKey, "carving", carvingKey);
     }
 }

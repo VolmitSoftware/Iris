@@ -1,13 +1,14 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import com.volmit.host.LoadedPack;
@@ -212,7 +213,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         when(data.getEngine()).thenReturn(null);
         SurfacePlacer placer = new SurfacePlacer();
         IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
-        placement.setSlopeCondition(new IrisSlopeClip().setMinimumSlope(100).setMaximumSlope(100));
+        placement.setSlopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":100,\"maximumSlope\":100}"));
         placement.setForcePlace(true);
 
         assertTrue(place(placer, placement, SURFACE_Y) >= 0);
@@ -225,7 +226,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         when(data.getEngine()).thenReturn(null);
         SurfacePlacer placer = new SurfacePlacer();
         IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
-        placement.setSlopeCondition(new IrisSlopeClip().setMinimumSlope(100).setMaximumSlope(100));
+        placement.setSlopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":100,\"maximumSlope\":100}"));
         placement.setForcePlace(true);
         placement.setRotateTowardsSlope(true);
 

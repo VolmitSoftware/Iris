@@ -1,12 +1,13 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeAzimuthMode;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeBranchProbability;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeBranches;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeFunction;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeLeafMode;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeProfile;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeSubBranches;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.objects.tree.TreeSubBranches;
+import art.arcane.iris.builtin.objects.tree.TreeBranches;
+import art.arcane.iris.builtin.objects.tree.TreeProfile;
+import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
+import art.arcane.iris.builtin.objects.tree.TreeFunction;
+import art.arcane.iris.builtin.objects.tree.TreeBranchProbability;
+import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
 import art.arcane.iris.engine.object.procedural.tree.TreeBlockCanvas;
 import art.arcane.iris.engine.object.procedural.tree.TreeCanopyBuilder;
 import art.arcane.iris.engine.object.procedural.tree.TreePlausibility;
@@ -81,7 +82,7 @@ public class ProceduralTreeGeneratorTest {
         IrisProceduralTree tree = new IrisProceduralTree();
         tree.setTrunk("minecraft:oak_log");
         tree.setLeaves("minecraft:oak_leaves");
-        tree.setProfile(IrisTreeProfile.OAK);
+        tree.setProfile(TreeProfile.OAK);
 
         TreeBlockCanvas canvas = new TreeBlockCanvas();
         int height = 9;
@@ -99,19 +100,19 @@ public class ProceduralTreeGeneratorTest {
 
     @Test
     public void hollowCanopyHasFewerLeavesThanFilled() {
-        TreeBlockCanvas filled = canopyOnly(IrisTreeLeafMode.FILLED);
-        TreeBlockCanvas hollow = canopyOnly(IrisTreeLeafMode.HOLLOW);
+        TreeBlockCanvas filled = canopyOnly(TreeLeafMode.FILLED);
+        TreeBlockCanvas hollow = canopyOnly(TreeLeafMode.HOLLOW);
         assertTrue("hollow canopy should place fewer leaves than filled",
                 hollow.getLeaf().size() < filled.getLeaf().size());
         assertFalse("hollow canopy still places a leaf shell", hollow.getLeaf().isEmpty());
     }
 
-    private TreeBlockCanvas canopyOnly(IrisTreeLeafMode mode) {
+    private TreeBlockCanvas canopyOnly(TreeLeafMode mode) {
         IrisProceduralTree tree = new IrisProceduralTree();
         tree.setTrunk("minecraft:oak_log");
         tree.setLeaves("minecraft:oak_leaves");
-        tree.setProfile(IrisTreeProfile.OAK);
-        tree.getCanopy().setMode(mode);
+        tree.setProfile(TreeProfile.OAK);
+        TestSettings.with(tree.getCanopy(), "mode", mode);
         TreeBlockCanvas canvas = new TreeBlockCanvas();
         int height = 10;
         double[][] offsets = TreeTrunkBuilder.build(canvas, tree, height).get(0).offsets();
@@ -124,14 +125,14 @@ public class ProceduralTreeGeneratorTest {
         IrisProceduralTree tree = new IrisProceduralTree();
         tree.setTrunk("minecraft:jungle_log");
         tree.setLeaves("minecraft:jungle_leaves");
-        tree.setProfile(IrisTreeProfile.JUNGLE);
-        IrisTreeBranches branches = new IrisTreeBranches();
-        branches.setProbabilityFunction(IrisTreeBranchProbability.CONSTANT);
-        branches.setProbabilityConstant(1.0);
-        branches.setLengthFunction(IrisTreeFunction.CONSTANT);
-        branches.setLengthConstant(4);
-        branches.setAzimuthMode(art.arcane.iris.engine.object.procedural.tree.IrisTreeAzimuthMode.GOLDEN_ANGLE);
-        tree.getCanopy().setBranches(branches);
+        tree.setProfile(TreeProfile.JUNGLE);
+        TreeBranches branches = new TreeBranches();
+        TestSettings.with(branches, "probabilityFunction", TreeBranchProbability.CONSTANT);
+        TestSettings.with(branches, "probabilityConstant", 1.0);
+        TestSettings.with(branches, "lengthFunction", TreeFunction.CONSTANT);
+        TestSettings.with(branches, "lengthConstant", 4);
+        TestSettings.with(branches, "azimuthMode", art.arcane.iris.builtin.objects.tree.TreeAzimuthMode.GOLDEN_ANGLE);
+        TestSettings.with(tree.getCanopy(), "branches", branches);
 
         TreeBlockCanvas canvas = new TreeBlockCanvas();
         int height = 14;
@@ -176,14 +177,14 @@ public class ProceduralTreeGeneratorTest {
         IrisProceduralTree tree = new IrisProceduralTree();
         tree.setTrunk("minecraft:oak_log");
         tree.setLeaves("minecraft:oak_leaves");
-        IrisTreeBranches branches = new IrisTreeBranches();
-        branches.setProbabilityFunction(IrisTreeBranchProbability.CONSTANT);
-        branches.setProbabilityConstant(1.0);
-        branches.setLengthFunction(IrisTreeFunction.CONSTANT);
-        branches.setLengthConstant(4);
-        branches.setBranchDepth(depth);
-        branches.setSubBranches(new art.arcane.iris.engine.object.procedural.tree.IrisTreeSubBranches());
-        tree.getCanopy().setBranches(branches);
+        TreeBranches branches = new TreeBranches();
+        TestSettings.with(branches, "probabilityFunction", TreeBranchProbability.CONSTANT);
+        TestSettings.with(branches, "probabilityConstant", 1.0);
+        TestSettings.with(branches, "lengthFunction", TreeFunction.CONSTANT);
+        TestSettings.with(branches, "lengthConstant", 4);
+        TestSettings.with(branches, "branchDepth", depth);
+        TestSettings.with(branches, "subBranches", new art.arcane.iris.builtin.objects.tree.TreeSubBranches());
+        TestSettings.with(tree.getCanopy(), "branches", branches);
 
         TreeBlockCanvas canvas = new TreeBlockCanvas();
         int height = 14;

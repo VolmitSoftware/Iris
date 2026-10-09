@@ -18,9 +18,10 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
-import art.arcane.iris.engine.object.placement.IrisVacuumSettings;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -106,8 +107,7 @@ public class IrisObjectVacuumTest {
         assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_ORGANIC, null));
         assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_WAVY, null));
 
-        IrisVacuumSettings settings = new IrisVacuumSettings();
-        settings.setRadius(30);
+        VacuumSettings settings = TestSettings.of(VacuumSettings.class, "{\"radius\":30}");
         assertEquals(30, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_FAST, settings));
     }
 
@@ -176,18 +176,14 @@ public class IrisObjectVacuumTest {
         assertEquals(3.0, IrisObjectVacuum.resolveWaveAmplitude(null), 0.0001);
         assertEquals(5.0, IrisObjectVacuum.resolveWaveScale(null), 0.0001);
 
-        IrisVacuumSettings settings = new IrisVacuumSettings();
-        settings.setWaveAmplitude(6);
-        settings.setWaveScale(2.5);
+        VacuumSettings settings = TestSettings.of(VacuumSettings.class, "{\"waveAmplitude\":6,\"waveScale\":2.5}");
         assertEquals(6.0, IrisObjectVacuum.resolveWaveAmplitude(settings), 0.0001);
         assertEquals(2.5, IrisObjectVacuum.resolveWaveScale(settings), 0.0001);
 
-        IrisVacuumSettings disabled = new IrisVacuumSettings();
-        disabled.setWaveAmplitude(0);
+        VacuumSettings disabled = TestSettings.of(VacuumSettings.class, "{\"waveAmplitude\":0}");
         assertEquals("amplitude 0 disables the wave", 0.0, IrisObjectVacuum.resolveWaveAmplitude(disabled), 0.0001);
 
-        IrisVacuumSettings badScale = new IrisVacuumSettings();
-        badScale.setWaveScale(0);
+        VacuumSettings badScale = TestSettings.of(VacuumSettings.class, "{\"waveScale\":0}");
         assertEquals("non-positive scale falls back to the default", 5.0, IrisObjectVacuum.resolveWaveScale(badScale), 0.0001);
     }
 

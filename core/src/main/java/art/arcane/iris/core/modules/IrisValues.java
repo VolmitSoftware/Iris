@@ -129,8 +129,11 @@ public final class IrisValues {
         return map;
     }
 
-    /** {@code style} as the generator style Iris builds noise from; a style name Iris does not know is flat. */
-    static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style) {
+    /**
+     * {@code style} as the generator style Iris builds noise from; a style name Iris does not know is flat. For behaviour that
+     * reads Iris's generator itself, such as the cave carvers' signed 3D reads, which {@code PackResources.noise()} does not offer.
+     */
+    public static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style) {
         IrisGeneratorStyle iris = new IrisGeneratorStyle(irisStyle(style.style()));
         iris.setCellularFrequency(style.cellularFrequency());
         iris.setCellularZoom(style.cellularZoom());
@@ -142,6 +145,16 @@ public final class IrisValues {
         iris.setExponent(style.exponent());
         iris.setCacheSize(style.cacheSize());
         return iris;
+    }
+
+    /** {@code range} as the range Iris reads the same JSON into. */
+    public static IrisRange range(Range range) {
+        return new IrisRange(range.min(), range.max());
+    }
+
+    /** {@code range} as the styled range Iris reads the same JSON into. */
+    public static IrisStyledRange styledRange(StyledRange range) {
+        return new IrisStyledRange(range.min(), range.max(), generatorStyle(range.style()));
     }
 
     private static NoiseStyle irisStyle(String name) {

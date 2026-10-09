@@ -1,13 +1,15 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.carve.CaveFieldModule;
+import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.mantle.MantleWriter;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveFieldModule;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
+import art.arcane.iris.engine.object.terrain.carving.ResolvedCaveProfile;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
@@ -29,6 +31,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -87,12 +90,12 @@ public class IrisCaveCarver3DNearParityTest {
 
     @Test
     public void genericFluidContractKeepsOverworldDefaults() {
-        IrisCaveProfile profile = new IrisCaveProfile();
+        CaveProfile profile = new CaveProfile();
         IrisDimension dimension = new IrisDimension();
 
-        assertTrue(profile.isAllowFluid());
-        assertEquals(12, profile.getFluidMinDepthBelowSurface());
-        assertTrue(profile.isFluidRequiresFloor());
+        assertTrue(profile.allowFluid());
+        assertEquals(12, profile.fluidMinDepthBelowSurface());
+        assertTrue(profile.fluidRequiresFloor());
         assertEquals("water", dimension.getFluidPalette().getPalette().get(0).getBlock());
     }
 
@@ -117,12 +120,12 @@ public class IrisCaveCarver3DNearParityTest {
     @Test
     public void warpCacheDoesNotCrossContaminateCarverInstancesOnSameThread() throws Exception {
         Engine engine = createEngine(128, 92);
-        IrisCaveProfile firstProfile = createProfile(true, false);
-        firstProfile.setWarpStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.12D));
-        IrisCaveProfile secondProfile = createProfile(true, false);
-        secondProfile.setWarpStyle(new IrisGeneratorStyle(NoiseStyle.CELLULAR).zoomed(0.12D));
-        IrisCaveProfile controlProfile = createProfile(true, false);
-        controlProfile.setWarpStyle(new IrisGeneratorStyle(NoiseStyle.CELLULAR).zoomed(0.12D));
+        CaveProfile firstProfile = createProfile(true, false);
+        TestSettings.with(firstProfile, "warpStyle", com.volmit.noise.NoiseStyle.of("SIMPLEX").withZoom(0.12D));
+        CaveProfile secondProfile = createProfile(true, false);
+        TestSettings.with(secondProfile, "warpStyle", com.volmit.noise.NoiseStyle.of("CELLULAR").withZoom(0.12D));
+        CaveProfile controlProfile = createProfile(true, false);
+        TestSettings.with(controlProfile, "warpStyle", com.volmit.noise.NoiseStyle.of("CELLULAR").withZoom(0.12D));
         IrisCaveCarver3D firstCarver = new IrisCaveCarver3D(engine, firstProfile);
         IrisCaveCarver3D secondCarver = new IrisCaveCarver3D(engine, secondProfile);
         IrisCaveCarver3D controlCarver = new IrisCaveCarver3D(engine, controlProfile);
@@ -172,22 +175,8 @@ public class IrisCaveCarver3DNearParityTest {
 
     @Test
     public void flatSurfaceDoesNotHardClipLargeCaveCeiling() {
-        assertFlatSurfaceCeiling(createFluidProfile()
-                .setVerticalRange(new IrisRange(20D, 72D))
-                .setAllowSurfaceBreak(false)
-                .setSurfaceClearance(5)
-                .setAllowFluid(false)
-                .setAllowLava(false)
-                .setAdaptiveSampling(false)
-                .setSampleStep(1));
-        assertFlatSurfaceCeiling(createFluidProfile()
-                .setVerticalRange(new IrisRange(20D, 72D))
-                .setAllowSurfaceBreak(false)
-                .setSurfaceClearance(5)
-                .setAllowFluid(false)
-                .setAllowLava(false)
-                .setAdaptiveSampling(true)
-                .setSampleStep(1));
+        assertFlatSurfaceCeiling(TestSettings.with(createFluidProfile(), "verticalRange", com.volmit.config.Range.of(20D, 72D), "allowSurfaceBreak", false, "surfaceClearance", 5, "allowFluid", false, "allowLava", false, "adaptiveSampling", false, "sampleStep", 1));
+        assertFlatSurfaceCeiling(TestSettings.with(createFluidProfile(), "verticalRange", com.volmit.config.Range.of(20D, 72D), "allowSurfaceBreak", false, "surfaceClearance", 5, "allowFluid", false, "allowLava", false, "adaptiveSampling", true, "sampleStep", 1));
     }
 
     @Test
@@ -207,12 +196,12 @@ public class IrisCaveCarver3DNearParityTest {
         int[] precomputedSurfaceHeights = filledHeights(90);
         IrisRange worldYRange = new IrisRange(0D, 88D);
 
-        IrisCaveProfile exactProfile = createProfile(true, true).setSampleStep(1).setAdaptiveSampling(false);
+        CaveProfile exactProfile = TestSettings.with(createProfile(true, true), "sampleStep", 1, "adaptiveSampling", false);
         IrisCaveCarver3D exactCarver = new IrisCaveCarver3D(engine, exactProfile);
         WriterCapture exactCapture = createWriterCapture(96);
         int exactCarved = exactCarver.carve(exactCapture.writer, 5, -1, columnWeights, 0D, 0D, worldYRange, precomputedSurfaceHeights);
 
-        IrisCaveProfile legacyProfile = createProfile(true, true).setSampleStep(2).setAdaptiveSampling(false);
+        CaveProfile legacyProfile = TestSettings.with(createProfile(true, true), "sampleStep", 2, "adaptiveSampling", false);
         IrisCaveCarver3D legacyCarver = new IrisCaveCarver3D(engine, legacyProfile);
         WriterCapture legacyCapture = createWriterCapture(96);
         int legacyCarved = legacyCarver.carve(legacyCapture.writer, 5, -1, columnWeights, 0D, 0D, worldYRange, precomputedSurfaceHeights);
@@ -228,12 +217,12 @@ public class IrisCaveCarver3DNearParityTest {
         double[] columnWeights = fullWeights();
         int[] precomputedSurfaceHeights = filledHeights(46);
 
-        IrisCaveProfile lavaProfile = createProfile(false, false).setAllowLava(true).setAllowFluid(false);
+        CaveProfile lavaProfile = TestSettings.with(createProfile(false, false), "allowLava", true, "allowFluid", false);
         IrisCaveCarver3D lavaCarver = new IrisCaveCarver3D(engine, lavaProfile);
         WriterCapture lavaCapture = createWriterCapture(48);
         lavaCarver.carve(lavaCapture.writer, 0, 0, columnWeights, 0D, 0D, new IrisRange(0D, 80D), precomputedSurfaceHeights);
 
-        IrisCaveProfile forcedAirProfile = createProfile(false, false).setAllowLava(false).setAllowFluid(false);
+        CaveProfile forcedAirProfile = TestSettings.with(createProfile(false, false), "allowLava", false, "allowFluid", false);
         IrisCaveCarver3D forcedAirCarver = new IrisCaveCarver3D(engine, forcedAirProfile);
         WriterCapture forcedAirCapture = createWriterCapture(48);
         forcedAirCarver.carve(forcedAirCapture.writer, 0, 0, columnWeights, 0D, 0D, new IrisRange(0D, 80D), precomputedSurfaceHeights);
@@ -248,19 +237,12 @@ public class IrisCaveCarver3DNearParityTest {
     public void fluidPrecedesForcedAirWhenLavaIsDisabled() {
         Engine engine = createEngine(48, 46);
         int[] surfaceHeights = filledHeights(46);
-        IrisCaveProfile wetProfile = createFluidProfile()
-                .setVerticalRange(new IrisRange(2D, 18D))
-                .setAllowLava(false)
-                .setFluidRequiresFloor(false);
+        CaveProfile wetProfile = TestSettings.with(createFluidProfile(), "verticalRange", com.volmit.config.Range.of(2D, 18D), "allowLava", false, "fluidRequiresFloor", false);
         WriterCapture wetCapture = createWriterCapture(48);
         new IrisCaveCarver3D(engine, wetProfile).carve(
                 wetCapture.writer, 0, 0, fullWeights(), 0D, 0D, null, surfaceHeights);
 
-        IrisCaveProfile dryProfile = createFluidProfile()
-                .setVerticalRange(new IrisRange(2D, 18D))
-                .setAllowFluid(false)
-                .setAllowLava(false)
-                .setFluidRequiresFloor(false);
+        CaveProfile dryProfile = TestSettings.with(createFluidProfile(), "verticalRange", com.volmit.config.Range.of(2D, 18D), "allowFluid", false, "allowLava", false, "fluidRequiresFloor", false);
         WriterCapture dryCapture = createWriterCapture(48);
         new IrisCaveCarver3D(engine, dryProfile).carve(
                 dryCapture.writer, 0, 0, fullWeights(), 0D, 0D, null, surfaceHeights);
@@ -277,12 +259,12 @@ public class IrisCaveCarver3DNearParityTest {
         Engine engine = createEngine(80, 70);
         int[] surfaceHeights = splitSurfaceHeights(40, 70);
 
-        IrisCaveProfile enabledProfile = createFluidProfile().setAllowFluid(true).setFluidMinDepthBelowSurface(10);
+        CaveProfile enabledProfile = TestSettings.with(createFluidProfile(), "allowFluid", true, "fluidMinDepthBelowSurface", 10);
         WriterCapture enabledCapture = createWriterCapture(80);
         new IrisCaveCarver3D(engine, enabledProfile).carve(
                 enabledCapture.writer, 0, 0, fullWeights(), 0D, 0D, null, surfaceHeights);
 
-        IrisCaveProfile disabledProfile = createFluidProfile().setAllowFluid(false).setFluidMinDepthBelowSurface(10);
+        CaveProfile disabledProfile = TestSettings.with(createFluidProfile(), "allowFluid", false, "fluidMinDepthBelowSurface", 10);
         WriterCapture disabledCapture = createWriterCapture(80);
         new IrisCaveCarver3D(engine, disabledProfile).carve(
                 disabledCapture.writer, 0, 0, fullWeights(), 0D, 0D, null, surfaceHeights);
@@ -298,7 +280,7 @@ public class IrisCaveCarver3DNearParityTest {
     @Test
     public void dimensionFluidHeightCapsFluidIntent() {
         Engine engine = createEngine(80, 70);
-        IrisCaveProfile profile = createFluidProfile().setFluidMinDepthBelowSurface(0);
+        CaveProfile profile = TestSettings.with(createFluidProfile(), "fluidMinDepthBelowSurface", 0);
         WriterCapture capture = createWriterCapture(80);
 
         new IrisCaveCarver3D(engine, profile).carve(
@@ -311,9 +293,9 @@ public class IrisCaveCarver3DNearParityTest {
 
     @Test
     public void surfaceFluidBoundaryProtectsReservoirWithoutFloodingDeeperCaves() {
-        assertSurfaceFluidBoundaryForProfile(createFluidProfile().setAdaptiveSampling(false).setSampleStep(1));
-        assertSurfaceFluidBoundaryForProfile(createFluidProfile().setAdaptiveSampling(true).setSampleStep(1));
-        assertSurfaceFluidBoundaryForProfile(createFluidProfile().setAdaptiveSampling(false).setSampleStep(4));
+        assertSurfaceFluidBoundaryForProfile(TestSettings.with(createFluidProfile(), "adaptiveSampling", false, "sampleStep", 1));
+        assertSurfaceFluidBoundaryForProfile(TestSettings.with(createFluidProfile(), "adaptiveSampling", true, "sampleStep", 1));
+        assertSurfaceFluidBoundaryForProfile(TestSettings.with(createFluidProfile(), "adaptiveSampling", false, "sampleStep", 4));
     }
 
     @Test
@@ -323,11 +305,8 @@ public class IrisCaveCarver3DNearParityTest {
         int chunkX = -8;
         int chunkZ = -1;
 
-        IrisStyledRange cupThreshold = new IrisStyledRange(0.15D, 0.15D, new IrisGeneratorStyle(NoiseStyle.FLAT));
-        IrisCaveProfile supportedProfile = createFluidProfile()
-                .setDensityThreshold(cupThreshold)
-                .setFluidMinDepthBelowSurface(0)
-                .setFluidRequiresFloor(true);
+        com.volmit.noise.StyledRange cupThreshold = com.volmit.noise.StyledRange.of(0.15D, 0.15D, com.volmit.noise.NoiseStyle.of("FLAT"));
+        CaveProfile supportedProfile = TestSettings.with(createFluidProfile(), "densityThreshold", cupThreshold, "fluidMinDepthBelowSurface", 0, "fluidRequiresFloor", true);
         WriterCapture firstCapture = createWriterCapture(80);
         CaveFluidSupportPlan supportPlan = new CaveFluidSupportPlan();
         new IrisCaveCarver3D(engine, supportedProfile).carve(
@@ -335,18 +314,12 @@ public class IrisCaveCarver3DNearParityTest {
         int candidateCount = countLiquid(firstCapture, (byte) 1);
         supportPlan.resolve(firstCapture.writer.acquireChunk(chunkX, chunkZ));
 
-        IrisCaveProfile repeatedProfile = createFluidProfile()
-                .setDensityThreshold(cupThreshold)
-                .setFluidMinDepthBelowSurface(0)
-                .setFluidRequiresFloor(true);
+        CaveProfile repeatedProfile = TestSettings.with(createFluidProfile(), "densityThreshold", cupThreshold, "fluidMinDepthBelowSurface", 0, "fluidRequiresFloor", true);
         WriterCapture secondCapture = createWriterCapture(80);
         new IrisCaveCarver3D(engine, repeatedProfile).carve(
                 secondCapture.writer, chunkX, chunkZ, fullWeights(), 0D, 0D, null, surfaceHeights);
 
-        IrisCaveProfile unrestrictedProfile = createFluidProfile()
-                .setDensityThreshold(cupThreshold)
-                .setFluidMinDepthBelowSurface(0)
-                .setFluidRequiresFloor(false);
+        CaveProfile unrestrictedProfile = TestSettings.with(createFluidProfile(), "densityThreshold", cupThreshold, "fluidMinDepthBelowSurface", 0, "fluidRequiresFloor", false);
         WriterCapture unrestrictedCapture = createWriterCapture(80);
         new IrisCaveCarver3D(engine, unrestrictedProfile).carve(
                 unrestrictedCapture.writer, chunkX, chunkZ, fullWeights(), 0D, 0D, null, surfaceHeights);
@@ -385,10 +358,8 @@ public class IrisCaveCarver3DNearParityTest {
         int[] surfaceHeights = filledHeights(70);
         WriterCapture capture = createWriterCapture(80);
         CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
-        IrisCaveProfile fluidProfile = createFluidProfile()
-                .setDensityThreshold(new IrisStyledRange(0.15D, 0.15D, new IrisGeneratorStyle(NoiseStyle.FLAT)))
-                .setFluidRequiresFloor(true);
-        IrisCaveProfile airProfile = createFluidProfile().setAllowFluid(false);
+        CaveProfile fluidProfile = TestSettings.with(createFluidProfile(), "densityThreshold", com.volmit.noise.StyledRange.of(0.15D, 0.15D, com.volmit.noise.NoiseStyle.of("FLAT")), "fluidRequiresFloor", true);
+        CaveProfile airProfile = TestSettings.with(createFluidProfile(), "allowFluid", false);
 
         new IrisCaveCarver3D(engine, fluidProfile).carve(
                 capture.writer, 0, 0, fullWeights(), 0D, 0D, null, surfaceHeights,
@@ -408,8 +379,8 @@ public class IrisCaveCarver3DNearParityTest {
     @Test
     public void optimizedExactPathOutperformsNaiveReference() throws Exception {
         Engine engine = createEngine(128, 92);
-        IrisCaveCarver3D optimizedCarver = new IrisCaveCarver3D(engine, createProfile(true, true).setAdaptiveSampling(false));
-        IrisCaveCarver3D naiveCarver = new IrisCaveCarver3D(engine, createProfile(true, true).setAdaptiveSampling(false));
+        IrisCaveCarver3D optimizedCarver = new IrisCaveCarver3D(engine, TestSettings.with(createProfile(true, true), "adaptiveSampling", false));
+        IrisCaveCarver3D naiveCarver = new IrisCaveCarver3D(engine, TestSettings.with(createProfile(true, true), "adaptiveSampling", false));
         double[] columnWeights = fullWeights();
         int[] precomputedSurfaceHeights = filledHeights(92);
         IrisRange worldYRange = new IrisRange(0D, 96D);
@@ -446,11 +417,11 @@ public class IrisCaveCarver3DNearParityTest {
         int[] precomputedSurfaceHeights = filledHeights(90);
         IrisRange worldYRange = new IrisRange(0D, 88D);
 
-        IrisCaveCarver3D adaptiveCarver = new IrisCaveCarver3D(engine, createProfile(true, true).setAdaptiveSampling(true));
+        IrisCaveCarver3D adaptiveCarver = new IrisCaveCarver3D(engine, TestSettings.with(createProfile(true, true), "adaptiveSampling", true));
         WriterCapture adaptiveCapture = createWriterCapture(96);
         int adaptiveCarved = adaptiveCarver.carve(adaptiveCapture.writer, 5, -1, columnWeights, 0D, 0D, worldYRange, precomputedSurfaceHeights);
 
-        IrisCaveCarver3D exactCarver = new IrisCaveCarver3D(engine, createProfile(true, true).setAdaptiveSampling(false));
+        IrisCaveCarver3D exactCarver = new IrisCaveCarver3D(engine, TestSettings.with(createProfile(true, true), "adaptiveSampling", false));
         WriterCapture exactCapture = createWriterCapture(96);
         int exactCarved = exactCarver.carve(exactCapture.writer, 5, -1, columnWeights, 0D, 0D, worldYRange, precomputedSurfaceHeights);
 
@@ -467,7 +438,7 @@ public class IrisCaveCarver3DNearParityTest {
         assertTrue("expected carved cell delta below 3.5% but was " + differingRatio, differingRatio <= 0.035D);
     }
 
-    private void assertFlatSurfaceCeiling(IrisCaveProfile profile) {
+    private void assertFlatSurfaceCeiling(CaveProfile profile) {
         Engine engine = createEngine(96, 72);
         WriterCapture capture = createWriterCapture(96);
 
@@ -505,11 +476,11 @@ public class IrisCaveCarver3DNearParityTest {
         int[] precomputedSurfaceHeights = filledHeights(90);
         IrisRange worldYRange = new IrisRange(0D, 88D);
 
-        IrisCaveCarver3D optimizedCarver = new IrisCaveCarver3D(engine, createProfile(warp, modules).setAdaptiveSampling(adaptiveSampling));
+        IrisCaveCarver3D optimizedCarver = new IrisCaveCarver3D(engine, TestSettings.with(createProfile(warp, modules), "adaptiveSampling", adaptiveSampling));
         WriterCapture optimizedCapture = createWriterCapture(96);
         int optimizedCarved = optimizedCarver.carve(optimizedCapture.writer, 5, -1, columnWeights, 0D, 0D, worldYRange, precomputedSurfaceHeights);
 
-        IrisCaveCarver3D naiveCarver = new IrisCaveCarver3D(engine, createProfile(warp, modules).setAdaptiveSampling(false));
+        IrisCaveCarver3D naiveCarver = new IrisCaveCarver3D(engine, TestSettings.with(createProfile(warp, modules), "adaptiveSampling", false));
         WriterCapture naiveCapture = createWriterCapture(96);
         int naiveCarved = carveNaiveExact(naiveCarver, naiveCapture.writer, 5, -1, columnWeights, worldYRange, precomputedSurfaceHeights);
 
@@ -543,7 +514,7 @@ public class IrisCaveCarver3DNearParityTest {
     private int carveNaiveExact(IrisCaveCarver3D carver, MantleWriter writer, int chunkX, int chunkZ, double[] columnWeights, IrisRange worldYRange, int[] precomputedSurfaceHeights) throws Exception {
         Engine engine = (Engine) engineField.get(carver);
         IrisData data = (IrisData) dataField.get(carver);
-        IrisCaveProfile profile = (IrisCaveProfile) profileField.get(carver);
+        CaveProfile profile = (CaveProfile) profileField.get(carver);
         CNG surfaceBreakDensity = (CNG) surfaceBreakDensityField.get(carver);
         RNG thresholdRng = (RNG) thresholdRngField.get(carver);
         MatterCavern carveAir = (MatterCavern) carveAirField.get(carver);
@@ -557,8 +528,8 @@ public class IrisCaveCarver3DNearParityTest {
         }
 
         int worldHeight = writer.getMantle().getWorldHeight();
-        int minY = Math.max(0, (int) Math.floor(profile.getVerticalRange().getMin()));
-        int maxY = Math.min(worldHeight - 1, (int) Math.ceil(profile.getVerticalRange().getMax()));
+        int minY = Math.max(0, (int) Math.floor(profile.verticalRange().min()));
+        int maxY = Math.min(worldHeight - 1, (int) Math.ceil(profile.verticalRange().max()));
         if (worldYRange != null) {
             int worldMinHeight = engine.getWorld().minHeight();
             int rangeMinY = (int) Math.floor(worldYRange.getMin() - worldMinHeight);
@@ -570,11 +541,11 @@ public class IrisCaveCarver3DNearParityTest {
             return 0;
         }
 
-        boolean allowSurfaceBreak = profile.isAllowSurfaceBreak();
-        int surfaceClearance = Math.max(0, profile.getSurfaceClearance());
-        int surfaceBreakDepth = Math.max(0, profile.getSurfaceBreakDepth());
-        double surfaceBreakNoiseThreshold = profile.getSurfaceBreakNoiseThreshold();
-        double surfaceBreakThresholdBoost = Math.max(0D, profile.getSurfaceBreakThresholdBoost());
+        boolean allowSurfaceBreak = profile.allowSurfaceBreak();
+        int surfaceClearance = Math.max(0, profile.surfaceClearance());
+        int surfaceBreakDepth = Math.max(0, profile.surfaceBreakDepth());
+        double surfaceBreakNoiseThreshold = profile.surfaceBreakNoiseThreshold();
+        double surfaceBreakThresholdBoost = Math.max(0D, profile.surfaceBreakThresholdBoost());
         int[] columnTopY = new int[256];
         int[] surfaceBreakFloorY = new int[256];
         boolean[] surfaceBreakColumn = new boolean[256];
@@ -604,8 +575,8 @@ public class IrisCaveCarver3DNearParityTest {
                 boolean breakColumn = allowSurfaceBreak && signed(surfaceBreakDensity.noiseFast2D(x, z)) >= surfaceBreakNoiseThreshold;
                 int resolvedTopY = breakColumn ? Math.min(maxY, Math.max(minY, columnSurfaceY)) : clearanceTopY;
                 columnTopY[columnIndex] = resolvedTopY;
-                fluidMaxY[columnIndex] = profile.isAllowFluid()
-                        ? Math.min(engine.getDimension().getFluidHeight(), columnSurfaceY - Math.max(0, profile.getFluidMinDepthBelowSurface()))
+                fluidMaxY[columnIndex] = profile.allowFluid()
+                        ? Math.min(engine.getDimension().getFluidHeight(), columnSurfaceY - Math.max(0, profile.fluidMinDepthBelowSurface()))
                         : Integer.MIN_VALUE;
                 surfaceBreakFloorY[columnIndex] = Math.max(minY, columnSurfaceY - surfaceBreakDepth);
                 surfaceBreakColumn[columnIndex] = breakColumn;
@@ -616,7 +587,7 @@ public class IrisCaveCarver3DNearParityTest {
                     continue;
                 }
 
-                passThreshold[columnIndex] = profile.getDensityThreshold().get(thresholdRng, x, z, data) - profile.getThresholdBias();
+                passThreshold[columnIndex] = ResolvedCaveProfile.of(profile).densityThreshold().get(thresholdRng, x, z, data) - profile.thresholdBias();
             }
         }
 
@@ -700,42 +671,42 @@ public class IrisCaveCarver3DNearParityTest {
         return closureThreshold + ((threshold - closureThreshold) * smooth);
     }
 
-    private double[] computeSurfaceClosureThresholds(IrisCaveProfile profile, int minY, int maxY) {
-        double normalization = Math.abs(profile.getBaseWeight()) + Math.abs(profile.getDetailWeight());
-        for (IrisCaveFieldModule module : profile.getModules()) {
-            normalization += Math.abs(module.getWeight());
+    private double[] computeSurfaceClosureThresholds(CaveProfile profile, int minY, int maxY) {
+        double normalization = Math.abs(profile.baseWeight()) + Math.abs(profile.detailWeight());
+        for (ResolvedCaveProfile.Module module : ResolvedCaveProfile.of(profile).modules()) {
+            normalization += Math.abs(module.weight());
         }
         if (normalization <= 0D) {
             normalization = 1D;
         }
 
         double[] thresholds = new double[Math.max(0, maxY - minY + 1)];
-        double baseMinimum = -Math.abs(profile.getBaseWeight()) - Math.abs(profile.getDetailWeight());
+        double baseMinimum = -Math.abs(profile.baseWeight()) - Math.abs(profile.detailWeight());
         for (int y = minY; y <= maxY; y++) {
             double minimumDensity = baseMinimum;
-            for (IrisCaveFieldModule module : profile.getModules()) {
-                IrisRange range = module.getVerticalRange();
+            for (ResolvedCaveProfile.Module module : ResolvedCaveProfile.of(profile).modules()) {
+                IrisRange range = module.verticalRange();
                 if (y < Math.floor(range.getMin()) || y > Math.ceil(range.getMax())) {
                     continue;
                 }
-                double rawMinimum = module.isInvert()
-                        ? module.getThreshold() - 1D
-                        : -1D - module.getThreshold();
-                double rawMaximum = module.isInvert()
-                        ? module.getThreshold() + 1D
-                        : 1D - module.getThreshold();
-                minimumDensity += Math.min(rawMinimum * module.getWeight(), rawMaximum * module.getWeight());
+                double rawMinimum = module.invert()
+                        ? module.threshold() - 1D
+                        : -1D - module.threshold();
+                double rawMaximum = module.invert()
+                        ? module.threshold() + 1D
+                        : 1D - module.threshold();
+                minimumDensity += Math.min(rawMinimum * module.weight(), rawMaximum * module.weight());
             }
             thresholds[y - minY] = (minimumDensity / normalization) - SURFACE_CEILING_SOLID_EPSILON;
         }
         return thresholds;
     }
 
-    private double[] computeVerticalEdgeFade(IrisCaveProfile profile, int minY, int maxY) {
+    private double[] computeVerticalEdgeFade(CaveProfile profile, int minY, int maxY) {
         int size = Math.max(0, maxY - minY + 1);
         double[] verticalEdgeFade = new double[size];
-        int fadeRange = Math.max(0, profile.getVerticalEdgeFade());
-        double fadeStrength = Math.max(0D, profile.getVerticalEdgeFadeStrength());
+        int fadeRange = Math.max(0, profile.verticalEdgeFade());
+        double fadeStrength = Math.max(0D, profile.verticalEdgeFadeStrength());
         if (size == 0 || fadeRange <= 0 || maxY <= minY || fadeStrength <= 0D) {
             return verticalEdgeFade;
         }
@@ -757,9 +728,9 @@ public class IrisCaveCarver3DNearParityTest {
         return verticalEdgeFade;
     }
 
-    private MatterCavern[] computeMatterByY(Engine engine, IrisCaveProfile profile, MatterCavern carveAir, MatterCavern carveLava, MatterCavern carveForcedAir, int minY, int maxY) {
+    private MatterCavern[] computeMatterByY(Engine engine, CaveProfile profile, MatterCavern carveAir, MatterCavern carveLava, MatterCavern carveForcedAir, int minY, int maxY) {
         MatterCavern[] matterByY = new MatterCavern[Math.max(0, maxY - minY + 1)];
-        boolean allowLava = profile.isAllowLava();
+        boolean allowLava = profile.allowLava();
         int lavaHeight = engine.getDimension().getCaveLavaHeight();
 
         for (int y = minY; y <= maxY; y++) {
@@ -800,71 +771,48 @@ public class IrisCaveCarver3DNearParityTest {
         return engine;
     }
 
-    private IrisCaveProfile createProfile(boolean warp, boolean modules) {
-        IrisCaveProfile profile = new IrisCaveProfile();
-        profile.setEnabled(true);
-        profile.setVerticalRange(new IrisRange(0D, 120D));
-        profile.setVerticalEdgeFade(14);
-        profile.setVerticalEdgeFadeStrength(0.21D);
-        profile.setBaseDensityStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.07D));
-        profile.setDetailDensityStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.17D));
-        profile.setWarpStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.12D));
-        profile.setSurfaceBreakStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.09D));
-        profile.setBaseWeight(1D);
-        profile.setDetailWeight(0.48D);
-        profile.setWarpStrength(warp ? 0.37D : 0D);
-        profile.setDensityThreshold(new IrisStyledRange(1D, 1D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
-        profile.setThresholdBias(0D);
-        profile.setSampleStep(1);
-        profile.setSurfaceClearance(5);
-        profile.setAllowSurfaceBreak(true);
-        profile.setSurfaceBreakNoiseThreshold(0.16D);
-        profile.setSurfaceBreakDepth(12);
-        profile.setSurfaceBreakThresholdBoost(0.17D);
-        profile.setAllowFluid(true);
-        profile.setFluidMinDepthBelowSurface(8);
-        profile.setFluidRequiresFloor(false);
-        profile.setAllowLava(true);
+    private CaveProfile createProfile(boolean warp, boolean modules) {
+        CaveProfile profile = new CaveProfile();
+        TestSettings.with(profile, "enabled", true);
+        TestSettings.with(profile, "verticalRange", com.volmit.config.Range.of(0D, 120D));
+        TestSettings.with(profile, "verticalEdgeFade", 14);
+        TestSettings.with(profile, "verticalEdgeFadeStrength", 0.21D);
+        TestSettings.with(profile, "baseDensityStyle", com.volmit.noise.NoiseStyle.of("SIMPLEX").withZoom(0.07D));
+        TestSettings.with(profile, "detailDensityStyle", com.volmit.noise.NoiseStyle.of("SIMPLEX").withZoom(0.17D));
+        TestSettings.with(profile, "warpStyle", com.volmit.noise.NoiseStyle.of("SIMPLEX").withZoom(0.12D));
+        TestSettings.with(profile, "surfaceBreakStyle", com.volmit.noise.NoiseStyle.of("SIMPLEX").withZoom(0.09D));
+        TestSettings.with(profile, "baseWeight", 1D);
+        TestSettings.with(profile, "detailWeight", 0.48D);
+        TestSettings.with(profile, "warpStrength", warp ? 0.37D : 0D);
+        TestSettings.with(profile, "densityThreshold", com.volmit.noise.StyledRange.of(1D, 1D, com.volmit.noise.NoiseStyle.of("FLAT")));
+        TestSettings.with(profile, "thresholdBias", 0D);
+        TestSettings.with(profile, "sampleStep", 1);
+        TestSettings.with(profile, "surfaceClearance", 5);
+        TestSettings.with(profile, "allowSurfaceBreak", true);
+        TestSettings.with(profile, "surfaceBreakNoiseThreshold", 0.16D);
+        TestSettings.with(profile, "surfaceBreakDepth", 12);
+        TestSettings.with(profile, "surfaceBreakThresholdBoost", 0.17D);
+        TestSettings.with(profile, "allowFluid", true);
+        TestSettings.with(profile, "fluidMinDepthBelowSurface", 8);
+        TestSettings.with(profile, "fluidRequiresFloor", false);
+        TestSettings.with(profile, "allowLava", true);
         if (modules) {
-            KList<IrisCaveFieldModule> caveModules = new KList<>();
-            caveModules.add(new IrisCaveFieldModule(
-                    new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.11D),
-                    0.23D,
-                    0.04D,
-                    new IrisRange(0D, 72D),
-                    false
-            ));
-            caveModules.add(new IrisCaveFieldModule(
-                    new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.19D),
-                    0.17D,
-                    -0.06D,
-                    new IrisRange(24D, 120D),
-                    true
-            ));
-            profile.setModules(caveModules);
+            TestSettings.with(profile, "modules", List.of(
+                    TestSettings.of(CaveFieldModule.class, "{\"style\": {\"style\": \"SIMPLEX\", \"zoom\": 0.11}, \"weight\": 0.23,"
+                            + " \"threshold\": 0.04, \"verticalRange\": {\"min\": 0, \"max\": 72}, \"invert\": false}"),
+                    TestSettings.of(CaveFieldModule.class, "{\"style\": {\"style\": \"SIMPLEX\", \"zoom\": 0.19}, \"weight\": 0.17,"
+                            + " \"threshold\": -0.06, \"verticalRange\": {\"min\": 24, \"max\": 120}, \"invert\": true}")));
         } else {
-            profile.setModules(new KList<>());
+            TestSettings.with(profile, "modules", List.of());
         }
         return profile;
     }
 
-    private IrisCaveProfile createFluidProfile() {
-        return createProfile(false, false)
-                .setVerticalRange(new IrisRange(20D, 70D))
-                .setVerticalEdgeFade(0)
-                .setVerticalEdgeFadeStrength(0D)
-                .setDensityThreshold(new IrisStyledRange(2D, 2D, new IrisGeneratorStyle(NoiseStyle.FLAT)))
-                .setAdaptiveSampling(false)
-                .setSurfaceClearance(5)
-                .setAllowSurfaceBreak(true)
-                .setSurfaceBreakNoiseThreshold(-1D)
-                .setSurfaceBreakThresholdBoost(0D)
-                .setAllowFluid(true)
-                .setFluidRequiresFloor(false)
-                .setAllowLava(true);
+    private CaveProfile createFluidProfile() {
+        return TestSettings.with(createProfile(false, false), "verticalRange", com.volmit.config.Range.of(20D, 70D), "verticalEdgeFade", 0, "verticalEdgeFadeStrength", 0D, "densityThreshold", com.volmit.noise.StyledRange.of(2D, 2D, com.volmit.noise.NoiseStyle.of("FLAT")), "adaptiveSampling", false, "surfaceClearance", 5, "allowSurfaceBreak", true, "surfaceBreakNoiseThreshold", -1D, "surfaceBreakThresholdBoost", 0D, "allowFluid", true, "fluidRequiresFloor", false, "allowLava", true);
     }
 
-    private void assertSurfaceFluidBoundaryForProfile(IrisCaveProfile profile) {
+    private void assertSurfaceFluidBoundaryForProfile(CaveProfile profile) {
         Engine engine = createEngine(80, 70);
         int[] surfaceHeights = filledHeights(70);
         surfaceHeights[0] = 60;
@@ -875,7 +823,7 @@ public class IrisCaveCarver3DNearParityTest {
         WriterCapture capture = createWriterCapture(80);
         CaveFluidSupportPlan supportPlan = new CaveFluidSupportPlan();
 
-        new IrisCaveCarver3D(engine, profile.setFluidMinDepthBelowSurface(0).setFluidRequiresFloor(false)).carve(
+        new IrisCaveCarver3D(engine, TestSettings.with(profile, "fluidMinDepthBelowSurface", 0, "fluidRequiresFloor", false)).carve(
                 capture.writer,
                 0,
                 0,

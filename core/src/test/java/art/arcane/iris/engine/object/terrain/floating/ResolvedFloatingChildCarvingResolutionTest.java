@@ -1,6 +1,5 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
@@ -28,7 +27,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class IrisFloatingChildBiomesCarvingResolutionTest {
+public class ResolvedFloatingChildCarvingResolutionTest {
     @BeforeClass
     public static void setupBukkit() {
         if (Bukkit.getServer() != null) {
@@ -60,7 +59,7 @@ public class IrisFloatingChildBiomesCarvingResolutionTest {
         IrisBiome biome = mock(IrisBiome.class);
         Fixture fixture = createFixture(Map.of(), Map.of("carving/mushroom", biome));
 
-        IrisBiome resolved = IrisFloatingChildBiomes.resolveCarvingBiome("carving/mushroom", fixture.engine, fixture.data);
+        IrisBiome resolved = ResolvedFloatingChild.resolveCarvingBiome("carving/mushroom", fixture.engine, fixture.data);
 
         assertSame(biome, resolved);
     }
@@ -82,7 +81,7 @@ public class IrisFloatingChildBiomesCarvingResolutionTest {
 
         Fixture fixture = createFixture(entries, biomes);
 
-        IrisBiome resolved = IrisFloatingChildBiomes.resolveCarvingBiome("global-deepdark-band", fixture.engine, fixture.data);
+        IrisBiome resolved = ResolvedFloatingChild.resolveCarvingBiome("global-deepdark-band", fixture.engine, fixture.data);
 
         assertSame(entryBiome, resolved);
     }

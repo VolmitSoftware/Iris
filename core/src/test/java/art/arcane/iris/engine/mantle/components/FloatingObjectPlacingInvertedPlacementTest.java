@@ -1,8 +1,9 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import org.junit.Test;
 
@@ -48,9 +49,9 @@ public class FloatingObjectPlacingInvertedPlacementTest {
         );
     }
 
-    private FloatingIslandSample sample(IrisFloatingChildBiomes entry) throws Exception {
+    private FloatingIslandSample sample(ResolvedFloatingChild entry) throws Exception {
         Constructor<FloatingIslandSample> constructor = FloatingIslandSample.class.getDeclaredConstructor(
-                IrisFloatingChildBiomes.class,
+                ResolvedFloatingChild.class,
                 int.class,
                 int.class,
                 int.class,
@@ -110,7 +111,7 @@ public class FloatingObjectPlacingInvertedPlacementTest {
 
     @Test
     public void topFootprintChecksNeighborChunkTerrain() throws Exception {
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(new FloatingChildBiome());
         FloatingIslandSample sample = sample(entry);
         long[] cells = {0L, 1L << 32};
         FloatingObjectFootprint footprint = footprint(0, 0, 0, 0, cells);

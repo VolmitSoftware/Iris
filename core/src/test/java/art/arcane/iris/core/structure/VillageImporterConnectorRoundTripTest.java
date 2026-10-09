@@ -1,5 +1,6 @@
 package art.arcane.iris.core.structure;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.core.structure.export.VanillaJigsawDatapackExporter;
 import art.arcane.iris.core.structure.export.VanillaJigsawExportRequest;
 import art.arcane.iris.core.structure.export.VanillaJigsawExportResult;
@@ -13,7 +14,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.nbt.io.NBTUtil;

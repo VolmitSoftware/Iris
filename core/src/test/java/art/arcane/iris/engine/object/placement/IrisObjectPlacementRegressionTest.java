@@ -1,19 +1,21 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.validate.ObjectLimit;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
-import art.arcane.iris.engine.object.placement.IrisStiltSettings;
-import art.arcane.iris.engine.object.placement.IrisVacuumSettings;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.InMemoryMantle;
@@ -281,7 +283,7 @@ public class IrisObjectPlacementRegressionTest {
         IrisObjectPlacement config = placement();
         config.setMode(ObjectPlaceMode.CEILING_HANG);
         config.setTranslate(new IrisObjectTranslate().setY(3));
-        config.setStiltSettings(new IrisStiltSettings().setOrganicJitter(0).setOrganicScratch(0));
+        config.setStiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
 
         boxObject(1, 3, 1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
 
@@ -296,7 +298,7 @@ public class IrisObjectPlacementRegressionTest {
         placer.world.put("0:75:0", solid);
         IrisObjectPlacement config = placement();
         config.setMode(ObjectPlaceMode.ORGANIC_STILT);
-        config.setStiltSettings(new IrisStiltSettings().setOrganicJitter(0).setOrganicScratch(0));
+        config.setStiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
 
         lineObject(1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
 
@@ -578,7 +580,7 @@ public class IrisObjectPlacementRegressionTest {
                     config.setUnderwater(true);
                     placer.fluidHeight = ANCHOR_Y;
                 }
-                case "height-clamp" -> config.getClamp().setMaximumHeight(ANCHOR_Y - 1);
+                case "height-clamp" -> config.setClamp(TestSettings.of(ObjectLimit.class, "{\"maximumHeight\":" + (ANCHOR_Y - 1) + "}"));
             }
             ObjectPlacementResult result = place(config, anchor, placer, cave);
             assertEquals(Optional.of(reason), result.rejection());
@@ -646,7 +648,7 @@ public class IrisObjectPlacementRegressionTest {
         object.setUnsigned(0, 2, 0, schematicAir);
         IrisObjectPlacement config = placement().setMode(ObjectPlaceMode.VACUUM).setSnow(0.1);
         config.setTranslate(new IrisObjectTranslate().setY(3));
-        config.setVacuumSettings(new IrisVacuumSettings().setRadius(1));
+        config.setVacuumSettings(TestSettings.of(VacuumSettings.class, "{\"radius\":1}"));
 
         object.place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
 
@@ -665,7 +667,7 @@ public class IrisObjectPlacementRegressionTest {
         when(complex.getSlopeStream()).thenReturn(slopes);
         when(slopes.get(anyDouble(), anyDouble())).thenReturn(0.5);
         IrisObjectPlacement config = placement().setBore(true);
-        config.setSlopeCondition(new IrisSlopeClip(1, 2));
+        config.setSlopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":1,\"maximumSlope\":2}"));
         RNG rng = new RNG(91);
         RecordingPlacer placer = new RecordingPlacer(engine);
 
@@ -689,7 +691,7 @@ public class IrisObjectPlacementRegressionTest {
         lineObject(3).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
 
         assertSame(original, config.getRotation());
-        assertEquals(0, original.getYAxis().getMin(), 0);
+        assertEquals(0, original.getYAxis().min(), 0);
         assertEquals(3, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.x() == 0));
         assertEquals(List.of(-1, 0, 1), placer.writes().stream().map(BlockWrite::z).sorted().toList());

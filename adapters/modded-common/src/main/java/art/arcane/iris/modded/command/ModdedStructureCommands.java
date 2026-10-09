@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
@@ -29,7 +30,6 @@ import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.volmlib.util.math.RNG;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;

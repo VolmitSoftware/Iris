@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

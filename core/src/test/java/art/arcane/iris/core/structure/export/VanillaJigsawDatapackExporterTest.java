@@ -1,5 +1,6 @@
 package art.arcane.iris.core.structure.export;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.framework.structure.StructureGraphResolver;
 import art.arcane.iris.engine.object.value.IrisDirection;
@@ -14,7 +15,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;

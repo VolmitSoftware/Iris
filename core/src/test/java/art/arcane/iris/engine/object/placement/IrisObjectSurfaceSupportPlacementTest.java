@@ -1,10 +1,10 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;

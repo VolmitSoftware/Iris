@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
@@ -20,7 +21,6 @@ import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;

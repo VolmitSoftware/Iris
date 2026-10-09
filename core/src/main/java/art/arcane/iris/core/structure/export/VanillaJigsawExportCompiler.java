@@ -1,5 +1,6 @@
 package art.arcane.iris.core.structure.export;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.CompiledStructureGraph;
 import art.arcane.iris.engine.framework.structure.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
@@ -16,7 +17,6 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetyp
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import com.google.gson.Gson;

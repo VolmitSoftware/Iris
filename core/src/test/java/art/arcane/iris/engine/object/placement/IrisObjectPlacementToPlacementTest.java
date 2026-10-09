@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
@@ -13,7 +14,6 @@ import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisTree;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;

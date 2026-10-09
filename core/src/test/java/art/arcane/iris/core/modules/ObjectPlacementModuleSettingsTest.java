@@ -18,11 +18,11 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;

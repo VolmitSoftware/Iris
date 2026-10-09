@@ -4,6 +4,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatform;
@@ -16,6 +17,8 @@ import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
+import com.volmit.block.PaletteSampler;
+import com.volmit.block.PaletteSpec;
 import com.volmit.config.OptionsMetadata;
 import com.volmit.noise.NoiseSampler;
 import com.volmit.noise.NoiseStyle;
@@ -33,6 +36,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -133,6 +138,59 @@ public class IrisValuesTest {
         for (double[] column : COLUMNS) {
             assertEquals(flat.sample(column[0], column[1]), unknown.sample(column[0], column[1]), 0);
         }
+    }
+
+    @Test
+    public void palettesPickTheBlocksOfTheirIrisMaterialPalette() {
+        UsableBlockPlatform.bind();
+        String json = "{\"style\": {\"style\": \"SIMPLEX\", \"zoom\": 0.7, \"exponent\": 1.5}, \"zoom\": 3, \"palette\": ["
+                + "{\"block\": \"stone\"}, {\"block\": \"andesite\", \"weight\": 2}, {\"block\": \"granite\", \"weight\": 3}]}";
+        IrisData data = packWithoutCustomBlocks();
+        IrisMaterialPalette iris = new Gson().fromJson(json, IrisMaterialPalette.class);
+        PaletteSampler sampler = new IrisBlockRegistry(data).palette(new Gson().fromJson(json, PaletteSpec.class), 1337);
+
+        assertTrue("the positions cover several blocks", picksLike(iris, sampler, data, 1337).size() > 1);
+    }
+
+    @Test
+    public void aPaletteWithoutOptionsIsOneStoneEverywhereLikeIris() {
+        UsableBlockPlatform.bind();
+        IrisData data = packWithoutCustomBlocks();
+        PaletteSampler sampler = new IrisBlockRegistry(data).palette(new Gson().fromJson("{}", PaletteSpec.class), 7);
+
+        picksLike(new Gson().fromJson("{}", IrisMaterialPalette.class), sampler, data, 7);
+        assertEquals(BlockState.parse("minecraft:stone"), sampler.at(3, 4, 5));
+    }
+
+    @Test
+    public void palettesAreBuiltOncePerSpecAndSeed() {
+        UsableBlockPlatform.bind();
+        IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+        PaletteSpec spec = PaletteSpec.of(List.of(BlockSpec.of("stone"), BlockSpec.of("dirt")));
+
+        assertSame(blocks.palette(spec, 1), blocks.palette(PaletteSpec.of(spec.palette()), 1));
+        assertTrue(blocks.palette(spec, 1) != blocks.palette(spec, 2));
+    }
+
+    @Test
+    public void aPaletteWithNoBlockToPickIsRefused() {
+        UsableBlockPlatform.bind();
+        IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+
+        assertThrows(IllegalArgumentException.class, () -> blocks.palette(PaletteSpec.of(List.of()), 1));
+        assertThrows(IllegalArgumentException.class, () -> blocks.palette(PaletteSpec.of(List.of(BlockSpec.of("stone").withWeight(0))), 1));
+    }
+
+    /** Asserts both pick the same block at several positions; returns the blocks picked. */
+    private static Set<BlockState> picksLike(IrisMaterialPalette iris, PaletteSampler sampler, IrisData data, long seed) {
+        Set<BlockState> picked = new TreeSet<>(java.util.Comparator.comparing(BlockState::key));
+        for (double[] position : new double[][]{{0, 0, 0}, {17.5, 64, -3}, {-640, 12, 1280}, {12345.25, -30.5, 678.5}, {5, 200, 5}, {-3, 7, 9}}) {
+            String expected = iris.get(new RNG(seed), position[0], position[1], position[2], data).key();
+            BlockState actual = sampler.at(position[0], position[1], position[2]);
+            assertEquals(BlockState.parse(expected), actual);
+            picked.add(actual);
+        }
+        return picked;
     }
 
     private static IrisData packWithoutCustomBlocks() {

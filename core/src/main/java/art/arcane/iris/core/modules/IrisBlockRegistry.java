@@ -20,15 +20,19 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
+import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.block.PaletteSampler;
+import com.volmit.block.PaletteSpec;
 import com.volmit.object.BlockEntityData;
 import com.volmit.resource.ResourceId;
 
@@ -43,11 +47,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * {@link BlockSpec}s resolve as Iris resolves the block data packs write ({@link IrisValues#blockData}): a block of
  * the pack's {@code blocks} folder, the platform's block, the backup, then air. Each spec is converted once per
- * pack snapshot, so its resolution is too.
+ * pack snapshot, so its resolution is too. {@link PaletteSpec}s pick as Iris's {@link IrisMaterialPalette} does, with
+ * the seed the palette's old {@code RNG} had.
  */
 final class IrisBlockRegistry implements BlockRegistry {
     private final IrisData data;
     private final Map<BlockSpec, IrisBlockData> specs = new ConcurrentHashMap<>();
+    private final Map<SeededPalette, PaletteSampler> palettes = new ConcurrentHashMap<>();
 
     /** @param data the pack whose {@code blocks} folder custom blocks come from */
     IrisBlockRegistry(IrisData data) {
@@ -68,6 +74,20 @@ final class IrisBlockRegistry implements BlockRegistry {
     public Optional<BlockEntityData> blockEntity(BlockSpec spec) {
         TileData tile = blockData(spec).tryGetTile(data);
         return tile == null ? Optional.empty() : Optional.of(BlockEntities.of(tile));
+    }
+
+    @Override
+    public PaletteSampler palette(PaletteSpec spec, long seed) {
+        return palettes.computeIfAbsent(new SeededPalette(spec, seed), this::pickerOf);
+    }
+
+    private PaletteSampler pickerOf(SeededPalette seeded) {
+        if (seeded.spec().palette().stream().noneMatch(block -> block.weight() > 0)) {
+            throw new IllegalArgumentException("Palette " + seeded.spec() + " has no block to pick: each block needs a weight of at least 1");
+        }
+        IrisMaterialPalette palette = IrisValues.materialPalette(seeded.spec());
+        RNG rng = new RNG(seeded.seed());
+        return (x, y, z) -> BlockState.parse(PlatformBlockStates.namespaced(palette.get(rng, x, y, z, data).key()));
     }
 
     private IrisBlockData blockData(BlockSpec spec) {
@@ -112,5 +132,8 @@ final class IrisBlockRegistry implements BlockRegistry {
             throw new IllegalArgumentException("Unknown block: " + key);
         }
         return state;
+    }
+
+    private record SeededPalette(PaletteSpec spec, long seed) {
     }
 }

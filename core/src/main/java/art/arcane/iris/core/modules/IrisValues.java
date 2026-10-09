@@ -19,13 +19,16 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.value.IrisRange;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import com.volmit.block.BlockSpec;
+import com.volmit.block.PaletteSpec;
 import com.volmit.config.Range;
 import com.volmit.noise.StyledRange;
 import com.volmit.world.BlockPosition;
@@ -41,6 +44,7 @@ import java.util.Optional;
 public final class IrisValues {
     private static final Map<String, Class<?>> IRIS_CLASSES = Map.of(
             BlockSpec.class.getName(), IrisBlockData.class,
+            PaletteSpec.class.getName(), IrisMaterialPalette.class,
             com.volmit.noise.NoiseStyle.class.getName(), IrisGeneratorStyle.class,
             StyledRange.class.getName(), IrisStyledRange.class,
             Range.class.getName(), IrisRange.class,
@@ -67,6 +71,13 @@ public final class IrisValues {
         block.setBackup(spec.backup().map(IrisValues::blockData).orElse(null));
         block.setTileData(irisMap(spec.tileData()));
         return block;
+    }
+
+    /** {@code spec} as the material palette Iris picks blocks from: its noise style, zoom and weighted blocks. */
+    static IrisMaterialPalette materialPalette(PaletteSpec spec) {
+        KList<IrisBlockData> blocks = new KList<>();
+        spec.palette().forEach(block -> blocks.add(blockData(block)));
+        return new IrisMaterialPalette().setStyle(generatorStyle(spec.style())).setZoom(spec.zoom()).setPalette(blocks);
     }
 
     /** Iris's maps hold no null values; a JSON null in a map reads as absent, as it does for Iris's own fields. */

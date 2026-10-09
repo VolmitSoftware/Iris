@@ -287,6 +287,9 @@ public class SchemaBuilderParityTest {
         assertTrue(definitions.getJSONObject("obj-art-arcane-iris-engine-object-material-irisblockdata").getJSONObject("properties").has("block"));
         JSONArray style = definitions.getJSONObject(definitionKey(tint.getJSONObject("style"))).getJSONArray("anyOf");
         assertEquals("obj-art-arcane-iris-engine-object-noise-irisgeneratorstyle", definitionKey(style.getJSONObject(0)));
+        JSONArray ground = definitions.getJSONObject(definitionKey(tint.getJSONObject("ground"))).getJSONArray("anyOf");
+        assertEquals("obj-art-arcane-iris-engine-object-material-irismaterialpalette", definitionKey(ground.getJSONObject(0)));
+        assertEquals("a palette may be a snippet, as Iris's palettes may", "^snippet/", ground.getJSONObject(1).getString("pattern"));
         assertEquals("a style may be a snippet, as Iris's styles may", "^snippet/", style.getJSONObject(1).getString("pattern"));
         assertEquals("any JSON value", 0, tint.getJSONObject("extra").getJSONObject("additionalProperties").length());
         JSONObject mode = tint.getJSONObject("mode");
@@ -679,6 +682,7 @@ public class SchemaBuilderParityTest {
         @com.volmit.config.MinItems(1)
         private List<com.volmit.block.BlockSpec> palette = List.of();
         private com.volmit.noise.NoiseStyle style = com.volmit.noise.NoiseStyle.of("SIMPLEX");
+        private com.volmit.block.PaletteSpec ground = com.volmit.block.PaletteSpec.of(List.of());
         private java.util.Map<String, Object> extra = java.util.Map.of();
         private TintMode mode = TintMode.SOFT;
     }

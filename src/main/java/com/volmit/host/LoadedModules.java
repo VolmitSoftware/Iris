@@ -1,11 +1,9 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.host.schema.PackSchema;
 import com.volmit.stage.Pipeline;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -25,7 +23,6 @@ public record LoadedModules(
 
     /** Pass the built-in modules together with {@link PackModules#modules()} of the pack.
      *
-     * @param reservedHostFields JSON fields the host itself uses, per attachment target
      * @param hostTypePackages packages whose classes the host describes itself, each with its
      *     subpackages; only built-in modules' settings may use them (see {@link ModuleHost#describingHostTypesIn})
      * @param reservedFolders pack folders the host reads itself, which no resource kind may read (see
@@ -33,10 +30,9 @@ public record LoadedModules(
      */
     public static LoadedModules load(
             List<DiscoveredModule> modules,
-            Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
             Collection<String> hostTypePackages,
             Collection<String> reservedFolders) {
-        var registry = new ModuleRegistry(reservedHostFields, Set.copyOf(reservedFolders));
+        var registry = new ModuleRegistry(Set.copyOf(reservedFolders));
         var stages = new StageGraphBuilder();
         for (var discovered : modules) {
             installModule(discovered, stages, registry);

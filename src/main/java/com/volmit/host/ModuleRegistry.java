@@ -1,6 +1,5 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
@@ -23,9 +22,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
- * immutable. IDs are unique across feature kinds, and every feature id is its JSON key. Aliases,
- * which only built-in modules may set, are unique per attachment target and may not equal the
- * host JSON fields passed in to reserve them. Modules register through
+ * immutable. IDs are unique across feature kinds, and every feature id is its JSON key. Modules register through
  * {@link #register(DiscoveredModule)}; object feature ids, mantle keys, resource kind ids and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
@@ -41,28 +38,21 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<ResourceId> featureIds = new HashSet<>();
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
-    private final Map<Field, String> fields = new HashMap<>();
     private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
     private final List<ValidatorRegistration> validators = new ArrayList<>();
     private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
     private final List<ServiceRegistration> services = new ArrayList<>();
     private final List<VanillaStructureHookRegistration> vanillaStructureHooks = new ArrayList<>();
     private final Set<String> reservedFolders;
-    private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
     private DiscoveredModule registering;
 
     public ModuleRegistry() {
-        this(Map.of());
-    }
-
-    public ModuleRegistry(Map<FeatureAttachment.Target, Set<String>> reservedFields) {
-        this(reservedFields, Set.of());
+        this(Set.of());
     }
 
     /** @param reservedFolders folders below the pack root that the host reads itself, which no resource kind may read */
-    public ModuleRegistry(Map<FeatureAttachment.Target, Set<String>> reservedFields, Set<String> reservedFolders) {
-        reserveHostFields(reservedFields);
+    public ModuleRegistry(Set<String> reservedFolders) {
         this.reservedFolders = Set.copyOf(reservedFolders);
     }
 
@@ -74,7 +64,6 @@ public final class ModuleRegistry implements FeatureRegistry {
             throw new IllegalStateException("Module " + discovered.info().id() + " registered during " + registering.info().id());
         }
         registering = discovered;
-        registered.add(discovered);
         try {
             discovered.module().register(this);
         } finally {
@@ -90,7 +79,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         var descriptor = FeatureDescriptor.of(featureType);
         requireOwnedId("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
         var registration = new ObjectRegistration<>(descriptor, factory);
-        claim(descriptor, registering);
+        claim(descriptor);
         objects.put(featureType, registration);
     }
 
@@ -112,7 +101,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         var descriptor = FeatureDescriptor.of(settingsType);
         requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
-        catalogSettings(descriptor, registering);
+        catalogSettings(descriptor);
         registeredByOwner.add(settingsType);
     }
 
@@ -180,7 +169,7 @@ public final class ModuleRegistry implements FeatureRegistry {
             return;
         }
         var descriptor = FeatureDescriptor.of(settingsType);
-        catalogSettings(descriptor, ownerOf(descriptor));
+        catalogSettings(descriptor);
     }
 
     /** Whether the module owning {@code settingsType} registered it through {@link #registerSettings}. */
@@ -196,19 +185,12 @@ public final class ModuleRegistry implements FeatureRegistry {
         return catalog;
     }
 
-    private void catalogSettings(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
+    private void catalogSettings(FeatureDescriptor<?> descriptor) {
         if (settings.containsKey(descriptor.type())) {
             return;
         }
-        claim(descriptor, owner);
+        claim(descriptor);
         settings.put(descriptor.type(), descriptor);
-    }
-
-    private DiscoveredModule ownerOf(FeatureDescriptor<?> descriptor) {
-        return registered.stream()
-                .filter(module -> module.info().ownsId(descriptor.id()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No registered module owns feature id " + descriptor.id()));
     }
 
     private void requireOwnedId(String registration, ResourceId id) {
@@ -260,53 +242,12 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
-    private void reserveHostFields(Map<FeatureAttachment.Target, Set<String>> reservedFields) {
-        for (var entry : reservedFields.entrySet()) {
-            for (var name : entry.getValue()) {
-                reserveHostField(entry.getKey(), name);
-            }
-        }
-    }
-
-    private void reserveHostField(FeatureAttachment.Target target, String name) {
-        fields.put(new Field(target, FeatureAttachment.requireFieldName(name)), "host");
-    }
-
-    private void claim(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
-        validateClaim(descriptor, owner);
-        recordClaim(descriptor);
-    }
-
-    private void validateClaim(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
+    private void claim(FeatureDescriptor<?> descriptor) {
         if (featureTypes.contains(descriptor.type()) || featureIds.contains(descriptor.id())) {
             throw new IllegalArgumentException("Duplicate feature: " + descriptor.id());
         }
-        descriptor.alias().ifPresent(alias -> validateAlias(descriptor, alias, owner));
-    }
-
-    private void validateAlias(FeatureDescriptor<?> descriptor, String alias, DiscoveredModule owner) {
-        if (owner.source() == DiscoveredModule.Source.PACK) {
-            throw new IllegalArgumentException("Settings " + descriptor.type().getName() + " of module " + owner
-                    + " set alias '" + alias + "'; only modules that ship with the host may set one, so remove it:"
-                    + " packs write these settings under their id \"" + descriptor.key() + "\"");
-        }
-        for (var target : descriptor.attachment().targets()) {
-            var field = new Field(target, alias);
-            if (fields.containsKey(field)) {
-                throw new IllegalArgumentException("Alias collision at " + field + " of " + descriptor.id()
-                        + ": " + fields.get(field));
-            }
-        }
-    }
-
-    private void recordClaim(FeatureDescriptor<?> descriptor) {
         featureTypes.add(descriptor.type());
         featureIds.add(descriptor.id());
-        descriptor.alias().ifPresent(alias -> {
-            for (var target : descriptor.attachment().targets()) {
-                fields.put(new Field(target, alias), descriptor.id().toString());
-            }
-        });
     }
 
     private void checkOpen() {
@@ -314,6 +255,4 @@ public final class ModuleRegistry implements FeatureRegistry {
             throw new IllegalStateException("Registration has ended");
         }
     }
-
-    private record Field(FeatureAttachment.Target target, String name) {}
 }

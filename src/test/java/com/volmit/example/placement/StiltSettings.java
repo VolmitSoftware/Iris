@@ -7,7 +7,7 @@ import com.volmit.config.Feature;
 import com.volmit.config.MinNumber;
 
 @Desc("Fills the space below an object down to the ground")
-@Feature(id = "iris:stilt", name = "Stilt", alias = "stilt", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
+@Feature(id = "iris:stilt", name = "Stilt", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
 public final class StiltSettings implements IrisFeature {
     @Desc("Maximum blocks filled below each lowest object block")
     @MinNumber(1)

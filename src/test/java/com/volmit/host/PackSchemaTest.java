@@ -206,7 +206,6 @@ class PackSchemaTest {
         assertEquals(List.of("example:flora"), names(schema.fields(Target.REGION), FeatureSchema::key));
         assertEquals(List.of("example:flora/wind"), names(schema.fields(Target.DIMENSION), FeatureSchema::key));
         assertEquals(List.of("example:flora/bush"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
-        assertTrue(schema.features().stream().allMatch(feature -> feature.alias().isEmpty()), "pack modules have no alias");
         assertEquals(List.of("example:flora", "example:flora/bush", "example:flora/wind"), names(schema.features(), FeatureSchema::id));
 
         var flora = schema.features().getFirst();
@@ -333,8 +332,6 @@ class PackSchemaTest {
 
         assertEquals(List.of("example:grass", "example:moss", "iris:snow", "iris:stilt"), names(schema.features(), FeatureSchema::id));
         assertEquals(List.of("example:moss", "iris:snow", "iris:stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), FeatureSchema::key));
-        assertEquals(List.of("", "snow", "stilt"), names(schema.fields(Target.OBJECT_PLACEMENT), feature -> feature.alias().orElse("")),
-                "built-ins keep their short aliases");
 
         var stilt = schema.fields(Target.OBJECT_PLACEMENT).get(2);
         assertEquals("Stilts", stilt.module().name());
@@ -358,7 +355,6 @@ class PackSchemaTest {
         assertEquals(Optional.of(List.of()), option.defaultValue());
         assertTrue(schema.types().stream().noneMatch(type -> type.name().equals(Palette.class.getName())),
                 "the host describes its own types, so their fields are never read");
-        assertEquals(Optional.of(option), layers.shorthand(), "one option: packs may write the bare list");
 
         var undeclared = assertThrows(IllegalArgumentException.class, () -> schemaOf(pack("layers"), ModuleHost.of(builtIns)));
         assertTrue(undeclared.getMessage().startsWith("Field " + Palette.class.getName() + ".anything of settings iris:layers"),
@@ -373,12 +369,6 @@ class PackSchemaTest {
                         + ", a class the host describes itself, which only settings of modules that ship with the host may use; "
                         + ValueKinds.SUPPORTED_TYPES,
                 loadFailure(host, "private " + Palette.class.getName() + " palette;").getMessage());
-    }
-
-    @Test
-    void onlySettingsWithOneOptionHaveAShorthand() {
-        var flora = floraSchema().fields(Target.BIOME).getFirst();
-        assertEquals(Optional.empty(), flora.shorthand());
     }
 
     /** A pack whose module example:flora registers pack.flora.FloraSettings with {@code body} as its class body. */
@@ -597,26 +587,6 @@ class PackSchemaTest {
                 .writeInto(pack, "flora.jar");
         assertEquals(List.of("example/flora"), schemaOf(pack, NO_BUILT_INS).snippets().stream()
                 .map(type -> type.snippet().orElseThrow()).toList(), "the module's own folder is under its path");
-    }
-
-    @Test
-    void packModulesCannotSetAnAlias() {
-        var pack = pack("alias");
-        module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
-                .source("pack.flora.FloraSettings", """
-                        package pack.flora;
-
-                        @com.volmit.config.Feature(id = "example:flora", name = "Flora", alias = "flora", targets = com.volmit.FeatureAttachment.Target.BIOME)
-                        public final class FloraSettings implements com.volmit.IrisFeature {}
-                        """)
-                .writeInto(pack, "flora.jar");
-
-        var failure = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, NO_BUILT_INS));
-
-        assertEquals("Settings pack.flora.FloraSettings of module example:flora from modules/flora.jar set alias 'flora'; only modules"
-                + " that ship with the host may set one, so remove it: packs write these settings under their id \"example:flora\"",
-                failure.getMessage());
     }
 
     @Test

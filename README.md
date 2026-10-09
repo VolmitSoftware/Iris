@@ -399,12 +399,9 @@ public final class FloraSettings implements IrisFeature {
 - `@ResourceRef(Keep.class)` says that a `String`, or a list, set or array of them, names a resource of the
   module resource kind read into that class, by its key (see Pack resources of a module). The class must back a
   kind of the pack; anywhere else, or together with `@Ref`, it fails the load.
-- Packs write settings under the feature id. Built-in modules may also set `@Feature(alias = "stilt")`,
-  a short key existing pack JSON uses; a pack module that sets one fails the load. One JSON object may
-  not hold both.
+- Packs write settings under the feature id, as the settings object: `"example:moss": {"amount": 0.5}`. There
+  are no aliases and no bare-value form.
 - Options keep the order the class declares them in, a superclass's first.
-- Settings with exactly one option have a shorthand: packs may write the option's value instead of an
-  object, and `FeatureSchema.shorthand()` says so.
 - Built-in settings may hold classes the host describes itself, such as Iris's palettes, which the host
   names with `ModuleHost.describingHostTypesIn(...)`. They appear as `HostKind` and pack modules cannot
   use them.
@@ -420,7 +417,6 @@ Field com.example.flora.FloraSettings.id of settings example:flora (module examp
 Field com.example.flora.FloraSettings.count of settings example:flora (module example:flora from modules/flora.jar) has @Ref(BLOCK) on int, but @Ref fits only String and ResourceId and lists, sets and arrays of them
 Class com.example.flora.Shape of settings example:flora (module example:flora from modules/flora.jar) has no no-argument constructor; the host creates settings with it and reads their defaults from it, so declare one, private if nothing else should use it
 Snippet name 'patch' of com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) is not under a module of the pack; snippets of pack modules start with their module's id as a folder path, such as 'example/flora/patch' (folder snippet/example/flora/patch/)
-Settings com.example.flora.FloraSettings of module example:flora from modules/flora.jar set alias 'flora'; only modules that ship with the host may set one, so remove it: packs write these settings under their id "example:flora"
 ```
 
 ## Values in settings
@@ -489,7 +485,6 @@ the result on every platform it runs on.
 // Once, at startup: the same for every pack.
 var host = ModuleHost.of(builtInModules)
         .exposing("art.arcane.iris.engine.modules")     // besides the API
-        .reservingFields(reservedHostFields)
         .describingHostTypesIn("art.arcane.iris.engine.object")   // classes the host describes itself
         .reservingFolders("biomes", "regions", "objects")         // pack folders the host reads itself
         .copyingJarsTo(cacheDirectory)                    // default: java.io.tmpdir
@@ -512,9 +507,9 @@ try (var pack = LoadedPack.load(packRoot, host)) {
 ```
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
-once, here), the host packages pack modules may use, the JSON fields the host itself uses, the
+once, here), the host packages pack modules may use, the
 packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names and
-reserved field names are checked when it is built. `LoadedPack.load`
+reserved folders are checked when it is built. `LoadedPack.load`
 loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
 describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
@@ -607,7 +602,7 @@ no JSON. The host renders it and merges it with its own fields:
 
 - `fields(target)`: the module features attached to a target, by JSON key. Each `FeatureSchema` has
   the feature id and name, its role (`SETTINGS` or `OBJECT_GENERATOR`), the owning module's
-  `ModuleInfo`, the JSON key (the id), the alias of a built-in if it has one, its targets and the
+  `ModuleInfo`, the JSON key (the id), its targets and the
   settings `ObjectType`.
 - `types()`: every class reachable from module settings, once each, by name. An `ObjectType` has the
   class name, description, snippet name and options. A `SchemaOption` has name, `ValueKind`,
@@ -626,7 +621,7 @@ no JSON. The host renders it and merges it with its own fields:
 For the stilt example the host sees one `OBJECT_PLACEMENT` feature. The records are abridged:
 
 ```
-FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=iris:stilt, alias=Optional[stilt], targets=[OBJECT_PLACEMENT],
+FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=iris:stilt, targets=[OBJECT_PLACEMENT],
   settings=ObjectType[name=com.volmit.example.placement.StiltSettings, description=Fills the space below an object down to the ground,
     snippet=Optional.empty, options=[SchemaOption[name=maxDepth, kind=IntegerKind[], description=Maximum blocks filled below each
     lowest object block, required=false, minimum=OptionalDouble[1.0], maximum=OptionalDouble.empty, defaultValue=Optional[16]]]]]
@@ -693,13 +688,13 @@ and the derivation is pinned to values computed from its specification (`StageSt
 independent Python reference (`python3 -B src/test/reference/world_random.py`; the build does not
 need Python) and fails if the type gains an unpinned method or implements `RandomGenerator`.
 `PackSchemaTest` loads module jars and checks their description: features under their targets by id,
-aliases of built-ins and the load error when a pack module sets one, options in declaration order,
+options in declaration order,
 descriptions, required, bounds, defaults (floats, nulls, sets, maps, objects, a field holding `this`),
 enums, collections, references, nested classes with a cycle, snippets, object generator settings,
 explicit registration, built-in modules, the same result whatever the jar order, and the load error
 for each unsupported field type, misplaced `@Ref` (pack kinds on `ResourceId` included), unusable
 class, bad or repeated snippet name and pack snippet outside its module's folder, host types in built-in
-settings (and the load error when a pack module uses one), and the one-option shorthand.
+settings (and the load error when a pack module uses one).
 `PackSchemaTest` also loads a module jar with a resource kind: the kind's files described from its class,
 `@ResourceRef` options as references to the kind, built-in kinds of host types, the load error for a pack kind
 of a host type, for a folder two kinds claim or the host reserves, and for a misplaced `@ResourceRef`.

@@ -1,14 +1,11 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.IrisModule;
 import com.volmit.resource.ResourceKind;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -22,18 +19,17 @@ import java.util.TreeSet;
  * <pre>{@code
  * var host = ModuleHost.of(builtInModules)
  *         .exposing("art.arcane.iris.engine.modules")
- *         .reservingFields(reservedHostFields);
+ *         .reservingFolders("biomes", "regions");
  * }</pre>
  *
  * Every method adds to what earlier calls configured, so a host can build the configuration in steps.
- * Built-in modules' {@code info()} is read here, once. Exposed package names, host type packages,
- * reserved folders and reserved field names are checked here, so a mistake fails when the host starts rather than at the
+ * Built-in modules' {@code info()} is read here, once. Exposed package names, host type packages
+ * and reserved folders are checked here, so a mistake fails when the host starts rather than at the
  * first pack load.
  */
 public record ModuleHost(
         List<DiscoveredModule> builtIns,
         Set<String> exposedHostPackages,
-        Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
         Set<String> hostTypePackages,
         Set<String> reservedFolders,
         Path jarCopyRoot,
@@ -43,14 +39,12 @@ public record ModuleHost(
     public ModuleHost {
         builtIns = List.copyOf(builtIns);
         exposedHostPackages = Set.copyOf(exposedHostPackages);
-        reservedHostFields = copyOf(reservedHostFields);
         hostTypePackages = Set.copyOf(hostTypePackages);
         reservedFolders = Set.copyOf(reservedFolders);
         Objects.requireNonNull(jarCopyRoot, "jarCopyRoot");
         Objects.requireNonNull(logger, "logger");
         ExposedPackages.apiAnd(exposedHostPackages);
         HostTypes.of(hostTypePackages);
-        requireFieldNames(reservedHostFields);
         requireFolderNames(reservedFolders);
     }
 
@@ -59,7 +53,7 @@ public record ModuleHost(
      */
     public static ModuleHost of(List<? extends IrisModule> builtInModules) {
         var builtIns = builtInModules.stream().map(DiscoveredModule::builtIn).toList();
-        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
+        return new ModuleHost(builtIns, Set.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
                 System.getLogger(PackModules.class.getName()));
     }
 
@@ -67,16 +61,7 @@ public record ModuleHost(
      * modules, such as the packages that hold built-in modules' stage constants.
      */
     public ModuleHost exposing(String... packages) {
-        return new ModuleHost(builtIns, union(exposedHostPackages, packages), reservedHostFields,
-                hostTypePackages, reservedFolders, jarCopyRoot, logger);
-    }
-
-    /** This configuration with {@code fields} also reserved as JSON fields the host itself uses,
-     * merged per attachment target with the fields reserved before.
-     */
-    public ModuleHost reservingFields(Map<FeatureAttachment.Target, Set<String>> fields) {
-        return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields),
-                hostTypePackages, reservedFolders, jarCopyRoot, logger);
+        return new ModuleHost(builtIns, union(exposedHostPackages, packages), hostTypePackages, reservedFolders, jarCopyRoot, logger);
     }
 
     /** This configuration with the classes in {@code packages}, each with its subpackages, described by
@@ -85,7 +70,7 @@ public record ModuleHost(
      * instead of describing their fields. Pack modules' settings cannot use them.
      */
     public ModuleHost describingHostTypesIn(String... packages) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields,
+        return new ModuleHost(builtIns, exposedHostPackages,
                 union(hostTypePackages, packages), reservedFolders, jarCopyRoot, logger);
     }
 
@@ -93,7 +78,7 @@ public record ModuleHost(
      * itself, such as its biome and object folders. A module resource kind that reads one fails the pack load.
      */
     public ModuleHost reservingFolders(String... folders) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
+        return new ModuleHost(builtIns, exposedHostPackages, hostTypePackages,
                 union(reservedFolders, folders), jarCopyRoot, logger);
     }
 
@@ -101,7 +86,7 @@ public record ModuleHost(
      * cache directory of the host, which is created when missing. The last call wins.
      */
     public ModuleHost copyingJarsTo(Path directory) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
+        return new ModuleHost(builtIns, exposedHostPackages, hostTypePackages,
                 reservedFolders, directory, logger);
     }
 
@@ -109,7 +94,7 @@ public record ModuleHost(
      * {@code logger}, such as an adapter to the host's own log. The last call wins.
      */
     public ModuleHost loggingTo(System.Logger logger) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
+        return new ModuleHost(builtIns, exposedHostPackages, hostTypePackages,
                 reservedFolders, jarCopyRoot, logger);
     }
 
@@ -124,17 +109,6 @@ public record ModuleHost(
         return Path.of(System.getProperty(TEMPORARY_DIRECTORY_PROPERTY));
     }
 
-    private static Map<FeatureAttachment.Target, Set<String>> copyOf(Map<FeatureAttachment.Target, Set<String>> fields) {
-        var copy = new EnumMap<FeatureAttachment.Target, Set<String>>(FeatureAttachment.Target.class);
-        fields.forEach((target, names) -> copy.put(target, Set.copyOf(names)));
-        return Map.copyOf(copy);
-    }
-
-    /** A blank field name, or one with ':' like a feature id, fails here, as it would as an alias. */
-    private static void requireFieldNames(Map<FeatureAttachment.Target, Set<String>> fields) {
-        fields.values().forEach(names -> names.forEach(FeatureAttachment::requireFieldName));
-    }
-
     private static void requireFolderNames(Set<String> folders) {
         for (var folder : folders) {
             if (!ResourceKind.isFolderName(folder)) {
@@ -142,15 +116,6 @@ public record ModuleHost(
                         + " pack root, such as biomes");
             }
         }
-    }
-
-    private static Map<FeatureAttachment.Target, Set<String>> merge(
-            Map<FeatureAttachment.Target, Set<String>> existing,
-            Map<FeatureAttachment.Target, Set<String>> added) {
-        var merged = new EnumMap<FeatureAttachment.Target, Set<String>>(FeatureAttachment.Target.class);
-        existing.forEach((target, names) -> merged.put(target, new TreeSet<>(names)));
-        added.forEach((target, names) -> merged.computeIfAbsent(target, ignored -> new TreeSet<>()).addAll(names));
-        return merged;
     }
 
     private static Set<String> union(Set<String> existing, String... added) {

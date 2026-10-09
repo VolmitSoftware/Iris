@@ -21,9 +21,9 @@ types that carry them and lists what the Iris adapter still owes.
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
 | Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner` |
 | Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages read the mantle only |
-| Annotated settings | `IrisFeature`, `@Feature` (id as JSON key, built-in alias), config annotations, `OptionsMetadata` |
+| Annotated settings | `IrisFeature`, `@Feature` (id as JSON key), config annotations, `OptionsMetadata` |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
-| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema` with `shorthand()`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
+| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
@@ -60,9 +60,8 @@ a working no-argument constructor, a bad or repeated snippet name, or a pack cla
 outside its module's folder. Defaults come from an instance made by that constructor. Options are in
 declaration order.
 
-Packs write settings under the feature id. Only built-in modules may set an alias, a short key that
-existing pack JSON uses; a pack module setting one fails the load. Aliases are unique per target and
-may not equal a reserved host field. The description is in a fixed order and holds module entries only.
+Packs write settings under the feature id, as the settings object; there are no aliases and no bare-value
+shorthand. The description is in a fixed order and holds module entries only.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
@@ -102,8 +101,6 @@ running Iris is the pack publisher's responsibility.
   that order. Never merge or override levels. Pass each placement's own declarations as
   `ConfiguredSettings.placement(...)`; the chunk and mantle runners collect a chunk's settings
   themselves.
-- Decode a value that is not a JSON object into settings with exactly one option
-  (`FeatureSchema.shorthand()`), and render the schema to accept both forms.
 - Name the packages of the classes Iris describes itself with `ModuleHost.describingHostTypesIn(...)`,
   decode them as Iris does, and render each `HostKind` with Iris's own description of the class.
 - Hand modules heights above the dimension's bottom (0 = bottom block, whatever the platform's minimum
@@ -142,11 +139,9 @@ running Iris is the pack publisher's responsibility.
   packs and is part of what packs can break on. Stage output types and settings types that pack
   code uses through those stages must be in exposed packages too. The API is always exposed.
 - Consider showing `PackModules.missingClasses()` in studio.
-- Decode module settings under the feature id and, for built-ins, the alias. Fail a JSON object that
-  holds both, naming the two keys.
+- Decode module settings under the feature id, as a JSON object (or a snippet reference for a `@Snippet` type).
 - Render `pack.schema()` into studio's files: merge each target's `fields(target)` into the schema
-  of the matching Iris file type (dimension, region, biome, object placement) under the key and the
-  alias, write `types()` as definitions, a `/snippet/<name>` schema per entry of `snippets()`, and
+  of the matching Iris file type (dimension, region, biome, object placement) under the key, write `types()` as definitions, a `/snippet/<name>` schema per entry of `snippets()`, and
   completion lists per `Reference` from the server registries and the pack's biome, region and
   object folders. `PACK_*` references are pack paths without a namespace, as Iris writes them. Pack
   snippet names are under their module's folder, so they cannot collide with Iris's own; built-in

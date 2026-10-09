@@ -23,16 +23,14 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModuleRegistryTest {
-    @Feature(id = "test:core/one", name = "One", alias = "shared", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/one", name = "One", targets = FeatureAttachment.Target.BIOME)
     static class One implements IrisFeature {}
-    @Feature(id = "test:core/two", name = "Two", alias = "shared", targets = FeatureAttachment.Target.DIMENSION)
+    @Feature(id = "test:core/two", name = "Two", targets = FeatureAttachment.Target.DIMENSION)
     static class Two implements IrisFeature {}
-    @Feature(id = "test:core/collision", name = "Collision", alias = "shared", targets = {FeatureAttachment.Target.DIMENSION, FeatureAttachment.Target.BIOME})
-    static class Collision implements IrisFeature {}
-    @Feature(id = "test:core/one", name = "Duplicate", alias = "different", targets = FeatureAttachment.Target.REGION)
+    @Feature(id = "test:core/one", name = "Duplicate", targets = FeatureAttachment.Target.REGION)
     static class Duplicate implements IrisFeature {}
     static class MissingAnnotation implements IrisFeature {}
-    @Feature(id = "test:core/abstract", name = "Abstract", alias = "abstract", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/abstract", name = "Abstract", targets = FeatureAttachment.Target.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
     /** Runs {@code registrations} as the register(...) of a built-in module with the given id. */
@@ -50,7 +48,6 @@ class ModuleRegistryTest {
         registerAs(registry, "test:core", settings -> settings.registerSettings(One.class));
         registry.registerStageSettings(One.class);
         registerAs(registry, "test:core", objects -> {
-            assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Collision.class, ignored -> context -> null));
             objects.registerObject(Two.class, ignored -> context -> null);
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Duplicate.class, ignored -> context -> null));
             assertThrows(IllegalArgumentException.class, () -> objects.registerObject(One.class, ignored -> context -> null));
@@ -61,12 +58,8 @@ class ModuleRegistryTest {
     }
 
     @Test
-    void reservesHostFieldsAndRejectsInvalidFeaturesOrFactories() {
-        var registry = new ModuleRegistry(Map.of(FeatureAttachment.Target.BIOME, Set.of("shared")));
-        assertThrows(IllegalStateException.class, () -> registry.registerStageSettings(One.class), "no module owns it yet");
-        registerAs(registry, "test:core", nothing -> {});
-        var reserved = assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(One.class));
-        assertTrue(reserved.getMessage().startsWith("Alias collision"), reserved.getMessage());
+    void rejectsInvalidFeaturesOrFactories() {
+        var registry = new ModuleRegistry();
         assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(MissingAnnotation.class));
         assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(AbstractFeature.class));
         registerAs(registry, "test:core", objects -> {
@@ -135,14 +128,31 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
             public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
         };
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
         assertEquals(1, loaded.catalog().objects().size());
         assertEquals(1, loaded.placement().stages().size());
         assertTrue(loaded.chunk().stages().isEmpty());
+    }
 
-        var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("shared"));
-        assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), reserved, Set.of(), Set.of()));
+    @Test
+    void twoModulesWithOneIdRefuseTheLoadNamingBothSoASettingsKeyIsNeverShared() {
+        var first = ownerOfOne("First");
+        var second = ownerOfOne("Second");
+
+        var clash = assertThrows(IllegalArgumentException.class,
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(first), DiscoveredModule.builtIn(second)), Set.of(), Set.of()));
+
+        assertTrue(clash.getMessage().startsWith("Duplicate module test:core from "), clash.getMessage());
+        assertTrue(clash.getMessage().contains("already loaded from "), clash.getMessage());
+    }
+
+    private static IrisModule ownerOfOne(String name) {
+        return new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:core", name, "1"); }
+            public void install(StageGraph graph) {}
+            public void register(FeatureRegistry registry) { registry.registerSettings(One.class); }
+        };
     }
 
     @Test
@@ -169,8 +179,8 @@ class ModuleRegistryTest {
 
         registerAs(registry, "test:core", settings -> settings.registerObject(Two.class, ignored -> context -> null));
         var collision = assertThrows(IllegalArgumentException.class,
-                () -> registerAs(registry, "test:core", settings -> settings.registerSettings(Collision.class)));
-        assertTrue(collision.getMessage().startsWith("Alias collision"), collision.getMessage());
+                () -> registerAs(registry, "test:core", settings -> settings.registerSettings(Two.class)));
+        assertEquals("Duplicate feature: test:core/two", collision.getMessage());
         assertTrue(registry.freeze().settings().isEmpty());
     }
 
@@ -187,11 +197,11 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
         };
 
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
 
         var unowned = assertThrows(IllegalArgumentException.class,
-                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of()));
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Set.of(), Set.of()));
         assertTrue(unowned.getMessage().contains("which none of the modules naming it in when(...) owns"), unowned.getMessage());
     }
 
@@ -200,7 +210,7 @@ class ModuleRegistryTest {
 
     @Test
     void resourceKindsHaveOwnedIdsAndOneIdTypeAndFolderEach() {
-        var registry = new ModuleRegistry(Map.of(), Set.of("biomes"));
+        var registry = new ModuleRegistry(Set.of("biomes"));
         var castles = ResourceKind.of("test:core/castle", "castles", Castle.class);
         registerAs(registry, "test:core", kinds -> {
             kinds.registerResourceKind(castles);

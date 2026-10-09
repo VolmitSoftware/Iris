@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FeatureContractTest {
     @Desc("Example settings")
     @Snippet("fill-settings")
-    @Feature(id = "example:fill", name = "Fill", alias = "fill", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:fill", name = "Fill", targets = FeatureAttachment.Target.BIOME)
     public static class FillOptions implements IrisFeature {
         @Desc("Replacement value")
         @MinNumber(0)
@@ -40,7 +40,6 @@ class FeatureContractTest {
         var descriptor = FeatureDescriptor.of(FillOptions.class);
         assertEquals(ResourceId.parse("example:fill"), descriptor.id());
         assertEquals("example:fill", descriptor.key());
-        assertEquals(java.util.Optional.of("fill"), descriptor.alias());
         assertEquals(java.util.Set.of(FeatureAttachment.Target.BIOME), descriptor.attachment().targets());
         assertEquals(1, descriptor.options().options().size());
     }

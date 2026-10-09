@@ -47,7 +47,7 @@ name, version and optional packages; there is no separate descriptor. A pack kee
 
 The host loads a pack with `LoadedPack.load(packRoot, host)`. `ModuleHost` is the host's fixed
 configuration, built once and the same for every pack: built-in modules, exposed host packages,
-reserved JSON fields. Each of its methods adds to what earlier calls
+host type packages and reserved folders. Each of its methods adds to what earlier calls
 configured, and all names are checked when it is built. `LoadedPack` runs `PackModules.load` (below), then
 `LoadedModules.load` on the built-ins followed by the pack's modules. If the second step fails it
 closes the first before rethrowing, so a failed load leaves no class loader or jar copy behind.
@@ -557,37 +557,24 @@ as its reach. Terrain samples are computed, not prepared, and need nothing.
 
 ## Settings, geometry and storage
 
-Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, optional
-alias, attachment targets). `when(type)` validates the annotation while the module installs. The id
+Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, attachment targets). `when(type)` validates the annotation while the module installs. The id
 must be owned by a module naming the type (see Namespaces), or the owner registers the type itself
 with `FeatureRegistry.registerSettings`. That is for settings no stage names, such as settings read
 only through `FeatureSettings.at(...)`; registering a type a stage also names changes nothing, and a
 type its owner registered may be named in `when(...)` by any module.
 `LoadedModules.load` catalogs those types with geometry generator settings and rejects duplicate
-ids and alias collisions per attachment target, including reserved host fields.
+ids. Two modules with one id never get that far: the load fails naming both ("Duplicate module").
 `OptionsMetadata` reads field metadata, in declaration order; it does not decode JSON.
 
-### JSON keys and aliases
+### JSON keys
 
-A feature whose settings class has exactly one option may be written as that option's value instead of
-an object holding it: `"snow": 0.5` for `"snow": {"amount": 0.5}`, or a bare JSON list for a class holding
-one list. Existing pack JSON writes several settings that way, and keeping the format meant either this
-rule or a compatibility layer per key. `FeatureSchema.shorthand()` returns the option when there is
-exactly one, the host decodes a value that is not a JSON object into it, and renders the schema to accept
-both forms. A `@Snippet` class written as a `"snippet/..."` string stays a snippet reference.
-
-Packs write a feature's settings under its feature id at each of its targets:
-`"example:moss": {...}`. The id is unique, namespaced and owned by one module, so two modules can never
-claim the same key, and a key can never be one of the host's own fields: those have no `:`.
-
-Built-in modules may also set `@Feature(alias = "stilt")`, a short key that existing pack JSON
-already uses, such as `"stilt": {...}`. An alias has no `:`, so it never equals an id. Aliases are
-unique per target and may not equal a reserved host field; reserved host fields therefore constrain
-aliases only. A pack module that sets an alias fails the load and is told to use its id: aliases are
-for keeping existing pack files working, and a pack module has no existing files to keep.
-
-A JSON object that holds both a feature's alias and its id is ambiguous. That is a host decoding
-rule, since IrisApi does not decode JSON: the host fails such an object, naming both keys.
+Packs write a feature's settings under its feature id at each of its targets, always as the settings
+object: `"example:moss": {...}`. A single option is not written bare (`"example:moss": 0.5` and a bare list
+are not accepted); the object is the one shape, so a class gaining a second option never changes how packs
+read. A `@Snippet` class may be written as a `"snippet/..."` string instead of the object. The id is unique,
+namespaced and owned by one module, so two modules can never claim the same key, and a key can never be one of
+the host's own fields: those have no `:`. There are no short aliases; pack files written for an older
+shape are converted by the host's migration tooling, never by the loader.
 
 `GeneratedObject` is sparse, immutable local geometry with bounds, an anchor, sorted blocks,
 optional block entity payloads and markers. `ObjectGenerator` produces it from settings and a
@@ -610,14 +597,14 @@ classes. The pack load instead collects what modules declare in their settings c
 `LoadedModules.load` builds it right after freezing the catalog (`PackSchemaBuilder`), so a pack
 that loads has a complete description and a settings class the host could not render fails the
 load. It contains every catalogued settings type of every module, built-in ones too, because the
-core engine is modules as well. The host's own JSON fields are not in it; reserved host fields
-already keep module fields from colliding with them.
+core engine is modules as well. The host's own JSON fields are not in it; they have no `:`, so they can
+never equal a feature id.
 
 ### Shape
 
 - A `FeatureSchema` per catalogued type: feature id and name, role (`SETTINGS` for types named in
   `when(...)` or registered with `registerSettings`, `OBJECT_GENERATOR` for `registerObject`), the
-  owning module's `ModuleInfo`, the JSON key (the feature id), the alias if any, its targets and the
+  owning module's `ModuleInfo`, the JSON key (the feature id), its targets and the
   settings `ObjectType`. `fields(target)` lists a target's features; a feature attached to several targets appears under
   each. The owner is the one module whose id owns the feature id; module ids are unique and contain
   no `/`, so there is never more than one.

@@ -84,7 +84,6 @@ class LoadedPackTest {
     void invalidHostConfigurationFailsWhenBuilt() {
         var host = ModuleHost.of(List.of());
         assertThrows(IllegalArgumentException.class, () -> host.exposing("org.*"));
-        assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Target.BIOME, Set.of(" "))));
         assertEquals(List.of(), host.builtIns());
         assertEquals(Set.of(), host.exposedHostPackages());
     }
@@ -94,11 +93,11 @@ class LoadedPackTest {
         var host = ModuleHost.of(List.of())
                 .exposing("example.first")
                 .exposing("example.second")
-                .reservingFields(Map.of(Target.BIOME, Set.of("carving"), Target.REGION, Set.of("spawns")))
-                .reservingFields(Map.of(Target.BIOME, Set.of("objects")));
+                .reservingFolders("biomes")
+                .reservingFolders("regions");
 
         assertEquals(Set.of("example.first", "example.second"), host.exposedHostPackages());
-        assertEquals(Map.of(Target.BIOME, Set.of("carving", "objects"), Target.REGION, Set.of("spawns")), host.reservedHostFields());
+        assertEquals(Set.of("biomes", "regions"), host.reservedFolders());
     }
 
     @Test

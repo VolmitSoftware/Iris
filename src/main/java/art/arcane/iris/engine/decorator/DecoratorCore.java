@@ -18,11 +18,8 @@
 
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
@@ -66,23 +63,18 @@ final class DecoratorCore {
         return baseSeed + SEED_OFFSET - (partOrdinal * PART_FACTOR);
     }
 
-    static long partSeed(long baseSeed, IrisDecorationPart part) {
+    static long partSeed(long baseSeed, DecorationPart part) {
         return partSeed(baseSeed, part.ordinal());
     }
 
-    static IrisDecorator pickDecorator(IrisBiome biome, IrisDecorationPart part, RNG gRNG,
-                                       RNG colRng, IrisData data, double realX, double realZ) {
-        IrisDecorator[] bucket = biome.getDecoratorBucket(part);
-        if (bucket.length == 0) {
-            return null;
-        }
-
-        IrisDecorator picked = null;
+    /** The decorator of {@code bucket} that decorates the column, drawing from {@code colRng} to choose between those whose chance noise passes. */
+    static ResolvedDecorator pickDecorator(ResolvedDecorator[] bucket, RNG colRng, double realX, double realZ) {
+        ResolvedDecorator picked = null;
         int count = 0;
 
-        for (IrisDecorator d : bucket) {
+        for (ResolvedDecorator d : bucket) {
             try {
-                if (d.passesChanceGate(gRNG, realX, realZ, data)) {
+                if (d.passesChanceGate(realX, realZ)) {
                     count++;
                     if (count == 1 || colRng.nextInt(count) == 0) {
                         picked = d;
@@ -104,37 +96,32 @@ final class DecoratorCore {
         return half.equals("upper") || half.equals("lower") ? "lower" : "bottom";
     }
 
-    static void placeSurfaceSingle(IrisDecorator decorator,
+    static void placeSurfaceSingle(ResolvedDecorator decorator,
                                    int x, int z, int realX, int height, int realZ,
-                                   Hunk<PlatformBlockState> data, RNG rng, IrisData irisData,
+                                   Hunk<PlatformBlockState> data,
                                    boolean underwater, boolean caveSkipFluid, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
         PlatformBlockState bdx = data.get(x, height, z);
-        PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+        PlatformBlockState bd = decorator.pickBlock(realX, realZ);
 
         if (!underwater && !canGoOn(bd, bdx)
-                && !decorator.isForcePlace() && decorator.getForceBlock() == null) {
+                && !decorator.isForcePlace() && decorator.forceBlock() == null) {
             return;
         }
 
-        if (decorator.getForceBlock() != null) {
+        if (decorator.forceBlock() != null) {
             if (caveSkipFluid && B.isFluid(bdx)) {
                 return;
             }
             data.set(x, height, z, fixFacesForHunk(
-                    decorator.getForceBlock().getBlockData(irisData), data, x, z, realX, height, realZ, mantle));
+                    decorator.forceBlock(), data, x, z, realX, height, realZ, mantle));
         }
 
-        if (!decorator.isForcePlace()) {
-            if (decorator.getWhitelist() != null && !matchesPalette(decorator.getWhitelistArray(irisData), bdx)) {
-                return;
-            }
-            if (decorator.getBlacklist() != null && matchesPalette(decorator.getBlacklistArray(irisData), bdx)) {
-                return;
-            }
+        if (!decorator.isForcePlace() && decorator.rejectsSurface(bdx)) {
+            return;
         }
 
         String half = bd == null ? null : IrisProceduralBlocks.propertyValue(bd, "half");
@@ -164,20 +151,10 @@ final class DecoratorCore {
         }
     }
 
-    private static boolean matchesPalette(PlatformBlockState[] palette, PlatformBlockState surface) {
-        for (int i = 0; i < palette.length; i++) {
-            if (palette[i].equals(surface)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    static void placeSingleAt(IrisDecorator decorator, int x, int z,
+    static void placeSingleAt(ResolvedDecorator decorator, int x, int z,
                               int realX, int height, int realZ, Hunk<PlatformBlockState> data,
-                              RNG rng, IrisData irisData, boolean applyFixFaces, EngineMantle mantle) {
-        PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+                              boolean applyFixFaces, EngineMantle mantle) {
+        PlatformBlockState bd = decorator.pickBlock(realX, realZ);
         if (bd == null) {
             return;
         }
@@ -187,9 +164,9 @@ final class DecoratorCore {
         data.set(x, height, z, bd);
     }
 
-    static void placeStackUp(IrisDecorator decorator, int x, int z, int realX, int realZ,
+    static void placeStackUp(ResolvedDecorator decorator, int x, int z, int realX, int realZ,
                              int height, int max, Hunk<PlatformBlockState> data,
-                             RNG rng, IrisData irisData, PlaceOpts opts) {
+                             PlaceOpts opts) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
@@ -199,7 +176,7 @@ final class DecoratorCore {
             effectiveMax = opts.fluidHeight;
         }
 
-        int stack = computeStack(decorator, rng, realX, realZ, irisData, effectiveMax);
+        int stack = computeStack(decorator, realX, realZ, effectiveMax);
 
         if (stack == 1) {
             int targetY = height + 1;
@@ -213,7 +190,7 @@ final class DecoratorCore {
                 return;
             }
 
-            PlatformBlockState block = decorator.pickBlockDataTop(rng, irisData, realX, realZ);
+            PlatformBlockState block = decorator.pickTopBlock(realX, realZ);
             if (block == null || (!opts.underwater && !canGoOn(block, data.get(x, height, z)))) {
                 return;
             }
@@ -228,9 +205,9 @@ final class DecoratorCore {
         for (int i = 0; i < stack; i++) {
             int h = height + i;
             double threshold = ((double) i) / (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.getTopThreshold()
-                    ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                    : decorator.pickBlockData(rng, irisData, realX, realZ);
+            PlatformBlockState bd = threshold >= decorator.topThreshold()
+                    ? decorator.pickTopBlock(realX, realZ)
+                    : decorator.pickBlock(realX, realZ);
 
             if (bd == null) {
                 break;
@@ -263,20 +240,20 @@ final class DecoratorCore {
         }
     }
 
-    static void placeStackDown(IrisDecorator decorator, int x, int z, int realX, int realZ,
+    static void placeStackDown(ResolvedDecorator decorator, int x, int z, int realX, int realZ,
                                int height, int minHeight, Hunk<PlatformBlockState> data,
-                               RNG rng, IrisData irisData, int max, PlaceOpts opts, EngineMantle mantle) {
+                               int max, PlaceOpts opts, EngineMantle mantle) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
-        int stack = computeStack(decorator, rng, realX, realZ, irisData, max);
+        int stack = computeStack(decorator, realX, realZ, max);
 
         if (stack == 1) {
             if (opts.caveSkipFluid && B.isFluid(data.get(x, height, z))) {
                 return;
             }
-            PlatformBlockState block = decorator.pickBlockDataTop(rng, irisData, realX, realZ);
+            PlatformBlockState block = decorator.pickTopBlock(realX, realZ);
             if (block == null) {
                 return;
             }
@@ -292,9 +269,9 @@ final class DecoratorCore {
             }
 
             double threshold = ((double) i) / (double) (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.getTopThreshold()
-                    ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                    : decorator.pickBlockData(rng, irisData, realX, realZ);
+            PlatformBlockState bd = threshold >= decorator.topThreshold()
+                    ? decorator.pickTopBlock(realX, realZ)
+                    : decorator.pickBlock(realX, realZ);
 
             if (bd == null) {
                 break;
@@ -312,11 +289,10 @@ final class DecoratorCore {
         }
     }
 
-    static void placeFloatingSimple(IrisDecorator decorator,
+    static void placeFloatingSimple(ResolvedDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data,
-                                    RNG rng, IrisData irisData) {
-        PlatformBlockState bd = decorator.pickBlockData(rng, irisData, realX, realZ);
+                                    int height, int max, Hunk<PlatformBlockState> data) {
+        PlatformBlockState bd = decorator.pickBlock(realX, realZ);
         if (bd == null) {
             return;
         }
@@ -345,13 +321,12 @@ final class DecoratorCore {
         }
     }
 
-    static int placeFloatingStacked(IrisDecorator decorator,
+    static int placeFloatingStacked(ResolvedDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data,
-                                    RNG rng, IrisData irisData) {
-        int stack = decorator.getHeight(rng, realX, realZ, irisData);
+                                    int height, int max, Hunk<PlatformBlockState> data) {
+        int stack = decorator.stackHeight(realX, realZ);
         if (decorator.isScaleStack()) {
-            stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
+            stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.absoluteMaxStack());
         } else {
             stack = Math.min(max, stack);
         }
@@ -363,9 +338,9 @@ final class DecoratorCore {
                 break;
             }
             double threshold = stack == 1 ? 0.0 : ((double) i) / (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.getTopThreshold()
-                    ? decorator.pickBlockDataTop(rng, irisData, realX, realZ)
-                    : decorator.pickBlockData(rng, irisData, realX, realZ);
+            PlatformBlockState bd = threshold >= decorator.topThreshold()
+                    ? decorator.pickTopBlock(realX, realZ)
+                    : decorator.pickBlock(realX, realZ);
             if (bd == null) {
                 break;
             }
@@ -444,7 +419,7 @@ final class DecoratorCore {
         return ((BlockData) surface.nativeHandle()).isFaceSturdy(BlockFace.UP, BlockSupport.FULL);
     }
 
-    static boolean isValidShorelineSupport(IrisDecorator decorator, PlatformBlockState decorant, PlatformBlockState surface) {
+    static boolean isValidShorelineSupport(ResolvedDecorator decorator, PlatformBlockState decorant, PlatformBlockState surface) {
         return surface != null
                 && B.isSolid(surface)
                 && (decorator.isForcePlace() || canGoOn(decorant, surface));
@@ -466,11 +441,10 @@ final class DecoratorCore {
                 && (!caveSkipFluid || !B.isFluid(lower) && !B.isFluid(upper));
     }
 
-    private static int computeStack(IrisDecorator decorator, RNG rng, double realX, double realZ,
-                                    IrisData irisData, int max) {
-        int stack = decorator.getHeight(rng, realX, realZ, irisData);
+    private static int computeStack(ResolvedDecorator decorator, double realX, double realZ, int max) {
+        int stack = decorator.stackHeight(realX, realZ);
         if (decorator.isScaleStack()) {
-            stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
+            stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.absoluteMaxStack());
         } else {
             stack = Math.min(max, stack);
         }

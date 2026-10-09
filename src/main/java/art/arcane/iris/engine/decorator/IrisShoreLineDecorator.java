@@ -20,8 +20,7 @@ package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
@@ -29,11 +28,8 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.spi.PlatformBlockState;
 
 public class IrisShoreLineDecorator extends IrisEngineDecorator {
-    private final RNG partRNG;
-
     public IrisShoreLineDecorator(Engine engine) {
-        super(engine, "Shore Line", IrisDecorationPart.SHORE_LINE);
-        this.partRNG = new RNG(DecoratorCore.partSeed(getSeed(), IrisDecorationPart.SHORE_LINE));
+        super(engine, "Shore Line", DecorationPart.SHORE_LINE);
     }
 
     @BlockCoordinates
@@ -54,14 +50,13 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
         }
 
         RNG rng = getRNG(realX, realZ);
-        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
 
         if (decorator == null) {
             return;
         }
 
-        if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
-                && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {
+        if (decorator.slopeBlocks(() -> getComplex().getSlopeStream().get(realX, realZ))) {
             return;
         }
 
@@ -76,14 +71,14 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                     || !DecoratorCore.canReplaceStackTarget(data.get(x, targetY, z), false)) {
                 return;
             }
-            PlatformBlockState block = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
+            PlatformBlockState block = decorator.blockAt(biome, realX, height, realZ);
             if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)) {
                 data.set(x, targetY, z, block);
             }
             return;
         }
 
-        int stack = decorator.getHeight(rng, realX, realZ, getData());
+        int stack = decorator.stackHeight(realX, realZ);
         if (decorator.isScaleStack()) {
             stack = (int) Math.ceil((double) (max - height) * ((double) stack / 100));
         } else {
@@ -96,7 +91,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                 return;
             }
 
-            PlatformBlockState block = decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData());
+            PlatformBlockState block = decorator.topBlockAt(biome, realX, height, realZ);
             if (block != null && DecoratorCore.isValidShorelineSupport(decorator, block, support)) {
                 data.set(x, targetY, z, block);
             }
@@ -111,9 +106,9 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                 break;
             }
             double threshold = ((double) i) / (stack - 1);
-            PlatformBlockState block = threshold >= decorator.getTopThreshold()
-                    ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
-                    : decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
+            PlatformBlockState block = threshold >= decorator.topThreshold()
+                    ? decorator.topBlockAt(biome, realX, h, realZ)
+                    : decorator.blockAt(biome, realX, h, realZ);
             if (block == null) {
                 break;
             }

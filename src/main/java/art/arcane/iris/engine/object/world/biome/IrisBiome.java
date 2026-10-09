@@ -18,8 +18,6 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.entity.IrisEffect;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.loot.IrisBlockDrops;
@@ -118,12 +116,10 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
     private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
     private final transient AtomicCache<IrisOreGeneratorBounds> undergroundOreBoundsCache = new AtomicCache<>();
-    private final transient AtomicCache<EnumMap<IrisDecorationPart, IrisDecorator[]>> decoratorBuckets = new AtomicCache<>();
     private final transient AtomicCache<Biome> derivativeResolved = new AtomicCache<>();
     private final transient AtomicCache<Biome> vanillaDerivativeResolved = new AtomicCache<>();
     private final transient AtomicCache<KList<Biome>> biomeScatterResolved = new AtomicCache<>();
     private final transient AtomicCache<KList<Biome>> biomeSkyScatterResolved = new AtomicCache<>();
-    private static final IrisDecorator[] EMPTY_BUCKET = new IrisDecorator[0];
     @MinNumber(2)
     @Required
     @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
@@ -205,9 +201,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(type = IrisBiomePaletteLayer.class)
     @Desc("Layers of materials filling the water column of sea biomes, indexed downward from the water surface. Anything below the last layer is filled with the dimension fluid palette, not stone.")
     private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
-    @ArrayType(min = 1, type = IrisDecorator.class)
-    @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
-    private KList<IrisDecorator> decorators = new KList<>();
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this biome")
     private KList<IrisObjectPlacement> objects = new KList<>();
@@ -633,23 +626,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Override
     public String getFolderName() {
         return "biomes";
-    }
-
-    public IrisDecorator[] getDecoratorBucket(IrisDecorationPart part) {
-        return decoratorBuckets.aquire(this::buildDecoratorBuckets).getOrDefault(part, EMPTY_BUCKET);
-    }
-
-    private EnumMap<IrisDecorationPart, IrisDecorator[]> buildDecoratorBuckets() {
-        EnumMap<IrisDecorationPart, KList<IrisDecorator>> staging = new EnumMap<>(IrisDecorationPart.class);
-        for (IrisDecorator d : decorators) {
-            staging.computeIfAbsent(d.getPartOf(), k -> new KList<>()).add(d);
-        }
-        EnumMap<IrisDecorationPart, IrisDecorator[]> result = new EnumMap<>(IrisDecorationPart.class);
-        for (IrisDecorationPart part : IrisDecorationPart.values()) {
-            KList<IrisDecorator> list = staging.get(part);
-            result.put(part, list == null ? EMPTY_BUCKET : list.toArray(EMPTY_BUCKET));
-        }
-        return result;
     }
 
     public String getTypeName() {

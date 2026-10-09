@@ -19,13 +19,13 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.UpperDimensionContext;
+import art.arcane.iris.builtin.decorant.DecorationPart;
+import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
@@ -65,12 +65,14 @@ public class CaveApplying {
     private final RNG rng;
     private final PlatformBlockState AIR = B.getState("CAVE_AIR");
     private final PlatformBlockState LAVA = B.getState("LAVA");
+    private final BiomeDecorators decorators;
     private final IrisSurfaceDecorator surfaceDecorator;
     private final IrisCeilingDecorator ceilingDecorator;
 
     public CaveApplying(Engine engine) {
         this.engine = engine;
         rng = new RNG(engine.getSeedManager().getCarve());
+        decorators = BiomeDecorators.of(engine);
         surfaceDecorator = new IrisSurfaceDecorator(engine);
         ceilingDecorator = new IrisCeilingDecorator(engine);
     }
@@ -640,17 +642,11 @@ public class CaveApplying {
             }
         }
 
-        IrisDecorator[] surfaceDecorators = floorBiome == null
-                ? new IrisDecorator[0]
-                : floorBiome.getDecoratorBucket(IrisDecorationPart.NONE);
-        if (surfaceDecorators.length > 0 && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz)) {
+        if (floorBiome != null && decorators.hasDecorators(floorBiome, DecorationPart.NONE) && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz)) {
             surfaceDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, floorBiome, InferredType.CAVE, zone.getFloor() - 1, zone.airThickness());
         }
 
-        IrisDecorator[] ceilingDecorators = ceilingBiome == null
-                ? new IrisDecorator[0]
-                : ceilingBiome.getDecoratorBucket(IrisDecorationPart.CEILING);
-        if (ceilingDecorators.length > 0 && zone.getCeiling() + 1 < maxY && B.isSolid(output.getRaw(rx, zone.getCeiling() + 1, rz))) {
+        if (ceilingBiome != null && decorators.hasDecorators(ceilingBiome, DecorationPart.CEILING) && zone.getCeiling() + 1 < maxY && B.isSolid(output.getRaw(rx, zone.getCeiling() + 1, rz))) {
             ceilingDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, ceilingBiome, InferredType.CAVE, zone.getCeiling(), zone.airThickness());
         }
     }

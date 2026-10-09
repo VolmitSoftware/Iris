@@ -21,12 +21,14 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisPackWorld;
+import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.decorator.IrisShoreLineDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineDecorator;
+import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -34,8 +36,10 @@ import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLifecycle;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
@@ -43,16 +47,27 @@ import com.volmit.world.PackWorld;
 import java.util.function.Predicate;
 
 /**
- * Module {@code iris:decorant}: the biomes' decorators, placed on the surface the mantle's blocks left: the
- * surface itself, the sea surface and floor, and the shore line. A dimension turns decorating off with
- * {@code decorate}.
+ * Module {@code iris:decorant}: the biomes' decorators ({@link DecorantSettings}), placed on the surface the mantle's
+ * blocks left: the surface itself, the sea surface and floor, and the shore line. A dimension turns decorating off with
+ * {@code decorate}. The decorators' noise is built ahead of generation, in {@link #warmUp}.
  */
-public final class DecorantModule implements IrisModule {
+public final class DecorantModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:decorant", "Decorators", VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerSettings(DecorantSettings.class);
+        registry.registerLifecycle(this);
+    }
+
+    @Override
+    public void warmUp(PackWorld world) {
+        BiomeDecorators.of(world).warm();
     }
 
     @Override
@@ -75,6 +90,7 @@ public final class DecorantModule implements IrisModule {
         private static final Predicate<PlatformBlockState> PREDICATE_SOLID = (s) -> s != null && !B.isAirOrFluid(s);
 
         private final Engine engine;
+        private final BiomeDecorators decorators;
         private final IrisSurfaceDecorator surfaceDecorator;
         private final EngineDecorator seaSurfaceDecorator;
         private final EngineDecorator seaFloorDecorator;
@@ -86,6 +102,7 @@ public final class DecorantModule implements IrisModule {
 
         Decorating(Engine engine) {
             this.engine = engine;
+            decorators = BiomeDecorators.of(engine);
             surfaceDecorator = new IrisSurfaceDecorator(engine);
             seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
             shoreLineDecorator = new IrisShoreLineDecorator(engine);
@@ -111,7 +128,7 @@ public final class DecorantModule implements IrisModule {
                     height = context.getRoundedHeight(i, j);
                     biome = context.getBiome().get(i, j);
 
-                    if (biome.getDecorators().isEmpty()) {
+                    if (!decorators.hasDecorators(biome)) {
                         continue;
                     }
 

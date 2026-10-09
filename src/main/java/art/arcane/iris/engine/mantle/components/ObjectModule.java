@@ -26,6 +26,7 @@ import art.arcane.iris.engine.framework.Engine;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLifecycle;
 import com.volmit.config.PackSettings;
 import com.volmit.service.ObjectsAt;
 import com.volmit.stage.MantleStageContext;
@@ -37,10 +38,11 @@ import java.util.Set;
 /**
  * Module {@code iris:objects}: the objects the dimension's regions and biomes place, written into the mantle
  * once the caves they may anchor in are planned. A port of what was Iris's object mantle component, its work
- * done by {@link ObjectPlacing}, one per engine runtime. Its reach is the pack's largest object placement. It tells
+ * done by {@link ObjectPlacing}, one per engine runtime, with the noise of its placements and the variants of its procedural
+ * objects built ahead of generation ({@link #warmUp}). Its reach is the pack's largest object placement. It tells
  * Iris which objects a chunk would get ({@link ObjectsAt}), for the object search and studio tools.
  */
-public final class ObjectModule implements IrisModule {
+public final class ObjectModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
     @Override
@@ -56,6 +58,12 @@ public final class ObjectModule implements IrisModule {
     @Override
     public void register(FeatureRegistry registry) {
         registry.registerService(ObjectsAt.class, ObjectModule::objectsAt);
+        registry.registerLifecycle(this);
+    }
+
+    @Override
+    public void warmUp(PackWorld world) {
+        new ObjectWarmUp(IrisPackWorld.of(world).engine()).warm();
     }
 
     private static void place(MantleStageContext context) {

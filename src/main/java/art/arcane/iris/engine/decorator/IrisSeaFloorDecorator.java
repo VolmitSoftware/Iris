@@ -20,19 +20,15 @@ package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.spi.PlatformBlockState;
 
 public class IrisSeaFloorDecorator extends IrisEngineDecorator {
-    private final RNG partRNG;
-
     public IrisSeaFloorDecorator(Engine engine) {
-        super(engine, "Sea Floor", IrisDecorationPart.SEA_FLOOR);
-        this.partRNG = new RNG(DecoratorCore.partSeed(getSeed(), IrisDecorationPart.SEA_FLOOR));
+        super(engine, "Sea Floor", DecorationPart.SEA_FLOOR);
     }
 
     @BlockCoordinates
@@ -40,24 +36,23 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
                          Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
         RNG rng = getRNG(realX, realZ);
-        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
 
         if (decorator == null) {
             return;
         }
 
         if (!decorator.isStacking()) {
-            if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
-                    && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {
+            if (decorator.slopeBlocks(() -> getComplex().getSlopeStream().get(realX, realZ))) {
                 return;
             }
             if (height >= 0 && height < getEngine().getHeight()) {
-                data.set(x, height, z, decorator.getBlockData100(biome, rng, realX, height, realZ, getData()));
+                data.set(x, height, z, decorator.blockAt(biome, realX, height, realZ));
             }
             return;
         }
 
-        int stack = decorator.getHeight(rng, realX, realZ, getData());
+        int stack = decorator.stackHeight(realX, realZ);
         if (decorator.isScaleStack()) {
             stack = (int) Math.ceil((double) (max - height) * ((double) stack / 100));
         } else {
@@ -65,7 +60,7 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
         }
 
         if (stack == 1) {
-            data.set(x, height, z, decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData()));
+            data.set(x, height, z, decorator.topBlockAt(biome, realX, height, realZ));
             return;
         }
 
@@ -76,9 +71,9 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
                 continue;
             }
             double threshold = ((double) i) / (stack - 1);
-            data.set(x, h, z, threshold >= decorator.getTopThreshold()
-                    ? decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData())
-                    : decorator.getBlockData100(biome, rng, realX, h, realZ, getData()));
+            data.set(x, h, z, threshold >= decorator.topThreshold()
+                    ? decorator.topBlockAt(biome, realX, h, realZ)
+                    : decorator.blockAt(biome, realX, h, realZ));
         }
     }
 }

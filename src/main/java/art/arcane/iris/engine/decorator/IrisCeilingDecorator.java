@@ -21,8 +21,7 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
@@ -30,11 +29,8 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.spi.PlatformBlockState;
 
 public class IrisCeilingDecorator extends IrisEngineDecorator {
-    private final RNG partRNG;
-
     public IrisCeilingDecorator(Engine engine) {
-        super(engine, "Ceiling", IrisDecorationPart.CEILING);
-        this.partRNG = new RNG(DecoratorCore.partSeed(getSeed(), IrisDecorationPart.CEILING));
+        super(engine, "Ceiling", DecorationPart.CEILING);
     }
 
     @BlockCoordinates
@@ -49,7 +45,7 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                          Hunk<PlatformBlockState> data, IrisBiome biome, InferredType inferredType, int height, int max) {
         boolean caveSkipFluid = IrisSurfaceDecorator.skipsFluid(inferredType);
         RNG rng = getRNG(realX, realZ);
-        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
 
         if (decorator == null) {
             return;
@@ -62,13 +58,13 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                     return;
                 }
             }
-            DecoratorCore.placeSingleAt(decorator, x, z, realX, height, realZ, data, rng, getData(), true, getEngine().getMantle());
+            DecoratorCore.placeSingleAt(decorator, x, z, realX, height, realZ, data, true, getEngine().getMantle());
             return;
         }
 
         DecoratorCore.PlaceOpts opts = DecoratorCore.SCRATCH_OPTS.get();
         opts.reset();
         opts.caveSkipFluid = caveSkipFluid;
-        DecoratorCore.placeStackDown(decorator, x, z, realX, realZ, height, 0, data, rng, getData(), max, opts, getEngine().getMantle());
+        DecoratorCore.placeStackDown(decorator, x, z, realX, realZ, height, 0, data, max, opts, getEngine().getMantle());
     }
 }

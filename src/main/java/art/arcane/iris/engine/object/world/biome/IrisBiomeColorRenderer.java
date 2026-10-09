@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
@@ -76,13 +76,8 @@ final class IrisBiomeColorRenderer {
             }
             case DECORATOR_LOAD -> {
                 return biome.getCacheColorDecoratorLoad().aquire(() -> {
-                    double density = 0;
-
-                    for (IrisDecorator i : biome.getDecorators()) {
-                        density += i.getChance() * Math.min(1, i.getStackMax()) * 256;
-                    }
-
-                    return Color.getHSBColor(0.41f, (float) (density / engine.getMaxBiomeDecoratorDensity()), 1f);
+                    BiomeDecorators decorators = BiomeDecorators.of(engine);
+                    return Color.getHSBColor(0.41f, (float) (decorators.colourLoad(biome) / decorators.busiestBiomeLoad()), 1f);
                 });
             }
             case LAYER_LOAD -> {

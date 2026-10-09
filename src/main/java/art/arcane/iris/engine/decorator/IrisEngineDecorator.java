@@ -21,18 +21,20 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.framework.EngineDecorator;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.Getter;
 
 public abstract class IrisEngineDecorator extends EngineAssignedComponent implements EngineDecorator {
     @Getter
-    private final IrisDecorationPart part;
+    private final DecorationPart part;
+    protected final BiomeDecorators decorators;
 
-    public IrisEngineDecorator(Engine engine, String name, IrisDecorationPart part) {
+    public IrisEngineDecorator(Engine engine, String name, DecorationPart part) {
         super(engine, name + " Decorator");
         this.part = part;
+        this.decorators = BiomeDecorators.of(engine);
     }
 
     @BlockCoordinates

@@ -19,6 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.engine.loot.LootTables;
 import art.arcane.iris.engine.object.loot.InventorySlotType;
 import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
 import art.arcane.iris.engine.object.loot.IrisEnchantment;
@@ -80,7 +81,7 @@ public final class ModdedItemTranslator {
             return out;
         }
 
-        RNG rng = LootResolver.tableRng(lootSeed, table, x, y, z);
+        RNG rng = LootTables.rng(lootSeed, table, x, y, z);
         int m = 0;
         int c = 0;
         int mx = Math.max(0, LootResolver.inclusive(rng, table.getMinPicked(), table.getMaxPicked()));
@@ -118,7 +119,7 @@ public final class ModdedItemTranslator {
 
     public static ItemStack item(IrisLoot loot, IrisLootTable table, RNG rng, long lootSeed, int entryIndex, ServerLevel level, int x, int y, int z) {
         long combinedRarity = LootResolver.combinedRarity(loot.getRarity(), table.getRarity());
-        if (!LootResolver.spatialOneIn(lootSeed, table, entryIndex, x, y, z, combinedRarity)) {
+        if (!LootTables.spatialOneIn(lootSeed, table, entryIndex, x, y, z, combinedRarity)) {
             return null;
         }
 

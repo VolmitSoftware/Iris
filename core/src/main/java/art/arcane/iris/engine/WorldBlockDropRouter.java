@@ -18,13 +18,12 @@
 
 package art.arcane.iris.engine;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.service.tree.BlockDropRouter;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
 import art.arcane.iris.engine.object.marker.IrisMarker;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.platform.EngineBukkitOps;
+import art.arcane.iris.core.modules.ModuleServices;
+import art.arcane.iris.core.modules.PlatformBlockStates;
+import art.arcane.iris.platform.bukkit.BukkitBlockState;
+import art.arcane.iris.platform.bukkit.BukkitItemStacks;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
@@ -35,8 +34,10 @@ import org.bukkit.World;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
+import com.volmit.block.BlockState;
+import com.volmit.service.BlockDrops;
+import com.volmit.world.BlockPosition;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -57,19 +58,10 @@ final class WorldBlockDropRouter {
             int mantleY = toMantleY(e.getBlock().getY(), manager.getEngine().getWorld().minHeight());
             int blockZ = e.getBlock().getZ();
 
-            KList<ItemStack> d = new KList<>();
-            IrisBiome b = EngineBukkitOps.getBiome(manager.getEngine(), e.getBlock().getLocation());
-            List<IrisBlockDrops> dropProviders = filterDrops(b.getBlockDrops(), e, manager.getData());
+            BlockDrops.Result result = ModuleServices.blockDrops(manager.getEngine(), brokenBlock(e));
+            KList<ItemStack> d = BukkitItemStacks.createAll(result.drops());
 
-            if (dropProviders.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
-                IrisRegion r = EngineBukkitOps.getRegion(manager.getEngine(), e.getBlock().getLocation());
-                dropProviders.addAll(filterDrops(r.getBlockDrops(), e, manager.getData()));
-                dropProviders.addAll(filterDrops(manager.getEngine().getDimension().getBlockDrops(), e, manager.getData()));
-            }
-
-            dropProviders.forEach(provider -> provider.fillDrops(false, d));
-
-            if (dropProviders.stream().anyMatch(IrisBlockDrops::isReplaceVanillaDrops)) {
+            if (result.replacesVanillaDrops()) {
                 e.setDropItems(false);
             }
 
@@ -128,7 +120,10 @@ final class WorldBlockDropRouter {
         return mantleY + minHeight;
     }
 
-    private List<IrisBlockDrops> filterDrops(KList<IrisBlockDrops> drops, BlockBreakEvent e, IrisData data) {
-        return new KList<>(drops.stream().filter(d -> d.shouldDropFor(e.getBlock().getBlockData(), data)).toList());
+    private BlockDrops.Broken brokenBlock(BlockBreakEvent e) {
+        int relativeY = toMantleY(e.getBlock().getY(), manager.getEngine().getWorld().minHeight());
+        BlockPosition position = new BlockPosition(e.getBlock().getX(), relativeY, e.getBlock().getZ());
+        BlockState block = BlockState.parse(PlatformBlockStates.namespaced(BukkitBlockState.of(e.getBlock().getBlockData()).key()));
+        return new BlockDrops.Broken(position, block);
     }
 }

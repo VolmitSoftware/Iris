@@ -1,6 +1,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.engine.loot.LootTables;
 import art.arcane.iris.engine.object.loot.IrisLootMode;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.resources.Identifier;
@@ -30,7 +31,7 @@ public class ModdedLootApplierTest {
     public void addAppendsSourcesInOrder() {
         List<String> sources = new ArrayList<>(List.of("placement-native"));
 
-        LootResolver.injectSources(sources, List.of("dimension-iris", "region-iris"), IrisLootMode.ADD, false);
+        LootTables.injectSources(sources, List.of("dimension-iris", "region-iris"), IrisLootMode.ADD, false);
 
         assertEquals(List.of("placement-native", "dimension-iris", "region-iris"), sources);
     }
@@ -39,7 +40,7 @@ public class ModdedLootApplierTest {
     public void clearRemovesEverythingAndContributesNothing() {
         List<String> sources = new ArrayList<>(List.of("placement-native", "dimension-iris"));
 
-        LootResolver.injectSources(sources, List.of("biome-iris"), IrisLootMode.CLEAR, false);
+        LootTables.injectSources(sources, List.of("biome-iris"), IrisLootMode.CLEAR, false);
 
         assertEquals(List.of(), sources);
     }
@@ -48,7 +49,7 @@ public class ModdedLootApplierTest {
     public void replaceRemovesNativeAndIrisSourcesBeforeAdding() {
         List<String> sources = new ArrayList<>(List.of("placement-native", "dimension-iris"));
 
-        LootResolver.injectSources(sources, List.of("biome-iris"), IrisLootMode.REPLACE, false);
+        LootTables.injectSources(sources, List.of("biome-iris"), IrisLootMode.REPLACE, false);
 
         assertEquals(List.of("biome-iris"), sources);
     }
@@ -63,7 +64,7 @@ public class ModdedLootApplierTest {
     public void fallbackDoesNotOverrideExistingNativeOrIrisSources() {
         List<String> sources = new ArrayList<>(List.of("placement-native", "dimension-iris"));
 
-        LootResolver.injectSources(sources, List.of("fallback-iris"), IrisLootMode.FALLBACK, false);
+        LootTables.injectSources(sources, List.of("fallback-iris"), IrisLootMode.FALLBACK, false);
 
         assertEquals(List.of("placement-native", "dimension-iris"), sources);
     }
@@ -72,7 +73,7 @@ public class ModdedLootApplierTest {
     public void fallbackAddsSourcesWhenPlacementIsEmpty() {
         List<String> sources = new ArrayList<>();
 
-        LootResolver.injectSources(sources, List.of("fallback-iris"), IrisLootMode.FALLBACK, true);
+        LootTables.injectSources(sources, List.of("fallback-iris"), IrisLootMode.FALLBACK, true);
 
         assertEquals(List.of("fallback-iris"), sources);
     }

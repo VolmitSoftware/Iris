@@ -1,8 +1,6 @@
 package art.arcane.iris.core.events;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
@@ -17,6 +15,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.world.LootGenerateEvent;
 
+import com.volmit.service.Loot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -52,21 +51,18 @@ public class IrisLootEvent extends Event {
 
     private final Engine engine;
     private final Block block;
-    private final InventorySlotType slot;
-    private final KList<IrisLootTable> tables;
+    private final KList<Loot.Source> tables;
 
     /**
      * Constructor for IrisLootEvent with mode selection.
      *
      * @param engine The engine instance.
      * @param block The block associated with the event.
-     * @param slot The inventory slot type.
-     * @param tables The list of IrisLootTables. (mutable*)
+     * @param tables The loot tables the container draws from, as the pack's modules named them. (mutable*)
      */
-    public IrisLootEvent(Engine engine, Block block, InventorySlotType slot, KList<IrisLootTable> tables) {
+    public IrisLootEvent(Engine engine, Block block, KList<Loot.Source> tables) {
         this.engine = engine;
         this.block = block;
-        this.slot = slot;
         this.tables = tables;
     }
 

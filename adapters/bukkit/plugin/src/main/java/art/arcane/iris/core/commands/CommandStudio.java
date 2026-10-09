@@ -298,11 +298,10 @@ public class CommandStudio implements DirectorExecutor {
     ) {
         if (noStudio()) return;
 
-        KList<IrisLootTable> tables = EngineBukkitOps.getLootTables(engine(), RNG.r, player().getLocation().getBlock());
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
         try {
-            EngineBukkitOps.addItems(engine(), true, inv, tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ());
+            EngineBukkitOps.addLootOf(engine(), true, inv, player().getLocation());
         } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_CANNOT_ADD_ITEMS_VIRTUAL_INVENTORY_BECAUSE, MessageArgument.untrusted("value", String.valueOf(e.getMessage()))));
@@ -329,7 +328,7 @@ public class CommandStudio implements DirectorExecutor {
                 inv.clear();
             }
 
-            EngineBukkitOps.addItems(engine, true, inv, tables, InventorySlotType.STORAGE, player.getWorld(), player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ());
+            EngineBukkitOps.addLootOf(engine, true, inv, player.getLocation());
         }, fast ? 5 : 35));
 
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_INVENTORY_NOW));

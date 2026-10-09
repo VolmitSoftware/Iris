@@ -23,6 +23,7 @@ import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.engine.loot.LootTables;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.engine.object.loot.InventorySlotType;
@@ -121,7 +122,7 @@ public final class ModdedLootApplier {
             }
         }
 
-        LootResolver.resolveEnvironmentSources(
+        LootTables.resolveEnvironmentSources(
                 sources,
                 engine,
                 rng,

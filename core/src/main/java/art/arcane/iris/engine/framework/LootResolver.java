@@ -18,18 +18,10 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.loot.IrisLootMode;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.ToIntFunction;
 
 public final class LootResolver {
@@ -52,17 +44,18 @@ public final class LootResolver {
         return mix(seed ^ ((long) z * 0x8CB92BA72F3D8DD7L));
     }
 
-    public static RNG tableRng(long lootSeed, IrisLootTable table, int x, int y, int z) {
-        return new RNG(tableSeed(lootSeed, table, x, y, z));
+    /** The random stream of one loot table at one position; {@code tableIdentity} names the table (its key, else its name). */
+    public static RNG tableRng(long lootSeed, String tableIdentity, int x, int y, int z) {
+        return new RNG(tableSeed(lootSeed, tableIdentity, x, y, z));
     }
 
-    public static long tableSeed(long lootSeed, IrisLootTable table, int x, int y, int z) {
-        return mix(containerSeed(lootSeed, x, y, z) ^ stableHash(tableIdentity(table)) ^ TABLE_SALT);
+    public static long tableSeed(long lootSeed, String tableIdentity, int x, int y, int z) {
+        return mix(containerSeed(lootSeed, x, y, z) ^ stableHash(tableIdentity) ^ TABLE_SALT);
     }
 
     public static boolean spatialOneIn(
             long lootSeed,
-            IrisLootTable table,
+            String tableIdentity,
             int entryIndex,
             int x,
             int y,
@@ -72,7 +65,7 @@ public final class LootResolver {
         if (rarity <= 1L) {
             return true;
         }
-        long roll = mix(tableSeed(lootSeed, table, x, y, z) ^ ((long) entryIndex * ENTRY_SALT));
+        long roll = mix(tableSeed(lootSeed, tableIdentity, x, y, z) ^ ((long) entryIndex * ENTRY_SALT));
         return new RNG(roll).nextLong(rarity) == 0L;
     }
 
@@ -119,63 +112,6 @@ public final class LootResolver {
         return null;
     }
 
-    public static <T> void resolveEnvironmentSources(
-            List<T> sources,
-            Engine engine,
-            RNG rng,
-            int x,
-            int relativeY,
-            int z,
-            boolean objectLootDefined,
-            Function<IrisLootTable, T> mapper
-    ) {
-        IrisRegion region = engine.getComplex().getRegionStream().get(x, z);
-        IrisBiome surfaceBiome = engine.getComplex().getTrueBiomeStream().get(x, z);
-        double terrainHeight = engine.getComplex().getHeightStream().get(x, z);
-        IrisBiome contextualBiome = relativeY < terrainHeight
-                ? engine.getCaveBiome(x, relativeY, z)
-                : surfaceBiome;
-        if (contextualBiome == null) {
-            contextualBiome = surfaceBiome;
-        }
-
-        boolean distinctContextualBiome = !sameBiome(surfaceBiome, contextualBiome);
-        double multiplier = engine.getDimension().getLoot().getMultiplier()
-                * region.getLoot().getMultiplier()
-                * surfaceBiome.getLoot().getMultiplier();
-        if (distinctContextualBiome) {
-            multiplier *= contextualBiome.getLoot().getMultiplier();
-        }
-
-        boolean fallback = !objectLootDefined;
-        injectReference(sources, engine.getDimension().getLoot(), engine, mapper, fallback);
-        injectReference(sources, region.getLoot(), engine, mapper, fallback);
-        injectReference(sources, surfaceBiome.getLoot(), engine, mapper, fallback);
-        if (distinctContextualBiome) {
-            injectReference(sources, contextualBiome.getLoot(), engine, mapper, fallback);
-        }
-        scaleSources(sources, multiplier, rng);
-    }
-
-    public static <T> void injectSources(
-            List<T> sources,
-            List<? extends T> additions,
-            IrisLootMode mode,
-            boolean fallback
-    ) {
-        if (mode == IrisLootMode.FALLBACK && !fallback) {
-            return;
-        }
-        if (mode == IrisLootMode.CLEAR) {
-            sources.clear();
-            return;
-        }
-        if (mode == IrisLootMode.REPLACE) {
-            sources.clear();
-        }
-        sources.addAll(additions);
-    }
-
     public static <T> void scaleSources(List<T> sources, double multiplier, RNG rng) {
         if (!Double.isFinite(multiplier) || multiplier < 0D) {
             throw new IllegalArgumentException("Effective loot source multiplier must be finite and non-negative, got "
@@ -204,49 +140,6 @@ public final class LootResolver {
             return;
         }
         expandSources(sources, original, order, target, rng);
-    }
-
-    static boolean sameBiome(IrisBiome first, IrisBiome second) {
-        if (first == second) {
-            return true;
-        }
-        if (first == null || second == null) {
-            return false;
-        }
-        return Objects.equals(first.getLoadKey(), second.getLoadKey());
-    }
-
-    static String tableIdentity(IrisLootTable table) {
-        if (table == null) {
-            return "";
-        }
-        String loadKey = table.getLoadKey();
-        if (loadKey != null && !loadKey.isBlank()) {
-            return loadKey;
-        }
-        String name = table.getName();
-        return name == null ? "" : name;
-    }
-
-    private static <T> void injectReference(
-            List<T> sources,
-            IrisLootReference reference,
-            Engine engine,
-            Function<IrisLootTable, T> mapper,
-            boolean fallback
-    ) {
-        KList<IrisLootTable> tables = reference.getLootTables(engine.getComplex());
-        KList<T> additions = new KList<>();
-        for (IrisLootTable table : tables) {
-            if (table == null) {
-                continue;
-            }
-            T source = mapper.apply(table);
-            if (source != null) {
-                additions.add(source);
-            }
-        }
-        injectSources(sources, additions, reference.getMode(), fallback);
     }
 
     private static <T> void shrinkSources(List<T> sources, List<T> original, int[] order, int target, RNG rng) {

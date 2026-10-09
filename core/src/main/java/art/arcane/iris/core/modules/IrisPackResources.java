@@ -26,6 +26,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.block.BlockRegistry;
 import com.volmit.host.ResourceKindRegistration;
+import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
@@ -69,6 +70,7 @@ public final class IrisPackResources implements PackResources {
     private final PackResourceIds ids;
     private final UUID snapshotId = UUID.randomUUID();
     private final BlockRegistry blocks;
+    private final ItemRegistry items = new IrisItemRegistry();
     private final NoiseFactory noise;
     private final Map<Class<?>, Kind<?>> irisKinds;
     private final Supplier<List<ResourceKind<?>>> moduleKindList;
@@ -120,6 +122,11 @@ public final class IrisPackResources implements PackResources {
     @Override
     public BlockRegistry blocks() {
         return blocks;
+    }
+
+    @Override
+    public ItemRegistry items() {
+        return items;
     }
 
     @Override

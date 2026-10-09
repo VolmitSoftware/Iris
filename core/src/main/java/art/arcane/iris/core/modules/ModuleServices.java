@@ -21,11 +21,16 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.host.FeatureCatalog;
+import com.volmit.item.ItemDrop;
+import com.volmit.service.BlockDrops;
 import com.volmit.service.LocateResult;
+import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.StructureLocator;
 import com.volmit.world.PackWorld;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -60,6 +65,39 @@ public final class ModuleServices {
             regions.addAll(placedBy.regions());
         }
         return new ObjectsAt.PlacedBy(biomes, regions);
+    }
+
+    /** The loot tables the modules say the container at {@code site} draws from, in module order. */
+    public static List<Loot.Source> lootTables(Engine engine, Loot.Site site) {
+        PackWorld world = engine.getGeneration().world();
+        List<Loot.Source> tables = new ArrayList<>();
+        for (Loot provider : catalog(engine.getData()).services(Loot.class)) {
+            tables.addAll(provider.tables(world, site));
+        }
+        return tables;
+    }
+
+    /** The items loot table {@code key} gives at {@code site}, from the module that knows the table. */
+    public static List<ItemDrop> lootItems(Engine engine, Loot.Site site, String key) {
+        PackWorld world = engine.getGeneration().world();
+        List<ItemDrop> items = new ArrayList<>();
+        for (Loot provider : catalog(engine.getData()).services(Loot.class)) {
+            items.addAll(provider.items(world, site, key));
+        }
+        return items;
+    }
+
+    /** What the modules drop for the broken block, put together. */
+    public static BlockDrops.Result blockDrops(Engine engine, BlockDrops.Broken broken) {
+        PackWorld world = engine.getGeneration().world();
+        List<ItemDrop> drops = new ArrayList<>();
+        boolean replacesVanillaDrops = false;
+        for (BlockDrops provider : catalog(engine.getData()).services(BlockDrops.class)) {
+            BlockDrops.Result result = provider.drops(world, broken);
+            drops.addAll(result.drops());
+            replacesVanillaDrops |= result.replacesVanillaDrops();
+        }
+        return new BlockDrops.Result(drops, replacesVanillaDrops);
     }
 
     /** Every structure key the pack's modules know, placed or not. */

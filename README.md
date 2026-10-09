@@ -34,6 +34,14 @@ only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its en
 `art.arcane.iris.builtin.deposit`), and packs write `"iris:deposit": {"generators": [...]}` (the old `"deposits": [...]` is converted by the pack migration script). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
 
+`iris:decorant` is the second: `DecorantSettings` (biome level) holds `Decorator`s in `art.arcane.iris.builtin.decorant`,
+written `"iris:decorant": {"decorators": [...]}` (the old `"decorators": [...]` is converted by the migration script).
+`ResolvedDecorator` resolves one decorator's blocks and noise for a world; `BiomeDecorators`, the world's state, keeps them
+per biome and place. Other modules that decorate (`iris:cave`'s ceilings, floating islands) ask it. A decorator's noise
+seed is the world's decorator seed, its biome's key and its place in the biome's list. The module's `warmUp` builds
+them ahead of generation; `iris:terrain` and `iris:objects` warm their ore generators, placements and procedural
+objects the same way.
+
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.

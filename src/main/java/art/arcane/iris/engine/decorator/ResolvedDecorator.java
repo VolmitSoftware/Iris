@@ -114,6 +114,11 @@ final class ResolvedDecorator {
         return settings;
     }
 
+    /** The seed the decorator's noise is built from. */
+    long seed() {
+        return seed;
+    }
+
     DecorationPart part() {
         return settings.partOf();
     }

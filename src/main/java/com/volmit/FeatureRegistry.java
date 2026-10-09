@@ -7,6 +7,7 @@ import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceKind;
 import com.volmit.stage.StageGraph;
 import com.volmit.validation.Validator;
+import com.volmit.vanilla.VanillaStructureHook;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON fields must be unique per attachment target, including the
@@ -42,4 +43,9 @@ public interface FeatureRegistry {
 
     /** Adds a check the host runs over the whole pack wherever it validates packs. */
     void registerValidator(Validator validator);
+
+    /** Lets this module decide over the platform's own structures in the pack's worlds: block them, leave them to the
+     * platform, or place them itself.
+     */
+    void registerVanillaStructureHook(VanillaStructureHook hook);
 }

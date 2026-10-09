@@ -8,7 +8,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 
-/** Frozen registrations. Lists use lexical feature/layer/kind ID order, and validators are in module id order,
+/** Frozen registrations. Lists use lexical feature/layer/kind ID order, and validators and vanilla structure hooks
+ * are in module id order,
  * so nothing depends on discovery. Factory, codec and validator implementations must themselves obey their
  * concurrency contracts.
  */
@@ -18,18 +19,23 @@ public final class FeatureCatalog {
     private final Map<String, MantleRegistration<?>> mantle;
     private final List<ResourceKindRegistration> resourceKinds;
     private final List<ValidatorRegistration> validators;
+    private final List<VanillaStructureHookRegistration> vanillaStructureHooks;
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
             Map<Class<?>, ObjectRegistration<?>> objects,
             Map<String, MantleRegistration<?>> mantle,
             Collection<ResourceKindRegistration> resourceKinds,
-            List<ValidatorRegistration> validators) {
+            List<ValidatorRegistration> validators,
+            List<VanillaStructureHookRegistration> vanillaStructureHooks) {
         this.settings = Map.copyOf(settings);
         this.objects = Map.copyOf(objects);
         this.mantle = Map.copyOf(mantle);
         this.resourceKinds = sorted(resourceKinds, registration -> registration.kind().id());
         this.validators = validators.stream()
+                .sorted(Comparator.comparing(registration -> registration.module().info().id()))
+                .toList();
+        this.vanillaStructureHooks = vanillaStructureHooks.stream()
                 .sorted(Comparator.comparing(registration -> registration.module().info().id()))
                 .toList();
     }
@@ -55,6 +61,11 @@ public final class FeatureCatalog {
     /** The validators modules registered, by module id, each module's in the order it registered them. */
     public List<ValidatorRegistration> validators() {
         return validators;
+    }
+
+    /** The vanilla structure hooks modules registered, by module id, each module's in the order it registered them. */
+    public List<VanillaStructureHookRegistration> vanillaStructureHooks() {
+        return vanillaStructureHooks;
     }
 
     private static <T, K extends Comparable<? super K>> List<T> sorted(

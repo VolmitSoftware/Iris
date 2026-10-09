@@ -6,6 +6,7 @@ import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Reference;
 import com.volmit.host.schema.TextFormat;
 import com.volmit.host.schema.ValueKind;
+import com.volmit.host.schema.ValueKind.AnyKind;
 import com.volmit.host.schema.ValueKind.BooleanKind;
 import com.volmit.host.schema.ValueKind.DecimalKind;
 import com.volmit.host.schema.ValueKind.EnumConstant;
@@ -39,13 +40,14 @@ import java.util.function.Function;
  */
 final class ValueKinds {
     static final String SUPPORTED_TYPES = "settings fields can be booleans, numbers, String, ResourceId, BlockState, enums, "
-            + "lists, sets and arrays of these, Map with String keys and classes with a no-argument constructor";
+            + "lists, sets and arrays of these, Map with String keys, Object for any JSON value and classes with a no-argument constructor";
     private static final Set<Class<?>> BOOLEANS = Set.of(boolean.class, Boolean.class);
     private static final Set<Class<?>> INTEGERS = Set.of(byte.class, short.class, int.class, long.class,
             Byte.class, Short.class, Integer.class, Long.class);
     private static final Set<Class<?>> DECIMALS = Set.of(float.class, double.class, Float.class, Double.class);
     private static final String DECLARE_COLLECTION = "declare it as List<...>, Set<...> or Map<String, ...>";
-    private static final Set<Reference> PACK_REFERENCES = EnumSet.of(Reference.PACK_BIOME, Reference.PACK_REGION, Reference.PACK_OBJECT);
+    private static final Set<Reference> PACK_REFERENCES = EnumSet.of(Reference.PACK_BIOME, Reference.PACK_REGION, Reference.PACK_OBJECT,
+            Reference.PACK_EXPRESSION, Reference.PACK_IMAGE_MAP);
 
     private final Function<Class<?>, ObjectKind> objects;
     private final HostTypes hostTypes;
@@ -99,6 +101,7 @@ final class ValueKinds {
         if (INTEGERS.contains(type)) return new IntegerKind();
         if (DECIMALS.contains(type)) return new DecimalKind();
         if (type.isEnum()) return enumKind(type);
+        if (type == Object.class) return new AnyKind();
         return objects.apply(type);
     }
 

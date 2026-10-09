@@ -11,6 +11,7 @@ import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.validation.Validator;
+import com.volmit.vanilla.VanillaStructureHook;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Map<Field, String> fields = new HashMap<>();
     private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
     private final List<ValidatorRegistration> validators = new ArrayList<>();
+    private final List<VanillaStructureHookRegistration> vanillaStructureHooks = new ArrayList<>();
     private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
@@ -129,6 +131,16 @@ public final class ModuleRegistry implements FeatureRegistry {
         validators.add(new ValidatorRegistration(validator, registering));
     }
 
+    @Override
+    public void registerVanillaStructureHook(VanillaStructureHook hook) {
+        checkOpen();
+        Objects.requireNonNull(hook, "hook");
+        if (registering == null) {
+            throw new IllegalStateException("Vanilla structure hook " + hook + " registered outside IrisModule.register");
+        }
+        vanillaStructureHooks.add(new VanillaStructureHookRegistration(hook, registering));
+    }
+
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
      * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type. Call
      * it after every module has registered, so the owner is known.
@@ -149,7 +161,7 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, vanillaStructureHooks);
         }
         return catalog;
     }

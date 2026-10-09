@@ -25,7 +25,10 @@ types that carry them and lists what the Iris adapter still owes.
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema` with `shorthand()`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
-| Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette` |
+| Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`) |
+| Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
+| Values in settings | `BlockSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `Object` as `ValueKind.AnyKind` |
+| Decisions over the platform's own structures | `VanillaStructureHook`, `VanillaStructureRule`, `VanillaStructureContext`, `FeatureRegistry.registerVanillaStructureHook`, host `FeatureCatalog.vanillaStructureHooks()` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
@@ -73,6 +76,10 @@ its package is one the module declares optional with `ModuleInfo.withOptionalPac
 A resource kind reads one folder directly below the pack root, with a class no other kind uses; a folder two
 kinds claim, or one the host reads itself, fails the pack load naming both owners. Resources of a kind are
 values, read once per pack snapshot. Validators only report: an `ERROR` blocks the pack, a `WARNING` is shown.
+
+IrisApi's value types are values: the host decodes them like settings, and nothing changes them afterwards.
+Noise belongs to the host; modules describe it and get samplers built from the description. A vanilla structure
+hook answers per structure and world, never per position.
 
 There is no API version gating. Packs ship their module jars, so their compatibility with the
 running Iris is the pack publisher's responsibility.
@@ -151,6 +158,23 @@ running Iris is the pack publisher's responsibility.
   `ERROR` blocks the pack, a `WARNING` is shown; show each problem with its subject. A validator that throws is an
   error naming its module, and the others still run.
 
+- Decode IrisApi's value types like settings: `BlockSpec`, `NoiseStyle`, `StyledRange`, `Range` and
+  `BlockPosition` from the JSON shapes in their docs, `Object` as maps, lists, `Double`s, strings and booleans.
+  Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from
+  `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE`, `PACK_EXPRESSION` and `PACK_IMAGE_MAP` references;
+  rendering a value type with the host's own description of the same JSON is allowed.
+- Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
+  the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat.
+- Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their
+  `tileData` into the host's block entity format.
+- Ask every vanilla structure hook (`catalog().vanillaStructureHooks()`) before the platform starts one of its
+  structures and when it locates one, combine the rules with `VanillaStructureRule.and`, keep the result per world,
+  structure and pack snapshot, and apply it on every platform: block the platform's starts of a blocked
+  structure, and report a structure a module places as that module's. A hook that throws fails naming its module.
+
 ## Open
+
+- Placing the platform's structures where a module chooses (Iris's native structure planner): a hook method
+  returning starts per chunk, with the terrain fitting and foundations the host builds around them.
 
 - Terrain/biome providers, pack transformations, structure assembly and the runtime family.

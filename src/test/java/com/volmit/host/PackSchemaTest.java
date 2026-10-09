@@ -14,6 +14,7 @@ import com.volmit.host.schema.PackSchema;
 import com.volmit.host.schema.ResourceKindSchema;
 import com.volmit.host.schema.SchemaOption;
 import com.volmit.host.schema.TextFormat;
+import com.volmit.host.schema.ValueKind.AnyKind;
 import com.volmit.host.schema.ValueKind.BooleanKind;
 import com.volmit.host.schema.ValueKind.DecimalKind;
 import com.volmit.host.schema.ValueKind.EnumConstant;
@@ -414,6 +415,66 @@ class PackSchemaTest {
 
     private void assertLoadFails(String expected, String body, String... otherSources) {
         assertEquals(expected, loadFailure(body, otherSources).getMessage());
+    }
+
+    @Test
+    void settingsMayHoldTheApisValueTypesWhichAreDescribedLikeSettings() {
+        var pack = pack("values");
+        module("pack.flora.FloraModule", FLORA,
+                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        import com.volmit.FeatureAttachment.Target;
+                        import com.volmit.IrisFeature;
+                        import com.volmit.block.BlockSpec;
+                        import com.volmit.config.Feature;
+                        import com.volmit.config.Range;
+                        import com.volmit.noise.NoiseStyle;
+                        import com.volmit.noise.StyledRange;
+                        import com.volmit.world.BlockPosition;
+                        import java.util.*;
+
+                        @Feature(id = "example:flora", name = "Flora", targets = Target.BIOME)
+                        public final class FloraSettings implements IrisFeature {
+                            private List<BlockSpec> palette = List.of(BlockSpec.of("poppy"));
+                            private NoiseStyle style = NoiseStyle.of("SIMPLEX").withZoom(4);
+                            private StyledRange height = StyledRange.of(2, 5, NoiseStyle.of("SIMPLEX"));
+                            private Range light = Range.of(0, 15);
+                            private BlockPosition offset = new BlockPosition(1, 2, 3);
+                            private Object extra;
+                        }
+                        """)
+                .writeInto(pack, "flora.jar");
+        var schema = schemaOf(pack, NO_BUILT_INS);
+        var settings = schema.type("pack.flora.FloraSettings");
+
+        assertEquals(new ListKind(new ObjectKind("com.volmit.block.BlockSpec"), false), option(settings, "palette").kind());
+        assertEquals(Optional.of(List.of(Map.of("block", "poppy", "data", Map.of(), "tileData", Map.of(), "weight", 1L))),
+                option(settings, "palette").defaultValue());
+        assertEquals(new ObjectKind("com.volmit.noise.NoiseStyle"), option(settings, "style").kind());
+        assertEquals(new ObjectKind("com.volmit.noise.StyledRange"), option(settings, "height").kind());
+        assertEquals(new ObjectKind("com.volmit.config.Range"), option(settings, "light").kind());
+        assertEquals(Optional.of(Map.of("max", 15.0, "min", 0.0)), option(settings, "light").defaultValue());
+        assertEquals(new ObjectKind("com.volmit.world.BlockPosition"), option(settings, "offset").kind());
+        assertEquals(Optional.of(Map.of("x", 1L, "y", 2L, "z", 3L)), option(settings, "offset").defaultValue());
+        assertEquals(new AnyKind(), option(settings, "extra").kind(), "Object holds any JSON value");
+
+        var block = schema.type("com.volmit.block.BlockSpec");
+        assertEquals(List.of("block", "data", "weight", "backup", "tileData"), block.options().stream().map(SchemaOption::name).toList());
+        assertEquals(new ReferenceKind(Reference.BLOCK, TextFormat.PLAIN), option(block, "block").kind());
+        assertEquals(new MapKind(new TextKind(TextFormat.PLAIN)), option(block, "data").kind());
+        assertEquals(new MapKind(new AnyKind()), option(block, "tileData").kind());
+        assertEquals(new ObjectKind("com.volmit.block.BlockSpec"), option(block, "backup").kind());
+        assertEquals(Optional.of("air"), option(block, "block").defaultValue());
+
+        var style = schema.type("com.volmit.noise.NoiseStyle");
+        assertEquals(Optional.of("style"), style.snippet(), "API classes keep the snippet folders packs already use");
+        assertEquals(new ReferenceKind(Reference.NOISE_STYLE, TextFormat.PLAIN), option(style, "style").kind());
+        assertEquals(new ReferenceKind(Reference.PACK_EXPRESSION, TextFormat.PLAIN), option(style, "expression").kind());
+        assertEquals(new ReferenceKind(Reference.PACK_IMAGE_MAP, TextFormat.PLAIN), option(style, "imageMap").kind());
+        assertEquals(Optional.of("FLAT"), option(style, "style").defaultValue());
+        assertEquals(List.of("range", "style", "style-range"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
     }
 
     @Test

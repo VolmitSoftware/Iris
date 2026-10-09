@@ -23,20 +23,18 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Whether the engine's worlds have warmed their generation caches, which generation waits for. The first world is warmed
- * by engine initialisation: the host's caches ({@link GenerationCacheWarmer}), then the modules' warm-up
- * ({@link com.volmit.ModuleLifecycle#warmUp}). Worlds started after that, by a hotload or an in-place restart, only have
- * the modules' warm-up; each one adds a warm-up that generation also waits for.
+ * Whether the engine's worlds have warmed their generation caches, which generation waits for. Every world is warmed by
+ * the modules' warm-up ({@link com.volmit.ModuleLifecycle#warmUp}): the first by engine initialisation, the ones started
+ * after that, by a hotload or an in-place restart, each adding a warm-up that generation also waits for.
  */
 final class GenerationCacheWarmGate {
     private final CompletableFuture<Void> firstWorld = new CompletableFuture<>();
     private final AtomicReference<CompletableFuture<Void>> restartedWorlds = new AtomicReference<>(CompletableFuture.completedFuture(null));
 
-    /** Runs both warm-ups on this thread, the host's first; the first world is warm once both returned. A failure leaves it failed. */
-    void warmFirstWorld(Runnable hostWarmUp, Runnable moduleWarmUp) {
+    /** Runs the warm-up on this thread; the first world is warm once it returned. A failure leaves it failed. */
+    void warmFirstWorld(Runnable warmUp) {
         try {
-            hostWarmUp.run();
-            moduleWarmUp.run();
+            warmUp.run();
             firstWorld.complete(null);
         } catch (RuntimeException | Error failure) {
             firstWorld.completeExceptionally(failure);

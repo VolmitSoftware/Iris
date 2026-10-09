@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -49,6 +50,7 @@ public class FloatingIslandsTest {
         Engine engine = mock(Engine.class);
         when(engine.getSeedManager()).thenReturn(seeds);
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
+        DecoratorTestEngines.withGeneration(engine);
         return engine;
     }
 }

@@ -263,9 +263,8 @@ public class IrisEngine implements Engine {
 
     /**
      * Warms the modules' caches of a world that started after the engine initialised: the one a hotload built, or the
-     * one an in-place restart replaced. The first world is warmed by initialisation, together with
-     * {@link GenerationCacheWarmer}. Same mode as there: studio warms in the background, server worlds before this
-     * returns, and generation waits for it either way.
+     * one an in-place restart replaced. The first world is warmed by initialisation. Same mode as there: studio warms in
+     * the background, server worlds before this returns, and generation waits for it either way.
      */
     void warmRestartedWorld() {
         if (!initializationMode.warmGenerationCaches()) {
@@ -320,7 +319,7 @@ public class IrisEngine implements Engine {
     private void warmGenerationCaches(long phaseStartedAtNanos) {
         long startedAtMillis = M.ms();
         try {
-            generationCacheWarm.warmFirstWorld(() -> GenerationCacheWarmer.warm(this), this::warmModules);
+            generationCacheWarm.warmFirstWorld(this::warmModules);
         } finally {
             IrisLogging.debug("[IrisEngine timing] cache warm total=" + (M.ms() - startedAtMillis) + "ms");
             logStudioInitializationPhase("generation_cache_warm", phaseStartedAtNanos, false);
@@ -600,12 +599,6 @@ public class IrisEngine implements Engine {
     public double getMaxBiomeLayerDensity() {
         EngineRuntime current = runtime;
         return current == null ? 0D : current.biomeMaxes().layerDensity();
-    }
-
-    @Override
-    public double getMaxBiomeDecoratorDensity() {
-        EngineRuntime current = runtime;
-        return current == null ? 0D : current.biomeMaxes().decoratorDensity();
     }
 
     @Override

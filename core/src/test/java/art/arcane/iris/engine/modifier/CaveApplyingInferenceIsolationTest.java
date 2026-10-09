@@ -2,6 +2,7 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.InferredType;
@@ -65,6 +66,7 @@ public class CaveApplyingInferenceIsolationTest {
         doReturn(mock(IrisComplex.class)).when(engine).getComplex();
         doReturn(IrisWorld.builder().minHeight(-256).maxHeight(512).build()).when(engine).getWorld();
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
+        DecoratorTestEngines.withGeneration(engine);
         CaveApplying modifier = new CaveApplying(engine);
 
         Map<String, IrisBiome> customBiomes = new HashMap<>();

@@ -1,7 +1,6 @@
 package art.arcane.iris.core;
 
 import art.arcane.iris.engine.object.compatibility.IrisCompat;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.image.IrisImage;
 import org.junit.Test;
 
@@ -30,7 +29,7 @@ public class DiagnosticSeverityPolicyTest {
         assertLoggedWith("util/project/hunk/Hunk.java", "OUT OF BOUNDS ", "debug");
         assertLoggedWith("engine/mantle/MantleWriter.java", "No set? ", "debug");
         assertLoggedWith("engine/mantle/MantleWriter.java", "Mantle Writer Accessed chunk out of bounds", "debug");
-        assertLoggedWith("engine/object/decoration/IrisDecorator.java", "Empty Block Data for ", "warnOnce");
+        assertLoggedWith("engine/decorator/ResolvedDecorator.java", "Empty Block Data for ", "warnOnce");
         assertLoggedWith("engine/object/compatibility/IrisCompat.java", "Can't find block data for ", "warnOnce");
         assertLoggedWith("engine/data/cache/AtomicCache.java", "Atomic cache supplier failed: %s: %s", "warnOnce");
         assertLoggedWith("engine/IrisComplex.java", "Failed to sample interpolated biome bounds", "warnOnce");

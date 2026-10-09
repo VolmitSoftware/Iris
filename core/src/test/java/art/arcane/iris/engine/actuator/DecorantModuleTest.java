@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EngineMetrics;
@@ -11,7 +12,6 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
 import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.collection.KList;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
 
@@ -35,6 +35,7 @@ public class DecorantModuleTest {
         Engine engine = engine(true);
         when(engine.getData()).thenReturn(mock(IrisData.class));
         EngineGeneration generation = new EngineGeneration(engine);
+        when(engine.getGeneration()).thenReturn(generation);
         PackWorld world = generation.world();
 
         DecorantModule.Decorating decorating = DecorantModule.decorating(world);
@@ -42,12 +43,14 @@ public class DecorantModuleTest {
         assertSame(decorating, DecorantModule.decorating(world));
         assertSame("built-in stages share the store", decorating,
                 generation.state(DecorantModule.Decorating.class, DecorantModule.Decorating::new));
-        assertNotSame(decorating, DecorantModule.decorating(new EngineGeneration(engine).world()));
+        EngineGeneration otherGeneration = new EngineGeneration(engine);
+        when(engine.getGeneration()).thenReturn(otherGeneration);
+        assertNotSame(decorating, DecorantModule.decorating(otherGeneration.world()));
     }
 
     @Test
     public void aDimensionThatDoesNotDecorateIsLeftAlone() {
-        DecorantModule.Decorating decorating = new DecorantModule.Decorating(engine(false));
+        DecorantModule.Decorating decorating = new DecorantModule.Decorating(engineWithGeneration(false));
         ChunkContext context = mock(ChunkContext.class);
 
         decorating.decorate(0, 0, Hunk.newArrayHunk(16, 16, 16), context);
@@ -58,9 +61,9 @@ public class DecorantModuleTest {
     @Test
     @SuppressWarnings("unchecked")
     public void aBiomeWithoutDecoratorsGetsNothingPlaced() {
-        DecorantModule.Decorating decorating = new DecorantModule.Decorating(engine(true));
+        DecorantModule.Decorating decorating = new DecorantModule.Decorating(engineWithGeneration(true));
         IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getDecorators()).thenReturn(new KList<>());
+        when(biome.getModuleSettings()).thenReturn(ModuleSettings.NONE);
         ChunkedDataCache<IrisBiome> biomes = mock(ChunkedDataCache.class);
         when(biomes.get(anyInt(), anyInt())).thenReturn(biome);
         ChunkContext context = mock(ChunkContext.class);
@@ -73,6 +76,13 @@ public class DecorantModuleTest {
 
         verify(output, never()).set(anyInt(), anyInt(), anyInt(), org.mockito.ArgumentMatchers.any());
         verify(biomes, org.mockito.Mockito.times(16 * 16)).get(anyInt(), anyInt());
+    }
+
+    private Engine engineWithGeneration(boolean decorate) {
+        Engine engine = engine(decorate);
+        when(engine.getData()).thenReturn(mock(IrisData.class));
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
+        return engine;
     }
 
     private Engine engine(boolean decorate) {

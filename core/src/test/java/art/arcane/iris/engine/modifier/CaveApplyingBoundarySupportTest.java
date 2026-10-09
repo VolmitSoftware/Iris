@@ -3,6 +3,7 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.UsableBlockPlatform;
+import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -56,6 +57,7 @@ public class CaveApplyingBoundarySupportTest {
         doReturn(resolvedCeiling).when(engine).getCaveBiome(anyInt(), eq(42), anyInt(), any(IrisDimensionCarvingResolver.State.class));
 
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
+        DecoratorTestEngines.withGeneration(engine);
         CaveApplying modifier = new CaveApplying(engine);
 
         MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);

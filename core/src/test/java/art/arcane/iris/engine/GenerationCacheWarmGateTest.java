@@ -52,20 +52,17 @@ public class GenerationCacheWarmGateTest {
     private static final long WAIT_SECONDS = 10;
 
     @Test
-    public void theFirstWorldIsWarmOnlyAfterTheHostAndThenTheModulesWarmedUp() {
+    public void theFirstWorldIsWarmOnlyAfterTheWarmUpReturned() {
         GenerationCacheWarmGate gate = new GenerationCacheWarmGate();
         List<String> steps = new ArrayList<>();
         assertTrue(gate.isPending());
 
         gate.warmFirstWorld(() -> {
-            steps.add("host");
-            assertTrue("modules warm up after the host", gate.isPending());
-        }, () -> {
             steps.add("modules");
             assertTrue(gate.isPending());
         });
 
-        assertEquals(List.of("host", "modules"), steps);
+        assertEquals(List.of("modules"), steps);
         assertFalse(gate.isPending());
         gate.await();
     }
@@ -118,8 +115,7 @@ public class GenerationCacheWarmGateTest {
         ExecutorService background = Executors.newSingleThreadExecutor();
         try {
             CompletableFuture<Void> warmUp = CompletableFuture.runAsync(
-                    () -> gate.warmFirstWorld(() -> {
-                    }, generation::warmModules), background);
+                    () -> gate.warmFirstWorld(generation::warmModules), background);
             assertTrue(module.warming.await(WAIT_SECONDS, TimeUnit.SECONDS));
             CompletableFuture<Void> generating = CompletableFuture.runAsync(gate::await);
 
@@ -143,7 +139,6 @@ public class GenerationCacheWarmGateTest {
 
         assertThrows(IllegalStateException.class, () -> gate.warmFirstWorld(() -> {
             throw new IllegalStateException("host cannot warm");
-        }, () -> {
         }));
 
         IllegalStateException refused = assertThrows(IllegalStateException.class, gate::await);

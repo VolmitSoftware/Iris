@@ -58,6 +58,6 @@ record EngineRuntime(
                 nextBiomeMaxes);
     }
 
-    record BiomeMaxes(double objectDensity, double layerDensity, double decoratorDensity) {
+    record BiomeMaxes(double objectDensity, double layerDensity) {
     }
 }

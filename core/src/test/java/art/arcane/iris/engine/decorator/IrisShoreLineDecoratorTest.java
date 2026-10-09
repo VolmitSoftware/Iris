@@ -1,13 +1,11 @@
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -39,9 +37,8 @@ public class IrisShoreLineDecoratorTest {
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
 
         assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
-        verify(fixture.decorator).passesChanceGate(any(), anyDouble(), anyDouble(), eq(fixture.data));
-        verify(fixture.decorator, never()).getBlockData100(
-                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(fixture.data));
+        verify(fixture.decorator).passesChanceGate(anyDouble(), anyDouble());
+        verify(fixture.decorator, never()).blockAt(eq(fixture.biome), anyDouble(), anyDouble(), anyDouble());
     }
 
     @Test
@@ -56,8 +53,7 @@ public class IrisShoreLineDecoratorTest {
                 output, fixture.biome, FLUID_HEIGHT, output.getHeight());
 
         assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
-        verify(fixture.decorator, never()).getBlockData100(
-                eq(fixture.biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(fixture.data));
+        verify(fixture.decorator, never()).blockAt(eq(fixture.biome), anyDouble(), anyDouble(), anyDouble());
     }
 
     @Test
@@ -94,8 +90,8 @@ public class IrisShoreLineDecoratorTest {
         IrisComplex complex = mock(IrisComplex.class);
         IrisData data = mock(IrisData.class);
         IrisBiome biome = mock(IrisBiome.class);
-        IrisDecorator decorator = mock(IrisDecorator.class);
-        SlopeClip slope = mock(SlopeClip.class);
+        ResolvedDecorator decorator = mock(ResolvedDecorator.class);
+        BiomeDecorators decorators = mock(BiomeDecorators.class);
         PlatformBlockState decorant = mock(PlatformBlockState.class);
         ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
 
@@ -109,14 +105,11 @@ public class IrisShoreLineDecoratorTest {
         when(complex.getHeightStream()).thenReturn(heightStream);
         when(heightStream.get(anyDouble(), anyDouble())).thenReturn((double) FLUID_HEIGHT - 1);
         when(engine.getData()).thenReturn(data);
-        when(biome.getDecoratorBucket(IrisDecorationPart.SHORE_LINE))
-                .thenReturn(new IrisDecorator[]{decorator});
-        when(decorator.passesChanceGate(any(), anyDouble(), anyDouble(), eq(data))).thenReturn(true);
+        when(decorators.decorators(biome, DecorationPart.SHORE_LINE)).thenReturn(new ResolvedDecorator[]{decorator});
+        when(decorator.passesChanceGate(anyDouble(), anyDouble())).thenReturn(true);
         when(decorator.isForcePlace()).thenReturn(forcePlace);
-        when(decorator.getSlopeCondition()).thenReturn(slope);
-        when(slope.isDefault()).thenReturn(true);
-        when(decorator.getBlockData100(eq(biome), any(), anyDouble(), anyDouble(), anyDouble(), eq(data)))
-                .thenReturn(decorant);
+        when(decorator.blockAt(eq(biome), anyDouble(), anyDouble(), anyDouble())).thenReturn(decorant);
+        DecoratorTestEngines.keepDecorators(engine, decorators);
 
         return new Fixture(new IrisShoreLineDecorator(engine), data, biome, decorator, decorant);
     }
@@ -147,7 +140,7 @@ public class IrisShoreLineDecoratorTest {
             IrisShoreLineDecorator shoreline,
             IrisData data,
             IrisBiome biome,
-            IrisDecorator decorator,
+            ResolvedDecorator decorator,
             PlatformBlockState decorant
     ) {
     }

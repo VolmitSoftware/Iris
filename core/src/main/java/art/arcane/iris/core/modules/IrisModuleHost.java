@@ -43,7 +43,7 @@ import java.util.stream.Stream;
 
 /**
  * The one {@link ModuleHost} every pack load uses: Iris's built-in modules, the built-in module API
- * package exposed to packs, Iris's own JSON fields, the reserved {@code iris} namespace, Iris's pack object
+ * package exposed to packs, Iris's own JSON fields, Iris's pack object
  * model as host types, the pack folders Iris reads itself, a jar copy directory under the plugin's cache, and
  * Iris's log.
  */
@@ -52,7 +52,6 @@ public final class IrisModuleHost {
     public static final String BUILT_IN_API_PACKAGE = "art.arcane.iris.builtin";
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
-    static final String RESERVED_NAMESPACE = "iris";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
 
@@ -82,7 +81,6 @@ public final class IrisModuleHost {
     private static ModuleHost build() {
         return ModuleHost.of(builtInModules())
                 .exposing(BUILT_IN_API_PACKAGE)
-                .reservingNamespaces(RESERVED_NAMESPACE)
                 .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(HOST_TYPE_PACKAGE)
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))

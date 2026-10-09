@@ -25,6 +25,11 @@ public final class PackModuleJar {
 
     /** @param sources Java sources by binary class name; {@code entryClass} is the module's entry point */
     public static void write(Path pack, String jarName, String entryClass, Map<String, String> sources) throws IOException {
+        write(pack, jarName, List.of(entryClass), sources);
+    }
+
+    /** A jar of several modules: {@code entryClasses} are listed one per line, in order. */
+    public static void write(Path pack, String jarName, List<String> entryClasses, Map<String, String> sources) throws IOException {
         Path work = Files.createTempDirectory("iris-pack-module-src");
         Path classes = Files.createDirectories(work.resolve("classes"));
         compile(work, classes, sources);
@@ -32,7 +37,7 @@ public final class PackModuleJar {
         try (JarOutputStream output = new JarOutputStream(Files.newOutputStream(jar))) {
             addClasses(output, classes);
             output.putNextEntry(new JarEntry(SERVICE_ENTRY));
-            output.write((entryClass + "\n").getBytes(StandardCharsets.UTF_8));
+            output.write((String.join("\n", entryClasses) + "\n").getBytes(StandardCharsets.UTF_8));
             output.closeEntry();
         }
     }

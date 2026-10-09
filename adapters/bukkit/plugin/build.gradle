@@ -21,6 +21,8 @@ dependencies {
     testImplementation('org.mockito:mockito-core:5.23.0')
     testImplementation(libs.paper.api)
     testImplementation(libs.bstats)
+    testImplementation(libs.caffeine)
+    testImplementation(libs.paralithic)
     testImplementation(project(':core'))
     testImplementation(volmLibCoordinate) {
         transitive = false

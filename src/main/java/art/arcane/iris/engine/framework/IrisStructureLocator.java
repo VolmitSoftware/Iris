@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.engine.framework.structure.NativeStartPlanner;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
@@ -479,7 +480,7 @@ public final class IrisStructureLocator {
         if (engine == null || engine.getData() == null || engine.getSeedManager() == null) {
             throw new IllegalStateException("Iris structure placement requires a fully bound engine");
         }
-        NativeStructurePlacementPlanner.validateBackend(placement);
+        NativeStartPlanner.validateBackend(placement);
         if (!placement.hasIrisStructures() || placement.getDistribution() == null) {
             throw new IllegalStateException("Iris structure placement is missing its distribution or structure list");
         }
@@ -600,7 +601,7 @@ public final class IrisStructureLocator {
         IrisData data = engine.getData();
         String normalizedKey = normalize(key);
         if (hasNativePlacement(engine, key)) {
-            for (NativeStructureStartPlan plan : NativeStructurePlacementPlanner.plansAt(engine, cx, cz)) {
+            for (NativeStartPlanner.Plan plan : NativeStartPlanner.plansAt(engine, cx, cz)) {
                 if (normalize(plan.source().getStructure()).equals(normalizedKey)) {
                     return new ResolvedStart(cx << 4, plan.baseY(), cz << 4);
                 }
@@ -648,7 +649,7 @@ public final class IrisStructureLocator {
             return null;
         }
         if (!placement.isUnderwater()
-                && NativeStructurePlacementPlanner.isSubmerged(engine, originX, originZ)) {
+                && NativeStartPlanner.isSubmerged(engine, originX, originZ)) {
             return null;
         }
         if (placement.resolvedAnchor() == IrisStructureAnchorMode.SURFACE) {
@@ -1180,7 +1181,7 @@ public final class IrisStructureLocator {
             if (placement.getDistribution() == null) {
                 throw new IllegalStateException("Iris structure placement is missing its distribution");
             }
-            NativeStructurePlacementPlanner.validateBackend(placement);
+            NativeStartPlanner.validateBackend(placement);
             boolean replacesNative = NativeStructureSuppression.REPLACE_SOURCE == placement.getNativeSuppression();
             if (replacesNative && !allowNativeSuppression) {
                 throw new IllegalStateException("REPLACE_SOURCE is only valid on dimension-level structure placements");

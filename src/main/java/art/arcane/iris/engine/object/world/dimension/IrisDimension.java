@@ -32,7 +32,6 @@ import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
@@ -292,8 +291,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Dimension-wide Iris structure placements, independent of biome/region placements")
     @ArrayType(type = IrisStructurePlacement.class, min = 1)
     private KList<IrisStructurePlacement> structures = new KList<>();
-    @Desc("Controls native vanilla, mod, and ingested datapack structure generation for this dimension. Every registered structure is enabled by default; 'disabled' is the sole generation deny list and autocompletes live structure keys.")
-    private IrisImportedStructureControl importedStructures = new IrisImportedStructureControl();
     @Desc("Controls native vanilla, mod, and ingested datapack PLACED FEATURE generation (ores, trees, plants, springs, geodes) for this dimension. Disabled by default: leaving this out generates exactly the terrain Iris always has. Set 'enabled' true to run the vanilla decoration feature pass over Iris terrain. Carvers are never imported.")
     private IrisImportedFeatureControl importedFeatures = new IrisImportedFeatureControl();
     @ArrayType(type = String.class, min = 1)

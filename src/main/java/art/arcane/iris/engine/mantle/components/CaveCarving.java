@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -67,7 +67,7 @@ public class CaveCarving {
 
     private final Engine engine;
     private final Object profileCarverLock = new Object();
-    private volatile Map<IrisCaveProfile, IrisCaveCarver3D> profileCarvers = new IdentityHashMap<>();
+    private volatile Map<CaveProfile, IrisCaveCarver3D> profileCarvers = new IdentityHashMap<>();
 
     static {
         int kernelIndex = 0;
@@ -132,7 +132,7 @@ public class CaveCarving {
     private static int maxSurfaceBreakDepth(List<WeightedProfile> weightedProfiles) {
         int maxDepth = 0;
         for (WeightedProfile weightedProfile : weightedProfiles) {
-            maxDepth = Math.max(maxDepth, Math.max(0, weightedProfile.profile.getSurfaceBreakDepth()));
+            maxDepth = Math.max(maxDepth, Math.max(0, weightedProfile.profile.surfaceBreakDepth()));
         }
         return maxDepth;
     }
@@ -202,11 +202,11 @@ public class CaveCarving {
 
     private List<WeightedProfile> resolveWeightedProfiles(int chunkX, int chunkZ, IrisComplex complex, IrisDimensionCarvingResolver.State resolverState) {
         BlendScratch blendScratch = BLEND_SCRATCH.get();
-        IrisCaveProfile[] profileField = blendScratch.profileField;
-        Map<IrisCaveProfile, double[]> columnProfileWeights = blendScratch.columnProfileWeights;
-        IdentityHashMap<IrisCaveProfile, Boolean> activeProfiles = blendScratch.activeProfiles;
-        List<IrisCaveProfile> profileOrder = blendScratch.profileOrder;
-        IrisCaveProfile[] kernelProfiles = blendScratch.kernelProfiles;
+        CaveProfile[] profileField = blendScratch.profileField;
+        Map<CaveProfile, double[]> columnProfileWeights = blendScratch.columnProfileWeights;
+        IdentityHashMap<CaveProfile, Boolean> activeProfiles = blendScratch.activeProfiles;
+        List<CaveProfile> profileOrder = blendScratch.profileOrder;
+        CaveProfile[] kernelProfiles = blendScratch.kernelProfiles;
         double[] kernelProfileWeights = blendScratch.kernelProfileWeights;
         activeProfiles.clear();
         profileOrder.clear();
@@ -222,7 +222,7 @@ public class CaveCarving {
                 for (int kernelIndex = 0; kernelIndex < KERNEL_SIZE; kernelIndex++) {
                     int sampleX = centerX + KERNEL_DX[kernelIndex];
                     int sampleZ = centerZ + KERNEL_DZ[kernelIndex];
-                    IrisCaveProfile profile = profileField[(sampleX * FIELD_SIZE) + sampleZ];
+                    CaveProfile profile = profileField[(sampleX * FIELD_SIZE) + sampleZ];
                     if (!isProfileEnabled(profile)) {
                         continue;
                     }
@@ -245,7 +245,7 @@ public class CaveCarving {
 
                 int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
                 for (int profileIndex = 0; profileIndex < profileCount; profileIndex++) {
-                    IrisCaveProfile profile = kernelProfiles[profileIndex];
+                    CaveProfile profile = kernelProfiles[profileIndex];
                     double kernelWeight = kernelProfileWeights[profileIndex];
                     kernelProfiles[profileIndex] = null;
                     kernelProfileWeights[profileIndex] = 0D;
@@ -271,7 +271,7 @@ public class CaveCarving {
         }
 
         List<WeightedProfile> columnWeightedProfiles = new ArrayList<>();
-        for (IrisCaveProfile profile : profileOrder) {
+        for (CaveProfile profile : profileOrder) {
             double[] weights = columnProfileWeights.get(profile);
             if (weights == null) {
                 continue;
@@ -319,8 +319,8 @@ public class CaveCarving {
             IrisDimensionCarvingEntry[] columnPlan = dimensionColumnPlans.computeIfAbsent(entry, key -> new IrisDimensionCarvingEntry[CHUNK_AREA]);
             buildDimensionColumnPlan(columnPlan, chunkX, chunkZ, entry, resolverState);
 
-            Map<IrisCaveProfile, double[]> rootProfileColumnWeights = new IdentityHashMap<>();
-            List<IrisCaveProfile> rootProfileOrder = new ArrayList<>();
+            Map<CaveProfile, double[]> rootProfileColumnWeights = new IdentityHashMap<>();
+            List<CaveProfile> rootProfileOrder = new ArrayList<>();
             IrisRange worldYRange = entry.getWorldYRange();
             for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
                 IrisDimensionCarvingEntry resolvedEntry = columnPlan[columnIndex];
@@ -329,7 +329,7 @@ public class CaveCarving {
                     continue;
                 }
 
-                IrisCaveProfile profile = resolvedBiome.getCaveProfile();
+                CaveProfile profile = resolvedBiome.getCaveProfile();
                 if (!isProfileEnabled(profile)) {
                     continue;
                 }
@@ -343,7 +343,7 @@ public class CaveCarving {
                 columnWeights[columnIndex] = 1D;
             }
 
-            for (IrisCaveProfile profile : rootProfileOrder) {
+            for (CaveProfile profile : rootProfileOrder) {
                 weightedProfiles.add(new WeightedProfile(profile, rootProfileColumnWeights.get(profile), -1D, worldYRange, weightedProfiles.size()));
             }
         }
@@ -364,7 +364,7 @@ public class CaveCarving {
         }
     }
 
-    private void fillProfileField(IrisCaveProfile[] profileField, int chunkX, int chunkZ, IrisComplex complex, IrisDimensionCarvingResolver.State resolverState, BlendScratch blendScratch) {
+    private void fillProfileField(CaveProfile[] profileField, int chunkX, int chunkZ, IrisComplex complex, IrisDimensionCarvingResolver.State resolverState, BlendScratch blendScratch) {
         int startX = PowerOfTwoCoordinates.chunkToBlock(chunkX) - BLEND_RADIUS;
         int startZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ) - BLEND_RADIUS;
         prefillProfileFieldSamples(startX, startZ, complex, blendScratch);
@@ -387,7 +387,7 @@ public class CaveCarving {
         }
     }
 
-    private int findProfileIndex(IrisCaveProfile[] profiles, int size, IrisCaveProfile profile) {
+    private int findProfileIndex(CaveProfile[] profiles, int size, CaveProfile profile) {
         for (int index = 0; index < size; index++) {
             if (profiles[index] == profile) {
                 return index;
@@ -397,7 +397,7 @@ public class CaveCarving {
         return -1;
     }
 
-    private IrisCaveProfile resolveColumnProfile(
+    private CaveProfile resolveColumnProfile(
             int worldX,
             int worldZ,
             double surfaceHeight,
@@ -406,21 +406,21 @@ public class CaveCarving {
             IrisBiome caveBiome,
             IrisDimensionCarvingResolver.State resolverState
     ) {
-        IrisCaveProfile resolved = null;
-        IrisCaveProfile dimensionProfile = engine.getDimension().getCaveProfile();
+        CaveProfile resolved = null;
+        CaveProfile dimensionProfile = engine.getDimension().getCaveProfile();
         if (isProfileEnabled(dimensionProfile)) {
             resolved = dimensionProfile;
         }
 
         if (region != null) {
-            IrisCaveProfile regionProfile = region.getCaveProfile();
+            CaveProfile regionProfile = region.getCaveProfile();
             if (isProfileEnabled(regionProfile)) {
                 resolved = regionProfile;
             }
         }
 
         if (surfaceBiome != null) {
-            IrisCaveProfile surfaceProfile = surfaceBiome.getCaveProfile();
+            CaveProfile surfaceProfile = surfaceBiome.getCaveProfile();
             if (isProfileEnabled(surfaceProfile)) {
                 resolved = surfaceProfile;
             }
@@ -455,7 +455,7 @@ public class CaveCarving {
                 }
             }
 
-            IrisCaveProfile caveProfile = effectiveCaveBiome.getCaveProfile();
+            CaveProfile caveProfile = effectiveCaveBiome.getCaveProfile();
             if (isProfileEnabled(caveProfile)) {
                 resolved = caveProfile;
             }
@@ -499,7 +499,7 @@ public class CaveCarving {
         }
     }
 
-    private IrisCaveCarver3D getCarver(IrisCaveProfile profile) {
+    private IrisCaveCarver3D getCarver(CaveProfile profile) {
         IrisCaveCarver3D carver = profileCarvers.get(profile);
         if (carver != null) {
             return carver;
@@ -512,15 +512,15 @@ public class CaveCarving {
                 return published;
             }
 
-            Map<IrisCaveProfile, IrisCaveCarver3D> updated = new IdentityHashMap<>(profileCarvers);
+            Map<CaveProfile, IrisCaveCarver3D> updated = new IdentityHashMap<>(profileCarvers);
             updated.put(profile, createdCarver);
             profileCarvers = updated;
             return createdCarver;
         }
     }
 
-    private boolean isProfileEnabled(IrisCaveProfile profile) {
-        return profile != null && profile.isEnabled();
+    private boolean isProfileEnabled(CaveProfile profile) {
+        return profile != null && profile.enabled();
     }
 
     private int[] prepareChunkSurfaceHeights(int chunkX, int chunkZ, ChunkContext context, int[] scratch) {
@@ -656,13 +656,13 @@ public class CaveCarving {
     }
 
     private static final class WeightedProfile {
-        private final IrisCaveProfile profile;
+        private final CaveProfile profile;
         private final double[] columnWeights;
         private final double averageWeight;
         private final IrisRange worldYRange;
         private final int sequence;
 
-        private WeightedProfile(IrisCaveProfile profile, double[] columnWeights, double averageWeight, IrisRange worldYRange, int sequence) {
+        private WeightedProfile(CaveProfile profile, double[] columnWeights, double averageWeight, IrisRange worldYRange, int sequence) {
             this.profile = profile;
             this.columnWeights = columnWeights;
             this.averageWeight = averageWeight;
@@ -676,13 +676,13 @@ public class CaveCarving {
     }
 
     private static final class BlendScratch {
-        private final IrisCaveProfile[] profileField = new IrisCaveProfile[FIELD_SIZE * FIELD_SIZE];
-        private final IrisCaveProfile[] kernelProfiles = new IrisCaveProfile[KERNEL_SIZE];
+        private final CaveProfile[] profileField = new CaveProfile[FIELD_SIZE * FIELD_SIZE];
+        private final CaveProfile[] kernelProfiles = new CaveProfile[KERNEL_SIZE];
         private final double[] kernelProfileWeights = new double[KERNEL_SIZE];
-        private final IdentityHashMap<IrisCaveProfile, double[]> columnProfileWeights = new IdentityHashMap<>();
+        private final IdentityHashMap<CaveProfile, double[]> columnProfileWeights = new IdentityHashMap<>();
         private final IdentityHashMap<IrisDimensionCarvingEntry, IrisDimensionCarvingEntry[]> dimensionColumnPlans = new IdentityHashMap<>();
-        private final IdentityHashMap<IrisCaveProfile, Boolean> activeProfiles = new IdentityHashMap<>();
-        private final List<IrisCaveProfile> profileOrder = new ArrayList<>();
+        private final IdentityHashMap<CaveProfile, Boolean> activeProfiles = new IdentityHashMap<>();
+        private final List<CaveProfile> profileOrder = new ArrayList<>();
         private final double[] fieldSurfaceHeights = new double[FIELD_SIZE * FIELD_SIZE];
         private final boolean[] fieldHasFluid = new boolean[FIELD_SIZE * FIELD_SIZE];
         private final IrisRegion[] fieldRegions = new IrisRegion[FIELD_SIZE * FIELD_SIZE];

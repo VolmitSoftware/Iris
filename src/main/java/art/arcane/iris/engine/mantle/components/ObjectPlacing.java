@@ -19,6 +19,9 @@
 package art.arcane.iris.engine.mantle.components;
 
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.carve.CaveAnchorMode;
+import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -31,12 +34,9 @@ import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.engine.object.placement.DecayControlPlacer;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveAnchorMode;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
@@ -234,8 +234,8 @@ public class ObjectPlacing {
         int rejected = 0;
         int nullObjects = 0;
         int errors = 0;
-        IrisCaveProfile biomeCaveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
-        IrisCaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome.getCaveProfile());
+        CaveProfile biomeCaveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
+        CaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome.getCaveProfile());
         CaveAnchorCache caveAnchorCache = new CaveAnchorCache();
 
         for (IrisObjectPlacement i : surfaceBiome.getSurfaceObjects()) {
@@ -383,12 +383,12 @@ public class ObjectPlacing {
 
     @ChunkCoordinates
     private void placeProceduralObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region) {
-        IrisCaveProfile surfaceCaveProfile = resolveCaveProfile(surfaceBiome.getCaveProfile(), region.getCaveProfile());
-        IrisCaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome == null ? null : caveBiome.getCaveProfile());
+        CaveProfile surfaceCaveProfile = resolveCaveProfile(surfaceBiome.getCaveProfile(), region.getCaveProfile());
+        CaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome == null ? null : caveBiome.getCaveProfile());
         placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceCaveProfile, surfaceBiome.getLoadKey());
         placeProceduralFrom(writer, rng, x, z, region.getProceduralObjects(), region.getName(), regionCaveProfile, null);
         if (caveBiome != null && caveBiome != surfaceBiome) {
-            IrisCaveProfile caveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
+            CaveProfile caveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
             placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveProfile, caveBiome.getLoadKey());
         }
     }
@@ -401,7 +401,7 @@ public class ObjectPlacing {
             int z,
             IrisProceduralObjects proceduralObjects,
             String scope,
-            IrisCaveProfile caveProfile,
+            CaveProfile caveProfile,
             String expectedCaveBiomeKey
     ) {
         if (proceduralObjects == null || proceduralObjects.isEmpty()) {
@@ -427,9 +427,9 @@ public class ObjectPlacing {
 
             IrisObjectPlacement placement = p.asPlacement();
             boolean carving = placement.getCarvingSupport() == CarvingMode.CARVING_ONLY;
-            IrisCaveAnchorMode anchorMode = resolveAnchorMode(placement, caveProfile);
+            CaveAnchorMode anchorMode = resolveAnchorMode(placement, caveProfile);
             if (placement.getMode() == ObjectPlaceMode.CEILING_HANG) {
-                anchorMode = IrisCaveAnchorMode.CEILING;
+                anchorMode = CaveAnchorMode.CEILING;
             }
             int anchorScanStep = resolveAnchorScanStep(caveProfile);
             int minDepthBelowSurface = resolveObjectMinDepthBelowSurface(caveProfile);
@@ -558,7 +558,7 @@ public class ObjectPlacing {
             RNG rng,
             int minX,
             int minZ,
-            IrisCaveAnchorMode anchorMode,
+            CaveAnchorMode anchorMode,
             int anchorScanStep,
             int minDepthBelowSurface,
             int searchAttempts,
@@ -774,7 +774,7 @@ public class ObjectPlacing {
             int chunkX,
             int chunkZ,
             IrisObjectPlacement objectPlacement,
-            IrisCaveProfile caveProfile,
+            CaveProfile caveProfile,
             IrisComplex complex,
             boolean traceRegen,
             int metricChunkX,
@@ -791,9 +791,9 @@ public class ObjectPlacing {
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
         int density = objectPlacement.getDensity(rng, minX, minZ, engine.getData());
-        IrisCaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
+        CaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
         if (objectPlacement.getMode() == ObjectPlaceMode.CEILING_HANG) {
-            anchorMode = IrisCaveAnchorMode.CEILING;
+            anchorMode = CaveAnchorMode.CEILING;
         }
         int anchorScanStep = resolveAnchorScanStep(caveProfile);
         int objectMinDepthBelowSurface = resolveObjectMinDepthBelowSurface(caveProfile);
@@ -1107,7 +1107,7 @@ public class ObjectPlacing {
             IrisObject object,
             int densityIndex,
             int density,
-            IrisCaveAnchorMode anchorMode,
+            CaveAnchorMode anchorMode,
             int anchorSearchAttempts,
             int anchorScanStep,
             int objectMinDepthBelowSurface,
@@ -1208,13 +1208,13 @@ public class ObjectPlacing {
         return effectivePlacement;
     }
 
-    private IrisObjectPlacement resolveCavePlacement(IrisObjectPlacement objectPlacement, IrisObject object, IrisCaveProfile caveProfile) {
+    private IrisObjectPlacement resolveCavePlacement(IrisObjectPlacement objectPlacement, IrisObject object, CaveProfile caveProfile) {
         IrisObjectPlacement resolvedPlacement = resolveEffectivePlacement(objectPlacement, object);
         if (resolvedPlacement.getMode() != ObjectPlaceMode.CENTER_HEIGHT || caveProfile == null) {
             return resolvedPlacement;
         }
 
-        ObjectPlaceMode profileMode = caveProfile.getDefaultObjectPlaceMode();
+        ObjectPlaceMode profileMode = caveProfile.defaultObjectPlaceMode().orElse(null);
         if (profileMode == null) {
             return resolvedPlacement;
         }
@@ -1237,7 +1237,7 @@ public class ObjectPlacing {
         return maxAnchorY + 1;
     }
 
-    private int findCaveAnchorY(MantleWriter writer, RNG rng, int x, int z, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, CaveAnchorCache anchorCache) {
+    private int findCaveAnchorY(MantleWriter writer, RNG rng, int x, int z, CaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, CaveAnchorCache anchorCache) {
         KList<Integer> anchors = anchorCache.get(writer, anchorMode, anchorScanStep, objectMinDepthBelowSurface, x, z);
         if (anchors.isEmpty()) {
             return -1;
@@ -1250,7 +1250,7 @@ public class ObjectPlacing {
         return anchors.get(rng.i(anchors.size()));
     }
 
-    private KList<Integer> scanCaveAnchorColumn(MantleWriter writer, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, int x, int z, CaveAnchorCache anchorCache) {
+    private KList<Integer> scanCaveAnchorColumn(MantleWriter writer, CaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, int x, int z, CaveAnchorCache anchorCache) {
         int height = engine.getHeight();
         int step = Math.max(1, anchorScanStep);
         int surfaceY = anchorCache.getSurfaceHeight(x, z);
@@ -1264,7 +1264,7 @@ public class ObjectPlacing {
         return scanCaveAnchorRange(anchorMode, step, carvedHeight, BEDROCK_CLEARANCE, maxAnchorExclusive, carvedColumn);
     }
 
-    private KList<Integer> scanCaveAnchorRange(IrisCaveAnchorMode anchorMode, int step, int height, int minAnchorY, int maxAnchorY, byte[] carvedColumn) {
+    private KList<Integer> scanCaveAnchorRange(CaveAnchorMode anchorMode, int step, int height, int minAnchorY, int maxAnchorY, byte[] carvedColumn) {
         KList<Integer> anchors = new KList<>();
         int startY = alignAnchorScanStart(minAnchorY, step);
         for (int y = startY; y < maxAnchorY; y += step) {
@@ -1308,7 +1308,7 @@ public class ObjectPlacing {
         return false;
     }
 
-    private boolean matchesCaveAnchor(IrisCaveAnchorMode anchorMode, boolean solidBelow, boolean solidAbove) {
+    private boolean matchesCaveAnchor(CaveAnchorMode anchorMode, boolean solidBelow, boolean solidAbove) {
         return switch (anchorMode) {
             case PROFILE_DEFAULT, FLOOR -> solidBelow;
             case CEILING -> solidAbove;
@@ -1317,13 +1317,13 @@ public class ObjectPlacing {
         };
     }
 
-    private IrisCaveProfile resolveCaveProfile(IrisCaveProfile preferred, IrisCaveProfile secondary) {
-        IrisCaveProfile dimensionProfile = engine.getDimension().getCaveProfile();
-        if (preferred != null && preferred.isEnabled()) {
+    private CaveProfile resolveCaveProfile(CaveProfile preferred, CaveProfile secondary) {
+        CaveProfile dimensionProfile = engine.getDimension().getCaveProfile();
+        if (preferred != null && preferred.enabled()) {
             return preferred;
         }
 
-        if (secondary != null && secondary.isEnabled()) {
+        if (secondary != null && secondary.enabled()) {
             return secondary;
         }
 
@@ -1331,49 +1331,49 @@ public class ObjectPlacing {
             return dimensionProfile;
         }
 
-        return new IrisCaveProfile();
+        return new CaveProfile();
     }
 
-    private IrisCaveAnchorMode resolveAnchorMode(IrisObjectPlacement objectPlacement, IrisCaveProfile caveProfile) {
-        IrisCaveAnchorMode placementMode = objectPlacement.getCaveAnchorMode();
-        if (placementMode != null && !placementMode.equals(IrisCaveAnchorMode.PROFILE_DEFAULT)) {
+    private CaveAnchorMode resolveAnchorMode(IrisObjectPlacement objectPlacement, CaveProfile caveProfile) {
+        CaveAnchorMode placementMode = objectPlacement.getCaveAnchorMode();
+        if (placementMode != null && !placementMode.equals(CaveAnchorMode.PROFILE_DEFAULT)) {
             return placementMode;
         }
 
         if (caveProfile == null) {
-            return IrisCaveAnchorMode.FLOOR;
+            return CaveAnchorMode.FLOOR;
         }
 
-        IrisCaveAnchorMode profileMode = caveProfile.getDefaultObjectAnchor();
-        if (profileMode == null || profileMode.equals(IrisCaveAnchorMode.PROFILE_DEFAULT)) {
-            return IrisCaveAnchorMode.FLOOR;
+        CaveAnchorMode profileMode = caveProfile.defaultObjectAnchor();
+        if (profileMode == null || profileMode.equals(CaveAnchorMode.PROFILE_DEFAULT)) {
+            return CaveAnchorMode.FLOOR;
         }
 
         return profileMode;
     }
 
-    private int resolveAnchorScanStep(IrisCaveProfile caveProfile) {
+    private int resolveAnchorScanStep(CaveProfile caveProfile) {
         if (caveProfile == null) {
             return 1;
         }
 
-        return Math.max(1, caveProfile.getAnchorScanStep());
+        return Math.max(1, caveProfile.anchorScanStep());
     }
 
-    private int resolveObjectMinDepthBelowSurface(IrisCaveProfile caveProfile) {
+    private int resolveObjectMinDepthBelowSurface(CaveProfile caveProfile) {
         if (caveProfile == null) {
             return 6;
         }
 
-        return Math.max(0, caveProfile.getObjectMinDepthBelowSurface());
+        return Math.max(0, caveProfile.objectMinDepthBelowSurface());
     }
 
-    private int resolveAnchorSearchAttempts(IrisCaveProfile caveProfile) {
+    private int resolveAnchorSearchAttempts(CaveProfile caveProfile) {
         if (caveProfile == null) {
             return 6;
         }
 
-        return Math.max(1, caveProfile.getAnchorSearchAttempts());
+        return Math.max(1, caveProfile.anchorSearchAttempts());
     }
 
     private boolean isRegenTraceThread() {
@@ -1602,7 +1602,7 @@ public class ObjectPlacing {
             this.surfaceHeights.defaultReturnValue(Integer.MIN_VALUE);
         }
 
-        private KList<Integer> get(MantleWriter writer, IrisCaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, int x, int z) {
+        private KList<Integer> get(MantleWriter writer, CaveAnchorMode anchorMode, int anchorScanStep, int objectMinDepthBelowSurface, int x, int z) {
             if (anchorScanStep > 65535 || objectMinDepthBelowSurface > 65535) {
                 return scanCaveAnchorColumn(writer, anchorMode, anchorScanStep, objectMinDepthBelowSurface, x, z, this);
             }

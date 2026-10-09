@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.world.dimension;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.image.IrisImageMap;
@@ -33,7 +34,6 @@ import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
@@ -191,7 +191,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")
     private KList<IrisDimensionCarvingEntry> carving = new KList<>();
     @Desc("Profile-driven 3D cave configuration")
-    private IrisCaveProfile caveProfile = new IrisCaveProfile();
+    private CaveProfile caveProfile = new CaveProfile();
     @Desc("Refuse to place surface objects and trees over carved surface openings.")
     private boolean requireObjectSurfaceSupport = true;
     @MinNumber(0)

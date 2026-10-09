@@ -125,7 +125,7 @@ public class IrisFloatingChildBiomes implements IRare {
 
         return carvingProfileSamplerCache.aquire(() -> {
             IrisBiome resolved = resolveCarvingBiome(carving, engine, data);
-            if (resolved == null || resolved.getCaveProfile() == null || !resolved.getCaveProfile().isEnabled()) {
+            if (resolved == null || resolved.getCaveProfile() == null || !resolved.getCaveProfile().enabled()) {
                 return null;
             }
 

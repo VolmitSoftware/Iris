@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.entity.IrisEffect;
@@ -31,7 +32,6 @@ import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.terrain.IrisBiomeLayerGenerator;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import art.arcane.iris.engine.object.terrain.deposit.IrisBiomeOres;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
@@ -151,7 +151,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
     @Desc("Profile-driven 3D cave configuration")
-    private IrisCaveProfile caveProfile = new IrisCaveProfile();
+    private CaveProfile caveProfile = new CaveProfile();
     @MinNumber(1)
     @MaxNumber(512)
     @Desc("The rarity of this biome (integer)")

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveFieldModule;
+import art.arcane.iris.engine.object.terrain.carving.ResolvedCaveProfile;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.util.project.noise.CNG;
 
@@ -32,14 +32,14 @@ final class CaveFieldModuleState {
     final double minContribution;
     final double maxContribution;
 
-    CaveFieldModuleState(IrisCaveFieldModule module, CNG density) {
-        IrisRange range = module.getVerticalRange();
+    CaveFieldModuleState(ResolvedCaveProfile.Module module, CNG density) {
+        IrisRange range = module.verticalRange();
         this.density = density;
         this.minY = (int) Math.floor(range.getMin());
         this.maxY = (int) Math.ceil(range.getMax());
-        this.weight = module.getWeight();
-        this.threshold = module.getThreshold();
-        this.invert = module.isInvert();
+        this.weight = module.weight();
+        this.threshold = module.threshold();
+        this.invert = module.invert();
         double rawMin = invert ? threshold - 1D : -1D - threshold;
         double rawMax = invert ? threshold + 1D : 1D - threshold;
         this.minContribution = rawMin * weight;

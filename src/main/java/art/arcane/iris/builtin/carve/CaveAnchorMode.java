@@ -1,9 +1,9 @@
-package art.arcane.iris.engine.object.terrain.carving;
+package art.arcane.iris.builtin.carve;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("Defines which carved-space anchor to target for cave object placement.")
-public enum IrisCaveAnchorMode {
+public enum CaveAnchorMode {
     @Desc("Use the active cave profile default anchor mode.")
     PROFILE_DEFAULT,
 

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.ruin;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
@@ -29,7 +30,6 @@ import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;

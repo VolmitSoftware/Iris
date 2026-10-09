@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.terrain.carving;
+package art.arcane.iris.builtin.carve;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("Defines if an object is allowed to place in carvings, surfaces or both.")
 public enum CarvingMode {

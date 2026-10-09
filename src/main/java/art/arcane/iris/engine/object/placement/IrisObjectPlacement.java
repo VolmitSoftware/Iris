@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.stilt.StiltSettings;
@@ -39,8 +41,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveAnchorMode;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.core.loader.IrisData;
@@ -153,7 +153,7 @@ public class IrisObjectPlacement {
     @Desc("Set to false to let this placement sit over carved surface openings such as cave entrances.")
     private boolean requireSurfaceSupport = true;
     @Desc("When carving placement is enabled, select which carved-space anchor this placement targets.")
-    private IrisCaveAnchorMode caveAnchorMode = IrisCaveAnchorMode.PROFILE_DEFAULT;
+    private CaveAnchorMode caveAnchorMode = CaveAnchorMode.PROFILE_DEFAULT;
     @Desc("If this is defined, this object wont place on the terrain heightmap, but instead on this virtual heightmap")
     private IrisNoiseGenerator heightmap;
     @Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")

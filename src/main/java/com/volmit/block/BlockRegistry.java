@@ -24,6 +24,16 @@ public interface BlockRegistry {
      */
     Optional<BlockEntityData> blockEntity(BlockSpec spec);
 
+    /** The picker for {@code spec}: every block counts as often as its weight, and the entry at a position is chosen by
+     * the style's noise at (x, y, z) divided by the zoom, so the palette changes smoothly over the world; a palette of
+     * one block always gives it. Blocks resolve as {@link #resolve(BlockSpec)}. Seed the noise like
+     * {@link com.volmit.noise.NoiseFactory#sampler}: from the world seed when the palette must line up across chunks.
+     * The host keeps what it builds for the pack snapshot, so asking again for the same palette and seed is cheap.
+     *
+     * @throws IllegalArgumentException when no block of the palette has a weight above zero, which includes an empty list
+     */
+    PaletteSampler palette(PaletteSpec spec, long seed);
+
     boolean hasTrait(BlockState state, BlockTrait trait);
     boolean inTag(BlockState state, ResourceId tag);
     /** Whether state can attach to the specified face of support, ignoring other neighbors. */

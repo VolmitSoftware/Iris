@@ -430,6 +430,7 @@ Settings describe blocks, noise and ranges with IrisApi's value types, which rea
 | Type | Packs write | Use it through |
 | --- | --- | --- |
 | `BlockSpec` | `{"block": "iron_ore", "data": {"waterlogged": true}, "backup": {...}, "tileData": {...}}` | `resources.blocks().resolve(spec)` gives the `BlockState`, `blockEntity(spec)` its block entity |
+| `PaletteSpec` | `{"style": "SIMPLEX", "zoom": 8, "palette": [{"block": "stone"}, {"block": "andesite", "weight": 2}]}` or `"snippet/palette/<name>"` | `resources.blocks().palette(spec, seed)` gives a `PaletteSampler`: `at(x, y, z)` is the block there |
 | `NoiseStyle` | `{"style": "SIMPLEX", "zoom": 4, "fracture": {...}}` or `"snippet/style/<name>"` | `resources.noise().sampler(style, seed)` gives a `NoiseSampler` |
 | `StyledRange` | `{"min": 4, "max": 12, "style": {...}}` | `range.at(resources.noise(), seed, x, z)` |
 | `Range` | `{"min": 0, "max": 15}` | `contains(value)`, `pick(random)` |
@@ -452,11 +453,14 @@ Noise belongs to the host: a style names one of its noise generators (`@Ref(Refe
 expression or image map of the pack, and the host builds the noise. Seed it from `worldSeed()`, so the noise
 lines up across chunks; the host keeps what it builds for the pack, so asking again is cheap. A `BlockSpec` may
 name a block without a namespace, a custom block of the pack's `blocks` folder, or a block only some platforms
-have; resolving it never fails: the backup, then air, stands in.
+have; resolving it never fails: the backup, then air, stands in. A `PaletteSpec` picks one of its blocks per position
+by noise (each block counts as often as its weight, the style's noise at x, y, z over `zoom` chooses); a palette of
+one block is that block everywhere, and one without a block to pick (an empty list, or only weights of zero) is an
+`IllegalArgumentException` when the sampler is asked for. Seed it like noise.
 
 The types are values the host creates with their no-argument constructors and reads the JSON into, like settings,
 so an omitted option keeps the default the type declares (a `Range` is 16 to 32 unless the pack or the field's
-own default says otherwise). They keep the snippet folders packs already use (`style`, `style-range`, `range`).
+own default says otherwise). They keep the snippet folders packs already use (`style`, `style-range`, `range`, `palette`).
 Studio describes them like settings; Iris may render its own description of the same JSON.
 
 Directions, object rotation and scale and placement modes are not API types: a module that reads them declares its
@@ -662,7 +666,7 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
   resource kind; the requested type selects the kind, so `BiomeSample` ids look up directly. `ids(type)` lists
   a kind.
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
-  platform and resolves `BlockSpec`s. `BlockPalette` and `NoiseSampler` are typed resources;
+  platform and resolves `BlockSpec`s. `BlockPalette` and `NoiseSampler` are typed resources (`PaletteSampler` is the noise-picked palette of settings);
   `PackResources.noise()` builds noise samplers from `NoiseStyle`s.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
   with a world position using checked arithmetic.
@@ -707,7 +711,7 @@ of a host type, for a folder two kinds claim or the host reserves, and for a mis
 order, the load error for a second provider of a `ONE` service and for providers of unmarked interfaces or of the
 wrong type. `WorldStatesTest` checks that each state is created once (also when threads race), nested creation, the
 error for a type asked for while it is created, factories that fail or return null, and closing newest first past
-failures. `LifecycleRunnerTest` checks hook order, stops in reverse, the stop of already started modules when a start
+failures. `LifecycleRunnerTest` checks hook order, warm-ups after the starts (each running even when one fails), stops in reverse, the stop of already started modules when a start
 fails, and that every stop runs. `WorldStateExampleTest` (`example/world`) has a chunk stage, a service and a hook share
 one world's state, and a new world start empty. `PackSchemaTest` also describes settings holding IrisApi's value types (`BlockSpec`, `NoiseStyle`,
 `StyledRange`, `Range`, `BlockPosition`) and `Object`, and `SettingsValuesTest` checks the value types themselves

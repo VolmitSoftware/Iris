@@ -739,6 +739,7 @@ withers return copies, and equality is by value, so the host can cache by them.
 | --- | --- | --- |
 | `IrisBlockData` | `com.volmit.block.BlockSpec` | `BlockRegistry.resolve(BlockSpec)`, `blockEntity(BlockSpec)` |
 | `TileData` | `BlockEntityData` (existing) for placed data; a `BlockSpec`'s `tileData` (`Map<String, Object>`) in settings | `BlockRegistry.blockEntity(BlockSpec)` |
+| `IrisMaterialPalette` | `com.volmit.block.PaletteSpec` | `BlockRegistry.palette(PaletteSpec, seed)`, a `PaletteSampler` |
 | `IrisGeneratorStyle` | `com.volmit.noise.NoiseStyle` | `PackResources.noise()`, a `NoiseFactory` building `NoiseSampler`s |
 | `IrisStyledRange` | `com.volmit.noise.StyledRange` | `at(noise, seed, x, z)` |
 | `IrisRange` | `com.volmit.config.Range` | none: `contains`, `pick(WorldRandom)` |
@@ -762,6 +763,12 @@ Why these lines:
 - **`isFlat()` is stricter than Iris's**: a flat base style with an expression or image map is not flat.
 - **Block properties are text.** `{"waterlogged": true}` decodes to `"true"`, which is what the platform's state
   key holds; the host's studio description may accept the JSON types it accepted before.
+- **A palette is a value plus a picker, not a new `BlockPalette`.** `BlockPalette.select` takes a random stream
+  and a block per call, which is how a module picks by chance; `IrisMaterialPalette` picks by noise at the
+  position, so `PaletteSampler.at(x, y, z)` has no stream. The picker takes doubles because Iris's does (zoom
+  divides them), and the seed is the one the old code gave its `RNG`, so a module can keep the layout of old worlds.
+  A palette without a pickable block throws when the sampler is asked for, where Iris returned `null`: the API has
+  no absent block, and `@MinItems(1)` already says a palette needs one.
 - **Resolving a `BlockSpec` never throws.** It follows what packs rely on: a custom block of the pack's
   `blocks` folder, then the platform's block, then the backup, then air. `resolve(String)` keeps throwing for
   an unknown key.

@@ -25,9 +25,9 @@ types that carry them and lists what the Iris adapter still owes.
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
-| Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`) |
+| Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`), `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
-| Values in settings | `BlockSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `Object` as `ValueKind.AnyKind` |
+| Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `Object` as `ValueKind.AnyKind` |
 | Decisions over the platform's own structures | `VanillaStructureHook`, `VanillaStructureRule`, `VanillaStructureContext`, `FeatureRegistry.registerVanillaStructureHook`, host `FeatureCatalog.vanillaStructureHooks()` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
@@ -176,7 +176,7 @@ running Iris is the pack publisher's responsibility.
   searches off the server's main thread, and carry out what they return on the thread the platform needs.
 - Read a `StructureLocator` position's Y as a height above the dimension's bottom and convert it to the platform's Y
   at the boundary, like every other IrisApi height.
-- Decode IrisApi's value types like settings: `BlockSpec`, `NoiseStyle`, `StyledRange`, `Range` and
+- Decode IrisApi's value types like settings: `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range` and
   `BlockPosition` from the JSON shapes in their docs, `Object` as maps, lists, `Double`s, strings and booleans.
   Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from
   `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE`, `PACK_EXPRESSION` and `PACK_IMAGE_MAP` references;
@@ -186,6 +186,8 @@ running Iris is the pack publisher's responsibility.
   expression falls back to the base style, and a missing image map fails.
 - Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their
   `tileData` into the host's block entity format.
+- Build `BlockRegistry.palette(spec, seed)` pickers: blocks expanded by weight, the style's noise at (x, y, z) over
+  the zoom picks the entry, resolved as above, cached per pack snapshot; refuse a palette without a block to pick.
 - Ask every vanilla structure hook (`catalog().vanillaStructureHooks()`) before the platform starts one of its
   structures and when it locates one, combine the rules with `VanillaStructureRule.and`, keep the result per world,
   structure and pack snapshot, and apply it on every platform: block the platform's starts of a blocked

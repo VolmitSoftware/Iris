@@ -421,6 +421,7 @@ class PackSchemaTest {
                         import com.volmit.FeatureAttachment.Target;
                         import com.volmit.IrisFeature;
                         import com.volmit.block.BlockSpec;
+                        import com.volmit.block.PaletteSpec;
                         import com.volmit.config.Feature;
                         import com.volmit.config.Range;
                         import com.volmit.noise.NoiseStyle;
@@ -432,6 +433,7 @@ class PackSchemaTest {
                         public final class FloraSettings implements IrisFeature {
                             private List<BlockSpec> palette = List.of(BlockSpec.of("poppy"));
                             private NoiseStyle style = NoiseStyle.of("SIMPLEX").withZoom(4);
+                            private PaletteSpec ground = PaletteSpec.of(List.of(BlockSpec.of("grass_block")));
                             private StyledRange height = StyledRange.of(2, 5, NoiseStyle.of("SIMPLEX"));
                             private Range light = Range.of(0, 15);
                             private BlockPosition offset = new BlockPosition(1, 2, 3);
@@ -446,6 +448,7 @@ class PackSchemaTest {
         assertEquals(Optional.of(List.of(Map.of("block", "poppy", "data", Map.of(), "tileData", Map.of(), "weight", 1L))),
                 option(settings, "palette").defaultValue());
         assertEquals(new ObjectKind("com.volmit.noise.NoiseStyle"), option(settings, "style").kind());
+        assertEquals(new ObjectKind("com.volmit.block.PaletteSpec"), option(settings, "ground").kind());
         assertEquals(new ObjectKind("com.volmit.noise.StyledRange"), option(settings, "height").kind());
         assertEquals(new ObjectKind("com.volmit.config.Range"), option(settings, "light").kind());
         assertEquals(Optional.of(Map.of("max", 15.0, "min", 0.0)), option(settings, "light").defaultValue());
@@ -461,13 +464,22 @@ class PackSchemaTest {
         assertEquals(new ObjectKind("com.volmit.block.BlockSpec"), option(block, "backup").kind());
         assertEquals(Optional.of("air"), option(block, "block").defaultValue());
 
+        var ground = schema.type("com.volmit.block.PaletteSpec");
+        assertEquals(Optional.of("palette"), ground.snippet());
+        assertEquals(List.of("style", "zoom", "palette"), ground.options().stream().map(SchemaOption::name).toList());
+        assertEquals(new ListKind(new ObjectKind("com.volmit.block.BlockSpec"), false), option(ground, "palette").kind());
+        assertTrue(option(ground, "palette").required());
+        assertEquals(OptionalInt.of(1), option(ground, "palette").minItems());
+        assertEquals(OptionalDouble.of(0.0001), option(ground, "zoom").minimum());
+        assertEquals(Optional.of(5.0), option(ground, "zoom").defaultValue());
+
         var style = schema.type("com.volmit.noise.NoiseStyle");
         assertEquals(Optional.of("style"), style.snippet(), "API classes keep the snippet folders packs already use");
         assertEquals(new ReferenceKind(Reference.NOISE_STYLE, TextFormat.PLAIN), option(style, "style").kind());
         assertEquals(new ReferenceKind(Reference.PACK_EXPRESSION, TextFormat.PLAIN), option(style, "expression").kind());
         assertEquals(new ReferenceKind(Reference.PACK_IMAGE_MAP, TextFormat.PLAIN), option(style, "imageMap").kind());
         assertEquals(Optional.of("FLAT"), option(style, "style").defaultValue());
-        assertEquals(List.of("range", "style", "style-range"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
+        assertEquals(List.of("palette", "range", "style", "style-range"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
     }
 
     @Test

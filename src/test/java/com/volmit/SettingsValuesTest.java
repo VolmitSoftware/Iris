@@ -1,6 +1,8 @@
 package com.volmit;
 
 import com.volmit.block.BlockSpec;
+import com.volmit.block.PaletteSpec;
+import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.noise.NoiseSampler;
@@ -51,6 +53,23 @@ class SettingsValuesTest {
         assertFalse(simplex.isFlat());
         assertEquals(Optional.empty(), simplex.expression());
         assertEquals(Optional.empty(), simplex.fracture());
+    }
+
+    @Test
+    void palettesAreValuesWhoseDefaultsAreThoseOfIrisMaterialPalettes() {
+        var options = OptionsMetadata.inspect(PaletteSpec.class);
+        var palette = PaletteSpec.of(List.of(BlockSpec.of("stone"), BlockSpec.of("andesite").withWeight(2)));
+
+        assertEquals(List.of("style", "zoom", "palette"), options.options().stream().map(OptionsMetadata.Option::name).toList());
+        assertEquals("palette", options.snippet());
+        assertEquals(1, options.options().get(2).minItems());
+        assertEquals(0.0001, options.options().get(1).minimum());
+        assertEquals(NoiseStyle.of("STATIC"), palette.style());
+        assertEquals(5, palette.zoom());
+        assertEquals(palette.withZoom(8).withStyle(NoiseStyle.of("SIMPLEX")), palette.withStyle(NoiseStyle.of("SIMPLEX")).withZoom(8));
+        assertNotEquals(palette, palette.withZoom(8));
+        assertEquals(palette.hashCode(), PaletteSpec.of(palette.palette()).hashCode());
+        assertThrows(UnsupportedOperationException.class, () -> palette.palette().clear());
     }
 
     @Test

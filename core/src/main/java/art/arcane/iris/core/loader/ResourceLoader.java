@@ -437,7 +437,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         }
     }
 
-    /** The ids and aliases the pack's modules read at {@code target}; none for resources that hold no module settings. */
+    /** The keys the pack's modules read at {@code target}; none for resources that hold no module settings. */
     private Set<String> moduleKeys(Optional<Target> target) {
         return target.map(found -> getManager().getModules().settings().keys(found)).orElse(Set.of());
     }

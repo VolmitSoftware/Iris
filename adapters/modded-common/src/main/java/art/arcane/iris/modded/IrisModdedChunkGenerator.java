@@ -533,10 +533,10 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
         }
         String remedy = integratedEnvironment()
                 ? "enable 'Generate Structures' for this world; Iris requires it, then deny families through "
-                        + "iris:structure disabled or complete keys through iris:structure disabledExact"
+                        + "importedStructures.disabled or complete keys through importedStructures.disabledExact"
                 : "set generate-structures=true in server.properties, restart the server, "
-                        + "then deny families through iris:structure disabled or complete keys through "
-                        + "iris:structure disabledExact";
+                        + "then deny families through importedStructures.disabled or complete keys through "
+                        + "importedStructures.disabledExact";
         throw new IllegalStateException("Iris generator '" + dimensionKey
                 + "' cannot bind while generate-structures=false; " + remedy);
     }

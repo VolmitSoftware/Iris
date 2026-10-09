@@ -293,7 +293,7 @@ public class SchemaBuilder {
 
     /**
      * A registry enum that ALSO accepts family/namespace prefixes ("minecraft:village",
-     * "nova_structures:") — the runtime prefix-matching contract of iris:structure disabled and
+     * "nova_structures:") — the runtime prefix-matching contract of importedStructures.disabled and
      * adjustments[].match ({@code Reference.STRUCTURE_PREFIX}). Emitted as anyOf(enum, pattern) so autocomplete still offers registered
      * keys while prefix entries validate instead of being rejected.
      */

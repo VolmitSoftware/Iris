@@ -18,14 +18,17 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.loader.JsonFieldNames;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.FeatureAttachment.Target;
 
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Which Iris class holds the JSON of each attachment target that module settings can appear in.
@@ -46,5 +49,12 @@ public final class ModuleTargets {
                 .filter(entry -> entry.getValue() == resourceType)
                 .map(Map.Entry::getKey)
                 .findFirst();
+    }
+
+    /** Iris's own JSON fields per target, which no settings key may take. */
+    static Map<Target, Set<String>> reservedFields() {
+        Map<Target, Set<String>> fields = new EnumMap<>(Target.class);
+        HOLDERS.forEach((target, holder) -> fields.put(target, JsonFieldNames.of(holder)));
+        return fields;
     }
 }

@@ -95,8 +95,8 @@ final class PackDimensionValidator {
         }
     }
 
-    /** The dimension's settings of the {@code iris:structure} module, which the platform's own structures follow. */
-    static final String STRUCTURE_SETTINGS = "iris:structure";
+    /** The dimension's {@code importedStructures} settings of the iris:structure module, which the platform's own structures follow. */
+    static final String STRUCTURE_SETTINGS = "importedStructures";
 
     static void validateImportedStructurePolicy(String dimensionKey, JSONObject dimension,
                                                 List<String> blockingErrors, List<String> warnings) {
@@ -104,21 +104,21 @@ final class PackDimensionValidator {
             return;
         }
         if (dimension.isNull(STRUCTURE_SETTINGS)) {
-            blockingErrors.add("Dimension '" + dimensionKey + "' iris:structure must be an object.");
+            blockingErrors.add("Dimension '" + dimensionKey + "' importedStructures must be an object.");
             return;
         }
         JSONObject policy = dimension.optJSONObject(STRUCTURE_SETTINGS);
         if (policy == null) {
-            blockingErrors.add("Dimension '" + dimensionKey + "' iris:structure must be an object.");
+            blockingErrors.add("Dimension '" + dimensionKey + "' importedStructures must be an object.");
             return;
         }
         if (policy.has("mode")) {
             blockingErrors.add("Dimension '" + dimensionKey
-                    + "' iris:structure.mode is not supported. Native structures are enabled by default; deny families in iris:structure disabled or complete keys in iris:structure disabledExact.");
+                    + "' importedStructures.mode is not supported. Native structures are enabled by default; deny families in importedStructures.disabled or complete keys in importedStructures.disabledExact.");
         }
         if (policy.has("enabled")) {
             blockingErrors.add("Dimension '" + dimensionKey
-                    + "' iris:structure.enabled is not supported. Native structures are enabled by default; deny families in iris:structure disabled or complete keys in iris:structure disabledExact.");
+                    + "' importedStructures.enabled is not supported. Native structures are enabled by default; deny families in importedStructures.disabled or complete keys in importedStructures.disabledExact.");
         }
         validateStructureKeyList(dimensionKey, policy, "disabled", blockingErrors);
         validateStructureKeyList(dimensionKey, policy, "disabledExact", blockingErrors);
@@ -127,7 +127,7 @@ final class PackDimensionValidator {
         if (adjustments == null) {
             if (policy.has("adjustments")) {
                 blockingErrors.add("Dimension '" + dimensionKey
-                        + "' iris:structure.adjustments must be an array.");
+                        + "' importedStructures.adjustments must be an array.");
             }
             return;
         }
@@ -135,17 +135,17 @@ final class PackDimensionValidator {
             JSONObject adjustment = adjustments.optJSONObject(index);
             if (adjustment == null) {
                 blockingErrors.add("Dimension '" + dimensionKey
-                        + "' iris:structure.adjustments has a non-object entry at index " + index + ".");
+                        + "' importedStructures.adjustments has a non-object entry at index " + index + ".");
                 continue;
             }
             if (adjustment.has("clearVegetation")) {
-                warnings.add("Dimension '" + dimensionKey + "' iris:structure.adjustments[" + index
+                warnings.add("Dimension '" + dimensionKey + "' importedStructures.adjustments[" + index
                         + "].clearVegetation was removed and is ignored. Vegetation is always cleared inside structure piece envelopes.");
             }
             validateStructureKeyList(dimensionKey, adjustment, "match", blockingErrors);
             validateAdjustmentYBand(dimensionKey, adjustment, index, blockingErrors);
             PackStructurePlacementValidator.validateNativeTerrain("Dimension '" + dimensionKey
-                    + "' iris:structure.adjustments[" + index + "]", adjustment, blockingErrors);
+                    + "' importedStructures.adjustments[" + index + "]", adjustment, blockingErrors);
         }
     }
 
@@ -157,13 +157,13 @@ final class PackDimensionValidator {
         JSONArray overrides = policy.optJSONArray("frequencyOverrides");
         if (overrides == null) {
             blockingErrors.add("Dimension '" + dimensionKey
-                    + "' iris:structure.frequencyOverrides must be an array.");
+                    + "' importedStructures.frequencyOverrides must be an array.");
             return;
         }
         for (int index = 0; index < overrides.length(); index++) {
             JSONObject override = overrides.optJSONObject(index);
             String path = "Dimension '" + dimensionKey
-                    + "' iris:structure.frequencyOverrides[" + index + "]";
+                    + "' importedStructures.frequencyOverrides[" + index + "]";
             if (override == null) {
                 blockingErrors.add(path + " must be an object.");
                 continue;
@@ -185,7 +185,7 @@ final class PackDimensionValidator {
             return;
         }
         String path = "Dimension '" + dimensionKey
-                + "' iris:structure.adjustments[" + index + "].yBand";
+                + "' importedStructures.adjustments[" + index + "].yBand";
         JSONObject band = adjustment.optJSONObject("yBand");
         if (band == null) {
             blockingErrors.add(path + " must be an object.");

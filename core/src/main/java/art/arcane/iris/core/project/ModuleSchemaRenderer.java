@@ -38,8 +38,8 @@ import java.util.function.Function;
 
 /**
  * Renders the settings a pack's modules add, described by IrisApi as a {@link PackSchema}, into the JSON
- * schema studio writes: each feature as a property of its target under its id, each settings class once as a
- * definition, references as completion lists (resource references as the keys of the module resource kind they
+ * schema studio writes: each feature as a property of its target under its key, each settings class once as a
+ * definition (a feature whose key holds one option's value is that option's schema, not the class's), references as completion lists (resource references as the keys of the module resource kind they
  * name). Iris's own classes in built-in settings use Iris's own definitions, and so do IrisApi's value types, which read the same JSON as
  * an Iris class ({@code BlockSpec} as Iris's block data), with the snippet references their {@code @Snippet} allows.
  */
@@ -89,7 +89,7 @@ final class ModuleSchemaRenderer {
         this.snippetFiles = snippetFiles;
     }
 
-    /** Adds every feature at {@code target} to {@code properties} under its id. */
+    /** Adds every feature at {@code target} to {@code properties} under its key. */
     void addFeatures(Target target, JSONObject properties) {
         for (FeatureSchema feature : schema.fields(target)) {
             properties.put(feature.key(), featureProperty(feature));
@@ -107,12 +107,15 @@ final class ModuleSchemaRenderer {
     }
 
     private JSONObject featureProperty(FeatureSchema feature) {
-        JSONObject property = new JSONObject();
-        property.put("$ref", DEFINITION_REF + definition(feature.settings().name()));
+        JSONObject property = feature.rootOption().map(this::optionSchema).orElseGet(() -> settingsReference(feature));
         String description = feature.name() + " (" + feature.id() + "), from module " + feature.module().name()
                 + " (" + feature.module().id() + ")" + (feature.settings().description().isEmpty() ? "" : ". " + feature.settings().description());
         property.put("description", description);
         return property;
+    }
+
+    private JSONObject settingsReference(FeatureSchema feature) {
+        return new JSONObject().put("$ref", DEFINITION_REF + definition(feature.settings().name()));
     }
 
     /** Whether the pack's modules describe the class {@code typeName}. */

@@ -19,7 +19,7 @@ public final class JsonSchemaValidator {
 
     /**
      * Warns about every top-level key that is neither a field of {@code objectClass} nor one of
-     * {@code moduleKeys}, the ids the pack's modules read at this resource's target.
+     * {@code moduleKeys}, the keys the pack's modules read at this resource's target.
      */
     public static void validateTopLevelKeys(JSONObject parsed, String rawText, File file, String resourceTypeName, Class<?> objectClass,
                                      Set<String> moduleKeys) {

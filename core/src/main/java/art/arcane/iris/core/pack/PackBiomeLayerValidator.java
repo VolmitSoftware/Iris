@@ -35,7 +35,6 @@ import java.util.List;
  */
 final class PackBiomeLayerValidator {
     private static final int DEFAULT_LAYER_COUNT = 1;
-    private static final String DECORANT_SETTINGS = "iris:decorant";
     private static final String DECORATORS = "decorators";
 
     private PackBiomeLayerValidator() {
@@ -81,18 +80,10 @@ final class PackBiomeLayerValidator {
             for (File biomeFile : biomeFiles) {
                 String biomeKey = PackValidationIo.deriveKey(biomesFolder, biomeFile);
                 JSONObject biome = PackValidationIo.readJson(biomeFile);
-                if (biome == null || !biome.has(DECORANT_SETTINGS) || biome.isNull(DECORANT_SETTINGS)) {
+                if (biome == null || !biome.has(DECORATORS) || biome.isNull(DECORATORS)) {
                     continue;
                 }
-                JSONObject decorant = biome.optJSONObject(DECORANT_SETTINGS);
-                if (decorant == null) {
-                    blockingErrors.add("Biome '" + biomeKey + "' " + DECORANT_SETTINGS + " must be an object.");
-                    continue;
-                }
-                if (!decorant.has(DECORATORS) || decorant.isNull(DECORATORS)) {
-                    continue;
-                }
-                JSONArray decorators = decorant.optJSONArray(DECORATORS);
+                JSONArray decorators = biome.optJSONArray(DECORATORS);
                 if (decorators == null) {
                     blockingErrors.add("Biome '" + biomeKey + "' decorators must be an array.");
                     continue;

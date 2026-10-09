@@ -73,7 +73,7 @@ public final class NativeStructureGenerationPolicy {
         return switch (Objects.requireNonNull(status, "Native structure status must not be null")) {
             case GENERATE_NATIVE -> "Native structure " + key + " generates natively.";
             case DISABLED_BY_PACK -> "Native structure " + key
-                    + " is disabled by this dimension's iris:structure settings or a module of the pack.";
+                    + " is disabled by this dimension's importedStructures settings or a module of the pack.";
             case REPLACED_BY_IRIS -> "Native structure " + key
                     + " is replaced by an Iris placement in this pack and locates through that explicit replacement.";
             case INVALID_REGISTRY_KEY -> "Native structure registry key is invalid: " + key;

@@ -290,8 +290,8 @@ final class ModdedNativeStructureStage {
                     + " because generate-structures=false disables them outside the pack. That flag is fixed when "
                     + "the world is created (server.properties generate-structures, or the Generate Structures "
                     + "toggle in singleplayer), so it cannot be changed for this world: create a new world with "
-                    + "structures enabled, then deny families through iris:structure disabled or complete keys "
-                    + "through iris:structure disabledExact");
+                    + "structures enabled, then deny families through importedStructures.disabled or complete keys "
+                    + "through importedStructures.disabledExact");
         }
         ChunkPos chunkPos = chunk.getPos();
         SectionPos sectionPos = SectionPos.of(chunkPos, world.getMinSectionY());

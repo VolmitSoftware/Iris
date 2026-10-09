@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -31,6 +32,7 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
+import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Snippet;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.FeatureDescriptor;
@@ -41,6 +43,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,13 +56,14 @@ import java.util.stream.Stream;
 
 /**
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
- * that target, under its id. Settings are created with their no-argument
+ * that target, under the key the feature declares. Settings are created with their no-argument
  * constructor and the JSON is read into them, so an omitted option keeps its default. A {@link Snippet}
  * type may be written as {@code "snippet/<name>"} or, as Iris's own snippets are, {@code "snippet/<snippet folder>/<name>"},
  * both read from {@code snippet/<snippet folder>/<name>.json}. IrisApi's value types ({@code BlockSpec},
  * {@code NoiseStyle} and the rest) are read like settings, and an {@code Object} as Gson reads any JSON value.
  * <p>
- * Settings are always written as their object. Iris's own classes that built-in settings hold (see
+ * Settings are written in the one shape their class declares: an object of the class's options or, when the feature
+ * names a {@code root} option, exactly that option's value. Iris's own classes that built-in settings hold (see
  * {@link IrisModuleHost#isHostType}) are read by Iris's pack Gson, exactly as Iris reads them elsewhere.
  */
 public final class ModuleSettingsDecoder {
@@ -89,7 +93,7 @@ public final class ModuleSettingsDecoder {
         }
     }
 
-    /** Every JSON key the pack's modules read at {@code target}: the feature ids, object generators' included. */
+    /** Every JSON key the pack's modules read at {@code target}: the keys of their features, object generators' included. */
     public Set<String> keys(Target target) {
         return keys.get(target);
     }
@@ -127,8 +131,8 @@ public final class ModuleSettingsDecoder {
 
     private IrisFeature read(FeatureDescriptor<?> feature, Object value, String resource) {
         try {
-            requireObjectOrSnippet(feature, value);
-            IrisFeature decoded = gson.fromJson(JSONObject.valueToString(value), feature.type());
+            requireShape(feature, value);
+            IrisFeature decoded = gson.fromJson(settingsJson(feature, value), feature.type());
             if (decoded == null) {
                 throw new JsonParseException("the value is null");
             }
@@ -139,11 +143,51 @@ public final class ModuleSettingsDecoder {
         }
     }
 
+    /** The settings object the value stands for: the value itself, or the root option holding it. */
+    private static String settingsJson(FeatureDescriptor<?> feature, Object value) {
+        return feature.root()
+                .map(root -> new JSONObject().put(root, value).toString())
+                .orElseGet(() -> JSONObject.valueToString(value));
+    }
+
+    private static void requireShape(FeatureDescriptor<?> feature, Object value) {
+        if (feature.root().isPresent()) {
+            requireRootValue(feature, feature.root().get(), value);
+            return;
+        }
+        requireObjectOrSnippet(feature, value);
+    }
+
     private static void requireObjectOrSnippet(FeatureDescriptor<?> feature, Object value) {
         if (value instanceof JSONObject || (value instanceof String && feature.type().isAnnotationPresent(Snippet.class))) {
             return;
         }
         throw new JsonParseException("write the settings as an object, {\"<option>\": ...}");
+    }
+
+    private static void requireRootValue(FeatureDescriptor<?> feature, String root, Object value) {
+        if (JSONObject.NULL.equals(value)) {
+            throw new JsonParseException("the value is null; write " + describeRootShape(feature, root));
+        }
+        if (isListOption(feature, root) && !(value instanceof JSONArray)) {
+            throw new JsonParseException("write " + describeRootShape(feature, root) + ", not an object of options");
+        }
+    }
+
+    private static boolean isListOption(FeatureDescriptor<?> feature, String root) {
+        Class<?> type = rootOption(feature, root).field().getType();
+        return Collection.class.isAssignableFrom(type) || type.isArray();
+    }
+
+    private static String describeRootShape(FeatureDescriptor<?> feature, String root) {
+        return isListOption(feature, root) ? "a list, [...], of the " + root : "the " + root + " directly";
+    }
+
+    private static OptionsMetadata.Option rootOption(FeatureDescriptor<?> feature, String root) {
+        return feature.options().options().stream()
+                .filter(option -> option.name().equals(root))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Root " + root + " is no option of " + feature.type().getName()));
     }
 
     private static List<FeatureDescriptor<?>> settingsAt(FeatureCatalog catalog, Target target) {

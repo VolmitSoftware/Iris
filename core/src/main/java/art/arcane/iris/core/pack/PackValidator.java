@@ -36,7 +36,6 @@ public final class PackValidator {
     static final String DATAPACKS_FOLDER = "datapacks";
     static final String CACHE_FOLDER = "cache";
     static final String OBJECTS_FOLDER = "objects";
-    static final String LOOT_FOLDER = "loot";
     static final String DIMENSIONS_FOLDER = "dimensions";
     static final String STRUCTURES_FOLDER = "structures";
     static final String JIGSAW_POOLS_FOLDER = "jigsaw-pools";
@@ -90,9 +89,6 @@ public final class PackValidator {
         addDistinct(blockingErrors, imageMaps.errors());
         addDistinct(warnings, imageMaps.warnings());
         blockingErrors.addAll(PackCaveProfileValidator.validateLegacyFields(packFolder));
-        PackLootValidator.LootGraphIssues lootIssues = PackLootValidator.validateLootGraph(packFolder);
-        addDistinct(blockingErrors, lootIssues.errors());
-        addDistinct(warnings, lootIssues.warnings());
         blockingErrors.addAll(PackObjectSurfaceValidator.validateRemovedWorldgenFields(packFolder));
         blockingErrors.addAll(PackObjectSurfaceValidator.validateObjectSurfaceSupport(packFolder));
         blockingErrors.addAll(PackObjectSurfaceValidator.validateUnsupportedStructureTransforms(packFolder));

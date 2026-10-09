@@ -1,14 +1,12 @@
 package art.arcane.iris.util.common.data.registry;
 
-import art.arcane.iris.engine.object.entity.IrisEntity;
 import org.bukkit.Particle;
 
 import static art.arcane.iris.util.common.data.registry.RegistryUtil.find;
 
 /**
- * Bukkit particle constants. Statically imported by {@code IrisEntity} (a Gson-registered pack
- * type), so this class is reachable from core on the modded loaders. The resolution below is
- * therefore guarded against the absent Bukkit class: without the guard the class initializer dies
+ * Bukkit particle constants, used by the Bukkit entity spawner. Core code can reach this class on the modded
+ * loaders, so the resolution below is guarded against the absent Bukkit class: without the guard the class initializer dies
  * with a NoClassDefFoundError and the class stays permanently erroneous for the rest of the JVM's
  * life. On Bukkit a genuinely missing registry key still throws, exactly as before.
  */

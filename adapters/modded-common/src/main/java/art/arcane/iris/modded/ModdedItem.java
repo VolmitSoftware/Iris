@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.spi.PlatformItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,5 +55,10 @@ public final class ModdedItem implements PlatformItem {
     @Override
     public Object nativeHandle() {
         return item;
+    }
+
+    @Override
+    public int maxDurability() {
+        return new ItemStack(item).getMaxDamage();
     }
 }

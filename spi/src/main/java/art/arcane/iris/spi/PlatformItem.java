@@ -42,4 +42,9 @@ public interface PlatformItem {
      * on a mod loader. Never null. Only code inside the owning adapter may cast it.
      */
     Object nativeHandle();
+
+    /**
+     * The damage a stack of this item takes before it breaks, 0 for an item that cannot be damaged.
+     */
+    int maxDurability();
 }

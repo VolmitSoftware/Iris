@@ -4,6 +4,8 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -92,6 +94,9 @@ public class HintedLocatorTest {
         when(engine.isClosed()).thenReturn(false);
         when(engine.acquireGenerationLease(any(String.class))).thenReturn(GenerationSessionLease.noop());
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        ModuleResourceFixture.serveModules(data, new ObjectModule());
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
+        stubReachableBiomes();
     }
 
     private static IrisBiome biome(String key) {
@@ -135,6 +140,10 @@ public class HintedLocatorTest {
 
     private void stubBiome(IrisBiome biome) {
         when(biomeLoader.load(biome.getLoadKey())).thenReturn(biome);
+    }
+
+    private void stubReachableBiomes(IrisBiome... biomes) {
+        when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>(biomes));
     }
 
     @Test
@@ -285,6 +294,7 @@ public class HintedLocatorTest {
         placements.add(placement);
         host.setObjects(placements);
         stubBiome(host);
+        stubReachableBiomes(host);
         stubRegions(regionA);
 
         when(complex.getRegionStream()).thenReturn(constantStream(regionA));
@@ -326,6 +336,7 @@ public class HintedLocatorTest {
         IrisRegion regionA = region("reg_a");
         regionA.setLandBiomes(keys("plains"));
         stubBiome(biome("plains"));
+        stubReachableBiomes(biome("plains"));
         stubRegions(regionA);
 
         HintedLocator.SearchPlan plan = HintedLocator.objectPlan(engine, "missing/object");
@@ -416,6 +427,7 @@ public class HintedLocatorTest {
         placements.add(placement);
         host.setObjects(placements);
         stubBiome(host);
+        stubReachableBiomes(host);
         stubRegions(regionA);
 
         when(complex.getRegionStream()).thenReturn(constantStream(regionA));

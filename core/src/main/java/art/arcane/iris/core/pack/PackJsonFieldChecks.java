@@ -62,9 +62,9 @@ final class PackJsonFieldChecks {
         if (!object.has(field) || object.opt(field) == JSONObject.NULL) {
             return;
         }
-        Integer value = PackLootValidator.lootInteger(object, field, minimum, path, blockingErrors);
-        PackLootValidator.requireMinimum(path + "." + field, value, minimum, blockingErrors);
-        PackLootValidator.requireMaximum(path + "." + field, value, maximum, blockingErrors);
+        Integer value = PackIntegerChecks.integerField(object, field, minimum, path, blockingErrors);
+        PackIntegerChecks.requireMinimum(path + "." + field, value, minimum, blockingErrors);
+        PackIntegerChecks.requireMaximum(path + "." + field, value, maximum, blockingErrors);
     }
 
     static void validateOptionalDoubleRange(String path, JSONObject object, String field,

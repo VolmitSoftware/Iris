@@ -19,10 +19,13 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.structure.StructureLocating;
+import art.arcane.iris.engine.loot.LootGiving;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import com.volmit.IrisModule;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.LifecycleRegistration;
+import com.volmit.service.BlockDrops;
+import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.StructureLocator;
 import org.junit.Test;
@@ -39,6 +42,13 @@ public class BuiltInServicesTest {
     @Test
     public void objectsTellWhichObjectsAChunkGets() {
         assertEquals(1, BUILT_INS.services(ObjectsAt.class).size());
+    }
+
+    @Test
+    public void lootAndBlockDropsComeFromTheLootModule() {
+        assertEquals(1, BUILT_INS.services(Loot.class).size());
+        assertEquals(1, BUILT_INS.services(BlockDrops.class).size());
+        assertTrue(BUILT_INS.services(Loot.class).getFirst() instanceof LootGiving);
     }
 
     @Test

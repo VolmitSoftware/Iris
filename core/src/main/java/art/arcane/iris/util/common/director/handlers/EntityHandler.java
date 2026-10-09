@@ -18,13 +18,28 @@
 
 package art.arcane.iris.util.common.director.handlers;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.entity.IrisEntity;
+import art.arcane.iris.engine.spawn.SpawnResources;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.common.director.specialhandlers.RegistrantHandler;
 
 public class EntityHandler extends RegistrantHandler<IrisEntity> {
 
     public EntityHandler() {
         super(IrisEntity.class, false);
+    }
+
+    @Override
+    protected KList<IrisEntity> loadAll(IrisData data) {
+        KList<IrisEntity> entities = new KList<>();
+        for (String key : SpawnResources.entityKeys(data)) {
+            IrisEntity entity = SpawnResources.entity(data, key);
+            if (entity != null) {
+                entities.add(entity);
+            }
+        }
+        return entities;
     }
 
     @Override

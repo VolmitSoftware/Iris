@@ -1,11 +1,10 @@
 package art.arcane.iris.util.project.matter;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.util.project.matter.slices.SpawnerMatter;
-import art.arcane.volmlib.util.collection.KMap;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -18,7 +17,6 @@ import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class RegistryMatterContextTest {
     @Test
@@ -49,14 +47,9 @@ public class RegistryMatterContextTest {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private IrisData dataReturning(IrisSpawner resolved) {
-        ResourceLoader<IrisSpawner> loader = mock(ResourceLoader.class);
-        when(loader.load("test-spawner")).thenReturn(resolved);
-        KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
-        loaders.put(IrisSpawner.class, loader);
         IrisData data = mock(IrisData.class);
-        when(data.getLoaders()).thenReturn(loaders);
+        ModuleResourceFixture.serve(data).resource(SpawnResources.SPAWNERS, "test-spawner", resolved);
         return data;
     }
 }

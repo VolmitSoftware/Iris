@@ -5,20 +5,18 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.core.events.IrisLootEvent;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
+import com.volmit.service.Loot;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -85,16 +83,15 @@ public class WorldObjectPlacer implements IObjectPlacer {
         int x = block.getX();
         int y = block.getY();
         int z = block.getZ();
-        RNG rng = LootResolver.containerRng(engine.getSeedManager().getLoot(), x, y, z);
-        KList<IrisLootTable> tables = EngineBukkitOps.getLootTables(engine, rng, block);
+        KList<Loot.Source> tables = EngineBukkitOps.getLootTables(engine, block);
 
         try {
-            Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, InventorySlotType.STORAGE, tables));
+            Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, tables));
             if (tables.isEmpty()) {
                 return;
             }
             InventoryHolder holder = (InventoryHolder) block.getState();
-            EngineBukkitOps.addItems(engine, false, holder.getInventory(), tables, InventorySlotType.STORAGE, world, x, y, z);
+            EngineBukkitOps.addItems(engine, false, holder.getInventory(), tables, world, x, y, z);
         } catch (Throwable e) {
             IrisLogging.reportError(e);
         }

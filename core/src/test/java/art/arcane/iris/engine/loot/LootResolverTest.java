@@ -1,7 +1,9 @@
-package art.arcane.iris.engine.framework;
+package art.arcane.iris.engine.loot;
+
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.LootResolver;
 
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.loot.IrisLootMode;
@@ -12,6 +14,7 @@ import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.item.ItemRegistry;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -70,12 +73,12 @@ public class LootResolverTest {
         IrisLootTable first = new IrisLootTable().setName("first");
         IrisLootTable second = new IrisLootTable().setName("second");
 
-        long baseline = LootResolver.tableSeed(41L, first, 0, 64, 0);
+        long baseline = LootTables.seed(41L, first, 0, 64, 0);
 
-        assertEquals(baseline, LootResolver.tableSeed(41L, first, 0, 64, 0));
-        assertNotEquals(baseline, LootResolver.tableSeed(42L, first, 0, 64, 0));
-        assertNotEquals(baseline, LootResolver.tableSeed(41L, second, 0, 64, 0));
-        assertNotEquals(baseline, LootResolver.tableSeed(41L, first, 16, 64, 0));
+        assertEquals(baseline, LootTables.seed(41L, first, 0, 64, 0));
+        assertNotEquals(baseline, LootTables.seed(42L, first, 0, 64, 0));
+        assertNotEquals(baseline, LootTables.seed(41L, second, 0, 64, 0));
+        assertNotEquals(baseline, LootTables.seed(41L, first, 16, 64, 0));
     }
 
     @Test
@@ -84,7 +87,7 @@ public class LootResolverTest {
         int successes = 0;
 
         for (int x = 0; x < 65_536; x++) {
-            if (LootResolver.spatialOneIn(91L, table, 3, x, 40, x * 31, 8L)) {
+            if (LootTables.spatialOneIn(91L, table, 3, x, 40, x * 31, 8L)) {
                 successes++;
             }
         }
@@ -92,8 +95,8 @@ public class LootResolverTest {
         assertTrue(successes > 7_600);
         assertTrue(successes < 8_800);
         assertEquals(
-                LootResolver.spatialOneIn(91L, table, 3, 112, 40, 992, 8L),
-                LootResolver.spatialOneIn(91L, table, 3, 112, 40, 992, 8L)
+                LootTables.spatialOneIn(91L, table, 3, 112, 40, 992, 8L),
+                LootTables.spatialOneIn(91L, table, 3, 112, 40, 992, 8L)
         );
     }
 
@@ -102,7 +105,7 @@ public class LootResolverTest {
         ResolutionFixture fixture = new ResolutionFixture();
         List<IrisLootTable> sources = new ArrayList<>();
 
-        LootResolver.resolveEnvironmentSources(
+        LootTables.resolveEnvironmentSources(
                 sources,
                 fixture.engine,
                 new RNG(19L),
@@ -121,7 +124,7 @@ public class LootResolverTest {
         ResolutionFixture fixture = new ResolutionFixture();
         List<IrisLootTable> sources = new ArrayList<>();
 
-        LootResolver.resolveEnvironmentSources(
+        LootTables.resolveEnvironmentSources(
                 sources,
                 fixture.engine,
                 new RNG(19L),
@@ -247,7 +250,7 @@ public class LootResolverTest {
     public void emptyLootTableReturnsNoItems() {
         IrisLootTable table = new IrisLootTable().setName("empty");
 
-        assertTrue(table.getLoot(false, 7L, InventorySlotType.STORAGE, null, 0, 64, 0).isEmpty());
+        assertTrue(new LootItems(mock(ItemRegistry.class), false).draw(table, 7L, 0, 64, 0).isEmpty());
     }
 
     @Test

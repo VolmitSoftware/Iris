@@ -1,0 +1,104 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.engine.spawn;
+
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.object.entity.IrisEntity;
+import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
+import art.arcane.iris.engine.object.marker.IrisMarker;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+
+/** Spawners, entities and markers are resource kinds of module {@code iris:spawn}, read from the folders packs have always had. */
+public class SpawnResourcesTest {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void theSpawnModuleOwnsTheKinds() throws Exception {
+        IrisData data = IrisData.openValidation(spawnPack("owned").toFile());
+        try {
+            var catalog = data.getModules().pack().catalog();
+
+            var kinds = catalog.resourceKinds().stream().map(registration -> registration.kind())
+                    .filter(kind -> kind.id().toString().startsWith("iris:spawn/")).toList();
+            assertEquals(List.of("iris:spawn/entity", "iris:spawn/marker", "iris:spawn/spawner"), kinds.stream().map(kind -> kind.id().toString()).toList());
+            assertEquals(List.of("entities", "markers", "spawners"), kinds.stream().map(kind -> kind.folder()).toList());
+            assertFalse(data.getLoaders().containsKey(IrisSpawner.class));
+            assertFalse(data.getLoaders().containsKey(IrisEntity.class));
+            assertFalse(data.getLoaders().containsKey(IrisMarker.class));
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void spawnersEntitiesAndMarkersAreReadThroughPackResources() throws Exception {
+        Path pack = spawnPack("spawns");
+        IrisData data = IrisData.openValidation(pack.toFile());
+        try {
+            IrisSpawner spawner = SpawnResources.spawner(data, "camp/zombies");
+
+            assertEquals("camp/zombies", spawner.getLoadKey());
+            assertEquals(pack.resolve("spawners/camp/zombies.json").toFile(), spawner.getLoadFile());
+            assertEquals("minecraft:zombie", SpawnResources.entity(data, "zombie").getType());
+            assertEquals(List.of("camp/zombies"), SpawnResources.marker(data, "camp").getSpawners());
+            assertEquals(List.of(spawner), SpawnResources.spawners(data, List.of("camp/zombies", "missing")));
+            assertEquals(List.of("zombie"), SpawnResources.entityKeys(data));
+            assertEquals(List.of("camp"), SpawnResources.markerKeys(data));
+            assertEquals(List.of("camp/zombies"), SpawnResources.spawnerKeys(data));
+            assertNull(SpawnResources.spawner(data, "missing"));
+            assertNull(SpawnResources.entity(data, " "));
+
+            write(pack, "entities/zombie.json", "{\"type\":\"minecraft:husk\"}");
+            data.dump();
+            assertEquals("minecraft:husk", SpawnResources.entity(data, "zombie").getType());
+        } finally {
+            data.close();
+        }
+    }
+
+    private Path spawnPack(String name) throws Exception {
+        File pack = temporaryFolder.newFolder(name);
+        write(pack.toPath(), "dimensions/main.json", "{\"regions\":[\"region\"]}");
+        write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
+        write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");
+        write(pack.toPath(), "entities/zombie.json", "{\"type\":\"minecraft:zombie\"}");
+        write(pack.toPath(), "spawners/camp/zombies.json", "{\"spawns\":[{\"entity\":\"zombie\"}]}");
+        write(pack.toPath(), "markers/camp.json", "{\"spawners\":[\"camp/zombies\"]}");
+        return pack.toPath();
+    }
+
+    private static void write(Path root, String relative, String content) throws Exception {
+        Path path = root.resolve(relative);
+        Files.createDirectories(path.getParent());
+        Files.writeString(path, content, StandardCharsets.UTF_8);
+    }
+}

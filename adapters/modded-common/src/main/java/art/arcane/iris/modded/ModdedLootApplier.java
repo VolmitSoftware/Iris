@@ -18,11 +18,13 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.engine.loot.LootTables;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.engine.object.loot.InventorySlotType;
@@ -121,7 +123,7 @@ public final class ModdedLootApplier {
             }
         }
 
-        LootResolver.resolveEnvironmentSources(
+        LootTables.resolveEnvironmentSources(
                 sources,
                 engine,
                 rng,
@@ -143,7 +145,7 @@ public final class ModdedLootApplier {
             if (loot == null || loot.getWeight() <= 0) {
                 continue;
             }
-            IrisLootTable table = engine.getData().getLootLoader().load(loot.getName());
+            IrisLootTable table = LootResources.table(engine.getData(), loot.getName());
             if (table == null) {
                 IrisLogging.warn("Couldn't find loot table " + loot.getName());
                 continue;

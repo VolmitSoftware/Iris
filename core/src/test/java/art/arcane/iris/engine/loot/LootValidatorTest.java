@@ -1,8 +1,10 @@
-package art.arcane.iris.core.pack;
+package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.engine.object.loot.IrisLoot;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
+import com.volmit.validation.Problem;
+import com.volmit.validation.Severity;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -16,7 +18,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class PackValidatorLootTest {
+public class LootValidatorTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -28,7 +30,7 @@ public class PackValidatorLootTest {
         write(pack, "dimensions/main.json", "{\"loot\":{\"mode\":\"FALLBACK\",\"multiplier\":0.5,"
                 + "\"tables\":[\"global/clutter\"]}}");
 
-        assertTrue(PackLootValidator.validateLootGraph(pack).errors().isEmpty());
+        assertTrue(errors(pack).isEmpty());
     }
 
     @Test
@@ -37,7 +39,7 @@ public class PackValidatorLootTest {
         write(pack, "dimensions/main.json", "{\"loot\":{\"tables\":[\"missing\"]}}");
 
         assertEquals(List.of("Dimension 'main'.loot.tables[0] references missing loot table 'missing'."),
-                PackLootValidator.validateLootGraph(pack).errors());
+                errors(pack));
     }
 
     @Test
@@ -47,7 +49,7 @@ public class PackValidatorLootTest {
                 + "\"loot\":[{\"type\":\"\",\"rarity\":0,\"minAmount\":3,\"maxAmount\":1,"
                 + "\"enchantments\":[{\"enchantment\":\"\",\"minLevel\":4,\"maxLevel\":2,\"chance\":2}]}]}");
 
-        List<String> errors = PackLootValidator.validateLootGraph(pack).errors();
+        List<String> errors = errors(pack);
 
         assertTrue(errors.stream().anyMatch(error -> error.contains(".rarity must be at least 1")));
         assertTrue(errors.stream().anyMatch(error -> error.contains(".minPicked must not exceed")));
@@ -63,7 +65,7 @@ public class PackValidatorLootTest {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json", "{\"loot\":{\"mode\":\"MERGE\",\"multiplier\":-1,\"tables\":[]}}");
 
-        List<String> errors = PackLootValidator.validateLootGraph(pack).errors();
+        List<String> errors = errors(pack);
 
         assertEquals(2, errors.size());
         assertTrue(errors.get(0).contains(".mode must be"));
@@ -74,12 +76,12 @@ public class PackValidatorLootTest {
     public void enforcesPublishedLootMultiplierCap() throws Exception {
         File acceptedPack = temporaryFolder.newFolder("accepted-pack");
         write(acceptedPack, "dimensions/main.json", "{\"loot\":{\"multiplier\":16,\"tables\":[]}}");
-        assertTrue(PackLootValidator.validateLootGraph(acceptedPack).errors().isEmpty());
+        assertTrue(errors(acceptedPack).isEmpty());
 
         File rejectedPack = temporaryFolder.newFolder("rejected-pack");
         write(rejectedPack, "dimensions/main.json", "{\"loot\":{\"multiplier\":16.01,\"tables\":[]}}");
         assertEquals(List.of("Dimension 'main'.loot.multiplier must be a finite number from 0 to 16."),
-                PackLootValidator.validateLootGraph(rejectedPack).errors());
+                errors(rejectedPack));
     }
 
     @Test
@@ -88,7 +90,7 @@ public class PackValidatorLootTest {
         write(pack, "loot/boundary.json", "{\"minPicked\":64,\"maxPicked\":64,\"maxTries\":256,"
                 + "\"loot\":[{\"type\":\"stone\",\"minAmount\":64,\"maxAmount\":64}]}");
 
-        assertTrue(PackLootValidator.validateLootGraph(pack).errors().isEmpty());
+        assertTrue(errors(pack).isEmpty());
     }
 
     @Test
@@ -97,7 +99,7 @@ public class PackValidatorLootTest {
         write(pack, "loot/excessive.json", "{\"minPicked\":65,\"maxPicked\":65,\"maxTries\":257,"
                 + "\"loot\":[{\"type\":\"stone\",\"minAmount\":65,\"maxAmount\":65}]}");
 
-        List<String> errors = PackLootValidator.validateLootGraph(pack).errors();
+        List<String> errors = errors(pack);
 
         assertTrue(errors.contains("Loot table 'excessive'.minPicked must be at most 64."));
         assertTrue(errors.contains("Loot table 'excessive'.maxPicked must be at most 64."));
@@ -127,12 +129,11 @@ public class PackValidatorLootTest {
         write(pack, "loot/t.json", "{\"loot\":[{\"type\":\"minecraft:stone\"}]}");
         write(pack, "biomes/x.json", "{\"loot\":{\"mode\":\"CLEAR\",\"tables\":[\"t\"]}}");
 
-        PackLootValidator.LootGraphIssues issues = PackLootValidator.validateLootGraph(pack);
-
-        assertTrue(issues.errors().isEmpty());
+        
+        assertTrue(errors(pack).isEmpty());
         assertEquals(List.of("Biome 'x'.loot uses mode CLEAR and lists 1 table(s); CLEAR clears parent tables"
                 + " and contributes no tables of its own, so these entries are dead. Use REPLACE to substitute them."),
-                issues.warnings());
+                warnings(pack));
     }
 
     @Test
@@ -140,10 +141,21 @@ public class PackValidatorLootTest {
         File pack = temporaryFolder.newFolder("clear-dangling");
         write(pack, "biomes/x.json", "{\"loot\":{\"mode\":\"CLEAR\",\"tables\":[\"missing\"]}}");
 
-        PackLootValidator.LootGraphIssues issues = PackLootValidator.validateLootGraph(pack);
-
-        assertTrue(issues.errors().contains(
+        
+        assertTrue(errors(pack).contains(
                 "Biome 'x'.loot.tables[0] references missing loot table 'missing'."));
+    }
+
+    private static List<String> errors(File pack) {
+        return messages(pack, Severity.ERROR);
+    }
+
+    private static List<String> warnings(File pack) {
+        return messages(pack, Severity.WARNING);
+    }
+
+    private static List<String> messages(File pack, Severity severity) {
+        return LootValidator.check(pack).stream().filter(problem -> problem.severity() == severity).map(Problem::message).toList();
     }
 
     private void write(File root, String relative, String content) throws Exception {

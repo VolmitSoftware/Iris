@@ -21,11 +21,19 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.host.FeatureCatalog;
+import com.volmit.entity.EntitySpec;
+import com.volmit.item.ItemDrop;
+import com.volmit.service.BlockDrops;
+import com.volmit.service.EntitySpawns;
 import com.volmit.service.LocateResult;
+import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
+import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
 import com.volmit.world.PackWorld;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +55,120 @@ public final class ModuleServices {
             keys.addAll(provider.objectsAt(world, chunkX, chunkZ));
         }
         return keys;
+    }
+
+    /** The biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */
+    public static ObjectsAt.PlacedBy objectPlacers(Engine engine, String objectKey) {
+        PackWorld world = engine.getGeneration().world();
+        Set<String> biomes = new LinkedHashSet<>();
+        Set<String> regions = new LinkedHashSet<>();
+        for (ObjectsAt provider : catalog(engine.getData()).services(ObjectsAt.class)) {
+            ObjectsAt.PlacedBy placedBy = provider.placedBy(world, objectKey);
+            biomes.addAll(placedBy.biomes());
+            regions.addAll(placedBy.regions());
+        }
+        return new ObjectsAt.PlacedBy(biomes, regions);
+    }
+
+    /** The loot tables the modules say the container at {@code site} draws from, in module order. */
+    public static List<Loot.Source> lootTables(Engine engine, Loot.Site site) {
+        PackWorld world = engine.getGeneration().world();
+        List<Loot.Source> tables = new ArrayList<>();
+        for (Loot provider : catalog(engine.getData()).services(Loot.class)) {
+            tables.addAll(provider.tables(world, site));
+        }
+        return tables;
+    }
+
+    /** The items loot table {@code key} gives at {@code site}, from the module that knows the table. */
+    public static List<ItemDrop> lootItems(Engine engine, Loot.Site site, String key) {
+        PackWorld world = engine.getGeneration().world();
+        List<ItemDrop> items = new ArrayList<>();
+        for (Loot provider : catalog(engine.getData()).services(Loot.class)) {
+            items.addAll(provider.items(world, site, key));
+        }
+        return items;
+    }
+
+    /** What the modules drop for the broken block, put together. */
+    public static BlockDrops.Result blockDrops(Engine engine, BlockDrops.Broken broken) {
+        PackWorld world = engine.getGeneration().world();
+        List<ItemDrop> drops = new ArrayList<>();
+        boolean replacesVanillaDrops = false;
+        for (BlockDrops provider : catalog(engine.getData()).services(BlockDrops.class)) {
+            BlockDrops.Result result = provider.drops(world, broken);
+            drops.addAll(result.drops());
+            replacesVanillaDrops |= result.replacesVanillaDrops();
+        }
+        return new BlockDrops.Result(drops, replacesVanillaDrops);
+    }
+
+    /** The tree grown by the first module that grows one for {@code sapling}; empty leaves the growth to the platform. */
+    public static Optional<SaplingGrowth.Growth> growSapling(Engine engine, SaplingGrowth.Sapling sapling, SaplingGrowth.Surroundings surroundings) {
+        PackWorld world = engine.getGeneration().world();
+        for (SaplingGrowth provider : catalog(engine.getData()).services(SaplingGrowth.class)) {
+            Optional<SaplingGrowth.Growth> growth = provider.grow(world, sapling, surroundings);
+            if (growth.isPresent()) {
+                return growth;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The objects every module places as trees. */
+    public static SaplingGrowth.TreeObjects treeObjects(Engine engine) {
+        PackWorld world = engine.getGeneration().world();
+        Set<String> objects = new LinkedHashSet<>();
+        Set<String> procedural = new LinkedHashSet<>();
+        for (SaplingGrowth provider : catalog(engine.getData()).services(SaplingGrowth.class)) {
+            SaplingGrowth.TreeObjects trees = provider.treeObjects(world);
+            objects.addAll(trees.objects());
+            procedural.addAll(trees.procedural());
+        }
+        return new SaplingGrowth.TreeObjects(objects, procedural);
+    }
+
+    /** What the first module with something to spawn at {@code site} plans; empty when none does. */
+    public static Optional<PlannedSpawn> planSpawn(Engine engine, EntitySpawns.Site site) {
+        PackWorld world = engine.getGeneration().world();
+        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
+            Optional<EntitySpawns.Plan> plan = provider.plan(world, site);
+            if (plan.isPresent()) {
+                return Optional.of(new PlannedSpawn(provider, world, plan.get()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The entity {@code key} as the first module that knows it would spawn it. */
+    public static Optional<EntitySpec> entity(Engine engine, String key) {
+        PackWorld world = engine.getGeneration().world();
+        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
+            Optional<EntitySpec> entity = provider.entity(world, key);
+            if (entity.isPresent()) {
+                return entity;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** What the first module that knows the marker {@code tag} says it does. */
+    public static Optional<EntitySpawns.MarkerRule> markerRule(Engine engine, String tag) {
+        PackWorld world = engine.getGeneration().world();
+        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
+            Optional<EntitySpawns.MarkerRule> rule = provider.marker(world, tag);
+            if (rule.isPresent()) {
+                return rule;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** A plan and the module that made it, which hears how many of its entities appeared. */
+    public record PlannedSpawn(EntitySpawns provider, PackWorld world, EntitySpawns.Plan plan) {
+        public void spawned(int count) {
+            provider.spawned(world, plan, count);
+        }
     }
 
     /** Every structure key the pack's modules know, placed or not. */

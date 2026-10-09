@@ -59,4 +59,9 @@ public final class BukkitItem implements PlatformItem {
     public Object nativeHandle() {
         return material;
     }
+
+    @Override
+    public int maxDurability() {
+        return material.getMaxDurability();
+    }
 }

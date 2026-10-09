@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.engine.IrisComplex;
@@ -396,7 +397,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
             if (tag.equals("cave_floor") || tag.equals("cave_ceiling")) {
                 return;
             }
-            IrisMarker resolved = engine.getData().getMarkerLoader().load(tag);
+            IrisMarker resolved = SpawnResources.marker(engine.getData(), tag);
             if (resolved == null) {
                 return;
             }
@@ -429,7 +430,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
     private KList<IrisSpawner> resolveMarkerSpawners(IrisMarker marker) {
         KList<IrisSpawner> spawners = new KList<>();
         for (String key : marker.getSpawners()) {
-            IrisSpawner spawner = engine.getData().getSpawnerLoader().load(key);
+            IrisSpawner spawner = SpawnResources.spawner(engine.getData(), key);
             if (spawner == null) {
                 IrisLogging.error("Cannot load spawner: " + key + " for marker on " + engine.getName());
                 continue;
@@ -478,9 +479,9 @@ public final class ModdedWorldManager implements EngineWorldManager {
         int chunkMobs = countChunkLivingEntities(level, chunkX, chunkZ);
 
         KList<IrisEntitySpawn> pool = new KList<>();
-        collectSpawns(pool, engine.getData().getSpawnerLoader().loadAll(engine.getDimension().getEntitySpawners()), biome, chunkX, chunkZ, chunkMobs, initial);
-        collectSpawns(pool, engine.getData().getSpawnerLoader().loadAll(region.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
-        collectSpawns(pool, engine.getData().getSpawnerLoader().loadAll(biome.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
+        collectSpawns(pool, SpawnResources.spawners(engine.getData(), engine.getDimension().getEntitySpawners()), biome, chunkX, chunkZ, chunkMobs, initial);
+        collectSpawns(pool, SpawnResources.spawners(engine.getData(), region.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
+        collectSpawns(pool, SpawnResources.spawners(engine.getData(), biome.getEntitySpawners()), null, chunkX, chunkZ, chunkMobs, initial);
         if (pool.isEmpty()) {
             return;
         }

@@ -395,8 +395,8 @@ final class PackStructurePlacementValidator {
             if (!structureKey.isEmpty() && !sourceKeys.add(structureKey.toLowerCase(Locale.ROOT))) {
                 blockingErrors.add(sourcePath + ".structure duplicates native source '" + structureKey + "'.");
             }
-            Integer weight = PackLootValidator.lootInteger(source, "weight", 1, sourcePath, blockingErrors);
-            PackLootValidator.requireMinimum(sourcePath + ".weight", weight, 1, blockingErrors);
+            Integer weight = PackIntegerChecks.integerField(source, "weight", 1, sourcePath, blockingErrors);
+            PackIntegerChecks.requireMinimum(sourcePath + ".weight", weight, 1, blockingErrors);
             if (weight != null && weight > 0) {
                 totalWeight += weight;
             }

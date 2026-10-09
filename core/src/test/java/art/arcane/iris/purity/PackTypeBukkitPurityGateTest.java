@@ -89,8 +89,7 @@ import static org.junit.Assert.fail;
  * deleted) and {@code Particles} (Bukkit registry lookups in a static initializer).
  * <p>
  * <b>Deliberately not asserted:</b> method and constructor descriptors. These classes legitimately
- * expose a Bukkit-typed edge that only the Bukkit adapter calls - {@code IrisEntity.spawn(Engine,
- * Location)}, {@code IrisLoot.get(...) -> ItemStack}, {@code IrisObjectRotation.rotate(BlockData,
+ * expose a Bukkit-typed edge that only the Bukkit adapter calls - {@code IrisObjectRotation.rotate(BlockData,
  * ...)}, {@code TileData.toBukkit(Block)} and ~60 more. Method descriptors are resolved at
  * invocation, never at class load, field walk or equals/hashCode/toString, so they are not a modded
  * boot hazard. Fields and supertypes are, and both are asserted hard below.
@@ -110,15 +109,11 @@ public class PackTypeBukkitPurityGateTest {
      * #registeredRootListMatchesIrisData()} fails if the source drifts away from it.
      */
     private static final List<String> GSON_REGISTERED_ROOTS = List.of(
-            "art.arcane.iris.engine.object.loot.IrisLootTable",
-            "art.arcane.iris.engine.object.entity.spawn.IrisSpawner",
-            "art.arcane.iris.engine.object.entity.IrisEntity",
             "art.arcane.iris.engine.object.world.region.IrisRegion",
             "art.arcane.iris.engine.object.world.biome.IrisBiome",
             "art.arcane.iris.engine.object.mod.IrisMod",
             "art.arcane.iris.engine.object.world.dimension.IrisDimension",
             "art.arcane.iris.engine.object.terrain.IrisGenerator",
-            "art.arcane.iris.engine.object.marker.IrisMarker",
             "art.arcane.iris.engine.object.material.IrisBlockData",
             "art.arcane.iris.engine.object.noise.expression.IrisExpression",
             "art.arcane.iris.engine.object.prefab.IrisObject",
@@ -133,7 +128,11 @@ public class PackTypeBukkitPurityGateTest {
     private static final List<String> MODULE_RESOURCE_ROOTS = List.of(
             "art.arcane.iris.engine.object.structure.IrisStructure",
             "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool",
-            "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece");
+            "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece",
+            "art.arcane.iris.engine.object.loot.IrisLootTable",
+            "art.arcane.iris.engine.object.entity.spawn.IrisSpawner",
+            "art.arcane.iris.engine.object.entity.IrisEntity",
+            "art.arcane.iris.engine.object.marker.IrisMarker");
 
     /**
      * Types reachable from a pack that are not roots and carry no {@code @Snippet}, but are
@@ -145,8 +144,9 @@ public class PackTypeBukkitPurityGateTest {
             "art.arcane.iris.engine.object.loot.IrisVanillaLootTable");
 
     /**
-     * Bukkit-registry constant holders that a core pack type references, so their class initializer
-     * runs on the modded loaders too. {@code Particles} is statically imported by {@code IrisEntity}.
+     * Bukkit-registry constant holders that a core pack type may reference, so their class initializer
+     * must run on the modded loaders too. {@code Particles} is used by the Bukkit entity spawner now; it stays in the
+     * gate so that a pack type importing it again keeps working.
      * ({@code Materials} and {@code Attributes} have the same shape but are only reachable from the
      * Bukkit adapter, so they stay out of the gate.)
      */

@@ -41,7 +41,6 @@ import com.volmit.placement.PlacedBlock;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
-import org.bukkit.TreeType;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -100,19 +99,18 @@ public final class TreeGrowing implements SaplingGrowth {
 
     /** One placement, picked at random, of the tree placements that grow {@code sapling}'s species; null for none. */
     private static IrisObjectPlacement pickPlacement(Engine engine, Sapling sapling) {
-        TreeType species = TreeType.valueOf(sapling.species());
         KList<IrisObjectPlacement> placements = new KList<>();
         boolean useAll = engine.getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         BlockPosition at = sapling.at();
-        placements.addAll(matching(engine.getBiome(at.x(), at.y(), at.z()).getObjects(), species));
+        placements.addAll(matching(engine.getBiome(at.x(), at.y(), at.z()).getObjects(), sapling.species()));
         if (useAll || placements.isEmpty()) {
-            placements.addAll(matching(engine.getRegion(at.x(), at.z()).getObjects(), species));
+            placements.addAll(matching(engine.getRegion(at.x(), at.z()).getObjects(), sapling.species()));
         }
         return placements.isNotEmpty() ? placements.getRandom() : null;
     }
 
-    private static KList<IrisObjectPlacement> matching(KList<IrisObjectPlacement> objects, TreeType species) {
+    private static KList<IrisObjectPlacement> matching(KList<IrisObjectPlacement> objects, String species) {
         KList<IrisObjectPlacement> matches = new KList<>();
         for (IrisObjectPlacement placement : objects) {
             if (placement.matches(SAPLING_SIZE, species)) {

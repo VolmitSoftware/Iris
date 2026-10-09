@@ -272,6 +272,11 @@ public class IrisObjectPlacement {
         return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
     }
 
+    /** Whether a tree placement grows the species the platform calls {@code species} for a sapling area of {@code size}. */
+    public boolean matches(IrisTreeSize size, String species) {
+        return matches(size, TreeType.valueOf(species));
+    }
+
     public boolean matches(IrisTreeSize size, TreeType type) {
         for (IrisTree i : getTrees()) {
             if (i.matches(size, type)) {

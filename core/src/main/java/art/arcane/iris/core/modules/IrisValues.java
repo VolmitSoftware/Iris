@@ -55,12 +55,12 @@ public final class IrisValues {
     }
 
     /** The IrisApi value types and the Iris classes that read the same JSON. */
-    public static Map<String, Class<?>> irisClasses() {
+    static Map<String, Class<?>> irisClasses() {
         return IRIS_CLASSES;
     }
 
     /** {@code spec} as the block data Iris resolves: its block, properties, weight, backup and tile data. */
-    public static IrisBlockData blockData(BlockSpec spec) {
+    static IrisBlockData blockData(BlockSpec spec) {
         IrisBlockData block = new IrisBlockData(spec.block());
         block.setData(irisMap(spec.data()));
         block.setWeight(spec.weight());
@@ -81,7 +81,7 @@ public final class IrisValues {
     }
 
     /** {@code style} as the generator style Iris builds noise from; a style name Iris does not know is flat. */
-    public static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style) {
+    static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style) {
         IrisGeneratorStyle iris = new IrisGeneratorStyle(irisStyle(style.style()));
         iris.setCellularFrequency(style.cellularFrequency());
         iris.setCellularZoom(style.cellularZoom());

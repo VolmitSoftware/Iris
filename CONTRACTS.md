@@ -29,6 +29,9 @@ types that carry them and lists what the Iris adapter still owes.
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
+| Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
+| Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
+| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.hunk`, reference `ArrayHunk<T>` |
 | Sparse geometry and transforms | `ObjectGenerator`, `GeneratedObject`, `ObjectTransform`, `ObjectTransformer` |
@@ -69,6 +72,12 @@ module or non-exported JDK package, or one missing from an exposed package fails
 naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
 its package is one the module declares optional with `ModuleInfo.withOptionalPackages(...)`
 (`PackageName`). That declaration never excuses a load error.
+
+Stage bodies and service providers keep no state; what a module keeps for a world lives in that world's state store,
+created once per type and world. A world's state lives while the world runs with one pack snapshot: a hotload or a
+reload of the pack's resources starts the world again with empty state. A service names how its providers combine
+(`ALL`, `FIRST`, `ONE`); a second provider of a `ONE` service fails the pack load, naming both modules. Services
+return values and never act on the platform.
 
 A resource kind reads one folder directly below the pack root, with a class no other kind uses; a folder two
 kinds claim, or one the host reads itself, fails the pack load naming both owners. Resources of a kind are
@@ -150,6 +159,20 @@ running Iris is the pack publisher's responsibility.
 - Run every validator (`catalog().validators()`) wherever the host validates packs, after its own checks: an
   `ERROR` blocks the pack, a `WARNING` is shown; show each problem with its subject. A validator that throws is an
   error naming its module, and the others still run.
+
+- Keep one `PackWorld` per world and pack snapshot and pass it to every invocation of the world
+  (`InvocationContext.world()`), to service calls and to hooks. Use `WorldStates` (or the same rules) for its store.
+- Call the hooks with `LifecycleRunner`: `packLoaded` once per pack snapshot before its first world starts,
+  `worldStarted` before the world generates anything, `worldStopped` when it stops. On a hotload, and when the pack's
+  resources are read again while worlds run, stop each world, load the new snapshot and start the world again with
+  a new store. Close a stopped world's store only once no invocation uses it any more.
+- A failed `packLoaded` or `worldStarted` keeps the world from starting and names the module; report `worldStopped`
+  failures without skipping the other modules.
+- Ask modules through services instead of reading their features: combine `ALL` providers, ask `FIRST` providers in
+  catalog order until one answers, and use `service(type)` for `ONE`. Call providers from any thread, but long
+  searches off the server's main thread, and carry out what they return on the thread the platform needs.
+- Read a `StructureLocator` position's Y as a height above the dimension's bottom and convert it to the platform's Y
+  at the boundary, like every other IrisApi height.
 
 ## Open
 

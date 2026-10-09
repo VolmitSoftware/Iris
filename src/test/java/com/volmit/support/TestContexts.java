@@ -10,6 +10,7 @@ import com.volmit.placement.PlacementContext;
 import com.volmit.resource.PackResources;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.BlockView;
+import com.volmit.world.PackWorld;
 import java.util.Map;
 
 /** Tests needing no platform facilities fail loudly if code starts using one. */
@@ -24,11 +25,17 @@ public final class TestContexts {
 
     /** The chunk at the origin; a null {@code settings} or {@code mantle} fails when used. */
     public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks, FeatureSettings settings, Mantle mantle) {
+        return generation(hunks, settings, mantle, null);
+    }
+
+    /** The chunk at the origin in {@code world}; a null {@code settings}, {@code mantle} or {@code world} fails when used. */
+    public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks, FeatureSettings settings, Mantle mantle, PackWorld world) {
         return new GenerationContext() {
             public int originX() { return 0; }
             public int originZ() { return 0; }
             public long worldSeed() { return SEED; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }
+            public PackWorld world() { return used(world, "world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { return used(settings, "settings"); }
             public Mantle mantle() { return used(mantle, "mantle"); }
@@ -48,6 +55,7 @@ public final class TestContexts {
             public int originZ() { return originZ; }
             public long worldSeed() { return SEED; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }
+            public PackWorld world() { throw new AssertionError("Unused world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { return settings; }
             public Mantle mantle() { return mantle; }
@@ -62,6 +70,7 @@ public final class TestContexts {
         return new PlacementContext() {
             public long worldSeed() { return SEED; }
             public PackResources resources() { throw new AssertionError("Unused resources"); }
+            public PackWorld world() { throw new AssertionError("Unused world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { throw new AssertionError("Unused settings"); }
             public ObjectTransformer objects() { throw new AssertionError("Unused transforms"); }

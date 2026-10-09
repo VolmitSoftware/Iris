@@ -5,6 +5,7 @@ import com.volmit.generation.MantleGenerationContext;
 import com.volmit.mantle.Mantle;
 import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
+import com.volmit.world.PackWorld;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.TerrainSampler;
@@ -57,6 +58,11 @@ final class MantleInvocation implements MantleStageContext {
     @Override
     public long worldSeed() {
         return inputs.worldSeed();
+    }
+
+    @Override
+    public PackWorld world() {
+        return inputs.world();
     }
 
     @Override

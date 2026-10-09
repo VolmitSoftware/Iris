@@ -1,6 +1,7 @@
 package com.volmit.generation;
 
 import com.volmit.resource.PackResources;
+import com.volmit.world.PackWorld;
 
 /** Host-owned invocation inputs. Views must not be retained or used by detached tasks.
  *
@@ -10,4 +11,9 @@ import com.volmit.resource.PackResources;
 public interface InvocationContext {
     long worldSeed();
     PackResources resources();
+
+    /** The world this invocation generates, where modules keep their per-world state ({@link PackWorld#state}). An
+     * invocation outside any world, such as an object a studio tool pastes, throws IllegalStateException.
+     */
+    PackWorld world();
 }

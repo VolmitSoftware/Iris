@@ -4,12 +4,14 @@ import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
+import com.volmit.ModuleLifecycle;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
+import com.volmit.service.Providers;
 import com.volmit.validation.Validator;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +28,8 @@ import java.util.Set;
  * {@link #register(DiscoveredModule)}; object feature ids, mantle keys, resource kind ids and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
- * files. A failed registration leaves the registry unchanged. A failed module callback
+ * files. Lifecycle hooks and service providers are registered by the module that owns them; a service whose providers
+ * are {@link Providers#ONE} has at most one. A failed registration leaves the registry unchanged. A failed module callback
  * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
  * settings.
  */
@@ -40,6 +43,8 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Map<Field, String> fields = new HashMap<>();
     private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
     private final List<ValidatorRegistration> validators = new ArrayList<>();
+    private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
+    private final List<ServiceRegistration> services = new ArrayList<>();
     private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
@@ -129,6 +134,32 @@ public final class ModuleRegistry implements FeatureRegistry {
         validators.add(new ValidatorRegistration(validator, registering));
     }
 
+    @Override
+    public void registerLifecycle(ModuleLifecycle lifecycle) {
+        checkOpen();
+        Objects.requireNonNull(lifecycle, "lifecycle");
+        requireRegistering("Lifecycle " + lifecycle);
+        lifecycles.add(new LifecycleRegistration(lifecycle, registering));
+    }
+
+    @Override
+    public <S> void registerService(Class<S> service, S provider) {
+        checkOpen();
+        Objects.requireNonNull(service, "service");
+        Objects.requireNonNull(provider, "provider");
+        requireRegistering("Provider of " + service.getName());
+        var providers = FeatureCatalog.requireService(service).value();
+        if (!service.isInstance(provider)) {
+            throw new IllegalArgumentException("Provider " + provider + " of module " + registering + " does not implement "
+                    + service.getName());
+        }
+        var added = new ServiceRegistration(service, provider, registering);
+        if (providers == Providers.ONE) {
+            requireNoProvider(added);
+        }
+        services.add(added);
+    }
+
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
      * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type. Call
      * it after every module has registered, so the owner is known.
@@ -149,7 +180,7 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services);
         }
         return catalog;
     }
@@ -177,6 +208,23 @@ public final class ModuleRegistry implements FeatureRegistry {
         if (info.ownsId(id)) return;
         throw new IllegalArgumentException(registration + " " + id + " must be " + info.id() + " or start with "
                 + info.idPrefix() + ", the id of its registering module " + registering);
+    }
+
+    private void requireRegistering(String registration) {
+        if (registering == null) {
+            throw new IllegalStateException(registration + " registered outside IrisModule.register");
+        }
+    }
+
+    /** A service a pack has one provider of: a second provider, from this module or another, fails. */
+    private void requireNoProvider(ServiceRegistration added) {
+        for (var existing : services) {
+            if (existing.service() == added.service()) {
+                throw new IllegalArgumentException("Service " + added.service().getName() + " is provided by module "
+                        + existing.module() + " already, and module " + added.module() + " provides it too; a pack has"
+                        + " one provider of it (Providers.ONE), so remove one of them");
+            }
+        }
     }
 
     /** One id, one type and one folder per kind: the host finds resources by type and reads each folder as one kind. */

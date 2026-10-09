@@ -29,6 +29,7 @@ import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.schema.FeatureSchema;
+import com.volmit.host.schema.SchemaOption;
 import com.volmit.host.schema.ValueKind;
 import com.volmit.stage.MantleStage;
 import com.volmit.stage.Stage;
@@ -91,14 +92,16 @@ public class BuiltInGenerationGraphTest {
     }
 
     @Test
-    public void depositsAreSettingsOfEveryLevelWrittenAsTheirOldList() throws IOException {
+    public void depositsAreSettingsOfEveryLevelWrittenAsTheirIdWithGenerators() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             for (Target level : List.of(Target.DIMENSION, Target.REGION, Target.BIOME)) {
                 FeatureSchema deposits = pack.schema().fields(level).stream()
                         .filter(feature -> feature.settings().name().equals(DepositSettings.class.getName()))
                         .findFirst().orElseThrow();
-                assertEquals("deposits", deposits.alias().orElseThrow());
-                ValueKind generators = deposits.shorthand().orElseThrow().kind();
+                assertEquals("iris:deposit", deposits.key());
+                SchemaOption option = deposits.settings().options().getFirst();
+                assertEquals("generators", option.name());
+                ValueKind generators = option.kind();
                 assertEquals("generators are a module class of IrisApi types, not an Iris class",
                         new ValueKind.ListKind(new ValueKind.ObjectKind(DepositGenerator.class.getName()), false), generators);
             }

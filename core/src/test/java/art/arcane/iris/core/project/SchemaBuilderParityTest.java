@@ -256,22 +256,21 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
-    public void objectPlacementSchemaRendersModuleSettingsUnderTheirIdAndAliasWithTheirShorthand() throws IOException {
+    public void objectPlacementSchemaRendersModuleSettingsUnderTheirId() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(glowModuleSchema())).construct();
         JSONObject properties = rootProperties(schema);
-        JSONArray forms = properties.getJSONObject("example:glow").getJSONArray("anyOf");
-        String definition = definitionKey(forms.getJSONObject(0));
+        String definition = definitionKey(properties.getJSONObject("example:glow"));
         JSONObject level = schema.getJSONObject("definitions").getJSONObject(definition)
                 .getJSONObject("properties").getJSONObject("level");
 
-        assertEquals(definition, definitionKey(properties.getJSONObject("glow").getJSONArray("anyOf").getJSONObject(0)));
-        assertEquals("settings with one option also take its bare value", "integer", forms.getJSONObject(1).getString("type"));
+        assertFalse("no alias property", properties.has("glow"));
+        assertFalse("settings are their object only, no bare value form", properties.getJSONObject("example:glow").has("anyOf"));
+        assertFalse("no alias constraint", schema.has("allOf"));
         assertEquals("integer", level.getString("type"));
         assertEquals(1, level.getInt("minimum"));
         assertEquals(15, level.getInt("maximum"));
         assertEquals(7, level.getInt("default"));
         assertEquals("How bright the glow is", level.getString("description"));
-        assertTrue(schema.toString().contains("{\"not\":{\"required\":[\"glow\",\"example:glow\"]}}"));
     }
 
     @Test
@@ -699,7 +698,7 @@ public class SchemaBuilderParityTest {
         }
     }
 
-    @Feature(id = "example:glow", name = "Glow", alias = "glow", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:glow", name = "Glow", targets = Target.OBJECT_PLACEMENT)
     public static final class GlowSettings implements IrisFeature {
         @com.volmit.config.Desc("How bright the glow is")
         @com.volmit.config.MinNumber(1)

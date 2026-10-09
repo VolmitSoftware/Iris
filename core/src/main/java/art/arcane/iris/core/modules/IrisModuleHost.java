@@ -81,7 +81,6 @@ public final class IrisModuleHost {
     private static ModuleHost build() {
         return ModuleHost.of(builtInModules())
                 .exposing(BUILT_IN_API_PACKAGE)
-                .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(HOST_TYPE_PACKAGE)
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))
                 .copyingJarsTo(jarCopyRoot())

@@ -31,7 +31,6 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
-import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Snippet;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.FeatureDescriptor;
@@ -46,7 +45,6 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -55,14 +53,13 @@ import java.util.stream.Stream;
 
 /**
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
- * that target, under its id or, for built-ins, its alias. Settings are created with their no-argument
+ * that target, under its id. Settings are created with their no-argument
  * constructor and the JSON is read into them, so an omitted option keeps its default. A {@link Snippet}
  * type may be written as {@code "snippet/<name>"} or, as Iris's own snippets are, {@code "snippet/<snippet folder>/<name>"},
  * both read from {@code snippet/<snippet folder>/<name>.json}. IrisApi's value types ({@code BlockSpec},
  * {@code NoiseStyle} and the rest) are read like settings, and an {@code Object} as Gson reads any JSON value.
  * <p>
- * Settings with exactly one option may be written as that option's value: {@code "snow": 0.5} reads as
- * {@code "snow": {"amount": 0.5}}. Iris's own classes that built-in settings hold (see
+ * Settings are always written as their object. Iris's own classes that built-in settings hold (see
  * {@link IrisModuleHost#isHostType}) are read by Iris's pack Gson, exactly as Iris reads them elsewhere.
  */
 public final class ModuleSettingsDecoder {
@@ -92,7 +89,7 @@ public final class ModuleSettingsDecoder {
         }
     }
 
-    /** Every JSON key the pack's modules read at {@code target}: feature ids and built-in aliases, object generators' included. */
+    /** Every JSON key the pack's modules read at {@code target}: the feature ids, object generators' included. */
     public Set<String> keys(Target target) {
         return keys.get(target);
     }
@@ -101,13 +98,14 @@ public final class ModuleSettingsDecoder {
      * Decodes the settings {@code json} declares for {@code target}.
      *
      * @param resource names the file in errors, such as {@code biome desert/dunes}
-     * @throws IllegalArgumentException when the JSON holds both a feature's alias and its id, or a value
-     *     that does not decode into the settings type
+     * @throws IllegalArgumentException when a value does not decode into its settings type
      */
     public ModuleSettings decode(Target target, JSONObject json, String resource) {
         Map<Class<? extends IrisFeature>, IrisFeature> values = new LinkedHashMap<>();
         for (FeatureDescriptor<?> feature : settings.get(target)) {
-            presentKey(feature, json, resource).ifPresent(key -> values.put(feature.type(), read(feature, json.get(key), key, resource)));
+            if (json.has(feature.key())) {
+                values.put(feature.type(), read(feature, json.get(feature.key()), resource));
+            }
         }
         return ModuleSettings.of(values);
     }
@@ -127,44 +125,25 @@ public final class ModuleSettingsDecoder {
         return decoded;
     }
 
-    private static Optional<String> presentKey(FeatureDescriptor<?> feature, JSONObject json, String resource) {
-        boolean hasKey = json.has(feature.key());
-        Optional<String> alias = feature.alias().filter(json::has);
-        if (hasKey && alias.isPresent()) {
-            throw new IllegalArgumentException(resource + " sets both \"" + alias.get() + "\" and \"" + feature.key()
-                    + "\", the alias and the id of settings " + feature.id() + "; keep one");
-        }
-        return hasKey ? Optional.of(feature.key()) : alias;
-    }
-
-    private IrisFeature read(FeatureDescriptor<?> feature, Object value, String key, String resource) {
+    private IrisFeature read(FeatureDescriptor<?> feature, Object value, String resource) {
         try {
-            IrisFeature decoded = gson.fromJson(JSONObject.valueToString(asObject(feature, value)), feature.type());
+            requireObjectOrSnippet(feature, value);
+            IrisFeature decoded = gson.fromJson(JSONObject.valueToString(value), feature.type());
             if (decoded == null) {
                 throw new JsonParseException("the value is null");
             }
             return decoded;
         } catch (RuntimeException failure) {
-            throw new IllegalArgumentException("Cannot read settings " + feature.id() + " under \"" + key + "\" in "
+            throw new IllegalArgumentException("Cannot read settings " + feature.id() + " under \"" + feature.key() + "\" in "
                     + resource + ": " + failure.getMessage(), failure);
         }
     }
 
-    /** A bare value of settings with exactly one option, as the object holding it; anything else unchanged. */
-    private static Object asObject(FeatureDescriptor<?> feature, Object value) {
-        if (value instanceof JSONObject || isSnippetReference(feature, value)) {
-            return value;
+    private static void requireObjectOrSnippet(FeatureDescriptor<?> feature, Object value) {
+        if (value instanceof JSONObject || (value instanceof String && feature.type().isAnnotationPresent(Snippet.class))) {
+            return;
         }
-        List<OptionsMetadata.Option> options = feature.options().options();
-        if (options.size() != 1) {
-            throw new JsonParseException("write an object; only settings with exactly one option may be written as that"
-                    + " option's value, and these have " + options.size());
-        }
-        return new JSONObject().put(options.getFirst().name(), value);
-    }
-
-    private static boolean isSnippetReference(FeatureDescriptor<?> feature, Object value) {
-        return feature.type().isAnnotationPresent(Snippet.class) && value instanceof String text && text.startsWith(SNIPPET_PREFIX);
+        throw new JsonParseException("write the settings as an object, {\"<option>\": ...}");
     }
 
     private static List<FeatureDescriptor<?>> settingsAt(FeatureCatalog catalog, Target target) {
@@ -178,10 +157,7 @@ public final class ModuleSettingsDecoder {
         Set<String> found = new TreeSet<>();
         Stream.concat(catalog.settings().stream(), objects)
                 .filter(feature -> feature.attachment().targets().contains(target))
-                .forEach(feature -> {
-                    found.add(feature.key());
-                    feature.alias().ifPresent(found::add);
-                });
+                .forEach(feature -> found.add(feature.key()));
         return Set.copyOf(found);
     }
 

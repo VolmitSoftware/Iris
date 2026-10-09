@@ -372,7 +372,7 @@ public class SchemaBuilder {
         }
 
         buildProperties(properties, required, extended, c);
-        addModuleFeatures(c, properties, extended);
+        addModuleFeatures(c, properties);
 
         if (required.length() > 0) {
             o.put("required", required);
@@ -388,8 +388,8 @@ public class SchemaBuilder {
     }
 
     /** The pack modules' settings at the target whose JSON {@code c} is, such as a biome's. */
-    private void addModuleFeatures(Class<?> c, JSONObject properties, JSONArray constraints) {
-        ModuleTargets.ofResource(c).ifPresent(target -> moduleSchemas().addFeatures(target, properties, constraints));
+    private void addModuleFeatures(Class<?> c, JSONObject properties) {
+        ModuleTargets.ofResource(c).ifPresent(target -> moduleSchemas().addFeatures(target, properties));
     }
 
     private ModuleSchemaRenderer moduleSchemas() {

@@ -27,15 +27,17 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The deposits packs have always written read into {@link DepositGenerator}, a settings class of IrisApi types only,
+ * The deposit generators packs have always written, now under {@code "iris:deposit": {"generators": [...]}}, read into {@link DepositGenerator}, a settings class of IrisApi types only,
  * with the values Iris's own deposit generator class read from the same JSON.
  */
 public class DepositSettingsDecodingTest {
     private static final String REGION_DEPOSITS = """
-            {"deposits": [
+            {"iris:deposit": {"generators": [
               {"minHeight": 15, "maxPerChunk": 26, "maxHeight": 410, "minPerChunk": 4, "minSize": 3, "maxSize": 8,
                "palette": [{"block": "minecraft:iron_ore"}, {"block": "minecraft:coal_ore"}], "varience": 4},
               {"heightDistribution": "TRIANGLE", "placementScope": "FULL_HEIGHT", "surfaceClearance": 0, "shape": "VANILLA_ELLIPSOID",
@@ -45,7 +47,7 @@ public class DepositSettingsDecodingTest {
               "snippet/deposit/diamonds",
               "snippet/diamonds",
               {}
-            ]}
+            ]}}
             """;
 
     @Rule
@@ -140,10 +142,20 @@ public class DepositSettingsDecodingTest {
     }
 
     @Test
-    public void theFeatureIdReadsTheSameAsTheOldKey() {
-        String byId = "{\"iris:deposit\": {\"generators\": [{\"maxHeight\": 16}]}}";
+    public void theOldBareListUnderTheOldKeyIsNotSettings() {
+        JSONObject old = new JSONObject("{\"deposits\": [{\"maxHeight\": 16}]}");
 
-        assertEquals(16, deposits(byId).getFirst().maxHeight());
+        assertSame(ModuleSettings.NONE, decoder.decode(Target.REGION, old, "region forests"));
+        assertFalse(decoder.keys(Target.REGION).contains("deposits"));
+    }
+
+    @Test
+    public void aBareListUnderTheFeatureIdIsRefused() {
+        JSONObject bare = new JSONObject("{\"iris:deposit\": [{\"maxHeight\": 16}]}");
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, bare, "region forests"));
+
+        assertTrue(refused.getMessage(), refused.getMessage().contains("write the settings as an object"));
     }
 
     private List<DepositGenerator> deposits(String regionJson) {

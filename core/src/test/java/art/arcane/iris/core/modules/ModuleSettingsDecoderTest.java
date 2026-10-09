@@ -70,7 +70,7 @@ public class ModuleSettingsDecoderTest {
     private LoadedPack pack;
     private ModuleSettingsDecoder decoder;
 
-    @Feature(id = "iris:moss", name = "Moss", alias = "moss", targets = {Target.BIOME, Target.REGION})
+    @Feature(id = "iris:moss", name = "Moss", targets = {Target.BIOME, Target.REGION})
     public static final class MossSettings implements IrisFeature {
         private int radius = 3;
         private BlockState block = new BlockState("minecraft:moss_block");
@@ -83,12 +83,12 @@ public class ModuleSettingsDecoderTest {
         private int size = 1;
     }
 
-    @Feature(id = "iris:moss/cover", name = "Cover", alias = "cover", targets = Target.BIOME)
+    @Feature(id = "iris:moss/cover", name = "Cover", targets = Target.BIOME)
     public static final class CoverSettings implements IrisFeature {
         private double amount = 1;
     }
 
-    @Feature(id = "iris:moss/marks", name = "Marks", alias = "marks", targets = Target.BIOME)
+    @Feature(id = "iris:moss/marks", name = "Marks", targets = Target.BIOME)
     public static final class MarksSettings implements IrisFeature {
         private List<IrisPosition> marks = List.of();
     }
@@ -141,31 +141,27 @@ public class ModuleSettingsDecoderTest {
     }
 
     @Test
-    public void readsSettingsUnderTheirIdOrBuiltInAliasKeepingOmittedDefaults() {
+    public void readsSettingsUnderTheirIdKeepingOmittedDefaults() {
         MossSettings byId = moss("{\"iris:moss\": {\"radius\": 7, \"block\": \"minecraft:oak_log[axis=y]\"}}");
-        MossSettings byAlias = moss("{\"moss\": {\"palette\": \"iris:moss/wet\"}}");
+        MossSettings partial = moss("{\"iris:moss\": {\"palette\": \"iris:moss/wet\"}}");
 
         assertEquals(7, byId.radius);
         assertEquals(BlockState.parse("minecraft:oak_log[axis=y]"), byId.block);
         assertEquals(ResourceId.parse("iris:moss/default"), byId.palette);
-        assertEquals(3, byAlias.radius);
-        assertEquals(ResourceId.parse("iris:moss/wet"), byAlias.palette);
-        assertEquals(1, byAlias.patch.size);
+        assertEquals(3, partial.radius);
+        assertEquals(ResourceId.parse("iris:moss/wet"), partial.palette);
+        assertEquals(1, partial.patch.size);
     }
 
     @Test
     public void declaresNothingWhereNoKeyIsPresent() {
         assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, new JSONObject("{\"name\": \"Dunes\"}"), "biome desert/dunes"));
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, new JSONObject("{\"moss\": {}}"), "dimension overworld"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, new JSONObject("{\"iris:moss\": {}}"), "dimension overworld"));
     }
 
     @Test
-    public void bothTheAliasAndTheIdInOneObjectFail() {
-        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                () -> moss("{\"moss\": {}, \"iris:moss\": {}}"));
-
-        assertEquals("biome desert/dunes sets both \"moss\" and \"iris:moss\", the alias and the id of settings iris:moss; keep one",
-                failure.getMessage());
+    public void aShortKeyIsNotAKeyOfTheSettings() {
+        assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, new JSONObject("{\"moss\": {\"radius\": 7}}"), "biome desert/dunes"));
     }
 
     @Test
@@ -173,10 +169,10 @@ public class ModuleSettingsDecoderTest {
         Path snippets = Files.createDirectories(packFolder.resolve("snippet/moss-patch"));
         Files.writeString(snippets.resolve("wide.json"), "{\"size\": 9}");
 
-        assertEquals(9, moss("{\"moss\": {\"patch\": \"snippet/wide\"}}").patch.size);
+        assertEquals(9, moss("{\"iris:moss\": {\"patch\": \"snippet/wide\"}}").patch.size);
 
         IllegalArgumentException missing = assertThrows(IllegalArgumentException.class,
-                () -> moss("{\"moss\": {\"patch\": \"snippet/narrow\"}}"));
+                () -> moss("{\"iris:moss\": {\"patch\": \"snippet/narrow\"}}"));
         assertTrue(missing.getMessage(), missing.getMessage().contains("Snippet snippet/narrow has no file snippet/moss-patch/narrow.json"));
     }
 
@@ -185,7 +181,7 @@ public class ModuleSettingsDecoderTest {
         Path snippets = Files.createDirectories(packFolder.resolve("snippet/moss-patch"));
         Files.writeString(snippets.resolve("wide.json"), "{\"size\": 9}");
 
-        assertEquals(9, moss("{\"moss\": {\"patch\": \"snippet/moss-patch/wide\"}}").patch.size);
+        assertEquals(9, moss("{\"iris:moss\": {\"patch\": \"snippet/moss-patch/wide\"}}").patch.size);
     }
 
     @Test
@@ -227,27 +223,28 @@ public class ModuleSettingsDecoderTest {
     @Test
     public void badValuesNameTheSettingsKeyAndResource() {
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                () -> moss("{\"moss\": {\"block\": \"stone\"}}"));
+                () -> moss("{\"iris:moss\": {\"block\": \"stone\"}}"));
 
-        assertTrue(failure.getMessage(), failure.getMessage().startsWith("Cannot read settings iris:moss under \"moss\" in biome desert/dunes: "));
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("Cannot read settings iris:moss under \"iris:moss\" in biome desert/dunes: "));
     }
 
     @Test
     public void listsTheKeysModulesReadPerTarget() {
-        assertEquals(Set.of("iris:moss", "moss", "iris:moss/cover", "cover", "iris:moss/marks", "marks", "iris:moss/values"), decoder.keys(Target.BIOME));
+        assertEquals(Set.of("iris:moss", "iris:moss/cover", "iris:moss/marks", "iris:moss/values"), decoder.keys(Target.BIOME));
         assertEquals(Set.of(), decoder.keys(Target.DIMENSION));
     }
 
     @Test
-    public void settingsWithOneOptionReadABareValueAsThatOption() {
-        assertEquals(0.5, decoder.decode(Target.BIOME, new JSONObject("{\"cover\": 0.5}"), "biome desert/dunes")
-                .find(CoverSettings.class).orElseThrow().amount, 0);
-        assertEquals(0.25, decoder.decode(Target.BIOME, new JSONObject("{\"cover\": {\"amount\": 0.25}}"), "biome desert/dunes")
+    public void settingsAreAlwaysAnObjectEvenWithOneOption() {
+        assertEquals(0.25, decoder.decode(Target.BIOME, new JSONObject("{\"iris:moss/cover\": {\"amount\": 0.25}}"), "biome desert/dunes")
                 .find(CoverSettings.class).orElseThrow().amount, 0);
 
-        IllegalArgumentException several = assertThrows(IllegalArgumentException.class, () -> moss("{\"moss\": 4}"));
-        assertEquals("Cannot read settings iris:moss under \"moss\" in biome desert/dunes: write an object; only settings with exactly"
-                + " one option may be written as that option's value, and these have 4", several.getMessage());
+        for (String bare : List.of("0.5", "[1, 2]", "true")) {
+            IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                    () -> decoder.decode(Target.BIOME, new JSONObject("{\"iris:moss/cover\": " + bare + "}"), "biome desert/dunes"));
+            assertEquals("Cannot read settings iris:moss/cover under \"iris:moss/cover\" in biome desert/dunes: write the settings as an object,"
+                    + " {\"<option>\": ...}", refused.getMessage());
+        }
     }
 
     @Test
@@ -267,7 +264,7 @@ public class ModuleSettingsDecoderTest {
         }).create();
         ModuleSettingsDecoder withIrisGson = new ModuleSettingsDecoder(pack.catalog(), packFolder, () -> iris);
 
-        List<IrisPosition> marks = withIrisGson.decode(Target.BIOME, new JSONObject("{\"marks\": [\"a\", \"b\"]}"), "biome desert/dunes")
+        List<IrisPosition> marks = withIrisGson.decode(Target.BIOME, new JSONObject("{\"iris:moss/marks\": {\"marks\": [\"a\", \"b\"]}}"), "biome desert/dunes")
                 .find(MarksSettings.class).orElseThrow().marks;
 
         assertEquals(List.of(marked, marked), marks);

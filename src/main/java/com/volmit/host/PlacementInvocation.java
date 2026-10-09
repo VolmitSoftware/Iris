@@ -8,6 +8,7 @@ import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementRequest;
 import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
+import com.volmit.world.PackWorld;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.BlockView;
@@ -109,6 +110,11 @@ final class PlacementInvocation implements BlockStageContext {
     @Override
     public long worldSeed() {
         return inputs.worldSeed();
+    }
+
+    @Override
+    public PackWorld world() {
+        return inputs.world();
     }
 
     @Override

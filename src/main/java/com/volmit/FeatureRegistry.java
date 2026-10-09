@@ -5,6 +5,7 @@ import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceKind;
+import com.volmit.service.Service;
 import com.volmit.stage.StageGraph;
 import com.volmit.validation.Validator;
 
@@ -42,4 +43,12 @@ public interface FeatureRegistry {
 
     /** Adds a check the host runs over the whole pack wherever it validates packs. */
     void registerValidator(Validator validator);
+
+    /** Adds hooks the host calls when it loads the pack and starts or stops a world with it. */
+    void registerLifecycle(ModuleLifecycle lifecycle);
+
+    /** Provides {@code service}, an interface marked {@link Service}, with {@code provider}. A service whose providers
+     * are {@link com.volmit.service.Providers#ONE} fails the pack load when a second module provides it, naming both.
+     */
+    <S> void registerService(Class<S> service, S provider);
 }

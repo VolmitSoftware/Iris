@@ -2,7 +2,7 @@
 
 Status: pack module loading (`LoadedPack`), the stage graph, per-stage random streams, both
 pipelines' reference executors, settings catalog and its description for studio, geometry,
-resources, module resource kinds, validators and typed storage contracts
+resources, module resource kinds, validators, per-world state, lifecycle hooks, services and typed storage contracts
 exist and are tested without the Iris
 engine. Provider and runtime families at the end are design notes, not Java interfaces.
 
@@ -16,7 +16,7 @@ phase or hook has special status in the API.
 ```mermaid
 flowchart TD
     Modules[Built-in and addon modules] --> Install[install: define stages]
-    Modules --> Register[register: geometry, mantle layers, resource kinds, validators]
+    Modules --> Register[register: geometry, mantle layers, resource kinds, validators, hooks, services]
     Install --> Resolve[Resolve per pipeline at pack load]
     Install --> Settings[when settings types]
     Settings --> Catalog[Frozen feature catalog]
@@ -782,6 +782,70 @@ host shows the subject with the message. A validator that throws fails the pack'
 naming its module; the other validators still run. `FeatureCatalog.validators()` lists them by module id, each
 module's in registration order, so the order never depends on discovery.
 
+## World state and lifecycle
+
+Iris kept the caches of its features itself: decoration streams in the biome complex, a warm-up pass over feature
+data when an engine starts, per-runtime workers in a map only built-in stages reached. A module could not do the
+same, because stage bodies are shared by every world and every invocation and must keep no state. The API now gives
+each world a state store and tells modules when worlds start and stop.
+
+- **The world.** `PackWorld` is one world generating with one pack snapshot: seed, resources, the settings of its
+  dimension and of the regions and biomes it can reach (what mantle reaches see), and `state(type, create)`.
+  `InvocationContext.world()` hands it to every stage; services take it as their first argument; hooks get it. A
+  placement outside any world, such as a studio paste, has none and throws.
+- **The store.** One instance per type, keyed by class: a class is compile-checked and module-owned, so two modules
+  never share an entry by accident, and it matches the internal `state(Class, factory)` Iris already used. A factory
+  runs once per type even when threads race (the others wait and get the same instance); it may ask for other state
+  on its own thread, since creation holds one re-entrant lock, and asking for the type being created fails naming the
+  chain instead of recursing or deadlocking. A factory that throws keeps nothing. Reads of existing state take no lock.
+  `WorldStates` is the reference store hosts use.
+- **Hooks.** `ModuleLifecycle` has `packLoaded(resources, settings)`, `worldStarted(world)` and `worldStopped(world)`,
+  each a no-op by default, registered with `FeatureRegistry.registerLifecycle` like validators, so the host knows the
+  owning module for errors and orders hooks by module id. A module class may implement it and register itself.
+  `packLoaded` runs once per snapshot before its first world starts; a pack that is only validated or edited in studio
+  is not loaded in this sense. The settings it gets are the whole pack's, as validators see them.
+- **Hotload semantics.** A world's state lives as long as the world runs with one pack snapshot. A hotload stops the
+  world and starts a new one with the reloaded pack; so does a reload of the pack's resources while the world runs,
+  such as a tool rewriting structure files. State therefore never outlives the resources it was built from, and
+  modules need no invalidation calls of their own. An invocation keeps the world it began with; the host closes the
+  old world's `AutoCloseable` states once nothing generates with it.
+- **Failures.** A failing `packLoaded` or `worldStarted` keeps the world from starting, naming the module, and the
+  modules that had started get `worldStopped`. Every `worldStopped` runs even when one fails; the failures are reported
+  together. `LifecycleRunner` implements these rules for hosts.
+- **Threading.** Hooks of one world run one at a time on the thread that starts or stops it, in module id order and
+  stops in reverse. State is safe from any thread.
+- **Not added (yet):** a pack-level store shared by the worlds of one snapshot. Every known consumer (decoration
+  streams, warm-up, placement workers, structure indexes) is per world; per-world state built from pack data costs
+  a little duplication when several worlds share a pack.
+
+## Services
+
+Iris core still asks feature classes directly: which objects a chunk gets, where a structure is, which tree grows
+from a sapling, which drops a block has. A module answers such questions through a service instead.
+
+- **Shape.** A service is an interface marked `@Service`. Its methods take the `PackWorld` they concern (or the
+  `PackResources` for a question about the pack alone) and return values. A provider is registered once per pack with
+  `FeatureRegistry.registerService(type, provider)` and holds no state: it reaches the world's store. Services compute;
+  what should happen in the world (an entity spawned, items dropped) comes back as a value the host carries out on the
+  thread the platform needs, so no platform type ever appears in a service.
+- **Several providers.** Each service chooses with `@Service(Providers.X)`: `ALL`, the host asks every provider and
+  combines the answers (objects in a chunk); `FIRST`, the host asks in order until one answers (the module that knows a
+  structure key); `ONE`, at most one provider per pack, and a second module providing it fails the pack load naming
+  both. Order is module id order and, within a module, registration order, so it never depends on discovery.
+- **Lookup.** The host asks the pack's catalog: `services(type)` for every provider, `service(type)` for the one
+  provider of a `ONE` service. Looking up a type that is not marked fails, and so does `service` for a service that may
+  have several providers.
+- **Threading.** The host may call a provider from any thread, several at once. A provider that searches long
+  (`StructureLocator.locate`) is called off the server's main thread.
+- **Services now.** `ObjectsAt` (`ALL`): pack object keys a module would place in a chunk, predicted without
+  generating it. `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
+  nearest start of one as a `LocateResult` (`Found`, `NotFound`, `SearchLimitReached`; a sealed interface, so callers
+  switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
+- **Why not per-world provider instances.** A factory per world (`world -> provider`) would let a provider hold its
+  world, but every service method would then hide which world it answers for, and a host could not ask a pack-level
+  question without a world. Passing the world keeps providers stateless like stage bodies and puts all per-world data
+  in one place.
+
 ## Not implemented
 
 - Host wiring, which lives in Iris: JSON decoding and validation, rendering `PackSchema` into Iris's schema and
@@ -825,7 +889,8 @@ This is an inventory of where each existing family should land, not a claim that
 - Image maps and expressions should compile into pack resources before a snapshot is published.
 - Runtime features need their own family with read-only event inputs and requested actions that
   host adapters perform on the right scheduler. Generation hunks, RNGs and views never leak into
-  runtime work.
+  runtime work. Services are that family's seam: a service takes the world and an event value and returns the
+  actions (see Services).
 
 Exact signatures for these families should follow their first real port.
 

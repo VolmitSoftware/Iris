@@ -17,7 +17,7 @@ public interface IrisModule {
     void install(StageGraph graph);
 
     /** Registers non-stage contributions: geometry generators, mantle layers, settings no stage names, pack
-     * resource kinds and validators.
+     * resource kinds, validators, lifecycle hooks and services.
      */
     default void register(FeatureRegistry registry) {}
 }

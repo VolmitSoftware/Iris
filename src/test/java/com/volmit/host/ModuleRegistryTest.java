@@ -4,6 +4,8 @@ import com.volmit.*;
 import com.volmit.config.Feature;
 import com.volmit.mantle.*;
 import com.volmit.resource.ResourceKind;
+import com.volmit.service.Providers;
+import com.volmit.service.Service;
 import com.volmit.validation.Validator;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
@@ -13,6 +15,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
@@ -246,6 +249,82 @@ class ModuleRegistryTest {
         assertEquals(List.of(first, second, other), registry.freeze().validators().stream().map(ValidatorRegistration::validator).toList());
         assertEquals("test:alpha", registry.freeze().validators().getFirst().module().info().id().toString());
         assertThrows(IllegalStateException.class, () -> registry.registerValidator(pack -> {}), "registration has ended");
+    }
+
+    @Service(Providers.ALL)
+    interface Greeting { String greet(); }
+    @Service(Providers.ONE)
+    interface Clock { long now(); }
+    interface NotAService { void run(); }
+
+    @Test
+    void lifecyclesAreCataloguedByModuleIdInTheOrderEachModuleRegisteredThem() {
+        var registry = new ModuleRegistry();
+        ModuleLifecycle first = new ModuleLifecycle() {};
+        ModuleLifecycle second = new ModuleLifecycle() {};
+        ModuleLifecycle other = new ModuleLifecycle() {};
+        registerAs(registry, "test:zeta", hooks -> hooks.registerLifecycle(other));
+        registerAs(registry, "test:alpha", hooks -> {
+            hooks.registerLifecycle(first);
+            hooks.registerLifecycle(second);
+        });
+
+        assertThrows(IllegalStateException.class, () -> registry.registerLifecycle(new ModuleLifecycle() {}),
+                "registration outside IrisModule.register");
+        var catalog = registry.freeze();
+        assertEquals(List.of(first, second, other), catalog.lifecycles().stream().map(LifecycleRegistration::lifecycle).toList());
+        assertEquals("test:alpha", catalog.lifecycles().getFirst().module().info().id().toString());
+    }
+
+    @Test
+    void serviceProvidersComeInModuleIdOrderAndEachModulesInRegistrationOrder() {
+        var registry = new ModuleRegistry();
+        Greeting zeta = () -> "zeta";
+        Greeting alphaFirst = () -> "alpha 1";
+        Greeting alphaSecond = () -> "alpha 2";
+        registerAs(registry, "test:zeta", services -> services.registerService(Greeting.class, zeta));
+        registerAs(registry, "test:alpha", services -> {
+            services.registerService(Greeting.class, alphaFirst);
+            services.registerService(Greeting.class, alphaSecond);
+        });
+
+        var catalog = registry.freeze();
+        assertEquals(List.of(alphaFirst, alphaSecond, zeta), catalog.services(Greeting.class));
+        assertEquals(List.of(), catalog.services(Clock.class), "a service nobody provides has no providers");
+        assertEquals(Optional.empty(), catalog.service(Clock.class));
+        var several = assertThrows(IllegalArgumentException.class, () -> catalog.service(Greeting.class));
+        assertTrue(several.getMessage().contains("services(...)"), several.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> catalog.services(NotAService.class));
+    }
+
+    @Test
+    void aServiceWithOneProviderFailsTheLoadWhenASecondModuleProvidesIt() {
+        var registry = new ModuleRegistry();
+        Clock clock = () -> 1L;
+        registerAs(registry, "test:alpha", services -> services.registerService(Clock.class, clock));
+        registerAs(registry, "test:zeta", services -> {
+            var duplicate = assertThrows(IllegalArgumentException.class, () -> services.registerService(Clock.class, () -> 2L));
+            assertTrue(duplicate.getMessage().contains("test:alpha from host classpath"), duplicate.getMessage());
+            assertTrue(duplicate.getMessage().contains("test:zeta from host classpath"), duplicate.getMessage());
+        });
+
+        assertEquals(Optional.of(clock), registry.freeze().service(Clock.class));
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"}) // A raw class lets a provider of the wrong type reach the check.
+    void servicesMustBeMarkedInterfacesThatTheProviderImplements() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "test:alpha", services -> {
+            var unmarked = assertThrows(IllegalArgumentException.class,
+                    () -> services.registerService(NotAService.class, () -> {}));
+            assertTrue(unmarked.getMessage().contains("@" + Service.class.getName()), unmarked.getMessage());
+            assertThrows(IllegalArgumentException.class, () -> services.registerService(Object.class, new Object()));
+            assertThrows(IllegalArgumentException.class, () -> services.registerService((Class) Greeting.class, (Clock) () -> 1L));
+            assertThrows(NullPointerException.class, () -> services.registerService(Greeting.class, null));
+        });
+        assertThrows(IllegalStateException.class, () -> registry.registerService(Greeting.class, () -> "outside"));
+        assertEquals(List.of(), registry.freeze().services(Greeting.class));
     }
 
     private static MantleCodec<String> codec(int version) {

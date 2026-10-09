@@ -51,8 +51,8 @@ public final class MossModule implements IrisModule {
   The stream is a `WorldRandom` (see Random streams below).
 
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators,
-mantle layers, settings no stage names (see Settings for studio), pack resource kinds and validators
-(see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
+mantle layers, settings no stage names (see Settings for studio), pack resource kinds, validators,
+lifecycle hooks and services (see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
 like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
 module naming it owns in that sense, or its owner must have registered it, so another module may
 still condition its stages on it, as moss does on `iris:snow`.
@@ -203,6 +203,88 @@ A validator sees the pack's resources, module kinds included, and `pack.settings
 every dimension, region and biome of the pack. It reports each `Problem` with a severity and its subject, a
 resource id or a file below the pack root. An `ERROR` stops the pack from loading; a `WARNING` is only shown.
 A validator reports and returns; one that throws fails the pack's validation, naming its module.
+
+## World state and lifecycle
+
+Stage bodies and services are shared by every world and every invocation, so a module keeps nothing in fields. What
+it builds for one world, such as a cache or a worker, it keeps in that world's state store:
+
+```java
+private static void plant(ChunkStageContext context) {
+    planted(context.world()).add(context.originX() >> 4, context.originZ() >> 4);
+}
+
+static PlantedChunks planted(PackWorld world) {
+    return world.state(PlantedChunks.class, PlantedChunks::new);   // one per world, created on first use
+}
+```
+
+- `ctx.world()` is the `PackWorld` an invocation generates: its seed, the pack snapshot's resources, the settings of
+  its dimension and the regions and biomes it can reach, and `state(type, create)`. Every stage context has it; a
+  placement outside any world, such as a studio paste, throws.
+- `state` creates each type once per world, even when threads race, and hands every caller the same instance. A
+  factory may ask for other state; asking for the type being created fails instead of recursing. A factory that throws
+  keeps nothing. Use a class of the module as the type.
+- A state that is `AutoCloseable` is closed after the world stops, once nothing generates with it.
+
+A module that wants to act when the host loads a pack or starts or stops a world registers a `ModuleLifecycle`. Every
+hook does nothing by default, and a module class may implement it and register itself:
+
+```java
+public final class RuinsModule implements IrisModule, ModuleLifecycle {
+    public void register(FeatureRegistry registry) {
+        registry.registerLifecycle(this);
+    }
+
+    public void worldStarted(PackWorld world) {
+        planted(world);                       // build the state now instead of on the world's first chunk
+    }
+}
+```
+
+- `packLoaded(resources, settings)` runs once per pack snapshot, before the first world using it starts; `settings`
+  holds every entry of the whole pack.
+- `worldStarted(world)` runs before the world generates anything, `worldStopped(world)` when it stops; its state is
+  still readable there.
+- A hotload, or a reload of the pack's resources while worlds run (a tool rewrote files), stops each world, loads the
+  new snapshot and starts the worlds again with empty state. State never outlives the resources it was built from.
+- Hooks run in module id order, stops in reverse. A failing `packLoaded` or `worldStarted` stops the world from
+  starting, naming the module (modules that had started get `worldStopped`); every `worldStopped` runs even when one
+  fails.
+
+## Services
+
+The host asks modules for what only they know, such as which objects a chunk gets or where a structure is, through
+services: small interfaces marked `@Service` in `com.volmit.service`. A module registers a provider; the host looks
+them up in the pack's catalog instead of knowing the feature.
+
+```java
+public void register(FeatureRegistry registry) {
+    registry.registerService(ObjectsAt.class, RuinsModule::objectsAt);
+}
+
+private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+    return planted(world).contains(chunkX, chunkZ) ? Set.of("ruins/arch") : Set.of();
+}
+```
+
+- Providers hold no state: a provider serves every world and the host may call it from any thread, several at once.
+  Service methods take the world, and the provider keeps what it needs in the world's state store.
+- Services compute; they never act on the platform. What should happen in the world comes back as a value the host
+  carries out on the right thread.
+- Each service says how several providers combine, with `@Service(Providers.X)`: `ALL` (the host asks every provider
+  and combines the answers), `FIRST` (the host asks in order until one answers) or `ONE` (at most one provider per
+  pack; a second fails the pack load, naming both modules). Providers are in module id order, each module's in
+  registration order.
+
+| Service | Providers | What the host asks |
+| --- | --- | --- |
+| `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it (object search, studio tools). |
+| `StructureLocator` | `FIRST` | Every structure key the module knows (the structure index), the ones a world places (commands complete them), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Keys match without regard to case. |
+
+```
+Service example.Clock is provided by module example:alpha from modules/alpha.jar already, and module example:beta from modules/beta.jar provides it too; a pack has one provider of it (Providers.ONE), so remove one of them
+```
 
 ## Module jars
 
@@ -497,6 +579,20 @@ schema, after a module jar changes.
 `PlacementRunner` owns the edit for one attempt. It commits once if no stage rejects or throws
 and closes the edit in every case. Stages get buffered `PlacementAccess` without commit rights.
 
+The host keeps one `PackWorld` per world and pack snapshot. `WorldStates` is the reference store behind
+`PackWorld.state`, and `LifecycleRunner` calls a pack's hooks the way `ModuleLifecycle` promises:
+
+```java
+var lifecycles = new LifecycleRunner(pack.catalog());
+lifecycles.packLoaded(resources, packSettings);     // once per snapshot, before its first world starts
+lifecycles.worldStarted(world);                     // then hand world to every invocation of the world
+...
+lifecycles.worldStopped(world);                     // then close the world's WorldStates
+
+List<ObjectsAt> providers = pack.catalog().services(ObjectsAt.class);   // in module id order
+Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Providers.ONE service only
+```
+
 ## Values that stay
 
 - `ResourceId` requires a namespace. `ResourceKey<T>` pairs it with a public type.
@@ -514,7 +610,8 @@ and closes the edit in every case. Stages get buffered `PlacementAccess` without
   `@MaxNumber`, `@Snippet`, `@Ref`) and `OptionsMetadata` describe settings.
 
 Invocation views and random streams expire when the invocation ends. Stage bodies are shared by
-concurrent invocations and must not keep views, streams or mutable state.
+concurrent invocations and must not keep views, streams or mutable state; what a module keeps per world lives in the
+world's state store (`PackWorld.state`).
 
 ## Validation
 
@@ -544,7 +641,13 @@ settings (and the load error when a pack module uses one), and the one-option sh
 `PackSchemaTest` also loads a module jar with a resource kind: the kind's files described from its class,
 `@ResourceRef` options as references to the kind, built-in kinds of host types, the load error for a pack kind
 of a host type, for a folder two kinds claim or the host reserves, and for a misplaced `@ResourceRef`.
-`ModuleRegistryTest` checks kind ids, types and folders, and the validator order. `DiscoveredModuleTest`
+`ModuleRegistryTest` checks kind ids, types and folders, the validator and lifecycle order, service providers in module
+order, the load error for a second provider of a `ONE` service and for providers of unmarked interfaces or of the
+wrong type. `WorldStatesTest` checks that each state is created once (also when threads race), nested creation, the
+error for a type asked for while it is created, factories that fail or return null, and closing newest first past
+failures. `LifecycleRunnerTest` checks hook order, stops in reverse, the stop of already started modules when a start
+fails, and that every stop runs. `WorldStateExampleTest` (`example/world`) has a chunk stage, a service and a hook share
+one world's state, and a new world start empty. `DiscoveredModuleTest`
 checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go

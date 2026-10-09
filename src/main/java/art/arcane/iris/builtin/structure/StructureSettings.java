@@ -33,12 +33,12 @@ import java.util.List;
 
 /**
  * How a dimension treats the platform's own structures (vanilla, data pack and mod structures), written as
- * {@code "iris:structure": {"disabled": [...], "adjustments": [...]}}: which ones it disables, how the ones that still
+ * {@code "importedStructures": {"disabled": [...], "adjustments": [...]}}: which ones it disables, how the ones that still
  * generate are moved and fitted, how often structure sets start, and whether installed data packs may replace the
- * platform's own definitions. The JSON packs wrote as {@code importedStructures}. IrisApi types only.
+ * platform's own definitions. IrisApi types only.
  */
 @Desc("Controls native vanilla, mod, and ingested datapack structure generation for this dimension. Every registered structure generates through its native placement unless its key matches 'disabled', equals a key in 'disabledExact', or a viable dimension-level Iris placement explicitly replaces its source. Family matching uses namespace, slash, or underscore boundaries, while exact matching compares normalized complete keys only. Run '/iris structure list <dimension>' to dump every valid key. Only affects newly generated chunks and is separate from Iris structure placements.")
-@Feature(id = "iris:structure", name = "Structures", targets = Target.DIMENSION)
+@Feature(id = "iris:structure", name = "Structures", key = "importedStructures", targets = Target.DIMENSION)
 public final class StructureSettings implements IrisFeature {
     @MinItems(1)
     @Ref(Reference.STRUCTURE_PREFIX)

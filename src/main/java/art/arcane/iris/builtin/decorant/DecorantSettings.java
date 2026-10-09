@@ -28,11 +28,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The decorators one biome declares, written as {@code "iris:decorant": {"decorators": [...]}}. IrisApi types only, like
+ * The decorators one biome declares, written as {@code "decorators": [...]}, the list of decorators. IrisApi types only, like
  * {@link Decorator}.
  */
 @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
-@Feature(id = "iris:decorant", name = "Decorators", targets = Target.BIOME)
+@Feature(id = "iris:decorant", name = "Decorators", key = "decorators", root = "decorators", targets = Target.BIOME)
 public final class DecorantSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")

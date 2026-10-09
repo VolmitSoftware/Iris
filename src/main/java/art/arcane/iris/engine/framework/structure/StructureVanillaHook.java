@@ -42,7 +42,7 @@ import com.volmit.vanilla.VanillaStructureStartContext;
 import java.util.List;
 
 /**
- * What {@code iris:structure} says about the platform's own structures. The dimension's {@code iris:structure}
+ * What {@code iris:structure} says about the platform's own structures. The dimension's {@code importedStructures}
  * settings ({@link ImportedStructures}) disable, adjust and set them up; the pack's structure placements replace
  * them ({@code vanillaSource} with native suppression), place them alongside ({@link IrisStructureLocator#isPlaced})
  * and start them where their {@code nativeStructures} grids say ({@link NativeStartPlanner}).

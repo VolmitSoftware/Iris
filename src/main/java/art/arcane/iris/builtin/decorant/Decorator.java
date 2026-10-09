@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * One decorator of a biome, as packs write it in the {@code decorators} of {@code "iris:decorant"} or under
+ * One decorator of a biome, as packs write it in the {@code "decorators"} list or under
  * {@code snippet/decorator/}: which blocks it places, where, how often and how tall. A value of IrisApi types only; the
  * decorant module resolves the blocks and builds the noise.
  */

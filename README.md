@@ -39,7 +39,7 @@ built-ins still reach the same store through `IrisChunk.state(...)` / `engine.ge
 
 Settings move off Iris's classes one feature at a time. `iris:deposit` is the first whose settings are IrisApi types
 only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it in
-`art.arcane.iris.builtin.deposit`), and packs write `"iris:deposit": {"generators": [...]}` (the old `"deposits": [...]` is converted by the pack migration script). What needs Iris (resolving the
+`art.arcane.iris.builtin.deposit`), and packs write `"deposits": [...]`, as they always have (`@Feature(key = "deposits", root = "generators")`: the key holds the one option's list). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
 
 Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition,
@@ -50,12 +50,17 @@ that needs Iris (noise built from the styles, blocks resolved through the pack, 
 worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
 
 `iris:decorant` is the second: `DecorantSettings` (biome level) holds `Decorator`s in `art.arcane.iris.builtin.decorant`,
-written `"iris:decorant": {"decorators": [...]}` (the old `"decorators": [...]` is converted by the migration script).
+written `"decorators": [...]` as always (`@Feature(key = "decorators", root = "decorators")`).
 `ResolvedDecorator` resolves one decorator's blocks and noise for a world; `BiomeDecorators`, the world's state, keeps them
 per biome and place. Other modules that decorate (`iris:cave`'s ceilings, floating islands) ask it. A decorator's noise
 seed is the world's decorator seed, its biome's key and its place in the biome's list. The module's `warmUp` builds
 them ahead of generation; `iris:terrain` and `iris:objects` warm their ore generators, placements and procedural
 objects the same way.
+
+Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
+(biome; a list) and `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest). The feature ids
+(`iris:deposit`, `iris:decorant`, `iris:structure`) stay the modules' identity in the stage graph and logs. A key is unique
+per target across all modules and Iris's own fields, so a new built-in or pack module picks a key no field of the target uses.
 
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off

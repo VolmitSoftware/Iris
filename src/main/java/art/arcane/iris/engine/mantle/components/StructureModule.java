@@ -51,7 +51,7 @@ import com.volmit.world.PackWorld;
  * the pack's structure files.
  * <p>
  * It decides over the platform's own structures through its vanilla structure hook ({@link StructureVanillaHook}): the
- * dimension's {@code iris:structure} settings disable, adjust and set them up, and the pack's structure placements
+ * dimension's {@code importedStructures} settings disable, adjust and set them up, and the pack's structure placements
  * replace them, place them alongside, and start them where their {@code nativeStructures} grids say.
  */
 public final class StructureModule implements IrisModule, ModuleLifecycle {

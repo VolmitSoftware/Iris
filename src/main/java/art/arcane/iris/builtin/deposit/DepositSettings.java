@@ -26,12 +26,12 @@ import com.volmit.config.Feature;
 import java.util.List;
 
 /**
- * The deposits one dimension, region or biome declares, written as {@code "iris:deposit": {"generators": [...]}}. Levels stack:
+ * The deposits one dimension, region or biome declares, written as {@code "deposits": [...]}, the list of generators. Levels stack:
  * a chunk gets the deposits of its dimension, its centre column's region and that column's biome. IrisApi types only,
  * like {@link DepositGenerator}.
  */
 @Desc("Ores and other deposits generated in every chunk where this applies")
-@Feature(id = "iris:deposit", name = "Deposits", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:deposit", name = "Deposits", key = "deposits", root = "generators", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
 public final class DepositSettings implements IrisFeature {
     @Desc("Define deposit generators that this applies to chunks")
     private List<DepositGenerator> generators = List.of();

@@ -18,18 +18,31 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.engine.object.procedural.coral.IrisCoral;
-import art.arcane.iris.engine.object.procedural.crystal.IrisCrystal;
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
-import art.arcane.iris.engine.object.procedural.fungi.IrisFungus;
-import art.arcane.iris.engine.object.procedural.ruin.IrisRuin;
+import art.arcane.iris.builtin.objects.ruin.Ruin;
+import art.arcane.iris.engine.object.procedural.ruin.ResolvedRuin;
+import art.arcane.iris.builtin.objects.fungi.Fungus;
+import art.arcane.iris.engine.object.procedural.fungi.ResolvedFungus;
+import art.arcane.iris.builtin.objects.formation.Formation;
+import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
+import art.arcane.iris.builtin.objects.crystal.Crystal;
+import art.arcane.iris.engine.object.procedural.crystal.ResolvedCrystal;
+import art.arcane.iris.builtin.objects.coral.Coral;
+import art.arcane.iris.engine.object.procedural.coral.ResolvedCoral;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.volmlib.util.collection.KList;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -40,51 +53,57 @@ import lombok.experimental.Accessors;
 @Desc("Procedurally generated objects placed in a biome or region. Unlike the objects block (which loads iob files), these are generated from scratch at world-gen time.")
 @Data
 public class IrisProceduralObjects {
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    private final transient Map<Object, ResolvedProceduralPlacement> placeables = new ConcurrentHashMap<>();
+
     @ArrayType(min = 1, type = IrisProceduralTree.class)
     @Desc("Procedurally generated trees.")
     private KList<IrisProceduralTree> trees = new KList<>();
 
-    @ArrayType(min = 1, type = IrisRuin.class)
+    @ArrayType(min = 1, type = Ruin.class)
     @Desc("Procedurally generated ruins (crumbling pillars, walls, arches, rubble).")
-    private KList<IrisRuin> ruins = new KList<>();
+    private KList<Ruin> ruins = new KList<>();
 
-    @ArrayType(min = 1, type = IrisFormation.class)
+    @ArrayType(min = 1, type = Formation.class)
     @Desc("Procedurally generated natural rock formations (spires, hoodoos, arches, sea stacks, boulders, basalt columns).")
-    private KList<IrisFormation> formations = new KList<>();
+    private KList<Formation> formations = new KList<>();
 
-    @ArrayType(min = 1, type = IrisCoral.class)
+    @ArrayType(min = 1, type = Coral.class)
     @Desc("Procedurally generated underwater coral structures.")
-    private KList<IrisCoral> coral = new KList<>();
+    private KList<Coral> coral = new KList<>();
 
-    @ArrayType(min = 1, type = IrisFungus.class)
+    @ArrayType(min = 1, type = Fungus.class)
     @Desc("Procedurally generated mushrooms and shelf fungi.")
-    private KList<IrisFungus> fungi = new KList<>();
+    private KList<Fungus> fungi = new KList<>();
 
-    @ArrayType(min = 1, type = IrisCrystal.class)
+    @ArrayType(min = 1, type = Crystal.class)
     @Desc("Procedurally generated crystal clusters (usually placed in caves).")
-    private KList<IrisCrystal> crystals = new KList<>();
+    private KList<Crystal> crystals = new KList<>();
 
     public KList<IrisProceduralPlacement> getAllPlacements() {
         KList<IrisProceduralPlacement> all = new KList<>();
         if (trees != null) {
             all.addAll(trees);
         }
-        if (ruins != null) {
-            all.addAll(ruins);
-        }
-        if (formations != null) {
-            all.addAll(formations);
-        }
-        if (coral != null) {
-            all.addAll(coral);
-        }
-        if (fungi != null) {
-            all.addAll(fungi);
-        }
-        if (crystals != null) {
-            all.addAll(crystals);
-        }
+        addPlaceable(all, ruins, ResolvedRuin::new);
+        addPlaceable(all, formations, ResolvedFormation::new);
+        addPlaceable(all, coral, ResolvedCoral::new);
+        addPlaceable(all, fungi, ResolvedFungus::new);
+        addPlaceable(all, crystals, ResolvedCrystal::new);
         return all;
+    }
+
+    /** The settings in {@code settings}, each made placeable once, in order. */
+    @SuppressWarnings("unchecked")
+    private <S> void addPlaceable(KList<IrisProceduralPlacement> all, KList<S> settings, Function<S, ResolvedProceduralPlacement> resolve) {
+        if (settings == null) {
+            return;
+        }
+        for (S entry : settings) {
+            all.add(placeables.computeIfAbsent(entry, key -> resolve.apply((S) key)));
+        }
     }
 
     public boolean isEmpty() {

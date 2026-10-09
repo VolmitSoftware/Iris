@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.formation;
 
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
+import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
@@ -30,11 +30,11 @@ public final class FormationShapeBuilder {
     private FormationShapeBuilder() {
     }
 
-    public static void spire(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
-        double topRadius = f.getTopWidth();
+    public static void spire(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
+        double topRadius = f.topWidth();
         column(canvas, f, height, baseRadius, topRadius, 0, 0, rng, true);
-        double lean = Math.toRadians(f.getLean());
-        double azimuth = Math.toRadians(f.getLeanAzimuth());
+        double lean = Math.toRadians(f.lean());
+        double azimuth = Math.toRadians(f.leanAzimuth());
         int previousX = 0;
         int previousZ = 0;
         for (int y = 0; y < height; y++) {
@@ -53,25 +53,25 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void seaStack(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
+    public static void seaStack(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
         double topRadius = Math.max(1.0, baseRadius * 0.55);
-        if (f.getTopWidth() > 0) {
-            topRadius = f.getTopWidth();
+        if (f.topWidth() > 0) {
+            topRadius = f.topWidth();
         }
         column(canvas, f, height, baseRadius, topRadius, 0, 0, rng, true);
     }
 
-    public static void hoodoo(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
-        double topRadius = f.getTopWidth() > 0 ? f.getTopWidth() : Math.max(1.0, baseRadius * 0.7);
+    public static void hoodoo(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
+        double topRadius = f.topWidth() > 0 ? f.topWidth() : Math.max(1.0, baseRadius * 0.7);
         column(canvas, f, height, baseRadius, topRadius, 0, 0, rng, false);
 
-        int capRadius = f.getHoodooCapRadius();
+        int capRadius = f.hoodooCapRadius();
         if (capRadius <= 0) {
             return;
         }
-        int capHeight = Math.max(1, f.getHoodooCapHeight());
-        double lean = Math.toRadians(f.getLean());
-        double azimuth = Math.toRadians(f.getLeanAzimuth());
+        int capHeight = Math.max(1, f.hoodooCapHeight());
+        double lean = Math.toRadians(f.lean());
+        double azimuth = Math.toRadians(f.leanAzimuth());
         double shear = Math.tan(lean) * height;
         double topOffX = Math.cos(azimuth) * shear;
         double topOffZ = Math.sin(azimuth) * shear;
@@ -85,12 +85,12 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void boulder(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
+    public static void boulder(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
         double rx = baseRadius;
         double ry = Math.max(2.0, height * 0.5);
         double rz = baseRadius * (0.8 + rng.d(0.0, 0.3));
-        double roughness = Math.max(0.0, Math.min(1.0, f.getRoughness()));
-        long noiseSeed = f.getSeed() + 4201L;
+        double roughness = Math.max(0.0, Math.min(1.0, f.roughness()));
+        long noiseSeed = f.seed() + 4201L;
 
         int maxR = (int) Math.ceil(Math.max(rx, Math.max(ry, rz))) + 2;
         for (int x = -maxR; x <= maxR; x++) {
@@ -109,10 +109,10 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void arch(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
-        double span = Math.max(2.0, f.getArchSpan());
-        double tubeRadius = Math.max(0.75, f.getArchThickness() * 0.5);
-        double asymmetry = Math.max(0.0, Math.min(1.0, f.getArchAsymmetry()));
+    public static void arch(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
+        double span = Math.max(2.0, f.archSpan());
+        double tubeRadius = Math.max(0.75, f.archThickness() * 0.5);
+        double asymmetry = Math.max(0.0, Math.min(1.0, f.archAsymmetry()));
         double leftFootX = -span * 0.5 - tubeRadius - rng.d(0.0, span * 0.16) * asymmetry;
         double rightFootX = span * 0.5 + tubeRadius + rng.d(0.0, span * 0.16) * asymmetry;
         double leftFootZ = rng.d(-tubeRadius * 0.45, tubeRadius * 0.45) * asymmetry;
@@ -164,10 +164,10 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void basaltColumns(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
-        int count = Math.max(2, f.getBasaltColumns());
-        int colRadius = Math.max(1, f.getBasaltColumnRadius());
-        double variance = Math.max(0.0, Math.min(1.0, f.getBasaltHeightVariance()));
+    public static void basaltColumns(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
+        int count = Math.max(2, f.basaltColumns());
+        int colRadius = Math.max(1, f.basaltColumnRadius());
+        double variance = Math.max(0.0, Math.min(1.0, f.basaltHeightVariance()));
         int spread = (int) Math.ceil(baseRadius);
 
         for (int c = 0; c < count; c++) {
@@ -194,14 +194,14 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void iceberg(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
+    public static void iceberg(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
         long noiseSeed = rng.nextLong();
         double bodyHeight = Math.max(2.0, height * 0.42);
         double radiusX = baseRadius * rng.d(1.15, 1.5);
         double radiusZ = baseRadius * rng.d(1.0, 1.35);
-        ellipsoid(canvas, radiusX, bodyHeight, radiusZ, bodyHeight * 0.36, noiseSeed, f.getRoughness());
+        ellipsoid(canvas, radiusX, bodyHeight, radiusZ, bodyHeight * 0.36, noiseSeed, f.roughness());
 
-        int peaks = Math.max(1, f.getIcebergPeaks());
+        int peaks = Math.max(1, f.icebergPeaks());
         double phase = rng.d(0.0, Math.PI * 2.0);
         for (int i = 0; i < peaks; i++) {
             double angle = phase + (Math.PI * 2.0 * i / peaks) + rng.d(-0.35, 0.35);
@@ -215,9 +215,9 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void fissure(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
-        int count = Math.max(2, f.getFractureCount());
-        double separation = Math.max(1.0, f.getFractureSeparation());
+    public static void fissure(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
+        int count = Math.max(2, f.fractureCount());
+        double separation = Math.max(1.0, f.fractureSeparation());
         double shardRadius = Math.max(1.0, baseRadius / Math.max(1.6, count * 0.72));
         double phase = rng.d(0.0, Math.PI * 2.0);
 
@@ -233,11 +233,11 @@ public final class FormationShapeBuilder {
         }
     }
 
-    public static void spiral(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
+    public static void spiral(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
         int steps = Math.max(12, height * 4);
-        double turns = Math.max(0.25, f.getSpiralTurns());
-        double startRadius = Math.max(1.0, f.getSpiralRadius());
-        double startThickness = Math.max(1.0, f.getSpiralThickness());
+        double turns = Math.max(0.25, f.spiralTurns());
+        double startRadius = Math.max(1.0, f.spiralRadius());
+        double startThickness = Math.max(1.0, f.spiralThickness());
         double phase = rng.d(0.0, Math.PI * 2.0);
         long noiseSeed = rng.nextLong();
 
@@ -257,11 +257,11 @@ public final class FormationShapeBuilder {
                 (int) Math.round(Math.sin(phase) * startRadius), footRadius, false, rng);
     }
 
-    public static void overhang(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, RNG rng) {
+    public static void overhang(FormationCanvas canvas, Formation f, int height, double baseRadius, RNG rng) {
         int steps = Math.max(12, height * 4);
-        double reach = Math.max(1.0, f.getOverhangReach());
-        double drop = Math.max(0.0, f.getOverhangDrop());
-        double phase = Math.toRadians(f.getLeanAzimuth()) + rng.d(-0.18, 0.18);
+        double reach = Math.max(1.0, f.overhangReach());
+        double drop = Math.max(0.0, f.overhangDrop());
+        double phase = Math.toRadians(f.leanAzimuth()) + rng.d(-0.18, 0.18);
         double trunkHeight = Math.max(3.0, height * 0.62);
         long noiseSeed = rng.nextLong();
 
@@ -285,12 +285,12 @@ public final class FormationShapeBuilder {
         }
     }
 
-    private static void column(FormationCanvas canvas, IrisFormation f, int height, double baseRadius, double topRadius, int extraBaseX, int extraBaseZ, RNG rng, boolean capTop) {
-        double lean = Math.toRadians(f.getLean());
-        double azimuth = Math.toRadians(f.getLeanAzimuth());
-        double roughness = Math.max(0.0, Math.min(1.0, f.getRoughness()));
-        double jitter = Math.max(0.0, Math.min(1.0, f.getJitter()));
-        long noiseSeed = f.getSeed() + 9001L;
+    private static void column(FormationCanvas canvas, Formation f, int height, double baseRadius, double topRadius, int extraBaseX, int extraBaseZ, RNG rng, boolean capTop) {
+        double lean = Math.toRadians(f.lean());
+        double azimuth = Math.toRadians(f.leanAzimuth());
+        double roughness = Math.max(0.0, Math.min(1.0, f.roughness()));
+        double jitter = Math.max(0.0, Math.min(1.0, f.jitter()));
+        long noiseSeed = f.seed() + 9001L;
 
         for (int y = 0; y < height; y++) {
             double t = height <= 1 ? 1.0 : (y / (double) (height - 1));
@@ -311,7 +311,7 @@ public final class FormationShapeBuilder {
         }
     }
 
-    private static void ringDisc(FormationCanvas canvas, IrisFormation f, int cx, int y, int cz, double radius, double roughness, double jitter, long noiseSeed, boolean cap, RNG rng) {
+    private static void ringDisc(FormationCanvas canvas, Formation f, int cx, int y, int cz, double radius, double roughness, double jitter, long noiseSeed, boolean cap, RNG rng) {
         int r = (int) Math.ceil(radius) + 1;
         for (int x = -r; x <= r; x++) {
             for (int z = -r; z <= r; z++) {
@@ -332,7 +332,7 @@ public final class FormationShapeBuilder {
         }
     }
 
-    private static void disc(FormationCanvas canvas, IrisFormation f, int cx, int y, int cz, double radius, boolean cap, RNG rng) {
+    private static void disc(FormationCanvas canvas, Formation f, int cx, int y, int cz, double radius, boolean cap, RNG rng) {
         int r = (int) Math.ceil(radius) + 1;
         for (int x = -r; x <= r; x++) {
             for (int z = -r; z <= r; z++) {
@@ -347,11 +347,11 @@ public final class FormationShapeBuilder {
         }
     }
 
-    private static void taperedPeak(FormationCanvas canvas, IrisFormation f, int height, double radius,
+    private static void taperedPeak(FormationCanvas canvas, Formation f, int height, double radius,
                                     int offsetX, int offsetZ, double leanAngle, double leanDistance, RNG rng) {
         long noiseSeed = rng.nextLong();
-        double roughness = Math.max(0.0, Math.min(1.0, f.getRoughness()));
-        double jitter = Math.max(0.0, Math.min(1.0, f.getJitter()));
+        double roughness = Math.max(0.0, Math.min(1.0, f.roughness()));
+        double jitter = Math.max(0.0, Math.min(1.0, f.jitter()));
         for (int y = 0; y < height; y++) {
             double t = height <= 1 ? 1.0 : y / (double) (height - 1);
             int x = offsetX + (int) Math.round(Math.cos(leanAngle) * leanDistance * t * t);
@@ -383,11 +383,11 @@ public final class FormationShapeBuilder {
         }
     }
 
-    private static void ball(FormationCanvas canvas, IrisFormation f, int centerX, int centerY, int centerZ,
+    private static void ball(FormationCanvas canvas, Formation f, int centerX, int centerY, int centerZ,
                              double radius, boolean cap, long noiseSeed, RNG rng) {
         int extent = (int) Math.ceil(radius);
-        double roughness = Math.max(0.0, Math.min(1.0, f.getRoughness()));
-        double jitter = Math.max(0.0, Math.min(1.0, f.getJitter()));
+        double roughness = Math.max(0.0, Math.min(1.0, f.roughness()));
+        double jitter = Math.max(0.0, Math.min(1.0, f.jitter()));
         for (int x = -extent; x <= extent; x++) {
             for (int y = -extent; y <= extent; y++) {
                 for (int z = -extent; z <= extent; z++) {

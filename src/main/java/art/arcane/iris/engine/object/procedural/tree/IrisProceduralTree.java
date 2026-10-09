@@ -18,6 +18,13 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
+import art.arcane.iris.builtin.objects.tree.TreeDecorator;
+import art.arcane.iris.builtin.objects.tree.TreeCanopy;
+import art.arcane.iris.builtin.objects.tree.TreeRootStyle;
+import art.arcane.iris.builtin.objects.tree.TreeProfile;
+import art.arcane.iris.builtin.objects.tree.TreeFunction;
+import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.stilt.StiltSettings;
@@ -120,7 +127,7 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private IrisMaterialPalette leavesPalette = null;
 
     @Desc("The named canopy profile that drives default crown radii and shape.")
-    private IrisTreeProfile profile = IrisTreeProfile.OAK;
+    private TreeProfile profile = TreeProfile.OAK;
 
     @MinNumber(1)
     @Desc("Minimum trunk height in blocks.")
@@ -135,7 +142,7 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private int trunkWidth = 1;
 
     @Desc("The function used to shape trunk width over height.")
-    private IrisTreeFunction trunkShape = IrisTreeFunction.CONSTANT;
+    private TreeFunction trunkShape = TreeFunction.CONSTANT;
 
     @Desc("Width multiplier at the base for the LINEAR trunk shape.")
     private double shapeStart = 1;
@@ -168,13 +175,13 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private double leanAngle = 0;
 
     @Desc("How the lean accumulates over height.")
-    private IrisTreeFunction trunkCurve = IrisTreeFunction.LINEAR;
+    private TreeFunction trunkCurve = TreeFunction.LINEAR;
 
     @Desc("Steepness for the SIGMOID trunk curve.")
     private double curveSteepness = 8;
 
     @Desc("How the lean azimuth itself changes over height (for spiraling or wandering trunks).")
-    private IrisTreeAzimuthMode leanAzimuthMode = IrisTreeAzimuthMode.CONSTANT;
+    private TreeAzimuthMode leanAzimuthMode = TreeAzimuthMode.CONSTANT;
 
     @Desc("Azimuth at the base for the LINEAR azimuth mode.")
     private double azimuthStart = 0;
@@ -210,9 +217,9 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     @Desc("The fraction of leaves replaced by the secondary leaf block(s).")
     private double secondaryLeafFraction = 0.35;
 
-    @ArrayType(min = 1, type = IrisTreeSecondaryLeaf.class)
+    @ArrayType(min = 1, type = TreeSecondaryLeaf.class)
     @Desc("Optional weighted set of accent leaf blocks. When set this overrides the single secondaryLeaves block.")
-    private KList<IrisTreeSecondaryLeaf> weightedSecondaryLeaves = new KList<>();
+    private KList<TreeSecondaryLeaf> weightedSecondaryLeaves = new KList<>();
 
     @Desc("A noise-driven palette for the secondary (accent) leaves. When set this overrides both secondaryLeaves and weightedSecondaryLeaves.")
     private IrisMaterialPalette secondaryLeavesPalette = null;
@@ -238,7 +245,7 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private boolean roots = true;
 
     @Desc("How the root system is built when roots is true.")
-    private IrisTreeRootStyle rootStyle = IrisTreeRootStyle.BUTTRESS;
+    private TreeRootStyle rootStyle = TreeRootStyle.BUTTRESS;
 
     @MinNumber(0)
     @Desc("Override the root depth/reach in blocks. 0 means auto (scales with tree height).")
@@ -262,11 +269,11 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private double forkAngle = 25;
 
     @Desc("The leaf crown configuration.")
-    private IrisTreeCanopy canopy = new IrisTreeCanopy();
+    private TreeCanopy canopy = new TreeCanopy();
 
-    @ArrayType(min = 1, type = IrisTreeDecorator.class)
+    @ArrayType(min = 1, type = TreeDecorator.class)
     @Desc("Accent decorators applied after the tree is built (fruit, vines, snow, glow).")
-    private KList<IrisTreeDecorator> decorators = new KList<>();
+    private KList<TreeDecorator> decorators = new KList<>();
 
     public KList<IrisObject> getVariantObjects(IrisData data) {
         return variantCache.aquire(() -> {

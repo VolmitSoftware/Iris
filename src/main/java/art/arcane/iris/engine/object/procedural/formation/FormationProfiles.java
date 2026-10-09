@@ -18,15 +18,16 @@
 
 package art.arcane.iris.engine.object.procedural.formation;
 
-import art.arcane.iris.engine.object.procedural.formation.IrisFormation;
+import art.arcane.iris.builtin.objects.formation.Formation;
+
 
 public final class FormationProfiles {
     private FormationProfiles() {
     }
 
-    public static double radiusAt(IrisFormation f, double baseRadius, double topRadius, double t) {
+    public static double radiusAt(Formation f, double baseRadius, double topRadius, double t) {
         double clamped = Math.max(0.0, Math.min(1.0, t));
-        return switch (f.getProfile()) {
+        return switch (f.profile()) {
             case CONSTANT -> baseRadius;
             case LINEAR -> baseRadius + (topRadius - baseRadius) * clamped;
             case TAPER -> baseRadius + (topRadius - baseRadius) * smoothstep(clamped);
@@ -35,9 +36,9 @@ public final class FormationProfiles {
         };
     }
 
-    private static double parabolic(IrisFormation f, double baseRadius, double topRadius, double t) {
-        double waist = Math.max(0.0, Math.min(1.0, f.getProfileWaist()));
-        double floor = Math.max(0.0, Math.min(1.0, f.getProfileWaistFloor()));
+    private static double parabolic(Formation f, double baseRadius, double topRadius, double t) {
+        double waist = Math.max(0.0, Math.min(1.0, f.profileWaist()));
+        double floor = Math.max(0.0, Math.min(1.0, f.profileWaistFloor()));
         double denom = Math.pow(Math.max(waist, 1.0 - waist), 2);
         if (denom == 0) {
             denom = 1;

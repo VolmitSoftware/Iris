@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.tree.TreeRootStyle;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeRootStyle;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public final class TreeRootBuilder {
         }
         double flare = tree.getRootFlare() > 0 ? tree.getRootFlare() : baseRadius + Math.max(2.0, depth * 0.6);
 
-        IrisTreeRootStyle style = tree.getRootStyle();
+        TreeRootStyle style = tree.getRootStyle();
         switch (style) {
             case TAPROOT -> taproot(canvas, cells, cx, cz, baseRadius, depth);
             case BUTTRESS -> {

@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.crystal;
 
-import art.arcane.iris.engine.object.procedural.crystal.IrisCrystal;
-import art.arcane.iris.engine.object.procedural.crystal.IrisCrystalDistribution;
+import art.arcane.iris.builtin.objects.crystal.CrystalDistribution;
+import art.arcane.iris.builtin.objects.crystal.Crystal;
 import art.arcane.volmlib.util.math.RNG;
 
 public final class CrystalShardBuilder {
@@ -28,24 +28,24 @@ public final class CrystalShardBuilder {
     private CrystalShardBuilder() {
     }
 
-    public static void build(CrystalCanvas canvas, IrisCrystal crystal, RNG rng) {
-        double[] normal = CrystalGeometry.surfaceNormal(crystal.getGrowthSurface());
+    public static void build(CrystalCanvas canvas, Crystal crystal, RNG rng) {
+        double[] normal = CrystalGeometry.surfaceNormal(crystal.growthSurface());
         double[] u = CrystalGeometry.orthonormalBasisU(normal);
         double[] v = CrystalGeometry.orthonormalBasisV(normal, u);
 
-        int countLo = Math.min(crystal.getShardCountMin(), crystal.getShardCountMax());
-        int countHi = Math.max(crystal.getShardCountMin(), crystal.getShardCountMax());
+        int countLo = Math.min(crystal.shardCountMin(), crystal.shardCountMax());
+        int countHi = Math.max(crystal.shardCountMin(), crystal.shardCountMax());
         int shardCount = Math.max(1, rng.i(countLo, countHi + 1));
 
-        int lengthLo = Math.min(crystal.getShardLengthMin(), crystal.getShardLengthMax());
-        int lengthHi = Math.max(crystal.getShardLengthMin(), crystal.getShardLengthMax());
+        int lengthLo = Math.min(crystal.shardLengthMin(), crystal.shardLengthMax());
+        int lengthHi = Math.max(crystal.shardLengthMin(), crystal.shardLengthMax());
 
-        double spreadRadians = Math.toRadians(Math.max(0.0, Math.min(90.0, crystal.getSpreadAngle())));
-        double jitterAmount = Math.max(0.0, Math.min(1.0, crystal.getJitter()));
-        double emitRadius = Math.max(0.0, crystal.getBaseRadius() * 0.6);
+        double spreadRadians = Math.toRadians(Math.max(0.0, Math.min(90.0, crystal.spreadAngle())));
+        double jitterAmount = Math.max(0.0, Math.min(1.0, crystal.jitter()));
+        double emitRadius = Math.max(0.0, crystal.baseRadius() * 0.6);
 
         for (int i = 0; i < shardCount; i++) {
-            double azimuth = azimuth(crystal.getDistribution(), i, rng);
+            double azimuth = azimuth(crystal.distribution(), i, rng);
             azimuth += rng.d(-Math.PI, Math.PI) * jitterAmount * 0.5;
 
             double cone = spreadRadians * fanFraction(shardCount, i, rng);
@@ -63,9 +63,9 @@ public final class CrystalShardBuilder {
         }
     }
 
-    private static void rasterizeShard(CrystalCanvas canvas, IrisCrystal crystal, double ox, double oy, double oz, double[] direction, int length) {
-        double baseRadius = Math.max(0.5, crystal.getShardBaseRadius());
-        double taper = Math.max(0.0, Math.min(1.0, crystal.getShardTaper()));
+    private static void rasterizeShard(CrystalCanvas canvas, Crystal crystal, double ox, double oy, double oz, double[] direction, int length) {
+        double baseRadius = Math.max(0.5, crystal.shardBaseRadius());
+        double taper = Math.max(0.0, Math.min(1.0, crystal.shardTaper()));
 
         int samples = Math.max(1, length * 3);
 
@@ -108,8 +108,8 @@ public final class CrystalShardBuilder {
         canvas.set(tipX, tipY, tipZ, CrystalRole.TIP);
     }
 
-    private static double azimuth(IrisCrystalDistribution distribution, int index, RNG rng) {
-        if (distribution == IrisCrystalDistribution.GOLDEN_ANGLE) {
+    private static double azimuth(CrystalDistribution distribution, int index, RNG rng) {
+        if (distribution == CrystalDistribution.GOLDEN_ANGLE) {
             return Math.toRadians(index * GOLDEN_ANGLE);
         }
         return rng.d(0.0, Math.PI * 2.0);

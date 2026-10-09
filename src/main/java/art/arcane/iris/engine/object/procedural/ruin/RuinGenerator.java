@@ -18,11 +18,12 @@
 
 package art.arcane.iris.engine.object.procedural.ruin;
 
+import art.arcane.iris.builtin.objects.ruin.RuinDecorator;
+import art.arcane.iris.builtin.objects.ruin.Ruin;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.engine.object.procedural.ruin.IrisRuin;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.iris.util.common.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
@@ -36,14 +37,14 @@ public final class RuinGenerator {
     private RuinGenerator() {
     }
 
-    public static IrisObject generate(IrisRuin ruin, int variantIndex, RNG rng, IrisData data) {
-        int count = Math.max(1, ruin.getVariants());
-        int height = pick(ruin.getHeightMin(), ruin.getHeightMax(), variantIndex, count, rng);
-        int width = pick(ruin.getWidthMin(), ruin.getWidthMax(), variantIndex, count, rng);
-        int length = pick(ruin.getLengthMin(), ruin.getLengthMax(), variantIndex, count, rng);
+    public static IrisObject generate(Ruin ruin, int variantIndex, RNG rng, IrisData data) {
+        int count = Math.max(1, ruin.variants());
+        int height = pick(ruin.heightMin(), ruin.heightMax(), variantIndex, count, rng);
+        int width = pick(ruin.widthMin(), ruin.widthMax(), variantIndex, count, rng);
+        int length = pick(ruin.lengthMin(), ruin.lengthMax(), variantIndex, count, rng);
 
         RuinBlockCanvas canvas = new RuinBlockCanvas();
-        switch (ruin.getForm()) {
+        switch (ruin.form()) {
             case PILLAR -> RuinShapes.pillar(canvas, Math.max(1, width), Math.max(2, height), rng);
             case WALL -> RuinShapes.wall(canvas, Math.max(1, width), Math.max(2, length), Math.max(2, height), rng);
             case ARCH -> RuinShapes.arch(canvas, Math.max(1, width), Math.max(3, length), Math.max(3, height), rng);
@@ -70,8 +71,8 @@ public final class RuinGenerator {
         return (int) Math.round(Math.max(min, Math.min(max, base + jitter)));
     }
 
-    private static void applyBurial(IrisRuin ruin, RuinBlockCanvas canvas, int height) {
-        double fraction = clamp01(ruin.getBuriedFraction());
+    private static void applyBurial(Ruin ruin, RuinBlockCanvas canvas, int height) {
+        double fraction = clamp01(ruin.buriedFraction());
         if (fraction <= 0.0) {
             return;
         }
@@ -88,13 +89,13 @@ public final class RuinGenerator {
         canvas.cells().putAll(moved);
     }
 
-    private static void applyErosion(IrisRuin ruin, RuinBlockCanvas canvas) {
-        double erosion = clamp01(ruin.getErosion());
+    private static void applyErosion(Ruin ruin, RuinBlockCanvas canvas) {
+        double erosion = clamp01(ruin.erosion());
         if (erosion <= 0.0) {
             return;
         }
-        double scale = Math.max(0.0001, ruin.getErosionScale());
-        long erosionSeed = ruin.getSeed() * 0x2545F4914F6CDD1DL + 17L;
+        double scale = Math.max(0.0001, ruin.erosionScale());
+        long erosionSeed = ruin.seed() * 0x2545F4914F6CDD1DL + 17L;
         int minY = Integer.MAX_VALUE;
         for (Vector3i v : canvas.cells().keySet()) {
             minY = Math.min(minY, v.getBlockY());
@@ -120,25 +121,25 @@ public final class RuinGenerator {
         }
     }
 
-    private static void applyAccents(IrisRuin ruin, RuinBlockCanvas canvas, RNG rng, IrisData data) {
-        if (ruin.getAccents() == null || ruin.getAccents().isEmpty()) {
+    private static void applyAccents(Ruin ruin, RuinBlockCanvas canvas, RNG rng, IrisData data) {
+        if (ruin.accents() == null || ruin.accents().isEmpty()) {
             return;
         }
         int decoratorIndex = 0;
-        for (art.arcane.iris.engine.object.procedural.ruin.IrisRuinDecorator decorator : ruin.getAccents()) {
-            RuinDecoratorApplier.apply(canvas, decorator, data, ruin.getSeed() + decoratorIndex * 911L, rng.nextParallelRNG(decoratorIndex + 1));
+        for (art.arcane.iris.builtin.objects.ruin.RuinDecorator decorator : ruin.accents()) {
+            RuinDecoratorApplier.apply(canvas, decorator, data, ruin.seed() + decoratorIndex * 911L, rng.nextParallelRNG(decoratorIndex + 1));
             decoratorIndex++;
         }
     }
 
-    private static IrisObject resolve(IrisRuin ruin, RuinBlockCanvas canvas, IrisData data) {
+    private static IrisObject resolve(Ruin ruin, RuinBlockCanvas canvas, IrisData data) {
         if (canvas.cells().isEmpty()) {
             return null;
         }
-        double scale = Math.max(0.0001, ruin.getWeatheringScale());
-        double mossiness = clamp01(ruin.getMossiness());
-        long weatherSeed = ruin.getSeed() * 0x9E3779B97F4A7C15L + 101L;
-        RNG paletteRng = new RNG(ruin.getSeed());
+        double scale = Math.max(0.0001, ruin.weatheringScale());
+        double mossiness = clamp01(ruin.mossiness());
+        long weatherSeed = ruin.seed() * 0x9E3779B97F4A7C15L + 101L;
+        RNG paletteRng = new RNG(ruin.seed());
 
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
@@ -166,7 +167,7 @@ public final class RuinGenerator {
         return IrisProceduralBlocks.assemble(blocks);
     }
 
-    private static PlatformBlockState structuralBlock(IrisRuin ruin, RuinBlockCanvas.Cell cell, Vector3i v, IrisData data, RNG paletteRng, double scale, double mossiness, long weatherSeed, int minY, int span) {
+    private static PlatformBlockState structuralBlock(Ruin ruin, RuinBlockCanvas.Cell cell, Vector3i v, IrisData data, RNG paletteRng, double scale, double mossiness, long weatherSeed, int minY, int span) {
         boolean weathered = false;
         if (mossiness > 0.0) {
             int sx = (int) Math.round(v.getBlockX() * scale);
@@ -179,12 +180,12 @@ public final class RuinGenerator {
         }
 
         if (weathered) {
-            PlatformBlockState wd = IrisProceduralBlocks.resolve(ruin.getWeatheredBlock(), ruin.getWeatheringPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
+            PlatformBlockState wd = IrisProceduralBlocks.resolve(ruin.weatheredBlock(), ruin.weatheringPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
             if (wd != null) {
                 return wd;
             }
         }
-        return IrisProceduralBlocks.resolve(ruin.getBlock(), ruin.getBlockPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
+        return IrisProceduralBlocks.resolve(ruin.block(), ruin.blockPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
     }
 
     private static double clamp01(double value) {

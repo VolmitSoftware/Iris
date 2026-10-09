@@ -18,21 +18,21 @@
 
 package art.arcane.iris.engine.object.procedural.crystal;
 
-import art.arcane.iris.engine.object.procedural.crystal.IrisCrystal;
+import art.arcane.iris.builtin.objects.crystal.Crystal;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 
 public final class CrystalBaseBuilder {
     private CrystalBaseBuilder() {
     }
 
-    public static void build(CrystalCanvas canvas, IrisCrystal crystal, long seed) {
-        double radius = crystal.getBaseRadius();
+    public static void build(CrystalCanvas canvas, Crystal crystal, long seed) {
+        double radius = crystal.baseRadius();
         if (radius <= 0.0) {
             canvas.set(0, 0, 0, CrystalRole.BASE);
             return;
         }
 
-        double noiseStrength = crystal.getBaseNoise();
+        double noiseStrength = crystal.baseNoise();
         int reach = (int) Math.ceil(radius + 1.0);
         for (int x = -reach; x <= reach; x++) {
             for (int y = -reach; y <= reach; y++) {

@@ -16,24 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.structure.vanilla;
+package art.arcane.iris.builtin.structure;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructureSet;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
 
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
+/** One entry of {@link StructureSettings#frequencyOverrides()}: how often the structures of one platform structure set start. */
 @Desc("An exact registered structure-set frequency multiplier. Iris retains the set's structures, weights, biome eligibility, placement algorithm, salt, exclusion zone, starts, processors, mobs, loot, and locate behavior while scaling only its native placement density.")
-@Data
-public class IrisStructureSetFrequencyOverride {
-    @RegistryListVanillaStructureSet
+public final class StructureSetFrequency {
+    @Ref(Reference.STRUCTURE_SET)
     @Desc("Exact registered structure-set key, for example 'minecraft:nether_complexes'. Structure keys such as 'minecraft:fortress' are not valid here.")
     private String structureSet = "";
 
@@ -41,4 +35,20 @@ public class IrisStructureSetFrequencyOverride {
     @MaxNumber(16)
     @Desc("Requested placement-density multiplier. Random-spread sets scale their placement frequency first and then their integer chunk spacing; integer spacing and separation constraints can make the realized increase slightly lower or higher. The default 1 leaves the registered placement unchanged.")
     private double multiplier = 1D;
+
+    public StructureSetFrequency() {
+    }
+
+    public StructureSetFrequency(String structureSet, double multiplier) {
+        this.structureSet = structureSet;
+        this.multiplier = multiplier;
+    }
+
+    public String structureSet() {
+        return structureSet == null ? "" : structureSet;
+    }
+
+    public double multiplier() {
+        return multiplier;
+    }
 }

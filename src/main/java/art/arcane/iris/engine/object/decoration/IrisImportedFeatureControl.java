@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.decoration;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
+import art.arcane.iris.engine.framework.structure.ImportedStructures;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.volmlib.util.collection.KList;
@@ -98,7 +98,7 @@ public class IrisImportedFeatureControl {
         KList<String> deniedKeys = Objects.requireNonNull(
                 disabled, "importedFeatures.disabled must not be null");
         for (String entry : deniedKeys) {
-            if (IrisImportedStructureControl.matchesKey(entry, placedFeatureKey)) {
+            if (ImportedStructures.matchesKey(entry, placedFeatureKey)) {
                 return NativeFeatureGenerationStatus.DISABLED_BY_PACK;
             }
         }

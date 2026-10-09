@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.core.modules.IrisPackWorld;
@@ -27,17 +28,15 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
+import art.arcane.iris.engine.framework.structure.StructureVanillaHook;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.config.PackSettings;
-import com.volmit.resource.ResourceId;
 import com.volmit.service.StructureLocator;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
-import com.volmit.vanilla.VanillaStructureContext;
-import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.world.PackWorld;
 
 /**
@@ -51,8 +50,9 @@ import com.volmit.world.PackWorld;
  * {@link StructureLocating}, and forgets a world's structure index when the world stops, which includes every reload of
  * the pack's structure files.
  * <p>
- * It decides over the platform's own structures through its vanilla structure hook ({@link #vanillaRule}): a structure
- * an Iris structure replaces is blocked, and one a structure placement of the pack places is reported as placed here.
+ * It decides over the platform's own structures through its vanilla structure hook ({@link StructureVanillaHook}): the
+ * dimension's {@code iris:structure} settings disable, adjust and set them up, and the pack's structure placements
+ * replace them, place them alongside, and start them where their {@code nativeStructures} grids say.
  */
 public final class StructureModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
@@ -70,31 +70,18 @@ public final class StructureModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void register(FeatureRegistry registry) {
+        registry.registerSettings(StructureSettings.class);
         StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerLifecycle(this);
-        registry.registerVanillaStructureHook(StructureModule::vanillaRule);
+        registry.registerVanillaStructureHook(new StructureVanillaHook());
     }
 
     /** The structure index is still kept per engine rather than in the world's state, so a stopping world drops it. */
     @Override
     public void worldStopped(PackWorld world) {
         IrisStructureLocator.invalidate(IrisPackWorld.of(world).engine());
-    }
-
-    /**
-     * {@link VanillaStructureRule#REPLACE} for a platform structure that an Iris structure of the world's placements
-     * replaces (its {@code vanillaSource} with native suppression), {@link VanillaStructureRule#ALSO_PLACE} for one
-     * a placement of the world places itself, {@link VanillaStructureRule#GENERATE} otherwise.
-     */
-    static VanillaStructureRule vanillaRule(ResourceId structure, VanillaStructureContext context) {
-        Engine engine = IrisPackSettings.of(context.settings()).engine();
-        String key = structure.toString();
-        if (IrisStructureLocator.suppressesVanilla(engine, key)) {
-            return VanillaStructureRule.REPLACE;
-        }
-        return IrisStructureLocator.isPlaced(engine, key) ? VanillaStructureRule.ALSO_PLACE : VanillaStructureRule.GENERATE;
     }
 
     private static void place(MantleStageContext context) {

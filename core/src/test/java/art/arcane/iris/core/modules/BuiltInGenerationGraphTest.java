@@ -20,6 +20,8 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.decorant.DecorantSettings;
+import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import com.volmit.FeatureAttachment.Target;
@@ -117,6 +119,37 @@ public class BuiltInGenerationGraphTest {
 
             for (String list : List.of("palette", "replaceableBlocks", "includedBiomes", "excludedBiomes")) {
                 SchemaOption option = generator.options().stream().filter(candidate -> candidate.name().equals(list)).findFirst().orElseThrow();
+                assertEquals(list, OptionalInt.of(1), option.minItems());
+            }
+        }
+    }
+
+    @Test
+    public void decoratorsAreBiomeSettingsWrittenUnderTheirIdWithDecorators() throws IOException {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
+            for (Target level : List.of(Target.DIMENSION, Target.REGION)) {
+                assertTrue(level + " has no decorators", pack.schema().fields(level).stream()
+                        .noneMatch(feature -> feature.settings().name().equals(DecorantSettings.class.getName())));
+            }
+            FeatureSchema decorant = pack.schema().fields(Target.BIOME).stream()
+                    .filter(feature -> feature.settings().name().equals(DecorantSettings.class.getName()))
+                    .findFirst().orElseThrow();
+            assertEquals("iris:decorant", decorant.key());
+            SchemaOption option = decorant.settings().options().getFirst();
+            assertEquals("decorators", option.name());
+            assertEquals("decorators are a module class of IrisApi types, not an Iris class",
+                    new ValueKind.ListKind(new ValueKind.ObjectKind(Decorator.class.getName()), false), option.kind());
+            assertEquals(OptionalInt.of(1), option.minItems());
+        }
+    }
+
+    @Test
+    public void decoratorsKeepTheMinimumListLengthsTheOldClassHad() throws IOException {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
+            ObjectType decorator = pack.schema().type(Decorator.class.getName());
+
+            for (String list : List.of("whitelist", "blacklist", "palette", "topPalette")) {
+                SchemaOption option = decorator.options().stream().filter(candidate -> candidate.name().equals(list)).findFirst().orElseThrow();
                 assertEquals(list, OptionalInt.of(1), option.minItems());
             }
         }

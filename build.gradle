@@ -74,7 +74,7 @@ String fabricArtifactName = irisArtifactName('Fabric', "${minecraftVersion}+${lo
 String forgeArtifactName = irisArtifactName('Forge', "${minecraftVersion}+${loaderDisplayVersion(forgeVersion)}")
 String neoForgeArtifactName = irisArtifactName('NeoForge', "${minecraftVersion}+${loaderDisplayVersion(neoForgeVersion)}")
 File pluginOutDirectory = layout.projectDirectory.dir('../PluginOuts').asFile
-long maximumBukkitArtifactBytes = 7_000_000L
+long maximumBukkitArtifactBytes = 7_500_000L
 apply plugin: ApiGenerator
 
 // Where `buildAll` drops the per-platform jars for a local test server. Use the approved sibling

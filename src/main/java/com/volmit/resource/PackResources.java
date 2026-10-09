@@ -1,6 +1,7 @@
 package com.volmit.resource;
 
 import com.volmit.block.BlockRegistry;
+import com.volmit.noise.NoiseFactory;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -19,6 +20,10 @@ public interface PackResources {
     ResourceId packId();
     UUID snapshotId();
     BlockRegistry blocks();
+
+    /** Builds the noise of the {@link com.volmit.noise.NoiseStyle}s the pack's settings describe. */
+    NoiseFactory noise();
+
     <T> Optional<T> find(ResourceKey<T> key);
 
     /** The ids of every resource of the kind {@code type} selects, in id order. A type the host does not serve

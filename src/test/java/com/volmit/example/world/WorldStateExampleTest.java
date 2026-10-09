@@ -76,7 +76,7 @@ class WorldStateExampleTest {
 
     @Test
     void stagesServicesAndHooksShareTheStateOfTheirWorldAndANewWorldStartsEmpty() {
-        var pack = LoadedModules.load(List.of(DiscoveredModule.builtIn(new RuinsModule())), Map.of(), Set.of(), Set.of(), Set.of());
+        var pack = LoadedModules.load(List.of(DiscoveredModule.builtIn(new RuinsModule())), Map.of(), Set.of(), Set.of());
         var lifecycles = new LifecycleRunner(pack.catalog());
         ObjectsAt objects = pack.catalog().services(ObjectsAt.class).getFirst();
 

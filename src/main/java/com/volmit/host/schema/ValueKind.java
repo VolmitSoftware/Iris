@@ -83,6 +83,13 @@ public sealed interface ValueKind {
         }
     }
 
+    /** Any JSON value, which the module reads as it is: {@code Object} fields, and the values of {@code Map<String, Object>}
+     * and {@code List<Object>}. For data whose shape the module does not own, such as a block entity's data. The host
+     * decodes objects as maps with string keys, arrays as lists, numbers as {@code Double}, and strings and booleans
+     * as themselves.
+     */
+    record AnyKind() implements ValueKind {}
+
     /** An enum constant and its {@code @Desc}, or an empty description. */
     record EnumConstant(String name, String description) {
         public EnumConstant {

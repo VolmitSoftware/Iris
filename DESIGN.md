@@ -648,6 +648,7 @@ already keep module fields from colliding with them.
 | `Map<String, V>` | `MapKind(V)` |
 | `String` with `@ResourceRef(Type.class)` | `ResourceReferenceKind(id of the kind read into Type)` |
 | a class in a host type package, in built-in settings | `HostKind(class name)` |
+| `Object` | `AnyKind`: any JSON value |
 | any other concrete class | `ObjectKind(class name)` |
 
 Host types are classes the host describes in studio itself, such as Iris's palettes and noise styles,
@@ -662,8 +663,10 @@ Everything else fails the load with the field, its settings and its module named
 instead:
 
 - `char` and `Character`: no settings use them, and JSON has no character type;
-- JDK classes such as `UUID`, `Optional`, `BigDecimal` or `Object`, meaning classes of named modules
-  in the boot layer: the host would need a format for each;
+- JDK classes such as `UUID`, `Optional` or `BigDecimal`, meaning classes of named modules in the boot
+  layer: the host would need a format for each. `Object` is the exception: it means any JSON value
+  (`AnyKind`), decoded as maps, lists, `Double`s, strings and booleans, for data whose shape belongs to
+  someone else, such as a block entity's data in a `BlockSpec`;
 - `ResourceKey<T>`: its type argument is the Java class a resource loads as, which tells studio
   nothing it could list; `ResourceId` with `@Ref` says what a value names;
 - interfaces and abstract classes: their fields depend on the subclass a pack would pick;
@@ -679,11 +682,12 @@ adding anything a pack can write.
 
 `@Ref(Reference.X)` says what a text value names. The kinds are a closed enum of what the Iris host
 can list today through its `RegistryList*` annotations: blocks, items, entities, platform biomes,
-structures, potion effects and enchantments from the server registries, and biomes, regions and
-objects of the pack, the resource folders Iris's own settings refer to most. More kinds come when a
+structures, potion effects and enchantments from the server registries, the host's noise styles, and
+biomes, regions, objects, expressions and image maps of the pack, the resource folders Iris's own settings
+refer to most. More kinds come when a
 module needs one and the host can serve it. `@Ref` fits `String` and `ResourceId` and lists, sets and
 arrays of them, where it applies to the elements. On any other field, a map included, it fails the
-load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`) fit `String` only: packs name their
+load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP`) fit `String` only: packs name their
 biomes, regions and objects by path without a namespace, such as `desert/dunes`, which a `ResourceId`
 cannot hold. `BlockState` always names a block, so its fields are block references without `@Ref`;
 `@Ref(BLOCK)` there is accepted, any other kind fails.
@@ -731,6 +735,74 @@ declaration order. Options of a superclass come before the subclass's own.
 them, so `OptionsMetadata` reads it with `java.lang.classfile`. A settings class therefore has to come
 from a jar or a class directory, which every module class does. Which settings an error names first follows feature id order too, so the same
 pack always fails with the same message.
+
+## Value types
+
+Iris's features read blocks, noise, ranges and positions through Iris classes (`IrisBlockData`,
+`IrisGeneratorStyle`, `IrisStyledRange`, `IrisRange`, `IrisPosition`) whose methods reach into Iris's loaders,
+platform and noise. A module that may only see IrisApi needs the same JSON as API values, and the behaviour
+behind them as host services. Each value type is a settings-shaped class: a final class with private fields
+and defaults, a private no-argument constructor, `@Desc` and, where packs already write snippets of it, the
+same `@Snippet` folder. So the schema builder describes it with no special case, the host decodes it like
+settings, and pack JSON keeps its shape: the field names and the no-argument defaults are Iris's, odd ones
+included (an omitted `Range` bound is 16 or 32). They are values: accessors return unmodifiable views,
+withers return copies, and equality is by value, so the host can cache by them.
+
+| Iris class | API | Behaviour behind it |
+| --- | --- | --- |
+| `IrisBlockData` | `com.volmit.block.BlockSpec` | `BlockRegistry.resolve(BlockSpec)`, `blockEntity(BlockSpec)` |
+| `TileData` | `BlockEntityData` (existing) for placed data; a `BlockSpec`'s `tileData` (`Map<String, Object>`) in settings | `BlockRegistry.blockEntity(BlockSpec)` |
+| `IrisGeneratorStyle` | `com.volmit.noise.NoiseStyle` | `PackResources.noise()`, a `NoiseFactory` building `NoiseSampler`s |
+| `IrisStyledRange` | `com.volmit.noise.StyledRange` | `at(noise, seed, x, z)` |
+| `IrisRange` | `com.volmit.config.Range` | none: `contains`, `pick(WorldRandom)` |
+| `IrisPosition` | `com.volmit.world.BlockPosition` (existing record, now with a private no-argument constructor) | none |
+| `IrisDirection` | none: a module declares its own enum with the same constant names, and maps to `BlockFace` | |
+| `IrisObjectRotation`, `IrisObjectScale` | none: settings of the module that picks a rotation or scale | `ObjectTransform`, `ObjectTransformer` (existing) |
+| `ObjectPlaceMode` | none: an enum of the placement modules | |
+
+Why these lines:
+
+- **Noise is the host's.** Styles name the host's generators, and expressions and image maps are pack
+  resources the host compiles. A `NoiseStyle` is only the description; `NoiseFactory.sampler(style, seed)`
+  builds the noise. It hangs off `PackResources`, like `blocks()`, because noise depends on the pack snapshot
+  (its expressions and image maps), and every context that has resources (stages, validators, hooks) can
+  build noise. The host caches per snapshot, so stage bodies may ask for a sampler per invocation. The seed is
+  the module's: noise lines up across chunks only when it comes from `worldSeed()`, not a stage's stream.
+- **`NoiseSampler` moved to `com.volmit.noise`** and gained a two-dimensional `sample(x, z)`: Iris's noise
+  gives different fields in two and three dimensions, and most features sample columns.
+- **Style names are text with `@Ref(NOISE_STYLE)`**, not an enum: the host owns the list, and an API enum would
+  pin it. An unknown name samples flat, as Iris has always read one.
+- **`isFlat()` is stricter than Iris's**: a flat base style with an expression or image map is not flat.
+- **Block properties are text.** `{"waterlogged": true}` decodes to `"true"`, which is what the platform's state
+  key holds; the host's studio description may accept the JSON types it accepted before.
+- **Resolving a `BlockSpec` never throws.** It follows what packs rely on: a custom block of the pack's
+  `blocks` folder, then the platform's block, then the backup, then air. `resolve(String)` keeps throwing for
+  an unknown key.
+- **Directions, rotations, scales and place modes stay module types.** They are small enums or settings whose
+  meaning is a feature's (which axes may turn, by which steps; which anchor sampling a mode uses), and applying
+  a rotation is already the host's `ObjectTransformer`. An API type would freeze a feature's choices.
+
+## Vanilla structures
+
+Minecraft, data packs and mods register structures the platform starts on its own. Iris blocks some (a pack
+replaces them with its own structures), lets others generate, and places some itself. The decisions belonged
+to core (`NativeStructurePlacementPlanner`, `NativeStructureGenerationPolicy`) reading feature classes. A module
+now states them with a `VanillaStructureHook`, registered in `register`; the host applies them on every
+platform.
+
+- **A rule per structure, not per start.** `rule(structure, context)` answers `GENERATE`, `ALSO_PLACE`,
+  `REPLACE` or `BLOCK` for one structure id in one world. The platform asks per start, but also when it locates
+  a structure, which has no position; and an answer that depended on the position could block a start
+  `/locate` had promised. The host caches the rule per world, structure and pack snapshot.
+- **Two facts, one enum.** Whether the platform's own starts are blocked, and whether a module places the
+  structure itself. The second matters even where the first does not: a structure a pack's dimension disables
+  but a module places is reported, and located, as the module's. `and` combines two modules' rules, so the
+  result never depends on module order.
+- **The context is the world's pack.** `resources()` and `settings()` (`PackSettings`: the dimension and every
+  region and biome it can reach), the same view reaches are worked out from. A hook that needs the world's own
+  state gets it the way stages do.
+- **Placing starts is not part of it yet.** Where the platform should start a structure a module places, with the
+  terrain fitting and foundations that go with it, comes with the planner's move (see CONTRACTS, Open).
 
 ## Pack resource kinds
 
@@ -864,7 +936,7 @@ This is an inventory of where each existing family should land, not a claim that
 | Surface, ceiling, shore, sea and floating decoration | Chunk stages + palette/support/sampling resources |
 | Slab/wall/snow post-processing, foliage cleanup, ore hiding | Chunk stages + block traits and neighbor views |
 | Custom block recording and deferred application | Chunk stage + persistent typed layers + host content adapter |
-| Ores and deposits | Chunk stages + noise/palette resources + configured settings |
+| Ores and deposits | Chunk stages + `BlockSpec` palettes + configured settings |
 | Object selection, transforms, height and placement modes | Geometry + placement stages per mode module |
 | Stilt, erosion, ceiling hang, vacuum, paint, floating | Placement modules with block and invocation stages |
 | Slope, support, limits, collision, protection, bore, meld, snow | Placement stages that reject or write |
@@ -873,7 +945,7 @@ This is an inventory of where each existing family should land, not a claim that
 | Cave profiles, carving, cave fluids and decoration | Chunk stages + typed carve layers |
 | Floating islands and child biomes | Terrain/biome sampling + chunk and placement stages |
 | Structures, jigsaw pools and foundations | Structure assembly producing placement requests |
-| Imported/native structures and ownership | Host native-generation policy adapter |
+| Imported/native structures and ownership | `VanillaStructureHook` rules; host native-generation adapter per platform |
 | Terrain layers, fluids, bedrock, interpolation | Terrain providers + chunk stages |
 | Region/biome selection | Biome providers + platform biome writer |
 | Image maps, noise expressions, pack injection | Compiled immutable pack resources |

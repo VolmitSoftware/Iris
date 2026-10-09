@@ -8,6 +8,7 @@ import com.volmit.resource.ResourceKind;
 import com.volmit.service.Service;
 import com.volmit.stage.StageGraph;
 import com.volmit.validation.Validator;
+import com.volmit.vanilla.VanillaStructureHook;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON fields must be unique per attachment target, including the
@@ -51,4 +52,9 @@ public interface FeatureRegistry {
      * are {@link com.volmit.service.Providers#ONE} fails the pack load when a second module provides it, naming both.
      */
     <S> void registerService(Class<S> service, S provider);
+
+    /** Lets this module decide over the platform's own structures in the pack's worlds: block them, leave them to the
+     * platform, or place them itself.
+     */
+    void registerVanillaStructureHook(VanillaStructureHook hook);
 }

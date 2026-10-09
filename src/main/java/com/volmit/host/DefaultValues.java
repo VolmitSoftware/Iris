@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.block.BlockState;
 import com.volmit.host.schema.ValueKind;
+import com.volmit.host.schema.ValueKind.AnyKind;
 import com.volmit.host.schema.ValueKind.BooleanKind;
 import com.volmit.host.schema.ValueKind.DecimalKind;
 import com.volmit.host.schema.ValueKind.EnumKind;
@@ -47,7 +48,7 @@ final class DefaultValues {
             case ListKind list -> list(elements(value), list);
             case MapKind map -> map((Map<?, ?>) value, map.value());
             case ObjectKind object -> object(value, types.get(object.type()));
-            case HostKind _ -> Optional.empty();
+            case HostKind _, AnyKind _ -> Optional.empty();
         };
     }
 

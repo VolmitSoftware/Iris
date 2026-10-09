@@ -25,5 +25,11 @@ public enum Reference {
     /** A region of the pack. */
     PACK_REGION,
     /** An object of the pack. */
-    PACK_OBJECT
+    PACK_OBJECT,
+    /** One of the host's noise styles, such as {@code SIMPLEX}; see {@link com.volmit.noise.NoiseStyle}. */
+    NOISE_STYLE,
+    /** An expression of the pack. */
+    PACK_EXPRESSION,
+    /** An image map of the pack. */
+    PACK_IMAGE_MAP
 }

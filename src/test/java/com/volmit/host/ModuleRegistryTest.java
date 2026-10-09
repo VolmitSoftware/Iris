@@ -7,6 +7,8 @@ import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
 import com.volmit.service.Service;
 import com.volmit.validation.Validator;
+import com.volmit.vanilla.VanillaStructureHook;
+import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
@@ -325,6 +327,25 @@ class ModuleRegistryTest {
         });
         assertThrows(IllegalStateException.class, () -> registry.registerService(Greeting.class, () -> "outside"));
         assertEquals(List.of(), registry.freeze().services(Greeting.class));
+    }
+
+    @Test
+    void vanillaStructureHooksAreCataloguedByModuleIdInTheOrderEachModuleRegisteredThem() {
+        var registry = new ModuleRegistry();
+        VanillaStructureHook first = (structure, world) -> VanillaStructureRule.REPLACE;
+        VanillaStructureHook second = (structure, world) -> VanillaStructureRule.GENERATE;
+        VanillaStructureHook other = (structure, world) -> VanillaStructureRule.BLOCK;
+        registerAs(registry, "test:zeta", hooks -> hooks.registerVanillaStructureHook(other));
+        registerAs(registry, "test:alpha", hooks -> {
+            hooks.registerVanillaStructureHook(first);
+            hooks.registerVanillaStructureHook(second);
+        });
+
+        assertThrows(IllegalStateException.class, () -> registry.registerVanillaStructureHook(first), "outside register");
+        var hooks = registry.freeze().vanillaStructureHooks();
+        assertEquals(List.of(first, second, other), hooks.stream().map(VanillaStructureHookRegistration::hook).toList());
+        assertEquals("test:alpha", hooks.getFirst().module().info().id().toString());
+        assertThrows(IllegalStateException.class, () -> registry.registerVanillaStructureHook(first), "registration has ended");
     }
 
     private static MantleCodec<String> codec(int version) {

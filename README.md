@@ -52,7 +52,7 @@ public final class MossModule implements IrisModule {
 
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators,
 mantle layers, settings no stage names (see Settings for studio), pack resource kinds, validators,
-lifecycle hooks and services (see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
+lifecycle hooks, services and vanilla structure hooks (see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
 like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
 module naming it owns in that sense, or its owner must have registered it, so another module may
 still condition its stages on it, as moss does on `iris:snow`.
@@ -383,18 +383,18 @@ public final class FloraSettings implements IrisFeature {
   The host creates settings with it, and the field values of that instance are the defaults studio
   shows.
 - Field types: `boolean`, primitive or boxed numbers, `String`, `ResourceId`, `BlockState`, enums,
-  `List`, `Set` and arrays of these, `Map<String, V>`, and concrete classes, which are described the
-  same way. `@Snippet("example/flora/patch")` on a class lets packs write it as a file under
+  `List`, `Set` and arrays of these, `Map<String, V>`, `Object` for any JSON value, and concrete classes,
+  which are described the same way, IrisApi's value types among them (see Values in settings). `@Snippet("example/flora/patch")` on a class lets packs write it as a file under
   `snippet/example/flora/patch/`. A pack module's snippet names start with its module id as a folder
   path (`example/flora` for `example:flora`).
-  Anything else fails the pack load: `char`, JDK classes such as `UUID` or `Optional`, `ResourceKey`,
+  Anything else fails the pack load: `char`, other JDK classes such as `UUID` or `Optional`, `ResourceKey`,
   interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
   concrete collections such as `ArrayList`, and maps with other keys.
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`,
-  `POTION_EFFECT` or `ENCHANTMENT` from the server's registries, or `PACK_BIOME`, `PACK_REGION` or
-  `PACK_OBJECT` of the pack. The pack kinds fit `String` only, in the form packs use (`desert/dunes`),
-  never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
+  `POTION_EFFECT` or `ENCHANTMENT` from the server's registries, `NOISE_STYLE` from the host's noise
+  styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION` or `PACK_IMAGE_MAP` of the pack.
+  The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.
 - `@ResourceRef(Keep.class)` says that a `String`, or a list, set or array of them, names a resource of the
   module resource kind read into that class, by its key (see Pack resources of a module). The class must back a
@@ -422,6 +422,66 @@ Class com.example.flora.Shape of settings example:flora (module example:flora fr
 Snippet name 'patch' of com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) is not under a module of the pack; snippets of pack modules start with their module's id as a folder path, such as 'example/flora/patch' (folder snippet/example/flora/patch/)
 Settings com.example.flora.FloraSettings of module example:flora from modules/flora.jar set alias 'flora'; only modules that ship with the host may set one, so remove it: packs write these settings under their id "example:flora"
 ```
+
+## Values in settings
+
+Settings describe blocks, noise and ranges with IrisApi's value types, which read the JSON packs already write:
+
+| Type | Packs write | Use it through |
+| --- | --- | --- |
+| `BlockSpec` | `{"block": "iron_ore", "data": {"waterlogged": true}, "backup": {...}, "tileData": {...}}` | `resources.blocks().resolve(spec)` gives the `BlockState`, `blockEntity(spec)` its block entity |
+| `NoiseStyle` | `{"style": "SIMPLEX", "zoom": 4, "fracture": {...}}` or `"snippet/style/<name>"` | `resources.noise().sampler(style, seed)` gives a `NoiseSampler` |
+| `StyledRange` | `{"min": 4, "max": 12, "style": {...}}` | `range.at(resources.noise(), seed, x, z)` |
+| `Range` | `{"min": 0, "max": 15}` | `contains(value)`, `pick(random)` |
+| `BlockPosition` | `{"x": 1, "y": 2, "z": 3}` | its components |
+| `Object` | any JSON value | as decoded: objects as maps, arrays as lists, numbers as `Double` |
+
+```java
+@Feature(id = "example:veins", name = "Veins", targets = Target.BIOME)
+public final class VeinSettings implements IrisFeature {
+    private List<BlockSpec> palette = List.of(BlockSpec.of("iron_ore"));
+    private NoiseStyle density = NoiseStyle.of("SIMPLEX").withZoom(16);
+}
+
+// in a stage
+NoiseSampler density = ctx.resources().noise().sampler(veins.density(), ctx.worldSeed() ^ VEIN_SALT);
+BlockState ore = ctx.resources().blocks().resolve(veins.palette().getFirst());
+```
+
+Noise belongs to the host: a style names one of its noise generators (`@Ref(Reference.NOISE_STYLE)`), or an
+expression or image map of the pack, and the host builds the noise. Seed it from `worldSeed()`, so the noise
+lines up across chunks; the host keeps what it builds for the pack, so asking again is cheap. A `BlockSpec` may
+name a block without a namespace, a custom block of the pack's `blocks` folder, or a block only some platforms
+have; resolving it never fails: the backup, then air, stands in.
+
+The types are values the host creates with their no-argument constructors and reads the JSON into, like settings,
+so an omitted option keeps the default the type declares (a `Range` is 16 to 32 unless the pack or the field's
+own default says otherwise). They keep the snippet folders packs already use (`style`, `style-range`, `range`).
+Studio describes them like settings; Iris may render its own description of the same JSON.
+
+Directions, object rotation and scale and placement modes are not API types: a module that reads them declares its
+own enum or settings class with the same JSON, and applies a rotation through `ObjectTransformer`.
+
+## Vanilla structures
+
+A module decides over the platform's own structures, the ones Minecraft, data packs and mods register, with a
+`VanillaStructureHook`: the platform keeps generating one (`GENERATE`), the module places it as well
+(`ALSO_PLACE`), the module places it instead and the platform's own starts are blocked (`REPLACE`), or nobody
+generates it (`BLOCK`).
+
+```java
+public void register(FeatureRegistry registry) {
+    registry.registerVanillaStructureHook((structure, world) ->
+            world.settings().declared(CastleSettings.class).stream()
+                    .anyMatch(castle -> castle.value().replaces().equals(structure.toString()))
+                    ? VanillaStructureRule.REPLACE : VanillaStructureRule.GENERATE);
+}
+```
+
+The host asks every hook of the pack once per world, structure and pack snapshot, before the platform starts the
+structure and when it locates it, so a hook decides from the pack, never from a position. Rules combine: a
+structure is blocked when any module blocks it, and placed by a module when any module places it. The host applies
+the result on every platform it runs on.
 
 ## Host side
 
@@ -527,7 +587,8 @@ A pack without jars logs `Pack overworld uses no modules: no jars in its modules
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
 together with explicitly registered settings, geometry and mantle registrations, resource kinds and
-validators (`catalog().resourceKinds()`, `catalog().validators()`), describes them and resolves the pipelines. Graph errors
+validators and vanilla structure hooks (`catalog().resourceKinds()`, `catalog().validators()`,
+`catalog().vanillaStructureHooks()`), describes them and resolves the pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do duplicate module ids and feature ids or mantle keys outside the
 module's id. Errors about one module name its jar or "host classpath", and so does a module
@@ -553,8 +614,8 @@ no JSON. The host renders it and merges it with its own fields:
   description, required, minimum, maximum and default value.
 - `ValueKind` is sealed: `BooleanKind`, `IntegerKind`, `DecimalKind`, `TextKind(format)`,
   `ReferenceKind(reference, format)`, `EnumKind(type, constants)`, `ListKind(element, unique)`,
-  `MapKind(value)`, `ObjectKind(type)`, which names an entry of `types()`, `HostKind(type)` and
-  `ResourceReferenceKind(kind)`. `TextFormat` is `PLAIN`,
+  `MapKind(value)`, `ObjectKind(type)`, which names an entry of `types()`, `HostKind(type)`,
+  `ResourceReferenceKind(kind)` and `AnyKind` for any JSON value. `TextFormat` is `PLAIN`,
   `RESOURCE_ID` or `BLOCK_STATE`.
 - `snippets()` and `objectGenerators()` pick the types with a snippet name and the object generator
   features.
@@ -601,7 +662,8 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
   resource kind; the requested type selects the kind, so `BiomeSample` ids look up directly. `ids(type)` lists
   a kind.
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
-  platform. `BlockPalette` and `NoiseSampler` are typed resources.
+  platform and resolves `BlockSpec`s. `BlockPalette` and `NoiseSampler` are typed resources;
+  `PackResources.noise()` builds noise samplers from `NoiseStyle`s.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
   with a world position using checked arithmetic.
 - `Hunk<T>` is a dense local volume; `ArrayHunk<T>` is the bounds-checked reference.
@@ -647,7 +709,9 @@ wrong type. `WorldStatesTest` checks that each state is created once (also when 
 error for a type asked for while it is created, factories that fail or return null, and closing newest first past
 failures. `LifecycleRunnerTest` checks hook order, stops in reverse, the stop of already started modules when a start
 fails, and that every stop runs. `WorldStateExampleTest` (`example/world`) has a chunk stage, a service and a hook share
-one world's state, and a new world start empty. `DiscoveredModuleTest`
+one world's state, and a new world start empty. `PackSchemaTest` also describes settings holding IrisApi's value types (`BlockSpec`, `NoiseStyle`,
+`StyledRange`, `Range`, `BlockPosition`) and `Object`, and `SettingsValuesTest` checks the value types themselves
+and how vanilla structure rules combine. `ModuleRegistryTest` also checks the order of vanilla structure hooks. `DiscoveredModuleTest`
 checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go

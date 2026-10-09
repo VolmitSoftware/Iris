@@ -13,6 +13,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
 import com.volmit.validation.Validator;
+import com.volmit.vanilla.VanillaStructureHook;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +46,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final List<ValidatorRegistration> validators = new ArrayList<>();
     private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
     private final List<ServiceRegistration> services = new ArrayList<>();
+    private final List<VanillaStructureHookRegistration> vanillaStructureHooks = new ArrayList<>();
     private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
     private FeatureCatalog catalog;
@@ -160,6 +162,14 @@ public final class ModuleRegistry implements FeatureRegistry {
         services.add(added);
     }
 
+    @Override
+    public void registerVanillaStructureHook(VanillaStructureHook hook) {
+        checkOpen();
+        Objects.requireNonNull(hook, "hook");
+        requireRegistering("Vanilla structure hook " + hook);
+        vanillaStructureHooks.add(new VanillaStructureHookRegistration(hook, registering));
+    }
+
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
      * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type. Call
      * it after every module has registered, so the owner is known.
@@ -180,7 +190,8 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services,
+                    vanillaStructureHooks);
         }
         return catalog;
     }

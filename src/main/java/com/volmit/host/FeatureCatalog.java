@@ -11,9 +11,10 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Function;
 
-/** Frozen registrations. Lists use lexical feature/layer/kind ID order, and validators, lifecycle hooks and service
- * providers are in module id order, each module's in the order it registered them, so nothing depends on discovery.
- * Factory, codec, validator, hook and provider implementations must themselves obey their concurrency contracts.
+/** Frozen registrations. Lists use lexical feature/layer/kind ID order, and validators, lifecycle hooks, service
+ * providers and vanilla structure hooks are in module id order, each module's in the order it registered them, so
+ * nothing depends on discovery. Factory, codec, validator, hook and provider implementations must themselves obey their
+ * concurrency contracts.
  */
 public final class FeatureCatalog {
     private final Map<Class<?>, FeatureDescriptor<?>> settings;
@@ -23,6 +24,7 @@ public final class FeatureCatalog {
     private final List<ValidatorRegistration> validators;
     private final List<LifecycleRegistration> lifecycles;
     private final List<ServiceRegistration> services;
+    private final List<VanillaStructureHookRegistration> vanillaStructureHooks;
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
@@ -31,7 +33,8 @@ public final class FeatureCatalog {
             Collection<ResourceKindRegistration> resourceKinds,
             List<ValidatorRegistration> validators,
             List<LifecycleRegistration> lifecycles,
-            List<ServiceRegistration> services) {
+            List<ServiceRegistration> services,
+            List<VanillaStructureHookRegistration> vanillaStructureHooks) {
         this.settings = Map.copyOf(settings);
         this.objects = Map.copyOf(objects);
         this.mantle = Map.copyOf(mantle);
@@ -39,6 +42,7 @@ public final class FeatureCatalog {
         this.validators = inModuleOrder(validators, ValidatorRegistration::module);
         this.lifecycles = inModuleOrder(lifecycles, LifecycleRegistration::module);
         this.services = inModuleOrder(services, ServiceRegistration::module);
+        this.vanillaStructureHooks = inModuleOrder(vanillaStructureHooks, VanillaStructureHookRegistration::module);
     }
 
     /** Settings types that activate stages; the host decodes them from pack JSON. */
@@ -62,6 +66,11 @@ public final class FeatureCatalog {
     /** The validators modules registered, by module id, each module's in the order it registered them. */
     public List<ValidatorRegistration> validators() {
         return validators;
+    }
+
+    /** The vanilla structure hooks modules registered, by module id, each module's in the order it registered them. */
+    public List<VanillaStructureHookRegistration> vanillaStructureHooks() {
+        return vanillaStructureHooks;
     }
 
     /** The lifecycle hooks modules registered, by module id, each module's in the order it registered them. */

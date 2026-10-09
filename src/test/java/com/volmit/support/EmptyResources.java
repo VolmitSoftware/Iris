@@ -1,6 +1,7 @@
 package com.volmit.support;
 
 import com.volmit.block.BlockRegistry;
+import com.volmit.noise.NoiseFactory;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKey;
@@ -25,6 +26,11 @@ public final class EmptyResources implements PackResources {
     @Override
     public BlockRegistry blocks() {
         throw new AssertionError("Unused blocks");
+    }
+
+    @Override
+    public NoiseFactory noise() {
+        throw new AssertionError("Unused noise");
     }
 
     @Override

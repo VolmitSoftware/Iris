@@ -222,8 +222,8 @@ final class ModuleSchemaRenderer {
             }
             case ValueKind.EnumKind enumKind -> {
                 value.put("type", "string");
-                value.put("enum", new JSONArray(enumKind.constants().stream().map(ValueKind.EnumConstant::name).toList()));
-                value.put("enumDescriptions", new JSONArray(enumKind.constants().stream().map(ValueKind.EnumConstant::description).toList()));
+                value.put("enum", new JSONArray(enumKind.constants().stream().<Object>map(ValueKind.EnumConstant::name).toList()));
+                value.put("enumDescriptions", new JSONArray(enumKind.constants().stream().<Object>map(ValueKind.EnumConstant::description).toList()));
             }
             case ValueKind.ListKind list -> {
                 value.put("type", "array");

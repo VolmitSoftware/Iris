@@ -51,6 +51,13 @@ public final class BuiltInPack {
         return pack;
     }
 
+    /** {@link #serve} and the pack's resources ({@link PackResourceFixture#serve}), which a world's vanilla structure hooks read. */
+    public static LoadedPack serveWithResources(IrisData data, TemporaryFolder folder, List<IrisModule> packModules) throws IOException {
+        LoadedPack pack = serve(data, folder, packModules);
+        PackResourceFixture.serve(data);
+        return pack;
+    }
+
     /** Placements into a world of {@code engine} derive their seeds from its world seed. */
     public static void seedWorld(Engine engine, long seed) {
         SeedManager seeds = mock(SeedManager.class);

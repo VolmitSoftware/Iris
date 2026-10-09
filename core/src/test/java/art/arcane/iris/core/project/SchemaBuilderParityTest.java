@@ -288,6 +288,9 @@ public class SchemaBuilderParityTest {
         assertEquals("obj-art-arcane-iris-engine-object-noise-irisgeneratorstyle", definitionKey(style.getJSONObject(0)));
         assertEquals("a style may be a snippet, as Iris's styles may", "^snippet/", style.getJSONObject(1).getString("pattern"));
         assertEquals("any JSON value", 0, tint.getJSONObject("extra").getJSONObject("additionalProperties").length());
+        JSONObject mode = tint.getJSONObject("mode");
+        assertEquals("\"SOFT\",\"HARD\"", mode.getJSONArray("enum").join(","));
+        assertEquals("\"Blends into the ground\",\"\"", mode.getJSONArray("enumDescriptions").join(","));
     }
 
     @Test
@@ -675,6 +678,12 @@ public class SchemaBuilderParityTest {
         private List<com.volmit.block.BlockSpec> palette = List.of();
         private com.volmit.noise.NoiseStyle style = com.volmit.noise.NoiseStyle.of("SIMPLEX");
         private java.util.Map<String, Object> extra = java.util.Map.of();
+        private TintMode mode = TintMode.SOFT;
+    }
+
+    public enum TintMode {
+        @com.volmit.config.Desc("Blends into the ground") SOFT,
+        HARD
     }
 
     public static final class TintModule implements IrisModule {

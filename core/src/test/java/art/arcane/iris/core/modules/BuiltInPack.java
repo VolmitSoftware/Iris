@@ -27,6 +27,7 @@ import com.volmit.host.ModuleHost;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -38,10 +39,25 @@ public final class BuiltInPack {
     private BuiltInPack() {
     }
 
+    /** A new empty pack folder, to put module jars into (see {@link PackModuleJar}) before {@link #serve(IrisData, TemporaryFolder, Path, List)}. */
+    public static Path newPackFolder(TemporaryFolder folder) throws IOException {
+        return folder.newFolder().toPath();
+    }
+
     /** Loads the pack and lets the mocked {@code data} serve it, as a pack's data serves its modules. Close it after the test. */
     public static LoadedPack serve(IrisData data, TemporaryFolder folder, List<IrisModule> packModules) throws IOException {
+        return serve(data, folder, newPackFolder(folder), packModules);
+    }
+
+    /**
+     * Like {@link #serve(IrisData, TemporaryFolder, List)} for a pack folder whose {@code modules} folder may hold module jars:
+     * they load through the pack loader after the compiled-in built-ins and {@code packModules}, as in a real pack. The jars see the
+     * same packages a real pack's modules see.
+     */
+    public static LoadedPack serve(IrisData data, TemporaryFolder folder, Path packFolder, List<IrisModule> packModules) throws IOException {
         List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), packModules.stream()).toList();
-        LoadedPack pack = LoadedPack.load(folder.newFolder().toPath(), ModuleHost.of(modules)
+        LoadedPack pack = LoadedPack.load(packFolder, ModuleHost.of(modules)
+                .exposing(IrisModuleHost.BUILT_IN_API_PACKAGE)
                 .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
                 .copyingJarsTo(folder.newFolder().toPath()));
         PackModuleSet moduleSet = mock(PackModuleSet.class);

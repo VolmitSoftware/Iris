@@ -264,11 +264,17 @@ them up in the pack's catalog instead of knowing the feature.
 
 ```java
 public void register(FeatureRegistry registry) {
-    registry.registerService(ObjectsAt.class, RuinsModule::objectsAt);
+    registry.registerService(ObjectsAt.class, new RuinsObjects());
 }
 
-private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
-    return planted(world).contains(chunkX, chunkZ) ? Set.of("ruins/arch") : Set.of();
+final class RuinsObjects implements ObjectsAt {
+    public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+        return planted(world).contains(chunkX, chunkZ) ? Set.of("ruins/arch") : Set.of();
+    }
+
+    public PlacedBy placedBy(PackWorld world, String objectKey) {
+        return PlacedBy.NOTHING;
+    }
 }
 ```
 
@@ -283,7 +289,7 @@ private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
 
 | Service | Providers | What the host asks |
 | --- | --- | --- |
-| `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it (object search, studio tools). |
+| `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it, and the biomes and regions of the layout that place a given object (`PlacedBy`), so the host can narrow an object search to the areas it can appear in. |
 | `StructureLocator` | `FIRST` | Every structure key the module knows (the structure index), the ones a world places (commands complete them), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Keys match without regard to case. |
 
 ```

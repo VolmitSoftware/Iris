@@ -913,7 +913,8 @@ from a sapling, which drops a block has. A module answers such questions through
 - **Threading.** The host may call a provider from any thread, several at once. A provider that searches long
   (`StructureLocator.locate`) is called off the server's main thread.
 - **Services now.** `ObjectsAt` (`ALL`): pack object keys a module would place in a chunk, predicted without
-  generating it. `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
+  generating it, and the biomes and regions whose settings place a given object (`PlacedBy`, named by pack keys; the
+  host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
   nearest start of one as a `LocateResult` (`Found`, `NotFound`, `SearchLimitReached`; a sealed interface, so callers
   switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
 - **Why not per-world provider instances.** A factory per world (`world -> provider`) would let a provider hold its

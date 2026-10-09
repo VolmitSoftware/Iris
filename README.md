@@ -34,6 +34,13 @@ only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its en
 `art.arcane.iris.builtin.deposit`), and packs write `"iris:deposit": {"generators": [...]}` (the old `"deposits": [...]` is converted by the pack migration script). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
 
+Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition,
+a cave profile, a floating child biome or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
+`.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). The module registers each with
+`registry.registerHeldType(...)` so studio describes it from the module's own annotations; packs write the same JSON as before. Behaviour
+that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
+worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`)
+
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.

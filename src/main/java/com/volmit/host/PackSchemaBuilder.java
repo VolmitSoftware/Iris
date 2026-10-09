@@ -47,6 +47,7 @@ final class PackSchemaBuilder {
     private PackSchema describe(FeatureCatalog catalog) {
         var features = catalogued(catalog).map(this::draft).toList();
         var resources = catalog.resourceKinds().stream().map(this::describe).toList();
+        catalog.heldTypes().forEach(this::draft);
         requireUniqueSnippets();
         var types = completeTypes();
         return new PackSchema(features.stream().map(feature -> feature.complete(types)).toList(), resources,
@@ -95,6 +96,10 @@ final class PackSchemaBuilder {
         var objects = catalog.objects().stream()
                 .map(registration -> new Catalogued(registration.descriptor(), FeatureRole.OBJECT_GENERATOR));
         return Stream.concat(settings, objects).sorted(Comparator.comparing(catalogued -> catalogued.descriptor().id()));
+    }
+
+    private void draft(HeldTypeRegistration held) {
+        drafts.settings(SchemaSource.heldType(held));
     }
 
     private FeatureDraft draft(Catalogued catalogued) {

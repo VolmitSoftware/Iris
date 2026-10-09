@@ -21,6 +21,7 @@ public final class FeatureCatalog {
     private final Map<Class<?>, ObjectRegistration<?>> objects;
     private final Map<String, MantleRegistration<?>> mantle;
     private final List<ResourceKindRegistration> resourceKinds;
+    private final List<HeldTypeRegistration> heldTypes;
     private final List<ValidatorRegistration> validators;
     private final List<LifecycleRegistration> lifecycles;
     private final List<ServiceRegistration> services;
@@ -31,6 +32,7 @@ public final class FeatureCatalog {
             Map<Class<?>, ObjectRegistration<?>> objects,
             Map<String, MantleRegistration<?>> mantle,
             Collection<ResourceKindRegistration> resourceKinds,
+            Collection<HeldTypeRegistration> heldTypes,
             List<ValidatorRegistration> validators,
             List<LifecycleRegistration> lifecycles,
             List<ServiceRegistration> services,
@@ -39,6 +41,7 @@ public final class FeatureCatalog {
         this.objects = Map.copyOf(objects);
         this.mantle = Map.copyOf(mantle);
         this.resourceKinds = sorted(resourceKinds, registration -> registration.kind().id());
+        this.heldTypes = sorted(heldTypes, registration -> registration.type().getName());
         this.validators = inModuleOrder(validators, ValidatorRegistration::module);
         this.lifecycles = inModuleOrder(lifecycles, LifecycleRegistration::module);
         this.services = inModuleOrder(services, ServiceRegistration::module);
@@ -61,6 +64,11 @@ public final class FeatureCatalog {
     /** The pack resource kinds modules read, by kind id. */
     public List<ResourceKindRegistration> resourceKinds() {
         return resourceKinds;
+    }
+
+    /** The classes built-in modules described because Iris's own classes hold them, by class name. */
+    public List<HeldTypeRegistration> heldTypes() {
+        return heldTypes;
     }
 
     /** The validators modules registered, by module id, each module's in the order it registered them. */

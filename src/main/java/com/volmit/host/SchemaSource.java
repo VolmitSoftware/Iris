@@ -16,6 +16,10 @@ record SchemaSource(String subject, Class<?> type, DiscoveredModule module) {
         return new SchemaSource("resource kind " + kind.id(), kind.type(), module);
     }
 
+    static SchemaSource heldType(HeldTypeRegistration held) {
+        return new SchemaSource("held type " + held.type().getName(), held.type(), held.module());
+    }
+
     @Override
     public String toString() {
         return subject + " (module " + module + ")";

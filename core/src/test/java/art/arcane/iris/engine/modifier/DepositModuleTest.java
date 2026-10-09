@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositSettings;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
+import art.arcane.iris.builtin.deposit.DepositGenerator;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
@@ -35,10 +35,10 @@ public class DepositModuleTest {
 
     @Test
     public void everyLevelAtTheCentreColumnStacksInLevelOrder() {
-        IrisDepositGenerator dimension = new IrisDepositGenerator();
-        IrisDepositGenerator region = new IrisDepositGenerator();
-        IrisDepositGenerator biome = new IrisDepositGenerator();
-        IrisDepositGenerator elsewhere = new IrisDepositGenerator();
+        DepositGenerator dimension = new DepositGenerator();
+        DepositGenerator region = new DepositGenerator();
+        DepositGenerator biome = new DepositGenerator();
+        DepositGenerator elsewhere = new DepositGenerator();
         FeatureSettings settings = new FeatureSettings() {
             @Override
             @SuppressWarnings("unchecked")
@@ -55,7 +55,7 @@ public class DepositModuleTest {
         assertEquals(List.of(dimension, region, biome), DepositModule.generatorsAtCentre(settings, 32, -16));
     }
 
-    private static FeatureSettings.Entry<DepositSettings> entry(Target level, String source, IrisDepositGenerator generator) {
+    private static FeatureSettings.Entry<DepositSettings> entry(Target level, String source, DepositGenerator generator) {
         return new FeatureSettings.Entry<>(level, ResourceId.parse("pack:" + source), new DepositSettings(List.of(generator)));
     }
 }

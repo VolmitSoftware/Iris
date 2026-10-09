@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisModule;
@@ -98,9 +99,8 @@ public class BuiltInGenerationGraphTest {
                         .findFirst().orElseThrow();
                 assertEquals("deposits", deposits.alias().orElseThrow());
                 ValueKind generators = deposits.shorthand().orElseThrow().kind();
-                assertTrue(generators.toString(), generators instanceof ValueKind.ListKind list
-                        && list.element() instanceof ValueKind.HostKind host
-                        && host.type().equals("art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator"));
+                assertEquals("generators are a module class of IrisApi types, not an Iris class",
+                        new ValueKind.ListKind(new ValueKind.ObjectKind(DepositGenerator.class.getName()), false), generators);
             }
         }
     }

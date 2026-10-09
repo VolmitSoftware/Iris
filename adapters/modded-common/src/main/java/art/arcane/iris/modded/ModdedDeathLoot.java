@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.loot.InventorySlotType;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
@@ -104,7 +105,7 @@ public final class ModdedDeathLoot {
     private static KList<ItemStack> resolve(Engine engine, ServerLevel level, LootBinding binding) {
         KList<ItemStack> drops = new KList<>();
         for (String key : binding.tableKeys()) {
-            IrisLootTable table = engine.getData().getLootLoader().load(key);
+            IrisLootTable table = LootResources.table(engine.getData(), key);
             if (table == null) {
                 if (WARNED_TABLES.add(key)) {
                     IrisLogging.warn("Iris death loot: unknown loot table '" + key + "'");

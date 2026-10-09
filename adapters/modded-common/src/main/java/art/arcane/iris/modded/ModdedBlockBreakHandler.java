@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
@@ -235,7 +236,7 @@ public final class ModdedBlockBreakHandler {
         if ("cave_floor".equals(tag) || "cave_ceiling".equals(tag)) {
             return;
         }
-        IrisMarker configured = engine.getData().getMarkerLoader().load(tag);
+        IrisMarker configured = SpawnResources.marker(engine.getData(), tag);
         if (configured == null || configured.isRemoveOnChange()) {
             engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), MatterMarker.class);
         }

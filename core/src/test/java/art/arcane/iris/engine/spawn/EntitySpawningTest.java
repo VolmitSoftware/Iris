@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
@@ -58,9 +57,7 @@ public class EntitySpawningTest {
     private static final BlockPosition MARKER_BLOCK = new BlockPosition(40, 70, -12);
 
     private Engine engine;
-    private ResourceLoader<IrisSpawner> spawners;
-    private ResourceLoader<IrisMarker> markers;
-    private ResourceLoader<IrisEntity> entities;
+    private ModuleResourceFixture fixture;
     private PackWorld world;
 
     @BeforeClass
@@ -74,18 +71,11 @@ public class EntitySpawningTest {
     }
 
     @Before
-    @SuppressWarnings("unchecked")
     public void buildWorld() {
         engine = mock(Engine.class);
         IrisData data = mock(IrisData.class);
-        spawners = (ResourceLoader<IrisSpawner>) mock(ResourceLoader.class);
-        markers = (ResourceLoader<IrisMarker>) mock(ResourceLoader.class);
-        entities = (ResourceLoader<IrisEntity>) mock(ResourceLoader.class);
         when(engine.getData()).thenReturn(data);
-        when(data.getSpawnerLoader()).thenReturn(spawners);
-        when(data.getMarkerLoader()).thenReturn(markers);
-        when(data.getEntityLoader()).thenReturn(entities);
-        ModuleResourceFixture.serve(data);
+        fixture = ModuleResourceFixture.serve(data);
         when(data.getPackResources().items()).thenReturn(mock(ItemRegistry.class));
         IrisWorld engineWorld = mock(IrisWorld.class);
         when(engineWorld.platformWorld()).thenReturn(mock(PlatformWorld.class));
@@ -109,8 +99,8 @@ public class EntitySpawningTest {
     public void aMarkerMeansItsSpawnersAndWhetherItGoesAwayWhenItsBlockChanges() {
         IrisMarker marker = new IrisMarker();
         marker.setSpawners(new KList<>("zombies", "missing")).setEmptyAbove(true).setRemoveOnChange(false);
-        when(markers.load("camp")).thenReturn(marker);
-        when(spawners.load("zombies")).thenReturn(new IrisSpawner());
+        fixture.resource(SpawnResources.MARKERS, "camp", marker);
+        fixture.resource(SpawnResources.SPAWNERS, "zombies", new IrisSpawner());
 
         EntitySpawns.MarkerRule rule = new EntitySpawning().marker(world, "camp").orElseThrow();
 
@@ -130,13 +120,13 @@ public class EntitySpawningTest {
         IrisSpawner spawner = new IrisSpawner();
         spawner.setLoadKey("camp/zombies");
         spawner.getSpawns().add(new IrisEntitySpawn().setEntity("zombie").setMinSpawns(2).setMaxSpawns(2));
-        when(spawners.load("camp/zombies")).thenReturn(spawner);
+        fixture.resource(SpawnResources.SPAWNERS, "camp/zombies", spawner);
         IrisMarker marker = new IrisMarker();
         marker.setExhaustionChance(2);
-        when(markers.load("camp")).thenReturn(marker);
+        fixture.resource(SpawnResources.MARKERS, "camp", marker);
         IrisEntity zombie = new IrisEntity();
         zombie.setType("minecraft:zombie");
-        when(entities.load("zombie")).thenReturn(zombie);
+        fixture.resource(SpawnResources.ENTITIES, "zombie", zombie);
         when(engine.getMinHeight()).thenReturn(-64);
 
         EntitySpawns.Plan plan = new EntitySpawning()
@@ -156,7 +146,7 @@ public class EntitySpawningTest {
     @Test
     public void aSpawnerThatCannotFireOrHasNoEntitiesPlansNothing() {
         IrisSpawner empty = new IrisSpawner();
-        when(spawners.load("empty")).thenReturn(empty);
+        fixture.resource(SpawnResources.SPAWNERS, "empty", empty);
 
         Optional<EntitySpawns.Plan> plan = new EntitySpawning().plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", "empty", false));
 
@@ -167,7 +157,7 @@ public class EntitySpawningTest {
     public void anEntityOfThePackResolvesToTheSpecTheHostSpawns() {
         IrisEntity entity = new IrisEntity();
         entity.setType("minecraft:cow").setCustomName("&6Bessie").setBaby(true);
-        when(entities.load("cow")).thenReturn(entity);
+        fixture.resource(SpawnResources.ENTITIES, "cow", entity);
 
         EntitySpec spec = new EntitySpawning().entity(world, "cow").orElseThrow();
 

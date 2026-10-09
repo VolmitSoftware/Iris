@@ -18,6 +18,9 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.iris.engine.spawn.SpawnResources;
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.GuiHost;
@@ -935,14 +938,14 @@ public final class ModdedStudioCommands {
             markerKeys.addAll(PackExportClosure.collectMarkerKeys(biome.getObjects()));
         }
         for (String markerKey : markerKeys) {
-            IrisMarker marker = dm.getMarkerLoader().load(markerKey);
+            IrisMarker marker = SpawnResources.marker(dm, markerKey);
             if (marker == null) {
                 continue;
             }
             spawnerKeys.addAll(marker.getSpawners());
         }
         for (String spawnerKey : spawnerKeys) {
-            IrisSpawner spawner = dm.getSpawnerLoader().load(spawnerKey);
+            IrisSpawner spawner = SpawnResources.spawner(dm, spawnerKey);
             if (spawner == null) {
                 continue;
             }
@@ -950,7 +953,7 @@ public final class ModdedStudioCommands {
             spawner.getInitialSpawns().forEach((IrisEntitySpawn spawn) -> entityKeys.add(spawn.getEntity()));
         }
         for (String entityKey : entityKeys) {
-            IrisEntity entity = dm.getEntityLoader().load(entityKey);
+            IrisEntity entity = SpawnResources.entity(dm, entityKey);
             if (entity == null) {
                 continue;
             }
@@ -988,16 +991,16 @@ public final class ModdedStudioCommands {
             hashes.append(copyJson(folder, "biomes", key, dm.getBiomeLoader().findFile(key)));
         }
         for (String key : entityKeys) {
-            hashes.append(copyJson(folder, "entities", key, dm.getEntityLoader().findFile(key)));
+            hashes.append(copyJson(folder, "entities", key, loadFile(SpawnResources.entity(dm, key))));
         }
         for (String key : lootKeys) {
-            hashes.append(copyJson(folder, "loot", key, dm.getLootLoader().findFile(key)));
+            hashes.append(copyJson(folder, "loot", key, loadFile(LootResources.table(dm, key))));
         }
         for (String key : spawnerKeys) {
-            hashes.append(copyJson(folder, "spawners", key, dm.getSpawnerLoader().findFile(key)));
+            hashes.append(copyJson(folder, "spawners", key, loadFile(SpawnResources.spawner(dm, key))));
         }
         for (String key : markerKeys) {
-            hashes.append(copyJson(folder, "markers", key, dm.getMarkerLoader().findFile(key)));
+            hashes.append(copyJson(folder, "markers", key, loadFile(SpawnResources.marker(dm, key))));
         }
 
         JSONObject meta = new JSONObject();
@@ -1087,5 +1090,10 @@ public final class ModdedStudioCommands {
         thread.setDaemon(true);
         thread.start();
         return 1;
+    }
+
+    /** The file a resource was read from, or null when the pack has no such resource. */
+    private static File loadFile(IrisRegistrant resource) {
+        return resource == null ? null : resource.getLoadFile();
     }
 }

@@ -20,7 +20,6 @@ package art.arcane.iris.util.project.matter.slices;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.util.project.matter.IrisMatterContext;
 import art.arcane.volmlib.util.data.palette.Palette;
 import art.arcane.volmlib.util.matter.slices.RawMatter;
@@ -29,7 +28,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class RegistryMatter<T extends IrisRegistrant> extends RawMatter<T> {
+public abstract class RegistryMatter<T extends IrisRegistrant> extends RawMatter<T> {
     public RegistryMatter(int width, int height, int depth, Class<T> c, T e) {
         super(width, height, depth, c);
     }
@@ -46,12 +45,9 @@ public class RegistryMatter<T extends IrisRegistrant> extends RawMatter<T> {
 
     @Override
     public T readNode(DataInputStream din) throws IOException {
-        String key = din.readUTF();
-        IrisData data = IrisMatterContext.require();
-        ResourceLoader<? extends IrisRegistrant> loader = data.getLoaders().get(getType());
-        if (loader == null) {
-            throw new IOException("No Iris registry loader is available for matter type " + getType().getName() + " while reading key " + key + ".");
-        }
-        return (T) loader.load(key);
+        return load(IrisMatterContext.require(), din.readUTF());
     }
+
+    /** The resource of the pack {@code data} named by {@code key}, or null when the pack has none. */
+    protected abstract T load(IrisData data, String key);
 }

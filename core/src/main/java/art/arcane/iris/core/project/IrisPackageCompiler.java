@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import com.google.gson.Gson;
 import art.arcane.iris.core.loader.IrisData;
@@ -120,29 +122,29 @@ public class IrisPackageCompiler {
         }
 
         dimension.getAllRegions(() -> dm).forEach((region) -> addIfPresent(regions, region));
-        dimension.getLoot().getTables().forEach((i) -> addIfPresent(loot, dm.getLootLoader().load(i)));
+        dimension.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(() -> dm)));
         dimension.getReachableBiomes(() -> dm).forEach((biome) -> addIfPresent(biomes, biome));
-        regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, dm.getLootLoader().load(i))));
-        regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, dm.getSpawnerLoader().load(sp))));
-        dimension.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, dm.getSpawnerLoader().load(sp)));
+        regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i))));
+        regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp))));
+        dimension.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp)));
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));
-        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, dm.getLootLoader().load(i))));
-        biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, dm.getSpawnerLoader().load(sp))));
+        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i))));
+        biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp))));
         KList<IrisObjectPlacement> allPlacements = new KList<>();
         regions.forEach((r) -> allPlacements.addAll(r.getObjects()));
         biomes.forEach((i) -> allPlacements.addAll(i.getObjects()));
         KSet<IrisMarker> markers = new KSet<>();
         for (String markerKey : PackExportClosure.collectMarkerKeys(allPlacements)) {
-            IrisMarker marker = dm.getMarkerLoader().load(markerKey);
+            IrisMarker marker = SpawnResources.marker(dm, markerKey);
             if (marker == null) {
                 continue;
             }
             markers.add(marker);
-            marker.getSpawners().forEach((sp) -> addIfPresent(spawners, dm.getSpawnerLoader().load(sp)));
+            marker.getSpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp)));
         }
-        collectSpawnerEntityKeys(spawners).forEach((i) -> addIfPresent(entities, dm.getEntityLoader().load(i)));
-        entities.forEach((e) -> e.getLoot().getTables().forEach((i) -> addIfPresent(loot, dm.getLootLoader().load(i))));
+        collectSpawnerEntityKeys(spawners).forEach((i) -> addIfPresent(entities, SpawnResources.entity(dm, i)));
+        entities.forEach((e) -> e.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i))));
         Set<String> structureKeys = new LinkedHashSet<>();
         collectStructureKeys(structureKeys, dimension.getStructures());
         regions.forEach((region) -> collectStructureKeys(structureKeys, region.getStructures()));

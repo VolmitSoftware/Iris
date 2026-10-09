@@ -18,7 +18,9 @@
 
 package art.arcane.iris.util.project.matter.slices;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.volmlib.util.matter.Sliced;
 
 @Sliced
@@ -29,5 +31,10 @@ public class SpawnerMatter extends RegistryMatter<IrisSpawner> {
 
     public SpawnerMatter(int width, int height, int depth) {
         super(width, height, depth, IrisSpawner.class, new IrisSpawner());
+    }
+
+    @Override
+    protected IrisSpawner load(IrisData data, String key) {
+        return SpawnResources.spawner(data, key);
     }
 }

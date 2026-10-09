@@ -42,17 +42,13 @@ import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.entity.IrisEntity;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.image.IrisImage;
 import art.arcane.iris.engine.object.image.IrisImageMap;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.mod.IrisMod;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.engine.object.prefab.matter.IrisMatterObject;
 import art.arcane.volmlib.util.collection.KList;
@@ -103,9 +99,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final Set<IrisData> ENGINE_HOLDERS =
             Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
     /** Every resource type Iris loads itself for generation, studio and validation; module resource kinds come on top. */
-    private static final List<Class<? extends IrisRegistrant>> RUNTIME_RESOURCE_TYPES = List.of(IrisLootTable.class,
-            IrisSpawner.class, IrisEntity.class, IrisRegion.class, IrisBiome.class, IrisMod.class, IrisDimension.class,
-            IrisGenerator.class, IrisMarker.class, IrisBlockData.class, IrisExpression.class, IrisObject.class, IrisImage.class,
+    private static final List<Class<? extends IrisRegistrant>> RUNTIME_RESOURCE_TYPES = List.of(IrisRegion.class, IrisBiome.class, IrisMod.class, IrisDimension.class,
+            IrisGenerator.class, IrisBlockData.class, IrisExpression.class, IrisObject.class, IrisImage.class,
             IrisImageMap.class, IrisMatterObject.class);
     /** Pack folders Iris reads that hold no resources of its loaders: snippets and module jars. */
     private static final List<String> OTHER_OWN_FOLDERS = List.of("snippet", "modules");
@@ -118,13 +113,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     @ToString.Exclude
     private volatile IrisPackResources packResources;
     private ResourceLoader<IrisBiome> biomeLoader;
-    private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
     private ResourceLoader<IrisDimension> dimensionLoader;
     private ResourceLoader<IrisGenerator> generatorLoader;
-    private ResourceLoader<IrisEntity> entityLoader;
-    private ResourceLoader<IrisMarker> markerLoader;
-    private ResourceLoader<IrisSpawner> spawnerLoader;
     private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
@@ -254,28 +245,12 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return loadAny(IrisMod.class, key, nearest);
     }
 
-    public static IrisEntity loadAnyEntity(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisEntity.class, key, nearest);
-    }
-
-    public static IrisLootTable loadAnyLootTable(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisLootTable.class, key, nearest);
-    }
-
     public static IrisBlockData loadAnyBlock(String key, @Nullable IrisData nearest) {
         return loadAny(IrisBlockData.class, key, nearest);
     }
 
-    public static IrisSpawner loadAnySpaner(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisSpawner.class, key, nearest);
-    }
-
     public static IrisRegion loadAnyRegion(String key, @Nullable IrisData nearest) {
         return loadAny(IrisRegion.class, key, nearest);
-    }
-
-    public static IrisMarker loadAnyMarker(String key, @Nullable IrisData nearest) {
-        return loadAny(IrisMarker.class, key, nearest);
     }
 
     public static IrisImage loadAnyImage(String key, @Nullable IrisData nearest) {
@@ -521,15 +496,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> replacement = new KMap<>();
-        this.lootLoader = registerLoader(IrisLootTable.class, replacement);
-        this.spawnerLoader = registerLoader(IrisSpawner.class, replacement);
-        this.entityLoader = registerLoader(IrisEntity.class, replacement);
         this.regionLoader = registerLoader(IrisRegion.class, replacement);
         this.biomeLoader = registerLoader(IrisBiome.class, replacement);
         this.modLoader = registerLoader(IrisMod.class, replacement);
         this.dimensionLoader = registerLoader(IrisDimension.class, replacement);
         this.generatorLoader = registerLoader(IrisGenerator.class, replacement);
-        this.markerLoader = registerLoader(IrisMarker.class, replacement);
         this.blockLoader = registerLoader(IrisBlockData.class, replacement);
         this.expressionLoader = registerLoader(IrisExpression.class, replacement);
         this.objectLoader = registerLoader(IrisObject.class, replacement);

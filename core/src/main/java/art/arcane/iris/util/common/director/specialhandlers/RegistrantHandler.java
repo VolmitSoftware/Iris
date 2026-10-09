@@ -29,7 +29,7 @@ public abstract class RegistrantHandler<T extends IrisRegistrant> implements Dir
         Set<String> known = new HashSet<>();
         IrisData data = data();
         if (data != null) {
-            for (T j : data.getLoader(type).loadAll(data.getLoader(type).getPossibleKeys())) {
+            for (T j : loadAll(data)) {
                 known.add(j.getLoadKey());
                 p.add(j);
             }
@@ -38,13 +38,18 @@ public abstract class RegistrantHandler<T extends IrisRegistrant> implements Dir
         for (File i : PackDirectoryResolver.listVisiblePackDirectories(
                 IrisPlatforms.get().packsFolder())) {
             data = IrisData.get(i);
-            for (T j : data.getLoader(type).loadAll(data.getLoader(type).getPossibleKeys())) {
+            for (T j : loadAll(data)) {
                 if (known.add(j.getLoadKey()))
                     p.add(j);
             }
         }
 
         return p;
+    }
+
+    /** Every resource of this handler's type that {@code data}'s pack has. */
+    protected KList<T> loadAll(IrisData data) {
+        return data.getLoader(type).loadAll(data.getLoader(type).getPossibleKeys());
     }
 
     @Override

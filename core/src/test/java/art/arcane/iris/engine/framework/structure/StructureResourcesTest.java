@@ -44,10 +44,11 @@ public class StructureResourcesTest {
         try {
             var catalog = data.getModules().pack().catalog();
 
+            var kinds = catalog.resourceKinds().stream().map(ResourceKindRegistration::kind)
+                    .filter(kind -> kind.id().toString().startsWith("iris:structure/")).toList();
             assertEquals(List.of("iris:structure/piece", "iris:structure/pool", "iris:structure/structure"),
-                    catalog.resourceKinds().stream().map(registration -> registration.kind().id().toString()).toList());
-            assertEquals(List.of("jigsaw-pieces", "jigsaw-pools", "structures"),
-                    catalog.resourceKinds().stream().map(ResourceKindRegistration::kind).map(kind -> kind.folder()).toList());
+                    kinds.stream().map(kind -> kind.id().toString()).toList());
+            assertEquals(List.of("jigsaw-pieces", "jigsaw-pools", "structures"), kinds.stream().map(kind -> kind.folder()).toList());
             assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(StructureValidator.class::isInstance));
             assertFalse(data.getLoaders().containsKey(IrisStructure.class));
             assertFalse(data.getLoaders().containsKey(IrisJigsawPool.class));
@@ -146,7 +147,8 @@ public class StructureResourcesTest {
             List<JSONObject> entries = ModuleResourceSchemas.entries(data, true);
 
             assertEquals(List.of("./.iris/schema/jigsaw-pieces-schema.json", "./.iris/schema/jigsaw-pools-schema.json",
-                    "./.iris/schema/structures-schema.json"), entries.stream().map(entry -> entry.getString("url")).toList());
+                    "./.iris/schema/structures-schema.json"),
+                    entries.stream().map(entry -> entry.getString("url")).filter(url -> url.contains("jigsaw") || url.contains("structures-")).toList());
             JSONObject structures = new JSONObject(Files.readString(pack.resolve(".iris/schema/structures-schema.json")));
             JSONObject startPool = structures.getJSONObject("properties").getJSONObject("startPool");
             assertEquals("#/definitions/erzjigsaw-pools", startPool.getString("$ref"));

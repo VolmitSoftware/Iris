@@ -21,8 +21,10 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.host.FeatureCatalog;
+import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.BlockDrops;
+import com.volmit.service.EntitySpawns;
 import com.volmit.service.LocateResult;
 import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
@@ -124,6 +126,49 @@ public final class ModuleServices {
             procedural.addAll(trees.procedural());
         }
         return new SaplingGrowth.TreeObjects(objects, procedural);
+    }
+
+    /** What the first module with something to spawn at {@code site} plans; empty when none does. */
+    public static Optional<PlannedSpawn> planSpawn(Engine engine, EntitySpawns.Site site) {
+        PackWorld world = engine.getGeneration().world();
+        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
+            Optional<EntitySpawns.Plan> plan = provider.plan(world, site);
+            if (plan.isPresent()) {
+                return Optional.of(new PlannedSpawn(provider, world, plan.get()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The entity {@code key} as the first module that knows it would spawn it. */
+    public static Optional<EntitySpec> entity(Engine engine, String key) {
+        PackWorld world = engine.getGeneration().world();
+        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
+            Optional<EntitySpec> entity = provider.entity(world, key);
+            if (entity.isPresent()) {
+                return entity;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** What the first module that knows the marker {@code tag} says it does. */
+    public static Optional<EntitySpawns.MarkerRule> markerRule(Engine engine, String tag) {
+        PackWorld world = engine.getGeneration().world();
+        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
+            Optional<EntitySpawns.MarkerRule> rule = provider.marker(world, tag);
+            if (rule.isPresent()) {
+                return rule;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** A plan and the module that made it, which hears how many of its entities appeared. */
+    public record PlannedSpawn(EntitySpawns provider, PackWorld world, EntitySpawns.Plan plan) {
+        public void spawned(int count) {
+            provider.spawned(world, plan, count);
+        }
     }
 
     /** Every structure key the pack's modules know, placed or not. */

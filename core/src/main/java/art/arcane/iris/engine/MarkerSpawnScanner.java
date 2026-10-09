@@ -19,19 +19,22 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.data.cache.Cache;
-import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.plugin.Chunks;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
+import com.volmit.service.EntitySpawns;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -49,8 +52,12 @@ final class MarkerSpawnScanner {
         this.manager = manager;
     }
 
-    Map<IrisPosition, KSet<IrisSpawner>> getSpawnersFromMarkers(Chunk c) {
-        Map<IrisPosition, KSet<IrisSpawner>> p = new KMap<>();
+    /** A spawner a marker names, and the marker. */
+    record MarkerSpawner(String marker, String spawner) {
+    }
+
+    Map<IrisPosition, List<MarkerSpawner>> getSpawnersFromMarkers(Chunk c) {
+        Map<IrisPosition, List<MarkerSpawner>> p = new KMap<>();
         Set<IrisPosition> b = new KSet<>();
 
         if (J.isFolia()) {
@@ -61,35 +68,20 @@ final class MarkerSpawnScanner {
         }
 
         manager.getMantle().iterateChunk(c.getX(), c.getZ(), MatterMarker.class, (x, y, z, t) -> {
-            if (t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling")) {
-                return;
-            }
-
-            IrisMarker mark = manager.getData().getMarkerLoader().load(t.getTag());
-            if (mark == null) {
+            Optional<EntitySpawns.MarkerRule> rule = markerRule(t);
+            if (rule.isEmpty()) {
                 return;
             }
 
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
 
-            if (isMarkerObstructed(c, pos, mark.isEmptyAbove())) {
+            if (isMarkerObstructed(c, pos, rule.get().emptyAbove())) {
                 b.add(pos);
                 return;
             }
 
-            for (String i : mark.getSpawners()) {
-                IrisSpawner m = manager.getData().getSpawnerLoader().load(i);
-                if (m == null) {
-                    IrisLogging.error("Cannot load spawner: " + i + " for marker on " + manager.getName());
-                    continue;
-                }
-                m.setReferenceMarker(mark);
-
-                // This is so fucking incorrect its a joke
-                //noinspection ConstantConditions
-                if (m != null) {
-                    p.computeIfAbsent(pos, (k) -> new KSet<>()).add(m);
-                }
+            for (String spawner : rule.get().spawners()) {
+                addOnce(p.computeIfAbsent(pos, (k) -> new ArrayList<>()), new MarkerSpawner(t.getTag(), spawner));
             }
         });
 
@@ -100,7 +92,15 @@ final class MarkerSpawnScanner {
         return p;
     }
 
-    void forEachMarkerSpawner(Chunk c, BiConsumer<IrisPosition, KSet<IrisSpawner>> consumer) {
+    /** What the modules say the marker means; empty for the cave markers Iris keeps for itself and for markers no module knows. */
+    private Optional<EntitySpawns.MarkerRule> markerRule(MatterMarker marker) {
+        if (marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling")) {
+            return Optional.empty();
+        }
+        return ModuleServices.markerRule(manager.getEngine(), marker.getTag());
+    }
+
+    void forEachMarkerSpawner(Chunk c, BiConsumer<IrisPosition, List<MarkerSpawner>> consumer) {
         if (c == null || consumer == null) {
             return;
         }
@@ -160,30 +160,26 @@ final class MarkerSpawnScanner {
         }, () -> markerScanQueue.remove(key)));
     }
 
+    private static void addOnce(List<MarkerSpawner> spawners, MarkerSpawner spawner) {
+        if (!spawners.contains(spawner)) {
+            spawners.add(spawner);
+        }
+    }
+
     private Map<IrisPosition, MarkerSpawnData> collectMarkerSpawnData(int chunkX, int chunkZ) {
         Map<IrisPosition, MarkerSpawnData> markerData = new KMap<>();
         manager.getMantle().iterateChunk(chunkX, chunkZ, MatterMarker.class, (x, y, z, t) -> {
-            if (t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling")) {
-                return;
-            }
-
-            IrisMarker mark = manager.getData().getMarkerLoader().load(t.getTag());
-            if (mark == null) {
+            Optional<EntitySpawns.MarkerRule> rule = markerRule(t);
+            if (rule.isEmpty()) {
                 return;
             }
 
             IrisPosition position = new IrisPosition((chunkX << 4) + x, y, (chunkZ << 4) + z);
             MarkerSpawnData data = markerData.computeIfAbsent(position, k -> new MarkerSpawnData());
-            data.requiresEmptyAbove = data.requiresEmptyAbove || mark.isEmptyAbove();
+            data.requiresEmptyAbove = data.requiresEmptyAbove || rule.get().emptyAbove();
 
-            for (String i : mark.getSpawners()) {
-                IrisSpawner spawner = manager.getData().getSpawnerLoader().load(i);
-                if (spawner == null) {
-                    IrisLogging.error("Cannot load spawner: " + i + " for marker on " + manager.getName());
-                    continue;
-                }
-                spawner.setReferenceMarker(mark);
-                data.spawners.add(spawner);
+            for (String spawner : rule.get().spawners()) {
+                addOnce(data.spawners, new MarkerSpawner(t.getTag(), spawner));
             }
         });
 
@@ -218,7 +214,7 @@ final class MarkerSpawnScanner {
     }
 
     private static final class MarkerSpawnData {
-        private final KSet<IrisSpawner> spawners = new KSet<>();
+        private final List<MarkerSpawner> spawners = new ArrayList<>();
         private boolean requiresEmptyAbove;
     }
 }

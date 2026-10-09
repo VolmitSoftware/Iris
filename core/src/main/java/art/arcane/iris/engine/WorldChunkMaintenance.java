@@ -20,7 +20,6 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.data.cache.Cache;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
@@ -303,13 +302,8 @@ final class WorldChunkMaintenance {
             }), delay);
 
             Chunk markerChunk = world.getChunkAt(chunkX, chunkZ);
-            manager.markerScanner.forEachMarkerSpawner(markerChunk, (block, spawners) -> {
-                IrisSpawner s = new KList<>(spawners).getRandom();
-                if (s == null) {
-                    return;
-                }
-                manager.entitySpawner.spawn(block, s, true);
-            });
+            manager.markerScanner.forEachMarkerSpawner(markerChunk, (block, spawners) ->
+                    manager.entitySpawner.spawnAtMarker(block, spawners.get(RNG.r.nextInt(spawners.size())), true));
         });
     }
 

@@ -19,7 +19,6 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.core.service.tree.BlockDropRouter;
-import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
@@ -36,8 +35,10 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 import com.volmit.block.BlockState;
 import com.volmit.service.BlockDrops;
+import com.volmit.service.EntitySpawns;
 import com.volmit.world.BlockPosition;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -79,8 +80,8 @@ final class WorldBlockDropRouter {
                         return;
                     }
 
-                    IrisMarker mark = manager.getData().getMarkerLoader().load(marker.getTag());
-                    if (mark == null || mark.isRemoveOnChange()) {
+                    Optional<EntitySpawns.MarkerRule> rule = ModuleServices.markerRule(manager.getEngine(), marker.getTag());
+                    if (rule.isEmpty() || rule.get().removeOnChange()) {
                         manager.getMantle().remove(blockX, mantleY, blockZ, MatterMarker.class);
                     }
                 }));

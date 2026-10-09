@@ -41,6 +41,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.entity.IrisEntity;
+import art.arcane.iris.engine.platform.BukkitEntitySpawner;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
@@ -661,7 +662,7 @@ public class CommandStudio implements DirectorExecutor {
 
         // Entity creation must run on the thread owning the destination chunk.
         Location at = new Location(world(), location.getX(), location.getY(), location.getZ());
-        if (!J.runAt(at, () -> entity.spawn(spawnEngine, at))) {
+        if (!J.runAt(at, () -> BukkitEntitySpawner.spawnByKey(spawnEngine, entity.getLoadKey(), at))) {
             Iris.warn("Could not schedule the entity spawn at " + at.getBlockX() + ", " + at.getBlockY() + ", " + at.getBlockZ() + ".");
         }
     }

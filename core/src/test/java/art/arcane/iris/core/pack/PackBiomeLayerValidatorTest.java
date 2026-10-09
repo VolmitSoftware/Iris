@@ -76,7 +76,7 @@ public class PackBiomeLayerValidatorTest {
     @Test
     public void rejectsEmbeddedDecoratorWithoutPalette() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "biomes/bad.json", "{\"decorators\":[{\"block\":\"minecraft:magma_block\"}]}");
+        write(pack, "biomes/bad.json", "{\"iris:decorant\":{\"decorators\":[{\"block\":\"minecraft:magma_block\"}]}}");
 
         assertEquals(List.of(
                 "Biome 'bad' decorators[0] must declare a non-empty palette."
@@ -99,7 +99,7 @@ public class PackBiomeLayerValidatorTest {
     public void acceptsDecoratorPalettesAndSnippetReferences() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "biomes/ok.json",
-                "{\"decorators\":[{\"palette\":[{\"block\":\"minecraft:magma_block\"}]},\"snippet/decorator/ok\"]}");
+                "{\"iris:decorant\":{\"decorators\":[{\"palette\":[{\"block\":\"minecraft:magma_block\"}]},\"snippet/decorator/ok\"]}}");
         write(pack, "snippet/decorator/ok.json",
                 "{\"palette\":[{\"block\":\"minecraft:magma_block\"}]}");
 

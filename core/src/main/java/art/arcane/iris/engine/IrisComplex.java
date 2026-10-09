@@ -25,8 +25,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -118,13 +116,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> topSurfaceStream;
-    private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
-    private ProceduralStream<IrisDecorator> terrainCeilingDecoration;
-    private ProceduralStream<IrisDecorator> terrainCaveSurfaceDecoration;
-    private ProceduralStream<IrisDecorator> terrainCaveCeilingDecoration;
-    private ProceduralStream<IrisDecorator> seaSurfaceDecoration;
-    private ProceduralStream<IrisDecorator> seaFloorDecoration;
-    private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
     private ProceduralStream<PlatformBlockState> rockStream;
     private ProceduralStream<PlatformBlockState> fluidStream;
     private IrisBiome focusBiome;
@@ -286,20 +277,6 @@ public class IrisComplex implements DataProvider {
         heightFluidStream = heightStream.contextInjecting(engine, (c, x, z) -> c.getHeight().getDouble(x, z))
                 .max(fluidHeight).cache2DDouble("heightFluidStream", engine, cacheSize);
         maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
-        terrainSurfaceDecoration = trueBiomeStream.contextInjecting(engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D("terrainSurfaceDecoration", engine, cacheSize);
-        terrainCeilingDecoration = trueBiomeStream.contextInjecting(engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)).cache2D("terrainCeilingDecoration", engine, cacheSize);
-        terrainCaveSurfaceDecoration = caveBiomeStream.contextInjecting(engine, (c, x, z) -> c.getCave().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D("terrainCaveSurfaceDecoration", engine, cacheSize);
-        terrainCaveCeilingDecoration = caveBiomeStream.contextInjecting(engine, (c, x, z) -> c.getCave().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)).cache2D("terrainCaveCeilingDecoration", engine, cacheSize);
-        shoreSurfaceDecoration = trueBiomeStream.contextInjecting(engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SHORE_LINE)).cache2D("shoreSurfaceDecoration", engine, cacheSize);
-        seaSurfaceDecoration = trueBiomeStream.contextInjecting(engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_SURFACE)).cache2D("seaSurfaceDecoration", engine, cacheSize);
-        seaFloorDecoration = trueBiomeStream.contextInjecting(engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_FLOOR)).cache2D("seaFloorDecoration", engine, cacheSize);
         baseBiomeIDStream = trueBiomeStream.contextInjecting(engine, (c, x, z) -> c.getBiome().get(x, z))
                 .convertAware2D((b, x, z) -> {
                     UUID d = regionIDStream.get(x, z);
@@ -350,24 +327,6 @@ public class IrisComplex implements DataProvider {
         region.setLoader(data);
         region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
         return region;
-    }
-
-    private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {
-        RNG rngc = new RNG(Cache.key(((int) x), ((int) z)));
-
-        for (IrisDecorator i : b.getDecorators()) {
-            if (!i.getPartOf().equals(part)) {
-                continue;
-            }
-
-            PlatformBlockState block = i.getBlockData(b, rngc, x, z, data);
-
-            if (block != null) {
-                return i;
-            }
-        }
-
-        return null;
     }
 
     private IrisBiome fixBiomeType(Double height, IrisBiome biome, IrisRegion region, Double x, Double z, double fluidHeight) {

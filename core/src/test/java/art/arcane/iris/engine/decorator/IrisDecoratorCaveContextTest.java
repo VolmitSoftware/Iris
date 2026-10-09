@@ -5,8 +5,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -15,7 +14,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -32,16 +30,18 @@ public class IrisDecoratorCaveContextTest {
         doReturn(63).when(dimension).getFluidHeight();
         doReturn(dimension).when(engine).getDimension();
 
-        IrisDecorator decorator = mock(IrisDecorator.class);
-        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        ResolvedDecorator decorator = mock(ResolvedDecorator.class);
+        doReturn(true).when(decorator).passesChanceGate(anyDouble(), anyDouble());
         doReturn(true).when(decorator).isStacking();
         doReturn(true).when(decorator).isForcePlace();
-        doReturn(1).when(decorator).getHeight(any(), anyDouble(), anyDouble(), any());
+        doReturn(1).when(decorator).stackHeight(anyDouble(), anyDouble());
 
         IrisBiome biome = mock(IrisBiome.class);
         doReturn(InferredType.LAND).when(biome).getInferredType();
-        doReturn(new IrisDecorator[]{decorator}).when(biome).getDecoratorBucket(IrisDecorationPart.NONE);
-        doReturn(new IrisDecorator[]{decorator}).when(biome).getDecoratorBucket(IrisDecorationPart.CEILING);
+        BiomeDecorators decorators = mock(BiomeDecorators.class);
+        doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(biome, DecorationPart.NONE);
+        doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(biome, DecorationPart.CEILING);
+        DecoratorTestEngines.keepDecorators(engine, decorators);
 
         PlatformBlockState fluid = mock(PlatformBlockState.class);
         doReturn(true).when(fluid).isFluid();

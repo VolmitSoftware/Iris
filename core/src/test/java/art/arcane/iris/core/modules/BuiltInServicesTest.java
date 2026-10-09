@@ -49,9 +49,9 @@ public class BuiltInServicesTest {
     }
 
     @Test
-    public void theStructureModuleHearsWhenWorldsStop() {
-        assertEquals(List.of("iris:structure"), BUILT_INS.lifecycles().stream()
+    public void theModulesThatNeedToHearAboutWorldsHearThem() {
+        assertEquals(List.of("iris:decorant", "iris:objects", "iris:structure", "iris:terrain"), BUILT_INS.lifecycles().stream()
                 .map(LifecycleRegistration::module).map(module -> module.info().id().toString()).toList());
-        assertTrue(BUILT_INS.lifecycles().getFirst().lifecycle() instanceof StructureModule);
+        assertTrue(BUILT_INS.lifecycles().stream().anyMatch(registration -> registration.lifecycle() instanceof StructureModule));
     }
 }

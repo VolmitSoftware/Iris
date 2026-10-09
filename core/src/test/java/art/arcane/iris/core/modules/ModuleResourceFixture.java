@@ -77,15 +77,6 @@ public final class ModuleResourceFixture {
         return registry.freeze();
     }
 
-    /** Makes {@code data} (a mock) load {@code modules} as its pack's modules, so services and hooks of theirs answer. */
-    public static void serveModules(IrisData data, IrisModule... modules) {
-        LoadedPack pack = mock(LoadedPack.class);
-        when(pack.catalog()).thenReturn(catalogOf(modules));
-        PackModuleSet moduleSet = mock(PackModuleSet.class);
-        when(moduleSet.pack()).thenReturn(pack);
-        when(data.getModules()).thenReturn(moduleSet);
-    }
-
     /** Serves {@code resource} as the resource of {@code kind} the pack names by {@code key}. */
     public <T> ModuleResourceFixture resource(ResourceKind<T> kind, String key, T resource) {
         ResourceId id = idOf(key);

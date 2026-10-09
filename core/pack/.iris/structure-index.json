@@ -1,0 +1,26 @@
+{
+  "note": "Generated index of every structure available at runtime. Toggle vanilla/datapack generation via the dimension importedStructures block (by structure key). Place structures via biome/region/dimension structures lists.",
+  "counts": {
+    "vanillaStructures": 1,
+    "datapackStructures": 1,
+    "structureSets": 1,
+    "irisStructures": 1
+  },
+  "structures": {
+    "vanilla": [
+      "minecraft:village"
+    ],
+    "datapack": [
+      "example:castle"
+    ]
+  },
+  "structureSets": {
+    "vanilla": [
+      "minecraft:villages"
+    ],
+    "datapack": []
+  },
+  "iris": [
+    "castle"
+  ]
+}

@@ -105,8 +105,8 @@ public class StructureIndexServiceTest {
         IrisData data = mock(IrisData.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks structureHooks = mock(PlatformStructureHooks.class);
-        when(data.getDataFolder()).thenReturn(pack);
         ModuleResourceFixture.serveModules(data, new StructureModule());
+        when(data.getDataFolder()).thenReturn(pack);
         ModuleResourceFixture.serve(data)
                 .resource(StructureResources.STRUCTURES, "castle", new IrisStructure())
                 .resource(StructureResources.STRUCTURES, "structure-index", new IrisStructure());

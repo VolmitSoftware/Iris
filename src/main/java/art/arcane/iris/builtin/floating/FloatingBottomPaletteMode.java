@@ -16,18 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.terrain.floating;
+package art.arcane.iris.builtin.floating;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
-@Desc("Controls how an override list is combined with the inherited object set from the target biome.")
-public enum OverrideMode {
-    @Desc("Ignore the override list entirely. Use only the inherited objects from the target biome (subject to inheritObjects).")
-    INHERIT_ONLY,
+@Desc("Controls how floating-child island underside blocks choose their palette.")
+public enum FloatingBottomPaletteMode {
+    @Desc("Use the normal top-down biome layer depth for the whole island column.")
+    DEPTH,
 
-    @Desc("Append override list entries after the inherited objects from the target biome. Both sets are placed.")
-    MERGE,
+    @Desc("Use the target biome's top palette from both the island top and underside, meeting in the middle.")
+    MIRROR_TOP,
 
-    @Desc("Use only the override list. The inherited objects from the target biome are discarded regardless of inheritObjects.")
-    REPLACE
+    @Desc("Use bottomPalette near the underside and the target biome's normal palette near the top.")
+    CUSTOM
 }

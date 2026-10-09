@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,148 +16,44 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.terrain.floating;
+package art.arcane.iris.builtin.floating;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
-import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfileSampler;
-import art.arcane.iris.engine.object.value.IRare;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.AtomicCache;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListBlockType;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinItems;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
+import com.volmit.config.Snippet;
+import com.volmit.noise.NoiseStyle;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+
+/**
+ * A floating island above a biome's terrain, an entry of the biome's {@code floatingChildBiomes}: where its footprint
+ * is, how high it floats, how its top, underside and walls are shaped, and which objects, decorators and water it
+ * gets. Noise and options are IrisApi types; the object placements and palette layers the island hosts are
+ * Iris's own classes, which the host describes itself, so this class leaves the pack module jar only when those
+ * become settings of modules.
+ */
 @Snippet("floating-child-biome")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode
 @Desc("Declares a floating biome layer above this biome's terrain. A 2D footprint noise decides which columns are part of the island (threshold + style control blankets, swirls, scattered blobs). The top profile is driven by the target biome's own terrain generators (so a mountains biome produces real peaks, desert produces real dunes). The bottom tail hanging below is a separately configurable noise (pick VASCULAR for drippy roots, FRACTAL_RM_SIMPLEX for crystalline spikes, PERLIN for smooth rounded bowls).")
-@Data
-public class IrisFloatingChildBiomes implements IRare {
-    private final transient AtomicCache<IrisBiome> resolvedBiome = new AtomicCache<>();
-    private final transient AtomicCache<CNG> footprintCache = new AtomicCache<>();
-    private final transient AtomicCache<FloatingIslandEdgeProfile> edgeTaperProfileCache = new AtomicCache<>();
-    private final transient AtomicCache<CNG> pickerCache = new AtomicCache<>();
-    private final transient AtomicCache<CNG> altitudeCache = new AtomicCache<>();
-    private final transient AtomicCache<CNG> topShapeCache = new AtomicCache<>();
-    private final transient AtomicCache<CNG> bottomCache = new AtomicCache<>();
-    private final transient AtomicCache<CNG> wallWarpCache = new AtomicCache<>();
-    private final transient AtomicCache<CNG> carveCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisCaveProfileSampler> carvingProfileSamplerCache = new AtomicCache<>(true);
-    private final transient AtomicCache<IrisObjectScale> shrinkScaleCache = new AtomicCache<>();
+public final class FloatingChildBiome {
+    public static final int DEFAULT_EDGE_TAPER_WIDTH = 10;
+    public static final double DEFAULT_EDGE_TAPER_EXPONENT = 1.0D;
+    private static final NoiseStyle DEFAULT_BOTTOM_STYLE = NoiseStyle.of("SIMPLEX");
+    private static final NoiseStyle DEFAULT_TOP_SHAPE_STYLE = NoiseStyle.of("SIMPLEX");
+    private static final NoiseStyle DEFAULT_ALTITUDE_STYLE = NoiseStyle.of("SIMPLEX");
+    private static final NoiseStyle DEFAULT_PICKER_STYLE = NoiseStyle.of("SIMPLEX");
+    private static final NoiseStyle DEFAULT_EDGE_TAPER_VARIATION_STYLE = NoiseStyle.of("SIMPLEX").withZoom(0.18D);
+    private static final NoiseStyle DEFAULT_FOOTPRINT_STYLE = NoiseStyle.of("SIMPLEX");
 
-    public CNG getFootprintCng(long baseSeed, IrisData data) {
-        return footprintCache.aquire(() -> getFootprintStyle().create(new RNG(baseSeed ^ 0xF007B17DL), data));
-    }
-
-    public FloatingIslandEdgeProfile getEdgeTaperProfile(long baseSeed, IrisData data) {
-        return edgeTaperProfileCache.aquire(() -> {
-            int width = FloatingIslandEdgeProfile.clampWidth(getEdgeTaperWidth());
-            double amplitude = FloatingIslandEdgeProfile.clampVariationAmplitude(
-                    getEdgeTaperVariationAmplitude(), width);
-            IrisGeneratorStyle style = getEdgeTaperVariationStyle();
-            CNG variation = amplitude > 0.0D && style != null
-                    ? style.create(new RNG(baseSeed ^ 0xED6E7A9E5L), data)
-                    : null;
-            return new FloatingIslandEdgeProfile(width, getEdgeTaperExponent(), amplitude, variation);
-        });
-    }
-
-    public CNG getPickerCng(long baseSeed, IrisData data) {
-        return pickerCache.aquire(() -> getPickerStyle().create(new RNG(baseSeed ^ 0x91C4E72DL), data));
-    }
-
-    public CNG getAltitudeCng(long baseSeed, IrisData data) {
-        return altitudeCache.aquire(() -> getAltitudeStyle().create(new RNG(baseSeed ^ 0xA17DEBBL), data));
-    }
-
-    public CNG getTopShapeCng(long baseSeed, IrisData data) {
-        return topShapeCache.aquire(() -> getTopShapeStyle().create(new RNG(baseSeed ^ 0x70970601DEFL), data));
-    }
-
-    public CNG getBottomCng(long baseSeed, IrisData data) {
-        return bottomCache.aquire(() -> getBottomStyle().create(new RNG(baseSeed ^ 0xB0770075CAFEL), data));
-    }
-
-    public CNG getWallWarpCng(long baseSeed, IrisData data) {
-        IrisGeneratorStyle style = getWallWarpStyle();
-        if (style == null) {
-            return null;
-        }
-        return wallWarpCache.aquire(() -> style.create(new RNG(baseSeed ^ 0xA117BA17E0FL), data));
-    }
-
-    public CNG getCarveCng(long baseSeed, IrisData data) {
-        IrisGeneratorStyle style = getCarveStyle();
-        if (style == null) {
-            return null;
-        }
-        return carveCache.aquire(() -> style.create(new RNG(baseSeed ^ 0xCA5EC1EE5EL), data));
-    }
-
-    public IrisCaveProfileSampler getCarvingProfileSampler(Engine engine, IrisData data) {
-        if (!hasCarvingReference()) {
-            return null;
-        }
-
-        return carvingProfileSamplerCache.aquire(() -> {
-            IrisBiome resolved = resolveCarvingBiome(carving, engine, data);
-            if (resolved == null || resolved.getCaveProfile() == null || !resolved.getCaveProfile().enabled()) {
-                return null;
-            }
-
-            return new IrisCaveProfileSampler(engine, resolved.getCaveProfile());
-        });
-    }
-
-    public boolean hasCarvingReference() {
-        return carving != null && !carving.isBlank();
-    }
-
-    static IrisBiome resolveCarvingBiome(String carving, Engine engine, IrisData data) {
-        if (carving == null || carving.isBlank() || engine == null || data == null) {
-            return null;
-        }
-
-        IrisDimension dimension = engine.getDimension();
-        if (dimension != null && dimension.getCarvingEntryIndex() != null) {
-            IrisDimensionCarvingEntry entry = dimension.getCarvingEntryIndex().get(carving);
-            if (entry != null) {
-                return IrisDimensionCarvingResolver.resolveEntryBiome(engine, entry);
-            }
-        }
-
-        if (data.getBiomeLoader() == null) {
-            return null;
-        }
-
-        return data.getBiomeLoader().load(carving);
-    }
-
-    @RegistryListResource(IrisBiome.class)
+    @Ref(Reference.PACK_BIOME)
     @Desc("The target biome whose visual design (layers, palette, decorators, surface objects, derivative, and — when topShapeMode=BIOME — generator profile) drives the floating island. Leave empty to reuse the parent biome (self).")
     private String biome = "";
 
@@ -167,7 +63,7 @@ public class IrisFloatingChildBiomes implements IRare {
     private int rarity = 1;
 
     @Desc("2D noise that decides which columns are part of this island. Set feature size via the style's own zoom field (e.g. {\"style\":\"CELLULAR\",\"zoom\":0.3} for ~30-block shards, {\"style\":\"SIMPLEX\",\"zoom\":1.0} for ~100-block blobs). Pick SIMPLEX for smooth blobs, CELLULAR for angular shards, VASCULAR for vein/branch strips, FRACTAL_FBM_SIMPLEX for large irregular blanket regions. Fracture (domain warp) this to get swirly silhouettes.")
-    private IrisGeneratorStyle footprintStyle = NoiseStyle.SIMPLEX.style();
+    private NoiseStyle footprintStyle = DEFAULT_FOOTPRINT_STYLE;
 
     @MinNumber(0)
     @MaxNumber(1)
@@ -177,15 +73,15 @@ public class IrisFloatingChildBiomes implements IRare {
     @MinNumber(2)
     @MaxNumber(32)
     @Desc("Width in blocks of the rounded transition from the floating island contour to its full thickness. Smaller values make a tighter edge; larger values make a broader rounded underside.")
-    private int edgeTaperWidth = FloatingIslandEdgeProfile.DEFAULT_WIDTH;
+    private int edgeTaperWidth = DEFAULT_EDGE_TAPER_WIDTH;
 
     @MinNumber(0.25)
     @MaxNumber(4)
     @Desc("Shape exponent for the rounded edge. Values below 1 fill into a softer, fuller curve; values above 1 keep the rim thinner before rising into the island interior.")
-    private double edgeTaperExponent = FloatingIslandEdgeProfile.DEFAULT_EXPONENT;
+    private double edgeTaperExponent = DEFAULT_EDGE_TAPER_EXPONENT;
 
     @Desc("Broad 2D noise that organically varies the rounded edge without changing the island footprint. Low-frequency SIMPLEX or PERLIN styles give coherent natural contours; high-frequency or cellular styles can look speckled.")
-    private IrisGeneratorStyle edgeTaperVariationStyle = NoiseStyle.SIMPLEX.style().zoomed(0.18D);
+    private NoiseStyle edgeTaperVariationStyle = DEFAULT_EDGE_TAPER_VARIATION_STYLE;
 
     @MinNumber(0)
     @MaxNumber(8)
@@ -193,10 +89,10 @@ public class IrisFloatingChildBiomes implements IRare {
     private double edgeTaperVariationAmplitude = 0.0D;
 
     @Desc("Picker noise used when multiple floating child entries exist. Samples once per column to deterministically choose which entry's footprint is tested there. Use a large style zoom (e.g. zoom: 4 for ~400-block regions) so each entry owns broad coherent areas.")
-    private IrisGeneratorStyle pickerStyle = NoiseStyle.SIMPLEX.style();
+    private NoiseStyle pickerStyle = DEFAULT_PICKER_STYLE;
 
     @Desc("Altitude noise — varies the base platform Y across one island so it isn't a flat plane. Use a large style zoom (e.g. zoom: 2 for ~200-block altitude patches) so an island sits at roughly one altitude.")
-    private IrisGeneratorStyle altitudeStyle = NoiseStyle.SIMPLEX.style();
+    private NoiseStyle altitudeStyle = DEFAULT_ALTITUDE_STYLE;
 
     @MinNumber(0)
     @MaxNumber(2032)
@@ -223,7 +119,7 @@ public class IrisFloatingChildBiomes implements IRare {
     private int maxTopHeight = 40;
 
     @Desc("Used only when topShapeMode=NOISE. 2D noise driving the top heightmap. Set feature scale via the style's zoom field (small zoom = rugged peaks, large zoom = broad rolling shapes).")
-    private IrisGeneratorStyle topShapeStyle = NoiseStyle.SIMPLEX.style();
+    private NoiseStyle topShapeStyle = DEFAULT_TOP_SHAPE_STYLE;
 
     @MinNumber(0)
     @MaxNumber(1)
@@ -231,7 +127,7 @@ public class IrisFloatingChildBiomes implements IRare {
     private double topShapeAmp = 1.0;
 
     @Desc("2D noise driving the bottom tail hanging below the island base. VASCULAR = drippy organic roots. FRACTAL_RM_SIMPLEX = crystalline spikes. CELLULAR = jagged chunks. PERLIN = smooth rounded bowl. SIMPLEX = gentle lobes. Set feature scale via the style's zoom field.")
-    private IrisGeneratorStyle bottomStyle = NoiseStyle.SIMPLEX.style();
+    private NoiseStyle bottomStyle = DEFAULT_BOTTOM_STYLE;
 
     @MinNumber(0)
     @MaxNumber(512)
@@ -251,9 +147,9 @@ public class IrisFloatingChildBiomes implements IRare {
     @Desc("Controls the material palette near the island underside. DEPTH keeps the old top-down depth behavior. MIRROR_TOP uses the target biome's shallow/top palette from the underside upward. CUSTOM uses bottomPalette near the underside while keeping the target biome palette near the top.")
     private FloatingBottomPaletteMode bottomPaletteMode = FloatingBottomPaletteMode.DEPTH;
 
-    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @MinItems(1)
     @Desc("Custom palette layers used near the underside when bottomPaletteMode=CUSTOM. The layer format is the same as normal biome layers.")
-    private KList<IrisBiomePaletteLayer> bottomPalette = new KList<>();
+    private List<IrisBiomePaletteLayer> bottomPalette = List.of();
 
     @MinNumber(1)
     @MaxNumber(512)
@@ -261,7 +157,7 @@ public class IrisFloatingChildBiomes implements IRare {
     private int maxThickness = 96;
 
     @Desc("Optional 3D noise that shifts the footprint's XZ sample position per Y layer — naturalizes the walls so they stop looking like a straight extrusion of the 2D footprint. Leave null to disable and keep straight vertical walls. Good defaults: {\"style\":\"SIMPLEX\",\"zoom\":0.25} for gentle undulation, {\"style\":\"FRACTAL_FBM_SIMPLEX\",\"zoom\":0.4} for craggier walls.")
-    private IrisGeneratorStyle wallWarpStyle = null;
+    private NoiseStyle wallWarpStyle;
 
     @MinNumber(0)
     @MaxNumber(64)
@@ -269,7 +165,7 @@ public class IrisFloatingChildBiomes implements IRare {
     private double wallWarpAmplitude = 6.0;
 
     @Desc("Optional 3D noise that swiss-cheeses the island interior by marking individual blocks as air when the noise exceeds carveThreshold. Leave null to keep the island solid. Good defaults: {\"style\":\"CELLULAR\",\"zoom\":0.3} for bubble pockets, {\"style\":\"VASCULAR\",\"zoom\":0.25} for wormy tunnels.")
-    private IrisGeneratorStyle carveStyle = null;
+    private NoiseStyle carveStyle;
 
     @Desc("Optional carving biome key or dimension carving entry id whose caveProfile drives floating-island internal air pockets. Dimension carving ids resolve first; biome keys such as carving/mushroom resolve second. When set, this overrides carveStyle while carveThreshold remains a final tuning bias.")
     private String carving = "";
@@ -283,7 +179,7 @@ public class IrisFloatingChildBiomes implements IRare {
     private Integer localFluidHeight = null;
 
     @Desc("Block used for the internal water pool when localFluidHeight is positive.")
-    @RegistryListBlockType
+    @Ref(Reference.BLOCK)
     private String fluidBlock = "minecraft:water";
 
     @Desc("When true, the target biome's decorators apply to the island's top surface.")
@@ -297,13 +193,13 @@ public class IrisFloatingChildBiomes implements IRare {
     @Desc("Uniform shrink factor applied to every object placed on this floating island (inherited, extra, and free-floating). 1.0 = native size, 0.5 = half size, 0.25 = quarter. Useful for making small floating biomes feel believable.")
     private double objectShrinkFactor = 1.0;
 
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
+    @MinItems(1)
     @Desc("Additional object placements anchored to the island top.")
-    private KList<IrisObjectPlacement> extraObjects = new KList<>();
+    private List<IrisObjectPlacement> extraObjects = List.of();
 
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
+    @MinItems(1)
     @Desc("Additional object placements that float freely in air, independent of the island. Forced to ObjectPlaceMode.FLOATING.")
-    private KList<IrisObjectPlacement> floatingObjects = new KList<>();
+    private List<IrisObjectPlacement> floatingObjects = List.of();
 
     @Desc("Visualization color for this floating child in Iris Studio.")
     private String color = null;
@@ -314,63 +210,187 @@ public class IrisFloatingChildBiomes implements IRare {
     @Desc("Controls how bottomObjectOverrides are combined. INHERIT_ONLY (default) = no bottom objects placed (there is no inherited bottom set). MERGE = same as REPLACE for bottom (no inherited source). REPLACE = uses bottomObjectOverrides list only.")
     private OverrideMode bottomObjectMode = OverrideMode.INHERIT_ONLY;
 
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
+    @MinItems(1)
     @Desc("Object placements that override or supplement the inherited surface objects on the island TOP. Behaviour depends on topObjectMode. INHERIT_ONLY = this list is ignored. MERGE = appended after inherited. REPLACE = used instead of inherited.")
-    private KList<IrisObjectPlacement> topObjectOverrides = new KList<>();
+    private List<IrisObjectPlacement> topObjectOverrides = List.of();
 
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
+    @MinItems(1)
     @Desc("Object placements anchored to the island BOTTOM face. Each entry is auto-inverted 180 degrees around the X axis and placed flush against the lowest solid face of the island, so objects appear to hang upside-down from the underside. WARNING: directional blocks (stairs, doors, slabs) will not render correctly when flipped — use non-directional content (logs, leaves, stone, mycelium, ice, glass) for bottom placements.")
-    private KList<IrisObjectPlacement> bottomObjectOverrides = new KList<>();
+    private List<IrisObjectPlacement> bottomObjectOverrides = List.of();
 
-    public KList<IrisObjectPlacement> resolveTopObjects(IrisBiome target) {
-        KList<IrisObjectPlacement> surfaceObjects = (inheritObjects && target != null) ? target.getSurfaceObjects() : new KList<>();
-        return resolveTopObjectsFromSurface(surfaceObjects);
+    public FloatingChildBiome() {
     }
 
-    KList<IrisObjectPlacement> resolveTopObjectsFromSurface(KList<IrisObjectPlacement> surfaceObjects) {
-        return switch (topObjectMode) {
-            case REPLACE -> new KList<>(topObjectOverrides);
-            case MERGE -> {
-                KList<IrisObjectPlacement> merged = new KList<>();
-                merged.addAll(surfaceObjects);
-                merged.addAll(topObjectOverrides);
-                yield merged;
-            }
-            case INHERIT_ONLY -> surfaceObjects;
-        };
+    public String biome() {
+        return biome == null ? "" : biome;
     }
 
-    public KList<IrisObjectPlacement> resolveBottomObjects(IrisBiome target) {
-        return switch (bottomObjectMode) {
-            case INHERIT_ONLY -> new KList<>();
-            case MERGE, REPLACE -> bottomObjectOverrides;
-        };
+    public int rarity() {
+        return rarity;
     }
 
-    public boolean hasObjectShrink() {
-        return objectShrinkFactor > 0 && objectShrinkFactor < 1.0;
+    public NoiseStyle footprintStyle() {
+        return footprintStyle == null ? DEFAULT_FOOTPRINT_STYLE : footprintStyle;
     }
 
-    public IrisObjectScale getShrinkScale() {
-        return shrinkScaleCache.aquire(() -> {
-            IrisObjectScale s = new IrisObjectScale();
-            s.setSize(Math.max(0.01, Math.min(1.0, objectShrinkFactor)));
-            return s;
-        });
+    public double footprintThreshold() {
+        return footprintThreshold;
     }
 
-    public IrisBiome getRealBiome(IrisBiome parent, IrisData data) {
-        return resolvedBiome.aquire(() -> {
-            if (biome == null || biome.isBlank() || biome.equals(parent.getLoadKey())) {
-                return parent;
-            }
+    public int edgeTaperWidth() {
+        return edgeTaperWidth;
+    }
 
-            IrisBiome loaded = data.getBiomeLoader().load(biome);
-            if (loaded == null) {
-                return parent;
-            }
+    public double edgeTaperExponent() {
+        return edgeTaperExponent;
+    }
 
-            return loaded;
-        });
+    public NoiseStyle edgeTaperVariationStyle() {
+        return edgeTaperVariationStyle == null ? DEFAULT_EDGE_TAPER_VARIATION_STYLE : edgeTaperVariationStyle;
+    }
+
+    public double edgeTaperVariationAmplitude() {
+        return edgeTaperVariationAmplitude;
+    }
+
+    public NoiseStyle pickerStyle() {
+        return pickerStyle == null ? DEFAULT_PICKER_STYLE : pickerStyle;
+    }
+
+    public NoiseStyle altitudeStyle() {
+        return altitudeStyle == null ? DEFAULT_ALTITUDE_STYLE : altitudeStyle;
+    }
+
+    public int minHeightAboveSurface() {
+        return minHeightAboveSurface;
+    }
+
+    public int maxHeightAboveSurface() {
+        return maxHeightAboveSurface;
+    }
+
+    /** Empty where the pack sets none. */
+    public OptionalInt minAbsoluteY() {
+        return minAbsoluteY == null ? OptionalInt.empty() : OptionalInt.of(minAbsoluteY);
+    }
+
+    /** Empty where the pack sets none. */
+    public OptionalInt maxAbsoluteY() {
+        return maxAbsoluteY == null ? OptionalInt.empty() : OptionalInt.of(maxAbsoluteY);
+    }
+
+    public TopShapeMode topShapeMode() {
+        return topShapeMode == null ? TopShapeMode.BIOME : topShapeMode;
+    }
+
+    public int maxTopHeight() {
+        return maxTopHeight;
+    }
+
+    public NoiseStyle topShapeStyle() {
+        return topShapeStyle == null ? DEFAULT_TOP_SHAPE_STYLE : topShapeStyle;
+    }
+
+    public double topShapeAmp() {
+        return topShapeAmp;
+    }
+
+    public NoiseStyle bottomStyle() {
+        return bottomStyle == null ? DEFAULT_BOTTOM_STYLE : bottomStyle;
+    }
+
+    public int bottomDepthMin() {
+        return bottomDepthMin;
+    }
+
+    public int bottomDepthMax() {
+        return bottomDepthMax;
+    }
+
+    public double bottomExponent() {
+        return bottomExponent;
+    }
+
+    public FloatingBottomPaletteMode bottomPaletteMode() {
+        return bottomPaletteMode == null ? FloatingBottomPaletteMode.DEPTH : bottomPaletteMode;
+    }
+
+    public List<IrisBiomePaletteLayer> bottomPalette() {
+        return bottomPalette == null ? List.of() : Collections.unmodifiableList(bottomPalette);
+    }
+
+    public int maxThickness() {
+        return maxThickness;
+    }
+
+    /** Empty where the pack sets none. */
+    public Optional<NoiseStyle> wallWarpStyle() {
+        return Optional.ofNullable(wallWarpStyle);
+    }
+
+    public double wallWarpAmplitude() {
+        return wallWarpAmplitude;
+    }
+
+    /** Empty where the pack sets none. */
+    public Optional<NoiseStyle> carveStyle() {
+        return Optional.ofNullable(carveStyle);
+    }
+
+    public String carving() {
+        return carving == null ? "" : carving;
+    }
+
+    public double carveThreshold() {
+        return carveThreshold;
+    }
+
+    /** Empty where the pack sets none. */
+    public OptionalInt localFluidHeight() {
+        return localFluidHeight == null ? OptionalInt.empty() : OptionalInt.of(localFluidHeight);
+    }
+
+    public String fluidBlock() {
+        return fluidBlock == null ? "" : fluidBlock;
+    }
+
+    public boolean inheritDecorators() {
+        return inheritDecorators;
+    }
+
+    public boolean inheritObjects() {
+        return inheritObjects;
+    }
+
+    public double objectShrinkFactor() {
+        return objectShrinkFactor;
+    }
+
+    public List<IrisObjectPlacement> extraObjects() {
+        return extraObjects == null ? List.of() : Collections.unmodifiableList(extraObjects);
+    }
+
+    public List<IrisObjectPlacement> floatingObjects() {
+        return floatingObjects == null ? List.of() : Collections.unmodifiableList(floatingObjects);
+    }
+
+    public String color() {
+        return color == null ? "" : color;
+    }
+
+    public OverrideMode topObjectMode() {
+        return topObjectMode == null ? OverrideMode.INHERIT_ONLY : topObjectMode;
+    }
+
+    public OverrideMode bottomObjectMode() {
+        return bottomObjectMode == null ? OverrideMode.INHERIT_ONLY : bottomObjectMode;
+    }
+
+    public List<IrisObjectPlacement> topObjectOverrides() {
+        return topObjectOverrides == null ? List.of() : Collections.unmodifiableList(topObjectOverrides);
+    }
+
+    public List<IrisObjectPlacement> bottomObjectOverrides() {
+        return bottomObjectOverrides == null ? List.of() : Collections.unmodifiableList(bottomObjectOverrides);
     }
 }

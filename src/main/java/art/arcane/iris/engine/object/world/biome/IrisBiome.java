@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.iris.engine.object.decoration.IrisDecorator;
@@ -36,7 +37,6 @@ import art.arcane.iris.engine.object.terrain.deposit.IrisBiomeOres;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -216,9 +216,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisStructurePlacement.class)
     @Desc("Structures define jigsaw or vanilla/datapack structures iris will place in this biome")
     private KList<IrisStructurePlacement> structures = new KList<>();
-    @ArrayType(min = 1, type = IrisFloatingChildBiomes.class)
+    @ArrayType(min = 1, type = FloatingChildBiome.class)
     @Desc("Floating child biomes that procedurally generate above this biome's terrain. Each entry references a target biome whose layers, decorators, and objects drive the floating island's visual design, while the config here drives size, shape, altitude, rarity, and water level. Multiple entries are supported and selected by rarity per column unless mergeFloatingChildBiomes is enabled.")
-    private KList<IrisFloatingChildBiomes> floatingChildBiomes = new KList<>();
+    private KList<FloatingChildBiome> floatingChildBiomes = new KList<>();
     @Desc("When true, every floating child entry is sampled independently and their solid masks are unioned, so multiple floating islands can stack, overlap, and collide instead of the picker choosing only one child per column.")
     private boolean mergeFloatingChildBiomes = false;
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)

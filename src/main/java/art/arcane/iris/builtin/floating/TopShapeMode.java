@@ -16,18 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.terrain.floating;
+package art.arcane.iris.builtin.floating;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
-@Desc("Controls how floating-child island underside blocks choose their palette.")
-public enum FloatingBottomPaletteMode {
-    @Desc("Use the normal top-down biome layer depth for the whole island column.")
-    DEPTH,
+@Desc("How the top profile of a floating-child island is shaped.")
+public enum TopShapeMode {
+    @Desc("Evaluate the target biome's own terrain generators to build the island top. Mountains biome produces real peaks, desert produces dunes, plains is flat. Recommended default.")
+    BIOME,
 
-    @Desc("Use the target biome's top palette from both the island top and underside, meeting in the middle.")
-    MIRROR_TOP,
+    @Desc("Drive the top profile from topShapeStyle noise, independent of the target biome's generators. Amplitude controlled by topShapeAmp.")
+    NOISE,
 
-    @Desc("Use bottomPalette near the underside and the target biome's normal palette near the top.")
-    CUSTOM
+    @Desc("Flat slab on top, topHeight blocks above the base. Ignores noise and biome generators.")
+    FLAT
 }

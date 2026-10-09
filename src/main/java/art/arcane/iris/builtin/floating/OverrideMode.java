@@ -16,18 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.terrain.floating;
+package art.arcane.iris.builtin.floating;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
-@Desc("How the top profile of a floating-child island is shaped.")
-public enum TopShapeMode {
-    @Desc("Evaluate the target biome's own terrain generators to build the island top. Mountains biome produces real peaks, desert produces dunes, plains is flat. Recommended default.")
-    BIOME,
+@Desc("Controls how an override list is combined with the inherited object set from the target biome.")
+public enum OverrideMode {
+    @Desc("Ignore the override list entirely. Use only the inherited objects from the target biome (subject to inheritObjects).")
+    INHERIT_ONLY,
 
-    @Desc("Drive the top profile from topShapeStyle noise, independent of the target biome's generators. Amplitude controlled by topShapeAmp.")
-    NOISE,
+    @Desc("Append override list entries after the inherited objects from the target biome. Both sets are placed.")
+    MERGE,
 
-    @Desc("Flat slab on top, topHeight blocks above the base. Ignores noise and biome generators.")
-    FLAT
+    @Desc("Use only the override list. The inherited objects from the target biome are discarded regardless of inheritObjects.")
+    REPLACE
 }

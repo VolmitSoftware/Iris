@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.world.dimension;
 
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
@@ -38,7 +39,6 @@ import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.world.IrisEnvironment;
 import art.arcane.iris.engine.object.world.IrisWorldBoundary;
@@ -584,14 +584,14 @@ public class IrisDimension extends IrisRegistrant {
             biomes.put(loadKey, biome);
             addReachableBiomeKeys(pending, biome.getChildren());
             addReachableBiomeKey(pending, biome.getCarvingBiome());
-            KList<IrisFloatingChildBiomes> floatingChildren = biome.getFloatingChildBiomes();
+            KList<FloatingChildBiome> floatingChildren = biome.getFloatingChildBiomes();
             if (floatingChildren == null) {
                 continue;
             }
-            for (IrisFloatingChildBiomes floatingChild : floatingChildren) {
+            for (FloatingChildBiome floatingChild : floatingChildren) {
                 if (floatingChild != null) {
-                    addReachableBiomeKey(pending, floatingChild.getBiome());
-                    String carvingReference = floatingChild.getCarving();
+                    addReachableBiomeKey(pending, floatingChild.biome());
+                    String carvingReference = floatingChild.carving();
                     IrisDimensionCarvingEntry carvingEntry = carvingEntryIndex.get(carvingReference);
                     addReachableBiomeKey(pending,
                             carvingEntry == null ? carvingReference : carvingEntry.getBiome());

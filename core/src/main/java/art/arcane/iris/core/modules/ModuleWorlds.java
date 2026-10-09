@@ -86,6 +86,26 @@ public final class ModuleWorlds {
         }
     }
 
+    /**
+     * Runs the modules' warm-up of the started world; does nothing before {@link #start()}, after {@link #close()}, or
+     * when the pack's modules failed to load. May be slow: callers choose the thread. The lock is not held while it
+     * runs, so a restart or close is not delayed by it.
+     *
+     * @throws IllegalStateException naming the modules whose warm-up failed
+     */
+    public void warmUp() {
+        LifecycleRunner lifecycles;
+        IrisPackWorld world;
+        synchronized (this) {
+            lifecycles = startedWith;
+            world = current;
+        }
+        if (lifecycles == null || world == null) {
+            return;
+        }
+        lifecycles.warmUp(world);
+    }
+
     /** Stops the world, if it started, and closes the state of the current and the previously retired world. */
     public synchronized void close() {
         if (phase == Phase.CLOSED) {

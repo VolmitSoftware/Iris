@@ -123,6 +123,7 @@ final class EngineHotloader {
                 EngineRuntime nextRuntime = engine.runtimeBuilder.buildRuntime(replacementTarget);
                 engine.runtimeBuilder.publishRuntime(nextRuntime, previousRuntime);
                 published = true;
+                engine.warmRestartedWorld();
                 previousData.unregisterEngine(engine);
                 Throwable previousDataFailure = runCleanup(null, previousData::close);
                 if (previousDataFailure != null) {

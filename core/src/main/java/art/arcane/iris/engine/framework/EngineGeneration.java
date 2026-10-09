@@ -70,6 +70,11 @@ public final class EngineGeneration {
         modules.start();
     }
 
+    /** Runs the modules' warm-up for the world they started; see {@link ModuleWorlds#warmUp()}. */
+    public void warmModules() {
+        modules.warmUp();
+    }
+
     /** Restarts the modules' world with the pack's reloaded resources; see {@link ModuleWorlds#restart()}. */
     public void restartModules() {
         modules.restart();

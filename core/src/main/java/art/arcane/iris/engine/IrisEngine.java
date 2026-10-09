@@ -72,7 +72,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -95,7 +94,9 @@ public class IrisEngine implements Engine {
     private final ChronoLatch perSecondLatch;
     private final ChronoLatch perSecondBudLatch;
     private final EngineMetrics metrics;
-    private final CompletableFuture<Void> generationCacheWarm;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final GenerationCacheWarmGate generationCacheWarm = new GenerationCacheWarmGate();
     private final boolean studio;
     private final AtomicRollingSequence wallClock;
     @Getter(AccessLevel.NONE)
@@ -188,7 +189,6 @@ public class IrisEngine implements Engine {
         bud = new AtomicInteger(0);
         buds = new AtomicInteger(0);
         metrics = new EngineMetrics(32);
-        generationCacheWarm = new CompletableFuture<>();
         cleanLatch = new ChronoLatch(10000);
         generatedLast = new AtomicInteger(0);
         perSecond = new AtomicDouble(0);
@@ -242,7 +242,7 @@ public class IrisEngine implements Engine {
                     warmGenerationCaches(phaseStartedAt);
                 }
             } else {
-                generationCacheWarm.complete(null);
+                generationCacheWarm.skipFirstWorld();
                 logStudioInitializationPhase("generation_cache_warm", phaseStartedAt, true);
             }
             EngineTickRegistry.registerTicking(this);
@@ -254,18 +254,49 @@ public class IrisEngine implements Engine {
     }
 
     public void awaitGenerationCacheWarm() {
-        if (generationCacheWarm.isDone() && !generationCacheWarm.isCompletedExceptionally()) {
-            return;
-        }
-        try {
-            generationCacheWarm.join();
-        } catch (CompletionException failure) {
-            throw new IllegalStateException("Iris generation caches did not become ready.", failure.getCause());
-        }
+        generationCacheWarm.await();
     }
 
     public boolean isGenerationCacheWarmPending() {
-        return !generationCacheWarm.isDone();
+        return generationCacheWarm.isPending();
+    }
+
+    /**
+     * Warms the modules' caches of a world that started after the engine initialised: the one a hotload built, or the
+     * one an in-place restart replaced. The first world is warmed by initialisation, together with
+     * {@link GenerationCacheWarmer}. Same mode as there: studio warms in the background, server worlds before this
+     * returns, and generation waits for it either way.
+     */
+    void warmRestartedWorld() {
+        if (!initializationMode.warmGenerationCaches()) {
+            return;
+        }
+        CompletableFuture<Void> warm = generationCacheWarm.beginRestartedWorld();
+        if (!studio) {
+            warmModulesThenComplete(warm);
+            return;
+        }
+        if (!backgroundTasks.scheduleTrackedTask(() -> warmModulesThenComplete(warm))) {
+            warm.complete(null);
+            IrisLogging.warn("Iris background task admission closed before module warm-up; caches are built when first used.");
+        }
+    }
+
+    private void warmModulesThenComplete(CompletableFuture<Void> warm) {
+        try {
+            warmModules();
+        } finally {
+            warm.complete(null);
+        }
+    }
+
+    private void warmModules() {
+        try {
+            getGeneration().warmModules();
+        } catch (RuntimeException failure) {
+            IrisLogging.reportError(failure);
+            IrisLogging.warn("Module warm-up failed, so its caches are built when first used: " + failure.getMessage());
+        }
     }
 
     private void logStudioInitializationPhase(String phase, long startedAtNanos, boolean skipped) {
@@ -289,17 +320,7 @@ public class IrisEngine implements Engine {
     private void warmGenerationCaches(long phaseStartedAtNanos) {
         long startedAtMillis = M.ms();
         try {
-            GenerationCacheWarmer.warm(this);
-            generationCacheWarm.complete(null);
-        } catch (Throwable failure) {
-            generationCacheWarm.completeExceptionally(failure);
-            if (failure instanceof Error error) {
-                throw error;
-            }
-            if (failure instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            throw new IllegalStateException("Generation cache warming failed.", failure);
+            generationCacheWarm.warmFirstWorld(() -> GenerationCacheWarmer.warm(this), this::warmModules);
         } finally {
             IrisLogging.debug("[IrisEngine timing] cache warm total=" + (M.ms() - startedAtMillis) + "ms");
             logStudioInitializationPhase("generation_cache_warm", phaseStartedAtNanos, false);
@@ -516,6 +537,7 @@ public class IrisEngine implements Engine {
             return;
         }
         current.generation().restartModules();
+        warmRestartedWorld();
     }
 
     @Override

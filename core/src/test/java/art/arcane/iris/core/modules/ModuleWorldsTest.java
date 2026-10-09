@@ -109,6 +109,11 @@ public class ModuleWorldsTest {
         }
 
         @Override
+        public void warmUp(PackWorld world) {
+            record("warmed");
+        }
+
+        @Override
         public void worldStopped(PackWorld world) {
             record("stopped");
         }
@@ -196,6 +201,40 @@ public class ModuleWorldsTest {
 
         assertEquals(List.of("stopped", "closed state"), calls);
         assertThrows(IllegalStateException.class, () -> world.state(Remembered.class, ignored -> null));
+    }
+
+    @Test
+    public void theWarmUpRunsOnlyForAStartedWorldAndWarmsTheWorldItStarted() {
+        EngineGeneration generation = generation();
+        generation.warmModules();
+        assertEquals("nothing started yet", List.of(), calls);
+
+        generation.startModules();
+        generation.warmModules();
+        assertEquals(List.of("loaded", "started", "warmed"), calls);
+
+        reloadResources();
+        generation.restartModules();
+        calls.clear();
+        generation.warmModules();
+        assertEquals("the restarted world is warmed too", List.of("warmed"), calls);
+
+        generation.close();
+        calls.clear();
+        generation.warmModules();
+        assertEquals("a closed runtime warms nothing", List.of(), calls);
+    }
+
+    @Test
+    public void aFailedWarmUpNamesTheModuleAndLeavesTheWorldRunning() {
+        failingHook = "warmed";
+        EngineGeneration generation = generation();
+        generation.startModules();
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, generation::warmModules);
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("test:recording"));
+        generation.world().state(Remembered.class, ignored -> new Remembered(calls));
     }
 
     @Test

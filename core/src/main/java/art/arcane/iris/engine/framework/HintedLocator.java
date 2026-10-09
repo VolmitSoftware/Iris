@@ -18,14 +18,15 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.iris.util.project.context.IrisContext;
+import com.volmit.service.ObjectsAt;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
@@ -33,6 +34,7 @@ import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.ArrayDeque;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -389,6 +391,7 @@ public final class HintedLocator<T> implements Locator<T> {
         }
 
         IrisComplex complex = engine.getComplex();
+        ObjectsAt.PlacedBy placers = ModuleServices.objectPlacers(engine, objectKey);
         BiomeSource source = new BiomeSource(engine);
         KSet<String> landHosts = new KSet<>();
         KSet<String> seaHosts = new KSet<>();
@@ -401,28 +404,28 @@ public final class HintedLocator<T> implements Locator<T> {
                 continue;
             }
 
-            if (placesObject(region.getSurfaceObjects(), objectKey)) {
+            if (placers.regions().contains(region.getLoadKey())) {
                 directRegions.add(region.getLoadKey());
             }
 
             boolean hosted = false;
 
             for (String root : region.getLandBiomes()) {
-                if (source.closurePlacesObject(root, objectKey)) {
+                if (source.closureContainsAny(root, placers.biomes())) {
                     landHosts.add(root);
                     hosted = true;
                 }
             }
 
             for (String root : region.getSeaBiomes()) {
-                if (source.closurePlacesObject(root, objectKey)) {
+                if (source.closureContainsAny(root, placers.biomes())) {
                     seaHosts.add(root);
                     hosted = true;
                 }
             }
 
             for (String root : region.getShoreBiomes()) {
-                if (source.closurePlacesObject(root, objectKey)) {
+                if (source.closureContainsAny(root, placers.biomes())) {
                     shoreHosts.add(root);
                     hosted = true;
                 }
@@ -502,16 +505,6 @@ public final class HintedLocator<T> implements Locator<T> {
         };
     }
 
-    private static boolean placesObject(KList<IrisObjectPlacement> placements, String objectKey) {
-        for (IrisObjectPlacement placement : placements) {
-            if (placement != null && placement.getPlace().contains(objectKey)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static final class BiomeSource {
         private final Engine engine;
         private final KMap<String, IrisBiome> cache = new KMap<>();
@@ -576,8 +569,8 @@ public final class HintedLocator<T> implements Locator<T> {
             return false;
         }
 
-        private boolean closurePlacesObject(String rootKey, String objectKey) {
-            if (rootKey == null || objectKey == null) {
+        private boolean closureContainsAny(String rootKey, Set<String> targetKeys) {
+            if (rootKey == null || targetKeys.isEmpty()) {
                 return false;
             }
 
@@ -598,7 +591,7 @@ public final class HintedLocator<T> implements Locator<T> {
                     continue;
                 }
 
-                if (placesObject(biome.getSurfaceObjects(), objectKey)) {
+                if (targetKeys.contains(biome.getLoadKey())) {
                     return true;
                 }
 

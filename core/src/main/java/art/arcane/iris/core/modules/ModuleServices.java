@@ -49,6 +49,19 @@ public final class ModuleServices {
         return keys;
     }
 
+    /** The biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */
+    public static ObjectsAt.PlacedBy objectPlacers(Engine engine, String objectKey) {
+        PackWorld world = engine.getGeneration().world();
+        Set<String> biomes = new LinkedHashSet<>();
+        Set<String> regions = new LinkedHashSet<>();
+        for (ObjectsAt provider : catalog(engine.getData()).services(ObjectsAt.class)) {
+            ObjectsAt.PlacedBy placedBy = provider.placedBy(world, objectKey);
+            biomes.addAll(placedBy.biomes());
+            regions.addAll(placedBy.regions());
+        }
+        return new ObjectsAt.PlacedBy(biomes, regions);
+    }
+
     /** Every structure key the pack's modules know, placed or not. */
     public static Set<String> structureKeys(IrisData data) {
         Set<String> keys = new LinkedHashSet<>();

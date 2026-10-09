@@ -87,7 +87,17 @@ public class ModuleServicesTest {
 
         @Override
         public void register(FeatureRegistry registry) {
-            registry.registerService(ObjectsAt.class, (world, chunkX, chunkZ) -> Set.of(object + "@" + chunkX + "," + chunkZ));
+            registry.registerService(ObjectsAt.class, new ObjectsAt() {
+                @Override
+                public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+                    return Set.of(object + "@" + chunkX + "," + chunkZ);
+                }
+
+                @Override
+                public PlacedBy placedBy(PackWorld world, String objectKey) {
+                    return new PlacedBy(Set.of(object + "-biome"), Set.of(id + "-region"));
+                }
+            });
             registry.registerService(StructureLocator.class, new StructureLocator() {
                 @Override
                 public Set<String> structures(PackResources resources) {
@@ -139,6 +149,14 @@ public class ModuleServicesTest {
     @Test
     public void objectsAtCombinesEveryModulesObjectsInModuleOrder() {
         assertEquals(List.of("tree@3,-4", "bush@3,-4", "rock@3,-4"), List.copyOf(ModuleServices.objectsAt(engine, 3, -4)));
+    }
+
+    @Test
+    public void objectPlacersCombineTheBiomesAndRegionsOfEveryModule() {
+        ObjectsAt.PlacedBy placers = ModuleServices.objectPlacers(engine, "trees/oak");
+
+        assertEquals(Set.of("rock-biome", "tree-biome", "bush-biome"), placers.biomes());
+        assertEquals(Set.of("test:zeta-region", "test:alpha-region", "test:beta-region"), placers.regions());
     }
 
     @Test

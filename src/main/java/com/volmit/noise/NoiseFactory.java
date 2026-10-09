@@ -10,8 +10,9 @@ public interface NoiseFactory {
      * stage's random stream, when the noise must line up across chunks. The host keeps what it builds for the pack
      * snapshot, so asking again for the same style and seed is cheap.
      *
-     * <p>A style name the host does not know samples as {@link NoiseStyle#FLAT}; an expression or image map the
-     * pack does not have falls back to the base style.
+     * <p>A style name the host does not know samples as {@link NoiseStyle#FLAT}, and an expression the pack does not
+     * have falls back to the base style, as packs have always been read. An image map the pack does not have, or cannot
+     * use as noise, throws {@link IllegalArgumentException}.
      */
     NoiseSampler sampler(NoiseStyle style, long seed);
 }

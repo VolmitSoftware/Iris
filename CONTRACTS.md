@@ -164,7 +164,8 @@ running Iris is the pack publisher's responsibility.
   `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE`, `PACK_EXPRESSION` and `PACK_IMAGE_MAP` references;
   rendering a value type with the host's own description of the same JSON is allowed.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
-  the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat.
+  the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat, a missing
+  expression falls back to the base style, and a missing image map fails.
 - Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their
   `tileData` into the host's block entity format.
 - Ask every vanilla structure hook (`catalog().vanillaStructureHooks()`) before the platform starts one of its

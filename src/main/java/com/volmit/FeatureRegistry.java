@@ -35,6 +35,14 @@ public interface FeatureRegistry {
      */
     void registerSettings(Class<? extends IrisFeature> settingsType);
 
+    /** Describes a class that Iris's own classes hold, such as the clamp of an object placement, so studio shows
+     * its fields as this class declares them. Only built-in modules may register one: the host classes that hold
+     * the class are Iris's, so a pack module's class could never be a field of one. The host reads the class
+     * with its fields in pack JSON, and the class follows the rules of settings classes. Registering a class twice
+     * changes nothing.
+     */
+    void registerHeldType(Class<?> type);
+
     /** Declares a kind of pack resource this module reads: the JSON files under the kind's folder, served through
      * {@link com.volmit.resource.PackResources} by the kind's type and described for studio from its class like
      * settings. The pack load fails when another kind has the same id, type or folder, or the folder is one the

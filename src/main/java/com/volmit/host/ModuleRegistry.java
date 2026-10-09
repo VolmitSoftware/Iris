@@ -39,6 +39,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
     private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
+    private final Map<Class<?>, HeldTypeRegistration> heldTypes = new HashMap<>();
     private final List<ValidatorRegistration> validators = new ArrayList<>();
     private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
     private final List<ServiceRegistration> services = new ArrayList<>();
@@ -103,6 +104,18 @@ public final class ModuleRegistry implements FeatureRegistry {
         requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
         catalogSettings(descriptor);
         registeredByOwner.add(settingsType);
+    }
+
+    @Override
+    public void registerHeldType(Class<?> type) {
+        checkOpen();
+        Objects.requireNonNull(type, "type");
+        requireRegistering("Held type " + type.getName());
+        if (registering.source() != DiscoveredModule.Source.HOST) {
+            throw new IllegalArgumentException("Held type " + type.getName() + " of module " + registering + " is registered by a"
+                    + " pack module; only built-in modules may describe a class that Iris's own classes hold");
+        }
+        heldTypes.putIfAbsent(type, new HeldTypeRegistration(type, registering));
     }
 
     @Override
@@ -179,8 +192,8 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services,
-                    vanillaStructureHooks);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), heldTypes.values(),
+                    validators, lifecycles, services, vanillaStructureHooks);
         }
         return catalog;
     }

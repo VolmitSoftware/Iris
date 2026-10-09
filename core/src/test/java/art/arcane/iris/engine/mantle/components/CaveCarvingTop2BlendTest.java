@@ -1,7 +1,8 @@
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.value.IrisRange;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -24,7 +25,7 @@ public class CaveCarvingTop2BlendTest {
     @BeforeClass
     public static void setup() throws Exception {
         Class<?> weightedProfileClass = Class.forName("art.arcane.iris.engine.mantle.components.CaveCarving$WeightedProfile");
-        weightedProfileConstructor = weightedProfileClass.getDeclaredConstructor(IrisCaveProfile.class, double[].class, double.class, Class.forName("art.arcane.iris.engine.object.value.IrisRange"), int.class);
+        weightedProfileConstructor = weightedProfileClass.getDeclaredConstructor(CaveProfile.class, double[].class, double.class, Class.forName("art.arcane.iris.engine.object.value.IrisRange"), int.class);
         weightedProfileConstructor.setAccessible(true);
         limitMethod = CaveCarving.class.getDeclaredMethod("limitAndMergeBlendedProfiles", List.class, int.class, int.class);
         limitMethod.setAccessible(true);
@@ -40,9 +41,9 @@ public class CaveCarvingTop2BlendTest {
         List<?> limited = invokeLimit(input.weightedProfiles(), 2);
         assertEquals(2, limited.size());
 
-        Map<IrisCaveProfile, double[]> byProfile = extractWeightsByProfile(limited);
-        IrisCaveProfile first = input.profiles().first();
-        IrisCaveProfile second = input.profiles().second();
+        Map<CaveProfile, double[]> byProfile = extractWeightsByProfile(limited);
+        CaveProfile first = input.profiles().first();
+        CaveProfile second = input.profiles().second();
 
         assertEquals(1.0D, byProfile.get(first)[1], 0D);
         assertEquals(1.0D, byProfile.get(second)[0], 0D);
@@ -55,8 +56,8 @@ public class CaveCarvingTop2BlendTest {
         List<?> first = invokeLimit(firstInput.weightedProfiles(), 2);
         List<?> second = invokeLimit(secondInput.weightedProfiles(), 2);
 
-        Map<IrisCaveProfile, double[]> firstByProfile = extractWeightsByProfile(first);
-        Map<IrisCaveProfile, double[]> secondByProfile = extractWeightsByProfile(second);
+        Map<CaveProfile, double[]> firstByProfile = extractWeightsByProfile(first);
+        Map<CaveProfile, double[]> secondByProfile = extractWeightsByProfile(second);
 
         assertEquals(firstByProfile.get(firstInput.profiles().first())[0], secondByProfile.get(secondInput.profiles().first())[0], 0D);
         assertEquals(firstByProfile.get(firstInput.profiles().first())[1], secondByProfile.get(secondInput.profiles().first())[1], 0D);
@@ -69,9 +70,9 @@ public class CaveCarvingTop2BlendTest {
         WeightedInput input = createWeightedProfiles();
         List<?> limited = invokeLimit(input.weightedProfiles(), 2);
 
-        Map<IrisCaveProfile, double[]> byProfile = extractWeightsByProfile(limited);
-        IrisCaveProfile first = input.profiles().first();
-        IrisCaveProfile second = input.profiles().second();
+        Map<CaveProfile, double[]> byProfile = extractWeightsByProfile(limited);
+        CaveProfile first = input.profiles().first();
+        CaveProfile second = input.profiles().second();
 
         assertEquals(1.0D, byProfile.get(first)[255], 0D);
         assertEquals(1.0D, byProfile.get(second)[254], 0D);
@@ -79,9 +80,9 @@ public class CaveCarvingTop2BlendTest {
 
     @Test
     public void topTwoTieBreaksBySequenceNotIdentity() throws Exception {
-        IrisCaveProfile first = new IrisCaveProfile().setEnabled(true).setBaseWeight(1.0D);
-        IrisCaveProfile second = new IrisCaveProfile().setEnabled(true).setBaseWeight(1.0D);
-        IrisCaveProfile third = new IrisCaveProfile().setEnabled(true).setBaseWeight(1.0D);
+        CaveProfile first = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"baseWeight\":1.0}");
+        CaveProfile second = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"baseWeight\":1.0}");
+        CaveProfile third = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"baseWeight\":1.0}");
 
         double[] weightsA = new double[256];
         double[] weightsB = new double[256];
@@ -98,16 +99,16 @@ public class CaveCarvingTop2BlendTest {
         List<?> limited = invokeLimit(weighted, 2);
         assertEquals(2, limited.size());
 
-        Map<IrisCaveProfile, double[]> byProfile = extractWeightsByProfile(limited);
+        Map<CaveProfile, double[]> byProfile = extractWeightsByProfile(limited);
         assertEquals(true, byProfile.containsKey(first));
         assertEquals(true, byProfile.containsKey(second));
         assertEquals(false, byProfile.containsKey(third));
     }
 
     private WeightedInput createWeightedProfiles() throws Exception {
-        IrisCaveProfile first = new IrisCaveProfile().setEnabled(true).setBaseWeight(1.31D);
-        IrisCaveProfile second = new IrisCaveProfile().setEnabled(true).setBaseWeight(1.17D);
-        IrisCaveProfile third = new IrisCaveProfile().setEnabled(true).setBaseWeight(0.93D);
+        CaveProfile first = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"baseWeight\":1.31}");
+        CaveProfile second = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"baseWeight\":1.17}");
+        CaveProfile third = TestSettings.of(CaveProfile.class, "{\"enabled\":true,\"baseWeight\":0.93}");
         Profiles profiles = new Profiles(first, second, third);
 
         double[] firstWeights = new double[256];
@@ -137,10 +138,10 @@ public class CaveCarvingTop2BlendTest {
         return (List<?>) limitMethod.invoke(null, weightedProfiles, limit, 256);
     }
 
-    private Map<IrisCaveProfile, double[]> extractWeightsByProfile(List<?> weightedProfiles) throws Exception {
-        Map<IrisCaveProfile, double[]> byProfile = new IdentityHashMap<>();
+    private Map<CaveProfile, double[]> extractWeightsByProfile(List<?> weightedProfiles) throws Exception {
+        Map<CaveProfile, double[]> byProfile = new IdentityHashMap<>();
         for (Object weightedProfile : weightedProfiles) {
-            IrisCaveProfile profile = (IrisCaveProfile) profileField.get(weightedProfile);
+            CaveProfile profile = (CaveProfile) profileField.get(weightedProfile);
             double[] weights = (double[]) columnWeightsField.get(weightedProfile);
             byProfile.put(profile, weights);
         }
@@ -155,7 +156,7 @@ public class CaveCarvingTop2BlendTest {
         return total / weights.length;
     }
 
-    private record Profiles(IrisCaveProfile first, IrisCaveProfile second, IrisCaveProfile third) {
+    private record Profiles(CaveProfile first, CaveProfile second, CaveProfile third) {
     }
 
     private record WeightedInput(List<Object> weightedProfiles, Profiles profiles) {

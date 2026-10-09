@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.stilt.StiltSettings;
@@ -17,8 +19,6 @@ import art.arcane.iris.engine.object.placement.IrisTree;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveAnchorMode;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
@@ -76,7 +76,7 @@ public class IrisObjectPlacementToPlacementTest {
         source.setSurfaceSupportBuffer(3);
         source.setSurfaceSupportDepth(4);
         source.setRequireSurfaceSupport(false);
-        source.setCaveAnchorMode(IrisCaveAnchorMode.CEILING);
+        source.setCaveAnchorMode(CaveAnchorMode.CEILING);
         source.setHeightmap(heightmap);
         source.setSmartBore(true);
         source.setWaterloggable(true);
@@ -120,7 +120,7 @@ public class IrisObjectPlacementToPlacementTest {
         assertEquals(3, copy.getSurfaceSupportBuffer());
         assertEquals(4, copy.getSurfaceSupportDepth());
         assertFalse(copy.isRequireSurfaceSupport());
-        assertEquals(IrisCaveAnchorMode.CEILING, copy.getCaveAnchorMode());
+        assertEquals(CaveAnchorMode.CEILING, copy.getCaveAnchorMode());
         assertSame(heightmap, copy.getHeightmap());
         assertTrue(copy.isSmartBore());
         assertTrue(copy.isWaterloggable());

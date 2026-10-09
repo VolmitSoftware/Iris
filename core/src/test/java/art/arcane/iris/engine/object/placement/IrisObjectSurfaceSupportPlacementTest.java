@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
@@ -8,7 +9,6 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import com.volmit.host.LoadedPack;

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,39 +16,46 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.placement;
+package art.arcane.iris.builtin.prepare;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Snippet;
 
+/** The terrain slopes a placement or decorator may sit on, written as its {@code slopeCondition}. */
 @Snippet("slope-clip")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
 @Desc("Limits placement to a minimum and maximum terrain slope")
-@Data
-public class IrisSlopeClip {
+public final class SlopeClip {
+    private static final double DEFAULT_MINIMUM_SLOPE = 0;
+    private static final double DEFAULT_MAXIMUM_SLOPE = 10;
+
     @MinNumber(0)
     @MaxNumber(1024)
     @Desc("The minimum slope for placement")
-    private double minimumSlope = 0;
+    private double minimumSlope = DEFAULT_MINIMUM_SLOPE;
 
     @MinNumber(0)
     @MaxNumber(1024)
     @Desc("The maximum slope for placement")
-    private double maximumSlope = 10;
+    private double maximumSlope = DEFAULT_MAXIMUM_SLOPE;
 
-    public boolean isDefault() {
-        return minimumSlope <= 0 && maximumSlope >= 10;
+    public SlopeClip() {
     }
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public double minimumSlope() {
+        return minimumSlope;
+    }
+
+    public double maximumSlope() {
+        return maximumSlope;
+    }
+
+    /** Whether every slope passes. */
+    public boolean isDefault() {
+        return minimumSlope <= 0 && maximumSlope >= DEFAULT_MAXIMUM_SLOPE;
+    }
+
     public boolean isValid(double slope) {
         if (isDefault()) {
             return true;

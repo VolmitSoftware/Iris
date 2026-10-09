@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.mod;
 
-import art.arcane.iris.engine.object.placement.IrisObjectReplace;
+import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -100,9 +100,9 @@ public class IrisMod extends IrisRegistrant {
     @Desc("Replace regions with other regions")
     private KList<IrisModRegionReplacer> regionReplacers = new KList<>();
 
-    @ArrayType(min = 1, type = IrisObjectReplace.class)
+    @ArrayType(min = 1, type = ObjectReplace.class)
     @Desc("Replace blocks with other blocks")
-    private KList<IrisObjectReplace> blockReplacers = new KList<>();
+    private KList<ObjectReplace> blockReplacers = new KList<>();
 
     @ArrayType(min = 1, type = IrisModNoiseStyleReplacer.class)
     @Desc("Replace noise styles with other styles")

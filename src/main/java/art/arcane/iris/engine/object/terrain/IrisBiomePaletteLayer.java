@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.terrain;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
@@ -65,7 +65,7 @@ public class IrisBiomePaletteLayer {
     @Desc("The max thickness of this layer")
     private int maxHeight = 1;
     @Desc("If set, this layer only shows where the terrain slope is within these bounds; outside them the layer is skipped entirely. Thickness is not scaled by slope.")
-    private IrisSlopeClip slopeCondition = new IrisSlopeClip();
+    private SlopeClip slopeCondition = new SlopeClip();
     @MinNumber(0.0001)
     @Desc("The terrain zoom mostly for zooming in on a wispy palette")
     private double zoom = 5;

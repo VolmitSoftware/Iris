@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import com.volmit.FeatureRegistry;
+import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.stilt.StiltLayers;
 import art.arcane.iris.core.modules.IrisPlacement;
@@ -65,6 +67,11 @@ public final class StiltModule implements IrisModule {
     }
 
     @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(StiltSettings.class);
+    }
+
+    @Override
     public void install(StageGraph graph) {
         graph.define(IrisStages.Stilt.LAYERS)
                 .requires(IrisStages.Prepare.TRANSFORMS)
@@ -107,7 +114,8 @@ public final class StiltModule implements IrisModule {
         private final IrisPlacement placement;
         private final PreparedPlacement prepared;
         private final IrisObjectPlacement config;
-        private final IrisStiltSettings settings;
+        private final StiltSettings settings;
+        private final PlatformBlockState palette;
         private final StiltShape shape;
         private final PlacementWorld world;
         private final RNG rng;
@@ -124,8 +132,17 @@ public final class StiltModule implements IrisModule {
             this.world = new PlacementWorld(context.access(), placement.states());
             this.rng = new RNG(context.random().nextLong());
             this.anchorY = context.output(IrisStages.Anchor.FINAL).y();
+            this.palette = settings == null ? null : paletteBlock(settings);
             this.layerY = shape == StiltShape.CEILING ? layers.topY() : layers.bottomY();
             this.erode = shape == StiltShape.ERODE ? ErodeShape.of(layers.bottom()) : null;
+        }
+
+        /** The block the settings' palette picks for this placement, the same for every column; null without a palette. */
+        private PlatformBlockState paletteBlock(StiltSettings stilt) {
+            return stilt.palette()
+                    .map(spec -> placement.data().getPackResources().blocks().palette(spec, rng.getSeed()))
+                    .map(picker -> B.getState(picker.at(placement.x(), anchorY, placement.z()).key()))
+                    .orElse(null);
         }
 
         private void grow(ObjectBlock block) {
@@ -152,8 +169,8 @@ public final class StiltModule implements IrisModule {
         /** The block the stilt repeats: the palette's when the settings have one, soil turned to dirt, edited and turned with the object. */
         private PlatformBlockState stiltState(ObjectBlock block, BlockPosition offset) {
             PlatformBlockState state = placement.states().toPlatform(block.state());
-            if (settings != null && settings.getPalette() != null) {
-                state = settings.getPalette().get(rng, placement.x(), anchorY, placement.z(), placement.data());
+            if (palette != null) {
+                state = palette;
             } else if (SOIL_MATERIALS.contains(IrisObjectShaping.materialKey(state))) {
                 state = B.getState(SOIL_REPLACEMENT);
             }
@@ -174,9 +191,9 @@ public final class StiltModule implements IrisModule {
             }
             int lowerBound = highest - 1;
             if (settings != null) {
-                lowerBound -= settings.getOverStilt() - rng.i(0, settings.getYRand());
-                if (settings.getYMax() != 0) {
-                    lowerBound -= Math.min(settings.getYMax() - (top - highest), 0);
+                lowerBound -= settings.overStilt() - rng.i(0, settings.yRand());
+                if (settings.yMax() != 0) {
+                    lowerBound -= Math.min(settings.yMax() - (top - highest), 0);
                 }
             }
             if (erode != null) {
@@ -198,9 +215,9 @@ public final class StiltModule implements IrisModule {
 
         /** Grows from the layer toward the first solid block in {@code direction}, -1 down or 1 up. */
         private void growOrganic(PlatformBlockState state, int x, int z, int direction) {
-            int maxScan = settings != null ? Math.max(1, settings.getOrganicMaxScan()) : DEFAULT_ORGANIC_MAX_SCAN;
-            int jitterMax = settings != null ? Math.max(0, settings.getOrganicJitter()) : DEFAULT_ORGANIC_JITTER;
-            double scratch = settings != null ? Math.max(0, Math.min(1, settings.getOrganicScratch())) : DEFAULT_ORGANIC_SCRATCH;
+            int maxScan = settings != null ? Math.max(1, settings.organicMaxScan()) : DEFAULT_ORGANIC_MAX_SCAN;
+            int jitterMax = settings != null ? Math.max(0, settings.organicJitter()) : DEFAULT_ORGANIC_JITTER;
+            double scratch = settings != null ? Math.max(0, Math.min(1, settings.organicScratch())) : DEFAULT_ORGANIC_SCRATCH;
             long columnHash = ((long) x * HASH_X) ^ ((long) z * HASH_Y);
             int jitter = jitterMax > 0 ? (int) (Math.abs(columnHash) % (jitterMax + 1)) : 0;
             int start = layerY + anchorY;

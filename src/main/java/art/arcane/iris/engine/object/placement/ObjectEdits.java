@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
 import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
@@ -37,25 +38,27 @@ final class ObjectEdits {
     /** {@code tile} may be null; the result's tile is the last replacement's tile, if it has one. */
     static Edited apply(IrisObjectPlacement config, PlatformBlockState data, TileData tile, RNG rng,
                         double x, double y, double z, IrisData rdata) {
+        ResolvedReplaces replaces = ResolvedReplaces.of(rdata);
         PlatformBlockState edited = data;
         TileData editedTile = tile;
-        for (IrisObjectReplace replace : config.getEdit()) {
-            if (!rng.chance(replace.getChance())) {
+        for (ObjectReplace settings : config.getEdit()) {
+            ResolvedReplace replace = replaces.of(settings);
+            if (!rng.chance(replace.chance())) {
                 continue;
             }
-            for (PlatformBlockState find : replace.getFind(rdata)) {
+            for (PlatformBlockState find : replace.find()) {
                 if (!finds(replace, find, edited)) {
                     continue;
                 }
-                edited = replaced(edited, replace.getReplace(rng, x, y, z, rdata));
-                editedTile = replace.getReplace().getTile(rng, x, y, z, rdata).orElse(editedTile);
+                edited = replaced(edited, replace.replacement(rng, x, y, z));
+                editedTile = replace.tile(rng).orElse(editedTile);
             }
         }
         return new Edited(edited, editedTile);
     }
 
-    private static boolean finds(IrisObjectReplace replace, PlatformBlockState find, PlatformBlockState data) {
-        return replace.isExact()
+    private static boolean finds(ResolvedReplace replace, PlatformBlockState find, PlatformBlockState data) {
+        return replace.exact()
                 ? find.matches(data)
                 : IrisObjectShaping.materialKey(find).equals(IrisObjectShaping.materialKey(data));
     }

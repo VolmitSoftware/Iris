@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.validate.ObjectLimit;
+import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.framework.Engine;
@@ -51,6 +53,11 @@ public final class ValidateModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:validate", "Placement checks", PlacementModules.VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(ObjectLimit.class);
     }
 
     @Override

@@ -18,6 +18,11 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.blocks.ObjectReplace;
+import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisLootTable;
@@ -96,7 +101,7 @@ public class IrisObjectPlacement {
     @Desc("Rotate this objects placement")
     private IrisObjectRotation rotation = new IrisObjectRotation();
     @Desc("Limit the max height or min height of placement.")
-    private IrisObjectLimit clamp = new IrisObjectLimit();
+    private ObjectLimit clamp = new ObjectLimit();
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
@@ -104,7 +109,7 @@ public class IrisObjectPlacement {
     @Desc("Whether or not this object can be targeted by a dolphin.")
     private boolean isDolphinTarget = false;
     @Desc("The slope at which this object can be placed. Range from 0 to 10 by default. Calculated from a 3-block radius from the center of the object placement.")
-    private IrisSlopeClip slopeCondition = new IrisSlopeClip();
+    private SlopeClip slopeCondition = new SlopeClip();
     @Desc("Set to true to add the rotation of the direction of the slope of the terrain (wherever the slope is going down) to the y-axis rotation of the object." +
             "Rounded to 90 degrees. Adds the *min* rotation of the y axis as well (to still allow you to rotate objects nicely). Discards *max* and *interval* on *yaxis*")
     private boolean rotateTowardsSlope = false;
@@ -118,9 +123,9 @@ public class IrisObjectPlacement {
     @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
     private IrisStyledRange densityStyle = null;
     @Desc("When stilting is enabled, this object will define various properties related to it.")
-    private IrisStiltSettings stiltSettings;
+    private StiltSettings stiltSettings;
     @Desc("When a VACUUM place mode is used, this defines the deformation radius and falloff.")
-    private IrisVacuumSettings vacuumSettings;
+    private VacuumSettings vacuumSettings;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
@@ -168,9 +173,9 @@ public class IrisObjectPlacement {
     private IrisGeneratorStyle warp = new IrisGeneratorStyle(NoiseStyle.FLAT);
     @Desc("The placement mode")
     private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
-    @ArrayType(min = 1, type = IrisObjectReplace.class)
+    @ArrayType(min = 1, type = ObjectReplace.class)
     @Desc("Find and replace blocks")
-    private KList<IrisObjectReplace> edit = new KList<>();
+    private KList<ObjectReplace> edit = new KList<>();
     @Desc("Translate this object's placement")
     private IrisObjectTranslate translate = new IrisObjectTranslate();
     @Desc("Scale Objects")

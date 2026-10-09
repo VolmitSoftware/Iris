@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 
+import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import art.arcane.iris.core.IrisSettings;
@@ -32,7 +33,6 @@ import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.object.terrain.carving.CarvingMode;
 import art.arcane.iris.engine.object.placement.DecayControlPlacer;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.prefab.IrisAxisRotationClamp;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveAnchorMode;
 import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfile;
@@ -1092,9 +1092,9 @@ public class ObjectPlacing {
     private IrisObjectRotation buildUpsideDownRotation() {
         IrisObjectRotation rt = new IrisObjectRotation();
         rt.setEnabled(true);
-        rt.setXAxis(new IrisAxisRotationClamp(true, true, 180D, 180D, 90D));
-        rt.setYAxis(new IrisAxisRotationClamp(true, false, 0D, 0D, 90D));
-        rt.setZAxis(new IrisAxisRotationClamp());
+        rt.setXAxis(AxisRotationClamp.of(true, true, 180D, 180D, 90D));
+        rt.setYAxis(AxisRotationClamp.of(true, false, 0D, 0D, 90D));
+        rt.setZAxis(new AxisRotationClamp());
         return rt;
     }
 
@@ -1542,8 +1542,8 @@ public class ObjectPlacing {
         int height = scaledDimension(size.getBlockY(), scale);
         int depth = scaledDimension(size.getBlockZ(), scale);
         IrisObjectRotation rotation = placement.getRotation();
-        boolean rotateX = rotation != null && rotation.isEnabled() && rotation.getXAxis() != null && rotation.getXAxis().isEnabled();
-        boolean rotateZ = rotation != null && rotation.isEnabled() && rotation.getZAxis() != null && rotation.getZAxis().isEnabled();
+        boolean rotateX = rotation != null && rotation.isEnabled() && rotation.getXAxis() != null && rotation.getXAxis().enabled();
+        boolean rotateZ = rotation != null && rotation.isEnabled() && rotation.getZAxis() != null && rotation.getZAxis().enabled();
         int footprint = rotateX || rotateZ ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
         int translation = calculateTranslationReach(placement.getTranslate(), rotation, rotateX || rotateZ);
         int warp = placement.getWarp() != null && !placement.getWarp().isFlat()
@@ -1574,7 +1574,7 @@ public class ObjectPlacing {
         if (rotateVertically) {
             return (int) Math.ceil(Math.sqrt((x * x) + (y * y) + (z * z)));
         }
-        boolean rotateY = rotation != null && rotation.isEnabled() && rotation.getYAxis() != null && rotation.getYAxis().isEnabled();
+        boolean rotateY = rotation != null && rotation.isEnabled() && rotation.getYAxis() != null && rotation.getYAxis().enabled();
         return rotateY ? (int) Math.ceil(Math.hypot(x, z)) : (int) Math.max(Math.abs(x), Math.abs(z));
     }
 

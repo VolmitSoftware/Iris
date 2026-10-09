@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.terrain;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
@@ -73,7 +73,7 @@ public final class IrisBiomeLayerGenerator {
             CNG hgen = heightGenerators.get(i);
             double d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
 
-            IrisSlopeClip sc = layer.getSlopeCondition();
+            SlopeClip sc = layer.getSlopeCondition();
 
             if (!sc.isDefault()) {
                 if (!sc.isValid(complex.getSlopeStream().get(wx, wz))) {
@@ -193,7 +193,7 @@ public final class IrisBiomeLayerGenerator {
                 CNG hgen = heightGenerators.get(i);
                 double d = hgen.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / zoom, wz / zoom);
 
-                IrisSlopeClip sc = layer.getSlopeCondition();
+                SlopeClip sc = layer.getSlopeCondition();
 
                 if (!sc.isDefault()) {
                     if (!sc.isValid(complex.getSlopeStream().get(wx, wz))) {

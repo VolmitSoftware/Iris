@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.object.procedural.formation;
 
+import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.placement.IrisObjectLimit;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisStiltSettings;
-import art.arcane.iris.engine.object.placement.IrisVacuumSettings;
 import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
@@ -81,7 +81,7 @@ public class IrisFormation implements IrisProceduralPlacement {
     private IrisObjectRotation rotation = new IrisObjectRotation();
 
     @Desc("Limit the max or min height of placement.")
-    private IrisObjectLimit clamp = new IrisObjectLimit();
+    private ObjectLimit clamp = new ObjectLimit();
 
     @Desc("Whether this formation may place on the terrain surface, under carvings, or both.")
     private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;
@@ -98,10 +98,10 @@ public class IrisFormation implements IrisProceduralPlacement {
     private IrisObjectTranslate translate = new IrisObjectTranslate();
 
     @Desc("Settings for the stilt place modes (STILT, MIN_STILT, FAST_STILT, CENTER_STILT, ERODE_STILT, ORGANIC_STILT).")
-    private IrisStiltSettings stiltSettings;
+    private StiltSettings stiltSettings;
 
     @Desc("Settings for the vacuum place modes (VACUUM, VACUUM_HIGH, VACUUM_FAST, VACUUM_ORGANIC).")
-    private IrisVacuumSettings vacuumSettings;
+    private VacuumSettings vacuumSettings;
 
     @Desc("The overall silhouette of the formation. Drives which sculpting routine the generator uses.")
     private IrisFormationForm form = IrisFormationForm.SPIRE;

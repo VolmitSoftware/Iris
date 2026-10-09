@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -210,7 +210,7 @@ public class SurfaceSmoothing {
                     || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, originX, originZ, currentData)))
             //@done
             {
-                IrisSlopeClip sc = biome.getSlab().getSlopeCondition();
+                SlopeClip sc = biome.getSlab().getSlopeCondition();
                 PlatformBlockState d = sc.isValid(engine.getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, engine.getData()) : null;
 
                 if (d != null) {

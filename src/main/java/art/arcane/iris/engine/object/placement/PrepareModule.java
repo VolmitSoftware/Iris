@@ -18,11 +18,13 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
+import com.volmit.FeatureRegistry;
+import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.placer.HeightmapObjectPlacer;
-import art.arcane.iris.engine.object.prefab.IrisAxisRotationClamp;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
@@ -50,6 +52,12 @@ public final class PrepareModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:prepare", "Placement preparation", PlacementModules.VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(SlopeClip.class);
+        registry.registerHeldType(AxisRotationClamp.class);
     }
 
     @Override
@@ -89,15 +97,15 @@ public final class PrepareModule implements IrisModule {
         double downhill = lowest == north ? NORTH : lowest == east ? EAST : lowest == south ? SOUTH : WEST;
 
         IrisObjectRotation requested = config.getRotation();
-        double turn = requested.getYAxis().getMin() + downhill;
+        double turn = requested.getYAxis().min() + downhill;
         IrisObjectRotation rotation = new IrisObjectRotation();
         rotation.setXAxis(requested.getXAxis());
         rotation.setZAxis(requested.getZAxis());
         if (turn == 0) {
-            rotation.setYAxis(new IrisAxisRotationClamp(false, false, 0, 0, QUARTER_TURN));
+            rotation.setYAxis(AxisRotationClamp.of(false, false, 0, 0, QUARTER_TURN));
             rotation.setEnabled(requested.canRotateX() || requested.canRotateZ());
         } else {
-            rotation.setYAxis(new IrisAxisRotationClamp(true, false, turn, turn, QUARTER_TURN));
+            rotation.setYAxis(AxisRotationClamp.of(true, false, turn, turn, QUARTER_TURN));
             rotation.setEnabled(true);
         }
         IrisObjectPlacement turned = config.toPlacement(config.getPlace().toArray(new String[0]));

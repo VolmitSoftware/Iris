@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.object.procedural.ruin;
 
+import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.placement.IrisObjectLimit;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisStiltSettings;
-import art.arcane.iris.engine.object.placement.IrisVacuumSettings;
 import art.arcane.iris.engine.object.placement.ObjectPlaceMode;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
@@ -83,7 +83,7 @@ public class IrisRuin implements IrisProceduralPlacement {
     private IrisObjectRotation rotation = new IrisObjectRotation();
 
     @Desc("Limit the max or min terrain height at which this ruin may place.")
-    private IrisObjectLimit clamp = new IrisObjectLimit();
+    private ObjectLimit clamp = new ObjectLimit();
 
     @Desc("Whether this ruin may place on the terrain surface, under carvings (caves), or both. SURFACE_ONLY keeps ruins above ground.")
     private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;
@@ -95,10 +95,10 @@ public class IrisRuin implements IrisProceduralPlacement {
     private IrisObjectTranslate translate = new IrisObjectTranslate();
 
     @Desc("Settings for the stilt place modes (STILT, MIN_STILT, FAST_STILT, CENTER_STILT, ERODE_STILT, ORGANIC_STILT).")
-    private IrisStiltSettings stiltSettings;
+    private StiltSettings stiltSettings;
 
     @Desc("Settings for the vacuum place modes (VACUUM, VACUUM_HIGH, VACUUM_FAST, VACUUM_ORGANIC).")
-    private IrisVacuumSettings vacuumSettings;
+    private VacuumSettings vacuumSettings;
 
     @Required
     @Desc("The primary structural block, e.g. minecraft:cobblestone or minecraft:stone_bricks. Ignored when blockPalette is set. This is the bulk material of the ruin before weathering swaps some of it out.")

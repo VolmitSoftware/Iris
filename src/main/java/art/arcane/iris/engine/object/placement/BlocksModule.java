@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.blocks.ObjectReplace;
+import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
@@ -63,6 +65,11 @@ public final class BlocksModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:blocks", "Object blocks", PlacementModules.VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(ObjectReplace.class);
     }
 
     @Override

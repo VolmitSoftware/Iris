@@ -1,21 +1,32 @@
-package art.arcane.iris.engine.object.placement;
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+package art.arcane.iris.builtin.vacuum;
 
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Snippet;
+
+/** How a VACUUM place mode bends terrain to meet an object's base, written as the placement's {@code vacuumSettings}. */
 @Snippet("vacuum-settings")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
 @Desc("Defines how a VACUUM place mode bends terrain to meet an object's base.")
-@Data
-public class IrisVacuumSettings {
+public final class VacuumSettings {
     @MinNumber(0)
     @MaxNumber(128)
     @Desc("The horizontal radius (in blocks) the terrain deformation extends beyond the object footprint before it blends back to the natural surface. 0 = derive automatically from the place mode (VACUUM, VACUUM_HIGH larger, VACUUM_FAST smaller).")
@@ -36,4 +47,27 @@ public class IrisVacuumSettings {
     @MaxNumber(64)
     @Desc("For VACUUM_WAVY: the frequency of the simplex wave. Higher values make tighter, choppier ripples; lower values make broad, gentle swells. The wavelength in blocks is roughly 100 / waveScale.")
     private double waveScale = 5.0;
+
+    public VacuumSettings() {
+    }
+
+    public int radius() {
+        return radius;
+    }
+
+    public double falloff() {
+        return falloff;
+    }
+
+    public int organicJitter() {
+        return organicJitter;
+    }
+
+    public int waveAmplitude() {
+        return waveAmplitude;
+    }
+
+    public double waveScale() {
+        return waveScale;
+    }
 }

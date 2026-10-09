@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
@@ -34,7 +35,6 @@ import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.placement.IrisSlopeClip;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -86,7 +86,7 @@ public class FloatingIslands {
                 continue;
             }
             double layerDepth = heightGenerator.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / layer.getZoom(), wz / layer.getZoom());
-            IrisSlopeClip slopeClip = layer.getSlopeCondition();
+            SlopeClip slopeClip = layer.getSlopeCondition();
 
             if (slopeClip != null && !slopeClip.isDefault() && complex != null && !slopeClip.isValid(complex.getSlopeStream().get(wx, wz))) {
                 layerDepth = 0;

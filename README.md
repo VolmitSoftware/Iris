@@ -395,7 +395,8 @@ public final class FloraSettings implements IrisFeature {
   interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
   concrete collections such as `ArrayList`, and maps with other keys.
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
-  them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`,
+  them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
+  (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`,
   `POTION_EFFECT` or `ENCHANTMENT` from the server's registries, `NOISE_STYLE` from the host's noise
   styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION` or `PACK_IMAGE_MAP` of the pack.
   The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
@@ -486,6 +487,34 @@ The host asks every hook of the pack once per world, structure and pack snapshot
 structure and when it locates it, so a hook decides from the pack, never from a position. Rules combine: a
 structure is blocked when any module blocks it, and placed by a module when any module places it. The host applies
 the result on every platform it runs on.
+
+A hook has three more methods, each with a default that changes nothing, so a hook that only rules stays a lambda:
+
+- `adjustment(structure, underground, context)`: how the platform's own starts of a structure are moved (`shifted`,
+  `withYBand` in world Y, `keepingSourceY`) and fitted (`VanillaStructureFit`: a `StructureTerrain` fitting before
+  the pieces are placed, `StructureStilts` foundation columns after). Asked and kept like the rule; adjustments of
+  several modules apply one after the other in module id order (`then`: shifts add up, a later band or fit part wins).
+- `starts(chunkX, chunkZ, context)`: the platform structures the module starts in that chunk itself. A
+  `VanillaStructureStart` names the structure, its height above the bottom (`underground()` puts the structure's
+  lowest block there; otherwise it sits on the surface), whether it takes the chunk from a platform start of the same
+  structure, a stable `identity` the host records with it, `JigsawOverrides` for jigsaw structures and a fit. The
+  context gives the world (`PackWorld`) and a `TerrainSampler` over the chunk. Answer from the world and chunk only:
+  the host asks again when it locates structures and when it checks starts it finds in the world.
+- `setup(context)`: before any world of the dimension exists, how often each structure set starts (`withFrequency`,
+  multipliers of several modules multiply) and whether the data packs the host installs must leave the platform's own
+  structure definitions alone (`protectingVanillaDefinitions`, for every pack once any dimension asks for it).
+
+```java
+public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructureStartContext context) {
+    if (!castleChunk(context.world().seed(), chunkX, chunkZ)) return List.of();
+    int surface = (int) context.terrain().column((chunkX << 4) + 8, (chunkZ << 4) + 8).surfaceY();
+    return List.of(VanillaStructureStart.at(ResourceId.parse("minecraft:village_plains"), chunkX, chunkZ, surface)
+            .withFit(VanillaStructureFit.SOURCE.withTerrain(StructureTerrain.of(StructureTerrain.Mode.VACUUM))));
+}
+```
+
+`StructureTerrain`, `StructureStilts`, `YBand` and `JigsawOverrides` are value types like `PaletteSpec`: settings may
+hold them, and packs write them as Iris always read them.
 
 ## Host side
 

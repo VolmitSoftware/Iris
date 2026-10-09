@@ -27,8 +27,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`), `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
-| Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `Object` as `ValueKind.AnyKind` |
-| Decisions over the platform's own structures | `VanillaStructureHook`, `VanillaStructureRule`, `VanillaStructureContext`, `FeatureRegistry.registerVanillaStructureHook`, host `FeatureCatalog.vanillaStructureHooks()` |
+| Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `StructureTerrain`, `StructureStilts`, `YBand`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
+| Decisions over the platform's own structures | `VanillaStructureHook` (`rule`, `adjustment`, `starts`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureAdjustment`, `VanillaStructureFit`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `FeatureRegistry.registerVanillaStructureHook`, host `FeatureCatalog.vanillaStructureHooks()` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
@@ -192,10 +192,18 @@ running Iris is the pack publisher's responsibility.
   structures and when it locates one, combine the rules with `VanillaStructureRule.and`, keep the result per world,
   structure and pack snapshot, and apply it on every platform: block the platform's starts of a blocked
   structure, and report a structure a module places as that module's. A hook that throws fails naming its module.
+- Ask `adjustment` per world, structure, underground flag and pack snapshot, compose with
+  `VanillaStructureAdjustment.then` in module id order, and apply it to the platform's own starts: keeping the source
+  height over a band over the host's repositioning, then the shift; fit the terrain before the pieces and build
+  stilts after. Convert API heights (above the bottom) to world Y at the boundary; `YBand` is world Y.
+- Ask `starts` per chunk, in module id order, refuse a start outside the chunk asked for, keep the first start per
+  structure, let a start take the chunk from a platform start only when it says so or the structure is `REPLACE`d,
+  apply its jigsaw overrides and fit, record its identity with every start the host publishes, and ask again (same
+  answer) when locating or verifying a start found in the world.
+- Ask `setup` per dimension before its worlds build their structure state and when installing data packs; multiply
+  frequencies per structure set (0.01 to 16), protect the platform's definitions in every installed data pack once
+  any dimension of any loaded pack asks for it.
 
 ## Open
-
-- Placing the platform's structures where a module chooses (Iris's native structure planner): a hook method
-  returning starts per chunk, with the terrain fitting and foundations the host builds around them.
 
 - Terrain/biome providers, pack transformations, structure assembly and the runtime family.

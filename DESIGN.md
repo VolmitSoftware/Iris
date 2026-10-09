@@ -795,8 +795,29 @@ platform.
 - **The context is the world's pack.** `resources()` and `settings()` (`PackSettings`: the dimension and every
   region and biome it can reach), the same view reaches are worked out from. A hook that needs the world's own
   state gets it the way stages do.
-- **Placing starts is not part of it yet.** Where the platform should start a structure a module places, with the
-  terrain fitting and foundations that go with it, comes with the planner's move (see CONTRACTS, Open).
+- **Placing starts: `starts(chunkX, chunkZ, context)`, a hook method, not a service.** The question is the same
+  hook's (which platform structures does this module own), asked per chunk because the platform generates per chunk,
+  and its answers sit next to the rule a module gives the same structures. A start carries everything the platform
+  needs and nothing it can work out: structure, chunk, height above the bottom, surface or underground, whether it
+  takes the chunk from a platform start, jigsaw overrides, the fit, and an identity the host persists with the start
+  so a start found in a saved world can be traced to its placement. Several placements of one module that start one
+  structure in one chunk are the module's to resolve; across modules the host keeps the first in module id order.
+  The context is the `PackWorld` (seed, state) plus a `TerrainSampler`, not raw seeds: a start that needs heights
+  asks the host's terrain, like a stage does.
+- **The platform's own starts get an adjustment, a second per-structure method.** `importedStructures`' vertical
+  moves (`yShift`, `yBand`, `preserveSourceY`) and fit apply to starts the platform makes, which no module returns, so
+  they cannot ride on `VanillaStructureStart`. They are a per-structure answer like the rule (cached the same way,
+  with the platform's underground-step flag as the only extra input), so `adjustment(structure, underground,
+  context)`. A separate value rather than a richer rule keeps the rule's order-free `and`; adjustments compose in
+  module id order (`then`), which is what one module's list of matching entries always did.
+- **Fit values are value types, the host keeps Iris's classes.** `StructureTerrain`, `StructureStilts`, `YBand` and
+  `JigsawOverrides` read the JSON Iris's classes read, so settings can hold them and packs keep their JSON. The host
+  converts them into its own classes for the platform code, which also persists the fit of every start it publishes:
+  the stored JSON stays the same. Modes, shapes and heightmaps are API enums because the host implements each one.
+- **Setup before a world exists: `setup(context)`.** Structure set frequencies and protecting the platform's
+  definitions from installed data packs are decided when the platform builds its structure state or the host
+  installs data packs, before any world of the dimension runs. The context is the dimension's settings without an
+  engine. Frequencies multiply across modules; protection holds when any module asks for it.
 
 ## Pack resource kinds
 
@@ -948,7 +969,7 @@ This is an inventory of where each existing family should land, not a claim that
 | Cave profiles, carving, cave fluids and decoration | Chunk stages + typed carve layers |
 | Floating islands and child biomes | Terrain/biome sampling + chunk and placement stages |
 | Structures, jigsaw pools and foundations | Structure assembly producing placement requests |
-| Imported/native structures and ownership | `VanillaStructureHook` rules; host native-generation adapter per platform |
+| Imported/native structures and ownership | `VanillaStructureHook` (rule, adjustment, starts, setup); host native-generation adapter per platform |
 | Terrain layers, fluids, bedrock, interpolation | Terrain providers + chunk stages |
 | Region/biome selection | Biome providers + platform biome writer |
 | Image maps, noise expressions, pack injection | Compiled immutable pack resources |

@@ -184,7 +184,7 @@ public class IrisLoot {
 
     public ItemStack get(boolean debug, IrisLootTable table, RNG rng, long lootSeed, int entryIndex, int x, int y, int z) {
         long combinedRarity = LootResolver.combinedRarity(rarity, table.getRarity());
-        if (!LootResolver.spatialOneIn(lootSeed, table, entryIndex, x, y, z, combinedRarity)) {
+        if (!art.arcane.iris.engine.loot.LootTables.spatialOneIn(lootSeed, table, entryIndex, x, y, z, combinedRarity)) {
             return null;
         }
 

@@ -22,6 +22,7 @@ import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.engine.loot.LootItems;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.Required;
@@ -33,8 +34,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import art.arcane.iris.spi.PlatformBlockState;
 import lombok.experimental.Accessors;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.ItemStack;
+import com.volmit.item.ItemDrop;
+
+import java.util.List;
 
 @Snippet("block-drops")
 @Accessors(chain = true)
@@ -43,7 +45,7 @@ import org.bukkit.inventory.ItemStack;
 @Desc("Represents a block drop list")
 @Data
 public class IrisBlockDrops {
-    private final transient AtomicCache<KList<BlockData>> data = new AtomicCache<>();
+    private final transient AtomicCache<KList<PlatformBlockState>> data = new AtomicCache<>();
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The blocks that drop loot")
@@ -58,23 +60,23 @@ public class IrisBlockDrops {
     @Desc("Removes the default vanilla block drops and only drops the given items & any parent loot tables specified for this block type.")
     private boolean replaceVanillaDrops = false;
 
-    public boolean shouldDropFor(BlockData data, IrisData rdata) {
-        KList<BlockData> list = this.data.aquire(() -> {
-            KList<BlockData> b = new KList<>();
+    public boolean shouldDropFor(PlatformBlockState broken, IrisData rdata) {
+        KList<PlatformBlockState> list = this.data.aquire(() -> {
+            KList<PlatformBlockState> b = new KList<>();
 
             for (IrisBlockData i : getBlocks()) {
                 PlatformBlockState state = i.getBlockData(rdata);
 
                 if (state != null) {
-                    b.add((BlockData) state.nativeHandle());
+                    b.add(state);
                 }
             }
 
             return b.removeDuplicates();
         });
 
-        for (BlockData i : list) {
-            if (exactBlocks ? i.equals(data) : i.getMaterial().equals(data.getMaterial())) {
+        for (PlatformBlockState i : list) {
+            if (exactBlocks ? i.key().equals(broken.key()) : materialOf(i).equals(materialOf(broken))) {
                 return true;
             }
         }
@@ -82,11 +84,22 @@ public class IrisBlockDrops {
         return false;
     }
 
-    public void fillDrops(boolean debug, KList<ItemStack> d) {
+    /** Adds the items of the drops that pass their rarity to {@code d}. */
+    public void fillDrops(LootItems items, List<ItemDrop> d) {
         for (IrisLoot i : getDrops()) {
-            if (LootResolver.oneIn(RNG.r, i.getRarity())) {
-                d.add(i.get(debug, RNG.r));
+            if (!LootResolver.oneIn(RNG.r, i.getRarity())) {
+                continue;
+            }
+            ItemDrop drop = items.give(i, RNG.r);
+            if (drop != null) {
+                d.add(drop);
             }
         }
+    }
+
+    private static String materialOf(PlatformBlockState state) {
+        String key = state.key();
+        int properties = key.indexOf('[');
+        return properties < 0 ? key : key.substring(0, properties);
     }
 }

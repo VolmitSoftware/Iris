@@ -78,7 +78,7 @@ public class IrisVanillaLootTable extends IrisLootTable {
             IrisLogging.warn("Unknown vanilla loot table " + lootTableKey);
             return new KList<>();
         }
-        RNG rng = LootResolver.tableRng(lootSeed, this, x, y, z);
+        RNG rng = art.arcane.iris.engine.loot.LootTables.rng(lootSeed, this, x, y, z);
         return new KList<>(table.populateLoot(rng, new LootContext.Builder(new Location(world, x, y, z)).build()));
     }
 

@@ -80,7 +80,7 @@ public class IrisLootTable extends IrisRegistrant {
             return lootf;
         }
 
-        RNG rng = LootResolver.tableRng(lootSeed, this, x, y, z);
+        RNG rng = art.arcane.iris.engine.loot.LootTables.rng(lootSeed, this, x, y, z);
         int m = 0;
         int c = 0;
         int mx = Math.max(0, LootResolver.inclusive(rng, getMinPicked(), getMaxPicked()));

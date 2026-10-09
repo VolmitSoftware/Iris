@@ -177,6 +177,7 @@ final class ModuleSchemaRenderer {
         }
         option.minimum().ifPresent(minimum -> property.put("minimum", minimum));
         option.maximum().ifPresent(maximum -> property.put("maximum", maximum));
+        option.minItems().ifPresent(minItems -> property.put("minItems", minItems));
         option.defaultValue().ifPresent(value -> property.put("default", JSONObject.wrap(value)));
         return property;
     }

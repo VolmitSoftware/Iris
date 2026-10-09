@@ -29,6 +29,7 @@ import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.schema.FeatureSchema;
+import com.volmit.host.schema.ObjectType;
 import com.volmit.host.schema.SchemaOption;
 import com.volmit.host.schema.ValueKind;
 import com.volmit.stage.MantleStage;
@@ -40,6 +41,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -104,6 +106,18 @@ public class BuiltInGenerationGraphTest {
                 ValueKind generators = option.kind();
                 assertEquals("generators are a module class of IrisApi types, not an Iris class",
                         new ValueKind.ListKind(new ValueKind.ObjectKind(DepositGenerator.class.getName()), false), generators);
+            }
+        }
+    }
+
+    @Test
+    public void depositGeneratorsKeepTheMinimumListLengthsTheOldClassHad() throws IOException {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
+            ObjectType generator = pack.schema().type(DepositGenerator.class.getName());
+
+            for (String list : List.of("palette", "replaceableBlocks", "includedBiomes", "excludedBiomes")) {
+                SchemaOption option = generator.options().stream().filter(candidate -> candidate.name().equals(list)).findFirst().orElseThrow();
+                assertEquals(list, OptionalInt.of(1), option.minItems());
             }
         }
     }

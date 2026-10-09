@@ -280,6 +280,8 @@ public class SchemaBuilderParityTest {
         JSONObject tint = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("example:tint")))
                 .getJSONObject("properties");
 
+        assertEquals("@MinItems renders as minItems", 1, tint.getJSONObject("palette").getInt("minItems"));
+        assertFalse("options without it have none", tint.getJSONObject("style").has("minItems"));
         JSONObject spec = definitions.getJSONObject(definitionKey(tint.getJSONObject("palette").getJSONObject("items")));
         assertEquals("obj-art-arcane-iris-engine-object-material-irisblockdata", definitionKey(spec));
         assertTrue(definitions.getJSONObject("obj-art-arcane-iris-engine-object-material-irisblockdata").getJSONObject("properties").has("block"));
@@ -674,6 +676,7 @@ public class SchemaBuilderParityTest {
 
     @Feature(id = "example:tint", name = "Tint", targets = Target.OBJECT_PLACEMENT)
     public static final class TintSettings implements IrisFeature {
+        @com.volmit.config.MinItems(1)
         private List<com.volmit.block.BlockSpec> palette = List.of();
         private com.volmit.noise.NoiseStyle style = com.volmit.noise.NoiseStyle.of("SIMPLEX");
         private java.util.Map<String, Object> extra = java.util.Map.of();

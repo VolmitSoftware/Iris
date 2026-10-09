@@ -41,7 +41,8 @@ import java.util.function.Function;
  * schema studio writes: each feature as a property of its target under its id and, for built-ins, its
  * alias, each settings class once as a definition, references as completion lists (resource references as the keys
  * of the module resource kind they name). Settings with one option also accept that option's bare value; Iris's own
- * classes in built-in settings use Iris's own definitions.
+ * classes in built-in settings use Iris's own definitions, and so do IrisApi's value types, which read the same JSON as
+ * an Iris class ({@code BlockSpec} as Iris's block data), with the snippet references their {@code @Snippet} allows.
  */
 final class ModuleSchemaRenderer {
     private static final String DEFINITION_PREFIX = "module-";
@@ -70,16 +71,22 @@ final class ModuleSchemaRenderer {
     private final ReferenceCompletions references;
     private final ResourceCompletions resources;
     private final HostDefinitions hostDefinitions;
+    private final Function<String, Optional<String>> sameJsonHostTypes;
     private final Function<String, List<String>> snippetFiles;
 
-    /** {@code snippetFiles} lists the snippet references a pack has for a snippet folder, such as {@code snippet/thick}. */
+    /**
+     * @param sameJsonHostTypes the Iris class that reads the same JSON as a module type, for IrisApi's value types
+     * @param snippetFiles lists the snippet references a pack has for a snippet folder, such as {@code snippet/thick}
+     */
     ModuleSchemaRenderer(PackSchema schema, Map<String, JSONObject> definitions, ReferenceCompletions references,
-                         ResourceCompletions resources, HostDefinitions hostDefinitions, Function<String, List<String>> snippetFiles) {
+                         ResourceCompletions resources, HostDefinitions hostDefinitions,
+                         Function<String, Optional<String>> sameJsonHostTypes, Function<String, List<String>> snippetFiles) {
         this.schema = schema;
         this.definitions = definitions;
         this.references = references;
         this.resources = resources;
         this.hostDefinitions = hostDefinitions;
+        this.sameJsonHostTypes = sameJsonHostTypes;
         this.snippetFiles = snippetFiles;
     }
 
@@ -137,22 +144,30 @@ final class ModuleSchemaRenderer {
         }
         definitions.put(key, new JSONObject());
         ObjectType type = schema.type(typeName);
-        definitions.put(key, type.snippet().isPresent() ? objectOrSnippet(type) : objectSchema(type));
+        JSONObject object = describedObject(type);
+        definitions.put(key, type.snippet().isPresent() ? objectOrSnippet(object, type) : object);
         return key;
     }
 
-    private JSONObject objectOrSnippet(ObjectType type) {
+    /** Iris's own description where an Iris class reads the same JSON, otherwise the module's. */
+    private JSONObject describedObject(ObjectType type) {
+        return sameJsonHostTypes.apply(type.name())
+                .map(hostType -> new JSONObject().put("$ref", DEFINITION_REF + hostDefinitions.definition(hostType)))
+                .orElseGet(() -> objectSchema(type));
+    }
+
+    private JSONObject objectOrSnippet(JSONObject object, ObjectType type) {
         String folder = type.snippet().orElseThrow();
         JSONObject reference = new JSONObject();
         reference.put("type", "string");
-        JSONArray files = new JSONArray(snippetFiles.apply(folder));
+        JSONArray files = new JSONArray(List.<Object>copyOf(snippetFiles.apply(folder)));
         if (files.length() > 0) {
             reference.put("examples", files);
         }
         reference.put("pattern", SNIPPET_PATTERN);
         reference.put("description", "A snippet file under snippet/" + folder + "/, written as snippet/<name>");
         JSONObject either = new JSONObject();
-        either.put("anyOf", new JSONArray(List.of(objectSchema(type), reference)));
+        either.put("anyOf", new JSONArray(List.of(object, reference)));
         either.put("description", type.description());
         return either;
     }
@@ -207,8 +222,8 @@ final class ModuleSchemaRenderer {
             }
             case ValueKind.EnumKind enumKind -> {
                 value.put("type", "string");
-                value.put("enum", new JSONArray(enumKind.constants().stream().map(ValueKind.EnumConstant::name).toList()));
-                value.put("enumDescriptions", new JSONArray(enumKind.constants().stream().map(ValueKind.EnumConstant::description).toList()));
+                value.put("enum", new JSONArray(enumKind.constants().stream().<Object>map(ValueKind.EnumConstant::name).toList()));
+                value.put("enumDescriptions", new JSONArray(enumKind.constants().stream().<Object>map(ValueKind.EnumConstant::description).toList()));
             }
             case ValueKind.ListKind list -> {
                 value.put("type", "array");
@@ -223,6 +238,8 @@ final class ModuleSchemaRenderer {
             }
             case ValueKind.ObjectKind object -> value.put("$ref", DEFINITION_REF + definition(object.type()));
             case ValueKind.HostKind host -> value.put("$ref", DEFINITION_REF + hostDefinitions.definition(host.type()));
+            case ValueKind.AnyKind ignored -> {
+            }
         }
         return value;
     }

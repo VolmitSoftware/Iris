@@ -9,6 +9,7 @@ import com.volmit.host.ModuleRegistry;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -51,6 +52,20 @@ public final class ModuleResourceFixture {
     public static synchronized ModuleResourceFixture of(IrisData data) {
         ModuleResourceFixture served = SERVED.get(data.getPackResources());
         return served != null ? served : serve(data);
+    }
+
+    /**
+     * Makes {@code data} (a mock) a pack folder named {@code pack} whose modules are {@code modules}, as built-ins, so what
+     * reads the pack's catalog (vanilla structure hooks, validators) finds their registrations.
+     */
+    public static void serveModules(IrisData data, IrisModule... modules) {
+        LoadedPack pack = mock(LoadedPack.class);
+        PackModuleSet moduleSet = mock(PackModuleSet.class);
+        FeatureCatalog catalog = catalogOf(modules);
+        when(pack.catalog()).thenReturn(catalog);
+        when(moduleSet.pack()).thenReturn(pack);
+        when(data.getModules()).thenReturn(moduleSet);
+        when(data.getDataFolder()).thenReturn(new File("pack"));
     }
 
     /** The catalog of a pack with only {@code modules}, as built-ins: their resource kinds, validators and other registrations. */

@@ -2,6 +2,7 @@ package art.arcane.iris.util.common.director.specialhandlers;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
@@ -106,6 +107,7 @@ public class StructureHandlerTest {
         custom.setLoadKey("iris:custom");
         IrisStructure collision = new IrisStructure();
         collision.setLoadKey("pack:collision");
+        ModuleResourceFixture.serveModules(data, new StructureModule());
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:custom_definition", custom);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:collision_definition", collision);
         when(engine.getData()).thenReturn(data);
@@ -179,6 +181,7 @@ public class StructureHandlerTest {
         placements.add(editablePlacement("iris:replacement_definition"));
         placements.add(nativePlacement("minecraft:explicit", StructureDistribution.RANDOM_SPREAD, 1.0));
 
+        ModuleResourceFixture.serveModules(data, new StructureModule());
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:editable_definition", editable);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:replacement_definition", replacement);
         when(engine.getData()).thenReturn(data);

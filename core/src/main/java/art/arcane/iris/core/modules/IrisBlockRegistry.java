@@ -18,24 +18,60 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
 import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.object.BlockEntityData;
 import com.volmit.resource.ResourceId;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * IrisApi's view of the bound platform's blocks. States convert through their keys, as {@link PlatformBlockStates}
  * does; the platform decides which blocks exist, so a key it does not know fails. Traits, tags and attachment to
  * a face are the platform's own answers: its block tags, its falling blocks and its face support.
+ * <p>
+ * {@link BlockSpec}s resolve as Iris resolves the block data packs write ({@link IrisValues#blockData}): a block of
+ * the pack's {@code blocks} folder, the platform's block, the backup, then air. Each spec is converted once per
+ * pack snapshot, so its resolution is too.
  */
 final class IrisBlockRegistry implements BlockRegistry {
+    private final IrisData data;
+    private final Map<BlockSpec, IrisBlockData> specs = new ConcurrentHashMap<>();
+
+    /** @param data the pack whose {@code blocks} folder custom blocks come from */
+    IrisBlockRegistry(IrisData data) {
+        this.data = data;
+    }
+
     @Override
     public BlockState resolve(String key) {
         return BlockState.parse(PlatformBlockStates.namespaced(platformState(key).key()));
+    }
+
+    @Override
+    public BlockState resolve(BlockSpec spec) {
+        return BlockState.parse(PlatformBlockStates.namespaced(blockData(spec).getBlockData(data).key()));
+    }
+
+    @Override
+    public Optional<BlockEntityData> blockEntity(BlockSpec spec) {
+        TileData tile = blockData(spec).tryGetTile(data);
+        return tile == null ? Optional.empty() : Optional.of(BlockEntities.of(tile));
+    }
+
+    private IrisBlockData blockData(BlockSpec spec) {
+        return specs.computeIfAbsent(spec, IrisValues::blockData);
     }
 
     @Override

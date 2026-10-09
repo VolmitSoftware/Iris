@@ -43,6 +43,7 @@ import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStru
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -56,6 +57,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class NativeStructureReferenceRepairTest {
     @BeforeClass
@@ -138,7 +142,7 @@ public class NativeStructureReferenceRepairTest {
                 NativeStructureReferenceEnvelope.referenceBounds(start, structure, terrain));
         IrisDimension dimension = new IrisDimension();
         dimension.getImportedStructures().getDisabled().add(structureKey);
-        IrisData data = allocateWithoutConstructor(IrisData.class);
+        IrisData data = packWithoutModules();
         Engine engine = engine(dimension, data);
         IrisNativeStructureDecision currentDecision = NativeStructureGenerationPolicy.resolve(
                 engine, structureKey, false);
@@ -320,6 +324,16 @@ public class NativeStructureReferenceRepairTest {
                 RegistryAccess.class.getClassLoader(),
                 new Class<?>[]{RegistryAccess.class},
                 handler);
+    }
+
+    /**
+     * A pack without modules: the generation policy asks the pack's vanilla structure hooks, and there are none. The
+     * adapters' tests do not see IrisApi's host classes, so the catalog is a deep stub.
+     */
+    private static IrisData packWithoutModules() {
+        IrisData data = mock(IrisData.class, RETURNS_DEEP_STUBS);
+        when(data.getDataFolder()).thenReturn(new File("pack"));
+        return data;
     }
 
     private static Engine engine(IrisDimension dimension, IrisData data) throws Exception {

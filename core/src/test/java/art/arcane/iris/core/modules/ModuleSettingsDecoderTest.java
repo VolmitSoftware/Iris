@@ -30,14 +30,19 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
+import com.volmit.config.Range;
 import com.volmit.config.Feature;
 import com.volmit.config.Snippet;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
+import com.volmit.noise.NoiseStyle;
+import com.volmit.noise.StyledRange;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,6 +53,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -86,6 +93,16 @@ public class ModuleSettingsDecoderTest {
         private List<IrisPosition> marks = List.of();
     }
 
+    @Feature(id = "iris:moss/values", name = "Values", targets = Target.BIOME)
+    public static final class ValuesSettings implements IrisFeature {
+        private List<BlockSpec> palette = List.of();
+        private NoiseStyle style = NoiseStyle.of("SIMPLEX");
+        private StyledRange height = StyledRange.of(1, 2, NoiseStyle.of(NoiseStyle.FLAT));
+        private Range light = Range.of(0, 15);
+        private BlockPosition offset = new BlockPosition(0, 0, 0);
+        private Map<String, Object> extra = Map.of();
+    }
+
     public static final class MossModule implements IrisModule {
         @Override
         public ModuleInfo info() {
@@ -102,6 +119,7 @@ public class ModuleSettingsDecoderTest {
         public void register(FeatureRegistry registry) {
             registry.registerSettings(CoverSettings.class);
             registry.registerSettings(MarksSettings.class);
+            registry.registerSettings(ValuesSettings.class);
         }
     }
 
@@ -163,6 +181,50 @@ public class ModuleSettingsDecoderTest {
     }
 
     @Test
+    public void snippetReferencesMayNameTheSnippetFolderAsIrisSnippetsDo() throws IOException {
+        Path snippets = Files.createDirectories(packFolder.resolve("snippet/moss-patch"));
+        Files.writeString(snippets.resolve("wide.json"), "{\"size\": 9}");
+
+        assertEquals(9, moss("{\"moss\": {\"patch\": \"snippet/moss-patch/wide\"}}").patch.size);
+    }
+
+    @Test
+    public void apiValueTypesReadTheJsonIrisClassesRead() throws IOException {
+        Path styles = Files.createDirectories(packFolder.resolve("snippet/style"));
+        Files.writeString(styles.resolve("deepslate.json"), "{\"style\": \"STATIC\"}");
+        ValuesSettings values = decoder.decode(Target.BIOME, new JSONObject("""
+                {"iris:moss/values": {
+                  "palette": [{"block": "minecraft:oak_log", "data": {"axis": "y", "waterlogged": true, "level": 3}, "weight": 2,
+                               "backup": {"block": "stone"}, "tileData": {"Delay": 20, "SpawnData": {"entity": {"id": "zombie"}}}},
+                              {"block": "iron_ore"}],
+                  "style": "snippet/style/deepslate",
+                  "height": {"min": 4, "style": {"style": "SIMPLEX", "zoom": 8, "fracture": {"style": "PERLIN", "multiplier": 2}}},
+                  "light": {"max": 7},
+                  "offset": {"x": 1, "z": 3},
+                  "extra": {"list": [1, "a", true]}
+                }}
+                """), "biome desert/dunes").find(ValuesSettings.class).orElseThrow();
+
+        BlockSpec log = values.palette.getFirst();
+        assertEquals("minecraft:oak_log", log.block());
+        assertEquals(Map.of("axis", "y", "waterlogged", "true", "level", "3"), log.data());
+        assertEquals(2, log.weight());
+        assertEquals(Optional.of(BlockSpec.of("stone")), log.backup());
+        assertEquals(Map.of("Delay", 20.0, "SpawnData", Map.of("entity", Map.of("id", "zombie"))), log.tileData());
+        assertEquals(BlockSpec.of("iron_ore"), values.palette.get(1));
+        assertEquals(NoiseStyle.of("STATIC"), values.style);
+        assertEquals(4, values.height.min(), 0);
+        assertEquals(32, values.height.max(), 0);
+        assertEquals("SIMPLEX", values.height.style().style());
+        assertEquals(8, values.height.style().zoom(), 0);
+        assertEquals("PERLIN", values.height.style().fracture().orElseThrow().style());
+        assertEquals(2, values.height.style().fracture().orElseThrow().multiplier(), 0);
+        assertEquals(Range.of(16, 7), values.light);
+        assertEquals(new BlockPosition(1, 0, 3), values.offset);
+        assertEquals(Map.of("list", List.of(1.0, "a", true)), values.extra);
+    }
+
+    @Test
     public void badValuesNameTheSettingsKeyAndResource() {
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
                 () -> moss("{\"moss\": {\"block\": \"stone\"}}"));
@@ -172,7 +234,7 @@ public class ModuleSettingsDecoderTest {
 
     @Test
     public void listsTheKeysModulesReadPerTarget() {
-        assertEquals(Set.of("iris:moss", "moss", "iris:moss/cover", "cover", "iris:moss/marks", "marks"), decoder.keys(Target.BIOME));
+        assertEquals(Set.of("iris:moss", "moss", "iris:moss/cover", "cover", "iris:moss/marks", "marks", "iris:moss/values"), decoder.keys(Target.BIOME));
         assertEquals(Set.of(), decoder.keys(Target.DIMENSION));
     }
 

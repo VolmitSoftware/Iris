@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 /** IrisApi's blocks are the bound platform's, through their keys, and so are its traits, tags and face support. */
 public class IrisBlockRegistryTest {
-    private final IrisBlockRegistry blocks = new IrisBlockRegistry();
+    private final IrisBlockRegistry blocks = new IrisBlockRegistry(mock(art.arcane.iris.core.loader.IrisData.class));
     private PlatformRegistries registries;
     private PlatformBlockState stone;
     private PlatformBlockState sand;

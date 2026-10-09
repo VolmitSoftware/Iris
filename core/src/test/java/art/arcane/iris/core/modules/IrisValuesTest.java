@@ -1,0 +1,174 @@
+package art.arcane.iris.core.modules;
+
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.engine.UsableBlockPlatform;
+import art.arcane.iris.engine.object.material.IrisBlockData;
+import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
+import art.arcane.iris.engine.object.prefab.TileData;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.volmlib.util.collection.KMap;
+import art.arcane.volmlib.util.math.RNG;
+import com.google.gson.Gson;
+import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
+import com.volmit.config.OptionsMetadata;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.noise.NoiseStyle;
+import com.volmit.object.BlockEntityData;
+import org.junit.After;
+import org.junit.Test;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/** IrisApi's value types read the JSON of Iris's own classes and resolve, and build noise, exactly as those do. */
+public class IrisValuesTest {
+    private static final double[][] COLUMNS = {{0, 0}, {17.5, -3}, {-640, 1280}, {12345.25, 678.5}};
+    private static final Map<Class<?>, Set<String>> IRIS_ONLY_FIELDS = Map.of(IrisBlockData.class, Set.of("debug"));
+
+    @After
+    public void unbindPlatform() {
+        UsableBlockPlatform.unbind();
+    }
+
+    @Test
+    public void everyValueTypeHasTheJsonFieldsOfItsIrisClass() {
+        IrisValues.irisClasses().forEach((apiType, irisClass) -> {
+            Set<String> api = new TreeSet<>(OptionsMetadata.inspect(apiClass(apiType)).options().stream().map(OptionsMetadata.Option::name).toList());
+            Set<String> iris = new TreeSet<>(jsonFields(irisClass));
+            iris.removeAll(IRIS_ONLY_FIELDS.getOrDefault(irisClass, Set.of()));
+            assertEquals(apiType + " and " + irisClass.getName(), iris, api);
+        });
+    }
+
+    @Test
+    public void blockSpecsResolveThroughThePlatformWithTheirProperties() {
+        UsableBlockPlatform.bind();
+        IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+
+        assertEquals(BlockState.parse("minecraft:iron_ore"), blocks.resolve(BlockSpec.of("iron_ore")));
+        assertEquals(BlockState.parse("minecraft:oak_log[axis=y]"), blocks.resolve(BlockSpec.of("minecraft:oak_log").withProperty("axis", "y")));
+    }
+
+    @Test
+    public void aBlockSpecNamesTheCustomBlocksOfThePackAndFallsBackToItsBackup() {
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.block(anyString())).thenAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            return key.contains("missing") ? null : UsableBlockPlatform.block(key);
+        });
+        when(registries.blockOrNull(anyString(), anyBoolean())).thenAnswer(invocation -> registries.block(invocation.getArgument(0)));
+        bind(registries);
+        IrisData data = packWithoutCustomBlocks();
+        when(data.getBlockLoader().load("glowing_stone", false)).thenReturn(new IrisBlockData("minecraft:stone").setData(new KMap<String, Object>().qput("lit", true)));
+        IrisBlockRegistry blocks = new IrisBlockRegistry(data);
+
+        assertEquals(BlockState.parse("minecraft:stone[lit=true]"), blocks.resolve(BlockSpec.of("glowing_stone")));
+        assertEquals(BlockState.parse("minecraft:cobblestone"), blocks.resolve(BlockSpec.of("mod:missing").withBackup(BlockSpec.of("cobblestone"))));
+    }
+
+    @Test
+    public void tileDataBecomesIrisBlockEntities() {
+        UsableBlockPlatform.bind();
+        TileData.TileFactory previous = TileData.bindPlatformFactory((state, properties) -> new TileData(state.key(), properties));
+        try {
+            IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+            BlockSpec spawner = BlockSpec.of("spawner").withTileData(Map.of("Delay", 20.0));
+
+            assertEquals(Optional.empty(), blocks.blockEntity(BlockSpec.of("stone")));
+            assertEquals("the platform's stone-like spawner has no block entity", Optional.empty(), blocks.blockEntity(spawner));
+            PlatformBlockState withEntity = UsableBlockPlatform.block("minecraft:chest");
+            when(withEntity.hasTileEntity()).thenReturn(true);
+            PlatformRegistries registries = mock(PlatformRegistries.class);
+            when(registries.block(anyString())).thenReturn(withEntity);
+            bind(registries);
+            BlockEntityData entity = new IrisBlockRegistry(packWithoutCustomBlocks()).blockEntity(BlockSpec.of("chest").withTileData(Map.of("Lock", "key")))
+                    .orElseThrow();
+            assertEquals(BlockEntities.TILE_FORMAT, entity.format());
+        } finally {
+            TileData.restorePlatformFactory(previous);
+        }
+    }
+
+    @Test
+    public void noiseStylesBuildTheNoiseOfTheirIrisGeneratorStyle() {
+        String json = "{\"style\": \"SIMPLEX\", \"zoom\": 4, \"exponent\": 1.5, \"cellularFrequency\": 0.3,"
+                + " \"fracture\": {\"style\": \"PERLIN\", \"zoom\": 2, \"multiplier\": 3}}";
+        IrisData data = packWithoutCustomBlocks();
+        NoiseStyle style = new Gson().fromJson(json, NoiseStyle.class);
+        CNG iris = new Gson().fromJson(json, IrisGeneratorStyle.class).create(new RNG(1337), data);
+        NoiseSampler sampler = new IrisNoiseFactory(data).sampler(style, 1337);
+
+        for (double[] column : COLUMNS) {
+            assertEquals(iris.noise(column[0], column[1]), sampler.sample(column[0], column[1]), 0);
+            assertEquals(iris.noise(column[0], 64, column[1]), sampler.sample(column[0], 64, column[1]), 0);
+        }
+    }
+
+    @Test
+    public void aStyleNameIrisDoesNotKnowIsFlat() {
+        IrisData data = packWithoutCustomBlocks();
+        IrisNoiseFactory noise = new IrisNoiseFactory(data);
+        NoiseSampler unknown = noise.sampler(NoiseStyle.of("NOT_A_STYLE"), 7);
+        NoiseSampler flat = noise.sampler(NoiseStyle.of(NoiseStyle.FLAT), 7);
+
+        for (double[] column : COLUMNS) {
+            assertEquals(flat.sample(column[0], column[1]), unknown.sample(column[0], column[1]), 0);
+        }
+    }
+
+    private static IrisData packWithoutCustomBlocks() {
+        IrisData data = mock(IrisData.class);
+        @SuppressWarnings("unchecked")
+        ResourceLoader<IrisBlockData> blocks = mock(ResourceLoader.class);
+        when(data.getBlockLoader()).thenReturn(blocks);
+        return data;
+    }
+
+    private static void bind(PlatformRegistries registries) {
+        UsableBlockPlatform.unbind();
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.registries()).thenReturn(registries);
+        IrisPlatforms.bind(platform);
+    }
+
+    private static Class<?> apiClass(String name) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException missing) {
+            throw new AssertionError(missing);
+        }
+    }
+
+    /** The fields Iris's Gson reads: instance fields that are not transient, a superclass's included. */
+    private static List<String> jsonFields(Class<?> type) {
+        List<String> names = new ArrayList<>();
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                int modifiers = field.getModifiers();
+                if (!Modifier.isStatic(modifiers) && !Modifier.isTransient(modifiers) && !field.isSynthetic()) {
+                    names.add(field.getName());
+                }
+            }
+        }
+        return names;
+    }
+}

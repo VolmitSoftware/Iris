@@ -25,9 +25,13 @@ import art.arcane.iris.spi.PlatformNumericRange;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.core.modules.ModuleResourceFiles;
 import art.arcane.iris.core.modules.ModuleTargets;
 import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.noise.NoiseStyle;
+import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -391,7 +395,8 @@ public class SchemaBuilder {
     private ModuleSchemaRenderer moduleSchemas() {
         if (moduleSchemas == null) {
             moduleSchemas = new ModuleSchemaRenderer(data.getModules().pack().schema(), definitions,
-                    this::completeReference, this::completeResourceReference, this::hostDefinition, data::getPossibleSnippets);
+                    this::completeReference, this::completeResourceReference, this::hostDefinition,
+                    typeName -> IrisValues.irisClassOf(typeName).map(Class::getName), data::getPossibleSnippets);
         }
         return moduleSchemas;
     }
@@ -439,6 +444,9 @@ public class SchemaBuilder {
             case PACK_BIOME -> putPackResourceRef(property, IrisBiome.class);
             case PACK_REGION -> putPackResourceRef(property, IrisRegion.class);
             case PACK_OBJECT -> putPackResourceRef(property, IrisObject.class);
+            case NOISE_STYLE -> addEnum(NoiseStyle.class, property, new KList<>(), enumNames(NoiseStyle.class), Function.identity());
+            case PACK_EXPRESSION -> putPackResourceRef(property, IrisExpression.class);
+            case PACK_IMAGE_MAP -> putPackResourceRef(property, IrisImageMap.class);
         }
     }
 

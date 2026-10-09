@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositHeightDistribution;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositPlacementScope;
+import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
+import art.arcane.iris.builtin.deposit.DepositPlacementScope;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
@@ -42,17 +42,17 @@ public class DepositPlacerContainmentTest {
     @Test
     public void placementScopeSeparatesTerrainFromFloatingSolids() {
         assertTrue(DepositPlacer.placementSurfaceAllows(
-                IrisDepositPlacementScope.TERRAIN, 70, 80, 7));
+                DepositPlacementScope.TERRAIN, 70, 80, 7));
         assertFalse(DepositPlacer.placementSurfaceAllows(
-                IrisDepositPlacementScope.TERRAIN, 74, 80, 7));
+                DepositPlacementScope.TERRAIN, 74, 80, 7));
         assertFalse(DepositPlacer.placementSurfaceAllows(
-                IrisDepositPlacementScope.ABOVE_TERRAIN, 80, 80, 0));
+                DepositPlacementScope.ABOVE_TERRAIN, 80, 80, 0));
         assertTrue(DepositPlacer.placementSurfaceAllows(
-                IrisDepositPlacementScope.ABOVE_TERRAIN, 81, 80, 0));
+                DepositPlacementScope.ABOVE_TERRAIN, 81, 80, 0));
         assertTrue(DepositPlacer.placementSurfaceAllows(
-                IrisDepositPlacementScope.FULL_HEIGHT, 1, 80, 64));
+                DepositPlacementScope.FULL_HEIGHT, 1, 80, 64));
         assertTrue(DepositPlacer.placementSurfaceAllows(
-                IrisDepositPlacementScope.FULL_HEIGHT, 700, 80, 64));
+                DepositPlacementScope.FULL_HEIGHT, 700, 80, 64));
     }
 
     @Test
@@ -99,7 +99,7 @@ public class DepositPlacerContainmentTest {
         boolean sampledAboveBottom = false;
         for (int i = 0; i < 2_000; i++) {
             int y = DepositPlacer.sampleHeight(
-                    IrisDepositHeightDistribution.UNIFORM, uniform, -80, 80, 20);
+                    DepositHeightDistribution.UNIFORM, uniform, -80, 80, 20);
             sampledBelowBottom |= y < 0;
             sampledAboveBottom |= y > 20;
         }
@@ -107,7 +107,7 @@ public class DepositPlacerContainmentTest {
         assertTrue(sampledBelowBottom);
         assertTrue(sampledAboveBottom);
         assertEquals(14, DepositPlacer.sampleHeight(
-                IrisDepositHeightDistribution.UNIFORM, uniform, 14, 14, 10));
+                DepositHeightDistribution.UNIFORM, uniform, 14, 14, 10));
     }
 
     @Test
@@ -115,7 +115,7 @@ public class DepositPlacerContainmentTest {
         RNG rng = new RNG(44L);
         for (int i = 0; i < 2_000; i++) {
             int y = DepositPlacer.sampleHeight(
-                    IrisDepositHeightDistribution.CLIPPED_UNIFORM, rng, -80, 80, 20);
+                    DepositHeightDistribution.CLIPPED_UNIFORM, rng, -80, 80, 20);
             assertTrue(y >= 0);
             assertTrue(y <= 20);
         }
@@ -130,7 +130,7 @@ public class DepositPlacerContainmentTest {
         int samples = 100_000;
         for (int i = 0; i < samples; i++) {
             int y = DepositPlacer.sampleHeight(
-                    IrisDepositHeightDistribution.TRIANGLE, rng, -32, 32, 32);
+                    DepositHeightDistribution.TRIANGLE, rng, -32, 32, 32);
             total += y;
             if (Math.abs(y) <= 4) {
                 center++;

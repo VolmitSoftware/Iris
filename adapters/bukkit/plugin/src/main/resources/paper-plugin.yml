@@ -10,6 +10,9 @@ authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: VolmitSoftware.com
 description: More than a Dimension!
 permissions:
+  iris.update:
+    description: Allows viewing Iris updates in VolmLib's combined update reports.
+    default: op
   iris.debugdump:
     description: Allows creating and optionally uploading diagnostic reports.
     default: op

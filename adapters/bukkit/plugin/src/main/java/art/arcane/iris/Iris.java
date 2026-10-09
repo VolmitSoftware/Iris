@@ -37,6 +37,7 @@ import art.arcane.iris.world.PendingWorldDeleteQueue;
 import art.arcane.iris.world.PendingWorldReplacementManager;
 import art.arcane.iris.world.WorldRefusalReporter;
 import art.arcane.iris.configuration.SettingsHotloadWatch;
+import art.arcane.iris.update.IrisUpdateNotifier;
 import art.arcane.iris.pack.datapack.ServerConfigurator;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.pack.datapack.DatapackIngestService.StartupValidationOutcome;
@@ -215,6 +216,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private final PendingWorldDeleteQueue pendingWorldDeletes = new PendingWorldDeleteQueue(this);
     private final PendingWorldReplacementManager pendingWorldReplacements = new PendingWorldReplacementManager(this);
     private BukkitLanguageSwitcher languageSwitcher;
+    private IrisUpdateNotifier updateNotifier;
     private BukkitDebugDump debugDump;
     private volatile SettingsHotloadWatch settingsHotloadWatch;
     private volatile Thread serverLifecycleThread;
@@ -637,6 +639,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         languageSwitcher = BukkitLanguageSwitcher.register(this, IrisLanguage.selections(),
                 new BukkitLanguageSwitcher.Options("iris", "iris.all",
                         DirectorMiniMenu.Theme.irisGreen(), IrisLanguage.directorResolver(), IrisLanguage.editorOptions()));
+        updateNotifier = new IrisUpdateNotifier(this);
         PaperLibBootstrap.install();
         SimdSupport.install();
         timings.mark("bootstrap");
@@ -974,6 +977,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onDisable() {
+        if (updateNotifier != null) {
+            updateNotifier.close();
+            updateNotifier = null;
+        }
         if (debugDump != null) {
             debugDump.close();
             debugDump = null;

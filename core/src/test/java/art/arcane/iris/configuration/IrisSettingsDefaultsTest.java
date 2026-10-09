@@ -13,6 +13,16 @@ import static org.junit.Assert.assertThrows;
 
 public class IrisSettingsDefaultsTest {
     @Test
+    public void updateChecksDefaultOnAndPersistAnExplicitOptOut() {
+        assertTrue(IrisSettings.parseHotloadSnapshot("{}").getGeneral().isUpdateNotifications());
+        IrisSettings optedOut = IrisSettings.parseHotloadSnapshot(
+                "{\"general\":{\"updateNotifications\":false}}");
+        assertFalse(optedOut.getGeneral().isUpdateNotifications());
+        assertFalse(new Gson().fromJson(new Gson().toJson(optedOut), IrisSettings.class)
+                .getGeneral().isUpdateNotifications());
+    }
+
+    @Test
     public void regionBudgetLeavesHeapForHydrologyAndServerChunks() {
         IrisSettings.IrisSettingsPregen settings = new IrisSettings.IrisSettingsPregen();
         assertEquals(21, settings.effectiveResidentTectonicPlates(384, 4L << 30));

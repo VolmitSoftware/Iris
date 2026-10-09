@@ -33,11 +33,14 @@ import lombok.Data;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 @Data
 public class IrisSettings {
     private static final Object SETTINGS_LOCK = new Object();
+    private static final CopyOnWriteArrayList<Consumer<IrisSettings>> LISTENERS = new CopyOnWriteArrayList<>();
     private static final IrisSettings BOOTSTRAP_DEFAULTS = new IrisSettings();
     public static volatile IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
@@ -80,6 +83,7 @@ public class IrisSettings {
 
             current = read();
             settings = current;
+            notifySettingsChanged(current);
             return current;
         }
     }
@@ -130,6 +134,7 @@ public class IrisSettings {
         IrisSettings parsed = parseHotloadSnapshot(rawJson);
         synchronized (SETTINGS_LOCK) {
             settings = parsed;
+            notifySettingsChanged(parsed);
         }
         return parsed;
     }
@@ -142,6 +147,7 @@ public class IrisSettings {
         }
         synchronized (SETTINGS_LOCK) {
             settings = parsed;
+            notifySettingsChanged(parsed);
         }
         return true;
     }
@@ -163,6 +169,20 @@ public class IrisSettings {
 
         parsed.fillMissingSections();
         return parsed;
+    }
+
+    public static void addSettingsListener(Consumer<IrisSettings> listener) {
+        LISTENERS.add(Objects.requireNonNull(listener));
+    }
+
+    public static void removeSettingsListener(Consumer<IrisSettings> listener) {
+        LISTENERS.remove(listener);
+    }
+
+    private static void notifySettingsChanged(IrisSettings current) {
+        for (Consumer<IrisSettings> listener : LISTENERS) {
+            listener.accept(current);
+        }
     }
 
     public void forceSave() {
@@ -310,6 +330,7 @@ public class IrisSettings {
     public static class IrisSettingsGeneral {
         public String language = "en_US";
         public boolean metrics = true;
+        public boolean updateNotifications = true;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean dumpMantleOnError = false;

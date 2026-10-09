@@ -23,6 +23,9 @@ commands:
   iris:
     aliases: [ ir, irs ]
 permissions:
+  iris.update:
+    description: Allows viewing Iris updates in VolmLib's combined update reports.
+    default: op
   iris.debugdump:
     description: Allows creating and optionally uploading diagnostic reports.
     default: op

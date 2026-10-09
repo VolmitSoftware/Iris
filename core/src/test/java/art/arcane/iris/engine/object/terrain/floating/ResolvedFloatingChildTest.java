@@ -1,24 +1,23 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.floating.OverrideMode;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.terrain.floating.OverrideMode;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class IrisFloatingChildBiomesResolverTest {
+public class ResolvedFloatingChildTest {
     @Test
     public void resolveTopObjects_inheritOnly_withInheritTrue_returnsSurfaceObjects() {
         IrisObjectPlacement placement = new IrisObjectPlacement();
         KList<IrisObjectPlacement> surface = new KList<>();
         surface.add(placement);
 
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setInheritObjects(true);
-        entry.setTopObjectMode(OverrideMode.INHERIT_ONLY);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "inheritObjects", true, "topObjectMode", OverrideMode.INHERIT_ONLY));
 
         KList<IrisObjectPlacement> result = entry.resolveTopObjectsFromSurface(surface);
 
@@ -34,10 +33,7 @@ public class IrisFloatingChildBiomesResolverTest {
         KList<IrisObjectPlacement> overrides = new KList<>();
         overrides.add(overridePlacement);
 
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setInheritObjects(true);
-        entry.setTopObjectMode(OverrideMode.REPLACE);
-        entry.setTopObjectOverrides(overrides);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "inheritObjects", true, "topObjectMode", OverrideMode.REPLACE, "topObjectOverrides", overrides));
 
         KList<IrisObjectPlacement> result = entry.resolveTopObjectsFromSurface(surface);
 
@@ -54,10 +50,7 @@ public class IrisFloatingChildBiomesResolverTest {
         KList<IrisObjectPlacement> overrides = new KList<>();
         overrides.add(overridePlacement);
 
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setInheritObjects(true);
-        entry.setTopObjectMode(OverrideMode.MERGE);
-        entry.setTopObjectOverrides(overrides);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "inheritObjects", true, "topObjectMode", OverrideMode.MERGE, "topObjectOverrides", overrides));
 
         KList<IrisObjectPlacement> result = entry.resolveTopObjectsFromSurface(surface);
 
@@ -68,8 +61,7 @@ public class IrisFloatingChildBiomesResolverTest {
 
     @Test
     public void resolveTopObjects_inheritOnly_emptySurface_returnsEmpty() {
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setTopObjectMode(OverrideMode.INHERIT_ONLY);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "topObjectMode", OverrideMode.INHERIT_ONLY));
 
         KList<IrisObjectPlacement> result = entry.resolveTopObjectsFromSurface(new KList<>());
 
@@ -78,8 +70,7 @@ public class IrisFloatingChildBiomesResolverTest {
 
     @Test
     public void resolveBottomObjects_inheritOnly_returnsEmptyList() {
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setBottomObjectMode(OverrideMode.INHERIT_ONLY);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "bottomObjectMode", OverrideMode.INHERIT_ONLY));
 
         KList<IrisObjectPlacement> result = entry.resolveBottomObjects(null);
 
@@ -92,9 +83,7 @@ public class IrisFloatingChildBiomesResolverTest {
         KList<IrisObjectPlacement> overrides = new KList<>();
         overrides.add(overridePlacement);
 
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setBottomObjectMode(OverrideMode.REPLACE);
-        entry.setBottomObjectOverrides(overrides);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "bottomObjectMode", OverrideMode.REPLACE, "bottomObjectOverrides", overrides));
 
         KList<IrisObjectPlacement> result = entry.resolveBottomObjects(null);
 
@@ -104,9 +93,7 @@ public class IrisFloatingChildBiomesResolverTest {
 
     @Test
     public void resolveTopObjects_inheritTrue_nullTargetProduces_emptySurface() {
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setInheritObjects(true);
-        entry.setTopObjectMode(OverrideMode.INHERIT_ONLY);
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "inheritObjects", true, "topObjectMode", OverrideMode.INHERIT_ONLY));
 
         KList<IrisObjectPlacement> result = entry.resolveTopObjects(null);
 

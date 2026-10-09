@@ -18,10 +18,11 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.floating.TopShapeMode;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
-import art.arcane.iris.engine.object.terrain.floating.TopShapeMode;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.core.loader.IrisData;
@@ -403,9 +404,9 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void ownershipFade_tapersAcrossPickerBoundary() {
-        IrisFloatingChildBiomes left = new IrisFloatingChildBiomes().setRarity(1);
-        IrisFloatingChildBiomes right = new IrisFloatingChildBiomes().setRarity(1);
-        KList<IrisFloatingChildBiomes> entries = new KList<>();
+        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome());
+        KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(left);
         entries.add(right);
         CNG picker = new CNG(new RNG(18)) {
@@ -432,9 +433,9 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void ownershipFade_rejectsThinPickerRegion() {
-        IrisFloatingChildBiomes left = new IrisFloatingChildBiomes().setRarity(1);
-        IrisFloatingChildBiomes right = new IrisFloatingChildBiomes().setRarity(1);
-        KList<IrisFloatingChildBiomes> entries = new KList<>();
+        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome());
+        KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(left);
         entries.add(right);
         CNG picker = new CNG(new RNG(24)) {
@@ -462,9 +463,9 @@ public class FloatingIslandBoundarySamplerTest {
         leftParent.setLoadKey("left");
         IrisBiome rightParent = new IrisBiome();
         rightParent.setLoadKey("right");
-        IrisFloatingChildBiomes leftChild = new IrisFloatingChildBiomes().setRarity(1);
-        IrisFloatingChildBiomes rightChild = new IrisFloatingChildBiomes().setRarity(1);
-        KList<IrisFloatingChildBiomes> entries = new KList<>();
+        ResolvedFloatingChild leftChild = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild rightChild = new ResolvedFloatingChild(new FloatingChildBiome());
+        KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(leftChild);
         entries.add(rightChild);
         CNG picker = new CNG(new RNG(29)) {
@@ -494,9 +495,9 @@ public class FloatingIslandBoundarySamplerTest {
     public void sampler_fieldsPublishSafelyAcrossConcurrentReaders() throws Exception {
         IrisBiome parent = new IrisBiome();
         parent.setLoadKey("parent");
-        IrisFloatingChildBiomes left = new IrisFloatingChildBiomes().setRarity(1);
-        IrisFloatingChildBiomes right = new IrisFloatingChildBiomes().setRarity(1);
-        KList<IrisFloatingChildBiomes> entries = new KList<>();
+        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome());
+        KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(left);
         entries.add(right);
         CNG constant = new CNG(new RNG(26)) {
@@ -555,46 +556,32 @@ public class FloatingIslandBoundarySamplerTest {
                 return 1.0D;
             }
         };
-        IrisFloatingChildBiomes entry = mock(IrisFloatingChildBiomes.class);
+        ResolvedFloatingChild entry = mock(ResolvedFloatingChild.class);
         IrisBiome parent = mock(IrisBiome.class);
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
         IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(320).build();
-        KList<IrisFloatingChildBiomes> entries = new KList<>();
+        KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(entry);
-        when(parent.getFloatingChildBiomes()).thenReturn(entries);
         when(parent.isMergeFloatingChildBiomes()).thenReturn(false);
         when(entry.getFootprintCng(anyLong(), same(data))).thenReturn(footprint);
-        when(entry.getFootprintThreshold()).thenReturn(0.5D);
         when(entry.getAltitudeCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getMinHeightAboveSurface()).thenReturn(160);
-        when(entry.getMaxHeightAboveSurface()).thenReturn(160);
         when(entry.getRealBiome(parent, data)).thenReturn(parent);
-        when(entry.getTopShapeMode()).thenReturn(TopShapeMode.NOISE);
         when(entry.getTopShapeCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getTopShapeAmp()).thenReturn(1.0D);
-        when(entry.getMaxTopHeight()).thenReturn(18);
         when(entry.getBottomCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getBottomExponent()).thenReturn(1.0D);
-        when(entry.getBottomDepthMin()).thenReturn(20);
-        when(entry.getBottomDepthMax()).thenReturn(20);
-        when(entry.getMaxThickness()).thenReturn(64);
-        when(entry.getMinAbsoluteY()).thenReturn(null);
-        when(entry.getMaxAbsoluteY()).thenReturn(null);
         when(entry.getWallWarpCng(anyLong(), same(data))).thenReturn(null);
-        when(entry.getWallWarpAmplitude()).thenReturn(0.0D);
         when(entry.getCarvingProfileSampler(engine, data)).thenReturn(null);
         when(entry.hasCarvingReference()).thenReturn(false);
         when(entry.getCarveCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getCarveThreshold()).thenReturn(0.5D);
+        when(entry.settings()).thenReturn(TestSettings.with(new FloatingChildBiome(), "footprintThreshold", 0.5D, "minHeightAboveSurface", 160, "maxHeightAboveSurface", 160, "topShapeMode", TopShapeMode.NOISE, "topShapeAmp", 1.0D, "maxTopHeight", 18, "bottomExponent", 1.0D, "bottomDepthMin", 20, "bottomDepthMax", 20, "maxThickness", 64, "wallWarpAmplitude", 0.0D, "carveThreshold", 0.5D));
         when(engine.getWorld()).thenReturn(world);
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
         int[] expectedBottom = {159, 158, 156, 153, 150, 147, 144, 142, 141, 140};
         int[] expectedTop = {161, 162, 164, 166, 169, 172, 174, 176, 177, 178};
 
-        assertNull(FloatingIslandSample.sample(parent, 0, 0, 320, 31L, data, engine, sampler));
+        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 31L, data, engine, sampler));
         for (int i = 0; i < expectedBottom.length; i++) {
-            FloatingIslandSample sample = FloatingIslandSample.sample(parent, i + 1, 0, 320, 31L, data, engine, sampler);
+            FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, i + 1, 0, 320, 31L, data, engine, sampler);
             assertNotNull("distance " + (i + 2) + " rejected with code " + FloatingIslandSample.getLastReject(), sample);
             assertEquals(expectedBottom[i], sample.bottomY());
             assertEquals(expectedTop[i], sample.topY());
@@ -634,49 +621,34 @@ public class FloatingIslandBoundarySamplerTest {
                 return 1.0D;
             }
         };
-        IrisFloatingChildBiomes lower = mock(IrisFloatingChildBiomes.class);
-        IrisFloatingChildBiomes upper = mock(IrisFloatingChildBiomes.class);
+        ResolvedFloatingChild lower = mock(ResolvedFloatingChild.class);
+        ResolvedFloatingChild upper = mock(ResolvedFloatingChild.class);
         IrisBiome parent = mock(IrisBiome.class);
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
         IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(320).build();
-        KList<IrisFloatingChildBiomes> entries = new KList<>();
+        KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(lower);
         entries.add(upper);
-        when(parent.getFloatingChildBiomes()).thenReturn(entries);
         when(parent.isMergeFloatingChildBiomes()).thenReturn(true);
-        for (IrisFloatingChildBiomes entry : entries) {
+        for (ResolvedFloatingChild entry : entries) {
             when(entry.getFootprintCng(anyLong(), same(data))).thenReturn(footprint);
-            when(entry.getFootprintThreshold()).thenReturn(0.5D);
             when(entry.getAltitudeCng(anyLong(), same(data))).thenReturn(constant);
             when(entry.getRealBiome(parent, data)).thenReturn(parent);
-            when(entry.getTopShapeMode()).thenReturn(TopShapeMode.NOISE);
             when(entry.getTopShapeCng(anyLong(), same(data))).thenReturn(constant);
-            when(entry.getTopShapeAmp()).thenReturn(1.0D);
-            when(entry.getMaxTopHeight()).thenReturn(18);
             when(entry.getBottomCng(anyLong(), same(data))).thenReturn(constant);
-            when(entry.getBottomExponent()).thenReturn(1.0D);
-            when(entry.getBottomDepthMin()).thenReturn(20);
-            when(entry.getBottomDepthMax()).thenReturn(20);
-            when(entry.getMaxThickness()).thenReturn(64);
-            when(entry.getMinAbsoluteY()).thenReturn(null);
-            when(entry.getMaxAbsoluteY()).thenReturn(null);
             when(entry.getWallWarpCng(anyLong(), same(data))).thenReturn(null);
-            when(entry.getWallWarpAmplitude()).thenReturn(0.0D);
             when(entry.getCarvingProfileSampler(engine, data)).thenReturn(null);
             when(entry.hasCarvingReference()).thenReturn(false);
             when(entry.getCarveCng(anyLong(), same(data))).thenReturn(null);
-            when(entry.getCarveThreshold()).thenReturn(1.0D);
+            when(entry.settings()).thenReturn(TestSettings.with(new FloatingChildBiome(), "footprintThreshold", 0.5D, "topShapeMode", TopShapeMode.NOISE, "topShapeAmp", 1.0D, "maxTopHeight", 18, "bottomExponent", 1.0D, "bottomDepthMin", 20, "bottomDepthMax", 20, "maxThickness", 64, "wallWarpAmplitude", 0.0D, "carveThreshold", 1.0D,
+                    "minHeightAboveSurface", entry == lower ? 160 : 180, "maxHeightAboveSurface", entry == lower ? 160 : 180));
         }
-        when(lower.getMinHeightAboveSurface()).thenReturn(160);
-        when(lower.getMaxHeightAboveSurface()).thenReturn(160);
-        when(upper.getMinHeightAboveSurface()).thenReturn(180);
-        when(upper.getMaxHeightAboveSurface()).thenReturn(180);
         when(engine.getWorld()).thenReturn(world);
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
 
-        assertNull(FloatingIslandSample.sample(parent, 0, 0, 320, 35L, data, engine, sampler));
-        FloatingIslandSample sample = FloatingIslandSample.sample(parent, 1, 0, 320, 35L, data, engine, sampler);
+        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 35L, data, engine, sampler));
+        FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, 1, 0, 320, 35L, data, engine, sampler);
 
         assertNotNull(sample);
         assertTrue(sample.hasMergedEntries());

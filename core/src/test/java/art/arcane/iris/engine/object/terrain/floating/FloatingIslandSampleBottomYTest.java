@@ -1,7 +1,8 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
-import art.arcane.iris.engine.object.terrain.floating.IrisFloatingChildBiomes;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.NoiseGenerator;
 import art.arcane.volmlib.util.math.RNG;
@@ -62,10 +63,10 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void mergedEntryMask_preservesTopAndBottomOwners() {
-        IrisFloatingChildBiomes bottom = new IrisFloatingChildBiomes();
-        IrisFloatingChildBiomes top = new IrisFloatingChildBiomes();
+        ResolvedFloatingChild bottom = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild top = new ResolvedFloatingChild(new FloatingChildBiome());
         boolean[] mask = {true, true, false, true};
-        IrisFloatingChildBiomes[] entryMask = {bottom, bottom, null, top};
+        ResolvedFloatingChild[] entryMask = {bottom, bottom, null, top};
         FloatingIslandSample sample = FloatingIslandSample.constructForTest(top, 80, mask.length, 3, 3, mask, entryMask);
 
         assertSame(top, sample.entry);
@@ -327,8 +328,7 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void directCarveEnabled_respectsCarvingReferenceOverride() {
-        IrisFloatingChildBiomes entry = new IrisFloatingChildBiomes();
-        entry.setCarving("carving/mushroom");
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "carving", "carving/mushroom"));
         CNG carve = new CNG(new RNG(9));
 
         assertFalse(FloatingIslandSample.directCarveEnabled(entry, null, carve, 0.5));

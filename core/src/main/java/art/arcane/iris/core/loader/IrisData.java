@@ -37,7 +37,6 @@ import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
 import art.arcane.iris.core.structure.authoring.StructureRecoveryResult;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -45,7 +44,6 @@ import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.entity.IrisEntity;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
-import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.image.IrisImage;
 import art.arcane.iris.engine.object.image.IrisImageMap;
@@ -496,8 +494,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public synchronized void hotloaded() {
-        StructureGraphCatalog.invalidate(this);
-        IrisObjectScale.invalidate(this);
         closed = false;
         dataFolder.mkdirs();
         recoverStructureTransactions();
@@ -578,8 +574,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     /** Forgets everything read so far: the loaders' caches and the module resources, which a new snapshot reads again. */
     public void dump() {
-        StructureGraphCatalog.invalidate(this);
-        IrisObjectScale.invalidate(this);
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearCache();
         }
@@ -588,7 +582,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     /** Reads objects and module resources (structures, jigsaw pools and pieces among them) again after a tool rewrote their files. */
     public synchronized void invalidateStructureResources() {
-        StructureGraphCatalog.invalidate(this);
         invalidateLoader(objectLoader);
         reloadModuleResources();
     }

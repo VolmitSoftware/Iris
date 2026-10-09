@@ -26,8 +26,8 @@ import com.volmit.service.Loot;
 import com.volmit.stage.StageGraph;
 
 /**
- * Module {@code iris:loot}: the loot tables of the pack and the items they and the block drops of the dimension, regions
- * and biomes give. It has no generation stage; Iris asks it through {@link Loot} when a container is filled and through
+ * Module {@code iris:loot}: the loot tables of the pack ({@link LootResources}) and the items they and the block drops
+ * of the dimension, regions and biomes give. It checks the tables and the references to them ({@link LootValidator}). It has no generation stage; Iris asks it through {@link Loot} when a container is filled and through
  * {@link BlockDrops} when a player breaks a block.
  */
 public final class LootModule implements IrisModule {
@@ -44,6 +44,8 @@ public final class LootModule implements IrisModule {
 
     @Override
     public void register(FeatureRegistry registry) {
+        LootResources.kinds().forEach(registry::registerResourceKind);
+        registry.registerValidator(new LootValidator());
         registry.registerService(Loot.class, new LootGiving());
         registry.registerService(BlockDrops.class, new BlockDropping());
     }

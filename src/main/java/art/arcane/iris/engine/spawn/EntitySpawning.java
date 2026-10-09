@@ -76,7 +76,7 @@ public final class EntitySpawning implements EntitySpawns {
         if (count <= 0) {
             return;
         }
-        IrisSpawner spawner = engine(world).getData().getSpawnerLoader().load(plan.spawner());
+        IrisSpawner spawner = SpawnResources.spawner(engine(world).getData(), plan.spawner());
         if (spawner != null) {
             spawner.spawn(engine(world), plan.chunkX(), plan.chunkZ());
         }
@@ -84,7 +84,7 @@ public final class EntitySpawning implements EntitySpawns {
 
     @Override
     public Optional<EntitySpec> entity(PackWorld world, String key) {
-        IrisEntity entity = engine(world).getData().getEntityLoader().load(key);
+        IrisEntity entity = SpawnResources.entity(engine(world).getData(), key);
         if (entity == null) {
             return Optional.empty();
         }
@@ -97,14 +97,14 @@ public final class EntitySpawning implements EntitySpawns {
             return Optional.empty();
         }
         Engine engine = engine(world);
-        IrisMarker marker = engine.getData().getMarkerLoader().load(tag);
+        IrisMarker marker = SpawnResources.marker(engine.getData(), tag);
         if (marker == null) {
             return Optional.empty();
         }
 
         List<String> spawners = new ArrayList<>();
         for (String key : marker.getSpawners()) {
-            if (engine.getData().getSpawnerLoader().load(key) == null) {
+            if (SpawnResources.spawner(engine.getData(), key) == null) {
                 IrisLogging.error("Cannot load spawner: " + key + " for marker " + tag);
                 continue;
             }
@@ -175,8 +175,8 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private Optional<Plan> planMarker(PackWorld world, Engine engine, Marker marker) {
-        IrisSpawner spawner = engine.getData().getSpawnerLoader().load(marker.spawner());
-        IrisMarker irisMarker = engine.getData().getMarkerLoader().load(marker.marker());
+        IrisSpawner spawner = SpawnResources.spawner(engine.getData(), marker.spawner());
+        IrisMarker irisMarker = SpawnResources.marker(engine.getData(), marker.marker());
         if (spawner == null) {
             return Optional.empty();
         }
@@ -234,7 +234,7 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private static KList<IrisSpawner> shuffled(Engine engine, KList<String> keys) {
-        return engine.getData().getSpawnerLoader().loadAll(keys).shuffleCopy(RNG.r);
+        return SpawnResources.spawners(engine.getData(), keys).shuffleCopy(RNG.r);
     }
 
     private static Stream<Candidate> spawnsOf(IrisSpawner spawner, boolean initial) {

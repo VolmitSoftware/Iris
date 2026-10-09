@@ -25,7 +25,7 @@ import com.volmit.service.EntitySpawns;
 import com.volmit.stage.StageGraph;
 
 /**
- * Module {@code iris:spawn}: the spawners, entities and markers of the pack, and the entities that appear in the world
+ * Module {@code iris:spawn}: the spawners, entities and markers of the pack ({@link SpawnResources}), and the entities that appear in the world
  * over time because of them. It has no generation stage; Iris asks it through {@link EntitySpawns} when it looks for
  * something to spawn in a chunk or at a marker.
  */
@@ -43,6 +43,7 @@ public final class SpawnModule implements IrisModule {
 
     @Override
     public void register(FeatureRegistry registry) {
+        SpawnResources.kinds().forEach(registry::registerResourceKind);
         registry.registerService(EntitySpawns.class, new EntitySpawning());
     }
 }

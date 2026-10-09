@@ -70,7 +70,7 @@ public final class LootGiving implements Loot {
     @Override
     public List<ItemDrop> items(PackWorld world, Site site, String key) {
         Engine engine = engine(world);
-        IrisLootTable table = engine.getData().getLootLoader().load(key);
+        IrisLootTable table = LootResources.table(engine.getData(), key);
         if (table == null) {
             return List.of();
         }

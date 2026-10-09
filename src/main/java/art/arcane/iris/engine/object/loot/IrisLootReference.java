@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.loot;
 
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
@@ -59,7 +60,7 @@ public class IrisLootReference {
             KList<IrisLootTable> t = new KList<>();
 
             for (String i : tables) {
-                t.add(g.getData().getLootLoader().load(i));
+                t.add(LootResources.table(g.getData(), i));
             }
 
             return t;

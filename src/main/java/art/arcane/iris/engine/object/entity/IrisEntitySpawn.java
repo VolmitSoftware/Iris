@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.entity;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.value.IRare;
@@ -60,6 +61,6 @@ public class IrisEntitySpawn implements IRare {
     private transient IrisMarker referenceMarker;
 
     public IrisEntity getRealEntity(Engine g) {
-        return ent.aquire(() -> g.getData().getEntityLoader().load(getEntity()));
+        return ent.aquire(() -> SpawnResources.entity(g.getData(), getEntity()));
     }
 }

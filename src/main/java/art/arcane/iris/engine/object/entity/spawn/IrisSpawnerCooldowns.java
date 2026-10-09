@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.object.entity.spawn;
 
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.EqualsAndHashCode;
@@ -23,7 +24,7 @@ public class IrisSpawnerCooldowns {
 
     public void cleanup(Engine engine) {
         cooldowns.values().removeIf(cd -> {
-            IrisSpawner sp = engine.getData().getSpawnerLoader().load(cd.getSpawner());
+            IrisSpawner sp = SpawnResources.spawner(engine.getData(), cd.getSpawner());
             return sp == null || cd.canSpawn(sp.getMaximumRate());
         });
     }

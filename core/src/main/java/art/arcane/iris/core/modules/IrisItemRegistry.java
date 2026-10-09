@@ -24,9 +24,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformItem;
 import com.volmit.item.ItemRegistry;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
@@ -53,7 +51,6 @@ public final class IrisItemRegistry implements ItemRegistry {
     }
 
     private static OptionalInt customItemDurability(String key) {
-        Optional<ItemStack> stack = IrisServices.get(ExternalDataSVC.class).getItemStack(Identifier.fromString(key), null);
-        return stack.isEmpty() ? OptionalInt.empty() : OptionalInt.of(stack.get().getType().getMaxDurability());
+        return IrisServices.get(ExternalDataSVC.class).maxDurability(Identifier.fromString(key));
     }
 }

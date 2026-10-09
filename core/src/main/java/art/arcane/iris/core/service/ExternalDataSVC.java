@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 public class ExternalDataSVC implements IrisService {
@@ -157,6 +158,12 @@ public class ExternalDataSVC implements IrisService {
             IrisLogging.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
         }
+    }
+
+    /** The most damage the custom item {@code key} takes before it breaks, 0 if it cannot be damaged; empty when no provider has the item. */
+    public OptionalInt maxDurability(Identifier key) {
+        Optional<ItemStack> stack = getItemStack(key, null);
+        return stack.isEmpty() ? OptionalInt.empty() : OptionalInt.of(stack.get().getType().getMaxDurability());
     }
 
     public void processUpdate(Engine engine, Block block, Identifier blockId) {

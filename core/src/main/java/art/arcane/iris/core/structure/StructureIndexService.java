@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.structure;
 
-import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.loader.IrisData;
@@ -89,7 +89,7 @@ public final class StructureIndexService {
             }
         }
 
-        List<String> iris = new ArrayList<>(StructureResources.structureKeys(data));
+        List<String> iris = new ArrayList<>(ModuleServices.structureKeys(data));
         iris.removeIf(LEGACY_INDEX_KEY::equals);
 
         Collections.sort(vanilla);

@@ -4,7 +4,9 @@ import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
+import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
@@ -107,6 +109,8 @@ public class StructureHandlerTest {
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:custom_definition", custom);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:collision_definition", collision);
         when(engine.getData()).thenReturn(data);
+        ModuleResourceFixture.serveModules(data, new StructureModule());
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(world);
         when(engine.getMinHeight()).thenReturn(-64);
@@ -178,6 +182,8 @@ public class StructureHandlerTest {
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:editable_definition", editable);
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "iris:replacement_definition", replacement);
         when(engine.getData()).thenReturn(data);
+        ModuleResourceFixture.serveModules(data, new StructureModule());
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(world);
         when(engine.getMinHeight()).thenReturn(-64);
@@ -244,7 +250,7 @@ public class StructureHandlerTest {
 
         assertEquals(1, occurrences(method, "StructureReachability.reachableKeys(activeEngine)"));
         assertEquals(0, occurrences(method, "IrisStructureLocator.locatableKeys(activeEngine)"));
-        assertEquals(1, occurrences(method, "IrisStructureLocator.locatableEditableKeys(activeEngine)"));
+        assertEquals(1, occurrences(method, "ModuleServices.locatableStructures(activeEngine)"));
         assertTrue(method.indexOf("if (activeEngine == null)")
                 < method.indexOf("IrisPlatforms.get().structureHooks()"));
         assertFalse(method.contains("INMS"));

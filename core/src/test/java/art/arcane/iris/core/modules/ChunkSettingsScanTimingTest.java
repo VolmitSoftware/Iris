@@ -37,6 +37,7 @@ import com.volmit.resource.PackResources;
 import com.volmit.stage.MantleStage;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 import org.junit.Rule;
 import org.junit.Test;
@@ -134,6 +135,7 @@ public class ChunkSettingsScanTimingTest {
             public FeatureSettings settings() { return settings; }
             public Mantle mantle() { throw new UnsupportedOperationException(); }
             public PackResources resources() { throw new UnsupportedOperationException(); }
+            public PackWorld world() { throw new UnsupportedOperationException(); }
         };
     }
 }

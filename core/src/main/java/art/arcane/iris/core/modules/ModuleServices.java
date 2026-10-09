@@ -1,0 +1,132 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.core.modules;
+
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.framework.Engine;
+import com.volmit.host.FeatureCatalog;
+import com.volmit.service.LocateResult;
+import com.volmit.service.ObjectsAt;
+import com.volmit.service.StructureLocator;
+import com.volmit.world.PackWorld;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * What Iris core asks the pack's modules through their services ({@link com.volmit.service.Service}) instead of reading
+ * their features itself. Each method combines the providers the way their service says. Asking a pack whose modules
+ * fail to load throws its {@link PackModulesException}.
+ */
+public final class ModuleServices {
+    private ModuleServices() {
+    }
+
+    /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */
+    public static Set<String> objectsAt(Engine engine, int chunkX, int chunkZ) {
+        PackWorld world = engine.getGeneration().world();
+        Set<String> keys = new LinkedHashSet<>();
+        for (ObjectsAt provider : catalog(engine.getData()).services(ObjectsAt.class)) {
+            keys.addAll(provider.objectsAt(world, chunkX, chunkZ));
+        }
+        return keys;
+    }
+
+    /** Every structure key the pack's modules know, placed or not. */
+    public static Set<String> structureKeys(IrisData data) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (StructureLocator provider : catalog(data).services(StructureLocator.class)) {
+            keys.addAll(provider.structures(data.getPackResources()));
+        }
+        return keys;
+    }
+
+    /** The keys of the structures the world's modules place and can locate. */
+    public static Set<String> locatableStructures(Engine engine) {
+        PackWorld world = engine.getGeneration().world();
+        Set<String> keys = new LinkedHashSet<>();
+        for (StructureLocator provider : catalog(engine.getData()).services(StructureLocator.class)) {
+            keys.addAll(provider.locatable(world));
+        }
+        return keys;
+    }
+
+    /** Whether a module of the world can locate structure {@code key}, matched without regard to case. */
+    public static boolean canLocateStructure(Engine engine, String key) {
+        return structureLocatorOf(engine, key).isPresent();
+    }
+
+    /**
+     * Searches for the start of structure {@code key} nearest to {@code fromX}, {@code fromZ} with the first module that
+     * can locate it, in the world's own coordinates; not found when none can.
+     */
+    public static StructureSearch locateStructure(Engine engine, String key, int fromX, int fromZ, int maxRadiusChunks) {
+        PackWorld world = engine.getGeneration().world();
+        LocateResult result = structureLocatorOf(engine, key)
+                .map(provider -> provider.locate(world, key, fromX, fromZ, maxRadiusChunks))
+                .orElse(LocateResult.NOT_FOUND);
+        return StructureSearch.of(result, engine);
+    }
+
+    /** How a structure search ended. A found start is at {@code x}, {@code y}, {@code z}: world coordinates, Y the world's own. */
+    public record StructureSearch(Outcome outcome, int x, int y, int z) {
+        public enum Outcome { FOUND, NOT_FOUND, SEARCH_LIMIT_REACHED }
+
+        private static final StructureSearch NOT_FOUND = new StructureSearch(Outcome.NOT_FOUND, 0, 0, 0);
+        private static final StructureSearch SEARCH_LIMIT_REACHED = new StructureSearch(Outcome.SEARCH_LIMIT_REACHED, 0, 0, 0);
+
+        public boolean found() {
+            return outcome == Outcome.FOUND;
+        }
+
+        /** {@code result} with its height above the dimension's bottom turned into the world's Y. */
+        static StructureSearch of(LocateResult result, Engine engine) {
+            return switch (result) {
+                case LocateResult.Found found -> new StructureSearch(Outcome.FOUND, found.position().x(),
+                        found.position().y() + engine.getMinHeight(), found.position().z());
+                case LocateResult.NotFound ignored -> NOT_FOUND;
+                case LocateResult.SearchLimitReached ignored -> SEARCH_LIMIT_REACHED;
+            };
+        }
+    }
+
+    /** The first provider, in the catalog's order, whose locatable structures hold {@code key}. */
+    private static Optional<StructureLocator> structureLocatorOf(Engine engine, String key) {
+        if (key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        PackWorld world = engine.getGeneration().world();
+        String wanted = normalized(key);
+        for (StructureLocator provider : catalog(engine.getData()).services(StructureLocator.class)) {
+            if (provider.locatable(world).stream().map(ModuleServices::normalized).anyMatch(wanted::equals)) {
+                return Optional.of(provider);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static String normalized(String key) {
+        return key.toLowerCase(Locale.ROOT);
+    }
+
+    private static FeatureCatalog catalog(IrisData data) {
+        return data.getModules().pack().catalog();
+    }
+}

@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.actuator;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -10,7 +12,11 @@ import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KList;
+import com.volmit.world.PackWorld;
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -19,8 +25,26 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** Decorating reads nothing of the chunk when the dimension does not decorate, and skips biomes without decorators. */
+/**
+ * Decorating reads nothing of the chunk when the dimension does not decorate, skips biomes without decorators, and is
+ * kept per world in the world's state store.
+ */
 public class DecorantModuleTest {
+    @Test
+    public void eachWorldKeepsOneDecoratingInItsStateStore() {
+        Engine engine = engine(true);
+        when(engine.getData()).thenReturn(mock(IrisData.class));
+        EngineGeneration generation = new EngineGeneration(engine);
+        PackWorld world = generation.world();
+
+        DecorantModule.Decorating decorating = DecorantModule.decorating(world);
+
+        assertSame(decorating, DecorantModule.decorating(world));
+        assertSame("built-in stages share the store", decorating,
+                generation.state(DecorantModule.Decorating.class, DecorantModule.Decorating::new));
+        assertNotSame(decorating, DecorantModule.decorating(new EngineGeneration(engine).world()));
+    }
+
     @Test
     public void aDimensionThatDoesNotDecorateIsLeftAlone() {
         DecorantModule.Decorating decorating = new DecorantModule.Decorating(engine(false));

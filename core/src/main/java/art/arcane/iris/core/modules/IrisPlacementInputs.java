@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.framework.Engine;
 import com.volmit.config.FeatureSettings;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.ObjectTransformer;
@@ -26,6 +27,7 @@ import com.volmit.resource.PackResources;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSample;
+import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
 /** The read-only IrisApi inputs of one Iris object placement. */
@@ -36,9 +38,14 @@ final class IrisPlacementInputs implements PlacementContext {
     private final FeatureSettings settings;
     private final BlockView blocks;
     private final PackResources resources;
+    private final Engine engine;
+    private PackWorld world;
 
-    IrisPlacementInputs(long worldSeed, TerrainSampler terrain, FeatureSettings settings, BlockView blocks, PackResources resources) {
+    /** @param engine the engine whose world the placement generates in, or null for a placement without one */
+    IrisPlacementInputs(long worldSeed, TerrainSampler terrain, FeatureSettings settings, BlockView blocks, PackResources resources,
+                        Engine engine) {
         this.resources = resources;
+        this.engine = engine;
         this.worldSeed = worldSeed;
         this.terrain = terrain;
         this.settings = settings;
@@ -97,5 +104,17 @@ final class IrisPlacementInputs implements PlacementContext {
     @Override
     public PackResources resources() {
         return resources;
+    }
+
+    /** The world this placement first asked for; it keeps it if the world restarts meanwhile. */
+    @Override
+    public PackWorld world() {
+        if (engine == null) {
+            throw new IllegalStateException("This placement runs without an Iris engine, so it is not part of a world");
+        }
+        if (world == null) {
+            world = engine.getGeneration().world();
+        }
+        return world;
     }
 }

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
@@ -124,7 +125,7 @@ final class ModdedCommandSuggestions {
             }
             boolean nativeGenerationEnabled =
                     source.getServer().getWorldGenSettings().options().generateStructures();
-            Collection<String> irisKeys = IrisStructureLocator.locatableEditableKeys(engine);
+            Collection<String> irisKeys = ModuleServices.locatableStructures(engine);
             Set<String> reachableNativeKeys = StructureReachability.reachableKeys(engine);
             Registry<Structure> registry = source.getServer().registryAccess().lookupOrThrow(Registries.STRUCTURE);
             List<String> nativeKeys = new ArrayList<>(registry.keySet().size());
@@ -138,7 +139,7 @@ final class ModdedCommandSuggestions {
                         && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
                 boolean locatableEditableReplacement = !nativePlacement
                         && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
-                        && IrisStructureLocator.hasLocatableEditablePlacement(engine, key);
+                        && ModuleServices.canLocateStructure(engine, key);
                 if (isEligibleRegisteredStructure(decision, nativePlacement,
                         locatableNativePlacement, locatableEditableReplacement,
                         reachableNativeKeys.contains(normalizeKey(key)), nativeGenerationEnabled)) {

@@ -19,6 +19,7 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.EngineBackgroundTasks.BackgroundTaskDrain;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineEffects;
@@ -47,7 +48,6 @@ import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.structure.StructureIndexService;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.iris.spi.PlatformBiome;
@@ -387,7 +387,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public Set<String> getObjectsAt(int x, int z) {
-        return ObjectModule.placing(this).guess(x, z);
+        return ModuleServices.objectsAt(this, x, z);
     }
 
     @Override
@@ -507,6 +507,15 @@ public class IrisEngine implements Engine {
         }
         EngineRuntime current = runtime;
         return current == null ? publishedTarget : current.target();
+    }
+
+    @Override
+    public void packResourcesReloaded() {
+        EngineRuntime current = runtime;
+        if (current == null) {
+            return;
+        }
+        current.generation().restartModules();
     }
 
     @Override

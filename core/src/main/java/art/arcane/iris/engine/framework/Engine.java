@@ -91,6 +91,13 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     EngineGeneration getGeneration();
 
+    /**
+     * The pack's resources were read again while this engine runs, such as after a tool rewrote some of its files:
+     * modules restart their world with the new snapshot (see {@link EngineGeneration#restartModules()}). Does nothing
+     * before the engine has a runtime, which starts with the new snapshot anyway.
+     */
+    void packResourcesReloaded();
+
     EnginePlatformHooks getPlatformHooks();
 
     /**

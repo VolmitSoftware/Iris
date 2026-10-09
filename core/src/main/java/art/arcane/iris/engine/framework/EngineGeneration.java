@@ -18,7 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.core.modules.ModuleChunkGeneration;
+import art.arcane.iris.core.modules.ModuleWorlds;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -27,15 +29,14 @@ import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 /**
  * How every Iris world generates a chunk: the mantle around it first, then the pack's chunk pipeline, Iris's
- * built-in stages included. It also keeps the state built-in stages hold per engine runtime, such as an
- * actuator's caches, so a hotload, which builds a new runtime, starts them fresh.
+ * built-in stages included. It also owns the world modules see for this engine runtime ({@link ModuleWorlds}), whose
+ * state store keeps what stages and services hold per world, such as an actuator's caches, so a hotload, which builds
+ * a new runtime, starts them fresh.
  */
 public final class EngineGeneration {
     private static final int CHUNK_SHIFT = 4;
@@ -43,18 +44,35 @@ public final class EngineGeneration {
     private static final AtomicLong lastMaintenanceBypassLog = new AtomicLong(0L);
 
     private final Engine engine;
-    private final Map<Class<?>, Object> states = new ConcurrentHashMap<>();
+    private final ModuleWorlds modules;
 
     public EngineGeneration(Engine engine) {
         this.engine = engine;
+        this.modules = new ModuleWorlds(engine);
     }
 
     /**
-     * The one {@code type} instance of this runtime, created by {@code create} the first time a stage asks.
-     * {@code create} must not ask for other state.
+     * The one {@code type} instance of the world this runtime generates, created by {@code create} the first time a
+     * stage asks; the same store as {@link IrisPackWorld#state}. See {@link com.volmit.world.PackWorld#state} for
+     * what {@code create} may do.
      */
     public <T> T state(Class<T> type, Function<Engine, T> create) {
-        return type.cast(states.computeIfAbsent(type, ignored -> create.apply(engine)));
+        return modules.current().state(type, ignored -> create.apply(engine));
+    }
+
+    /** The world modules see now: stage contexts, services and lifecycle hooks get it. */
+    public IrisPackWorld world() {
+        return modules.current();
+    }
+
+    /** Starts the modules' world once the runtime is published; a module whose hook fails stops the runtime from starting. */
+    public void startModules() {
+        modules.start();
+    }
+
+    /** Restarts the modules' world with the pack's reloaded resources; see {@link ModuleWorlds#restart()}. */
+    public void restartModules() {
+        modules.restart();
     }
 
     @BlockCoordinates
@@ -80,14 +98,9 @@ public final class EngineGeneration {
         return bypass;
     }
 
-    /** Closes the state stages kept, such as actuators that hold engine resources. */
+    /** Stops the modules' world and closes the state stages kept, such as actuators that hold engine resources. */
     public void close() {
-        states.values().forEach(state -> {
-            if (state instanceof EngineComponent component) {
-                component.close();
-            }
-        });
-        states.clear();
+        modules.close();
     }
 
     public static boolean shouldDisableContextCacheForMaintenance(boolean maintenanceActive, boolean pregeneratorTargetsWorld) {

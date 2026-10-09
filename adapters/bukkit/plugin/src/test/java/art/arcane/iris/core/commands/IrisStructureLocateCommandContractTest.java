@@ -20,9 +20,9 @@ public class IrisStructureLocateCommandContractTest {
     public void findReportsDensityLimitAndUsesExactLocatedOrigin() throws IOException {
         String source = Files.readString(Path.of(System.getProperty("iris.commandFindSource")));
 
-        assertTrue(source.contains("LocateStatus.SEARCH_LIMIT_REACHED"));
+        assertTrue(source.contains("StructureSearch.Outcome.SEARCH_LIMIT_REACHED"));
         assertTrue(source.contains("the density search safety limit was reached"));
-        assertTrue(source.contains("result.originX(), result.baseY(), result.originZ()"));
+        assertTrue(source.contains("new Location(targetWorld, result.x(), result.y(), result.z())"));
         assertFalse(source.contains("at[0] + 8"));
         assertFalse(source.contains("at[2] + 8"));
     }
@@ -38,7 +38,7 @@ public class IrisStructureLocateCommandContractTest {
         int nativeLocatableCheck = method.indexOf(
                 "IrisStructureLocator.hasLocatableNativePlacement(e, structureKey)", policyResolution);
         int editableLocatableCheck = method.indexOf(
-                "IrisStructureLocator.hasLocatableEditablePlacement(e, structureKey)", nativeLocatableCheck);
+                "ModuleServices.canLocateStructure(e, structureKey)", nativeLocatableCheck);
         int worldGenerationCheck = method.indexOf("targetWorld.canGenerateStructures()", editableLocatableCheck);
         int routeResolution = method.indexOf("selectStructureLookupRoute(", editableLocatableCheck);
         int nativeLocate = method.indexOf("targetWorld.locateNearestStructure(", routeResolution);
@@ -207,7 +207,7 @@ public class IrisStructureLocateCommandContractTest {
         assertTrue(method.indexOf("DatapackIngestService.installed()") > method.indexOf("J.a(() ->"));
         assertTrue(source.contains("engine.getDimension().getDatapackImports()"));
         assertTrue(source.contains("snapshot.configuredImportUrls().contains(importUrl)"));
-        assertTrue(source.contains("StructureResources.structureKeys(engine.getData())"));
+        assertTrue(source.contains("ModuleServices.structureKeys(engine.getData())"));
         assertFalse(method.contains("commandSender.sendMessage(exclusion"));
     }
 

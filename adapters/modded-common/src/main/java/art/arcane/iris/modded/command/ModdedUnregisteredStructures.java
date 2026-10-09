@@ -18,7 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
@@ -113,7 +113,7 @@ final class ModdedUnregisteredStructures {
                     && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
             boolean locatableEditableReplacement = !nativePlacement
                     && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
-                    && IrisStructureLocator.hasLocatableEditablePlacement(engine, key);
+                    && ModuleServices.canLocateStructure(engine, key);
             boolean reachable = reachableNativeKeys.contains(normalizedKey);
             if (ModdedCommandSuggestions.isEligibleRegisteredStructure(
                     decision, nativePlacement, locatableNativePlacement,
@@ -137,7 +137,7 @@ final class ModdedUnregisteredStructures {
                     "Configured by an Iris nativeStructures placement, but absent from the live structure registry; "
                             + "install or enable the datapack or mod that provides this key."));
         }
-        for (String key : StructureResources.structureKeys(engine.getData())) {
+        for (String key : ModuleServices.structureKeys(engine.getData())) {
             String normalizedKey = ModdedCommandSuggestions.normalizeKey(key);
             if (normalizedKey.isEmpty() || eligibleRegisteredKeys.contains(normalizedKey)
                     || excluded.containsKey(normalizedKey)) {
@@ -145,7 +145,7 @@ final class ModdedUnregisteredStructures {
             }
             boolean registered = registeredKeys.contains(normalizedKey);
             boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
-            boolean locatableEditable = IrisStructureLocator.hasLocatableEditablePlacement(engine, key);
+            boolean locatableEditable = ModuleServices.canLocateStructure(engine, key);
             if (!registered && !nativePlacement && locatableEditable) {
                 continue;
             }

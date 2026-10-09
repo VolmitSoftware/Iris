@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.decoration;
+package art.arcane.iris.builtin.decorant;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("Represents a location where decorations should go")
-public enum IrisDecorationPart {
+public enum DecorationPart {
     @Desc("The default, decorate anywhere")
     NONE,
 

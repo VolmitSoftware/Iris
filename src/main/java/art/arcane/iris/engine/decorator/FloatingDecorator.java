@@ -18,10 +18,9 @@
 
 package art.arcane.iris.engine.decorator;
 
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -33,12 +32,11 @@ import art.arcane.iris.spi.PlatformBlockState;
  */
 public class FloatingDecorator {
 
-    public static int decorateColumn(Engine engine, IrisBiome target, IrisDecorationPart part,
+    public static int decorateColumn(Engine engine, IrisBiome target, DecorationPart part,
                                      int xf, int zf, int realX, int realZ,
                                      int height, int max, Hunk<PlatformBlockState> data, RNG rng,
                                      Runnable candidatesNullCallback) {
-        RNG gRNG = new RNG(DecoratorCore.partSeed(engine.getSeedManager().getDecorator(), part));
-        IrisDecorator decorator = DecoratorCore.pickDecorator(target, part, gRNG, rng, engine.getData(), realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(BiomeDecorators.of(engine).decorators(target, part), rng, realX, realZ);
 
         if (decorator == null) {
             candidatesNullCallback.run();
@@ -46,10 +44,10 @@ public class FloatingDecorator {
         }
 
         if (!decorator.isStacking()) {
-            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data, rng, engine.getData());
+            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data);
             return max > 1 ? 1 : 0;
         }
 
-        return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data, rng, engine.getData());
+        return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data);
     }
 }

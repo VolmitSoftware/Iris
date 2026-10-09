@@ -21,6 +21,7 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisChunk;
+import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
@@ -38,22 +39,36 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLifecycle;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.PackWorld;
 
 /**
  * Module {@code iris:terrain}: the chunk's ground, fluids and biome layers. Each column is filled from bedrock up
  * to its height and the fluid height with its biome's layers, with ore generators of the dimension, region and
- * biome replacing blocks on the way and the upper dimension's ground filled in from the top.
+ * biome replacing blocks on the way and the upper dimension's ground filled in from the top. The ore generators' noise
+ * is built ahead of generation, in {@link #warmUp}.
  */
-public final class TerrainModule implements IrisModule {
+public final class TerrainModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:terrain", "Terrain", VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerLifecycle(this);
+    }
+
+    @Override
+    public void warmUp(PackWorld world) {
+        new OreWarmUp(IrisPackWorld.of(world).engine()).warm();
     }
 
     @Override

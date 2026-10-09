@@ -47,7 +47,15 @@ a cave profile, a floating child biome or a procedural coral, are module-owned c
 `.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). The module registers each with
 `registry.registerHeldType(...)` so studio describes it from the module's own annotations; packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
-worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`)
+worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
+
+`iris:decorant` is the second: `DecorantSettings` (biome level) holds `Decorator`s in `art.arcane.iris.builtin.decorant`,
+written `"iris:decorant": {"decorators": [...]}` (the old `"decorators": [...]` is converted by the migration script).
+`ResolvedDecorator` resolves one decorator's blocks and noise for a world; `BiomeDecorators`, the world's state, keeps them
+per biome and place. Other modules that decorate (`iris:cave`'s ceilings, floating islands) ask it. A decorator's noise
+seed is the world's decorator seed, its biome's key and its place in the biome's list. The module's `warmUp` builds
+them ahead of generation; `iris:terrain` and `iris:objects` warm their ore generators, placements and procedural
+objects the same way.
 
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off

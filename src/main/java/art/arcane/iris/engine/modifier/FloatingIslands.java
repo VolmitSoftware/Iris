@@ -33,7 +33,7 @@ import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySamp
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.B;
@@ -331,7 +331,7 @@ public class FloatingIslands {
                     if (above == null || above.isAir()) {
                         try {
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
-                            FloatingDecorator.decorateColumn(engine, target, IrisDecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
+                            FloatingDecorator.decorateColumn(engine, target, DecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
                             IrisLogging.reportError(e);
                         }

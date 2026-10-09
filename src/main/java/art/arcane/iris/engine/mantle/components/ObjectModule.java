@@ -29,24 +29,28 @@ import art.arcane.iris.builtin.objects.tree.TreeDecorator;
 import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
+import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLifecycle;
 import com.volmit.config.PackSettings;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.PackWorld;
 
 /**
  * Module {@code iris:objects}: the objects the dimension's regions and biomes place, written into the mantle
  * once the caves they may anchor in are planned. A port of what was Iris's object mantle component, its work
- * done by {@link ObjectPlacing}, one per engine runtime. Its reach is the pack's largest object placement. It tells
+ * done by {@link ObjectPlacing}, one per engine runtime, with the noise of its placements and the variants of its procedural
+ * objects built ahead of generation ({@link #warmUp}). Its reach is the pack's largest object placement. It tells
  * Iris which objects a chunk would get and which biomes and regions place an object ({@link ObjectLocating}), for the
  * object search and studio tools, and grows the trees of saplings ({@link TreeGrowing}).
  */
-public final class ObjectModule implements IrisModule {
+public final class ObjectModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
     @Override
@@ -71,6 +75,12 @@ public final class ObjectModule implements IrisModule {
         registry.registerHeldType(Formation.class);
         registry.registerHeldType(Fungus.class);
         registry.registerHeldType(Ruin.class);
+        registry.registerLifecycle(this);
+    }
+
+    @Override
+    public void warmUp(PackWorld world) {
+        new ObjectWarmUp(IrisPackWorld.of(world).engine()).warm();
     }
 
     private static void place(MantleStageContext context) {

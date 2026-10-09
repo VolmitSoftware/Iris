@@ -21,31 +21,23 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationPart;
-import art.arcane.iris.engine.object.decoration.IrisDecorator;
+import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.spi.PlatformBlockState;
 
 public class IrisSurfaceDecorator extends IrisEngineDecorator {
-    private final RNG partRNG;
-
     public IrisSurfaceDecorator(Engine engine) {
-        super(engine, "Surface", IrisDecorationPart.NONE);
-        this.partRNG = new RNG(DecoratorCore.partSeed(getSeed(), IrisDecorationPart.NONE));
+        super(engine, "Surface", DecorationPart.NONE);
     }
 
     protected IrisSurfaceDecorator(Engine engine, String name) {
-        super(engine, name, IrisDecorationPart.NONE);
-        this.partRNG = new RNG(DecoratorCore.partSeed(getSeed(), IrisDecorationPart.NONE));
+        super(engine, name, DecorationPart.NONE);
     }
 
-    protected boolean isSlopeValid(IrisDecorator decorator, int realX, int realZ) {
-        if (decorator.isForcePlace() || decorator.getSlopeCondition().isDefault()) {
-            return true;
-        }
-        return decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ));
+    protected boolean isSlopeValid(ResolvedDecorator decorator, int realX, int realZ) {
+        return !decorator.slopeBlocks(() -> getComplex().getSlopeStream().get(realX, realZ));
     }
 
     @BlockCoordinates
@@ -66,7 +58,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         boolean underwater = isUnderwater(inferredType, height, fluidHeight);
         boolean caveSkipFluid = skipsFluid(inferredType);
         RNG rng = getRNG(realX, realZ);
-        IrisDecorator decorator = DecoratorCore.pickDecorator(biome, getPart(), partRNG, rng, getData(), realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
 
         if (decorator == null || !isSlopeValid(decorator, realX, realZ)) {
             return;
@@ -78,12 +70,12 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             opts.underwater = underwater;
             opts.fluidHeight = fluidHeight;
             opts.caveSkipFluid = caveSkipFluid;
-            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, rng, getData(), opts);
+            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, opts);
             return;
         }
 
         DecoratorCore.placeSurfaceSingle(decorator, x, z, realX, height, realZ,
-                data, rng, getData(), underwater, caveSkipFluid, getEngine().getMantle());
+                data, underwater, caveSkipFluid, getEngine().getMantle());
     }
 
     static boolean isUnderwater(InferredType inferredType, int height, int fluidHeight) {

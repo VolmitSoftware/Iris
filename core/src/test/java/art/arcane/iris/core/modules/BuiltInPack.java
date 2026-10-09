@@ -21,6 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -28,7 +29,9 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.mockito.Mockito.mock;
@@ -72,6 +75,15 @@ public final class BuiltInPack {
         LoadedPack pack = serve(data, folder, packModules);
         PackResourceFixture.serve(data);
         return pack;
+    }
+
+    /** {@code values} as the module settings a dimension, region or biome declares, as the decoder would have read them. */
+    public static ModuleSettings settings(IrisFeature... values) {
+        Map<Class<? extends IrisFeature>, IrisFeature> byType = new HashMap<>();
+        for (IrisFeature value : values) {
+            byType.put(value.getClass(), value);
+        }
+        return ModuleSettings.of(byType);
     }
 
     /** Placements into a world of {@code engine} derive their seeds from its world seed. */

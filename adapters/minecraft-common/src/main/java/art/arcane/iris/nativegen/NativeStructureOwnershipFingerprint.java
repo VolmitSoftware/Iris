@@ -1,9 +1,8 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructurePlacementPlanner;
+import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -59,7 +58,7 @@ public final class NativeStructureOwnershipFingerprint {
                 structureKey,
                 origin.x(),
                 origin.z(),
-                StructurePlacementGrid.placementIdentity(resolvedPlan.placement()),
+                resolvedPlan.placementIdentity(),
                 resolvedPlan.baseY(),
                 content.minX(),
                 content.minY(),
@@ -73,7 +72,7 @@ public final class NativeStructureOwnershipFingerprint {
                 references.minZ() >> 4,
                 references.maxZ() >> 4,
                 fingerprint(structureKey, resolvedStart),
-                NativeStructurePlacementPlanner.decisionFor(resolvedPlan)
+                resolvedPlan.decision()
         );
     }
 

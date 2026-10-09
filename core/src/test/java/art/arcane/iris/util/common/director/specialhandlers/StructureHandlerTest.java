@@ -1,5 +1,7 @@
 package art.arcane.iris.util.common.director.specialhandlers;
 
+import art.arcane.iris.builtin.structure.StructureSettings;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.mantle.components.StructureModule;
@@ -10,7 +12,6 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -88,10 +89,8 @@ public class StructureHandlerTest {
         PlatformWorld platformWorld = mock(PlatformWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        IrisImportedStructureControl control = new IrisImportedStructureControl();
-        control.getDisabled().add("pack:disabled");
-        control.getDisabled().add("pack:replacement");
-        control.getDisabled().add("pack:dormant_replacement");
+        StructureSettings settings = new StructureSettings(List.of("pack:disabled", "pack:replacement", "pack:dormant_replacement"),
+                List.of(), 0, true, List.of(), List.of());
 
         KList<IrisStructurePlacement> placements = new KList<>();
         placements.add(nativePlacement("pack:replacement", StructureDistribution.RANDOM_SPREAD, 1.0));
@@ -118,7 +117,7 @@ public class StructureHandlerTest {
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
         when(world.platformWorld()).thenReturn(platformWorld);
-        when(dimension.getImportedStructures()).thenReturn(control);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
         when(dimension.getStructures()).thenReturn(placements);
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
@@ -168,8 +167,7 @@ public class StructureHandlerTest {
         PlatformWorld platformWorld = mock(PlatformWorld.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
-        IrisImportedStructureControl control = new IrisImportedStructureControl();
-        control.getDisabled().add("minecraft:replacement");
+        StructureSettings settings = new StructureSettings(List.of("minecraft:replacement"), List.of(), 0, true, List.of(), List.of());
 
         IrisStructure editable = new IrisStructure();
         editable.setLoadKey("iris:editable");
@@ -192,7 +190,7 @@ public class StructureHandlerTest {
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
         when(world.platformWorld()).thenReturn(platformWorld);
-        when(dimension.getImportedStructures()).thenReturn(control);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
         when(dimension.getStructures()).thenReturn(placements);
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());

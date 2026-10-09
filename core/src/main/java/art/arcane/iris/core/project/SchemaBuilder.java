@@ -54,7 +54,6 @@ import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.RegistryListSpecialEntity;
 import art.arcane.iris.engine.object.annotations.RegistryListStructure;
 import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructure;
-import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructureSet;
 import art.arcane.iris.engine.object.annotations.RegistryMapBlockState;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
@@ -293,8 +292,8 @@ public class SchemaBuilder {
 
     /**
      * A registry enum that ALSO accepts family/namespace prefixes ("minecraft:village",
-     * "nova_structures:") — the runtime prefix-matching contract of importedStructures.disabled and
-     * adjustments[].match. Emitted as anyOf(enum, pattern) so autocomplete still offers registered
+     * "nova_structures:") — the runtime prefix-matching contract of iris:structure disabled and
+     * adjustments[].match ({@code Reference.STRUCTURE_PREFIX}). Emitted as anyOf(enum, pattern) so autocomplete still offers registered
      * keys while prefix entries validate instead of being rejected.
      */
     private void putRegistryEnumOrPrefixRef(JSONObject target, String definitionKey,
@@ -321,14 +320,6 @@ public class SchemaBuilder {
             definitions.put(definitionKey, definition);
         }
         target.put("$ref", "#/definitions/" + definitionKey);
-    }
-
-    private void putRegistryEnumOrPrefixItems(JSONObject prop, String definitionKey,
-                                              String enumDefinitionKey, Supplier<JSONArray> values,
-                                              String pattern) {
-        JSONObject items = new JSONObject();
-        putRegistryEnumOrPrefixRef(items, definitionKey, enumDefinitionKey, values, pattern);
-        prop.put("items", items);
     }
 
     private JSONArray itemTypes() {
@@ -439,6 +430,9 @@ public class SchemaBuilder {
             case ENTITY -> putRegistryEnumRef(property, "enum-entity-type", this::entityTypes);
             case BIOME -> putRegistryEnumRef(property, "enum-biome-type", this::biomeTypes);
             case STRUCTURE -> putRegistryEnumRef(property, "enum-vanilla-structure", this::vanillaStructures);
+            case STRUCTURE_PREFIX -> putRegistryEnumOrPrefixRef(property, "enum-vanilla-structure-or-prefix",
+                    "enum-vanilla-structure", this::vanillaStructures, VANILLA_STRUCTURE_PREFIX_PATTERN);
+            case STRUCTURE_SET -> putRegistryEnumRef(property, "enum-vanilla-structure-set", this::vanillaStructureSets);
             case POTION_EFFECT -> putRegistryEnumRef(property, "enum-potion-effect-type", this::potionTypes);
             case ENCHANTMENT -> putRegistryEnumRef(property, "enum-enchantment", this::enchantTypes);
             case PACK_BIOME -> putPackResourceRef(property, IrisBiome.class);
@@ -615,19 +609,8 @@ public class SchemaBuilder {
 
                 } else if (k.isAnnotationPresent(RegistryListVanillaStructure.class)) {
                     fancyType = "Vanilla Structure";
-                    if (k.getAnnotation(RegistryListVanillaStructure.class).prefixes()) {
-                        putRegistryEnumOrPrefixRef(prop, "enum-vanilla-structure-or-prefix",
-                                "enum-vanilla-structure", this::vanillaStructures, VANILLA_STRUCTURE_PREFIX_PATTERN);
-                        description.add(SYMBOL_TYPE__N + "  Must be a vanilla/datapack structure key or a family/namespace prefix like 'minecraft:village' or 'nova_structures:' (use ctrl+space for auto complete!)");
-                    } else {
-                        putRegistryEnumRef(prop, "enum-vanilla-structure", this::vanillaStructures);
-                        description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla/datapack structure key (use ctrl+space for auto complete!)");
-                    }
-
-                } else if (k.isAnnotationPresent(RegistryListVanillaStructureSet.class)) {
-                    fancyType = "Vanilla Structure Set";
-                    putRegistryEnumRef(prop, "enum-vanilla-structure-set", this::vanillaStructureSets);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla/datapack structure SET key (use ctrl+space for auto complete!)");
+                    putRegistryEnumRef(prop, "enum-vanilla-structure", this::vanillaStructures);
+                    description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla/datapack structure key (use ctrl+space for auto complete!)");
 
                 } else if (k.isAnnotationPresent(RegistryListItemType.class)) {
                     fancyType = "Item Type";
@@ -812,18 +795,8 @@ public class SchemaBuilder {
                                 description.add(SYMBOL_TYPE__N + "  Must be a registered vanilla, datapack, or modded template pool key (use ctrl+space for auto complete!)");
                             } else if (k.isAnnotationPresent(RegistryListVanillaStructure.class)) {
                                 fancyType = "List<Vanilla Structure>";
-                                if (k.getAnnotation(RegistryListVanillaStructure.class).prefixes()) {
-                                    putRegistryEnumOrPrefixItems(prop, "enum-vanilla-structure-or-prefix",
-                                            "enum-vanilla-structure", this::vanillaStructures, VANILLA_STRUCTURE_PREFIX_PATTERN);
-                                    description.add(SYMBOL_TYPE__N + "  Must be a vanilla/datapack structure key or a family/namespace prefix like 'minecraft:village' or 'nova_structures:' (use ctrl+space for auto complete!)");
-                                } else {
-                                    putRegistryEnumItems(prop, "enum-vanilla-structure", this::vanillaStructures);
-                                    description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla/datapack structure key (use ctrl+space for auto complete!)");
-                                }
-                            } else if (k.isAnnotationPresent(RegistryListVanillaStructureSet.class)) {
-                                fancyType = "List<Vanilla Structure Set>";
-                                putRegistryEnumItems(prop, "enum-vanilla-structure-set", this::vanillaStructureSets);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla/datapack structure set key (use ctrl+space for auto complete!)");
+                                putRegistryEnumItems(prop, "enum-vanilla-structure", this::vanillaStructures);
+                                description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla/datapack structure key (use ctrl+space for auto complete!)");
                             } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                                 fancyType = "List of Block Types";
                                 putRegistryEnumItems(prop, "enum-block-type", this::blockTypes);

@@ -1,10 +1,8 @@
 package art.arcane.iris.core.nms.v26_2_R1;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisStructureSetFrequencyOverride;
 import art.arcane.iris.core.datapack.DatapackIngestService;
 import art.arcane.iris.core.datapack.DatapackStructureScopeIndex;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.engine.framework.NativeStructureFrequencies;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
@@ -32,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -135,14 +134,14 @@ public class NMSBindingDatapackStructureScopeTest {
                         List.of(spigotDirect),
                         scopeIndex,
                         Set.of(),
-                        new IrisImportedStructureControl(),
+                        NativeStructureFrequencies.NONE,
                         keyIndex);
         DatapackStructureStateFilter.Selection retained =
                 DatapackStructureStateFilter.filter(
                         List.of(spigotDirect),
                         scopeIndex,
                         scopeIndex.declaredSources(List.of(SOURCE)),
-                        new IrisImportedStructureControl(),
+                        NativeStructureFrequencies.NONE,
                         keyIndex);
 
         assertEquals(0, excluded.structureSets().size());
@@ -172,12 +171,7 @@ public class NMSBindingDatapackStructureScopeTest {
                 "minecraft:nether_fossils",
                 new RandomSpreadStructurePlacement(2, 1, RandomSpreadType.LINEAR, 14357921),
                 structureHolder("minecraft:nether_fossil"));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("minecraft:nether_complexes")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("minecraft:nether_complexes", 1.1D));
 
         DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
                 List.of(complexes, fossils), index(List.of(), List.of()), Set.of(), control);
@@ -202,12 +196,7 @@ public class NMSBindingDatapackStructureScopeTest {
                 new UnsupportedPlacement(Optional.of(
                         new StructurePlacement.ExclusionZone(exclusionTarget, 1))),
                 structureHolder("example:custom"));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("minecraft:nether_complexes")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("minecraft:nether_complexes", 1.1D));
 
         DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
                 List.of(custom), index(List.of(), List.of()), Set.of(), control);
@@ -234,12 +223,7 @@ public class NMSBindingDatapackStructureScopeTest {
                 "example:dependent",
                 dependentPlacement,
                 structureHolder("example:dependent"));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("example:target")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("example:target", 1.1D));
 
         DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
                 List.of(dependent, target), index(List.of(), List.of()), Set.of(), control);
@@ -280,12 +264,7 @@ public class NMSBindingDatapackStructureScopeTest {
                         4,
                         RandomSpreadType.LINEAR),
                 "example:second"));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("example:second")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("example:second", 1.1D));
 
         DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
                 List.of(first, second), index(List.of(), List.of()), Set.of(), control);
@@ -306,12 +285,7 @@ public class NMSBindingDatapackStructureScopeTest {
                 "example:custom",
                 new CustomRandomSpreadPlacement(),
                 structureHolder("example:custom"));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("example:custom")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("example:custom", 1.1D));
 
         DatapackStructureStateFilter.Selection selection = DatapackStructureStateFilter.filter(
                 List.of(custom), index(List.of(), List.of()), Set.of(), control);

@@ -24,9 +24,9 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
+import art.arcane.iris.engine.framework.NativeStructureFrequencies;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import art.arcane.iris.nativegen.NativeStructureStartInjector;
 import art.arcane.iris.nativegen.NativeStructureReferenceRepair;
 import art.arcane.iris.nativegen.NativeStructureVanillaLocator;
@@ -285,19 +285,16 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
     public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> structureSets, RandomState randomState, long seed) {
         ChunkGeneratorStructureState state = ChunkGeneratorStructureState.createForNormal(
                 randomState, seed, structureBiomeSource.forStructureState(structureSets), structureSets);
-        return ModdedStructureSetFrequencyOverrides.apply(state, configuredImportedStructures());
+        return ModdedStructureSetFrequencyOverrides.apply(state, configuredFrequencies());
     }
 
-    private IrisImportedStructureControl configuredImportedStructures() {
+    private NativeStructureFrequencies configuredFrequencies() {
         Engine current = engine;
-        if (current != null && !current.isClosed() && !current.isClosing()) {
-            IrisDimension dimension = current.getDimension();
-            if (dimension != null && dimension.getImportedStructures() != null) {
-                return dimension.getImportedStructures();
-            }
+        if (current != null && !current.isClosed() && !current.isClosing() && current.getDimension() != null) {
+            return NativeStructureFrequencies.of(current.getData(), current.getDimension());
         }
-        IrisImportedStructureControl importedStructures = configuredPack().dimension().getImportedStructures();
-        return importedStructures == null ? new IrisImportedStructureControl() : importedStructures;
+        ModdedDimensionMetadata.ConfiguredPack configured = configuredPack();
+        return NativeStructureFrequencies.of(configured.data(), configured.dimension());
     }
 
     @Override
@@ -536,10 +533,10 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
         }
         String remedy = integratedEnvironment()
                 ? "enable 'Generate Structures' for this world; Iris requires it, then deny families through "
-                        + "importedStructures.disabled or complete keys through importedStructures.disabledExact"
+                        + "iris:structure disabled or complete keys through iris:structure disabledExact"
                 : "set generate-structures=true in server.properties, restart the server, "
-                        + "then deny families through importedStructures.disabled or complete keys through "
-                        + "importedStructures.disabledExact";
+                        + "then deny families through iris:structure disabled or complete keys through "
+                        + "iris:structure disabledExact";
         throw new IllegalStateException("Iris generator '" + dimensionKey
                 + "' cannot bind while generate-structures=false; " + remedy);
     }

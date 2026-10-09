@@ -52,8 +52,8 @@ public class NativeStructureFailureContractTest {
 
         assertTrue(error.getMessage().contains("overworld:overworld"));
         assertTrue(error.getMessage().contains("generate-structures=false"));
-        assertTrue(error.getMessage().contains("importedStructures.disabled"));
-        assertTrue(error.getMessage().contains("importedStructures.disabledExact"));
+        assertTrue(error.getMessage().contains("iris:structure disabled"));
+        assertTrue(error.getMessage().contains("iris:structure disabledExact"));
     }
 
     @Test

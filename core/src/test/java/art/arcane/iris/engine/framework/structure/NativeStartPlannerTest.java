@@ -1,13 +1,24 @@
-package art.arcane.iris.engine.framework;
+package art.arcane.iris.engine.framework.structure;
+
+import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.framework.StructurePlacementGrid;
+import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
+import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
+import com.volmit.resource.ResourceId;
+import com.volmit.vanilla.StructureTerrain;
+import com.volmit.vanilla.VanillaStructureStart;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -22,7 +33,8 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class NativeStructurePlacementPlannerTest {
+/** Where the pack's nativeStructures placements start platform structures (was the core planner's test). */
+public class NativeStartPlannerTest {
     @Test
     public void undergroundPlanIsDeterministicAndUsesConfiguredBand() {
         Engine engine = engine(982374L, -64, 384, 90);
@@ -31,8 +43,8 @@ public class NativeStructurePlacementPlannerTest {
                 .setMinHeight(-45)
                 .setMaxHeight(-20);
 
-        NativeStructureStartPlan first = NativeStructurePlacementPlanner.planAt(engine, placement, 12, -7);
-        NativeStructureStartPlan second = NativeStructurePlacementPlanner.planAt(engine, placement, 12, -7);
+        NativeStartPlanner.Plan first = NativeStartPlanner.planAt(engine, placement, 12, -7);
+        NativeStartPlanner.Plan second = NativeStartPlanner.planAt(engine, placement, 12, -7);
 
         assertNotNull(first);
         assertEquals(first, second);
@@ -50,7 +62,7 @@ public class NativeStructurePlacementPlannerTest {
                 .setMinHeight(500)
                 .setMaxHeight(600);
 
-        assertNull(NativeStructurePlacementPlanner.planAt(engine, placement, 12, -7));
+        assertNull(NativeStartPlanner.planAt(engine, placement, 12, -7));
     }
 
     @Test
@@ -60,30 +72,43 @@ public class NativeStructurePlacementPlannerTest {
                 .setMinHeight(80)
                 .setMaxHeight(90);
 
-        NativeStructureStartPlan plan = NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0);
+        NativeStartPlanner.Plan plan = NativeStartPlanner.planAt(engine, placement, 0, 0);
 
         assertNotNull(plan);
         assertEquals(86, plan.baseY());
 
         placement.setMinHeight(87);
-        assertNull(NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0));
+        assertNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
     }
 
     @Test
-    public void configuredDecisionOverridesSuppressedSourceWithoutLosingTerrain() {
+    public void aPlanBecomesAStartWithHeightsAboveTheBottomAndThePlacementsFitAndIdentity() {
         IrisStructureTerrain terrain = new IrisStructureTerrain()
                 .setMode(IrisStructureTerrainMode.FORCE_CARVE)
                 .setHorizontalPadding(24);
         IrisStructurePlacement placement = nativePlacement()
                 .setUnderground(true)
-                .setTerrain(terrain);
-        NativeStructureStartPlan plan = new NativeStructureStartPlan(
+                .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE)
+                .setTerrain(terrain)
+                .setStilt(new IrisStructureStiltSettings().setSpacing(3));
+        placement.getNativeStructures().getFirst().setJigsaw(new IrisJigsawConfiguration().setMaxDepth(4));
+        NativeStartPlanner.Plan plan = new NativeStartPlanner.Plan(
                 placement, placement.getNativeStructures().getFirst(), 3, 5, -30);
 
-        IrisNativeStructureDecision decision = NativeStructurePlacementPlanner.decisionFor(plan);
+        VanillaStructureStart start = StructureVanillaHook.start(plan, -64);
 
-        assertEquals(NativeStructureGenerationStatus.GENERATE_NATIVE, decision.status());
-        assertSame(terrain, decision.terrain());
+        assertEquals(ResourceId.parse("minecraft:ancient_city"), start.structure());
+        assertEquals(34, start.y());
+        assertTrue(start.isUnderground());
+        assertTrue(start.replacesPlatformStart());
+        assertEquals(StructurePlacementGrid.placementIdentity(placement), start.identity());
+        assertEquals(StructureTerrain.Mode.FORCE_CARVE, start.fit().terrain().orElseThrow().mode());
+        assertEquals(24, start.fit().terrain().orElseThrow().horizontalPadding());
+        assertEquals(3, start.fit().stilts().orElseThrow().spacing());
+        assertEquals(OptionalInt.of(4), start.jigsaw().orElseThrow().maxDepth());
+        assertEquals("a source without jigsaw overrides has none", Optional.empty(),
+                StructureVanillaHook.start(new NativeStartPlanner.Plan(nativePlacement(),
+                        nativePlacement().getNativeStructures().getFirst(), 0, 0, 70), -64).jigsaw());
     }
 
     @Test
@@ -91,13 +116,13 @@ public class NativeStructurePlacementPlannerTest {
         Engine engine = engine(77L, -64, 384, 63);
         IrisStructurePlacement placement = nativePlacement();
 
-        assertNull(NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0));
+        assertNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
 
         placement.setUnderground(true).setMinHeight(-40).setMaxHeight(-20);
-        assertNull(NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0));
+        assertNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
 
         placement.setUnderwater(true);
-        assertNotNull(NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0));
+        assertNotNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
     }
 
     @Test
@@ -105,11 +130,11 @@ public class NativeStructurePlacementPlannerTest {
         Engine engine = engine(77L, -64, 384, 64);
         IrisStructurePlacement placement = nativePlacement();
 
-        assertTrue(!NativeStructurePlacementPlanner.isSubmerged(engine, 8, 8));
-        assertNotNull(NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0));
+        assertTrue(!NativeStartPlanner.isSubmerged(engine, 8, 8));
+        assertNotNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
 
         placement.setUnderground(true).setMinHeight(-40).setMaxHeight(-20);
-        assertNotNull(NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0));
+        assertNotNull(NativeStartPlanner.planAt(engine, placement, 0, 0));
     }
 
     @Test
@@ -119,7 +144,7 @@ public class NativeStructurePlacementPlannerTest {
         IrisStructurePlacement second = nativePlacement().setPlacementId("second");
         bindPlacements(engine, first, second);
 
-        KList<NativeStructureStartPlan> plans = NativeStructurePlacementPlanner.plansAt(engine, 0, 0);
+        List<NativeStartPlanner.Plan> plans = NativeStartPlanner.plansAt(engine, 0, 0);
 
         IrisStructurePlacement expected = Long.compareUnsigned(
                 StructurePlacementGrid.placementIdentity(first),
@@ -143,9 +168,9 @@ public class NativeStructurePlacementPlannerTest {
                 return 0;
             }
         };
-        assertEquals("test:a", NativeStructurePlacementPlanner
+        assertEquals("test:a", NativeStartPlanner
                 .selectSource(first, selectsFirstWeightSlot).getStructure());
-        assertEquals("test:b", NativeStructurePlacementPlanner
+        assertEquals("test:b", NativeStartPlanner
                 .selectSource(reordered, selectsFirstWeightSlot).getStructure());
     }
 
@@ -201,7 +226,7 @@ public class NativeStructurePlacementPlannerTest {
 
     private void assertInvalid(IrisStructurePlacement placement) {
         try {
-            NativeStructurePlacementPlanner.validateBackend(placement);
+            NativeStartPlanner.validateBackend(placement);
             fail("Expected an invalid structure backend");
         } catch (IllegalStateException expected) {
             assertTrue(expected.getMessage().contains("exactly one backend"));
@@ -210,7 +235,7 @@ public class NativeStructurePlacementPlannerTest {
 
     private void assertUnsupportedAnchor(IrisStructurePlacement placement) {
         try {
-            NativeStructurePlacementPlanner.validateBackend(placement);
+            NativeStartPlanner.validateBackend(placement);
             fail("Expected native structure anchor rejection");
         } catch (IllegalStateException expected) {
             assertTrue(expected.getMessage().contains("do not support the Iris anchor field"));

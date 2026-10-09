@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
@@ -28,7 +29,6 @@ import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.IrisVanillaStructureAdjustment;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
@@ -63,6 +63,7 @@ import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.Feature;
@@ -79,6 +80,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -211,31 +213,66 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
-    public void nativeAdjustmentSchemaExposesPlacementOverrides() {
-        JSONObject schema = new SchemaBuilder(
-                IrisVanillaStructureAdjustment.class, structureSchemaData()).construct();
+    public void structureSettingsRenderTheirFitsWithIrisDefinitionsOfTheSameJson() throws IOException {
+        JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData(structureSettingsSchema())).construct();
         JSONObject definitions = schema.getJSONObject("definitions");
-        JSONObject properties = schema.getJSONObject("properties");
-        JSONObject band = definitions.getJSONObject(
-                definitionKey(properties.getJSONObject("yBand"))).getJSONObject("properties");
-        JSONObject stiltProperties = definitions.getJSONObject(
-                definitionKey(properties.getJSONObject("stilt"))).getJSONObject("properties");
-        JSONObject terrainProperties = definitions.getJSONObject(
-                definitionKey(properties.getJSONObject("terrain"))).getJSONObject("properties");
-        JSONObject spacing = stiltProperties.getJSONObject("spacing");
+        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("iris:structure")))
+                .getJSONObject("properties");
+        JSONObject adjustment = definitions.getJSONObject(definitionKey(settings.getJSONObject("adjustments").getJSONObject("items")))
+                .getJSONObject("properties");
+        JSONObject band = irisDefinition(definitions, adjustment.getJSONObject("yBand")).getJSONObject("properties");
+        JSONObject stilt = irisDefinition(definitions, adjustment.getJSONObject("stilt")).getJSONObject("properties");
+        JSONObject terrain = irisDefinition(definitions, adjustment.getJSONObject("terrain")).getJSONObject("properties");
 
-        assertEquals("boolean", properties.getJSONObject("preserveSourceY").getString("type"));
+        assertEquals("obj-art-arcane-iris-engine-object-structure-irisstructureyband",
+                definitionKey(definitions.getJSONObject(definitionKey(adjustment.getJSONObject("yBand")))));
+        assertEquals("boolean", adjustment.getJSONObject("preserveSourceY").getString("type"));
         assertEquals(-4064, band.getJSONObject("min").getInt("minimum"));
-        assertEquals(4064, band.getJSONObject("min").getInt("maximum"));
-        assertEquals(-4064, band.getJSONObject("max").getInt("minimum"));
         assertEquals(4064, band.getJSONObject("max").getInt("maximum"));
-        assertEquals(1, spacing.getInt("minimum"));
-        assertEquals(64, spacing.getInt("maximum"));
-        assertTrue(terrainProperties.has("mode"));
-        assertTrue(terrainProperties.has("shape"));
-        assertTrue(terrainProperties.has("lobeFrequency"));
-        assertTrue(terrainProperties.has("lobeStrength"));
-        assertTrue(terrainProperties.has("encasePalette"));
+        assertEquals(1, stilt.getJSONObject("spacing").getInt("minimum"));
+        assertEquals(64, stilt.getJSONObject("spacing").getInt("maximum"));
+        assertTrue(terrain.has("mode"));
+        assertTrue(terrain.has("shape"));
+        assertTrue(terrain.has("lobeFrequency"));
+        assertTrue(terrain.has("lobeStrength"));
+        assertTrue(terrain.has("encasePalette"));
+        assertEquals(1, settings.getJSONObject("adjustments").getInt("minItems"));
+    }
+
+    /**
+     * {@code disabled} and {@code adjustments[].match} accept family and namespace prefixes ("minecraft:village",
+     * "nova_structures:"), so studio offers the registered keys and also accepts a key/prefix pattern; exact-key
+     * options keep the strict list, and structure set options list the registered sets.
+     */
+    @Test
+    public void structureSettingsAcceptPrefixesWhereTheyMatchFamilies() throws IOException {
+        JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData(structureSettingsSchema())).construct();
+        JSONObject definitions = schema.getJSONObject("definitions");
+        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("iris:structure")))
+                .getJSONObject("properties");
+        JSONObject adjustment = definitions.getJSONObject(definitionKey(settings.getJSONObject("adjustments").getJSONObject("items")))
+                .getJSONObject("properties");
+        JSONObject frequency = definitions.getJSONObject(definitionKey(settings.getJSONObject("frequencyOverrides").getJSONObject("items")))
+                .getJSONObject("properties");
+
+        assertEquals("enum-vanilla-structure-or-prefix", definitionKey(settings.getJSONObject("disabled").getJSONObject("items")));
+        assertEquals("enum-vanilla-structure-or-prefix", definitionKey(adjustment.getJSONObject("match").getJSONObject("items")));
+        assertEquals("enum-vanilla-structure", definitionKey(settings.getJSONObject("disabledExact").getJSONObject("items")));
+        assertEquals("the fake platform lists no structure sets, so the set key is plain text",
+                "string", frequency.getJSONObject("structureSet").getString("type"));
+        JSONArray anyOf = definitions.getJSONObject("enum-vanilla-structure-or-prefix").getJSONArray("anyOf");
+        Pattern prefix = null;
+        for (int index = 0; index < anyOf.length(); index++) {
+            if (anyOf.getJSONObject(index).has("pattern")) {
+                prefix = Pattern.compile(anyOf.getJSONObject(index).getString("pattern"));
+            }
+        }
+        assertTrue("the prefix alternative is a pattern", prefix != null);
+        assertTrue(prefix.matcher("minecraft:village").matches());
+        assertTrue(prefix.matcher("nova_structures:").matches());
+        assertTrue(prefix.matcher("towns_and_towers:exclusives/village_piglin").matches());
+        assertFalse(prefix.matcher("village").matches());
+        assertFalse(prefix.matcher("Nova Structures:tavern").matches());
     }
 
     @Test
@@ -381,6 +418,11 @@ public class SchemaBuilderParityTest {
             }
         }
         throw new IllegalStateException("schema exposes no properties");
+    }
+
+    /** The definition an API value type's reference leads to: the module's, which refers to Iris's own. */
+    private static JSONObject irisDefinition(JSONObject definitions, JSONObject reference) {
+        return definitions.getJSONObject(definitionKey(definitions.getJSONObject(definitionKey(reference))));
     }
 
     private static String definitionKey(JSONObject reference) {
@@ -666,6 +708,32 @@ public class SchemaBuilderParityTest {
         try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
                 ModuleHost.of(List.of(new GlowModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
             return pack.schema();
+        }
+    }
+
+    /** The schema of {@code iris:structure}'s settings alone, without the module's stages. */
+    private static PackSchema structureSettingsSchema() throws IOException {
+        Path root = Files.createTempDirectory("structure-pack");
+        try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
+                ModuleHost.of(List.of(new StructureSettingsModule())).copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
+            return pack.schema();
+        }
+    }
+
+    /** A module with {@code iris:structure}'s id whose only part is its settings. */
+    public static final class StructureSettingsModule implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("iris:structure", "Structures", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+        }
+
+        @Override
+        public void register(FeatureRegistry registry) {
+            registry.registerSettings(StructureSettings.class);
         }
     }
 

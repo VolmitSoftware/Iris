@@ -38,12 +38,12 @@ public final class NativeStructureFactory {
                                           NativeStructureStartPlan plan, int references) {
         Structure source = sourceHolder.value();
         Structure configured = configure(
-                context.registryAccess(), source, plan.source().getJigsaw(),
-                plan.placement().isUnderground(), plan.baseY());
+                context.registryAccess(), source, plan.jigsaw(),
+                plan.underground(), plan.baseY());
         Holder<Biome> sourceBiome = source.biomes().stream().findFirst()
                 .or(() -> context.biomeSource().possibleBiomes().stream().findFirst())
                 .orElseThrow(() -> new IllegalStateException("Configured native structure '"
-                        + plan.source().getStructure() + "' has no usable generation biome"));
+                        + plan.structureKey() + "' has no usable generation biome"));
         ChunkGenerator forcedGenerator = new ForcedStructureChunkGenerator(
                 context.generator(), sourceBiome);
         StructureStart generated = configured.generate(
@@ -64,13 +64,13 @@ public final class NativeStructureFactory {
             return StructureStart.INVALID_START;
         }
         StructureStart positioned;
-        if (plan.placement().isUnderground()) {
+        if (plan.underground()) {
             positioned = NativeStructureVerticalPlacer.relocateToMinY(
                     generated, source, plan.baseY(), context.heightAccessor());
         } else {
             NativeStructureVerticalPlacer.applyVerticalPlacement(
                     generated,
-                    plan.source().getStructure(),
+                    plan.structureKey(),
                     0,
                     context.seaLevel(),
                     context.heightAccessor().getMinY(),
@@ -88,8 +88,8 @@ public final class NativeStructureFactory {
                 positioned,
                 source,
                 references,
-                plan.placement().resolvedTerrain(),
-                plan.source().getStructure()
+                plan.terrain(),
+                plan.structureKey()
         );
     }
 

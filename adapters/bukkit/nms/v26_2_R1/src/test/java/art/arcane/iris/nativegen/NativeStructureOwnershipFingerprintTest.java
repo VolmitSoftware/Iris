@@ -2,11 +2,10 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
-import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -246,19 +245,9 @@ public class NativeStructureOwnershipFingerprintTest {
     }
 
     private static NativeStructureStartPlan plan(ChunkPos origin, int baseY) {
-        IrisNativeStructure source = new IrisNativeStructure()
-                .setStructure("minecraft:monument")
-                .setWeight(1);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId("monument-test")
-                .setNativeStructures(new KList<IrisNativeStructure>().qadd(source));
-        return new NativeStructureStartPlan(
-                placement,
-                source,
-                origin.x(),
-                origin.z(),
-                baseY
-        );
+        return new NativeStructureStartPlan("minecraft:monument", origin.x(), origin.z(), baseY, false, false,
+                StructurePlacementGrid.placementIdentity(new IrisStructurePlacement().setPlacementId("monument-test")),
+                null, null, new IrisStructureTerrain());
     }
 
     private static NativeStructureOwnershipRecord ownership(

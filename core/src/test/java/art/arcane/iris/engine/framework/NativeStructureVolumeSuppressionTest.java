@@ -1,12 +1,10 @@
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.host.LoadedPack;
 import org.junit.After;
@@ -57,29 +55,22 @@ public class NativeStructureVolumeSuppressionTest {
     }
 
     @Test
-    public void plannedIrisStartsContributeVolumesThroughTheirOwnDecision() {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setDistribution(StructureDistribution.DENSITY)
-                .setDensity(1D);
-        placement.getNativeStructures().add(new IrisNativeStructure()
-                .setStructure("minecraft:ancient_city")
-                .setWeight(1));
-        NativeStructureStartPlan plan = new NativeStructureStartPlan(
-                placement, placement.getNativeStructures().getFirst(), 3, 5, -30);
+    public void plannedModuleStartsContributeVolumesThroughTheirOwnDecision() {
+        NativeStructureStartPlan plan = new NativeStructureStartPlan("minecraft:ancient_city", 3, 5, -30, true, false, 7L,
+                null, null, new IrisStructureTerrain());
 
-        assertTrue(NativeStructurePlacementPlanner.decisionFor(plan).generate());
+        assertTrue(plan.decision().generate());
     }
 
     private Engine engine() throws IOException {
-        IrisImportedStructureControl control = new IrisImportedStructureControl();
-        control.getDisabled().add("minecraft:village");
+        StructureSettings settings = new StructureSettings(List.of("minecraft:village"), List.of(), 0, true, List.of(), List.of());
         IrisDimension dimension = mock(IrisDimension.class);
         Engine engine = mock(Engine.class);
         IrisData data = mock(IrisData.class);
         packs.add(BuiltInPack.serveWithResources(data, folder, List.of()));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getImportedStructures()).thenReturn(control);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
         when(dimension.getStructures()).thenReturn(new KList<>());
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());

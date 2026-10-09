@@ -4,13 +4,11 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.framework.NativeStructurePlacementPlanner;
+import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -57,7 +55,7 @@ public final class NativeStructureOwnershipRecovery {
             NativeStructureOwnershipStore.discard(
                     engine, structureKey, origin.x(), origin.z());
         }
-        NativeStructureStartPlan plan = NativeStructurePlacementPlanner.matchingPlan(
+        NativeStructureStartPlan plan = NativeStructureStarts.matchingPlan(
                 engine, structureKey, origin.x(), origin.z());
         if (!matchesPlan(structureKey, origin, plan)) {
             return null;
@@ -124,13 +122,9 @@ public final class NativeStructureOwnershipRecovery {
             return null;
         }
         BoundingBox referenceEnvelope = NativeStructureReferenceEnvelope.referenceBounds(
-                expected, structure, plan.placement().resolvedTerrain(), structureKey);
+                expected, structure, plan.terrain(), structureKey);
         NativeStructureOwnershipRecord candidate = NativeStructureOwnershipFingerprint.capture(
                 structureKey, expected, plan, referenceEnvelope);
-        if (candidate.placementIdentity()
-                != StructurePlacementGrid.placementIdentity(plan.placement())) {
-            return null;
-        }
         return NativeStructureOwnershipFingerprint.matches(candidate, persisted)
                 ? candidate : null;
     }
@@ -142,7 +136,7 @@ public final class NativeStructureOwnershipRecovery {
         }
         return plan.chunkX() == origin.x()
                 && plan.chunkZ() == origin.z()
-                && normalize(structureKey).equals(normalize(plan.source().getStructure()));
+                && normalize(structureKey).equals(normalize(plan.structureKey()));
     }
 
     private static StructureStart generateExpected(
@@ -172,7 +166,7 @@ public final class NativeStructureOwnershipRecovery {
             Engine engine, String structureKey, Structure structure,
             Holder<Structure> holder, ChunkGeneratorStructureState state,
             NativeStructureStartPlan plan) {
-        if (plan.placement().getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
+        if (plan.replacesPlatformStart()) {
             return false;
         }
         NativeStructureGenerationStatus sourceStatus = NativeStructureGenerationPolicy.resolve(

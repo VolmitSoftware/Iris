@@ -1,8 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisStructureSetFrequencyOverride;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.engine.framework.NativeStructureFrequencies;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderOwner;
@@ -27,6 +25,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -47,12 +46,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         Holder<StructureSet> fossils = structureSet(
                 "minecraft:nether_fossils", 2, 1, 14357921);
         ChunkGeneratorStructureState state = state(List.of(complexes, fossils));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("minecraft:nether_complexes")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("minecraft:nether_complexes", 1.1D));
 
         ChunkGeneratorStructureState returned =
                 ModdedStructureSetFrequencyOverrides.apply(state, control);
@@ -72,12 +66,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         Holder<StructureSet> custom = new BoundStructureSetHolder(
                 "example:custom",
                 new StructureSet(List.of(), new UnsupportedPlacement()));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("minecraft:nether_complexes")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("minecraft:nether_complexes", 1.1D));
 
         List<Holder<StructureSet>> scaled =
                 ModdedStructureSetFrequencyOverrides.scaleSets(List.of(custom), control);
@@ -91,12 +80,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         BoundStructureSetHolder second = new BoundStructureSetHolder("example:second");
         first.bind(new StructureSet(List.of(), placement(32, 8, 1, second)));
         second.bind(new StructureSet(List.of(), placement(40, 10, 2, first)));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("minecraft:nether_complexes")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("minecraft:nether_complexes", 1.1D));
 
         List<Holder<StructureSet>> scaled = ModdedStructureSetFrequencyOverrides.scaleSets(
                 List.of(first, second), control);
@@ -111,12 +95,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         BoundStructureSetHolder second = new BoundStructureSetHolder("example:second");
         first.bind(new StructureSet(List.of(), placement(32, 8, 1, second)));
         second.bind(new StructureSet(List.of(), placement(40, 10, 2, first)));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("example:first")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("example:first", 1.1D));
 
         List<Holder<StructureSet>> scaled = ModdedStructureSetFrequencyOverrides.scaleSets(
                 List.of(first, second), control);
@@ -132,12 +111,7 @@ public class ModdedStructureSetFrequencyOverridesTest {
         Holder<StructureSet> custom = new BoundStructureSetHolder(
                 "example:custom",
                 new StructureSet(List.of(), new CustomRandomSpreadPlacement()));
-        KList<IrisStructureSetFrequencyOverride> overrides = new KList<>();
-        overrides.add(new IrisStructureSetFrequencyOverride()
-                .setStructureSet("example:custom")
-                .setMultiplier(1.1D));
-        IrisImportedStructureControl control = new IrisImportedStructureControl()
-                .setFrequencyOverrides(overrides);
+        NativeStructureFrequencies control = NativeStructureFrequencies.of(Map.of("example:custom", 1.1D));
 
         assertThrows(IllegalStateException.class, () ->
                 ModdedStructureSetFrequencyOverrides.scaleSets(List.of(custom), control));

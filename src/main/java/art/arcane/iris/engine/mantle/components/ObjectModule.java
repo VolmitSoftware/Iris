@@ -27,6 +27,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.PackSettings;
 import com.volmit.service.ObjectsAt;
+import com.volmit.service.SaplingGrowth;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
 
@@ -35,7 +36,7 @@ import com.volmit.stage.StageGraph;
  * once the caves they may anchor in are planned. A port of what was Iris's object mantle component, its work
  * done by {@link ObjectPlacing}, one per engine runtime. Its reach is the pack's largest object placement. It tells
  * Iris which objects a chunk would get and which biomes and regions place an object ({@link ObjectLocating}), for the
- * object search and studio tools.
+ * object search and studio tools, and grows the trees of saplings ({@link TreeGrowing}).
  */
 public final class ObjectModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -53,6 +54,7 @@ public final class ObjectModule implements IrisModule {
     @Override
     public void register(FeatureRegistry registry) {
         registry.registerService(ObjectsAt.class, new ObjectLocating());
+        registry.registerService(SaplingGrowth.class, new TreeGrowing());
     }
 
     private static void place(MantleStageContext context) {

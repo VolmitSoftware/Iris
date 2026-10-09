@@ -23,14 +23,23 @@ import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
+import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
+import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.object.structure.IrisStructureYBand;
+import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
+import com.google.gson.Gson;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.PaletteSpec;
 import com.volmit.config.Range;
 import com.volmit.noise.StyledRange;
+import com.volmit.vanilla.JigsawOverrides;
+import com.volmit.vanilla.StructureStilts;
+import com.volmit.vanilla.StructureTerrain;
+import com.volmit.vanilla.YBand;
 import com.volmit.world.BlockPosition;
 
 import java.util.Map;
@@ -42,13 +51,18 @@ import java.util.Optional;
  * {@link IrisGeneratorStyle}) and studio describes the value with Iris's own description of that class.
  */
 public final class IrisValues {
-    private static final Map<String, Class<?>> IRIS_CLASSES = Map.of(
-            BlockSpec.class.getName(), IrisBlockData.class,
-            PaletteSpec.class.getName(), IrisMaterialPalette.class,
-            com.volmit.noise.NoiseStyle.class.getName(), IrisGeneratorStyle.class,
-            StyledRange.class.getName(), IrisStyledRange.class,
-            Range.class.getName(), IrisRange.class,
-            BlockPosition.class.getName(), IrisPosition.class);
+    private static final Map<String, Class<?>> IRIS_CLASSES = Map.ofEntries(
+            Map.entry(BlockSpec.class.getName(), IrisBlockData.class),
+            Map.entry(PaletteSpec.class.getName(), IrisMaterialPalette.class),
+            Map.entry(com.volmit.noise.NoiseStyle.class.getName(), IrisGeneratorStyle.class),
+            Map.entry(StyledRange.class.getName(), IrisStyledRange.class),
+            Map.entry(Range.class.getName(), IrisRange.class),
+            Map.entry(BlockPosition.class.getName(), IrisPosition.class),
+            Map.entry(StructureTerrain.class.getName(), IrisStructureTerrain.class),
+            Map.entry(StructureStilts.class.getName(), IrisStructureStiltSettings.class),
+            Map.entry(YBand.class.getName(), IrisStructureYBand.class),
+            Map.entry(JigsawOverrides.class.getName(), IrisJigsawConfiguration.class));
+    private static final Gson SAME_JSON = new Gson();
 
     private IrisValues() {
     }
@@ -78,6 +92,30 @@ public final class IrisValues {
         KList<IrisBlockData> blocks = new KList<>();
         spec.palette().forEach(block -> blocks.add(blockData(block)));
         return new IrisMaterialPalette().setStyle(generatorStyle(spec.style())).setZoom(spec.zoom()).setPalette(blocks);
+    }
+
+    /** {@code terrain} as the terrain fitting Iris's native structure placement applies. */
+    public static IrisStructureTerrain structureTerrain(StructureTerrain terrain) {
+        return sameJson(terrain, IrisStructureTerrain.class);
+    }
+
+    /** {@code stilts} as the foundation columns Iris's native structure placement builds. */
+    public static IrisStructureStiltSettings structureStilts(StructureStilts stilts) {
+        return sameJson(stilts, IrisStructureStiltSettings.class);
+    }
+
+    public static IrisStructureYBand yBand(YBand band) {
+        return sameJson(band, IrisStructureYBand.class);
+    }
+
+    /** {@code overrides} as the jigsaw configuration Iris applies to a platform jigsaw definition. */
+    public static IrisJigsawConfiguration jigsawConfiguration(JigsawOverrides overrides) {
+        return sameJson(overrides, IrisJigsawConfiguration.class);
+    }
+
+    /** The structure fit classes are plain values whose JSON is the API type's, so the conversion is a JSON round trip. */
+    private static <T> T sameJson(Object apiValue, Class<T> irisClass) {
+        return SAME_JSON.fromJson(SAME_JSON.toJsonTree(apiValue), irisClass);
     }
 
     /** Iris's maps hold no null values; a JSON null in a map reads as absent, as it does for Iris's own fields. */

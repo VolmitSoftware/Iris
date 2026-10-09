@@ -3,7 +3,7 @@ package art.arcane.iris.nativegen;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.framework.NativeStructurePlacementPlanner;
+import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
@@ -30,6 +30,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -171,9 +172,9 @@ public final class NativeStructureVolumeIndex {
     private KList<NativeStructureVolume> appendPlannedVolumes(Engine engine, Bindings bindings,
                                                              Registry<Structure> registry, int chunkX, int chunkZ,
                                                              KList<NativeStructureVolume> volumes) {
-        KList<NativeStructureStartPlan> plans;
+        List<NativeStructureStartPlan> plans;
         try {
-            plans = NativeStructurePlacementPlanner.plansAt(engine, chunkX, chunkZ);
+            plans = NativeStructureStarts.plansAt(engine, chunkX, chunkZ);
         } catch (RuntimeException | Error error) {
             warnOnce("iris-placements", error);
             return volumes;
@@ -181,11 +182,11 @@ public final class NativeStructureVolumeIndex {
 
         KList<NativeStructureVolume> target = volumes;
         for (NativeStructureStartPlan plan : plans) {
-            IrisNativeStructureDecision decision = NativeStructurePlacementPlanner.decisionFor(plan);
+            IrisNativeStructureDecision decision = plan.decision();
             if (!decision.generate()) {
                 continue;
             }
-            Identifier identifier = Identifier.tryParse(plan.source().getStructure());
+            Identifier identifier = Identifier.tryParse(plan.structureKey());
             if (identifier == null) {
                 continue;
             }

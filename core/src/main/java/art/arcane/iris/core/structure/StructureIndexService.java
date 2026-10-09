@@ -113,7 +113,7 @@ public final class StructureIndexService {
         counts.put("irisStructures", iris.size());
 
         Map<String, Object> root = new LinkedHashMap<>();
-        root.put("note", "Generated index of every structure available at runtime. Toggle vanilla/datapack generation via the dimension importedStructures block (by structure key). Place structures via biome/region/dimension structures lists.");
+        root.put("note", "Generated index of every structure available at runtime. Toggle vanilla/datapack generation via the dimension's iris:structure settings (by structure key). Place structures via biome/region/dimension structures lists.");
         root.put("counts", counts);
         root.put("structures", structuresNode);
         root.put("structureSets", setsNode);

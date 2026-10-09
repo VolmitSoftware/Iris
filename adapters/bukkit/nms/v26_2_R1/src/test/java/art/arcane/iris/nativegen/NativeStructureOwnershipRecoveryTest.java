@@ -3,11 +3,9 @@ package art.arcane.iris.nativegen;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
-import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderSet;
@@ -66,7 +64,7 @@ public class NativeStructureOwnershipRecoveryTest {
                         plan, expected, false);
 
         assertNotNull(recovered);
-        assertEquals(StructurePlacementGrid.placementIdentity(plan.placement()),
+        assertEquals(plan.placementIdentity(),
                 recovered.placementIdentity());
         assertEquals(expectedLocatorY, recovered.locatorY());
         assertNotEquals(NativeStructureOwnershipFingerprint.locatorY(reloaded),
@@ -110,8 +108,8 @@ public class NativeStructureOwnershipRecoveryTest {
                 new ChunkPos(origin.x() + 1, origin.z()), "changed-identity", 0);
 
         assertNotEquals(
-                StructurePlacementGrid.placementIdentity(originalIdentity.placement()),
-                StructurePlacementGrid.placementIdentity(changedIdentity.placement()));
+                originalIdentity.placementIdentity(),
+                changedIdentity.placementIdentity());
         assertNull(NativeStructureOwnershipRecovery.proveCandidate(
                 "minecraft:monument", structure, expected,
                 changedIdentity, expected, false));
@@ -169,7 +167,7 @@ public class NativeStructureOwnershipRecoveryTest {
         assertEquals(IrisStructureTerrainMode.VACUUM,
                 refreshed.restoredDecision().terrain().resolvedMode());
         BoundingBox expected = NativeStructureReferenceEnvelope.referenceBounds(
-                start, structure, plan.placement().resolvedTerrain(), structureKey);
+                start, structure, plan.terrain(), structureKey);
         assertEquals(expected.minX() >> 4, refreshed.referenceMinChunkX());
         assertEquals(expected.maxX() >> 4, refreshed.referenceMaxChunkX());
         assertEquals(expected.minZ() >> 4, refreshed.referenceMinChunkZ());
@@ -209,7 +207,7 @@ public class NativeStructureOwnershipRecoveryTest {
         StructureStart start = monumentStart(structure, origin, seed);
         NativeStructureStartPlan plan = plan(origin, "current-force-carve", 24);
         BoundingBox envelope = NativeStructureReferenceEnvelope.referenceBounds(
-                start, structure, plan.placement().resolvedTerrain(), structureKey);
+                start, structure, plan.terrain(), structureKey);
         NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
                 structureKey, start, plan, envelope);
 
@@ -234,7 +232,7 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureStartPlan plan = plan(
                 origin, "clipped-vacuum", IrisStructureTerrainMode.VACUUM, 0);
         BoundingBox envelope = NativeStructureReferenceEnvelope.referenceBounds(
-                start, structure, plan.placement().resolvedTerrain(), structureKey);
+                start, structure, plan.terrain(), structureKey);
         NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
                 structureKey, start, plan, envelope);
 
@@ -277,23 +275,21 @@ public class NativeStructureOwnershipRecoveryTest {
                                                   String placementId,
                                                   IrisStructureTerrainMode terrainMode,
                                                   int horizontalPadding) {
-        IrisNativeStructure source = new IrisNativeStructure()
-                .setStructure("minecraft:monument")
-                .setWeight(1);
         IrisStructureTerrain terrain = new IrisStructureTerrain()
                 .setMode(terrainMode)
                 .setHorizontalPadding(horizontalPadding);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId(placementId)
-                .setTerrain(terrain)
-                .setNativeStructures(new KList<IrisNativeStructure>().qadd(source));
         return new NativeStructureStartPlan(
-                placement,
-                source,
+                "minecraft:monument",
                 origin.x(),
                 origin.z(),
                 NativeStructureReferenceEnvelope.contentBounds(
-                        monumentStart(structure(), origin, 1L)).minY()
+                        monumentStart(structure(), origin, 1L)).minY(),
+                false,
+                false,
+                StructurePlacementGrid.placementIdentity(new IrisStructurePlacement().setPlacementId(placementId)),
+                null,
+                null,
+                terrain
         );
     }
 

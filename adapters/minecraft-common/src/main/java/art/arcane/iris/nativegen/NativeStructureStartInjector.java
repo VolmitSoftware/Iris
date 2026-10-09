@@ -4,10 +4,9 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.framework.NativeStructurePlacementPlanner;
+import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import art.arcane.iris.spi.IrisLogging;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -45,12 +44,12 @@ public final class NativeStructureStartInjector {
         Registry<Structure> registry = context.registryAccess().lookupOrThrow(Registries.STRUCTURE);
         SectionPos section = SectionPos.bottomOf(chunk);
         Map<Structure, NativeStructureStartPlan> configuredStarts = new LinkedHashMap<>();
-        for (NativeStructureStartPlan plan : NativeStructurePlacementPlanner.plansAt(
+        for (NativeStructureStartPlan plan : NativeStructureStarts.plansAt(
                 context.engine(), chunk.getPos().x(), chunk.getPos().z())) {
-            Identifier identifier = Identifier.tryParse(plan.source().getStructure());
+            Identifier identifier = Identifier.tryParse(plan.structureKey());
             if (identifier == null) {
                 throw new IllegalStateException("Configured native structure key is invalid: "
-                        + plan.source().getStructure());
+                        + plan.structureKey());
             }
             Structure structure = registry.getValue(identifier);
             if (structure == null) {
@@ -66,8 +65,7 @@ public final class NativeStructureStartInjector {
             }
             StructureStart existing = context.structureManager().getStartForStructure(
                     section, structure, chunk);
-            boolean replacement = plan.placement().getNativeSuppression()
-                    == NativeStructureSuppression.REPLACE_SOURCE;
+            boolean replacement = plan.replacesPlatformStart();
             if (!replacement && existing != null && existing.isValid()) {
                 NativeStructureGenerationStatus sourceStatus = NativeStructureGenerationPolicy.resolve(
                         context.engine(), identifier.toString(),
@@ -106,7 +104,7 @@ public final class NativeStructureStartInjector {
                 continue;
             }
             BoundingBox referenceBounds = NativeStructureReferenceEnvelope.referenceBounds(
-                    generated, structure, plan.placement().resolvedTerrain(), identifier.toString());
+                    generated, structure, plan.terrain(), identifier.toString());
             NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
                     identifier.toString(), generated, plan, referenceBounds);
             NativeStructureOwnershipStore.record(context.engine(), ownership);

@@ -23,6 +23,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.util.common.data.DataProvider;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
@@ -65,13 +66,18 @@ public final class IrisPackSettings implements PackSettings {
 
     @Override
     public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-        IrisDimension dimension = engine.getDimension();
+        return declaredBy(engine.getDimension(), engine, ids, featureType);
+    }
+
+    /** The settings of {@code featureType} that {@code dimension} and every region and biome it reaches declare, in that order. */
+    static <F extends IrisFeature> List<Entry<F>> declaredBy(IrisDimension dimension, DataProvider data, PackResourceIds ids,
+                                                             Class<F> featureType) {
         List<Entry<F>> entries = new ArrayList<>();
         addEntry(entries, featureType, Target.DIMENSION, ids.of(DIMENSION, dimension.getLoadKey()), dimension);
-        for (IrisRegion region : dimension.getAllRegions(engine)) {
+        for (IrisRegion region : dimension.getAllRegions(data)) {
             addEntry(entries, featureType, Target.REGION, ids.of(REGION, region.getLoadKey()), region);
         }
-        for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
+        for (IrisBiome biome : dimension.getReachableBiomes(data)) {
             addEntry(entries, featureType, Target.BIOME, ids.of(BIOME, biome.getLoadKey()), biome);
         }
         return List.copyOf(entries);

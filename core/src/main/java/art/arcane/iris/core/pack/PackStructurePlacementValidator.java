@@ -490,7 +490,7 @@ final class PackStructurePlacementValidator {
     private static void validateImportedStructureAdjustmentEnvelopes(
             String dimensionKey, JSONObject dimension, RegistrySnapshot registries,
             List<String> blockingErrors) {
-        JSONObject policy = dimension.optJSONObject("importedStructures");
+        JSONObject policy = dimension.optJSONObject(PackDimensionValidator.STRUCTURE_SETTINGS);
         if (policy == null) {
             return;
         }
@@ -511,7 +511,7 @@ final class PackStructurePlacementValidator {
                 continue;
             }
             String path = "Dimension '" + dimensionKey
-                    + "' importedStructures.adjustments[" + adjustmentIndex + "]";
+                    + "' iris:structure.adjustments[" + adjustmentIndex + "]";
             for (String structureKey : orderedStructureKeys) {
                 if (matchesStructure(matches, structureKey)) {
                     effective.put(structureKey, new EffectiveTerrainAdjustment(path, adjustment));
@@ -661,7 +661,7 @@ final class PackStructurePlacementValidator {
         if ("VACUUM".equals(mode) || "ENCASE".equals(mode)) {
             blockingErrors.add(path + ".terrain.mode " + mode
                     + " cannot target editable Iris structures; use nativeStructures or "
-                    + "importedStructures.adjustments for native terrain preparation.");
+                    + "iris:structure adjustments for native terrain preparation.");
         }
     }
 

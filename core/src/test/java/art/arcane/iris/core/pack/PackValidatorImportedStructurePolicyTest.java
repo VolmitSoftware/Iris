@@ -116,8 +116,8 @@ public class PackValidatorImportedStructurePolicyTest {
         List<String> errors = validate(policy);
 
         assertEquals(2, errors.size());
-        assertTrue(errors.get(0).contains("importedStructures.mode is not supported"));
-        assertTrue(errors.get(1).contains("importedStructures.enabled is not supported"));
+        assertTrue(errors.get(0).contains("iris:structure.mode is not supported"));
+        assertTrue(errors.get(1).contains("iris:structure.enabled is not supported"));
     }
 
     @Test
@@ -156,8 +156,8 @@ public class PackValidatorImportedStructurePolicyTest {
 
         List<String> nullErrors = new ArrayList<>();
         PackDimensionValidator.validateImportedStructurePolicy("overworld",
-                new JSONObject().put("importedStructures", JSONObject.NULL), nullErrors, new ArrayList<>());
-        assertEquals(List.of("Dimension 'overworld' importedStructures must be an object."), nullErrors);
+                new JSONObject().put("iris:structure", JSONObject.NULL), nullErrors, new ArrayList<>());
+        assertEquals(List.of("Dimension 'overworld' iris:structure must be an object."), nullErrors);
     }
 
     @Test
@@ -170,7 +170,7 @@ public class PackValidatorImportedStructurePolicyTest {
         List<String> warnings = new ArrayList<>();
 
         PackDimensionValidator.validateImportedStructurePolicy("overworld",
-                new JSONObject().put("importedStructures", policy), errors, warnings);
+                new JSONObject().put("iris:structure", policy), errors, warnings);
 
         assertTrue(errors.toString(), errors.isEmpty());
         assertEquals(1, warnings.size());
@@ -181,7 +181,7 @@ public class PackValidatorImportedStructurePolicyTest {
     private List<String> validate(JSONObject policy) {
         List<String> errors = new ArrayList<>();
         PackDimensionValidator.validateImportedStructurePolicy("overworld",
-                new JSONObject().put("importedStructures", policy), errors, new ArrayList<>());
+                new JSONObject().put("iris:structure", policy), errors, new ArrayList<>());
         return errors;
     }
 }

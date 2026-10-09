@@ -6,7 +6,7 @@ import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import art.arcane.iris.core.datapack.DatapackStructureScopeIndex;
 import art.arcane.iris.core.nms.DatapackStructureScopeResult;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
+import art.arcane.iris.engine.framework.NativeStructureFrequencies;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.nms.INMSBinding;
 import art.arcane.iris.core.nms.MinecraftVersion;
@@ -1232,7 +1232,7 @@ public class NMSBinding implements INMSBinding {
             World world,
             DatapackStructureScopeIndex scopeIndex,
             Set<String> declaredSources,
-            IrisImportedStructureControl importedStructures
+            NativeStructureFrequencies frequencies
     ) throws NoSuchFieldException, IllegalAccessException {
         ServerLevel level = ((CraftWorld) world).getHandle();
         ChunkMap chunkMap = level.getChunkSource().chunkMap;
@@ -1245,7 +1245,7 @@ public class NMSBinding implements INMSBinding {
                 scopedState.possibleStructureSets(),
                 scopeIndex,
                 declaredSources,
-                importedStructures,
+                frequencies,
                 DatapackStructureStateFilter.keyIndex(
                         structureSetRegistry.listElements().toList()));
 

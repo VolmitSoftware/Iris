@@ -18,8 +18,8 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.engine.framework.NativeStructureFrequencies;
 import art.arcane.iris.engine.framework.NativeStructureFrequencyScale;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderOwner;
 import net.minecraft.core.Vec3i;
@@ -47,13 +47,13 @@ final class ModdedStructureSetFrequencyOverrides {
 
     static ChunkGeneratorStructureState apply(
             ChunkGeneratorStructureState state,
-            IrisImportedStructureControl importedStructures
+            NativeStructureFrequencies frequencies
     ) {
-        if (!importedStructures.hasFrequencyOverrides()) {
+        if (!frequencies.hasOverrides()) {
             return state;
         }
         List<Holder<StructureSet>> original = state.possibleStructureSets();
-        List<Holder<StructureSet>> scaled = scaleSets(original, importedStructures);
+        List<Holder<StructureSet>> scaled = scaleSets(original, frequencies);
         if (scaled == original) {
             return state;
         }
@@ -69,7 +69,7 @@ final class ModdedStructureSetFrequencyOverrides {
 
     static List<Holder<StructureSet>> scaleSets(
             List<Holder<StructureSet>> structureSets,
-            IrisImportedStructureControl importedStructures
+            NativeStructureFrequencies frequencies
     ) {
         Map<String, Holder<StructureSet>> holdersByKey = new HashMap<>();
         for (Holder<StructureSet> holder : structureSets) {
@@ -83,7 +83,7 @@ final class ModdedStructureSetFrequencyOverrides {
         boolean changed = false;
         for (Holder<StructureSet> holder : structureSets) {
             Holder<StructureSet> scaled = scaleHolder(
-                    holder, importedStructures, holdersByKey, scaledByIdentity);
+                    holder, frequencies, holdersByKey, scaledByIdentity);
             scaledSets.add(scaled);
             changed |= scaled != holder;
         }
@@ -92,14 +92,14 @@ final class ModdedStructureSetFrequencyOverrides {
 
     private static Holder<StructureSet> scaleHolder(
             Holder<StructureSet> holder,
-            IrisImportedStructureControl importedStructures,
+            NativeStructureFrequencies frequencies,
             Map<String, Holder<StructureSet>> holdersByKey,
             Map<Holder<StructureSet>, Holder<StructureSet>> scaledByIdentity
     ) {
         if (scaledByIdentity.containsKey(holder)) {
             return scaledByIdentity.get(holder);
         }
-        if (!dependsOnOverride(holder, importedStructures, holdersByKey)) {
+        if (!dependsOnOverride(holder, frequencies, holdersByKey)) {
             scaledByIdentity.put(holder, holder);
             return holder;
         }
@@ -116,13 +116,13 @@ final class ModdedStructureSetFrequencyOverrides {
             Holder<StructureSet> target = canonicalHolder(
                     originalZone.get().otherSet(), holdersByKey);
             Holder<StructureSet> scaledTarget = scaleHolder(
-                    target, importedStructures, holdersByKey, scaledByIdentity);
+                    target, frequencies, holdersByKey, scaledByIdentity);
             if (scaledTarget != originalZone.get().otherSet()) {
                 scaledZone = Optional.of(new StructurePlacement.ExclusionZone(
                         scaledTarget, originalZone.get().chunkCount()));
             }
         }
-        double multiplier = importedStructures.frequencyMultiplier(structureSetKey(holder));
+        double multiplier = frequencies.multiplier(structureSetKey(holder));
         StructurePlacement scaledPlacement = multiplier == 1D && scaledZone.equals(originalZone)
                 ? originalPlacement
                 : scalePlacement(originalPlacement, originalZone, scaledZone, multiplier);
@@ -132,13 +132,13 @@ final class ModdedStructureSetFrequencyOverrides {
 
     private static boolean dependsOnOverride(
             Holder<StructureSet> holder,
-            IrisImportedStructureControl importedStructures,
+            NativeStructureFrequencies frequencies,
             Map<String, Holder<StructureSet>> holdersByKey
     ) {
         Set<Holder<StructureSet>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         Holder<StructureSet> current = holder;
         while (visited.add(current)) {
-            if (importedStructures.frequencyMultiplier(structureSetKey(current)) != 1D) {
+            if (frequencies.multiplier(structureSetKey(current)) != 1D) {
                 return true;
             }
             Optional<StructurePlacement.ExclusionZone> zone =

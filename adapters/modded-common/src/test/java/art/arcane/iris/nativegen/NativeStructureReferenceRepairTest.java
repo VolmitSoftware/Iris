@@ -9,13 +9,10 @@ import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
-import art.arcane.volmlib.util.collection.KList;
 import com.github.benmanes.caffeine.cache.Cache;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
@@ -42,6 +39,7 @@ import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentPiec
 import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStructure;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -57,11 +55,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class NativeStructureReferenceRepairTest {
+    private static final long MONUMENT_PLACEMENT_IDENTITY = 0x4D4F4E554D454E54L;
+
     @BeforeClass
     public static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
@@ -140,14 +144,10 @@ public class NativeStructureReferenceRepairTest {
                 start,
                 plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()),
                 NativeStructureReferenceEnvelope.referenceBounds(start, structure, terrain));
-        IrisDimension dimension = new IrisDimension();
-        dimension.getImportedStructures().getDisabled().add(structureKey);
-        IrisData data = packWithoutModules();
-        Engine engine = engine(dimension, data);
-        IrisNativeStructureDecision currentDecision = NativeStructureGenerationPolicy.resolve(
-                engine, structureKey, false);
+        Engine engine = engine(new IrisDimension(), packWithoutModules());
+        IrisNativeStructureDecision currentDecision = new IrisNativeStructureDecision(
+                NativeStructureGenerationStatus.DISABLED_BY_PACK, 0, null, false, null, null);
 
-        assertFalse(currentDecision.generate());
         assertFalse(NativeStructureReferenceRepair.naturalDecisionAllows(currentDecision));
 
         ProtoChunk originChunk = emptyChunk(origin);
@@ -163,7 +163,9 @@ public class NativeStructureReferenceRepairTest {
         assertNotNull(uncoveredTarget);
 
         installOwnership(engine, ownership);
-        try {
+        try (MockedStatic<NativeStructureGenerationPolicy> policy = mockStatic(NativeStructureGenerationPolicy.class)) {
+            policy.when(() -> NativeStructureGenerationPolicy.resolve(any(), eq(structureKey), anyBoolean()))
+                    .thenReturn(currentDecision);
             WorldGenLevel level = worldGenLevel(
                     registry, serverLevel, originChunk, emptyScannedChunk);
             ProtoChunk coveredChunk = emptyChunk(coveredTarget);
@@ -207,19 +209,8 @@ public class NativeStructureReferenceRepairTest {
     }
 
     private static NativeStructureStartPlan plan(ChunkPos origin, int baseY) {
-        IrisNativeStructure source = new IrisNativeStructure()
-                .setStructure("minecraft:monument")
-                .setWeight(1);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId("monument-reference-test")
-                .setNativeStructures(new KList<IrisNativeStructure>().qadd(source));
-        return new NativeStructureStartPlan(
-                placement,
-                source,
-                origin.x(),
-                origin.z(),
-                baseY
-        );
+        return new NativeStructureStartPlan("minecraft:monument", origin.x(), origin.z(), baseY, false, false,
+                MONUMENT_PLACEMENT_IDENTITY, null, null, new IrisStructureTerrain());
     }
 
     private static ChunkPos outsideLiveBounds(NativeStructureOwnershipRecord ownership,

@@ -1,8 +1,8 @@
 package art.arcane.iris.core.nms.v26_2_R1;
 
 import art.arcane.iris.core.datapack.DatapackStructureScopeIndex;
+import art.arcane.iris.engine.framework.NativeStructureFrequencies;
 import art.arcane.iris.engine.framework.NativeStructureFrequencyScale;
-import art.arcane.iris.engine.object.structure.vanilla.IrisImportedStructureControl;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderOwner;
 import net.minecraft.core.Vec3i;
@@ -32,20 +32,20 @@ final class DatapackStructureStateFilter {
             DatapackStructureScopeIndex scopeIndex,
             Set<String> declaredSources
     ) {
-        return filter(structureSets, scopeIndex, declaredSources, new IrisImportedStructureControl());
+        return filter(structureSets, scopeIndex, declaredSources, NativeStructureFrequencies.NONE);
     }
 
     static Selection filter(
             List<Holder<StructureSet>> structureSets,
             DatapackStructureScopeIndex scopeIndex,
             Set<String> declaredSources,
-            IrisImportedStructureControl importedStructures
+            NativeStructureFrequencies frequencies
     ) {
         return filter(
                 structureSets,
                 scopeIndex,
                 declaredSources,
-                importedStructures,
+                frequencies,
                 keyIndex(structureSets));
     }
 
@@ -53,12 +53,12 @@ final class DatapackStructureStateFilter {
             List<Holder<StructureSet>> structureSets,
             DatapackStructureScopeIndex scopeIndex,
             Set<String> declaredSources,
-            IrisImportedStructureControl importedStructures,
+            NativeStructureFrequencies frequencies,
             StructureSetKeyIndex keyIndex
     ) {
         if (scopeIndex.isEmpty()) {
             return new Selection(
-                    scaleFrequencyOverrides(structureSets, importedStructures, keyIndex),
+                    scaleFrequencyOverrides(structureSets, frequencies, keyIndex),
                     0,
                     0);
         }
@@ -98,7 +98,7 @@ final class DatapackStructureStateFilter {
         }
         return new Selection(
                 scaleFrequencyOverrides(
-                        List.copyOf(filteredSets), importedStructures, keyIndex),
+                        List.copyOf(filteredSets), frequencies, keyIndex),
                 retainedManagedSets,
                 excludedManagedSets);
     }
@@ -244,10 +244,10 @@ final class DatapackStructureStateFilter {
 
     private static List<Holder<StructureSet>> scaleFrequencyOverrides(
             List<Holder<StructureSet>> structureSets,
-            IrisImportedStructureControl importedStructures,
+            NativeStructureFrequencies frequencies,
             StructureSetKeyIndex keyIndex
     ) {
-        if (!importedStructures.hasFrequencyOverrides()) {
+        if (!frequencies.hasOverrides()) {
             return structureSets;
         }
         Map<String, Holder<StructureSet>> holdersByKey = new HashMap<>();
@@ -263,7 +263,7 @@ final class DatapackStructureStateFilter {
         for (Holder<StructureSet> holder : structureSets) {
             Holder<StructureSet> scaled = scaleFrequencyHolder(
                     holder,
-                    importedStructures,
+                    frequencies,
                     holdersByKey,
                     scaledByIdentity,
                     keyIndex);
@@ -275,7 +275,7 @@ final class DatapackStructureStateFilter {
 
     private static Holder<StructureSet> scaleFrequencyHolder(
             Holder<StructureSet> holder,
-            IrisImportedStructureControl importedStructures,
+            NativeStructureFrequencies frequencies,
             Map<String, Holder<StructureSet>> holdersByKey,
             Map<Holder<StructureSet>, Holder<StructureSet>> scaledByIdentity,
             StructureSetKeyIndex keyIndex
@@ -284,7 +284,7 @@ final class DatapackStructureStateFilter {
             return scaledByIdentity.get(holder);
         }
         if (!dependsOnFrequencyOverride(
-                holder, importedStructures, holdersByKey, keyIndex)) {
+                holder, frequencies, holdersByKey, keyIndex)) {
             scaledByIdentity.put(holder, holder);
             return holder;
         }
@@ -304,7 +304,7 @@ final class DatapackStructureStateFilter {
                     originalZone.get().otherSet(), holdersByKey, keyIndex);
             Holder<StructureSet> scaledTarget = scaleFrequencyHolder(
                     target,
-                    importedStructures,
+                    frequencies,
                     holdersByKey,
                     scaledByIdentity,
                     keyIndex);
@@ -314,7 +314,7 @@ final class DatapackStructureStateFilter {
             }
         }
 
-        double multiplier = importedStructures.frequencyMultiplier(
+        double multiplier = frequencies.multiplier(
                 structureSetKey(holder, keyIndex));
         StructurePlacement scaledPlacement = multiplier == 1D && scaledZone.equals(originalZone)
                 ? originalPlacement
@@ -325,14 +325,14 @@ final class DatapackStructureStateFilter {
 
     private static boolean dependsOnFrequencyOverride(
             Holder<StructureSet> holder,
-            IrisImportedStructureControl importedStructures,
+            NativeStructureFrequencies frequencies,
             Map<String, Holder<StructureSet>> holdersByKey,
             StructureSetKeyIndex keyIndex
     ) {
         Set<Holder<StructureSet>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         Holder<StructureSet> current = holder;
         while (visited.add(current)) {
-            if (importedStructures.frequencyMultiplier(
+            if (frequencies.multiplier(
                     structureSetKey(current, keyIndex)) != 1D) {
                 return true;
             }

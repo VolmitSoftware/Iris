@@ -15,8 +15,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-/** The module jars of one pack: every {@code <pack>/modules/*.jar}, one module per jar, ordered
- * by file name so the result never depends on directory listing order. Hosts normally load packs
+/** The module jars of one pack: every {@code <pack>/modules/*.jar}, each with the modules it lists,
+ * ordered by file name so the result never depends on directory listing order. Hosts normally load packs
  * through {@link LoadedPack}, which uses this.
  *
  * <p>The load first copies the jars into a fresh temporary directory ({@link JarSnapshot}) and works
@@ -101,7 +101,7 @@ public final class PackModules implements AutoCloseable {
         }
     }
 
-    /** One module per jar, in jar file name order. */
+    /** The modules of all jars, in jar file name order and, within a jar, in the order it lists them. */
     public List<DiscoveredModule> modules() {
         return modules;
     }
@@ -183,16 +183,17 @@ public final class PackModules implements AutoCloseable {
     }
 
     private static List<DiscoveredModule> createModules(List<ModuleJar> jars, ClassLoader loader, JarSnapshot snapshot) {
-        return jars.stream().map(jar -> jar.createModule(loader, snapshot)).toList();
+        return jars.stream().flatMap(jar -> jar.createModules(loader, snapshot).stream()).toList();
     }
 
-    /** A module's optional packages excuse only its own jar's missing classes. They are read from
-     * {@code info()}, so this runs after the entry classes exist; errors were decided before that and
-     * never depend on them.
+    /** A module's optional packages excuse only its own jar's missing classes; a jar with several
+     * modules is excused by the optional packages of all of them. They are read from {@code info()},
+     * so this runs after the entry classes exist; errors were decided before that and never depend on them.
      */
     private static List<MissingClasses> withoutDeclaredOptional(List<MissingClasses> missingClasses, List<DiscoveredModule> modules) {
         var optionalPackages = modules.stream()
-                .collect(Collectors.toMap(DiscoveredModule::origin, found -> found.info().optionalPackages()));
+                .collect(Collectors.groupingBy(DiscoveredModule::origin,
+                        Collectors.flatMapping(found -> found.info().optionalPackages().stream(), Collectors.toList())));
         return missingClasses.stream()
                 .map(jar -> jar.outside(optionalPackages.get(jar.origin())))
                 .filter(Predicate.not(MissingClasses::isEmpty))

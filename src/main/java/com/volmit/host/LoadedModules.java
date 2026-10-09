@@ -26,8 +26,6 @@ public record LoadedModules(
     /** Pass the built-in modules together with {@link PackModules#modules()} of the pack.
      *
      * @param reservedHostFields JSON fields the host itself uses, per attachment target
-     * @param reservedNamespaces namespaces only built-in modules may use, such as {@code iris}; a
-     *     pack module whose id uses one fails the load
      * @param hostTypePackages packages whose classes the host describes itself, each with its
      *     subpackages; only built-in modules' settings may use them (see {@link ModuleHost#describingHostTypesIn})
      * @param reservedFolders pack folders the host reads itself, which no resource kind may read (see
@@ -36,11 +34,8 @@ public record LoadedModules(
     public static LoadedModules load(
             List<DiscoveredModule> modules,
             Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
-            Collection<String> reservedNamespaces,
             Collection<String> hostTypePackages,
             Collection<String> reservedFolders) {
-        var reserved = ReservedNamespaces.of(reservedNamespaces);
-        modules.forEach(reserved::requireAllowed);
         var registry = new ModuleRegistry(reservedHostFields, Set.copyOf(reservedFolders));
         var stages = new StageGraphBuilder();
         for (var discovered : modules) {

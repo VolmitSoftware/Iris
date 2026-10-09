@@ -22,17 +22,18 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
-/** One jar in a pack's modules directory, the entry class it names and the classes it holds,
+/** One jar in a pack's modules directory, the entry classes it names and the classes it holds,
  * each with the classes it links against. {@code path} is the load's copy of the jar
  * ({@link JarSnapshot}); {@code origin} is the original's path relative to the pack, which every
  * message names.
  *
- * <p>The entry point is the jar's own {@code META-INF/services/com.volmit.IrisModule} file, in
- * the format {@link java.util.ServiceLoader} reads. The host reads that file from this jar only:
+ * <p>The entry points are the jar's own {@code META-INF/services/com.volmit.IrisModule} file, in
+ * the format {@link java.util.ServiceLoader} reads: one module class per line, so a jar holds as many
+ * modules as it lists. The host reads that file from this jar only:
  * {@code ServiceLoader} would also return providers from parent class loaders and could not tell
  * which jar a broken entry came from.
  */
-record ModuleJar(Path path, String origin, String entryClass, List<JarClass> classes) {
+record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarClass> classes) {
     static final String ENTRY_POINT_FILE = "META-INF/services/" + IrisModule.class.getName();
     private static final String COMMENT_START = "#";
     private static final String CLASS_FILE_SUFFIX = ".class";
@@ -42,7 +43,7 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
     ModuleJar {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(origin, "origin");
-        Objects.requireNonNull(entryClass, "entryClass");
+        entryClasses = List.copyOf(entryClasses);
         classes = List.copyOf(classes);
     }
 
@@ -54,16 +55,16 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         }
     }
 
-    /** Reads the single entry class a jar names and the classes it holds. Fails if a class file
-     * cannot be parsed.
+    /** Reads the entry classes a jar names and the classes it holds. Fails if the jar names no
+     * entry class or a class file cannot be parsed.
      */
     static ModuleJar read(JarSnapshot.CopiedJar copied) {
         var origin = copied.origin();
         var jar = copied.copy();
         try (var file = openAsClassLoaderSeesIt(jar)) {
-            var entryClass = requireSingleEntryClass(origin, readEntryClasses(file));
+            var entryClasses = requireEntryClasses(origin, readEntryClasses(file));
             var classEntries = findClassEntries(file);
-            return new ModuleJar(jar, origin, entryClass, readClasses(origin, file, classEntries));
+            return new ModuleJar(jar, origin, entryClasses, readClasses(origin, file, classEntries));
         } catch (IOException exception) {
             throw new UncheckedIOException("Module jar " + origin + " is not a readable jar", exception);
         }
@@ -81,14 +82,19 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         }
     }
 
-    /** Loads and instantiates the entry class through the pack's class loader. The class must come
-     * from this jar, so a copy on the host classpath cannot silently replace the jar's module.
+    /** Loads and instantiates every entry class through the pack's class loader, in the order the
+     * jar lists them. Each class must come from this jar, so a copy on the host classpath cannot
+     * silently replace the jar's module.
      */
-    DiscoveredModule createModule(ClassLoader packLoader, JarSnapshot snapshot) {
-        var type = loadEntryClass(packLoader);
-        requireDefinedHere(type, snapshot);
-        var module = instantiate(type);
-        return DiscoveredModule.fromJar(module, readIdentity(module), origin);
+    List<DiscoveredModule> createModules(ClassLoader packLoader, JarSnapshot snapshot) {
+        return entryClasses.stream().map(entryClass -> createModule(entryClass, packLoader, snapshot)).toList();
+    }
+
+    private DiscoveredModule createModule(String entryClass, ClassLoader packLoader, JarSnapshot snapshot) {
+        var type = loadEntryClass(entryClass, packLoader);
+        requireDefinedHere(entryClass, type, snapshot);
+        var module = instantiate(entryClass, type);
+        return DiscoveredModule.fromJar(module, readIdentity(entryClass, module), origin);
     }
 
     /** Opens the jar with the runtime's multi-release version, like the pack class loader does, so
@@ -98,16 +104,10 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         return new JarFile(jar.toFile(), true, ZipFile.OPEN_READ, JarFile.runtimeVersion());
     }
 
-    private static String requireSingleEntryClass(String origin, List<String> entryClasses) {
-        if (entryClasses.isEmpty()) {
-            throw new IllegalArgumentException("Module jar " + origin + " has no entry point; name its "
-                    + IrisModule.class.getSimpleName() + " class in " + ENTRY_POINT_FILE);
-        }
-        if (entryClasses.size() > 1) {
-            throw new IllegalArgumentException("Module jar " + origin + " names " + entryClasses.size()
-                    + " entry points " + entryClasses + "; one jar holds exactly one module");
-        }
-        return entryClasses.getFirst();
+    private static List<String> requireEntryClasses(String origin, List<String> entryClasses) {
+        if (!entryClasses.isEmpty()) return entryClasses;
+        throw new IllegalArgumentException("Module jar " + origin + " has no entry point; name its "
+                + IrisModule.class.getSimpleName() + " classes in " + ENTRY_POINT_FILE + ", one per line");
     }
 
     private static List<String> readEntryClasses(JarFile file) throws IOException {
@@ -168,24 +168,24 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         return comment < 0 ? line : line.substring(0, comment);
     }
 
-    private Class<? extends IrisModule> loadEntryClass(ClassLoader packLoader) {
+    private Class<? extends IrisModule> loadEntryClass(String entryClass, ClassLoader packLoader) {
         Class<?> type;
         try {
             type = Class.forName(entryClass, false, packLoader);
         } catch (ClassNotFoundException | LinkageError exception) {
-            throw brokenEntryPoint("class cannot be loaded: " + exception, exception);
+            throw brokenEntryPoint(entryClass, "class cannot be loaded: " + exception, exception);
         }
         if (!IrisModule.class.isAssignableFrom(type)) {
-            throw brokenEntryPoint("class does not implement " + IrisModule.class.getName(), null);
+            throw brokenEntryPoint(entryClass, "class does not implement " + IrisModule.class.getName(), null);
         }
         return type.asSubclass(IrisModule.class);
     }
 
-    private void requireDefinedHere(Class<?> type, JarSnapshot snapshot) {
+    private void requireDefinedHere(String entryClass, Class<?> type, JarSnapshot snapshot) {
         var source = type.getProtectionDomain().getCodeSource();
         var location = source == null ? null : source.getLocation();
         if (location != null && location.toExternalForm().equals(url().toExternalForm())) return;
-        throw brokenEntryPoint("class is loaded from " + describeLocation(location, snapshot) + ", not from this jar", null);
+        throw brokenEntryPoint(entryClass, "class is loaded from " + describeLocation(location, snapshot) + ", not from this jar", null);
     }
 
     /** Another jar of the pack by its origin, never by the path of its copy. */
@@ -199,27 +199,27 @@ record ModuleJar(Path path, String origin, String entryClass, List<JarClass> cla
         }
     }
 
-    private IrisModule instantiate(Class<? extends IrisModule> type) {
+    private IrisModule instantiate(String entryClass, Class<? extends IrisModule> type) {
         try {
             return type.getConstructor().newInstance();
         } catch (InvocationTargetException exception) {
-            throw brokenEntryPoint("constructor threw " + exception.getCause(), exception.getCause());
+            throw brokenEntryPoint(entryClass, "constructor threw " + exception.getCause(), exception.getCause());
         } catch (ReflectiveOperationException exception) {
-            throw brokenEntryPoint("class needs to be public and concrete with a public no-argument constructor", exception);
+            throw brokenEntryPoint(entryClass, "class needs to be public and concrete with a public no-argument constructor", exception);
         } catch (LinkageError exception) {
-            throw brokenEntryPoint("class cannot be initialized: " + exception, exception);
+            throw brokenEntryPoint(entryClass, "class cannot be initialized: " + exception, exception);
         }
     }
 
-    private ModuleInfo readIdentity(IrisModule module) {
+    private ModuleInfo readIdentity(String entryClass, IrisModule module) {
         try {
             return Objects.requireNonNull(module.info(), "info() returned null");
         } catch (RuntimeException | LinkageError exception) {
-            throw brokenEntryPoint("info() failed: " + exception, exception);
+            throw brokenEntryPoint(entryClass, "info() failed: " + exception, exception);
         }
     }
 
-    private IllegalArgumentException brokenEntryPoint(String problem, Throwable cause) {
+    private IllegalArgumentException brokenEntryPoint(String entryClass, String problem, Throwable cause) {
         return new IllegalArgumentException("Module jar " + origin + " has a broken entry point "
                 + entryClass + ": " + problem, cause);
     }

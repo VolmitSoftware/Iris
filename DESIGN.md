@@ -43,18 +43,18 @@ flowchart TD
 
 The `IrisModule` implementation is the module's entry point. `info()` returns its id, display
 name, version and optional packages; there is no separate descriptor. A pack keeps its modules in
-`<pack>/modules/*.jar`, one module per jar.
+`<pack>/modules/*.jar`, one or more modules per jar.
 
 The host loads a pack with `LoadedPack.load(packRoot, host)`. `ModuleHost` is the host's fixed
 configuration, built once and the same for every pack: built-in modules, exposed host packages,
-reserved JSON fields and reserved namespaces. Each of its methods adds to what earlier calls
+reserved JSON fields. Each of its methods adds to what earlier calls
 configured, and all names are checked when it is built. `LoadedPack` runs `PackModules.load` (below), then
 `LoadedModules.load` on the built-ins followed by the pack's modules. If the second step fails it
 closes the first before rethrowing, so a failed load leaves no class loader or jar copy behind.
 `close()` closes the pack's class loader, then deletes its jar copies.
 
-A jar names its entry class in `META-INF/services/com.volmit.IrisModule`, the provider format of
-`ServiceLoader`. The host reads that file from the jar itself rather than calling
+A jar names its entry classes, one per line, in `META-INF/services/com.volmit.IrisModule`, the
+provider format of `ServiceLoader`. The host reads that file from the jar itself rather than calling
 `ServiceLoader`, which would also return providers of parent class loaders and could not say
 which jar a broken provider came from. The rejected alternatives:
 
@@ -73,7 +73,7 @@ API):
 3. Copies them into a fresh temporary directory (see "Jar copies"). Every later step reads the
    copies; messages name the originals.
 4. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
-   ignored; zero or more than one entry class name fails.
+   ignored; zero entry class names fail, several load in the order listed.
 5. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
 6. Fails if a class is in two jars, naming the class and both jars.
 7. Resolves every class each class uses (see below). A class that Iris has but hides, a class of a
@@ -226,7 +226,7 @@ public ModuleInfo info() {
 
 Each package covers its subpackages. Missing classes of that jar inside them are dropped from the
 warning and from `missingClasses()`; the rest still warn, and other jars of the pack are not
-affected. `ModuleInfo.of(id, name, version)` declares none. Invalid names fail in `info()`, which the
+affected. A jar with several modules is excused by the optional packages of all of them. `ModuleInfo.of(id, name, version)` declares none. Invalid names fail in `info()`, which the
 load reports as a broken entry point of the jar.
 
 The declaration lives in the entry point because all module metadata does. That fixes its timing:
@@ -272,11 +272,11 @@ owns in this sense: its owner. Other modules may name it too, to run only where 
 configured. Checking against the module that names it alone would forbid that; checking nothing
 would let any module claim another module's settings id.
 
-The host reserves namespaces for its own modules (`ModuleHost.reservingNamespaces("iris")`). A
-module from a pack jar whose id uses a reserved namespace fails the load, naming the jar and the
-namespace. Its stage ids, settings ids and mantle keys start with its id, so this one check keeps
-pack modules out of reserved namespaces everywhere. Built-in modules, discovered with
-`DiscoveredModule.builtIn`, may use them.
+No namespace is reserved: `iris` is as free to a pack module as any other. A host that ships
+modules of its own protects nothing by a reservation, so a module id is only ever loaded once: a
+second module with the same id fails the load wherever it comes from (one jar, two jars, the host's
+built-ins), naming both the origin and the class of each. That one check is what keeps a built-in
+module that moves into a pack jar from being loaded twice.
 
 The load summary and the missing-classes warning go to the `System.Logger` the host passes to
 `ModuleHost.loggingTo(...)`, by default `System.getLogger(PackModules.class.getName())`. A host

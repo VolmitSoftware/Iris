@@ -130,14 +130,14 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
             public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
         };
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
         assertEquals(1, loaded.catalog().objects().size());
         assertEquals(1, loaded.placement().stages().size());
         assertTrue(loaded.chunk().stages().isEmpty());
 
         var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("shared"));
-        assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), reserved, Set.of(), Set.of(), Set.of()));
+        assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), reserved, Set.of(), Set.of()));
     }
 
     @Test
@@ -182,11 +182,11 @@ class ModuleRegistryTest {
             public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
         };
 
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
 
         var unowned = assertThrows(IllegalArgumentException.class,
-                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of(), Set.of()));
+                () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of()));
         assertTrue(unowned.getMessage().contains("which none of the modules naming it in when(...) owns"), unowned.getMessage());
     }
 

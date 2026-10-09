@@ -135,7 +135,7 @@ class ChunkPipelineTest {
 
     @Test
     void mantleStagesWriteBeyondTheirChunkAndChunkStagesReadTheirOwnPart() {
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(new VeinModule())), Map.of(), Set.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(new VeinModule())), Map.of(), Set.of(), Set.of());
         var vein = new Entry<>(Target.BIOME, PLAINS, new VeinSettings(12, 4));
         int reach = loaded.mantle().stages().getFirst().reachBlocks(new DeclaredSettings(vein));
         assertEquals(3, reach, "a 12 block vein from the centre column runs 3 blocks into the next chunk");

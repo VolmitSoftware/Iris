@@ -19,8 +19,7 @@ class LoadedPackTest {
     private static final String NO_MEMBERS = "";
     private static final String NO_STAGES = "";
     private static final ModuleHost HOST = ModuleHost.of(List.of(new CarveModule()))
-            .exposing(CarveModule.class.getPackageName())
-            .reservingNamespaces("iris");
+            .exposing(CarveModule.class.getPackageName());
 
     @TempDir
     Path pack;
@@ -72,11 +71,11 @@ class LoadedPackTest {
 
     @Test
     void failedLoadLeavesNothingOpen() {
-        writeModule("iris:stolen", NO_STAGES);
+        writeModule("iris:carve", NO_STAGES);
 
         var error = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, HOST));
 
-        assertTrue(error.getMessage().contains("uses reserved namespace 'iris'"), error.getMessage());
+        assertTrue(error.getMessage().contains("Duplicate module iris:carve"), error.getMessage());
         assertNotNull(packLoader(), "the module was constructed before installation failed");
         assertThrows(ClassNotFoundException.class, () -> packLoader().loadClass(UNUSED_CLASS));
     }
@@ -85,7 +84,6 @@ class LoadedPackTest {
     void invalidHostConfigurationFailsWhenBuilt() {
         var host = ModuleHost.of(List.of());
         assertThrows(IllegalArgumentException.class, () -> host.exposing("org.*"));
-        assertThrows(IllegalArgumentException.class, () -> host.reservingNamespaces("iris:core"));
         assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Target.BIOME, Set.of(" "))));
         assertEquals(List.of(), host.builtIns());
         assertEquals(Set.of(), host.exposedHostPackages());
@@ -96,13 +94,10 @@ class LoadedPackTest {
         var host = ModuleHost.of(List.of())
                 .exposing("example.first")
                 .exposing("example.second")
-                .reservingNamespaces("iris")
-                .reservingNamespaces("vanilla")
                 .reservingFields(Map.of(Target.BIOME, Set.of("carving"), Target.REGION, Set.of("spawns")))
                 .reservingFields(Map.of(Target.BIOME, Set.of("objects")));
 
         assertEquals(Set.of("example.first", "example.second"), host.exposedHostPackages());
-        assertEquals(Set.of("iris", "vanilla"), host.reservedNamespaces());
         assertEquals(Map.of(Target.BIOME, Set.of("carving", "objects"), Target.REGION, Set.of("spawns")), host.reservedHostFields());
     }
 

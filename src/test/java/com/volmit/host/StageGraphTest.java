@@ -478,7 +478,7 @@ class StageGraphTest {
             stages.define(plain).run(context -> {});
             stages.define(paint).reach(2).run(context -> {});
         });
-        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(reach, depth, marks))), Map.of(), Set.of(), Set.of(), Set.of());
+        var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(reach, depth, marks))), Map.of(), Set.of(), Set.of());
 
         assertEquals(new StageReach(24, List.of(depth)), loaded.mantle().stages().getFirst().reach());
         assertEquals(StageReach.NONE, loaded.mantle().stages().get(2).reach(), "an undeclared reach is 0 with no layers");
@@ -496,7 +496,7 @@ class StageGraphTest {
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(module("test:reach", stages -> {
             stages.define(carve).reach(settings -> settings.declared(Toggle.class).isEmpty() ? 4 : 40).run(context -> {});
             stages.define(mark).reach(2).run(context -> {});
-        }))), Map.of(), Set.of(), Set.of(), Set.of());
+        }))), Map.of(), Set.of(), Set.of());
         var computed = loaded.mantle().stages().getFirst();
         var toggled = new DeclaredSettings(new Entry<>(FeatureAttachment.Target.DIMENSION, ResourceId.parse("pack:dimension/main"), new Toggle()));
 
@@ -512,7 +512,7 @@ class StageGraphTest {
     @Test
     void onlyMantleStagesWorkOutTheirReachAndNeverANegativeOne() {
         var negative = LoadedModules.load(List.of(DiscoveredModule.builtIn(module("test:reach", stages ->
-                stages.define(Stage.mantle("test:reach/carve")).reach(settings -> -1).run(context -> {})))), Map.of(), Set.of(), Set.of(), Set.of());
+                stages.define(Stage.mantle("test:reach/carve")).reach(settings -> -1).run(context -> {})))), Map.of(), Set.of(), Set.of());
         var failure = assertThrows(IllegalStateException.class, () -> negative.mantle().stages().getFirst().reachBlocks(DeclaredSettings.NONE));
         assertEquals("Stage test:reach/carve of module test:reach worked out a negative reach of -1 blocks for this pack", failure.getMessage());
 
@@ -567,13 +567,13 @@ class StageGraphTest {
                 module("test:reach", stages -> stages.define(carve).writesMantle(depth, depth).run(context -> {}))));
 
         var unregistered = assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(
-                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {})))), Map.of(), Set.of(), Set.of(), Set.of()));
+                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {})))), Map.of(), Set.of(), Set.of()));
         assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth, which no module registers;"
                 + " its owner registers it with FeatureRegistry.registerMantle", unregistered.getMessage());
 
         var asText = new MantleKey<>("test:reach/depth", String.class);
         var mismatch = assertThrows(IllegalArgumentException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(
-                module("test:reach", stages -> stages.define(carve).writesMantle(asText).run(context -> {})), depth))), Map.of(), Set.of(), Set.of(), Set.of()));
+                module("test:reach", stages -> stages.define(carve).writesMantle(asText).run(context -> {})), depth))), Map.of(), Set.of(), Set.of()));
         assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth as java.lang.String,"
                 + " but it is registered as java.lang.Integer", mismatch.getMessage());
     }

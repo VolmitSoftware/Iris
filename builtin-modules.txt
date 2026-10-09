@@ -1,0 +1,16 @@
+# What goes into build/libs/iris-builtins.jar, the built-in modules as a pack module jar.
+#
+# A line is one of (blank lines and # comments are ignored):
+#
+#   module <binary class name>   an IrisModule class. It is listed in META-INF/services/com.volmit.IrisModule,
+#                                and its nested classes are packaged with it.
+#   include <class pattern>      more classes for the jar, as an Ant pattern relative to the class root, such as
+#                                art/arcane/iris/engine/modifier/carve/**   Settings types, helpers and stage
+#                                constants a listed module owns go here.
+#
+# A class here must be one a pack module may have: it may use only the IrisApi, the packages Iris exposes
+# (art.arcane.iris.builtin), the JDK and the other classes of the jar. `./gradlew builtinModulesJar` checks
+# that with IrisApi's pack class checks and fails naming the class and what it uses.
+#
+# Moving a module here means removing it from IrisModuleHost.generationModules() or PlacementModules.all() in Iris.
+# Nothing is ported yet.

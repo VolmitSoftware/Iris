@@ -37,3 +37,14 @@ core against the existing allowlist.
 From this directory, run `./gradlew check` to invoke the Iris host's joint compilation and purity
 check and build the module sources archive. Run `./gradlew builtinSourcesJar` to build just the
 archive. The host project also provides `:core:defaultModuleSourcesJar` for the same source tree.
+
+## Built-in modules as a pack module jar
+
+`./gradlew builtinModulesJar` builds `build/libs/iris-builtins.jar`, the built-in modules as an ordinary pack
+module jar for a pack's `modules/` folder. `builtin-modules.txt` lists what goes in: `module <class>` lines
+(the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>` lines
+for further classes. The classes come from Iris core's compiled output, which the task builds first.
+Before the jar lands in `build/libs`, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it,
+with `art.arcane.iris.builtin` as the only exposed Iris package; a listed class that uses Iris internals fails
+the task naming the class and what it uses. `check` runs the task. Nothing is ported yet, so the jar is empty
+and not loadable as a pack module (a pack module jar must name at least one module).

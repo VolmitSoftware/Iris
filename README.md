@@ -21,6 +21,11 @@ pools and jigsaw pieces as resource kinds (`StructureResources`), from the folde
 used, and checks them with its validator (`StructureValidator`: assembly samples and vanilla structure
 replacement) wherever Iris validates a pack; Iris core has no loader or validator of its own for them any more.
 
+Settings move off Iris's classes one feature at a time. `iris:deposit` is the first whose settings are IrisApi types
+only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it in
+`art.arcane.iris.builtin.deposit`), and packs write the same `deposits` JSON as before. What needs Iris (resolving the
+palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
+
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.

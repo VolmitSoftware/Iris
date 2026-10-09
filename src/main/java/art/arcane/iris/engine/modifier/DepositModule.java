@@ -19,9 +19,9 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.core.modules.IrisChunk;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.FeatureSettings;
@@ -59,7 +59,7 @@ public final class DepositModule implements IrisModule {
 
     private static void place(ChunkStageContext context, List<Entry<DepositSettings>> inChunk) {
         IrisChunk chunk = IrisChunk.current();
-        List<IrisDepositGenerator> generators = generatorsAtCentre(context.settings(), context.originX(), context.originZ());
+        List<DepositGenerator> generators = generatorsAtCentre(context.settings(), context.originX(), context.originZ());
         if (generators.isEmpty() || chunk.bypassesMantleStages()) {
             return;
         }
@@ -68,7 +68,7 @@ public final class DepositModule implements IrisModule {
     }
 
     /** Every level's generators at the centre column of the chunk whose first block is {@code originX}, {@code originZ}, in level order. */
-    static List<IrisDepositGenerator> generatorsAtCentre(FeatureSettings settings, int originX, int originZ) {
+    static List<DepositGenerator> generatorsAtCentre(FeatureSettings settings, int originX, int originZ) {
         return settings.at(DepositSettings.class, originX + CHUNK_CENTRE, originZ + CHUNK_CENTRE).stream()
                 .flatMap(entry -> entry.value().generators().stream())
                 .toList();

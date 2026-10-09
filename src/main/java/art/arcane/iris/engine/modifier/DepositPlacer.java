@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.deposit.DepositGenerator;
+import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
+import art.arcane.iris.builtin.deposit.DepositPlacementScope;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositGenerator;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositHeightDistribution;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositPlacementScope;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
@@ -42,13 +42,17 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Places deposit clumps into one chunk for {@link DepositModule}: one per engine runtime, holding the deposit
- * stream's random. Each generator gets its own random, derived from the chunk and its position in the list.
+ * stream's random and each generator made ready for this engine ({@link ResolvedDeposit}: resolved blocks and clump
+ * shapes). Each generator gets its own random, derived from the chunk and its position in the list.
  */
 public class DepositPlacer extends EngineAssignedComponent {
     private final RNG rng;
+    private final Map<DepositGenerator, ResolvedDeposit> resolved = new ConcurrentHashMap<>();
 
     public DepositPlacer(Engine engine) {
         super(engine, "Deposit");
@@ -56,14 +60,14 @@ public class DepositPlacer extends EngineAssignedComponent {
     }
 
     /** Runs {@code generators}, in order, on the chunk at chunk coordinates {@code x}, {@code z}. */
-    public void generate(List<IrisDepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore,
+    public void generate(List<DepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore,
                          ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         generateDeposits(generators, terrain, x, z, multicore, context);
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    private void generateDeposits(List<IrisDepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z,
+    private void generateDeposits(List<DepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z,
                                   boolean multicore, ChunkContext context) {
         BurstExecutor burst = burst().burst(multicore);
 
@@ -71,7 +75,7 @@ public class DepositPlacer extends EngineAssignedComponent {
         long mask = 0;
         MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
         try {
-            for (IrisDepositGenerator k : generators) {
+            for (DepositGenerator k : generators) {
                 long finalSeed = seed * ++mask;
                 burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
             }
@@ -86,20 +90,21 @@ public class DepositPlacer extends EngineAssignedComponent {
         }
     }
 
-    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
+    public void generate(DepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
         generate(k, chunk, data, rng, cx, cz, safe, null, context);
     }
 
-    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
+    public void generate(DepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
         IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
-        if (k.getSpawnChance() < rng.d())
+        ResolvedDeposit deposit = resolved(k);
+        if (k.spawnChance() < rng.d())
             return;
 
-        for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk() + 1); l++) {
-            if (k.getPerClumpSpawnChance() < rng.d())
+        for (int l = 0; l < rng.i(k.minPerChunk(), k.maxPerChunk() + 1); l++) {
+            if (k.perClumpSpawnChance() < rng.d())
                 continue;
 
-            IrisObject clump = k.getClump(getEngine(), rng, getData());
+            IrisObject clump = deposit.clump(rng);
 
             int dim = clump.getW();
             int min = dim / 2;
@@ -113,8 +118,8 @@ public class DepositPlacer extends EngineAssignedComponent {
             int x = rng.i(min, max + 1);
             int z = rng.i(min, max + 1);
             int terrainSurface = getDepositTerrainSurface(cx, cz, x, z, he, context);
-            int height = k.getPlacementScope() == IrisDepositPlacementScope.TERRAIN
-                    ? depositSurfaceLimit(terrainSurface, k.getSurfaceClearance())
+            int height = k.placementScope() == DepositPlacementScope.TERRAIN
+                    ? depositSurfaceLimit(terrainSurface, k.surfaceClearance())
                     : getEngine().getHeight() - 1;
 
             if (height < 0) {
@@ -122,24 +127,24 @@ public class DepositPlacer extends EngineAssignedComponent {
             }
 
             int y = sampleHeight(
-                    k.getHeightDistribution(), rng, k.getMinHeight(), k.getMaxHeight(),
+                    k.heightDistribution(), rng, k.minHeight(), k.maxHeight(),
                     Math.min(height, getEngine().getHeight() - 1));
             if (y == Integer.MIN_VALUE) {
                 continue;
             }
 
-            boolean clippedHeight = k.getHeightDistribution() == IrisDepositHeightDistribution.CLIPPED_UNIFORM;
+            boolean clippedHeight = k.heightDistribution() == DepositHeightDistribution.CLIPPED_UNIFORM;
             if (clippedHeight && y > height - 2)
                 continue;
 
             int biomeY = Math.max(0, Math.min(getEngine().getHeight() - 1, y));
-            boolean oreDeposit = k.isOre(getData());
+            boolean oreDeposit = deposit.isOre();
             IrisBiome surfaceBiome = context.getBiome().get(x, z);
             IrisBiome depositBiome = oreDeposit || k.usesCaveBiomeFilter()
                     ? getEngine().getCaveBiome(
                             (cx << 4) + x, biomeY, (cz << 4) + z, carvingState)
                     : null;
-            if (!k.matchesBiome(surfaceBiome, depositBiome)) {
+            if (!deposit.matchesBiome(surfaceBiome, depositBiome)) {
                 continue;
             }
 
@@ -153,7 +158,7 @@ public class DepositPlacer extends EngineAssignedComponent {
 
                     double sizeMultiplier = depositBiome.getOreDepositSizeMultiplier();
                     if (sizeMultiplier != 1D) {
-                        IrisObject scaledClump = k.getClump(getEngine(), rng, getData(), sizeMultiplier);
+                        IrisObject scaledClump = deposit.clump(rng, sizeMultiplier);
                         int scaledDimension = scaledClump.getW();
                         x = clampDepositCenter(x, scaledDimension, 16);
                         if (clippedHeight) {
@@ -177,7 +182,7 @@ public class DepositPlacer extends EngineAssignedComponent {
                 }
                 int columnSurface = getDepositTerrainSurface(cx, cz, nx, nz, he, context);
                 if (!placementSurfaceAllows(
-                        k.getPlacementScope(), ny, columnSurface, k.getSurfaceClearance())) {
+                        k.placementScope(), ny, columnSurface, k.surfaceClearance())) {
                     continue;
                 }
 
@@ -185,14 +190,14 @@ public class DepositPlacer extends EngineAssignedComponent {
                 if (!canReplaceDepositTarget(current)) {
                     continue;
                 }
-                if (!k.canReplace(current)) {
+                if (!deposit.canReplace(current)) {
                     continue;
                 }
-                if (!k.isReplaceBedrock() && IrisProceduralBlocks.materialKey(current).equals("minecraft:bedrock")) {
+                if (!k.replaceBedrock() && IrisProceduralBlocks.materialKey(current).equals("minecraft:bedrock")) {
                     continue;
                 }
                 if (shouldDiscardExposed(
-                        k.getDiscardChanceOnAirExposure(), rng.d(), isAdjacentToAir(data, nx, ny, nz))) {
+                        k.discardChanceOnAirExposure(), rng.d(), isAdjacentToAir(data, nx, ny, nz))) {
                     continue;
                 }
 
@@ -207,6 +212,10 @@ public class DepositPlacer extends EngineAssignedComponent {
                 }
             }
         }
+    }
+
+    private ResolvedDeposit resolved(DepositGenerator generator) {
+        return resolved.computeIfAbsent(generator, ignored -> ResolvedDeposit.of(generator, getEngine()));
     }
 
     private int getDepositTerrainSurface(
@@ -226,7 +235,7 @@ public class DepositPlacer extends EngineAssignedComponent {
     }
 
     static boolean placementSurfaceAllows(
-            IrisDepositPlacementScope scope, int candidateY, int surfaceY, int surfaceClearance) {
+            DepositPlacementScope scope, int candidateY, int surfaceY, int surfaceClearance) {
         int clearance = Math.max(0, surfaceClearance);
         return switch (scope) {
             case ABOVE_TERRAIN -> candidateY > surfaceY + clearance;
@@ -244,12 +253,12 @@ public class DepositPlacer extends EngineAssignedComponent {
     }
 
     static int sampleHeight(
-            IrisDepositHeightDistribution distribution, RNG rng,
+            DepositHeightDistribution distribution, RNG rng,
             int configuredMinimum, int configuredMaximum, int clippedMaximum) {
-        int minimum = distribution == IrisDepositHeightDistribution.CLIPPED_UNIFORM
+        int minimum = distribution == DepositHeightDistribution.CLIPPED_UNIFORM
                 ? Math.max(0, configuredMinimum)
                 : configuredMinimum;
-        int maximum = distribution == IrisDepositHeightDistribution.CLIPPED_UNIFORM
+        int maximum = distribution == DepositHeightDistribution.CLIPPED_UNIFORM
                 ? Math.min(clippedMaximum, configuredMaximum)
                 : configuredMaximum;
         if (minimum > maximum) {
@@ -258,7 +267,7 @@ public class DepositPlacer extends EngineAssignedComponent {
         if (minimum == maximum) {
             return minimum;
         }
-        if (distribution != IrisDepositHeightDistribution.TRIANGLE) {
+        if (distribution != DepositHeightDistribution.TRIANGLE) {
             return minimum + rng.nextInt(maximum - minimum + 1);
         }
 

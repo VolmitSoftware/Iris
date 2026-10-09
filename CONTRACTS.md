@@ -10,7 +10,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Module identity and composition | `IrisModule`, `ModuleInfo` (with optional packages), `StageGraph` |
 | Loading and unloading a pack | host `LoadedPack`, `ModuleHost` |
 | Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules` (jar copies), `DiscoveredModule`, `MissingClasses` |
-| Namespace ownership | module-prefixed stage, feature and mantle ids, `ModuleInfo.ownsStage`/`ownsId`, `ModuleHost.reservingNamespaces` |
+| Namespace ownership | module-prefixed stage, feature and mantle ids, `ModuleInfo.ownsStage`/`ownsId`; no reserved namespaces |
 | Randomness independent of other modules | `StageContext.random()`, host `StageStreams`, invocation seed passed to the runners |
 | Random values identical on every JDK | `WorldRandom`, pinned by `WorldRandomTest` |
 | Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
@@ -112,7 +112,7 @@ running Iris is the pack publisher's responsibility.
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
 - Build one `ModuleHost` at startup with the built-in modules, exposed packages, reserved JSON
-  fields and `reservingNamespaces("iris")`. Its methods accumulate, so the configuration can be
+  fields. Its methods accumulate, so the configuration can be
   built in steps. Load each pack with `LoadedPack.load(packRoot, host)`
   and close it only after nothing built from it is in use.
 - Pass a `System.Logger` that writes to the server log to `ModuleHost.loggingTo(...)`, so the

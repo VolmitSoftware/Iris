@@ -63,6 +63,11 @@ public final class DiscoveredModule {
         return origin;
     }
 
+    /** The origin and the module's class, which tells apart two modules of one jar. */
+    String locationWithClass() {
+        return origin + " (" + module.getClass().getName() + ")";
+    }
+
     Source source() {
         return source;
     }

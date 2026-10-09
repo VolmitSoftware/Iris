@@ -96,8 +96,8 @@ public final class StageGraphBuilder implements StageGraph {
         }
         var previous = modules.putIfAbsent(moduleId, discovered);
         if (previous != null) {
-            throw new IllegalArgumentException("Duplicate module " + moduleId + " from " + discovered.origin()
-                    + "; already loaded from " + previous.origin());
+            throw new IllegalArgumentException("Duplicate module " + moduleId + " from " + discovered.locationWithClass()
+                    + "; already loaded from " + previous.locationWithClass());
         }
     }
 

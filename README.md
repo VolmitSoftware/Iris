@@ -206,8 +206,8 @@ A validator reports and returns; one that throws fails the pack's validation, na
 
 ## Module jars
 
-A pack loads its modules from `<pack>/modules/*.jar`. One jar holds one module. Its entry point
-is the `IrisModule` class, named in the jar's `META-INF/services/com.volmit.IrisModule`:
+A pack loads its modules from `<pack>/modules/*.jar`. A jar holds one or more modules. Each module's
+entry point is its `IrisModule` class, one per line in the jar's `META-INF/services/com.volmit.IrisModule`:
 
 ```
 modules/moss.jar
@@ -221,13 +221,18 @@ the module expects may be missing (see below). The host reads it once, when it f
 Every stage id of the module starts with the module id and `/`; the name is what logs show. Names
 and versions must fit on one line: line breaks and other control characters are rejected.
 
-The host reserves namespaces for its own modules, such as `iris`. A pack module whose id uses a
-reserved namespace fails the load, and because stage ids, settings ids and mantle keys start with the
-module id, none of them can use it either:
+Every entry class must be defined in the jar that lists it. No namespace is reserved: a pack module
+may use any namespace, `iris` included. A module id is loaded once, though. Two modules with the same
+id, in one jar, in two jars or one of them compiled into the host, fail the load and the message names
+both sources, jar and class:
 
 ```
-Module iris:stilt from modules/stilt.jar uses reserved namespace 'iris', which only modules that ship with the host may use; give the module a namespace of its own, which its stages, settings ids and mantle keys then use too
+Duplicate module example:moss from modules/moss.jar (com.example.moss.MossModule); already loaded from host classpath (com.volmit.example.placement.MossModule)
 ```
+
+`ModuleJarCheck.check(jar, exposedHostPackages)` (also its `main`) runs the load's class checks on one
+jar, without loading it: for a build that writes a module jar and wants to fail on a jar a pack would
+refuse.
 
 A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
 Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the
@@ -342,7 +347,6 @@ Settings com.example.flora.FloraSettings of module example:flora from modules/fl
 // Once, at startup: the same for every pack.
 var host = ModuleHost.of(builtInModules)
         .exposing("art.arcane.iris.engine.modules")     // besides the API
-        .reservingNamespaces("iris")
         .reservingFields(reservedHostFields)
         .describingHostTypesIn("art.arcane.iris.engine.object")   // classes the host describes itself
         .reservingFolders("biomes", "regions", "objects")         // pack folders the host reads itself
@@ -367,7 +371,7 @@ try (var pack = LoadedPack.load(packRoot, host)) {
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
 once, here), the host packages pack modules may use, the JSON fields the host itself uses, the
-reserved namespaces, the packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names, namespaces and
+packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names and
 reserved field names are checked when it is built. `LoadedPack.load`
 loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
 describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
@@ -388,10 +392,10 @@ holding nothing but that file and jars.
 
 Pack modules see the API plus the packages given to `ModuleHost.exposing(...)`, each with its
 subpackages. The host chooses those packages, such as the ones that hold built-in modules' stage
-constants. The load (`PackModules`, under `LoadedPack`) reads one entry point per jar, in jar file
-name order, and loads every jar of the pack through one class loader. A pack without a `modules`
+constants. The load (`PackModules`, under `LoadedPack`) reads the entry points of each jar, in jar file
+name order and in the order each jar lists them, and loads every jar of the pack through one class loader. A pack without a `modules`
 directory has no modules. Errors name the
-jar: no entry point, several entry points, a class of an exposed package in the jar, a class that is
+jar: no entry point, a class of an exposed package in the jar, a class that is
 also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides,
 a class of a JDK module modules cannot see, a class of a JDK package not exported to modules, a
 class missing from an exposed package, or an entry
@@ -443,7 +447,7 @@ A pack without jars logs `Pack overworld uses no modules: no jars in its modules
 together with explicitly registered settings, geometry and mantle registrations, resource kinds and
 validators (`catalog().resourceKinds()`, `catalog().validators()`), describes them and resolves the pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
-here, at pack load, and so do reserved namespaces and feature ids or mantle keys outside the
+here, at pack load, and so do duplicate module ids and feature ids or mantle keys outside the
 module's id. Errors about one module name its jar or "host classpath", and so does a module
 that fails to link a class while installing, such as a jar built against an API whose methods have
 since changed:

@@ -15,27 +15,25 @@ import java.util.TreeSet;
 
 /** The host's side of every pack load, the same for all packs: its built-in modules, the host
  * packages pack modules may use besides the Iris API, the JSON fields the host itself uses (which no
- * built-in alias may take), the namespaces only built-in modules may use, the packages of the
- * classes the host describes itself and the pack folders it reads itself (which no resource kind may read). Build it once and pass it to every
+ * built-in alias may take), the packages of the classes the host describes itself and the pack folders it
+ * reads itself (which no resource kind may read). Build it once and pass it to every
  * {@link LoadedPack#load(java.nio.file.Path, ModuleHost)}.
  *
  * <pre>{@code
  * var host = ModuleHost.of(builtInModules)
  *         .exposing("art.arcane.iris.engine.modules")
- *         .reservingNamespaces("iris")
  *         .reservingFields(reservedHostFields);
  * }</pre>
  *
  * Every method adds to what earlier calls configured, so a host can build the configuration in steps.
- * Built-in modules' {@code info()} is read here, once. Exposed package names, reserved namespaces,
- * host type packages, reserved folders and reserved field names are checked here, so a mistake fails when the host starts rather than at the
+ * Built-in modules' {@code info()} is read here, once. Exposed package names, host type packages,
+ * reserved folders and reserved field names are checked here, so a mistake fails when the host starts rather than at the
  * first pack load.
  */
 public record ModuleHost(
         List<DiscoveredModule> builtIns,
         Set<String> exposedHostPackages,
         Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
-        Set<String> reservedNamespaces,
         Set<String> hostTypePackages,
         Set<String> reservedFolders,
         Path jarCopyRoot,
@@ -46,13 +44,11 @@ public record ModuleHost(
         builtIns = List.copyOf(builtIns);
         exposedHostPackages = Set.copyOf(exposedHostPackages);
         reservedHostFields = copyOf(reservedHostFields);
-        reservedNamespaces = Set.copyOf(reservedNamespaces);
         hostTypePackages = Set.copyOf(hostTypePackages);
         reservedFolders = Set.copyOf(reservedFolders);
         Objects.requireNonNull(jarCopyRoot, "jarCopyRoot");
         Objects.requireNonNull(logger, "logger");
         ExposedPackages.apiAnd(exposedHostPackages);
-        ReservedNamespaces.of(reservedNamespaces);
         HostTypes.of(hostTypePackages);
         requireFieldNames(reservedHostFields);
         requireFolderNames(reservedFolders);
@@ -63,7 +59,7 @@ public record ModuleHost(
      */
     public static ModuleHost of(List<? extends IrisModule> builtInModules) {
         var builtIns = builtInModules.stream().map(DiscoveredModule::builtIn).toList();
-        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
+        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
                 System.getLogger(PackModules.class.getName()));
     }
 
@@ -71,13 +67,7 @@ public record ModuleHost(
      * modules, such as the packages that hold built-in modules' stage constants.
      */
     public ModuleHost exposing(String... packages) {
-        return new ModuleHost(builtIns, union(exposedHostPackages, packages), reservedHostFields, reservedNamespaces,
-                hostTypePackages, reservedFolders, jarCopyRoot, logger);
-    }
-
-    /** This configuration with {@code namespaces} reserved for built-in modules. */
-    public ModuleHost reservingNamespaces(String... namespaces) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, union(reservedNamespaces, namespaces),
+        return new ModuleHost(builtIns, union(exposedHostPackages, packages), reservedHostFields,
                 hostTypePackages, reservedFolders, jarCopyRoot, logger);
     }
 
@@ -85,7 +75,7 @@ public record ModuleHost(
      * merged per attachment target with the fields reserved before.
      */
     public ModuleHost reservingFields(Map<FeatureAttachment.Target, Set<String>> fields) {
-        return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields), reservedNamespaces,
+        return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields),
                 hostTypePackages, reservedFolders, jarCopyRoot, logger);
     }
 
@@ -95,7 +85,7 @@ public record ModuleHost(
      * instead of describing their fields. Pack modules' settings cannot use them.
      */
     public ModuleHost describingHostTypesIn(String... packages) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces,
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields,
                 union(hostTypePackages, packages), reservedFolders, jarCopyRoot, logger);
     }
 
@@ -103,7 +93,7 @@ public record ModuleHost(
      * itself, such as its biome and object folders. A module resource kind that reads one fails the pack load.
      */
     public ModuleHost reservingFolders(String... folders) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, hostTypePackages,
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
                 union(reservedFolders, folders), jarCopyRoot, logger);
     }
 
@@ -111,7 +101,7 @@ public record ModuleHost(
      * cache directory of the host, which is created when missing. The last call wins.
      */
     public ModuleHost copyingJarsTo(Path directory) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, hostTypePackages,
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
                 reservedFolders, directory, logger);
     }
 
@@ -119,7 +109,7 @@ public record ModuleHost(
      * {@code logger}, such as an adapter to the host's own log. The last call wins.
      */
     public ModuleHost loggingTo(System.Logger logger) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, reservedNamespaces, hostTypePackages,
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
                 reservedFolders, jarCopyRoot, logger);
     }
 

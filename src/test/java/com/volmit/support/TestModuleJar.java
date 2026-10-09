@@ -49,6 +49,12 @@ public final class TestModuleJar {
         return new TestModuleJar().source(className, moduleSource(className, info, members, install)).entryPoint(className);
     }
 
+    /** Another entry class in the same jar, with the given module id; see {@link #module(String, String, String, String)}. */
+    public TestModuleJar alsoModule(String className, String moduleId, String members, String install) {
+        var info = moduleInfo(moduleId, List.of());
+        return source(className, moduleSource(className, info, members, install)).entryPoint(className);
+    }
+
     /** Compiles one class on its own and returns its class file, for raw entries such as versioned classes. */
     public static byte[] compileClass(Path workDirectory, String className, String code) {
         try {

@@ -24,9 +24,8 @@ import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformWorld;
-import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.iris.util.common.scheduling.ConsoleCommands;
 import art.arcane.volmlib.util.collection.KList;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -68,19 +67,6 @@ public class IrisCommand {
             return;
         }
 
-        for (String command : commands) {
-            command = (command.startsWith("/") ? command.replaceFirst("/", "") : command)
-                    .replaceAll("\\Q{x}\\E", String.valueOf(x))
-                    .replaceAll("\\Q{y}\\E", String.valueOf(y))
-                    .replaceAll("\\Q{z}\\E", String.valueOf(z));
-            final String finalCommand = command;
-            int safeDelay = (int) Math.max(0, Math.min(Integer.MAX_VALUE, delay));
-            if (repeat) {
-                int safeRepeatDelay = (int) Math.max(1, Math.min(Integer.MAX_VALUE, repeatDelay));
-                J.s(() -> J.sr(() -> IrisPlatforms.get().dispatchConsoleCommand(finalCommand), safeRepeatDelay), safeDelay);
-            } else {
-                J.s(() -> IrisPlatforms.get().dispatchConsoleCommand(finalCommand), safeDelay);
-            }
-        }
+        ConsoleCommands.run(commands, delay, repeat, repeatDelay, x, y, z);
     }
 }

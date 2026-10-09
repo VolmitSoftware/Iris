@@ -285,39 +285,4 @@ public class IrisEffect {
             }
         });
     }
-
-    public void apply(Entity p) {
-        if (!shouldApplyNow()) {
-            return;
-        }
-
-        J.runEntity(p, () -> {
-            Sound soundType = getSound();
-            Particle particleType = getParticleEffect();
-            if (soundType != null) {
-                Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
-                p.getWorld().playSound(part, soundType, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
-            }
-
-            if (particleType != null) {
-                Location part = p.getLocation().clone().add(0, 0.25, 0).add(new Vector(1, 1, 1).multiply(RNG.r.d())).subtract(new Vector(1, 1, 1).multiply(RNG.r.d()));
-                part.add(RNG.r.d(), 0, RNG.r.d());
-                if (extra != 0) {
-                    p.getWorld().spawnParticle(particleType, part.getX(), part.getY() + RNG.r.i(particleOffset),
-                            part.getZ(),
-                            particleCount,
-                            randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
-                            randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
-                            randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
-                            extra);
-                } else {
-                    p.getWorld().spawnParticle(particleType, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
-                            particleCount,
-                            randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
-                            randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
-                            randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ);
-                }
-            }
-        });
-    }
 }

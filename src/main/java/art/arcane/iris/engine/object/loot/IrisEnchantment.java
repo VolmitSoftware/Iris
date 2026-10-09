@@ -31,13 +31,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Locale;
 
 
 @Snippet("enchantment")
@@ -64,40 +58,6 @@ public class IrisEnchantment {
     @MaxNumber(1)
     @Desc("The chance that this enchantment is applied (0 to 1)")
     private double chance = 1;
-
-    public void apply(RNG rng, ItemMeta meta) {
-        try {
-            Enchantment enchant = resolve();
-            if (enchant == null) {
-                IrisLogging.warn("Unknown Enchantment: " + getEnchantment());
-                return;
-            }
-            if (rng.nextDouble() < chance) {
-                if (meta instanceof EnchantmentStorageMeta) {
-                    ((EnchantmentStorageMeta) meta).addStoredEnchant(enchant, getLevel(rng), true);
-                    return;
-                }
-                meta.addEnchant(enchant, getLevel(rng), true);
-            }
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-
-        }
-    }
-
-    /**
-     * Resolves the authored key against the live enchantment registry. Accepts a bare path
-     * ({@code sharpness}) or a full namespaced key ({@code mymod:vorpal}) - parity with the modded resolver.
-     */
-    private Enchantment resolve() {
-        String raw = getEnchantment();
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        String value = raw.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-        NamespacedKey key = value.indexOf(':') >= 0 ? NamespacedKey.fromString(value) : NamespacedKey.minecraft(value);
-        return key == null ? null : Registry.ENCHANTMENT.get(key);
-    }
 
     public int getLevel(RNG rng) {
         return LootResolver.inclusive(rng, getMinLevel(), getMaxLevel());

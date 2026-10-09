@@ -17,3 +17,4 @@ art/arcane/iris/engine/framework/PlacedObject.java
 art/arcane/iris/engine/framework/PlacedStructurePiece.java
 art/arcane/iris/builtin/**
 art/arcane/iris/engine/loot/**
+art/arcane/iris/engine/spawn/**

@@ -19,13 +19,6 @@
 package art.arcane.iris.engine.object.loot;
 
 import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
-import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
-
-import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.engine.data.cache.AtomicCache;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
@@ -33,32 +26,14 @@ import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.RegistryListItemType;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.iris.util.common.format.C;
-import art.arcane.volmlib.util.format.Form;
-import art.arcane.volmlib.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
-import org.bukkit.DyeColor;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.components.CustomModelDataComponent;
-import org.bukkit.material.Colorable;
-
-import java.awt.Color;
-import java.util.List;
-import java.util.Optional;
 
 @Snippet("loot")
 @Accessors(chain = true)
@@ -71,7 +46,6 @@ import java.util.Optional;
 public class IrisLoot {
     public static final int MAX_AMOUNT = 64;
 
-    private final transient AtomicCache<DyeColor> dyeColorResolved = new AtomicCache<>();
     @Desc("The target inventory slot types to fill this loot with. World generation only ever fills STORAGE; the other values are inert during worldgen.")
     private InventorySlotType slotTypes = InventorySlotType.STORAGE;
     @MinNumber(1)
@@ -123,175 +97,17 @@ public class IrisLoot {
     @Desc("Defines a custom NBT Tag for the item.")
     private KMap<String, Object> customNbt;
 
-    public Material getType() {
-        return BukkitBlockResolution.getMaterial(type);
-    }
-
     /**
-     * The authored item key, exactly as written in the pack. Platform-neutral: {@link #getType()} resolves it against
-     * Bukkit, mod loaders resolve it against their own item registry.
+     * The authored item key, exactly as written in the pack. Each platform resolves it against its own item registry.
      */
     public String getTypeKey() {
         return type;
     }
 
     /**
-     * The authored dye colour name, or null when unset. Platform-neutral counterpart to {@link #getDyeColor()}.
+     * The authored dye colour name, or null when unset.
      */
     public String getDyeColorKey() {
         return dyeColor;
-    }
-
-    public DyeColor getDyeColor() {
-        if (dyeColor == null) {
-            return null;
-        }
-        return dyeColorResolved.aquire(() -> {
-            try {
-                return DyeColor.valueOf(dyeColor);
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        });
-    }
-
-    private KList<ItemFlag> getResolvedItemFlags() {
-        KList<ItemFlag> resolved = new KList<>();
-        for (String flag : itemFlags) {
-            if (flag == null) {
-                continue;
-            }
-            try {
-                resolved.add(ItemFlag.valueOf(flag));
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        return resolved;
-    }
-
-    public ItemStack get(boolean debug, RNG rng) {
-        try {
-            ItemStack is = getItemStack(rng);
-            if (is == null)
-                return new ItemStack(Material.AIR);
-            is.setItemMeta(applyProperties(is, rng, debug, null));
-            return BukkitPlatform.applyCustomNbt(is, customNbt);
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            return new ItemStack(Material.AIR);
-        }
-    }
-
-    public ItemStack get(boolean debug, IrisLootTable table, RNG rng, long lootSeed, int entryIndex, int x, int y, int z) {
-        long combinedRarity = LootResolver.combinedRarity(rarity, table.getRarity());
-        if (!art.arcane.iris.engine.loot.LootTables.spatialOneIn(lootSeed, table, entryIndex, x, y, z, combinedRarity)) {
-            return null;
-        }
-
-        try {
-            ItemStack is = getItemStack(rng);
-            if (is == null)
-                return null;
-            is.setItemMeta(applyProperties(is, rng, debug, table));
-            return BukkitPlatform.applyCustomNbt(is, customNbt);
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-        }
-
-        return null;
-    }
-
-    // TODO Better Third Party Item Acquisition
-    private ItemStack getItemStack(RNG rng) {
-        if (!type.startsWith("minecraft:") && type.contains(":")) {
-            Optional<ItemStack> opt = IrisServices.get(ExternalDataSVC.class).getItemStack(Identifier.fromString(type), customNbt);
-            if (opt.isEmpty()) {
-                IrisLogging.warn("Unknown Material: " + type);
-                return new ItemStack(Material.AIR);
-            }
-            ItemStack is = opt.get();
-            is.setAmount(Math.max(1, LootResolver.inclusive(rng, getMinAmount(), getMaxAmount())));
-            return is;
-        }
-        return new ItemStack(getType(), Math.max(1, LootResolver.inclusive(rng, getMinAmount(), getMaxAmount())));
-    }
-
-    private ItemMeta applyProperties(ItemStack is, RNG rng, boolean debug, IrisLootTable table) {
-        ItemMeta m = is.getItemMeta();
-        if (m == null) {
-            return null;
-        }
-
-        for (IrisEnchantment i : getEnchantments()) {
-            i.apply(rng, m);
-        }
-
-        for (IrisAttributeModifier i : getAttributes()) {
-            i.apply(rng, m);
-        }
-
-        m.setUnbreakable(isUnbreakable());
-        for (ItemFlag i : getResolvedItemFlags()) {
-            m.addItemFlags(i);
-        }
-
-        if (getCustomModel() != null) {
-            CustomModelDataComponent customModelData = m.getCustomModelDataComponent();
-            customModelData.setFloats(List.of(getCustomModel().floatValue()));
-            m.setCustomModelDataComponent(customModelData);
-        }
-
-        if (is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
-            int max = is.getType().getMaxDurability();
-            d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
-        }
-
-        if (getLeatherColor() != null && m instanceof LeatherArmorMeta leather) {
-            Color c = Color.decode(getLeatherColor());
-            leather.setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
-        }
-
-        if (getDyeColor() != null && m instanceof Colorable colorable) {
-            colorable.setColor(getDyeColor());
-        }
-
-        if (displayName != null) {
-            m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
-        }
-
-        KList<String> lore = new KList<>();
-
-        getLore().forEach((i) ->
-        {
-            String mf = C.translateAlternateColorCodes('&', i);
-
-            if (mf.length() > 24) {
-                for (String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
-                    lore.add(g.trim());
-                }
-            } else {
-                lore.add(mf);
-            }
-        });
-
-        if (debug) {
-            if (table == null) {
-                if (lore.isNotEmpty()) {
-                    lore.add(C.GRAY + "--------------------");
-                }
-                lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
-            } else {
-                if (lore.isNotEmpty()) {
-                    lore.add(C.GRAY + "--------------------");
-                }
-
-                lore.add(C.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
-                lore.add(C.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
-            }
-        }
-
-        m.setLore(lore);
-
-        return m;
     }
 }

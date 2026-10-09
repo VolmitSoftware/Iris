@@ -23,25 +23,12 @@ import art.arcane.iris.engine.object.annotations.MaxNumber;
 import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.attribute.Attributable;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.attribute.AttributeModifier.Operation;
-import org.bukkit.inventory.EquipmentSlotGroup;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Snippet("attribute-modifier")
 @Accessors(chain = true)
@@ -50,8 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Desc("Represents an attribute modifier for an item or an entity. This allows you to create modifications to basic game attributes such as MAX_HEALTH or ARMOR_VALUE.")
 @Data
 public class IrisAttributeModifier {
-    private static final Set<String> WARNED_ATTRIBUTES = ConcurrentHashMap.newKeySet();
-
     @Required
     @Desc("The Attribute type key such as max_health or minecraft:armor. This type is pulled from the game attributes. Zombie & Horse attributes will not work on non-zombie/horse entities.\nUsing an attribute on an item will have affects when held, or worn. There is no way to specify further granularity as the game picks this depending on the item type.")
     private String attribute = null;
@@ -75,80 +60,7 @@ public class IrisAttributeModifier {
     @Desc("The chance that this attribute is applied (0 to 1). If the chance is 0.5 (50%), then Iris will only apply this attribute 50% of the time.")
     private double chance = 1;
 
-    public void apply(RNG rng, ItemMeta meta) {
-        if (rng.nextDouble() < getChance()) {
-            Attribute resolved = resolveAttribute();
-            if (resolved == null) {
-                return;
-            }
-            meta.addAttributeModifier(resolved, createModifier(rng));
-        }
-    }
-
-    public void apply(RNG rng, Attributable meta) {
-        if (rng.nextDouble() < getChance()) {
-            Attribute resolved = resolveAttribute();
-            if (resolved == null) {
-                return;
-            }
-            meta.getAttribute(resolved).addModifier(createModifier(rng));
-        }
-    }
-
     public double getAmount(RNG rng) {
         return rng.d(getMinAmount(), getMaxAmount());
-    }
-
-    private Attribute resolveAttribute() {
-        if (attribute == null || attribute.isBlank()) {
-            return null;
-        }
-        String value = attribute.trim().toLowerCase(Locale.ROOT);
-        Attribute resolved;
-        if (value.contains(":")) {
-            NamespacedKey key = NamespacedKey.fromString(value);
-            resolved = key == null ? null : Registry.ATTRIBUTE.get(key);
-        } else {
-            resolved = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(value));
-            if (resolved == null && value.startsWith("generic_")) {
-                resolved = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(value.substring("generic_".length())));
-            }
-            if (resolved == null && value.startsWith("generic.")) {
-                resolved = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(value.substring("generic.".length())));
-            }
-        }
-        if (resolved == null && WARNED_ATTRIBUTES.add(value)) {
-            IrisLogging.warn("Unknown attribute '" + attribute + "' in attribute-modifier '" + name + "'");
-        }
-        return resolved;
-    }
-
-    private Operation resolveOperation() {
-        if (operation == null || operation.isBlank()) {
-            return Operation.ADD_NUMBER;
-        }
-        try {
-            return Operation.valueOf(operation.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            return Operation.ADD_NUMBER;
-        }
-    }
-
-    private AttributeModifier createModifier(RNG rng) {
-        NamespacedKey key = NamespacedKey.minecraft(generateModifierKey());
-        return new AttributeModifier(key, getAmount(rng), resolveOperation(), EquipmentSlotGroup.ANY);
-    }
-
-    private String generateModifierKey() {
-        String source = getName() == null ? "modifier" : getName();
-        String normalized = source.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9/._-]", "_");
-        if (normalized.isBlank()) {
-            normalized = "modifier";
-        }
-        if (normalized.length() > 32) {
-            normalized = normalized.substring(0, 32);
-        }
-        String random = UUID.randomUUID().toString().replace("-", "");
-        return normalized + "_" + random;
     }
 }

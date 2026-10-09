@@ -10,6 +10,10 @@ import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.placement.IrisTree;
 import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.engine.framework.EngineGeneration;
+import art.arcane.iris.engine.mantle.components.ObjectModule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -38,6 +42,10 @@ public class TreeDefinitionIndexTest {
         biome.setProceduralObjects(proceduralObjects);
 
         when(engine.getDimension()).thenReturn(dimension);
+        IrisData data = mock(IrisData.class);
+        when(engine.getData()).thenReturn(data);
+        ModuleResourceFixture.serveModules(data, new ObjectModule());
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<IrisRegion>().qadd(region));
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<IrisBiome>().qadd(biome));
 

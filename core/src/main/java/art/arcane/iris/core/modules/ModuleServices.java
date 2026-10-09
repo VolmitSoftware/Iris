@@ -26,6 +26,7 @@ import com.volmit.service.BlockDrops;
 import com.volmit.service.LocateResult;
 import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
+import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
@@ -98,6 +99,31 @@ public final class ModuleServices {
             replacesVanillaDrops |= result.replacesVanillaDrops();
         }
         return new BlockDrops.Result(drops, replacesVanillaDrops);
+    }
+
+    /** The tree grown by the first module that grows one for {@code sapling}; empty leaves the growth to the platform. */
+    public static Optional<SaplingGrowth.Growth> growSapling(Engine engine, SaplingGrowth.Sapling sapling, SaplingGrowth.Surroundings surroundings) {
+        PackWorld world = engine.getGeneration().world();
+        for (SaplingGrowth provider : catalog(engine.getData()).services(SaplingGrowth.class)) {
+            Optional<SaplingGrowth.Growth> growth = provider.grow(world, sapling, surroundings);
+            if (growth.isPresent()) {
+                return growth;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The objects every module places as trees. */
+    public static SaplingGrowth.TreeObjects treeObjects(Engine engine) {
+        PackWorld world = engine.getGeneration().world();
+        Set<String> objects = new LinkedHashSet<>();
+        Set<String> procedural = new LinkedHashSet<>();
+        for (SaplingGrowth provider : catalog(engine.getData()).services(SaplingGrowth.class)) {
+            SaplingGrowth.TreeObjects trees = provider.treeObjects(world);
+            objects.addAll(trees.objects());
+            procedural.addAll(trees.procedural());
+        }
+        return new SaplingGrowth.TreeObjects(objects, procedural);
     }
 
     /** Every structure key the pack's modules know, placed or not. */

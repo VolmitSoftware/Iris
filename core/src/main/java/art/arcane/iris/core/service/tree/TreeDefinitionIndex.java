@@ -1,14 +1,10 @@
 package art.arcane.iris.core.service.tree;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.StructurePlacementMarker;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
+import com.volmit.service.SaplingGrowth;
 
-import java.util.HashSet;
 import java.util.Set;
 
 public final class TreeDefinitionIndex {
@@ -23,26 +19,8 @@ public final class TreeDefinitionIndex {
     }
 
     public static TreeDefinitionIndex build(Engine engine) {
-        Set<String> explicitObjectKeys = new HashSet<>();
-        Set<String> proceduralTreeKeys = new HashSet<>();
-
-        for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            if (region == null) {
-                continue;
-            }
-            collectPlacements(region.getObjects(), explicitObjectKeys);
-            collectProceduralTrees(region.getProceduralObjects(), proceduralTreeKeys);
-        }
-
-        for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-            if (biome == null) {
-                continue;
-            }
-            collectPlacements(biome.getObjects(), explicitObjectKeys);
-            collectProceduralTrees(biome.getProceduralObjects(), proceduralTreeKeys);
-        }
-
-        return new TreeDefinitionIndex(explicitObjectKeys, proceduralTreeKeys);
+        SaplingGrowth.TreeObjects trees = ModuleServices.treeObjects(engine);
+        return new TreeDefinitionIndex(trees.objects(), trees.procedural());
     }
 
     public boolean isTreeMarker(String marker) {
@@ -59,39 +37,5 @@ public final class TreeDefinitionIndex {
             return false;
         }
         return objectKey.startsWith("trees/") || explicitObjectKeys.contains(objectKey);
-    }
-
-    private static void collectPlacements(Iterable<IrisObjectPlacement> placements, Set<String> objectKeys) {
-        if (placements == null) {
-            return;
-        }
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null
-                    || placement.getTrees() == null
-                    || placement.getTrees().isEmpty()
-                    || placement.getPlace() == null) {
-                continue;
-            }
-            for (String objectKey : placement.getPlace()) {
-                if (objectKey != null && !objectKey.isBlank()) {
-                    objectKeys.add(objectKey);
-                }
-            }
-        }
-    }
-
-    private static void collectProceduralTrees(IrisProceduralObjects proceduralObjects, Set<String> objectKeys) {
-        if (proceduralObjects == null || proceduralObjects.getTrees() == null) {
-            return;
-        }
-        for (IrisProceduralTree tree : proceduralObjects.getTrees()) {
-            if (tree == null || tree.getName() == null || tree.getName().isBlank()) {
-                continue;
-            }
-            int variants = Math.max(1, tree.getVariants());
-            for (int index = 0; index < variants; index++) {
-                objectKeys.add(tree.getVariantLoadKey(index));
-            }
-        }
     }
 }

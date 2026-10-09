@@ -18,38 +18,28 @@
 
 package art.arcane.iris.core.service;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeModes;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.IrisServices;
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.core.modules.ModuleServices;
+import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineLifecycleTasks;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.placement.IrisTreeSize;
-import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.data.Cuboid;
-import art.arcane.iris.util.common.data.IrisCustomData;
+import com.volmit.placement.PlacedBlock;
+import com.volmit.service.SaplingGrowth;
 import art.arcane.volmlib.util.math.BlockPosition;
-import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.common.plugin.IrisService;
 import art.arcane.iris.util.common.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -60,7 +50,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.world.StructureGrowEvent;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -117,16 +107,9 @@ public class TreeSVC implements IrisService {
             return;
         }
 
-        IrisDimension dimension = engine.getDimension();
-
-        if (dimension == null) {
+        if (engine.getDimension() == null) {
             IrisLogging.debug(this.getClass().getName() + " passed it off to vanilla because could not get Dimension for this world");
             IrisLogging.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
-            return;
-        }
-
-        if (!dimension.getTreeSettings().isEnabled()) {
-            IrisLogging.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;
         }
 
@@ -135,116 +118,32 @@ public class TreeSVC implements IrisService {
 
         IrisLogging.debug("Sapling grew @ " + event.getLocation() + " for " + event.getSpecies().name() + " usedBoneMeal is " + event.isFromBonemeal());
         IrisLogging.debug("Sapling plane is: " + saplingPlane.getSizeX() + " by " + saplingPlane.getSizeZ());
-        IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), new IrisTreeSize(1, 1));
+        int minHeight = event.getWorld().getMinHeight();
+        SaplingGrowth.Sapling sapling = new SaplingGrowth.Sapling(
+                relativePosition(event.getLocation(), minHeight),
+                relativePosition(saplingPlane.getCenter(), minHeight),
+                event.getSpecies().name());
+        Optional<SaplingGrowth.Growth> growth = ModuleServices.growSapling(engine, sapling, new WorldSurroundings(event.getWorld(), saplingPlane));
 
-        if (placement == null) {
+        if (growth.isEmpty()) {
             IrisLogging.debug(this.getClass().getName() + " had options but did not manage to find objectPlacements for them");
             return;
         }
 
         saplingPlane.forEach(block -> block.setType(Material.AIR));
-        IrisObject object = worldAccess.getData().getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
-        String treeMarker = object.getLoadKey() + "@" + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+        String treeMarker = growth.get().object() + "@" + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         List<BlockState> blockStateList = new KList<>();
         KMap<Location, BlockData> dataCache = new KMap<>();
-        // TODO: REAL CLASSES!!!!
-
-        IObjectPlacer placer = new IObjectPlacer() {
-
-            @Override
-            public int getHighest(int x, int z, IrisData data) {
-                return event.getWorld().getHighestBlockYAt(x, z);
-            }
-
-            @Override
-            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-                return event.getWorld().getHighestBlockYAt(x, z, ignoreFluid ? HeightMap.OCEAN_FLOOR : HeightMap.WORLD_SURFACE);
-            }
-
-            @Override
-            public void set(int x, int y, int z, PlatformBlockState s) {
-                BlockData d = (BlockData) s.nativeHandle();
-                Block b = event.getWorld().getBlockAt(x, y, z);
-                // Listeners get the post-growth tree, per the StructureGrowEvent contract;
-                // a fresh snapshot here handed every plugin an all-air "tree".
-                BlockState state = b.getState();
-                if (d instanceof IrisCustomData data)
-                    state.setBlockData(data.getBase());
-                else state.setBlockData(d);
-                blockStateList.add(state);
-                dataCache.put(new Location(event.getWorld(), x, y, z), d);
-            }
-
-            @Override
-            public PlatformBlockState get(int x, int y, int z) {
-                return BukkitBlockState.of(event.getWorld().getBlockAt(x, y, z).getBlockData());
-            }
-
-            @Override
-            public boolean isPreventingDecay() {
-                return true;
-            }
-
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return false;
-            }
-
-            @Override
-            public boolean isSurfaceSolid(int x, int y, int z) {
-                return event.getWorld().getBlockAt(x, y, z).getType().isSolid();
-            }
-
-            @Override
-            public boolean isSolid(int x, int y, int z) {
-                return event.getWorld().getBlockAt(x, y, z).getBlockData().getMaterial().isSolid();
-            }
-
-            @Override
-            public boolean isUnderwater(int x, int z) {
-                return false;
-            }
-
-            @Override
-            public int getFluidHeight() {
-                return worldFluidHeight(engine);
-            }
-
-            @Override
-            public boolean isDebugSmartBore() {
-                return false;
-            }
-
-            @Override
-            public void setTile(int xx, int yy, int zz, TileData tile) {
-
-            }
-
-            @Override
-            public <T> void setData(int xx, int yy, int zz, T data) {
-
-            }
-
-            @Override
-            public <T> T getData(int xx, int yy, int zz, Class<T> t) {
-                return null;
-            }
-
-            @Override
-            public Engine getEngine() {
-                return engine;
-            }
-        };
-
-        object.place(
-                saplingPlane.getCenter().getBlockX(),
-                (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
-                saplingPlane.getCenter().getBlockZ(),
-                placer,
-                placement,
-                RNG.r,
-                Objects.requireNonNull(worldAccess).getData()
-        );
+        for (PlacedBlock placed : growth.get().blocks()) {
+            Block b = event.getWorld().getBlockAt(placed.position().x(), placed.position().y() + minHeight, placed.position().z());
+            BlockData d = (BlockData) IrisPlatforms.get().registries().block(placed.state().key()).nativeHandle();
+            // Listeners get the post-growth tree, per the StructureGrowEvent contract;
+            // a fresh snapshot here handed every plugin an all-air "tree".
+            BlockState state = b.getState();
+            state.setBlockData(d);
+            blockStateList.add(state);
+            dataCache.put(b.getLocation(), d);
+        }
 
         event.setCancelled(true);
 
@@ -266,10 +165,7 @@ public class TreeSVC implements IrisService {
                     if (d == null) continue;
                     Block block = l.getBlock();
 
-                    if (d instanceof IrisCustomData data) {
-                        block.setBlockData(data.getBase(), false);
-                        IrisServices.get(ExternalDataSVC.class).processUpdate(engine, block, data.getCustom());
-                    } else block.setBlockData(d, false);
+                    block.setBlockData(d, false);
                     int mantleY = block.getY() - event.getWorld().getMinHeight();
                     // Lease-gated: the grow task can land after the engine started closing, and
                     // an unleased mantle write would race the region flush.
@@ -290,58 +186,36 @@ public class TreeSVC implements IrisService {
         }
     }
 
-    static int worldFluidHeight(Engine engine) {
-        return engine.getMinHeight() + engine.getDimension().getFluidHeight();
+    private static com.volmit.world.BlockPosition relativePosition(Location location, int minHeight) {
+        return new com.volmit.world.BlockPosition(location.getBlockX(), location.getBlockY() - minHeight, location.getBlockZ());
     }
 
-    /**
-     * Finds a single object placement (which may contain more than one object) for the requirements species, location &
-     * size
-     *
-     * @param worldAccess The world to access (check for biome, region, dimension, etc)
-     * @param location    The location of the growth event (For biome/region finding)
-     * @param type        The bukkit TreeType to match
-     * @param size        The size of the sapling area
-     * @return An object placement which contains the matched tree, or null if none were found / it's disabled.
-     */
-    private IrisObjectPlacement getObjectPlacement(PlatformChunkGenerator worldAccess, Location location, TreeType type, IrisTreeSize size) {
+    /** The world around the saplings as the modules read it; the saplings that grow count as air, as they are about to. */
+    private static final class WorldSurroundings implements SaplingGrowth.Surroundings {
+        private static final com.volmit.block.BlockState AIR = com.volmit.block.BlockState.parse("minecraft:air");
 
-        KList<IrisObjectPlacement> placements = new KList<>();
-        boolean isUseAll = worldAccess.getEngine().getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
+        private final World world;
+        private final Cuboid saplingPlane;
 
-        // Retrieve objectPlacements of type `species` from biome
-        IrisBiome biome = worldAccess.getEngine().getBiome(location.getBlockX(), location.getBlockY()-worldAccess.getTarget().getWorld().minHeight(), location.getBlockZ());
-        placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
-
-        // Add more or find any in the region
-        if (isUseAll || placements.isEmpty()) {
-            IrisRegion region = worldAccess.getEngine().getRegion(location.getBlockX(), location.getBlockZ());
-            placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
+        private WorldSurroundings(World world, Cuboid saplingPlane) {
+            this.world = world;
+            this.saplingPlane = saplingPlane;
         }
 
-        // Check if no matches were found, return a random one if they are
-        return placements.isNotEmpty() ? placements.getRandom() : null;
-    }
+        @Override
+        public int highest(int x, int z, boolean ignoreFluid) {
+            int worldY = ignoreFluid ? world.getHighestBlockYAt(x, z, HeightMap.OCEAN_FLOOR) : world.getHighestBlockYAt(x, z);
+            return worldY - world.getMinHeight();
+        }
 
-    /**
-     * Filters out mismatches and returns matches
-     *
-     * @param objects The object placements to check
-     * @param size    The size of the sapling area to filter with
-     * @param type    The type of the tree to filter with
-     * @return A list of objectPlacements that matched. May be empty.
-     */
-    private KList<IrisObjectPlacement> matchObjectPlacements(KList<IrisObjectPlacement> objects, IrisTreeSize size, TreeType type) {
-
-        KList<IrisObjectPlacement> p = new KList<>();
-
-        for (IrisObjectPlacement i : objects) {
-            if (i.matches(size, type)) {
-                p.add(i);
+        @Override
+        public com.volmit.block.BlockState blockAt(int x, int y, int z) {
+            int worldY = y + world.getMinHeight();
+            if (saplingPlane.contains(x, worldY, z)) {
+                return AIR;
             }
+            return com.volmit.block.BlockState.parse(PlatformBlockStates.namespaced(BukkitBlockState.of(world.getBlockAt(x, worldY, z).getBlockData()).key()));
         }
-
-        return p;
     }
 
     /**

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.localization.BukkitCommandMessages;
 import art.arcane.iris.core.localization.BukkitCommandMessagesExtended;
@@ -149,7 +149,7 @@ public class CommandFind implements DirectorExecutor {
                 : null;
         boolean nativePlacement = IrisStructureLocator.hasNativePlacement(e, structureKey);
         boolean locatableNativePlacement = IrisStructureLocator.hasLocatableNativePlacement(e, structureKey);
-        boolean locatableEditablePlacement = IrisStructureLocator.hasLocatableEditablePlacement(e, structureKey);
+        boolean locatableEditablePlacement = ModuleServices.canLocateStructure(e, structureKey);
         World targetWorld = target.getWorld();
         boolean nativeGenerationEnabled = targetWorld.canGenerateStructures();
         boolean requiresReachability = registered && decision.generate()
@@ -276,7 +276,7 @@ public class CommandFind implements DirectorExecutor {
             IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
             boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
             boolean locatableNativePlacement = IrisStructureLocator.hasLocatableNativePlacement(engine, key);
-            boolean locatableEditablePlacement = IrisStructureLocator.hasLocatableEditablePlacement(engine, key);
+            boolean locatableEditablePlacement = ModuleServices.canLocateStructure(engine, key);
             StructureLookupRoute route = selectStructureLookupRoute(
                     true, decision, nativePlacement, locatableNativePlacement,
                     locatableEditablePlacement, nativeGenerationEnabled,
@@ -315,8 +315,8 @@ public class CommandFind implements DirectorExecutor {
         int editableUnplaced = 0;
         Set<String> unplacedEditableKeys = new LinkedHashSet<>();
         Set<String> locatableEditableKeys = normalizedStructureKeys(
-                IrisStructureLocator.locatableEditableKeys(engine));
-        for (String editableKey : StructureResources.structureKeys(engine.getData())) {
+                ModuleServices.locatableStructures(engine));
+        for (String editableKey : ModuleServices.structureKeys(engine.getData())) {
             String normalizedKey = normalizeStructureKey(editableKey);
             if (!isUnplacedEditableCandidate(
                     normalizedKey, registeredKeys.keySet(), locatableEditableKeys,
@@ -598,9 +598,8 @@ public class CommandFind implements DirectorExecutor {
         commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_FIND_LOCATING_2, MessageArgument.untrusted("structure", structure)));
         J.a(() -> {
             try {
-                IrisStructureLocator.LocateResult result =
-                        IrisStructureLocator.locate(engine, structure, blockX, blockZ, 1024);
-                if (result.status() == IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED) {
+                ModuleServices.StructureSearch result = ModuleServices.locateStructure(engine, structure, blockX, blockZ, 1024);
+                if (result.outcome() == ModuleServices.StructureSearch.Outcome.SEARCH_LIMIT_REACHED) {
                     sendStructureMessage(target, commandSender,
                             C.YELLOW + "Unable to locate " + structure
                                     + ": the density search safety limit was reached before the full 1024-chunk radius was searched.");
@@ -611,8 +610,7 @@ public class CommandFind implements DirectorExecutor {
                             C.YELLOW + "No " + structure + " found within 1024 chunks of you.");
                     return;
                 }
-                Location destination = new Location(
-                        targetWorld, result.originX(), result.baseY(), result.originZ());
+                Location destination = new Location(targetWorld, result.x(), result.y(), result.z());
                 prepareStructureTeleport(target, targetWorld, commandSender, structure, destination, true);
             } catch (Throwable t) {
                 sendStructureMessage(target, commandSender,

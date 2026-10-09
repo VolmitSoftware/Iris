@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.framework.structure;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.IrisModuleHost;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaTestPlatform;
@@ -20,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -50,6 +52,17 @@ public class StructureResourcesTest {
             assertFalse(data.getLoaders().containsKey(IrisStructure.class));
             assertFalse(data.getLoaders().containsKey(IrisJigsawPool.class));
             assertFalse(data.getLoaders().containsKey(IrisJigsawPiece.class));
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void theStructureModuleListsThePacksStructuresForIrissIndexThroughItsLocator() throws Exception {
+        IrisData data = IrisData.openValidation(castlePack("listed").toFile());
+        try {
+            assertEquals(Set.of("castle"), new StructureLocating().structures(data.getPackResources()));
+            assertEquals(Set.of("castle"), ModuleServices.structureKeys(data));
         } finally {
             data.close();
         }

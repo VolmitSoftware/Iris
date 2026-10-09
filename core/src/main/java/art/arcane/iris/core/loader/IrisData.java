@@ -37,7 +37,6 @@ import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
 import art.arcane.iris.core.structure.authoring.StructureRecoveryResult;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
@@ -592,17 +591,22 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         StructureGraphCatalog.invalidate(this);
         invalidateLoader(objectLoader);
         reloadModuleResources();
-        for (Engine engine : getEngines()) {
-            IrisStructureLocator.invalidate(engine);
-        }
     }
 
     /**
      * Starts a new snapshot of the pack's resources, so the files of every module resource kind are listed and read
-     * again, after a tool added, rewrote or deleted some. Iris's own loaders keep their caches.
+     * again, after a tool added, rewrote or deleted some. Iris's own loaders keep their caches. The engines running
+     * with this pack restart their modules' worlds with the new snapshot, so no module keeps state built from the old
+     * files.
      */
     public void reloadModuleResources() {
         packResources = new IrisPackResources(this);
+        if (closed) {
+            return;
+        }
+        for (Engine engine : getEngines()) {
+            engine.packResourcesReloaded();
+        }
     }
 
     /** The folders below the pack root that hold its resources: Iris's loaders' and its modules' resource kinds'. */

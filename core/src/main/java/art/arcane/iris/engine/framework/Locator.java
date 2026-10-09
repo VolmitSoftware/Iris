@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
@@ -56,10 +55,6 @@ public interface Locator<T> {
     static Locator<IrisBiome> surfaceBiome(String loadKey) {
         Locator<IrisBiome> exact = (e, c) -> e.getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
         return new HintedLocator<>(exact, (engine) -> HintedLocator.biomePlan(engine, loadKey));
-    }
-
-    static Locator<art.arcane.iris.engine.object.structure.IrisStructure> structure(String key) {
-        return (e, c) -> IrisStructureLocator.startsInChunk(e, key, c.getX(), c.getZ());
     }
 
     static Locator<BlockPos> poi(String type) {

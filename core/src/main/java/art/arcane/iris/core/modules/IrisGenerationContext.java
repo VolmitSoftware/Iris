@@ -26,6 +26,7 @@ import com.volmit.host.MantleRegistration;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.resource.PackResources;
+import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
 import java.util.Collection;
@@ -47,6 +48,7 @@ final class IrisGenerationContext implements GenerationContext {
     private final IrisTerrainSampler terrain;
     private final ChunkModuleSettings settings;
     private final IrisModuleMantle mantle;
+    private PackWorld world;
 
     IrisGenerationContext(Engine engine, int originX, int originZ, BlockStateHunk blocks, IrisModuleMantle.Chunks mantleChunks,
                           Collection<MantleRegistration<?>> mantleLayers) {
@@ -103,5 +105,14 @@ final class IrisGenerationContext implements GenerationContext {
     @Override
     public PackResources resources() {
         return engine.getData().getPackResources();
+    }
+
+    /** The world this invocation first asked for; it keeps it if the world restarts meanwhile. */
+    @Override
+    public PackWorld world() {
+        if (world == null) {
+            world = engine.getGeneration().world();
+        }
+        return world;
     }
 }

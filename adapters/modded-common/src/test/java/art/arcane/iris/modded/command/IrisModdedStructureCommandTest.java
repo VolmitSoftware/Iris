@@ -53,7 +53,7 @@ public class IrisModdedStructureCommandTest {
         String source = source("ModdedLocateCommands.java");
         String suggestions = source("ModdedCommandSuggestions.java");
 
-        assertTrue(source.contains("IrisStructureLocator.hasLocatableEditablePlacement(engine, key)"));
+        assertTrue(source.contains("ModuleServices.canLocateStructure(engine, key)"));
         assertTrue(source.contains("registry.get(identifier)"));
         assertTrue(source.contains("getPlacementsForStructure(holder)"));
         assertTrue(source.contains("generator.findNearestMapStructure("));
@@ -63,11 +63,11 @@ public class IrisModdedStructureCommandTest {
         assertTrue(source.contains("boolean teleported = player.teleportTo("));
         assertTrue(suggestions.contains("combineStructureKeys(unregisteredIrisKeys, nativeKeys)"));
         assertTrue(source.contains("irisGenerator.isNativeStructureReachable(holder)"));
-        assertTrue(source.contains("LocateStatus.SEARCH_LIMIT_REACHED"));
+        assertTrue(source.contains("StructureSearch.Outcome.SEARCH_LIMIT_REACHED"));
         assertTrue(source.contains("IRIS_MODDED_COMMANDS_UNABLE_LOCATE_IRIS_PLACED_STRUCTURE_DENSITY_SEARCH_SAFETY_LIMIT_WAS"));
-        assertTrue(source.contains("int targetX = result.originX()"));
-        assertTrue(source.contains("int targetY = result.baseY() + 2"));
-        assertTrue(source.contains("int targetZ = result.originZ()"));
+        assertTrue(source.contains("int targetX = result.x()"));
+        assertTrue(source.contains("int targetY = result.y() + 2"));
+        assertTrue(source.contains("int targetZ = result.z()"));
         assertFalse(source.contains("at[0] + 8"));
         assertFalse(source.contains("at[2] + 8"));
     }
@@ -184,8 +184,8 @@ public class IrisModdedStructureCommandTest {
         assertTrue(tree.contains("ModdedUnregisteredStructures.print(context.getSource())"));
         assertTrue(command.contains("ModdedCommandSuggestions.isEligibleRegisteredStructure("));
         assertTrue(command.contains("ModdedLocateCommands.registeredStructureUnavailableMessage("));
-        assertTrue(command.contains("StructureResources.structureKeys(engine.getData())"));
-        assertTrue(command.contains("IrisStructureLocator.hasLocatableEditablePlacement(engine, key)"));
+        assertTrue(command.contains("ModuleServices.structureKeys(engine.getData())"));
+        assertTrue(command.contains("ModuleServices.canLocateStructure(engine, key)"));
         assertTrue(command.contains("ModdedIrisLog.info(\"[Iris goto unregistered] [{}] {} - {}\""));
         assertTrue(command.contains("UNREGISTERED(\"unregistered\")"));
         assertFalse(command.contains("DatapackIngestService"));
@@ -201,11 +201,11 @@ public class IrisModdedStructureCommandTest {
         assertTrue(method.contains("ServerLevel level = source.getLevel()"));
         assertTrue(method.contains("Engine engine = IrisModdedCommands.engineFor(level)"));
         assertFalse(method.contains("IrisStructureLocator.locatableKeys(engine)"));
-        assertTrue(method.contains("IrisStructureLocator.locatableEditableKeys(engine)"));
+        assertTrue(method.contains("ModuleServices.locatableStructures(engine)"));
         assertTrue(method.contains("StructureReachability.reachableKeys(engine)"));
         assertTrue(method.contains("NativeStructureGenerationPolicy.resolve(engine, key, false)"));
         assertTrue(method.contains("IrisStructureLocator.hasLocatableNativePlacement(engine, key)"));
-        assertTrue(method.contains("IrisStructureLocator.hasLocatableEditablePlacement(engine, key)"));
+        assertTrue(method.contains("ModuleServices.canLocateStructure(engine, key)"));
         assertTrue(method.contains("reachableNativeKeys.contains(normalizeKey(key))"));
         assertTrue(method.contains("nativeGenerationEnabled"));
         assertTrue(method.contains("eligibleUnregisteredEditableKeys("));
@@ -258,7 +258,7 @@ public class IrisModdedStructureCommandTest {
         String method = source.substring(methodStart, methodEnd);
         int nativeResolution = method.indexOf("resolveNativeStructure(source, level, engine, key)");
         int editableIrisLookup = method.indexOf(
-                "IrisStructureLocator.hasLocatableEditablePlacement(engine, key)", nativeResolution);
+                "ModuleServices.canLocateStructure(engine, key)", nativeResolution);
         int policyResolution = method.indexOf(
                 "NativeStructureGenerationPolicy.resolve(engine, target.key(), false)", editableIrisLookup);
         int eligibilityCheck = method.indexOf(
@@ -275,7 +275,7 @@ public class IrisModdedStructureCommandTest {
         assertTrue(replacementLocate > eligibilityCheck);
         assertTrue(nativeLocate > replacementLocate);
         assertTrue(method.contains("IrisStructureLocator.hasLocatableNativePlacement(engine, target.key())"));
-        assertTrue(method.contains("IrisStructureLocator.hasLocatableEditablePlacement(engine, target.key())"));
+        assertTrue(method.contains("ModuleServices.canLocateStructure(engine, target.key())"));
         assertTrue(method.contains("!IrisStructureLocator.hasNativePlacement(engine, key)"));
         assertTrue(method.contains("StructureReachability.isReachable(engine, target.key())"));
         assertTrue(method.contains("getWorldGenSettings().options().generateStructures()"));

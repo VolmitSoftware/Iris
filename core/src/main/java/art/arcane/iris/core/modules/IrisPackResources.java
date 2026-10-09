@@ -69,6 +69,7 @@ public final class IrisPackResources implements PackResources {
     private final Supplier<List<ResourceKind<?>>> moduleKindList;
     private volatile Map<Class<?>, Kind<?>> moduleKinds;
     private volatile List<String> moduleFolders;
+    private boolean announcedToModules;
 
     public IrisPackResources(IrisData data) {
         this(data, () -> data.getModules().pack().catalog().resourceKinds().stream()
@@ -95,6 +96,18 @@ public final class IrisPackResources implements PackResources {
     @Override
     public UUID snapshotId() {
         return snapshotId;
+    }
+
+    /**
+     * Runs {@code announce}, which tells the pack's modules that this snapshot loaded, unless it ran successfully for
+     * this snapshot before: modules hear of each snapshot once, however many worlds start with it.
+     */
+    synchronized void loadOnce(Runnable announce) {
+        if (announcedToModules) {
+            return;
+        }
+        announce.run();
+        announcedToModules = true;
     }
 
     @Override

@@ -563,10 +563,6 @@ public final class EngineBukkitOps {
         find(engine, Locator.poi(type), p, teleport, "POI " + type);
     }
 
-    public static void gotoStructure(Engine engine, String key, Player player, boolean teleport) {
-        find(engine, Locator.structure(key), player, teleport, "Structure " + key);
-    }
-
     private static void find(Engine engine, Locator<?> locator, Player player, boolean teleport, String message) {
         find(engine, locator, player, 120_000, location -> {
             if (location == null) {

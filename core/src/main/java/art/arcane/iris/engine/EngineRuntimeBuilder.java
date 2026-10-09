@@ -121,6 +121,7 @@ final class EngineRuntimeBuilder {
         engine.getClosing().set(false);
         engine.backgroundTasks.openBackgroundTaskAdmission();
         try {
+            next.generation().startModules();
             next.worldManager().start();
         } catch (Throwable e) {
             engine.getClosing().set(true);
@@ -139,7 +140,7 @@ final class EngineRuntimeBuilder {
             if (engine.runtime == next) {
                 engine.runtime = null;
             }
-            throw new IllegalStateException("Failed to start the Iris world manager.", e);
+            throw new IllegalStateException("Failed to start the Iris world's modules or its world manager.", e);
         }
         scheduleRuntimeTasks(next);
         IrisLogging.debug("Engine Setup Complete " + next.cacheId());

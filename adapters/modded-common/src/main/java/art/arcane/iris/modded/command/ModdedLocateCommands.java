@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.ModdedCommandMessages;
@@ -157,7 +158,7 @@ final class ModdedLocateCommands {
         Optional<NativeStructureTarget> resolved = resolveNativeStructure(source, level, engine, key);
         if (resolved.isEmpty()) {
             if (!IrisStructureLocator.hasNativePlacement(engine, key)
-                    && IrisStructureLocator.hasLocatableEditablePlacement(engine, key)) {
+                    && ModuleServices.canLocateStructure(engine, key)) {
                 locateIrisStructure(source, level, engine, player, key);
                 return 1;
             }
@@ -173,7 +174,7 @@ final class ModdedLocateCommands {
                 && IrisStructureLocator.hasLocatableNativePlacement(engine, target.key());
         boolean locatableEditableReplacement = !nativePlacement
                 && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
-                && IrisStructureLocator.hasLocatableEditablePlacement(engine, target.key());
+                && ModuleServices.canLocateStructure(engine, target.key());
         boolean reachable = StructureReachability.isReachable(engine, target.key());
         if (!ModdedCommandSuggestions.isEligibleRegisteredStructure(
                 decision, nativePlacement, locatableNativePlacement, locatableEditableReplacement,
@@ -242,9 +243,8 @@ final class ModdedLocateCommands {
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_SEARCHING_IRIS_PLACED_STRUCTURE, MessageArgument.untrusted("key", key)));
         Thread thread = new Thread(() -> {
             try {
-                IrisStructureLocator.LocateResult result =
-                        IrisStructureLocator.locate(engine, key, blockX, blockZ, 1024);
-                if (result.status() == IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED) {
+                ModuleServices.StructureSearch result = ModuleServices.locateStructure(engine, key, blockX, blockZ, 1024);
+                if (result.outcome() == ModuleServices.StructureSearch.Outcome.SEARCH_LIMIT_REACHED) {
                     server.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_UNABLE_LOCATE_IRIS_PLACED_STRUCTURE_DENSITY_SEARCH_SAFETY_LIMIT_WAS, MessageArgument.untrusted("key", key))));
                     return;
                 }
@@ -252,9 +252,9 @@ final class ModdedLocateCommands {
                     server.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_COULD_NOT_FIND_IRIS_PLACED_STRUCTURE_WITHIN_1024_CHUNKS, MessageArgument.untrusted("key", key))));
                     return;
                 }
-                int targetX = result.originX();
-                int targetY = result.baseY() + 2;
-                int targetZ = result.originZ();
+                int targetX = result.x();
+                int targetY = result.y() + 2;
+                int targetZ = result.z();
                 server.execute(() -> teleportToStructure(source, level, player, targetX, targetY, targetZ,
                         "Iris-placed structure " + key));
             } catch (Throwable e) {

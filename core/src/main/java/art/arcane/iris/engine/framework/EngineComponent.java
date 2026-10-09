@@ -26,7 +26,7 @@ import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.util.math.RollingSequence;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 
-public interface EngineComponent {
+public interface EngineComponent extends AutoCloseable {
     Engine getEngine();
 
     RollingSequence getMetrics();
@@ -37,6 +37,7 @@ public interface EngineComponent {
         return getEngine().burst();
     }
 
+    @Override
     default void close() {
         try {
             EngineComponentCleanup cleanup = IrisServices.getOrNull(EngineComponentCleanup.class);

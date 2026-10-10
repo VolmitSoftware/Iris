@@ -93,6 +93,18 @@ module jar for a pack's `modules/` folder. `builtin-modules.txt` lists what goes
 (the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>` lines
 for further classes. The classes come from Iris core's compiled output, which the task builds first.
 Before the jar lands in `build/libs`, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it,
-with `art.arcane.iris.builtin` as the only exposed Iris package; a listed class that uses Iris internals fails
-the task naming the class and what it uses. `check` runs the task. Nothing is ported yet, so the jar is empty
-and not loadable as a pack module (a pack module jar must name at least one module).
+with the packages Iris exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's
+`com.google.gson`, all three on the check's classpath); a listed class that uses Iris internals fails the task
+naming the class and what it uses. `check` runs the task.
+
+The jar holds `iris:post`, `iris:perfection` and `iris:matter`. They are written against IrisApi and
+`art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and `canPlaceOn`, the terrain
+sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks.
+Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
+`iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
+`iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads.
+
+`art.arcane.iris.builtin` also holds the few facades only Iris's own built-ins use, interfaces Iris's worlds implement:
+`IrisSeed` (Iris's per-feature world seeds, so existing worlds generate the same) and, until wave 3a's settings moves
+land, `PendingSettings` (the dimension's `hideOresForHiddenOre`, `postProcessingWalls`, `postProcessingSlabs` and a
+biome's `wall` and `slab`, which agents C and T are turning into module settings; it is deleted at that merge).

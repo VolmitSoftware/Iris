@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.anchor.VacuumProfile;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.IrisStages;
@@ -69,7 +69,7 @@ public final class VacuumModule implements IrisModule {
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
         Engine engine = prepared.terrain().getEngine();
-        if (!prepared.mode().isVacuum() || written.isEmpty() || engine == null) {
+        if (!prepared.mode().bendsTerrain() || written.isEmpty() || engine == null) {
             return;
         }
         int baseY = written.blocks().stream().mapToInt(block -> block.position().y()).min().orElseThrow();
@@ -94,19 +94,19 @@ public final class VacuumModule implements IrisModule {
         private final int highestY;
 
         private Bend(PlacementStageContext context, PreparedPlacement prepared, Engine engine) {
-            ObjectPlaceMode mode = prepared.mode();
+            VacuumProfile vacuum = prepared.mode().vacuum();
             this.placement = IrisPlacement.current();
             this.prepared = prepared;
             this.world = new PlacementWorld(context.access(), placement.states());
             this.complex = engine.getComplex();
             VacuumSettings settings = prepared.config().getVacuumSettings();
-            this.radius = IrisObjectVacuum.resolveRadius(mode, settings);
-            this.step = IrisObjectVacuum.resolveStep(mode);
+            this.radius = IrisObjectVacuum.resolveRadius(vacuum, settings);
+            this.step = vacuum.columnStepBlocks();
             this.falloff = IrisObjectVacuum.resolveFalloff(settings);
             this.jitter = settings != null ? Math.max(0, settings.organicJitter()) : DEFAULT_ORGANIC_JITTER;
             this.waveAmplitude = IrisObjectVacuum.resolveWaveAmplitude(settings);
             this.waveScale = IrisObjectVacuum.resolveWaveScale(settings);
-            this.waves = mode == ObjectPlaceMode.VACUUM_WAVY && waveAmplitude > 0 ? new SimplexNoise(WAVE_SEED) : null;
+            this.waves = vacuum.edge() == VacuumProfile.Edge.WAVY && waveAmplitude > 0 ? new SimplexNoise(WAVE_SEED) : null;
             this.lowestY = IrisObjectVacuum.LOWEST_TARGET_Y;
             this.highestY = engine.getHeight() - 1;
         }
@@ -142,7 +142,7 @@ public final class VacuumModule implements IrisModule {
 
         /** The radius, perturbed per column for the organic mode. */
         private double effectiveRadius(int x, int z) {
-            if (prepared.mode() != ObjectPlaceMode.VACUUM_ORGANIC || jitter <= 0) {
+            if (prepared.mode().vacuum().edge() != VacuumProfile.Edge.JITTERED || jitter <= 0) {
                 return radius;
             }
             long hash = ((long) x * HASH_X) ^ ((long) z * HASH_Z);

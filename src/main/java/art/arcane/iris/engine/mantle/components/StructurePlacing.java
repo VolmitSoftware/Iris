@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -137,7 +138,7 @@ public class StructurePlacing {
                 ? null : new Long2IntOpenHashMap();
         boolean supportNonOccluding = stilt != null && stilt.supportNonOccluding();
         if (placement.isAnchoredUnderground()) {
-            ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
+            ObjectPlaceMode undergroundMode = mode.placeMode().has(PlaceTrait.CAVE_ANCHORED)
                     ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
             for (PlacedStructurePiece p : pieces) {
                 if (placeObject(writer, structure, p, undergroundMode, p.getY(), rng,
@@ -145,7 +146,7 @@ public class StructurePlacing {
                     failedPieces++;
                 }
             }
-        } else if (mode == ObjectPlaceMode.STRUCTURE_PIECE || mode == ObjectPlaceMode.FLOATING) {
+        } else if (mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             for (PlacedStructurePiece p : pieces) {
                 if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
                         foundationColumns, supportNonOccluding) == -1) {
@@ -543,7 +544,7 @@ public class StructurePlacing {
         if (!structure.getEdit().isEmpty()) {
             config.setEdit(structure.getEdit());
         }
-        if (mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
+        if (!mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             config.setForcePlace(true);
         }
         int placeY = (y == -1) ? -1 : y - engine.getMinHeight();

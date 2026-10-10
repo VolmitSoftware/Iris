@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.carve.CaveProfile;
@@ -428,7 +429,7 @@ public class ObjectPlacing {
             IrisObjectPlacement placement = p.asPlacement();
             boolean carving = placement.getCarvingSupport() == CarvingMode.CARVING_ONLY;
             CaveAnchorMode anchorMode = resolveAnchorMode(placement, caveProfile);
-            if (placement.getMode() == ObjectPlaceMode.CEILING_HANG) {
+            if (placement.getMode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
                 anchorMode = CaveAnchorMode.CEILING;
             }
             int anchorScanStep = resolveAnchorScanStep(caveProfile);
@@ -618,7 +619,7 @@ public class ObjectPlacing {
     ) {
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(placer, anchorY, minDepthBelowSurface);
         int placeY = anchorY;
-        if (placement.getMode() == ObjectPlaceMode.CEILING_HANG) {
+        if (placement.getMode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
             placeY = Math.max(1, transaction.getCaveCeiling(x, z) - 1 - Math.floorDiv(object.getH(), 2));
         }
         String marker = placementMarker(object, id, markerContext);
@@ -792,7 +793,7 @@ public class ObjectPlacing {
         int minZ = chunkZ << 4;
         int density = objectPlacement.getDensity(rng, minX, minZ, engine.getData());
         CaveAnchorMode anchorMode = resolveAnchorMode(objectPlacement, caveProfile);
-        if (objectPlacement.getMode() == ObjectPlaceMode.CEILING_HANG) {
+        if (objectPlacement.getMode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
             anchorMode = CaveAnchorMode.CEILING;
         }
         int anchorScanStep = resolveAnchorScanStep(caveProfile);
@@ -1195,7 +1196,7 @@ public class ObjectPlacing {
         }
 
         ObjectPlaceMode mode = objectPlacement.getMode();
-        if (mode == ObjectPlaceMode.FLOATING || mode == ObjectPlaceMode.STRUCTURE_PIECE) {
+        if (mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             return objectPlacement;
         }
         boolean needsModeChange = mode != ObjectPlaceMode.FAST_MIN_STILT;
@@ -1549,8 +1550,8 @@ public class ObjectPlacing {
         int warp = placement.getWarp() != null && !placement.getWarp().isFlat()
                 ? (int) Math.ceil(Math.abs(placement.getWarp().getMultiplier()) / 2D)
                 : 0;
-        int vacuum = IrisObjectVacuum.isVacuumMode(placement.getMode())
-                ? 2 * IrisObjectVacuum.resolveRadius(placement.getMode(), placement.getVacuumSettings())
+        int vacuum = placement.getMode().placeMode().bendsTerrain()
+                ? 2 * IrisObjectVacuum.resolveRadius(placement.getMode().placeMode().vacuum(), placement.getVacuumSettings())
                 : 0;
         long reach = (long) footprint + translation + warp + vacuum;
         return reach > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) reach;

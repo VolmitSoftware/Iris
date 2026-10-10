@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.engine.framework.structure.NativeStartPlanner;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
@@ -807,8 +807,7 @@ public final class IrisStructureLocator {
                                                                   IrisStructurePlacement placement,
                                                                   IrisStructure structure, int baseY) {
         if (placement.isAnchoredUnderground() || pieces.size() <= 1
-                || structure.getPlaceMode() == ObjectPlaceMode.STRUCTURE_PIECE
-                || structure.getPlaceMode() == ObjectPlaceMode.FLOATING) {
+                || structure.getPlaceMode().placeMode().has(PlaceTrait.FREE_HEIGHT)) {
             return pieces;
         }
         int[] bounds = computeBounds(pieces);
@@ -818,8 +817,7 @@ public final class IrisStructureLocator {
     static boolean hasExactY(IrisStructurePlacement placement, IrisStructure structure,
                              KList<PlacedStructurePiece> pieces) {
         return placement.isAnchoredUnderground() || pieces.size() > 1
-                || structure.getPlaceMode() == ObjectPlaceMode.STRUCTURE_PIECE
-                || structure.getPlaceMode() == ObjectPlaceMode.FLOATING;
+                || structure.getPlaceMode().placeMode().has(PlaceTrait.FREE_HEIGHT);
     }
 
     private static boolean fitsVerticalBounds(KList<PlacedStructurePiece> pieces, int worldMin, int worldMax) {

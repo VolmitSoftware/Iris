@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
@@ -135,7 +135,7 @@ public final class PrepareModule implements IrisModule {
                 : null;
         int randomY = randomHeightOffset(translate.getYRandom(), rng);
         int warpMargin = config.getWarp().isFlat() ? 0 : (int) Math.ceil(Math.abs(config.getWarp().getMultiplier()) / 2D);
-        TransformedBounds bounds = transformedBounds(object, spin, translation, config.getMode() == ObjectPlaceMode.CEILING_HANG, warpMargin);
+        TransformedBounds bounds = transformedBounds(object, spin, translation, config.getMode().placeMode().has(PlaceTrait.UPSIDE_DOWN), warpMargin);
         CNG surfaceWarp = config.getWarp().isFlat() ? null : config.getSurfaceWarp(rng, object.getLoader());
         return new PreparedPlacement(config, terrain, spin, spinX, spinY, spinZ, translation, rotatedCenterY,
                 translatedCenterY, randomY, warpMargin, bounds, surfaceWarp);

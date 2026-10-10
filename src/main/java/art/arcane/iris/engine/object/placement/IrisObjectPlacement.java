@@ -208,6 +208,11 @@ public class IrisObjectPlacement {
     /** The pack modules' settings this placement declares, decoded with it. */
     private transient ModuleSettings moduleSettings = ModuleSettings.NONE;
 
+    /** A placement that stamps each object exactly at the position it is given, as a structure piece. */
+    public static IrisObjectPlacement stampingStructurePieces() {
+        return new IrisObjectPlacement().setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+    }
+
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
         p.setPlace(new KList<>(place));

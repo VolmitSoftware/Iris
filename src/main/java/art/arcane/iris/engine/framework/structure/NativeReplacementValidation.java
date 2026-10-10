@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework.structure;
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.core.pack.PackValidationIo;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -234,8 +235,7 @@ public final class NativeReplacementValidation {
         for (StructureGraphValidation.SampledVerticalEnvelope sampled : sampledVerticalEnvelopes) {
             boolean exactY = placementBounds.underground()
                     || sampled.pieceCount() > 1
-                    || placeMode == ObjectPlaceMode.STRUCTURE_PIECE
-                    || placeMode == ObjectPlaceMode.FLOATING;
+                    || placeMode.placeMode().has(PlaceTrait.FREE_HEIGHT);
             if (!exactY) {
                 continue;
             }
@@ -244,8 +244,7 @@ public final class NativeReplacementValidation {
             long maximumYOffset = sampled.maximumYOffset();
             boolean surfaceAligned = !placementBounds.underground()
                     && sampled.pieceCount() > 1
-                    && placeMode != ObjectPlaceMode.STRUCTURE_PIECE
-                    && placeMode != ObjectPlaceMode.FLOATING;
+                    && !placeMode.placeMode().has(PlaceTrait.FREE_HEIGHT);
             if (surfaceAligned) {
                 maximumYOffset -= minimumYOffset;
                 minimumYOffset = 0L;

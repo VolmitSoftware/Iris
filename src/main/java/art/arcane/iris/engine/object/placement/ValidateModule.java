@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
@@ -81,8 +81,7 @@ public final class ValidateModule implements IrisModule {
         IrisPlacement placement = IrisPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
-        if (config.isForcePlace() || config.isFromBottom() || prepared.mode() == ObjectPlaceMode.FLOATING
-                || prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE) {
+        if (config.isForcePlace() || config.isFromBottom() || prepared.mode().has(PlaceTrait.FREE_HEIGHT)) {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y();
@@ -117,13 +116,13 @@ public final class ValidateModule implements IrisModule {
         IrisPlacement placement = IrisPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
-        if (config.isForcePlace() || prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE) {
+        if (config.isForcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)) {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y();
         int rotated = prepared.rotatedCenterY();
         int translated = prepared.translatedCenterY();
-        if (placement.requestedY() < 0 && prepared.mode() != ObjectPlaceMode.FLOATING && !config.isUnderwater()
+        if (placement.requestedY() < 0 && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !config.isUnderwater()
                 && !config.isOnwater() && prepared.terrain().isUnderwater(placement.x(), placement.z())) {
             context.reject("underwater-anchor");
         } else if (placement.cave() != null
@@ -138,7 +137,7 @@ public final class ValidateModule implements IrisModule {
 
     private static void checkNativeStructures(PlacementStageContext context) {
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        if (prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE) {
+        if (prepared.mode().has(PlaceTrait.RAW_STAMP)) {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y() + prepared.randomY();
@@ -208,7 +207,7 @@ public final class ValidateModule implements IrisModule {
         IrisPlacement placement = IrisPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
-        if (config.isForcePlace() || prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE
+        if (config.isForcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)
                 || (config.getAllowedCollisions().isEmpty() && config.getForbiddenCollisions().isEmpty())) {
             return;
         }

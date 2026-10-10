@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.builtin.carve.CarvingMode;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
@@ -116,7 +116,7 @@ public final class BlocksModule implements IrisModule {
             y = offset.y() + Math.floorDiv(placement.object().h, 2)
                     + prepared.terrain().getHighest(x, z, placement.object().getLoader(), config.isUnderwater());
         }
-        boolean structurePiece = prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE;
+        boolean structurePiece = prepared.mode().has(PlaceTrait.RAW_STAMP);
         if (config.isMeld() && !structurePiece && !world.isSolid(x, y, z)) {
             return;
         }

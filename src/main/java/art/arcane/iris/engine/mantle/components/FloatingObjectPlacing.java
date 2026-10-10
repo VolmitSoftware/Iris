@@ -21,7 +21,6 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
@@ -272,7 +271,7 @@ public class FloatingObjectPlacing {
             int wz = minZ + pickedZf - fp.getTallestKz();
 
             IrisObjectPlacement anchored = placement.toPlacement(obj.getLoadKey());
-            anchored.setMode(translateStiltModeForFloating(anchored.getMode()));
+            anchored.setMode(anchored.getMode().onFloatingIsland());
             anchored.setTranslate(new IrisObjectTranslate());
             anchored.setRotation(ROTATION_NONE);
             anchored.setForcePlace(true);
@@ -374,7 +373,7 @@ public class FloatingObjectPlacing {
             int wz = invertedBaseZ(minZ, pickedZf, fp, invertedRotation);
 
             IrisObjectPlacement inverted = placement.toPlacement(obj.getLoadKey());
-            inverted.setMode(translateStiltModeForFloating(inverted.getMode()));
+            inverted.setMode(inverted.getMode().onFloatingIsland());
             inverted.setTranslate(new IrisObjectTranslate());
             inverted.setRotation(invertedRotation);
             inverted.setForcePlace(true);
@@ -534,19 +533,6 @@ public class FloatingObjectPlacing {
             return null;
         }
         return key + "@" + id;
-    }
-
-    private static ObjectPlaceMode translateStiltModeForFloating(ObjectPlaceMode m) {
-        return switch (m) {
-            case STILT -> ObjectPlaceMode.MAX_HEIGHT;
-            case FAST_STILT -> ObjectPlaceMode.FAST_MAX_HEIGHT;
-            case MIN_STILT -> ObjectPlaceMode.MIN_HEIGHT;
-            case FAST_MIN_STILT -> ObjectPlaceMode.FAST_MIN_HEIGHT;
-            case CENTER_STILT -> ObjectPlaceMode.CENTER_HEIGHT;
-            case ERODE_STILT -> ObjectPlaceMode.MAX_HEIGHT;
-            case STRUCTURE_PIECE -> ObjectPlaceMode.CENTER_HEIGHT;
-            default -> m;
-        };
     }
 
     /** How far, in blocks along X and Z, placements may write beyond their chunk. */

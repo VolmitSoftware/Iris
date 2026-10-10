@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.AnchorHeight;
 import art.arcane.iris.core.modules.IrisPlacement;
@@ -57,7 +57,7 @@ public final class AnchorModule implements IrisModule {
         IrisPlacement placement = IrisPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         IrisObjectPlacement config = prepared.config();
-        boolean structurePiece = prepared.mode() == ObjectPlaceMode.STRUCTURE_PIECE;
+        boolean structurePiece = prepared.mode().has(PlaceTrait.RAW_STAMP);
         if (!config.isFromBottom() && placement.requestedY() < 0) {
             return new AnchorHeight(sampled(context, placement, prepared));
         }

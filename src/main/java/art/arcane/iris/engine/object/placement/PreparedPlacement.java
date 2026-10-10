@@ -18,7 +18,8 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.anchor.PlaceMode;
+import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.math.IrisBlockVector;
 import art.arcane.iris.util.project.noise.CNG;
@@ -73,8 +74,8 @@ public final class PreparedPlacement {
         return terrain;
     }
 
-    ObjectPlaceMode mode() {
-        return config.getMode();
+    PlaceMode mode() {
+        return config.getMode().placeMode();
     }
 
     int spinX() {
@@ -131,7 +132,7 @@ public final class PreparedPlacement {
     BlockPosition transform(BlockPosition local) {
         IrisBlockVector offset = new IrisBlockVector(local.x(), local.y(), local.z());
         spin.rotate(offset);
-        if (mode() == ObjectPlaceMode.CEILING_HANG) {
+        if (mode().has(PlaceTrait.UPSIDE_DOWN)) {
             offset.setY(-offset.getBlockY());
         }
         if (translation != null) {

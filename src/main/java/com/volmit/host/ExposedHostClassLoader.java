@@ -28,12 +28,21 @@ final class ExposedHostClassLoader extends ClassLoader {
 
     private final ClassLoader hostLoader;
     private final ExposedPackages exposed;
+    private final HostClassesLeftOut leftOut;
 
     /** {@code hostLoader} is the loader that defines the API; in production the Iris plugin's. */
     ExposedHostClassLoader(ClassLoader hostLoader, ExposedPackages exposed) {
+        this(hostLoader, exposed, HostClassesLeftOut.none());
+    }
+
+    /** For a build that checks a jar against more classes than the real host has: {@code leftOut} names the
+     * classes the real host's loader lacks, which {@link #hasClass} then denies and {@link #leavesOut} reports.
+     */
+    ExposedHostClassLoader(ClassLoader hostLoader, ExposedPackages exposed, HostClassesLeftOut leftOut) {
         super(NAME, ClassLoader.getPlatformClassLoader());
         this.hostLoader = Objects.requireNonNull(hostLoader, "hostLoader");
         this.exposed = Objects.requireNonNull(exposed, "exposed");
+        this.leftOut = Objects.requireNonNull(leftOut, "leftOut");
     }
 
     ExposedPackages exposed() {
@@ -42,7 +51,12 @@ final class ExposedHostClassLoader extends ClassLoader {
 
     /** Whether this loader can load the class, judged by its class file so that nothing is loaded. */
     boolean hasClass(String binaryName) {
-        return getResource(classFile(binaryName)) != null;
+        return !leavesOut(binaryName) && getResource(classFile(binaryName)) != null;
+    }
+
+    /** Whether the real host lacks the class although the loader a build checks against has it. */
+    boolean leavesOut(String binaryName) {
+        return leftOut.leavesOut(binaryName);
     }
 
     /** Whether the host's loader has the class, whether or not this loader shows it to packs. In

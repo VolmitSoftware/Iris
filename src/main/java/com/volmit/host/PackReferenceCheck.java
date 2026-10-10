@@ -44,7 +44,12 @@ final class PackReferenceCheck {
                         + " --add-exports <module>/<package>=ALL-UNNAMED."),
         MISSING_HOST_CLASS(
                 "uses classes that this Iris does not have, in packages Iris provides to modules:",
-                "The jar was built against a different Iris API or Iris version.");
+                "The jar was built against a different Iris API or Iris version."),
+        /** A class of an exposed package that the library has but the host's own jar leaves out. */
+        LEFT_OUT_HOST_CLASS(
+                "uses classes of the libraries Iris provides to modules that Iris's jar leaves out:",
+                "Iris strips classes it does not use itself from the libraries it ships. Use another class, or have"
+                        + " Iris keep the class you need.");
 
         private final String header;
         private final String advice;
@@ -102,6 +107,7 @@ final class PackReferenceCheck {
     /** Access comes first: whichever loader finds a JDK class, its module still decides who may use it. */
     private Resolution resolveOutsidePack(String className) {
         if (NonExportedJdkPackages.packageOf(className).isPresent()) return Resolution.NOT_EXPORTED_JDK_CLASS;
+        if (host.leavesOut(className)) return Resolution.LEFT_OUT_HOST_CLASS;
         if (host.hasClass(className)) return Resolution.PROVIDED;
         if (host.exposed().exposes(className)) return Resolution.MISSING_HOST_CLASS;
         if (UnavailableJdkModules.moduleOf(className).isPresent()) return Resolution.UNAVAILABLE_JDK_CLASS;

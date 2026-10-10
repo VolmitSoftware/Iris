@@ -84,4 +84,30 @@ class ModuleJarCheckTest {
 
         assertTrue(failure(() -> ModuleJarCheck.check(jar, NO_EXPOSED_PACKAGES)).contains("has no entry point"));
     }
+
+    @Test
+    void jarThatUsesAnExposedClassTheHostJarLeavesOutFailsNamingTheClass() {
+        var jar = module("pack.User", "user:core", NO_MEMBERS,
+                "graph.define(Stage.placement(\"user:core/carved\")).requires(example.builtin.CarveModule.CLEAR).run(context -> {});")
+                .compileAgainstHostOf(CarveModule.class)
+                .writeInto(build, "user.jar");
+        var exposed = List.of(CarveModule.class.getPackageName());
+        var leftOut = List.of("# stripped from the host jar", "example/builtin/CarveModule");
+
+        var message = failure(() -> ModuleJarCheck.check(jar, exposed, leftOut));
+
+        assertTrue(message.contains("leaves out"), message);
+        assertTrue(message.contains("pack.User -> example.builtin.CarveModule"), message);
+    }
+
+    @Test
+    void jarThatUsesAnExposedClassNotLeftOutStillPasses() {
+        var jar = module("pack.User", "user:core", NO_MEMBERS,
+                "graph.define(Stage.placement(\"user:core/carved\")).requires(example.builtin.CarveModule.CLEAR).run(context -> {});")
+                .compileAgainstHostOf(CarveModule.class)
+                .writeInto(build, "user.jar");
+
+        assertEquals(List.of("pack.User"), ModuleJarCheck.check(jar, List.of(CarveModule.class.getPackageName()),
+                List.of("example/builtin/OtherModule")));
+    }
 }

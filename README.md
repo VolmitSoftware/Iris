@@ -370,7 +370,10 @@ Duplicate module example:moss from modules/moss.jar (com.example.moss.MossModule
 
 `ModuleJarCheck.check(jar, exposedHostPackages)` (also its `main`) runs the load's class checks on one
 jar, without loading it: for a build that writes a module jar and wants to fail on a jar a pack would
-refuse.
+refuse. A build that checks against a full copy of an exposed library, while the host's jar strips some
+of its classes, passes the stripped ones too (`check(jar, exposedHostPackages, leftOutClasses)`, or
+`--left-out=<file>` on the command line; one Ant pattern or class per line): a jar that references one
+fails, naming the class.
 
 A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
 Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the

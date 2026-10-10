@@ -969,6 +969,8 @@ from a sapling, which drops a block has. A module answers such questions through
   damaged), and the host reads what only the platform knows (light, the surface below, free space, the blocks around a
   sapling) through the attempt's conditions or a `Surroundings` view. A service that must hear how its plan went has a
   second method for it (`EntitySpawns.spawned`, which keeps a spawner's rate limits).
+  `AmbientEffects` follows the same rule: the module decides which effects are due (interval and chance, kept in the world's
+  state) and every random value they carry, the host only plays them.
 - **Services now.** `ObjectsAt` (`ALL`): pack object keys a module would place in a chunk, predicted without
   generating it, and the biomes and regions whose settings place a given object (`PlacedBy`, named by pack keys; the
   host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.marker.IrisObjectMarker;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.volmlib.util.collection.KSet;
 
@@ -30,25 +29,6 @@ import art.arcane.volmlib.util.collection.KSet;
  */
 public final class PackExportClosure {
     private PackExportClosure() {
-    }
-
-    public static KSet<String> collectMarkerKeys(Iterable<IrisObjectPlacement> placements) {
-        KSet<String> markerKeys = new KSet<>();
-        if (placements == null) {
-            return markerKeys;
-        }
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null || placement.getMarkers() == null) {
-                continue;
-            }
-            for (IrisObjectMarker marker : placement.getMarkers()) {
-                if (marker == null || marker.getMarker() == null || marker.getMarker().isBlank()) {
-                    continue;
-                }
-                markerKeys.add(marker.getMarker());
-            }
-        }
-        return markerKeys;
     }
 
     public static KSet<String> collectObjectKeys(Iterable<IrisObjectPlacement> placements) {

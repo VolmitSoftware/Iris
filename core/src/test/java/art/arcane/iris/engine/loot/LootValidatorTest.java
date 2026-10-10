@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootTable;
+import com.volmit.config.MaxNumber;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Severity;
 import org.junit.Rule;
@@ -110,11 +110,11 @@ public class LootValidatorTest {
 
     @Test
     public void lootWorkCapsArePublishedInSchemaMetadata() throws Exception {
-        assertSchemaMaximum(IrisLootTable.class, "minPicked", IrisLootTable.MAX_PICKED);
-        assertSchemaMaximum(IrisLootTable.class, "maxPicked", IrisLootTable.MAX_PICKED);
-        assertSchemaMaximum(IrisLootTable.class, "maxTries", IrisLootTable.MAX_TRIES);
-        assertSchemaMaximum(IrisLoot.class, "minAmount", IrisLoot.MAX_AMOUNT);
-        assertSchemaMaximum(IrisLoot.class, "maxAmount", IrisLoot.MAX_AMOUNT);
+        assertSchemaMaximum(LootTable.class, "minPicked", LootTable.MAX_PICKED);
+        assertSchemaMaximum(LootTable.class, "maxPicked", LootTable.MAX_PICKED);
+        assertSchemaMaximum(LootTable.class, "maxTries", LootTable.MAX_TRIES);
+        assertSchemaMaximum(LootEntry.class, "minAmount", LootEntry.MAX_AMOUNT);
+        assertSchemaMaximum(LootEntry.class, "maxAmount", LootEntry.MAX_AMOUNT);
     }
 
     private void assertSchemaMaximum(Class<?> type, String fieldName, int expected) throws Exception {

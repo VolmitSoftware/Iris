@@ -1,14 +1,7 @@
 package art.arcane.iris.purity;
 
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.image.IrisImage;
 import art.arcane.iris.engine.object.image.IrisImageMap;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.engine.object.loot.IrisVanillaLootTable;
-import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.mod.IrisMod;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
@@ -128,11 +121,7 @@ public class PackTypeBukkitPurityGateTest {
     private static final List<String> MODULE_RESOURCE_ROOTS = List.of(
             "art.arcane.iris.engine.object.structure.IrisStructure",
             "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool",
-            "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece",
-            "art.arcane.iris.engine.object.loot.IrisLootTable",
-            "art.arcane.iris.engine.object.entity.spawn.IrisSpawner",
-            "art.arcane.iris.engine.object.entity.IrisEntity",
-            "art.arcane.iris.engine.object.marker.IrisMarker");
+            "art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece");
 
     /**
      * Types reachable from a pack that are not roots and carry no {@code @Snippet}, but are
@@ -140,8 +129,7 @@ public class PackTypeBukkitPurityGateTest {
      */
     private static final List<String> ADDITIONAL_PACK_TYPES = List.of(
             "art.arcane.iris.engine.object.prefab.TileData",
-            "art.arcane.iris.engine.object.prefab.LegacyTileData",
-            "art.arcane.iris.engine.object.loot.IrisVanillaLootTable");
+            "art.arcane.iris.engine.object.prefab.LegacyTileData");
 
     /**
      * Bukkit-registry constant holders that a core pack type may reference, so their class initializer
@@ -211,7 +199,7 @@ public class PackTypeBukkitPurityGateTest {
         BukkitHidingClassLoader hiding = new BukkitHidingClassLoader(getClass().getClassLoader());
         List<String> gateTypes = gateTypes();
         assertTrue("expected the @Snippet scan to find the pack snippet types, found only "
-                + gateTypes.size(), gateTypes.size() > 60);
+                + gateTypes.size(), gateTypes.size() > 40);
 
         List<String> failures = new ArrayList<>();
         List<String> skipped = new ArrayList<>();

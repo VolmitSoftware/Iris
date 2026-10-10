@@ -18,27 +18,22 @@
 
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.engine.spawn.SpawnResources;
-import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import com.google.gson.Gson;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.localization.BukkitRuntimeMessages;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.pack.ImageMapPackageClosure;
+import art.arcane.iris.core.pack.ModuleResourceClosure;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
 import art.arcane.iris.core.pack.StructurePackageClosure;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.entity.IrisEntity;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.core.pack.PackExportClosure;
-import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -52,11 +47,11 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.scheduling.O;
+import com.volmit.FeatureAttachment.Target;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -109,10 +104,8 @@ public class IrisPackageCompiler {
         IrisLogging.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
         KSet<IrisRegion> regions = new KSet<>();
         KSet<IrisBiome> biomes = new KSet<>();
-        KSet<IrisEntity> entities = new KSet<>();
-        KSet<IrisSpawner> spawners = new KSet<>();
         KSet<IrisGenerator> generators = new KSet<>();
-        KSet<IrisLootTable> loot = new KSet<>();
+        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm);
         KSet<IrisBlockData> blocks = new KSet<>();
 
         // KSet is ConcurrentHashMap-backed: both add(null) and remove(null) throw NPE, so a
@@ -122,29 +115,16 @@ public class IrisPackageCompiler {
         }
 
         dimension.getAllRegions(() -> dm).forEach((region) -> addIfPresent(regions, region));
-        dimension.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i)));
+        moduleResources.followSettingsOf(dimension);
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(() -> dm)));
         dimension.getReachableBiomes(() -> dm).forEach((biome) -> addIfPresent(biomes, biome));
-        regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i))));
-        regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp))));
-        dimension.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp)));
+        regions.forEach(moduleResources::followSettingsOf);
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));
-        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i))));
-        biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp))));
+        biomes.forEach(moduleResources::followSettingsOf);
         KList<IrisObjectPlacement> allPlacements = new KList<>();
         regions.forEach((r) -> allPlacements.addAll(r.getObjects()));
         biomes.forEach((i) -> allPlacements.addAll(i.getObjects()));
-        KSet<IrisMarker> markers = new KSet<>();
-        for (String markerKey : PackExportClosure.collectMarkerKeys(allPlacements)) {
-            IrisMarker marker = SpawnResources.marker(dm, markerKey);
-            if (marker == null) {
-                continue;
-            }
-            markers.add(marker);
-            marker.getSpawners().forEach((sp) -> addIfPresent(spawners, SpawnResources.spawner(dm, sp)));
-        }
-        collectSpawnerEntityKeys(spawners).forEach((i) -> addIfPresent(entities, SpawnResources.entity(dm, i)));
-        entities.forEach((e) -> e.getLoot().getTables().forEach((i) -> addIfPresent(loot, LootResources.table(dm, i))));
+        moduleResources.follow(allPlacements);
         Set<String> structureKeys = new LinkedHashSet<>();
         collectStructureKeys(structureKeys, dimension.getStructures());
         regions.forEach((region) -> collectStructureKeys(structureKeys, region.getStructures()));
@@ -224,7 +204,7 @@ public class IrisPackageCompiler {
             }
             b.append(structureClosure.writeTo(folder, minify));
             b.append(ImageMapPackageClosure.writeAll(dm, folder, minify));
-            a = new JSONObject(new Gson().toJson(dimension)).toString(minify ? 0 : 4);
+            a = withModuleSettings(dimension, Target.DIMENSION, dm).toString(minify ? 0 : 4);
             IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
             b.append(IO.hash(a));
 
@@ -238,7 +218,7 @@ public class IrisPackageCompiler {
             b = new StringBuilder();
 
             for (IrisRegion i : regions) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                a = withModuleSettings(i, Target.REGION, dm).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
@@ -250,35 +230,12 @@ public class IrisPackageCompiler {
             }
 
             for (IrisBiome i : biomes) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                a = withModuleSettings(i, Target.BIOME, dm).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (IrisEntity i : entities) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
-                IO.writeAll(new File(folder, "entities/" + i.getLoadKey() + ".json"), a);
-                b.append(IO.hash(a));
-            }
-
-            for (IrisLootTable i : loot) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
-                IO.writeAll(new File(folder, "loot/" + i.getLoadKey() + ".json"), a);
-                b.append(IO.hash(a));
-            }
-
-            // Sorted so package.json.hash stays stable across runs.
-            for (IrisSpawner i : spawners.stream().sorted(Comparator.comparing(IrisSpawner::getLoadKey)).toList()) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
-                IO.writeAll(new File(folder, "spawners/" + i.getLoadKey() + ".json"), a);
-                b.append(IO.hash(a));
-            }
-
-            for (IrisMarker i : markers.stream().sorted(Comparator.comparing(IrisMarker::getLoadKey)).toList()) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
-                IO.writeAll(new File(folder, "markers/" + i.getLoadKey() + ".json"), a);
-                b.append(IO.hash(a));
-            }
+            b.append(moduleResources.writeTo(folder, minify));
 
             c.append(IO.hash(b.toString()));
             String finalHash = IO.hash(c.toString());
@@ -301,13 +258,12 @@ public class IrisPackageCompiler {
         return null;
     }
 
-    static KSet<String> collectSpawnerEntityKeys(KSet<IrisSpawner> spawners) {
-        KSet<String> entityKeys = new KSet<>();
-        for (IrisSpawner spawner : spawners) {
-            spawner.getSpawns().forEach((spawn) -> entityKeys.add(spawn.getEntity()));
-            spawner.getInitialSpawns().forEach((spawn) -> entityKeys.add(spawn.getEntity()));
-        }
-        return entityKeys;
+    /** The JSON of a dimension, region or biome with the settings its modules declare, which the resource itself does not hold. */
+    private static JSONObject withModuleSettings(IrisRegistrant resource, Target target, IrisData data) {
+        JSONObject json = new JSONObject(new Gson().toJson(resource));
+        JSONObject settings = data.getModules().settings().encode(target, resource.getModuleSettings());
+        settings.keySet().forEach(key -> json.put(key, settings.get(key)));
+        return json;
     }
 
     private static void collectStructureKeys(Set<String> keys, KList<IrisStructurePlacement> placements) {

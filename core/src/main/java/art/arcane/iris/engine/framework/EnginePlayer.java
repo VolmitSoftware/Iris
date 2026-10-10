@@ -19,14 +19,13 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.platform.EngineBukkitOps;
+import art.arcane.iris.core.modules.ModuleServices;
+import art.arcane.iris.platform.bukkit.BukkitAmbientEffects;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.math.M;
+import com.volmit.world.BlockPosition;
 import lombok.Data;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -35,8 +34,7 @@ import org.bukkit.entity.Player;
 public class EnginePlayer {
     private final Engine engine;
     private final Player player;
-    private IrisBiome biome;
-    private IrisRegion region;
+    private BlockPosition sampledPosition;
     private Location lastLocation;
     private long lastSample;
 
@@ -56,26 +54,14 @@ public class EnginePlayer {
             return;
         }
 
-        if (region != null) {
-            for (IrisEffect effect : region.getEffects()) {
-                try {
-                    effect.apply(player, getEngine());
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-
-                }
-            }
+        if (sampledPosition == null) {
+            return;
         }
 
-        if (biome != null) {
-            for (IrisEffect effect : biome.getEffects()) {
-                try {
-                    effect.apply(player, getEngine());
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-
-                }
-            }
+        try {
+            BukkitAmbientEffects.play(player, engine, ModuleServices.ambientEffects(engine, sampledPosition));
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
         }
     }
 
@@ -94,8 +80,7 @@ public class EnginePlayer {
             if (needsSample(sampled, ticksSinceLastSample(), distanceSquared)) {
                 lastLocation = current;
                 lastSample = M.ms();
-                biome = EngineBukkitOps.getBiome(engine, current);
-                region = EngineBukkitOps.getRegion(engine, current);
+                sampledPosition = new BlockPosition(current.getBlockX(), current.getBlockY() - engine.getWorld().minHeight(), current.getBlockZ());
             }
             return false;
         } catch (Throwable e) {

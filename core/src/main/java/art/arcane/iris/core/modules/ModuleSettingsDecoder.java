@@ -20,8 +20,10 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.volmlib.util.json.JSONTokener;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -127,6 +129,24 @@ public final class ModuleSettingsDecoder {
             throw new JsonParseException("the file holds null");
         }
         return decoded;
+    }
+
+    /**
+     * The JSON that declares {@code values} at {@code target}: each settings feature under its key, in the shape the
+     * feature is written in (a rooted feature as its root option's value), the inverse of {@link #decode}.
+     */
+    public JSONObject encode(Target target, ModuleSettings values) {
+        JSONObject json = new JSONObject();
+        for (FeatureDescriptor<?> feature : settings.get(target)) {
+            values.find(feature.type()).ifPresent(value -> json.put(feature.key(), writtenShape(feature, value)));
+        }
+        return json;
+    }
+
+    private Object writtenShape(FeatureDescriptor<?> feature, IrisFeature value) {
+        JsonElement settingsTree = gson.toJsonTree(value, feature.type());
+        JsonElement written = feature.root().map(root -> settingsTree.getAsJsonObject().get(root)).orElse(settingsTree);
+        return new JSONTokener(gson.toJson(written)).nextValue();
     }
 
     private IrisFeature read(FeatureDescriptor<?> feature, Object value, String resource) {

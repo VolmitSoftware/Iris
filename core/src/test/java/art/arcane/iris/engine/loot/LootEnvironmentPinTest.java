@@ -19,11 +19,12 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.builtin.loot.LootSettings;
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -65,7 +66,7 @@ public class LootEnvironmentPinTest {
             fixture.resource(LootResources.TABLES, key, table(key));
         }
         IrisComplex complex = engine.getComplex();
-        when(complex.getData()).thenReturn(data);
+        when(engine.getData()).thenReturn(data);
         dimension = mock(IrisDimension.class);
         region = mock(IrisRegion.class);
         surface = biome("surface");
@@ -111,19 +112,19 @@ public class LootEnvironmentPinTest {
 
     private List<String> identities(boolean objectLootDefined, int y) {
         List<String> sources = new ArrayList<>();
-        LootTables.resolveEnvironmentSources(sources, engine, new RNG(19L), X, y, Z, objectLootDefined, LootTables::identity);
+        LootTables.resolveEnvironmentSources(sources, engine, new RNG(19L), X, y, Z, objectLootDefined, key -> key);
         return sources;
     }
 
     private void references(String dimensionJson, String regionJson, String surfaceJson, String caveJson) {
-        when(dimension.getLoot()).thenReturn(reference(dimensionJson));
-        when(region.getLoot()).thenReturn(reference(regionJson));
-        when(surface.getLoot()).thenReturn(reference(surfaceJson));
-        when(cave.getLoot()).thenReturn(reference(caveJson));
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(loot(dimensionJson)));
+        when(region.getModuleSettings()).thenReturn(BuiltInPack.settings(loot(regionJson)));
+        when(surface.getModuleSettings()).thenReturn(BuiltInPack.settings(loot(surfaceJson)));
+        when(cave.getModuleSettings()).thenReturn(BuiltInPack.settings(loot(caveJson)));
     }
 
-    private static IrisLootReference reference(String json) {
-        return new Gson().fromJson(json, IrisLootReference.class);
+    private static LootSettings loot(String json) {
+        return new Gson().fromJson(json, LootSettings.class);
     }
 
     private static IrisBiome biome(String key) {
@@ -132,9 +133,7 @@ public class LootEnvironmentPinTest {
         return biome;
     }
 
-    private static IrisLootTable table(String key) {
-        IrisLootTable table = new IrisLootTable().setName(key);
-        table.setLoadKey(key);
-        return table;
+    private static LootTable table(String key) {
+        return new Gson().fromJson("{\"name\": \"" + key + "\"}", LootTable.class);
     }
 }

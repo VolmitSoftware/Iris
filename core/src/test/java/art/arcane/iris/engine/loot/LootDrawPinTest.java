@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.builtin.loot.LootTable;
 import com.google.gson.Gson;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemRegistry;
@@ -69,12 +69,12 @@ public class LootDrawPinTest {
 
     @Test
     public void aTableGivesThePinnedItemsAtEachSpot() {
-        IrisLootTable table = new Gson().fromJson(TABLE, IrisLootTable.class);
+        LootTable table = new Gson().fromJson(TABLE, LootTable.class);
         LootItems items = new LootItems(registry, false);
 
         List<Integer> hashes = new ArrayList<>();
         for (int[] spot : SPOTS) {
-            List<ItemDrop> drops = items.draw(table, LOOT_SEED, spot[0], spot[1], spot[2]);
+            List<ItemDrop> drops = items.draw("Pin table", table, LOOT_SEED, spot[0], spot[1], spot[2]);
             hashes.add(drops.toString().hashCode());
         }
 

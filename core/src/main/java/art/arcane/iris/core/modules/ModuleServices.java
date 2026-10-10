@@ -23,6 +23,7 @@ import art.arcane.iris.engine.framework.Engine;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
+import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.EntitySpawns;
 import com.volmit.service.LocateResult;
@@ -30,6 +31,7 @@ import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
+import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -162,6 +164,16 @@ public final class ModuleServices {
             }
         }
         return Optional.empty();
+    }
+
+    /** The ambient effects every module says are due for a player standing at {@code at}, in module order. */
+    public static List<AmbientEffects.Effect> ambientEffects(Engine engine, BlockPosition at) {
+        PackWorld world = engine.getGeneration().world();
+        List<AmbientEffects.Effect> effects = new ArrayList<>();
+        for (AmbientEffects provider : catalog(engine.getData()).services(AmbientEffects.class)) {
+            effects.addAll(provider.due(world, at));
+        }
+        return effects;
     }
 
     /** A plan and the module that made it, which hears how many of its entities appeared. */

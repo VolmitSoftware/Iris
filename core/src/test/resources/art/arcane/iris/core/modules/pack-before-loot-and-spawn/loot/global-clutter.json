@@ -1,0 +1,115 @@
+{
+    "name": "Global Clutter",
+    "rarity": 1,
+    "maxPicked": 2,
+    "minPicked": 1,
+    "maxTries": 20,
+    "loot": [
+        {
+            "type": "stone",
+            "minAmount": 1,
+            "maxAmount": 8,
+            "rarity": 1,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "stick",
+            "minAmount": 1,
+            "maxAmount": 6,
+            "rarity": 1,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "flint",
+            "minAmount": 1,
+            "maxAmount": 4,
+            "rarity": 2,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "string",
+            "minAmount": 1,
+            "maxAmount": 4,
+            "rarity": 2,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "leather",
+            "minAmount": 1,
+            "maxAmount": 3,
+            "rarity": 3,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "paper",
+            "minAmount": 1,
+            "maxAmount": 5,
+            "rarity": 3,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "torch",
+            "minAmount": 2,
+            "maxAmount": 8,
+            "rarity": 2,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "ladder",
+            "minAmount": 1,
+            "maxAmount": 6,
+            "rarity": 4,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "bucket",
+            "minAmount": 1,
+            "maxAmount": 1,
+            "rarity": 9,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "arrow",
+            "minAmount": 2,
+            "maxAmount": 10,
+            "rarity": 4,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "glass_bottle",
+            "minAmount": 1,
+            "maxAmount": 4,
+            "rarity": 4,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "copper_ingot",
+            "minAmount": 1,
+            "maxAmount": 5,
+            "rarity": 6,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "amethyst_shard",
+            "minAmount": 1,
+            "maxAmount": 4,
+            "rarity": 7,
+            "slotTypes": "STORAGE"
+        },
+        {
+            "type": "enchanted_book",
+            "minAmount": 1,
+            "maxAmount": 1,
+            "rarity": 28,
+            "slotTypes": "STORAGE",
+            "enchantments": [
+                {
+                    "enchantment": "unbreaking",
+                    "minLevel": 2,
+                    "maxLevel": 3,
+                    "chance": 1.0
+                }
+            ]
+        }
+    ]
+}

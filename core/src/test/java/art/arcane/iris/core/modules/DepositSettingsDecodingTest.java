@@ -147,7 +147,8 @@ public class DepositSettingsDecodingTest {
         JSONObject byId = new JSONObject("{\"iris:deposit\": [{\"maxHeight\": 16}]}");
 
         assertSame(ModuleSettings.NONE, decoder.decode(Target.REGION, byId, "region forests"));
-        assertEquals(Set.of("deposits"), decoder.keys(Target.REGION));
+        assertTrue(decoder.keys(Target.REGION).contains("deposits"));
+        assertFalse(decoder.keys(Target.REGION).contains("iris:deposit"));
     }
 
     @Test

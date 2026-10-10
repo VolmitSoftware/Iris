@@ -36,15 +36,12 @@ import art.arcane.iris.core.structure.FeatureImporter;
 import art.arcane.iris.core.structure.StructureImporter;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.entity.IrisEntity;
 import art.arcane.iris.engine.platform.BukkitEntitySpawner;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -57,6 +54,7 @@ import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.iris.util.common.director.handlers.DimensionHandler;
 import art.arcane.iris.util.common.director.specialhandlers.NullableDimensionHandler;
+import art.arcane.iris.util.common.director.specialhandlers.EntityKeyHandler;
 import art.arcane.volmlib.util.director.DirectorOrigin;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -648,8 +646,8 @@ public class CommandStudio implements DirectorExecutor {
 
     @Director(description = "Spawn an Iris entity", descriptionKey = "iris.director.commandstudio.director.spawn_iris_entity", aliases = "summon", origin = DirectorOrigin.PLAYER)
     public void spawn(
-            @Param(description = "The entity to spawn", descriptionKey = "iris.director.commandstudio.param.entity_spawn")
-            IrisEntity entity,
+            @Param(description = "The entity to spawn", descriptionKey = "iris.director.commandstudio.param.entity_spawn", customHandler = EntityKeyHandler.class)
+            String entity,
             @Param(description = "The location to spawn the entity at", descriptionKey = "iris.director.commandstudio.param.location_spawn_entity_at", contextual = true, contextualOverride = true)
             Vector location
     ) {
@@ -662,7 +660,7 @@ public class CommandStudio implements DirectorExecutor {
 
         // Entity creation must run on the thread owning the destination chunk.
         Location at = new Location(world(), location.getX(), location.getY(), location.getZ());
-        if (!J.runAt(at, () -> BukkitEntitySpawner.spawnByKey(spawnEngine, entity.getLoadKey(), at))) {
+        if (!J.runAt(at, () -> BukkitEntitySpawner.spawnByKey(spawnEngine, entity, at))) {
             Iris.warn("Could not schedule the entity spawn at " + at.getBlockX() + ", " + at.getBlockY() + ", " + at.getBlockZ() + ".");
         }
     }

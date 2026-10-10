@@ -1,0 +1,946 @@
+{
+  "version": 4002,
+  "name": "Overworld",
+  "importedStructures": {
+    "datapackOverrides": true,
+    "adjustments": [
+      {
+        "match": [
+          "minecraft:stronghold"
+        ],
+        "yBand": {
+          "min": -120,
+          "max": -20
+        },
+        "terrain": {
+          "mode": "ENCASE",
+          "horizontalPadding": 4,
+          "ceilingPadding": 4,
+          "floorPadding": 4,
+          "encasePalette": {
+            "zoom": 1,
+            "palette": [
+              {
+                "block": "minecraft:stone_bricks",
+                "weight": 6
+              },
+              {
+                "block": "minecraft:mossy_stone_bricks",
+                "weight": 2
+              },
+              {
+                "block": "minecraft:cracked_stone_bricks",
+                "weight": 2
+              },
+              {
+                "block": "minecraft:cobblestone",
+                "weight": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "match": [
+          "minecraft:trial_chambers"
+        ],
+        "yShift": -64
+      },
+      {
+        "match": [
+          "minecraft:mineshaft"
+        ],
+        "preserveSourceY": true
+      },
+      {
+        "match": [
+          "minecraft:village"
+        ],
+        "stilt": {
+          "maxDepth": 2,
+          "palette": {
+            "palette": [
+              {
+                "block": "minecraft:dirt"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "structures": [
+    {
+      "nativeStructures": [
+        {
+          "structure": "minecraft:ancient_city"
+        }
+      ],
+      "placementId": "ancient-city-native",
+      "nativeSuppression": "REPLACE_SOURCE",
+      "underground": true,
+      "terrain": {
+        "mode": "FORCE_CARVE",
+        "horizontalPadding": 14,
+        "ceilingPadding": 12,
+        "floorPadding": 0,
+        "shape": "ERODED",
+        "erosionStrength": 1.0,
+        "erosionFrequency": 0.05
+      },
+      "stilt": {
+        "maxDepth": 768,
+        "spacing": 1,
+        "palette": {
+          "style": {
+            "style": "STATIC"
+          },
+          "palette": [
+            {
+              "block": "minecraft:deepslate_bricks",
+              "weight": 6
+            },
+            {
+              "block": "minecraft:cracked_deepslate_bricks",
+              "weight": 1
+            },
+            {
+              "block": "minecraft:deepslate_tiles",
+              "weight": 2
+            },
+            {
+              "block": "minecraft:cracked_deepslate_tiles",
+              "weight": 1
+            }
+          ]
+        }
+      },
+      "minHeight": -220,
+      "maxHeight": -220,
+      "distribution": "RANDOM_SPREAD",
+      "spacing": 64,
+      "separation": 5,
+      "salt": 42069
+    }
+  ],
+  "fullbright": false,
+  "upperDimension": "",
+  "upperDimensionGap": 32,
+  "upperDimensionCarving": false,
+  "upperDimensionObjects": false,
+  "environment": "NORMAL",
+  "dimensionAngleDeg": 69,
+  "fluidHeight": 50,
+  "continentZoom": 1,
+  "continentalStyle": {
+    "style": "NOWHERE_CELLULAR",
+    "fracture": {
+      "style": "FRACTAL_SMOKE",
+      "axialFracturing": true,
+      "multiplier": 1,
+      "fracture": {
+        "style": "STATIC",
+        "multiplier": 1,
+        "axialFracturing": true
+      }
+    },
+    "axialFracturing": true,
+    "zoom": 6
+  },
+  "logicalHeight": 512,
+  "dimensionHeight": {
+    "max": 512,
+    "min": -256
+  },
+  "landChance": 0.69,
+  "regionStyle": {
+    "style": "CELLULAR_IRIS_DOUBLE",
+    "axialFracturing": true,
+    "fracture": {
+      "axialFracturing": true,
+      "multiplier": 9,
+      "style": "FRACTAL_WATER",
+      "zoom": 0.15,
+      "fracture": {
+        "style": "STATIC",
+        "multiplier": 1,
+        "axialFracturing": true
+      }
+    }
+  },
+  "regionZoom": 16.15,
+  "regions": [
+    "frozen",
+    "hot",
+    "terralost",
+    "mushroom",
+    "forests",
+    "tundra",
+    "magnetics",
+    "temperate",
+    "estranged",
+    "tropical",
+    "swamp",
+    "prismatics"
+  ],
+  "seaBiomeStyle": {
+    "style": "SIMPLEX",
+    "axialFracturing": true
+  },
+  "landBiomeStyle": {
+    "style": "NOWHERE_CELLULAR",
+    "axialFracturing": true,
+    "fracture": {
+      "multiplier": 55,
+      "axialFracturing": true,
+      "style": "NOWHERE",
+      "zoom": 0.15,
+      "fracture": {
+        "axialFracturing": true,
+        "style": "STATIC",
+        "multiplier": 4
+      }
+    }
+  },
+  "ores": [
+    {
+      "threshold": 1,
+      "range": {
+        "min": 0,
+        "max": 0
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:bedrock"
+          }
+        ]
+      },
+      "chanceStyle": {
+        "style": "FLAT"
+      }
+    },
+    {
+      "threshold": 0.625,
+      "range": {
+        "min": 1,
+        "max": 1
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:bedrock"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/bedrock"
+    },
+    {
+      "threshold": 0.35,
+      "range": {
+        "min": 2,
+        "max": 4
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:bedrock"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/bedrock"
+    },
+    {
+      "threshold": 1,
+      "range": {
+        "min": 1,
+        "max": 57
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": {
+        "style": "FLAT"
+      }
+    },
+    {
+      "threshold": 0.874,
+      "range": {
+        "min": 58,
+        "max": 58
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    },
+    {
+      "threshold": 0.75,
+      "range": {
+        "min": 59,
+        "max": 59
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    },
+    {
+      "threshold": 0.625,
+      "range": {
+        "min": 60,
+        "max": 60
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    },
+    {
+      "threshold": 0.5,
+      "range": {
+        "min": 61,
+        "max": 61
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    },
+    {
+      "threshold": 0.375,
+      "range": {
+        "min": 62,
+        "max": 62
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    },
+    {
+      "threshold": 0.25,
+      "range": {
+        "min": 63,
+        "max": 63
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    },
+    {
+      "threshold": 0.125,
+      "range": {
+        "min": 64,
+        "max": 64
+      },
+      "palette": {
+        "palette": [
+          {
+            "block": "minecraft:deepslate"
+          }
+        ]
+      },
+      "chanceStyle": "snippet/style/deepslate"
+    }
+  ],
+  "shoreBiomeStyle": {
+    "style": "NOWHERE_CELLULAR"
+  },
+  "deposits": [
+    {
+      "minHeight": 19,
+      "maxPerChunk": 8,
+      "maxHeight": 390,
+      "minPerChunk": 1,
+      "minSize": 25,
+      "maxSize": 25,
+      "palette": [
+        {
+          "block": "minecraft:granite"
+        }
+      ],
+      "varience": 2
+    },
+    {
+      "minHeight": 19,
+      "maxPerChunk": 8,
+      "maxHeight": 310,
+      "minPerChunk": 1,
+      "minSize": 25,
+      "maxSize": 25,
+      "palette": [
+        {
+          "block": "minecraft:andesite"
+        }
+      ],
+      "varience": 2
+    },
+    {
+      "minHeight": 19,
+      "maxPerChunk": 8,
+      "maxHeight": 309,
+      "minPerChunk": 1,
+      "minSize": 25,
+      "maxSize": 25,
+      "palette": [
+        {
+          "block": "minecraft:diorite"
+        }
+      ],
+      "varience": 2
+    },
+    {
+      "minHeight": 19,
+      "maxPerChunk": 8,
+      "maxHeight": 389,
+      "minPerChunk": 1,
+      "minSize": 25,
+      "maxSize": 25,
+      "palette": [
+        {
+          "block": "minecraft:gravel"
+        }
+      ],
+      "varience": 2
+    },
+    {
+      "minHeight": 400,
+      "maxHeight": 767,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 60,
+      "maxPerChunk": 60,
+      "minSize": 17,
+      "maxSize": 17,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.3,
+      "palette": [
+        {
+          "block": "minecraft:coal_ore"
+        }
+      ],
+      "replaceableBlocks": [
+        "minecraft:stone",
+        "minecraft:granite",
+        "minecraft:diorite",
+        "minecraft:andesite",
+        "minecraft:deepslate",
+        "minecraft:tuff"
+      ]
+    },
+    {
+      "minHeight": 128,
+      "maxHeight": 512,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 1,
+      "minPerChunk": 80,
+      "maxPerChunk": 80,
+      "minSize": 17,
+      "maxSize": 17,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.65,
+      "palette": [
+        {
+          "block": "minecraft:coal_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 288,
+      "maxHeight": 896,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 180,
+      "maxPerChunk": 180,
+      "minSize": 9,
+      "maxSize": 9,
+      "shape": "VANILLA_ELLIPSOID",
+      "palette": [
+        {
+          "block": "minecraft:iron_ore"
+        }
+      ],
+      "replaceableBlocks": [
+        "minecraft:stone",
+        "minecraft:granite",
+        "minecraft:diorite",
+        "minecraft:andesite",
+        "minecraft:deepslate",
+        "minecraft:tuff"
+      ]
+    },
+    {
+      "minHeight": 80,
+      "maxHeight": 240,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 40,
+      "maxPerChunk": 40,
+      "minSize": 9,
+      "maxSize": 9,
+      "shape": "VANILLA_ELLIPSOID",
+      "palette": [
+        {
+          "block": "minecraft:iron_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 0,
+      "maxHeight": 272,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 40,
+      "maxPerChunk": 40,
+      "minSize": 4,
+      "maxSize": 4,
+      "shape": "VANILLA_ELLIPSOID",
+      "palette": [
+        {
+          "block": "minecraft:iron_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 96,
+      "maxHeight": 352,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 64,
+      "maxPerChunk": 64,
+      "minSize": 10,
+      "maxSize": 10,
+      "shape": "VANILLA_ELLIPSOID",
+      "biomeScope": "CAVE",
+      "excludedBiomes": [
+        "carving/drip",
+        "carving/drip-child",
+        "carving/drip-lite",
+        "carving/drip-lite-child"
+      ],
+      "palette": [
+        {
+          "block": "minecraft:copper_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 96,
+      "maxHeight": 352,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 64,
+      "maxPerChunk": 64,
+      "minSize": 20,
+      "maxSize": 20,
+      "shape": "VANILLA_ELLIPSOID",
+      "biomeScope": "CAVE",
+      "includedBiomes": [
+        "carving/drip",
+        "carving/drip-child",
+        "carving/drip-lite",
+        "carving/drip-lite-child"
+      ],
+      "palette": [
+        {
+          "block": "minecraft:copper_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 0,
+      "maxHeight": 192,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 16,
+      "maxPerChunk": 16,
+      "minSize": 9,
+      "maxSize": 9,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.5,
+      "palette": [
+        {
+          "block": "minecraft:gold_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 0,
+      "maxHeight": 32,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 0,
+      "maxPerChunk": 2,
+      "minSize": 9,
+      "maxSize": 9,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.5,
+      "palette": [
+        {
+          "block": "minecraft:gold_ore"
+        }
+      ],
+      "replaceableBlocks": [
+        "minecraft:stone",
+        "minecraft:granite",
+        "minecraft:diorite",
+        "minecraft:andesite",
+        "minecraft:deepslate",
+        "minecraft:tuff"
+      ]
+    },
+    {
+      "minHeight": 192,
+      "maxHeight": 640,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 100,
+      "maxPerChunk": 100,
+      "minSize": 9,
+      "maxSize": 9,
+      "shape": "VANILLA_ELLIPSOID",
+      "biomeScope": "SURFACE",
+      "includedBiomes": [
+        "minecraft:badlands",
+        "minecraft:eroded_badlands",
+        "minecraft:wooded_badlands"
+      ],
+      "palette": [
+        {
+          "block": "minecraft:gold_ore"
+        }
+      ],
+      "replaceableBlocks": [
+        "minecraft:stone",
+        "minecraft:granite",
+        "minecraft:diorite",
+        "minecraft:andesite",
+        "minecraft:deepslate",
+        "minecraft:tuff"
+      ]
+    },
+    {
+      "minHeight": 0,
+      "maxHeight": 158,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 16,
+      "maxPerChunk": 16,
+      "minSize": 8,
+      "maxSize": 8,
+      "shape": "VANILLA_ELLIPSOID",
+      "palette": [
+        {
+          "data": {
+            "lit": false
+          },
+          "block": "minecraft:redstone_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": -64,
+      "maxHeight": 64,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 16,
+      "maxPerChunk": 16,
+      "minSize": 8,
+      "maxSize": 8,
+      "shape": "VANILLA_ELLIPSOID",
+      "palette": [
+        {
+          "data": {
+            "lit": false
+          },
+          "block": "minecraft:redstone_ore"
+        }
+      ],
+      "replaceableBlocks": [
+        "minecraft:stone",
+        "minecraft:granite",
+        "minecraft:diorite",
+        "minecraft:andesite",
+        "minecraft:deepslate",
+        "minecraft:tuff"
+      ]
+    },
+    {
+      "minHeight": -160,
+      "maxHeight": 160,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 28,
+      "maxPerChunk": 28,
+      "minSize": 4,
+      "maxSize": 4,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.5,
+      "palette": [
+        {
+          "block": "minecraft:diamond_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 0,
+      "maxHeight": 120,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 8,
+      "maxPerChunk": 8,
+      "minSize": 8,
+      "maxSize": 8,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.5,
+      "palette": [
+        {
+          "block": "minecraft:diamond_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": -160,
+      "maxHeight": 160,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 4,
+      "maxPerChunk": 4,
+      "spawnChance": 0.1111111111111111,
+      "minSize": 12,
+      "maxSize": 12,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 0.7,
+      "palette": [
+        {
+          "block": "minecraft:diamond_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": -160,
+      "maxHeight": 160,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 16,
+      "maxPerChunk": 16,
+      "minSize": 8,
+      "maxSize": 8,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 1.0,
+      "palette": [
+        {
+          "block": "minecraft:diamond_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 64,
+      "maxHeight": 192,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 8,
+      "maxPerChunk": 8,
+      "minSize": 7,
+      "maxSize": 7,
+      "shape": "VANILLA_ELLIPSOID",
+      "palette": [
+        {
+          "block": "minecraft:lapis_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 0,
+      "maxHeight": 256,
+      "heightDistribution": "UNIFORM",
+      "surfaceClearance": 0,
+      "minPerChunk": 16,
+      "maxPerChunk": 16,
+      "minSize": 7,
+      "maxSize": 7,
+      "shape": "VANILLA_ELLIPSOID",
+      "discardChanceOnAirExposure": 1.0,
+      "palette": [
+        {
+          "block": "minecraft:lapis_ore"
+        }
+      ]
+    },
+    {
+      "minHeight": 96,
+      "maxHeight": 1088,
+      "heightDistribution": "TRIANGLE",
+      "surfaceClearance": 0,
+      "minPerChunk": 200,
+      "maxPerChunk": 200,
+      "minSize": 3,
+      "maxSize": 3,
+      "shape": "VANILLA_ELLIPSOID",
+      "biomeScope": "SURFACE",
+      "includedBiomes": [
+        "minecraft:cherry_grove",
+        "minecraft:frozen_peaks",
+        "minecraft:grove",
+        "minecraft:jagged_peaks",
+        "minecraft:meadow",
+        "minecraft:snowy_slopes",
+        "minecraft:stony_peaks",
+        "minecraft:windswept_forest",
+        "minecraft:windswept_gravelly_hills",
+        "minecraft:windswept_hills"
+      ],
+      "palette": [
+        {
+          "block": "minecraft:emerald_ore"
+        }
+      ],
+      "replaceableBlocks": [
+        "minecraft:stone",
+        "minecraft:granite",
+        "minecraft:diorite",
+        "minecraft:andesite",
+        "minecraft:deepslate",
+        "minecraft:tuff"
+      ]
+    }
+  ],
+  "caveBiomeStyle": {
+    "style": "SIMPLEX",
+    "zoom": 2.6
+  },
+  "coordFractureZoom": 0.15,
+  "preventLeafDecay": true,
+  "useMantle": true,
+  "carvingEnabled": true,
+  "decorate": true,
+  "loot": {
+    "mode": "FALLBACK",
+    "tables": [
+      "global-clutter"
+    ]
+  },
+  "caveProfile": {
+    "enabled": true,
+    "verticalRange": {
+      "min": 6,
+      "max": 700
+    },
+    "baseDensityStyle": {
+      "style": "PERLIN_IRIS",
+      "zoom": 0.72
+    },
+    "detailDensityStyle": {
+      "style": "SIMPLEX",
+      "zoom": 0.54
+    },
+    "warpStyle": {
+      "style": "FRACTAL_WATER",
+      "zoom": 0.5
+    },
+    "baseWeight": 0.9,
+    "detailWeight": 0.11,
+    "warpStrength": 0.24,
+    "densityThreshold": {
+      "min": -0.14,
+      "max": -0.06,
+      "style": {
+        "style": "SIMPLEX",
+        "zoom": 0.74
+      }
+    },
+    "thresholdBias": 0.14,
+    "sampleStep": 3,
+    "surfaceClearance": 5,
+    "allowSurfaceBreak": true,
+    "surfaceBreakStyle": {
+      "style": "SIMPLEX",
+      "zoom": 0.88
+    },
+    "surfaceBreakNoiseThreshold": 0.6,
+    "surfaceBreakDepth": 16,
+    "surfaceBreakThresholdBoost": 0.1,
+    "objectMinDepthBelowSurface": 14,
+    "defaultObjectAnchor": "FLOOR",
+    "defaultObjectPlaceMode": "ORGANIC_STILT",
+    "anchorScanStep": 1,
+    "anchorSearchAttempts": 12,
+    "allowFluid": true,
+    "fluidMinDepthBelowSurface": 20,
+    "fluidRequiresFloor": true,
+    "allowLava": true,
+    "modules": [
+      {
+        "style": {
+          "style": "SIMPLEX_VASCULAR",
+          "zoom": 1.08
+        },
+        "weight": 0.08,
+        "threshold": 0.03,
+        "verticalRange": {
+          "min": 24,
+          "max": 660
+        },
+        "invert": false
+      },
+      {
+        "style": {
+          "style": "FRACTAL_FBM_SIMPLEX",
+          "zoom": 0.24
+        },
+        "weight": 0.04,
+        "threshold": 0.08,
+        "verticalRange": {
+          "min": 6,
+          "max": 240
+        },
+        "invert": true
+      }
+    ],
+    "verticalEdgeFade": 24,
+    "verticalEdgeFadeStrength": 0.18,
+    "minCarveCells": 24,
+    "recoveryThresholdBoost": 0.07
+  },
+  "carving": [
+    {
+      "id": "global-deepdark-band",
+      "enabled": true,
+      "biome": "carving/standard-deepdark",
+      "worldYRange": {
+        "min": -250,
+        "max": -175
+      }
+    }
+  ]
+}

@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.platform;
 
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
+import art.arcane.iris.core.events.InventorySlotType;
 import art.arcane.iris.core.events.IrisLootEvent;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.service.ExternalDataSVC;
@@ -304,7 +305,7 @@ public final class EngineBukkitOps {
         KList<Loot.Source> tables = new KList<>(getLootTables(engine, block, hasNativeLootTable(block)));
 
         try {
-            Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, tables));
+            Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, InventorySlotType.STORAGE, tables));
             if (tables.isEmpty()) return;
             InventoryHolder m = (InventoryHolder) block.getState();
             addItems(engine, false, m.getInventory(), tables, c.getWorld(), block.getX(), y, block.getZ());

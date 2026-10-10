@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.engine.loot.LootItems;
-import art.arcane.iris.engine.object.entity.IrisEntity;
+import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
@@ -64,9 +64,9 @@ public class EntityResolutionPinTest {
         when(registry.maxDurability("iron_helmet")).thenReturn(OptionalInt.of(165));
         when(registry.maxDurability("diamond_sword")).thenReturn(OptionalInt.of(1561));
         PlatformWorld world = mock(PlatformWorld.class);
-        IrisEntity entity = new Gson().fromJson(ENTITY, IrisEntity.class);
+        EntityDefinition entity = new Gson().fromJson(ENTITY, EntityDefinition.class);
 
-        EntitySpec spec = new EntityResolution(new LootItems(registry, false), world).resolve(entity, new RNG(STREAM_SEED));
+        EntitySpec spec = new EntityResolution(new LootItems(registry, false), world, new EffectTimers()).resolve(entity, new RNG(STREAM_SEED));
 
         assertEquals(-819231818, spec.toString().hashCode());
     }

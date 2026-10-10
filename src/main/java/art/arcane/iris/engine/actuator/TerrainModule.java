@@ -19,6 +19,15 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
+import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
+import art.arcane.iris.builtin.terrain.LayersSettings;
+import art.arcane.iris.builtin.terrain.LockLayersMaxSettings;
+import art.arcane.iris.builtin.terrain.LockLayersSettings;
+import art.arcane.iris.builtin.terrain.RockPaletteSettings;
+import art.arcane.iris.builtin.terrain.SeaLayersSettings;
+import art.arcane.iris.builtin.terrain.SlabSettings;
+import art.arcane.iris.builtin.terrain.WallSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisPackWorld;
@@ -30,6 +39,8 @@ import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.terrain.BiomeLayers;
+import art.arcane.iris.engine.terrain.TerrainPalettes;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
@@ -51,7 +62,7 @@ import com.volmit.world.PackWorld;
  * Module {@code iris:terrain}: the chunk's ground, fluids and biome layers. Each column is filled from bedrock up
  * to its height and the fluid height with its biome's layers, with ore generators of the dimension, region and
  * biome replacing blocks on the way and the upper dimension's ground filled in from the top. The ore generators' noise
- * is built ahead of generation, in {@link #warmUp}.
+ * and the rock and fluid palettes' noise are built ahead of generation, in {@link #warmUp}.
  */
 public final class TerrainModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
@@ -63,12 +74,23 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void register(FeatureRegistry registry) {
+        registry.registerSettings(LayersSettings.class);
+        registry.registerSettings(SeaLayersSettings.class);
+        registry.registerSettings(CaveCeilingLayersSettings.class);
+        registry.registerSettings(SlabSettings.class);
+        registry.registerSettings(WallSettings.class);
+        registry.registerSettings(LockLayersSettings.class);
+        registry.registerSettings(LockLayersMaxSettings.class);
+        registry.registerSettings(RockPaletteSettings.class);
+        registry.registerSettings(FluidPaletteSettings.class);
         registry.registerLifecycle(this);
     }
 
     @Override
     public void warmUp(PackWorld world) {
-        new OreWarmUp(IrisPackWorld.of(world).engine()).warm();
+        Engine engine = IrisPackWorld.of(world).engine();
+        TerrainPalettes.of(engine).warm();
+        new OreWarmUp(engine).warm();
     }
 
     @Override
@@ -86,10 +108,18 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
         private static final PlatformBlockState BEDROCK = B.getState("BEDROCK");
 
         private final Engine engine;
+        private final TerrainPalettes palettes;
+        private final BiomeLayers layers;
         private final RNG rng;
 
         TerrainShaper(Engine engine) {
+            this(engine, TerrainPalettes.of(engine), BiomeLayers.of(engine));
+        }
+
+        TerrainShaper(Engine engine, TerrainPalettes palettes, BiomeLayers layers) {
             this.engine = engine;
+            this.palettes = palettes;
+            this.layers = layers;
             this.rng = new RNG(engine.getSeedManager().getTerrain());
         }
 
@@ -118,8 +148,6 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
             boolean hideOres = dimension.isHideOresForHiddenOre();
             ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
             ChunkedDataCache<IrisRegion> regionCache = context.getRegion();
-            ChunkedDataCache<PlatformBlockState> fluidCache = context.getFluid();
-            ChunkedDataCache<PlatformBlockState> rockCache = context.getRock();
             int realX = xf + x;
             UpperDimensionContext upperContext = engine.getUpperContext();
             // Dimension-level ore lookups are chunk-invariant; resolving them per column paid
@@ -140,8 +168,8 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                 }
 
                 int topY = Math.min(hf, chunkHeight - 1);
-                PlatformBlockState fluid = fluidCache.get(xf, zf);
-                PlatformBlockState rock = rockCache.get(xf, zf);
+                PlatformBlockState fluid = palettes.fluidAt(realX, realZ);
+                PlatformBlockState rock = palettes.rockAt(realX, realZ);
                 PlatformBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
                 KList<IrisOreGenerator> biomeSurfaceOres = hideOres ? null : biome.getSurfaceOreGenerators();
                 KList<IrisOreGenerator> regionSurfaceOres = hideOres ? null : region.getSurfaceOreGenerators();
@@ -182,7 +210,7 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                     if (i > he && i <= hf) {
                         int fdepth = hf - i;
                         if (fblocks == null) {
-                            fblocks = biome.generateSeaLayers(realX, realZ, localRng, hf - he, data);
+                            fblocks = layers.generateSeaLayers(biome, realX, realZ, localRng, hf - he, data);
                         }
 
                         if (fblocks.hasIndex(fdepth)) {
@@ -200,7 +228,7 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                             continue;
                         }
                         if (blocks == null) {
-                            blocks = biome.generateLayers(dimension, realX, realZ, localRng, he, he, data, complex);
+                            blocks = layers.generateLayers(biome, dimension, realX, realZ, localRng, he, he, data, complex);
                         }
 
                         if (blocks.hasIndex(depth)) {
@@ -235,11 +263,11 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
 
                     if (upperSurfaceY < chunkHeight - 1) {
                         IrisBiome upperBiome = upperContext.getUpperBiome(realX, realZ);
-                        PlatformBlockState upperRock = upperContext.getRockBlock(realX, realZ);
+                        PlatformBlockState upperRock = palettes.upperRockAt(upperContext, realX, realZ);
                         PlatformBlockState upperMappedSurface = upperContext.getSurfaceBlock(realX, realZ);
                         int upperThickness = chunkHeight - 1 - upperSurfaceY;
                         KList<PlatformBlockState> upperBlocks = upperBiome != null
-                                ? upperBiome.generateLayers(upperContext.getDimension(),
+                                ? layers.generateLayers(upperBiome, upperContext.getDimension(),
                                 realX, realZ, localRng, upperThickness, upperThickness,
                                 upperContext.getData(), complex)
                                 : null;

@@ -64,6 +64,15 @@ seed is the world's decorator seed, its biome's key and its place in the biome's
 them ahead of generation; `iris:terrain` and `iris:objects` warm their ore generators, placements and procedural
 objects the same way.
 
+`iris:terrain` and `iris:post` own the fields that shape a column's blocks. Per biome: `layers`, `seaLayers`, `caveCeilingLayers` (lists of
+`PaletteLayer`, the old biome palette layer, in `art.arcane.iris.builtin.terrain`), `slab` and `wall` (one `PaletteLayer` each), `lockLayers` (a
+boolean) and `lockLayersMax` (a number). Per dimension: `rockPalette` and `fluidPalette` (a `PaletteSpec` each) in `art.arcane.iris.builtin.terrain`, and
+`postProcessing`, `postProcessingSlabs`, `postProcessingWalls` (booleans) in `art.arcane.iris.builtin.post`. A key a pack leaves out has the
+default Iris always had (one grass layer, no slab or wall, stone and water, post processing on). `ResolvedLayer` resolves one layer's blocks and noise
+for a pack, `BiomeLayers`, the world's state, keeps them and stacks a biome's layers into the blocks of a column, and `TerrainPalettes` is the world's
+rock and fluid as a block for every column; the terrain, cave, floating and post stages ask them. The slope limit of a layer, a decorator and an
+object placement is the one `SlopeClip`.
+
 Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
 (biome; a list) and `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest). The feature ids
 (`iris:deposit`, `iris:decorant`, `iris:structure`) stay the modules' identity in the stage graph and logs. A key is unique

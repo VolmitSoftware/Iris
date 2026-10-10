@@ -19,7 +19,11 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.post.PostProcessingSettings;
+import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
+import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
 import art.arcane.iris.core.modules.IrisChunk;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.ChunkStageContext;
@@ -35,6 +39,13 @@ public final class PostModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:post", "Post-processing", VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerSettings(PostProcessingSettings.class);
+        registry.registerSettings(PostProcessingSlabsSettings.class);
+        registry.registerSettings(PostProcessingWallsSettings.class);
     }
 
     @Override

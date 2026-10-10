@@ -19,7 +19,7 @@
 package art.arcane.iris.builtin.floating;
 
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
+import art.arcane.iris.builtin.terrain.PaletteLayer;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinItems;
@@ -149,7 +149,7 @@ public final class FloatingChildBiome {
 
     @MinItems(1)
     @Desc("Custom palette layers used near the underside when bottomPaletteMode=CUSTOM. The layer format is the same as normal biome layers.")
-    private List<IrisBiomePaletteLayer> bottomPalette = List.of();
+    private List<PaletteLayer> bottomPalette = List.of();
 
     @MinNumber(1)
     @MaxNumber(512)
@@ -315,7 +315,7 @@ public final class FloatingChildBiome {
         return bottomPaletteMode == null ? FloatingBottomPaletteMode.DEPTH : bottomPaletteMode;
     }
 
-    public List<IrisBiomePaletteLayer> bottomPalette() {
+    public List<PaletteLayer> bottomPalette() {
         return bottomPalette == null ? List.of() : Collections.unmodifiableList(bottomPalette);
     }
 

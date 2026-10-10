@@ -23,7 +23,7 @@ import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Snippet;
 
-/** The terrain slopes a placement or decorator may sit on, written as its {@code slopeCondition}. */
+/** The terrain slopes an object placement, a decorator or a terrain layer may sit on, written as its {@code slopeCondition}. */
 @Snippet("slope-clip")
 @Desc("Limits placement to a minimum and maximum terrain slope")
 public final class SlopeClip {

@@ -29,8 +29,6 @@ import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.terrain.IrisBiomeLayerGenerator;
-import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.terrain.deposit.IrisBiomeOres;
 import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
 import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
@@ -78,7 +76,7 @@ import java.util.Objects;
  * Represents a biome in a pack. This type is Gson deserialized straight out of user pack JSON, so
  * the field block and the transient {@link AtomicCache} block below are load bearing and must not
  * move. Behavior lives in the same-package companions:
- * {@link IrisBiomeLayerGenerator}, {@link IrisBiomeDerivatives}, {@link IrisBiomeOres},
+ * {@link IrisBiomeDerivatives}, {@link IrisBiomeOres},
  * {@link IrisBiomeColorRenderer} and {@link IrisBiomeGenLinks}.
  */
 @Accessors(chain = true)
@@ -106,12 +104,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient volatile SeededBiomeGenerator recentBiomeGenerator;
-    private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
-    private final transient AtomicCache<Integer> maxWithObjectHeight = new AtomicCache<>();
     private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
-    private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
-    private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
     private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
@@ -142,10 +136,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private KList<IrisBlockDrops> blockDrops = new KList<>();
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
-    @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
-    private boolean lockLayers = false;
-    @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
-    private int lockLayersMax = 7;
     @Desc("Profile-driven 3D cave configuration")
     private CaveProfile caveProfile = new CaveProfile();
     @MinNumber(1)
@@ -187,20 +177,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @MaxNumber(256)
     @Desc("Minimum depth below terrain surface required before this cave biome can be selected.")
     private int caveMinDepthBelowSurface = 0;
-    @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
-    private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
-    @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
-    private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();
-    @Required
-    @ArrayType(type = IrisBiomePaletteLayer.class)
-    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
-    private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
-    @ArrayType(type = IrisBiomePaletteLayer.class)
-    @Desc("Layers of materials placed on cave ceilings in this biome, indexed upward from the ceiling surface. Must not have more entries than layers, whose height generators it reuses. Omitting this leaves cave ceilings unchanged.")
-    private KList<IrisBiomePaletteLayer> caveCeilingLayers = new KList<>();
-    @ArrayType(type = IrisBiomePaletteLayer.class)
-    @Desc("Layers of materials filling the water column of sea biomes, indexed downward from the water surface. Anything below the last layer is filled with the dimension fluid palette, not stone.")
-    private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this biome")
     private KList<IrisObjectPlacement> objects = new KList<>();
@@ -292,6 +268,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         variant.setLoader(data);
         variant.setLoadKey(getLoadKey());
         variant.setLoadFile(getLoadFile());
+        variant.setModuleSettings(getModuleSettings());
         variant.inferredType = type;
         inferredVariants.put(type, variant);
         return variant;
@@ -481,46 +458,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
         return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(scale).bake());
-    }
-
-    public KList<PlatformBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
-        return IrisBiomeLayerGenerator.generateLayers(this, dim, wx, wz, random, maxDepth, height, rdata, complex);
-    }
-
-    public KList<PlatformBlockState> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
-        return IrisBiomeLayerGenerator.generateCeilingLayers(this, dim, wx, wz, random, maxDepth, height, rdata, complex);
-    }
-
-    public KList<PlatformBlockState> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
-        return IrisBiomeLayerGenerator.generateLockedLayers(this, wx, wz, random, maxDepthf, height, rdata, complex);
-    }
-
-    public KList<PlatformBlockState> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
-        return IrisBiomeLayerGenerator.generateSeaLayers(this, wx, wz, random, maxDepth, rdata);
-    }
-
-    /**
-     * Note the arity split: {@code getMaxHeight()} is the Lombok getter for the height cache field,
-     * {@code getMaxHeight(Engine)} is the resolved biome height.
-     */
-    public int getMaxHeight(Engine engine) {
-        return IrisBiomeLayerGenerator.getMaxHeight(this, engine);
-    }
-
-    public int getMaxWithObjectHeight(IrisData data, Engine engine) {
-        return IrisBiomeLayerGenerator.getMaxWithObjectHeight(this, data, engine);
-    }
-
-    public KList<CNG> getLayerHeightGenerators(RNG rng, IrisData rdata) {
-        return IrisBiomeLayerGenerator.getLayerHeightGenerators(this, rng, rdata);
-    }
-
-    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisData data) {
-        return IrisBiomeLayerGenerator.getLayerSeaHeightGenerators(this, rng, data);
-    }
-
-    public PlatformBlockState getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
-        return IrisBiomeLayerGenerator.getSurfaceBlock(this, x, z, rng, idm);
     }
 
     public boolean isLand() {

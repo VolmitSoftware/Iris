@@ -1,7 +1,9 @@
 package com.volmit.vanilla;
 
-/** The decoration step in which the platform places a structure's pieces, in the platform's order. */
-public enum StructureStep {
+/** A decoration step of the platform's chunk generation, in the platform's order: the step in which it places a structure's
+ * pieces, or a placed feature such as an ore or a tree.
+ */
+public enum DecorationStep {
     RAW_GENERATION,
     LAKES,
     LOCAL_MODIFICATIONS,

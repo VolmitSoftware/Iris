@@ -67,7 +67,7 @@ public interface StructureFit {
 
         int chunkZ();
 
-        StructureStep step();
+        DecorationStep step();
 
         /** The terrain adaptation the platform's definition of the structure asks for. */
         TerrainAdaptation adaptation();

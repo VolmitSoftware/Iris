@@ -4,10 +4,10 @@ import com.volmit.block.BlockState;
 import com.volmit.config.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaStructures;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.JigsawOverrides;
 import com.volmit.vanilla.StartMemo;
 import com.volmit.vanilla.StartReach;
-import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.VanillaStructureContext;
 import com.volmit.vanilla.VanillaStructureRule;
@@ -69,8 +69,8 @@ class VanillaStructureValuesTest {
 
     @Test
     void onlyTheUndergroundStepsAreUnderground() {
-        assertEquals(List.of(StructureStep.UNDERGROUND_STRUCTURES, StructureStep.STRONGHOLDS, StructureStep.UNDERGROUND_DECORATION),
-                java.util.Arrays.stream(StructureStep.values()).filter(StructureStep::isUnderground).toList());
+        assertEquals(List.of(DecorationStep.UNDERGROUND_STRUCTURES, DecorationStep.STRONGHOLDS, DecorationStep.UNDERGROUND_DECORATION),
+                java.util.Arrays.stream(DecorationStep.values()).filter(DecorationStep::isUnderground).toList());
     }
 
     @Test

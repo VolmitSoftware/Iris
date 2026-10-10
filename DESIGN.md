@@ -798,6 +798,10 @@ Why these lines:
   the module's: noise lines up across chunks only when it comes from `worldSeed()`, not a stage's stream.
 - **`NoiseSampler` moved to `com.volmit.noise`** and gained a two-dimensional `sample(x, z)`: Iris's noise
   gives different fields in two and three dimensions, and most features sample columns.
+- **`NoiseSampler.signed(...)`** is the sample mapped to -1..1 that a host may answer from a per-thread memo of the
+  coordinates it was just asked: a carver adds several fields and tests the sum around zero, and reads the same points
+  of one field again and again, so the memo is the difference between caves that cost what they always did and caves that
+  do not. A default method (`sample * 2 - 1`) keeps every other sampler valid.
 - **Style names are text with `@Ref(NOISE_STYLE)`**, not an enum: the host owns the list, and an API enum would
   pin it. An unknown name samples flat, as Iris has always read one.
 - **`isFlat()` is stricter than Iris's**: a flat base style with an expression or image map is not flat.

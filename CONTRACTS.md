@@ -207,6 +207,8 @@ running Iris is the pack publisher's responsibility.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
   the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat, a missing
   expression falls back to the base style, and a missing image map fails.
+  Answer `NoiseSampler.signed(...)` with the generator's own signed read (and its per-thread coordinate memo) when it
+  has one; the default is `sample * 2 - 1`.
 - Answer `BlockRegistry.hasTrait` (`VINE` included) and `canPlaceOn` (the support rule decorations need) as the platform
   does; stages ask per block, so answer from memory once a state was seen.
 - Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their

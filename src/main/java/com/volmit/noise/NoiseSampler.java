@@ -9,4 +9,18 @@ public interface NoiseSampler {
     double sample(double worldX, double worldZ);
 
     double sample(double worldX, double y, double worldZ);
+
+    /** {@link #sample(double, double)} mapped from 0..1 to -1..1 ({@code sample * 2 - 1}), for noise that is added up
+     * and compared around zero. A host may answer a repeated read of the same coordinates from a per-thread memo, so a
+     * caller that samples the same field at the same points again and again (a carver testing densities) should read
+     * this instead of mapping {@link #sample(double, double)} itself.
+     */
+    default double signed(double worldX, double worldZ) {
+        return sample(worldX, worldZ) * 2D - 1D;
+    }
+
+    /** The three-dimensional counterpart of {@link #signed(double, double)}. */
+    default double signed(double worldX, double y, double worldZ) {
+        return sample(worldX, y, worldZ) * 2D - 1D;
+    }
 }

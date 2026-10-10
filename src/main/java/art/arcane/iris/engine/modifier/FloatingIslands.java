@@ -22,6 +22,7 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
 import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
@@ -32,7 +33,8 @@ import art.arcane.iris.engine.framework.EngineDecorator;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
+import art.arcane.iris.engine.terrain.BiomeLayers;
+import art.arcane.iris.engine.terrain.ResolvedLayer;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
@@ -64,15 +66,16 @@ public class FloatingIslands {
     private final Engine engine;
     private final RNG rng;
     private final EngineDecorator seaSurfaceDecorator;
+    private final BiomeLayers biomeLayers;
 
-    private static KList<PlatformBlockState> generateBottomPaletteLayers(ResolvedFloatingChild entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
+    private KList<PlatformBlockState> generateBottomPaletteLayers(ResolvedFloatingChild entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
         if (entry == null || entry.settings().bottomPaletteMode() != FloatingBottomPaletteMode.CUSTOM || entry.settings().bottomPalette() == null || entry.settings().bottomPalette().isEmpty()) {
             return null;
         }
         return generatePaletteLayers(dimension, new KList<>(entry.settings().bottomPalette()), wx, wz, random.nextParallelRNG(0xB0770B), paletteDepth, data, complex);
     }
 
-    private static KList<PlatformBlockState> generatePaletteLayers(IrisDimension dimension, KList<IrisBiomePaletteLayer> layers, double wx, double wz, RNG random, int maxDepth, IrisData data, IrisComplex complex) {
+    private KList<PlatformBlockState> generatePaletteLayers(IrisDimension dimension, KList<PaletteLayer> layers, double wx, double wz, RNG random, int maxDepth, IrisData data, IrisComplex complex) {
         KList<PlatformBlockState> generated = new KList<>();
         if (layers == null || layers.isEmpty() || maxDepth <= 0) {
             return generated;
@@ -80,13 +83,13 @@ public class FloatingIslands {
 
         int generatorSeed = 7235;
         for (int i = 0; i < layers.size(); i++) {
-            IrisBiomePaletteLayer layer = layers.get(i);
-            CNG heightGenerator = layer.getHeightGenerator(random.nextParallelRNG((generatorSeed++) * generatorSeed * generatorSeed * generatorSeed), data);
+            ResolvedLayer layer = biomeLayers.resolve(layers.get(i), data);
+            CNG heightGenerator = layer.heightNoise(random.nextParallelRNG((generatorSeed++) * generatorSeed * generatorSeed * generatorSeed));
             if (heightGenerator == null) {
                 continue;
             }
-            double layerDepth = heightGenerator.fit(layer.getMinHeight(), layer.getMaxHeight(), wx / layer.getZoom(), wz / layer.getZoom());
-            SlopeClip slopeClip = layer.getSlopeCondition();
+            double layerDepth = heightGenerator.fit(layer.minHeight(), layer.maxHeight(), wx / layer.zoom(), wz / layer.zoom());
+            SlopeClip slopeClip = layer.slopeCondition();
 
             if (slopeClip != null && !slopeClip.isDefault() && complex != null && !slopeClip.isValid(complex.getSlopeStream().get(wx, wz))) {
                 layerDepth = 0;
@@ -102,7 +105,7 @@ public class FloatingIslands {
                 }
 
                 try {
-                    generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.getZoom(), j, (wz - j) / layer.getZoom(), data));
+                    generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom()));
                 } catch (Throwable e) {
                     IrisLogging.reportError(e);
                 }
@@ -183,9 +186,9 @@ public class FloatingIslands {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
         int entrySeed = entry == null || entry.settings().biome() == null ? 0 : entry.settings().biome().hashCode();
         RNG layerRng = rng.nextParallelRNG((int) (colSeed ^ 0x7A4E ^ entrySeed));
-        KList<PlatformBlockState> topBlocks = target == null ? null : target.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+        KList<PlatformBlockState> topBlocks = target == null ? null : biomeLayers.generateLayers(target, dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
         if (topBlocks == null || topBlocks.isEmpty()) {
-            topBlocks = parent.generateLayers(dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+            topBlocks = biomeLayers.generateLayers(parent, dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
         }
         KList<PlatformBlockState> bottomBlocks = generateBottomPaletteLayers(entry, dimension, wx, wz, layerRng, paletteDepth, data, complex);
         return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"));
@@ -207,6 +210,7 @@ public class FloatingIslands {
         this.engine = engine;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
+        biomeLayers = BiomeLayers.of(engine);
     }
 
     /** Fills the islands' solids into the chunk whose first block is {@code x}, {@code z}. */

@@ -27,7 +27,6 @@ import art.arcane.iris.engine.object.image.IrisImageMapApplication;
 import art.arcane.iris.engine.object.image.IrisImageMapBinding;
 import art.arcane.iris.engine.object.loot.IrisBlockDrops;
 import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
@@ -178,12 +177,6 @@ public class IrisDimension extends IrisRegistrant {
     private boolean decorate = true;
     @Desc("When true, every ore block the generator would place (terrain ores, deposits, ores inside objects) is replaced with its base material such as stone, deepslate or netherrack, so drop-control plugins like HiddenOre can manage ore rewards themselves")
     private boolean hideOresForHiddenOre = false;
-    @Desc("Use post processing or not")
-    private boolean postProcessing = true;
-    @Desc("Add slabs in post processing")
-    private boolean postProcessingSlabs = true;
-    @Desc("Add painted walls in post processing")
-    private boolean postProcessingWalls = true;
     @Desc("Enable or disable all carving for this dimension")
     private boolean carvingEnabled = true;
     @ArrayType(type = IrisDimensionCarvingEntry.class, min = 1)
@@ -281,10 +274,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
-    @Desc("The palette of blocks for 'stone'")
-    private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
-    @Desc("The dimension fluid block palette used for ocean columns and cave aquifers.")
-    private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
     @Desc("Collection of ores to be generated")
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();

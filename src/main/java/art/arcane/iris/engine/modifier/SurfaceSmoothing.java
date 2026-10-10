@@ -18,12 +18,16 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
+import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
+import art.arcane.iris.engine.terrain.BiomeLayers;
+import art.arcane.iris.engine.terrain.ResolvedLayer;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -42,10 +46,12 @@ public class SurfaceSmoothing {
     }
 
     private final Engine engine;
+    private final BiomeLayers layers;
     private final RNG rng;
 
     public SurfaceSmoothing(Engine engine) {
         this.engine = engine;
+        layers = BiomeLayers.of(engine);
         rng = new RNG(engine.getSeedManager().getPost());
     }
 
@@ -60,8 +66,10 @@ public class SurfaceSmoothing {
         int planeWidth = width + 2;
         int[] heights = heightPlane(x, z, width, depth, planeWidth);
         IrisDimension dimension = engine.getDimension();
-        boolean walls = dimension.isPostProcessingWalls();
-        boolean slabs = dimension.isPostProcessingSlabs();
+        boolean walls = dimension.getModuleSettings().find(PostProcessingWallsSettings.class)
+                .map(PostProcessingWallsSettings::enabled).orElse(PostProcessingWallsSettings.DEFAULT_ENABLED);
+        boolean slabs = dimension.getModuleSettings().find(PostProcessingSlabsSettings.class)
+                .map(PostProcessingSlabsSettings::enabled).orElse(PostProcessingSlabsSettings.DEFAULT_ENABLED);
         int fluidHeight = dimension.getFluidHeight();
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < depth; j++) {
@@ -176,13 +184,14 @@ public class SurfaceSmoothing {
         IrisBiome biome = context.getBiome().get(currentPostX, currentPostZ);
 
         if (walls) {
-            if (!biome.getWall().getPalette().isEmpty()) {
+            ResolvedLayer wall = layers.wall(biome, engine.getData());
+            if (wall.hasPalette()) {
                 if (ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
                     boolean brokeGround = false;
                     int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
 
                     for (int i = h; i > h - max; i--) {
-                        PlatformBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, engine.getData());
+                        PlatformBlockState d = wall.get(rng, x + i, i + h, z + i);
 
                         if (d != null) {
                             if (isAirOrWater(x, i, z, originX, originZ, currentData)) {
@@ -210,8 +219,9 @@ public class SurfaceSmoothing {
                     || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, originX, originZ, currentData)))
             //@done
             {
-                SlopeClip sc = biome.getSlab().getSlopeCondition();
-                PlatformBlockState d = sc.isValid(engine.getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, engine.getData()) : null;
+                ResolvedLayer slab = layers.slab(biome, engine.getData());
+                SlopeClip sc = slab.slopeCondition();
+                PlatformBlockState d = sc.isValid(engine.getComplex().getSlopeStream().get(x, z)) ? slab.get(rng, x, h, z) : null;
 
                 if (d != null) {
                     boolean cancel = B.isAir(d);

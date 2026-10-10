@@ -31,10 +31,6 @@ import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.terrain.IrisBiomeLayerGenerator;
 import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
-import art.arcane.iris.engine.object.terrain.deposit.IrisBiomeOres;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -78,7 +74,7 @@ import java.util.Objects;
  * Represents a biome in a pack. This type is Gson deserialized straight out of user pack JSON, so
  * the field block and the transient {@link AtomicCache} block below are load bearing and must not
  * move. Behavior lives in the same-package companions:
- * {@link IrisBiomeLayerGenerator}, {@link IrisBiomeDerivatives}, {@link IrisBiomeOres},
+ * {@link IrisBiomeLayerGenerator}, {@link IrisBiomeDerivatives},
  * {@link IrisBiomeColorRenderer} and {@link IrisBiomeGenLinks}.
  */
 @Accessors(chain = true)
@@ -112,10 +108,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> undergroundOreBoundsCache = new AtomicCache<>();
     private final transient AtomicCache<Biome> derivativeResolved = new AtomicCache<>();
     private final transient AtomicCache<Biome> vanillaDerivativeResolved = new AtomicCache<>();
     private final transient AtomicCache<KList<Biome>> biomeScatterResolved = new AtomicCache<>();
@@ -217,44 +209,10 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
-    @MinNumber(0)
-    @MaxNumber(1)
-    @Desc("Multiplier applied to the frequency of every ore deposit whose center is inside this biome. A value of 0.4 keeps 40% of ore veins while leaving non-ore deposits unchanged.")
-    private double oreDepositFrequencyMultiplier = 1D;
-    @MinNumber(0.01)
-    @MaxNumber(16)
-    @Desc("Multiplier applied to the block count of every ore deposit whose center is inside this biome. Non-ore deposits are unchanged.")
-    private double oreDepositSizeMultiplier = 1D;
-    @ArrayType(min = 1, type = IrisDepositVariant.class)
-    @Desc("Deposit ore remap rules scoped to this biome. Each entry declares a vertical band and a source->replacement block id map. Applied before regional and dimension rules; first matching biome rule wins.")
-    private KList<IrisDepositVariant> depositVariants = new KList<>();
     private transient volatile InferredType inferredType;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient EnumMap<InferredType, IrisBiome> inferredVariants = new EnumMap<>(InferredType.class);
-    @Desc("Collection of ores to be generated")
-    @ArrayType(type = IrisOreGenerator.class, min = 1)
-    private KList<IrisOreGenerator> ores = new KList<>();
-
-    public PlatformBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
-        return IrisBiomeOres.generateOres(this, x, y, z, rng, data, surface);
-    }
-
-    public PlatformBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
-        return IrisBiomeOres.generateSurfaceOres(this, x, y, z, rng, data);
-    }
-
-    public PlatformBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
-        return IrisBiomeOres.generateUndergroundOres(this, x, y, z, rng, data);
-    }
-
-    public boolean hasSurfaceOres() {
-        return IrisBiomeOres.hasSurfaceOres(this);
-    }
-
-    public boolean hasUndergroundOres() {
-        return IrisBiomeOres.hasUndergroundOres(this);
-    }
 
     public synchronized IrisBiome setInferredType(InferredType inferredType) {
         this.inferredType = inferredType;
@@ -292,37 +250,10 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         variant.setLoader(data);
         variant.setLoadKey(getLoadKey());
         variant.setLoadFile(getLoadFile());
+        variant.setModuleSettings(getModuleSettings());
         variant.inferredType = type;
         inferredVariants.put(type, variant);
         return variant;
-    }
-
-    /**
-     * Hand written override of the Lombok setter. It must stay here because it invalidates the ore
-     * caches that {@link IrisBiomeOres} reads.
-     */
-    public void setOres(KList<IrisOreGenerator> ores) {
-        this.ores = ores == null ? new KList<>() : ores;
-        surfaceOreCache.reset();
-        undergroundOreCache.reset();
-        surfaceOreBoundsCache.reset();
-        undergroundOreBoundsCache.reset();
-    }
-
-    public KList<IrisOreGenerator> getSurfaceOreGenerators() {
-        return IrisBiomeOres.getSurfaceOreGenerators(this);
-    }
-
-    public KList<IrisOreGenerator> getUndergroundOreGenerators() {
-        return IrisBiomeOres.getUndergroundOreGenerators(this);
-    }
-
-    public IrisOreGeneratorBounds getSurfaceOreGeneratorBounds() {
-        return IrisBiomeOres.getSurfaceOreGeneratorBounds(this);
-    }
-
-    public IrisOreGeneratorBounds getUndergroundOreGeneratorBounds() {
-        return IrisBiomeOres.getUndergroundOreGeneratorBounds(this);
     }
 
     public Biome getDerivative() {

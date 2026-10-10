@@ -35,9 +35,6 @@ import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.world.IrisEnvironment;
 import art.arcane.iris.engine.object.world.IrisWorldBoundary;
@@ -114,10 +111,6 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
     private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> undergroundOreBoundsCache = new AtomicCache<>();
     @MinNumber(2)
     @Required
     @Desc("The human readable name of this dimension")
@@ -176,8 +169,6 @@ public class IrisDimension extends IrisRegistrant {
     private boolean debugSmartBore = false;
     @Desc("Generate decorations or not")
     private boolean decorate = true;
-    @Desc("When true, every ore block the generator would place (terrain ores, deposits, ores inside objects) is replaced with its base material such as stone, deepslate or netherrack, so drop-control plugins like HiddenOre can manage ore rewards themselves")
-    private boolean hideOresForHiddenOre = false;
     @Desc("Use post processing or not")
     private boolean postProcessing = true;
     @Desc("Add slabs in post processing")
@@ -275,9 +266,6 @@ public class IrisDimension extends IrisRegistrant {
     private boolean useMantle = true;
     @Desc("Prevent Leaf decay as if placed in creative mode")
     private boolean preventLeafDecay = false;
-    @ArrayType(min = 1, type = IrisDepositVariant.class)
-    @Desc("Dimension-wide deposit ore remap rules. Each entry declares a vertical band and a source->replacement block id map. Applied after biome and region rules; first matching dimension rule wins.")
-    private KList<IrisDepositVariant> depositVariants = new KList<>();
     @ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
@@ -285,9 +273,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
     @Desc("The dimension fluid block palette used for ocean columns and cave aquifers.")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
-    @Desc("Collection of ores to be generated")
-    @ArrayType(type = IrisOreGenerator.class, min = 1)
-    private KList<IrisOreGenerator> ores = new KList<>();
     @Desc("Dimension-wide Iris structure placements, independent of biome/region placements")
     @ArrayType(type = IrisStructurePlacement.class, min = 1)
     private KList<IrisStructurePlacement> structures = new KList<>();
@@ -341,92 +326,6 @@ public class IrisDimension extends IrisRegistrant {
     public void setCarving(KList<IrisDimensionCarvingEntry> carving) {
         this.carving = carving == null ? new KList<>() : carving;
         carvingEntryIndex.reset();
-    }
-
-    public PlatformBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
-        KList<IrisOreGenerator> localOres = surface ? getSurfaceOres() : getUndergroundOres();
-        return generateOres(localOres, x, y, z, rng, data);
-    }
-
-    public PlatformBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getSurfaceOres(), x, y, z, rng, data);
-    }
-
-    public PlatformBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getUndergroundOres(), x, y, z, rng, data);
-    }
-
-    public boolean hasSurfaceOres() {
-        return !getSurfaceOres().isEmpty();
-    }
-
-    public boolean hasUndergroundOres() {
-        return !getUndergroundOres().isEmpty();
-    }
-
-    private PlatformBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
-        if (localOres.isEmpty()) {
-            return null;
-        }
-
-        int oreCount = localOres.size();
-        for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
-            IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            PlatformBlockState ore = oreGenerator.generate(x, y, z, rng, data);
-            if (ore != null) {
-                return ore;
-            }
-        }
-        return null;
-    }
-
-    public void setOres(KList<IrisOreGenerator> ores) {
-        this.ores = ores == null ? new KList<>() : ores;
-        surfaceOreCache.reset();
-        undergroundOreCache.reset();
-        surfaceOreBoundsCache.reset();
-        undergroundOreBoundsCache.reset();
-    }
-
-    public KList<IrisOreGenerator> getSurfaceOreGenerators() {
-        return getOres(true);
-    }
-
-    public KList<IrisOreGenerator> getUndergroundOreGenerators() {
-        return getOres(false);
-    }
-
-    public IrisOreGeneratorBounds getSurfaceOreGeneratorBounds() {
-        return surfaceOreBoundsCache.aquire(() -> IrisOreGeneratorBounds.of(getSurfaceOres()));
-    }
-
-    public IrisOreGeneratorBounds getUndergroundOreGeneratorBounds() {
-        return undergroundOreBoundsCache.aquire(() -> IrisOreGeneratorBounds.of(getUndergroundOres()));
-    }
-
-    private KList<IrisOreGenerator> getSurfaceOres() {
-        return getOres(true);
-    }
-
-    private KList<IrisOreGenerator> getUndergroundOres() {
-        return getOres(false);
-    }
-
-    private KList<IrisOreGenerator> getOres(boolean surface) {
-        AtomicCache<KList<IrisOreGenerator>> oreCache = surface ? surfaceOreCache : undergroundOreCache;
-        return oreCache.aquire(() -> {
-            KList<IrisOreGenerator> filtered = new KList<>();
-            KList<IrisOreGenerator> localOres = ores;
-            int oreCount = localOres.size();
-            for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
-                IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-                if (oreGenerator.isGenerateSurface() == surface) {
-                    filtered.add(oreGenerator);
-                }
-            }
-
-            return filtered;
-        });
     }
 
     public int getFluidHeight() {

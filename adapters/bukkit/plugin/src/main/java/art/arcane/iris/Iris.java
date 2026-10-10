@@ -19,6 +19,7 @@
 package art.arcane.iris;
 
 import art.arcane.iris.engine.IrisEngineEffects;
+import art.arcane.iris.engine.data.cache.AtomicCacheFailureReporting;
 import art.arcane.iris.engine.IrisWorldManager;
 
 import art.arcane.iris.engine.framework.EngineComponentCleanup;
@@ -804,6 +805,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     public void onEnable() {
         IrisPlatforms.bind(new BukkitPlatform());
+        AtomicCacheFailureReporting.bind();
         IrisStartupValidation.begin();
         Bukkit.getPluginManager().registerEvents(new IrisStartupAdmissionListener(), this);
         Bukkit.getPluginManager().registerEvents(pendingWorldReplacements, this);

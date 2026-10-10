@@ -33,7 +33,7 @@ public class DiagnosticSeverityPolicyTest {
         assertLoggedWith("engine/mantle/MantleWriter.java", "Mantle Writer Accessed chunk out of bounds", "debug");
         assertLoggedWith("engine/decorator/ResolvedDecorator.java", "Empty Block Data for ", "warnOnce");
         assertLoggedWith("engine/object/compatibility/IrisCompat.java", "Can't find block data for ", "warnOnce");
-        assertLoggedWith("engine/data/cache/AtomicCache.java", "Atomic cache supplier failed: %s: %s", "warnOnce");
+        assertLoggedWith("engine/data/cache/AtomicCacheFailureReporting.java", "Atomic cache supplier failed: %s: %s", "warnOnce");
         assertLoggedWith("engine/IrisComplex.java", "Failed to sample interpolated biome bounds", "warnOnce");
         assertLoggedWith("engine/framework/placer/WorldObjectPlacer.java", "Tried to place custom block at", "warnOnce");
     }

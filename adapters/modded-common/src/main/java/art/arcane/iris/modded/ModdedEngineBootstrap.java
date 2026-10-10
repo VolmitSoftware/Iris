@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.engine.data.cache.AtomicCacheFailureReporting;
 import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineEffectsProvider;
@@ -348,6 +349,7 @@ public final class ModdedEngineBootstrap {
 
                 IrisPlatform previousPlatform = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
                 IrisPlatforms.bind(created);
+                AtomicCacheFailureReporting.bind();
                 rollback.add(() -> restorePlatform(previousPlatform));
 
                 ModdedServerAccess previousServerAccess = ModdedDimensionManager.bindAccess(

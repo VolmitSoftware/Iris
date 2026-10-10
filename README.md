@@ -26,6 +26,13 @@ provides `ObjectsAt` (the objects a chunk would get, for the object search and s
 provides `StructureLocator` (`StructureLocating`: the pack's structure keys for Iris's structure index, the ones a
 world places, and their nearest start for the find commands). `iris:structure` also has a lifecycle hook that drops a
 world's structure index when the world stops, which includes every reload of the pack's structure files.
+`iris:structure` also provides `VanillaStructures` (`StructureVanillaStructures`) for the platform's own structures:
+which ones its placements replace or the dimension's `importedStructures` disables, the starts its `nativeStructures`
+placements make, the shift and band of the platform's starts, and the whole terrain fit of every start (SOURCE,
+PRESERVE, VACUUM, ENCASE, BORE, FORCE_CARVE, stilts) in `engine/framework/structure/fit`, written against IrisApi's
+`StructureFit` and `BlockAccess` only. A start carries its fit as a memo (its terrain and stilts JSON), so every
+chunk it reaches and every restart fits it the same way. Object place modes are data (`PlaceMode`: height sampling,
+stilt, `VacuumProfile`, `PlaceTrait`s) that the placement stages ask; the pack JSON keeps the mode names.
 `iris:objects` also provides `SaplingGrowth` (`TreeGrowing`: the tree a sapling grows into, as placed blocks, and which
 objects are trees) and says which biomes and regions place an object (`ObjectLocating`, for the object search).
 `iris:loot` owns the loot table resource kind (`LootResources`, folder `loot`), checks the tables and the references to

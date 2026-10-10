@@ -19,7 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.LazyBoundedCache;
+import art.arcane.volmlib.util.cache.LazyBoundedCache;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.prefab.TileData;

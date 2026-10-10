@@ -1,6 +1,6 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.loot.LootTables;
 import art.arcane.iris.builtin.loot.LootMode;
 import art.arcane.volmlib.util.math.RNG;

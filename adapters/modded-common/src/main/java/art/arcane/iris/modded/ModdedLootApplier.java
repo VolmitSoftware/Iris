@@ -21,7 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.core.content.ContentLoot;
 import art.arcane.iris.core.content.ContentServices;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;

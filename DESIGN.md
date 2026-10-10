@@ -963,6 +963,32 @@ each world a state store and tells modules when worlds start and stop.
   streams, warm-up, placement workers, structure indexes) is per world; per-world state built from pack data costs
   a little duplication when several worlds share a pack.
 
+## Module logging
+
+Iris's features logged through its static `IrisLogging`, which a module jar cannot see and a host cannot label. The API
+gives each module a `ModuleLog` instead.
+
+- **Shape.** `debug`, `info`, `warn`, `warnOnce(key, message)` and `error(message, cause)`: the levels the features used,
+  the "state it once" helper they all grew (a condition met per block must not flood the log), and error reporting with the
+  failure attached. Messages are plain text, so a `%` or `{` in a pack's names never breaks a line.
+- **One log per module, labelled by the host.** `DiscoveredModule.log()` is created when the host discovers the module
+  (built-in modules once, pack modules per pack load) from the `System.Logger` the host passed to `ModuleHost.loggingTo`,
+  the same one the load summary uses, and puts `[module id] ` in front of every message. The host's logger decides what
+  `DEBUG` means (Iris follows its debug setting) and what an `ERROR` with a cause does (Iris reports it like its own
+  failures). The reference `ModuleLogs.labelled` implements the labelling, the once-keys and the debug check; a host only
+  supplies the `System.Logger`. `warnOnce` keys are kept per log, so they belong to the module, and past a few hundred new
+  keys it only debugs, which keeps a key space nobody bounded from growing.
+- **Where a module reaches it.** `InvocationContext.log()` for stage bodies and generators, `PackWorld.log()` for services
+  and lifecycle hooks, `FeatureRegistry.log()` during `register`. The world and the context agree: the runners hand a stage a
+  view of the world whose log is its module's (`PackWorld.withLog`, a host method; the view shares the state store), and
+  `LifecycleRunner` and `ServiceRegistration.scope` do the same for hooks and providers. A host that calls a provider itself
+  must scope the world, or the provider's lines carry the host's label.
+- **Why not `System.Logger` for modules.** A module that logs through the JDK works where the host installed a logger
+  finder and silently goes elsewhere where it did not (Iris's plugin class loader is not the system loader), and nothing
+  tells the host which module spoke.
+- **Not added:** format arguments (callers build the message; a string concatenation is cheap beside what a debug line
+  costs when it is on), and a `ValidationContext` log (validators report problems as values, `Problem`).
+
 ## Services
 
 Iris core still asks feature classes directly: which objects a chunk gets, where a structure is, which tree grows

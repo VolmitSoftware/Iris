@@ -269,6 +269,31 @@ public final class RuinsModule implements IrisModule, ModuleLifecycle {
   starting, naming the module (modules that had started get `worldStopped`); every `worldStopped` runs even when one
   fails.
 
+## Logging
+
+A module writes to its own `ModuleLog`, which the host labels with the module's id and writes to its own log:
+
+```java
+private static void decorate(ChunkStageContext context) {
+    context.log().warnOnce("empty:" + biomeKey, "Empty block data for " + biomeKey);   // [Iris/WARN] [iris:decorant] Empty block data for plains
+    context.log().debug("decorated chunk " + context.originX() + "," + context.originZ());
+}
+```
+
+| Method | Use |
+| --- | --- |
+| `debug(message)` | Detail for people debugging the module. Written only when the host's debug setting is on. Building the message still costs, so keep it cheap or guard it. |
+| `info(message)` | What a server owner may want to see once, such as what the module did at startup. |
+| `warn(message)` | Something is wrong or unusual and the module carries on. |
+| `warnOnce(key, message)` | `warn` the first time the key is used on this module's log, `debug` every time after. For a condition met per block or per chunk. Keys belong to the module, so another module's identical key does not hide yours; keep the key space small (a biome name, never a coordinate). |
+| `error(message, cause)` | A failure the module caught and cannot recover from. The host logs it and reports `cause` like its own failures. A null `cause` only logs. |
+
+- A message is plain text, never a format string.
+- `context.log()` (stage bodies, object generators), `world.log()` (services and lifecycle hooks, which get a world as
+  their argument) and `registry.log()` (while `register` runs) are the same module's log. Keep the registry's log in a
+  field when `packLoaded`, which has no world, needs to log. `registry.log()` outside `register` throws.
+- Do not use `System.out`, `System.getLogger` or a logging library of your own: the host cannot label or report them.
+
 ## Services
 
 The host asks modules for what only they know, such as which objects a chunk gets or where a structure is, through

@@ -68,7 +68,7 @@ final class ChunkInvocation implements ChunkStageContext {
 
     @Override
     public PackWorld world() {
-        return inputs.world();
+        return stages.world(inputs.world());
     }
 
     @Override

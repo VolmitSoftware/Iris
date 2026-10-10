@@ -5,6 +5,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleLog;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
@@ -79,6 +80,14 @@ public final class ModuleRegistry implements FeatureRegistry {
         } finally {
             registering = null;
         }
+    }
+
+    @Override
+    public ModuleLog log() {
+        if (registering == null) {
+            throw new IllegalStateException("The registry's log is only available during IrisModule.register");
+        }
+        return registering.log();
     }
 
     @Override

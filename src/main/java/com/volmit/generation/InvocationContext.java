@@ -1,5 +1,6 @@
 package com.volmit.generation;
 
+import com.volmit.ModuleLog;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
@@ -16,4 +17,11 @@ public interface InvocationContext {
      * invocation outside any world, such as an object a studio tool pastes, throws IllegalStateException.
      */
     PackWorld world();
+
+    /** The log of the module this invocation runs for, labelled with the module's id. The same as
+     * {@code world().log()}, which a host overrides where an invocation has no world.
+     */
+    default ModuleLog log() {
+        return world().log();
+    }
 }

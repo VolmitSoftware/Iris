@@ -105,6 +105,10 @@ running Iris is the pack publisher's responsibility.
   themselves.
 - Name the packages of the classes Iris describes itself with `ModuleHost.describingHostTypesIn(...)`,
   decode them as Iris does, and render each `HostKind` with Iris's own description of the class.
+- Back each module's log with the host's own: `ModuleHost.loggingTo(logger)` where `logger` writes `DEBUG` only when the
+  host's debug setting is on and writes an `ERROR` with a cause as the host reports its own failures. Implement
+  `PackWorld.log()` and `withLog(log)` (a view of the world sharing everything else) and hand services a world scoped to the
+  provider's module (`ServiceRegistration.scope`); the runners do it for stages and hooks.
 - Hand modules heights above the dimension's bottom (0 = bottom block, whatever the platform's minimum
   height is) in every value that carries Y: samples, bounds, block views, placement edits, the mantle,
   hunks. X and Z stay world coordinates. Convert in one place at the boundary.

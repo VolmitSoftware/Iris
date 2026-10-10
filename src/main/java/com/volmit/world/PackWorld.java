@@ -1,5 +1,6 @@
 package com.volmit.world;
 
+import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
 import java.util.function.Function;
@@ -38,4 +39,14 @@ public interface PackWorld {
      * stopped, asking for state throws IllegalStateException.
      */
     <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create);
+
+    /** The log of the module this world was handed to: every service call, lifecycle hook and stage body gets a view of
+     * the world whose log is that module's own, so a line is labelled with the module that wrote it.
+     */
+    ModuleLog log();
+
+    /** For the host: this world as {@code log}'s module sees it, sharing everything else, state included. The host calls it
+     * once per module it hands a world to; a module has no reason to.
+     */
+    PackWorld withLog(ModuleLog log);
 }

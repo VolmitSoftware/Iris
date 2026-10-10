@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
+import com.volmit.ModuleLog;
 import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.PackReach;
@@ -17,6 +18,7 @@ import java.util.Optional;
 final class StageDeclaration {
     private final Stage<?> stage;
     private final ResourceId module;
+    private final ModuleLog log;
     private final List<Stage<?>> requirements = new ArrayList<>();
     private final List<StageRef> softAfter = new ArrayList<>();
     private final List<StageRef> softBefore = new ArrayList<>();
@@ -25,9 +27,10 @@ final class StageDeclaration {
     private final List<MantleKey<?>> mantleLayers = new ArrayList<>();
     private StageBody body;
 
-    StageDeclaration(Stage<?> stage, ResourceId module) {
+    StageDeclaration(Stage<?> stage, ResourceId module, ModuleLog log) {
         this.stage = Objects.requireNonNull(stage, "stage");
         this.module = Objects.requireNonNull(module, "module");
+        this.log = Objects.requireNonNull(log, "log");
     }
 
     void require(Stage<?>... stages) {
@@ -120,6 +123,10 @@ final class StageDeclaration {
 
     ResourceId module() {
         return module;
+    }
+
+    ModuleLog log() {
+        return log;
     }
 
     List<Stage<?>> requirements() {

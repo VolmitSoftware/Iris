@@ -143,7 +143,7 @@ public final class StageGraphBuilder implements StageGraph {
         requireOwnedStageId(stage, discovered);
 
         var module = discovered.info().id();
-        var declaration = new StageDeclaration(stage, module);
+        var declaration = new StageDeclaration(stage, module, discovered.log());
         var previous = declarations.putIfAbsent(stage.id(), declaration);
         if (previous != null) {
             throw new IllegalArgumentException("Duplicate definition of stage " + stage.id() + " by module "

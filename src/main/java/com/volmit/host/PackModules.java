@@ -47,7 +47,7 @@ public final class PackModules implements AutoCloseable {
     public static final String MODULES_DIRECTORY = "modules";
     static final String JAR_EXTENSION = ".jar";
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
-    private static final System.Logger DEFAULT_LOGGER = System.getLogger(PackModules.class.getName());
+    static final System.Logger DEFAULT_LOGGER = System.getLogger(PackModules.class.getName());
 
     private final List<DiscoveredModule> modules;
     private final List<MissingClasses> missingClasses;
@@ -92,7 +92,7 @@ public final class PackModules implements AutoCloseable {
         StaleJarSnapshots.remove(temporaryRoot);
         var snapshot = JarSnapshot.take(packRoot, findModuleJars(packRoot), temporaryRoot);
         try {
-            var packModules = loadSnapshot(packRoot, snapshot, host);
+            var packModules = loadSnapshot(packRoot, snapshot, host, logger);
             logLoad(logger, packName(packRoot), packModules);
             return packModules;
         } catch (RuntimeException | Error failure) {
@@ -131,10 +131,10 @@ public final class PackModules implements AutoCloseable {
         return Path.of(System.getProperty(TEMPORARY_DIRECTORY_PROPERTY));
     }
 
-    private static PackModules loadSnapshot(Path packRoot, JarSnapshot snapshot, ExposedHostClassLoader host) {
+    private static PackModules loadSnapshot(Path packRoot, JarSnapshot snapshot, ExposedHostClassLoader host, System.Logger logger) {
         var jars = snapshot.jars().stream().map(ModuleJar::read).toList();
         var missingClasses = PackClassCheck.requireLinkable(jars, host);
-        return defineModules(packRoot, jars, missingClasses, host, snapshot);
+        return defineModules(packRoot, jars, missingClasses, host, snapshot, logger);
     }
 
     private static List<Path> findModuleJars(Path packRoot) {
@@ -155,10 +155,11 @@ public final class PackModules implements AutoCloseable {
     }
 
     private static PackModules defineModules(
-            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host, JarSnapshot snapshot) {
+            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host, JarSnapshot snapshot,
+            System.Logger logger) {
         var loader = newPackClassLoader(packRoot, jars, host);
         try {
-            var modules = createModules(jars, loader, snapshot);
+            var modules = createModules(jars, loader, snapshot, logger);
             return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), loader, snapshot);
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(loader, failure);
@@ -182,8 +183,12 @@ public final class PackModules implements AutoCloseable {
         return name == null ? packRoot.toString() : name.toString();
     }
 
-    private static List<DiscoveredModule> createModules(List<ModuleJar> jars, ClassLoader loader, JarSnapshot snapshot) {
-        return jars.stream().flatMap(jar -> jar.createModules(loader, snapshot).stream()).toList();
+    private static List<DiscoveredModule> createModules(
+            List<ModuleJar> jars, ClassLoader loader, JarSnapshot snapshot, System.Logger logger) {
+        return jars.stream()
+                .flatMap(jar -> jar.createModules(loader, snapshot).stream())
+                .map(module -> module.loggingTo(logger))
+                .toList();
     }
 
     /** A module's optional packages excuse only its own jar's missing classes; a jar with several

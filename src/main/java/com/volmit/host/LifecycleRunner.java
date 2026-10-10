@@ -52,7 +52,7 @@ public final class LifecycleRunner {
         for (int index = 0; index < lifecycles.size(); index++) {
             var registration = lifecycles.get(index);
             try {
-                registration.lifecycle().worldStarted(world);
+                registration.lifecycle().worldStarted(registration.scope(world));
             } catch (RuntimeException failure) {
                 var startFailure = failed("starting a world", registration, failure);
                 stopInReverse(world, index - 1, startFailure);
@@ -70,7 +70,7 @@ public final class LifecycleRunner {
         IllegalStateException failure = null;
         for (var registration : lifecycles) {
             try {
-                registration.lifecycle().warmUp(world);
+                registration.lifecycle().warmUp(registration.scope(world));
             } catch (RuntimeException warmFailure) {
                 var named = failed("warming up a world", registration, warmFailure);
                 if (failure == null) {
@@ -101,7 +101,7 @@ public final class LifecycleRunner {
         for (int index = last; index >= 0; index--) {
             var registration = lifecycles.get(index);
             try {
-                registration.lifecycle().worldStopped(world);
+                registration.lifecycle().worldStopped(registration.scope(world));
             } catch (RuntimeException stopFailure) {
                 var named = failed("stopping a world", registration, stopFailure);
                 if (failure == null) {

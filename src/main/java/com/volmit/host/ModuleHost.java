@@ -61,7 +61,7 @@ public record ModuleHost(
     public static ModuleHost of(List<? extends IrisModule> builtInModules) {
         var builtIns = builtInModules.stream().map(DiscoveredModule::builtIn).toList();
         return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
-                System.getLogger(PackModules.class.getName()));
+                PackModules.DEFAULT_LOGGER);
     }
 
     /** This configuration with {@code packages}, each with its subpackages, also exposed to pack
@@ -106,11 +106,14 @@ public record ModuleHost(
                 reservedFolders, directory, logger);
     }
 
-    /** This configuration logging each pack load's module summary and missing-classes warning to
-     * {@code logger}, such as an adapter to the host's own log. The last call wins.
+    /** This configuration logging each pack load's module summary and missing-classes warning, and every module's own
+     * log ({@link com.volmit.ModuleLog}), to {@code logger}, such as an adapter to the host's own log. A module's lines
+     * carry its id and its {@link System.Logger.Level#ERROR} lines the failure to report. The last call wins.
      */
     public ModuleHost loggingTo(System.Logger logger) {
-        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
+        Objects.requireNonNull(logger, "logger");
+        var loggedBuiltIns = builtIns.stream().map(builtIn -> builtIn.loggingTo(logger)).toList();
+        return new ModuleHost(loggedBuiltIns, exposedHostPackages, reservedHostFields, hostTypePackages,
                 reservedFolders, jarCopyRoot, logger);
     }
 

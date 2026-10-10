@@ -19,29 +19,25 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisChunk;
-import art.arcane.iris.engine.UpperDimensionContext;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockState;
+import com.volmit.hunk.Hunk;
+import com.volmit.mantle.BlockBox;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.TerrainSampler;
 
 /**
  * Module {@code iris:matter}: copies the blocks the mantle planned for the chunk, its objects and structures,
- * into it, unless the dimension turns the mantle off ({@code useMantle}). Where an upper dimension sits above,
- * blocks at or above its surface are left out. It orders itself after deposits without requiring them, since
- * deposits run only where a level declares some.
+ * into it (a dimension with {@code useMantle} off plans none). Where an upper dimension sits above, blocks at or
+ * above where it begins are left out. It orders itself after deposits without requiring them, since deposits run
+ * only where a level declares some.
  */
 public final class MatterModule implements IrisModule {
     private static final String VERSION = "built-in";
-    private static final int CHUNK_SHIFT = 4;
-    private static final int CHUNK_COLUMNS = 16 * 16;
+    private static final int CHUNK_WIDTH = 16;
+    private static final int NO_LIMIT = Integer.MAX_VALUE;
 
     @Override
     public ModuleInfo info() {
@@ -57,59 +53,32 @@ public final class MatterModule implements IrisModule {
     }
 
     private static void insert(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
-        if (chunk.bypassesMantleStages()) {
-            return;
-        }
-        chunk.state(MatterInsertion.class, MatterInsertion::new).insert(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT, chunk.blocks());
+        int originX = context.originX();
+        int originZ = context.originZ();
+        Hunk<BlockState> blocks = context.hunk(BlockState.class);
+        int[] limits = upperLimits(context.terrain(), originX, originZ);
+        BlockBox chunk = new BlockBox(originX, 0, originZ, originX + CHUNK_WIDTH, blocks.getHeight(), originZ + CHUNK_WIDTH);
+        context.mantle().blocks().visit(chunk, (x, y, z, block) -> {
+            int localX = x - originX;
+            int localZ = z - originZ;
+            if (y < limits[column(localX, localZ)]) {
+                blocks.set(localX, y, localZ, block);
+            }
+        });
     }
 
-    /** Copies the mantle's blocks into chunks for one engine runtime. */
-    static final class MatterInsertion {
-        private final Engine engine;
-
-        MatterInsertion(Engine engine) {
-            this.engine = engine;
-        }
-
-        /** Copies the blocks the mantle holds for chunk {@code x}, {@code z} into {@code blocks}. */
-        @ChunkCoordinates
-        void insert(int x, int z, Hunk<PlatformBlockState> blocks) {
-            if (!engine.getDimension().isUseMantle()) {
-                return;
-            }
-
-            UpperDimensionContext upperCtx = engine.getUpperContext();
-            boolean protectUpper = upperCtx != null;
-
-            MantleChunk<Matter> chunk = engine.getMantle().getMantle().getChunk(x, z).use();
-            try {
-                if (protectUpper) {
-                    int chunkBlockX = x << CHUNK_SHIFT;
-                    int chunkBlockZ = z << CHUNK_SHIFT;
-                    int gap = engine.getDimension().getUpperDimensionGap();
-                    int[] upperYs = new int[CHUNK_COLUMNS];
-                    for (int i = 0; i < CHUNK_COLUMNS; i++) {
-                        int lx = i >> 4;
-                        int lz = i & 15;
-                        int worldX = chunkBlockX + lx;
-                        int worldZ = chunkBlockZ + lz;
-                        int he = (int) Math.round(engine.getComplex().getHeightStream().get((double) worldX, (double) worldZ));
-                        int rawUpper = upperCtx.getUpperSurfaceY(worldX, worldZ);
-                        upperYs[i] = Math.max(rawUpper, he + gap);
-                    }
-                    chunk.iterate(PlatformBlockState.class, (lx, y, lz, value) -> {
-                        int colIdx = (lx << 4) | (lz & 15);
-                        if (y < upperYs[colIdx]) {
-                            blocks.set(lx, y, lz, value);
-                        }
-                    });
-                } else {
-                    chunk.iterate(PlatformBlockState.class, (lx, y, lz, value) -> blocks.set(lx, y, lz, value));
-                }
-            } finally {
-                chunk.release();
+    /** Per column, the height from which the upper dimension takes over, or no limit. */
+    static int[] upperLimits(TerrainSampler terrain, int originX, int originZ) {
+        int[] limits = new int[CHUNK_WIDTH * CHUNK_WIDTH];
+        for (int localX = 0; localX < CHUNK_WIDTH; localX++) {
+            for (int localZ = 0; localZ < CHUNK_WIDTH; localZ++) {
+                limits[column(localX, localZ)] = terrain.upperDimensionY(originX + localX, originZ + localZ).orElse(NO_LIMIT);
             }
         }
+        return limits;
+    }
+
+    private static int column(int localX, int localZ) {
+        return localX * CHUNK_WIDTH + localZ;
     }
 }

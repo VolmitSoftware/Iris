@@ -18,333 +18,321 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.prepare.SlopeClip;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.builtin.PendingSettings;
+import art.arcane.iris.builtin.PendingSettings.BiomeLayer;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.hunk.Hunk;
+import com.volmit.resource.ResourceId;
+import com.volmit.stage.ChunkStageContext;
+import com.volmit.world.TerrainSampler;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
- * Smooths the carved surface for {@link PostModule}: floating nibs, single-block bumps and potholes, walls under
- * steep faces, slabs on steps, waterlogging and the foliage that lost its ground. One per engine runtime,
- * holding the post stream's random.
+ * Smooths the carved surface of one chunk for {@link PostModule}: floating nibs, single-block bumps and potholes,
+ * walls under steep faces, slabs on steps, waterlogging and the foliage that lost its ground.
  */
-public class SurfaceSmoothing {
-    private static final class States {
-        private static final PlatformBlockState AIR = B.getState("AIR");
+final class SurfaceSmoothing {
+    private static final BlockState AIR = new BlockState("minecraft:air");
+    private static final ResourceId AIR_ID = AIR.material();
+    private static final ResourceId CAVE_AIR_ID = ResourceId.parse("minecraft:cave_air");
+    private static final ResourceId WATER_ID = ResourceId.parse("minecraft:water");
+    private static final ResourceId SNOW_ID = ResourceId.parse("minecraft:snow");
+    private static final ResourceId DEAD_BUSH_ID = ResourceId.parse("minecraft:dead_bush");
+    private static final String SLAB_SUFFIX = "_slab";
+    private static final String WATERLOGGED = "waterlogged";
+    private static final String TRUE = "true";
+    /** The face properties of a connecting block, such as a vine's, each with the neighbour it faces. */
+    private static final List<Face> FACES = List.of(new Face("north", 0, 0, -1), new Face("east", 1, 0, 0),
+            new Face("south", 0, 0, 1), new Face("west", -1, 0, 0), new Face("up", 0, 1, 0), new Face("down", 0, -1, 0));
+
+    private final Hunk<BlockState> blocks;
+    private final BlockRegistry registry;
+    private final TerrainSampler terrain;
+    private final PendingSettings settings;
+    private final int originX;
+    private final int originZ;
+    private final int planeWidth;
+    private final int[] heights;
+    private final boolean walls;
+    private final boolean slabs;
+    private final int fluidHeight;
+
+    private SurfaceSmoothing(ChunkStageContext context) {
+        this.blocks = context.hunk(BlockState.class);
+        this.registry = context.resources().blocks();
+        this.terrain = context.terrain();
+        this.settings = PendingSettings.of(context.world());
+        this.originX = context.originX();
+        this.originZ = context.originZ();
+        this.planeWidth = blocks.getWidth() + 2;
+        this.heights = heightPlane();
+        this.walls = settings.postProcessingWalls();
+        this.slabs = settings.postProcessingSlabs();
+        this.fluidHeight = terrain.fluidHeight();
     }
 
-    private final Engine engine;
-    private final RNG rng;
-
-    public SurfaceSmoothing(Engine engine) {
-        this.engine = engine;
-        rng = new RNG(engine.getSeedManager().getPost());
+    /** Smooths the chunk of {@code context}. */
+    static void smooth(ChunkStageContext context) {
+        new SurfaceSmoothing(context).smoothColumns();
     }
 
-    /** Smooths the chunk whose first block is {@code x}, {@code z}. */
-    public void smooth(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        // The post stage runs sequentially on production (multicore false); an uncontended
-        // monitor per probe is still a monitor times ~10k probes per chunk.
-        Hunk<PlatformBlockState> sync = multicore ? output.synchronize() : output;
-        int width = output.getWidth();
-        int depth = output.getDepth();
-        int planeWidth = width + 2;
-        int[] heights = heightPlane(x, z, width, depth, planeWidth);
-        IrisDimension dimension = engine.getDimension();
-        boolean walls = dimension.isPostProcessingWalls();
-        boolean slabs = dimension.isPostProcessingSlabs();
-        int fluidHeight = dimension.getFluidHeight();
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < depth; j++) {
-                post(i, j, sync, i + x, j + z, context, heights, planeWidth, walls, slabs, fluidHeight);
+    private void smoothColumns() {
+        for (int i = 0; i < blocks.getWidth(); i++) {
+            for (int j = 0; j < blocks.getDepth(); j++) {
+                post(i, j);
             }
         }
-
-        engine.getMetrics().getPost().put(p.getMilliseconds());
     }
 
     /**
      * Every column reads its own height plus its four neighbours, so adjacent columns would otherwise
-     * resolve the same height stream entry up to five times. Resolve the padded plane once instead. The
-     * four diagonal corners are never read, so they are left unresolved.
+     * resolve the same height up to five times. Resolve the padded plane once instead. The four diagonal
+     * corners are never read, so they are left unresolved.
      */
-    private int[] heightPlane(int x, int z, int width, int depth, int planeWidth) {
-        int[] heights = new int[planeWidth * (depth + 2)];
-        EngineMantle mantle = engine.getMantle();
-
+    private int[] heightPlane() {
+        int width = blocks.getWidth();
+        int depth = blocks.getDepth();
+        int[] plane = new int[planeWidth * (depth + 2)];
         for (int j = -1; j <= depth; j++) {
             boolean edge = j == -1 || j == depth;
             int from = edge ? 0 : -1;
             int to = edge ? width - 1 : width;
             int row = (j + 1) * planeWidth;
-
             for (int i = from; i <= to; i++) {
-                heights[row + i + 1] = mantle.trueHeight(x + i, z + j);
+                plane[row + i + 1] = surfaceHeight(originX + i, originZ + j);
             }
         }
-
-        return heights;
+        return plane;
     }
 
-    private void post(int currentPostX, int currentPostZ, Hunk<PlatformBlockState> currentData, int x, int z, ChunkContext context, int[] heights, int planeWidth, boolean walls, boolean slabs, int fluidHeight) {
-        // x/z are world coordinates, the hunk is indexed relative to this chunk origin.
-        int originX = x - currentPostX;
-        int originZ = z - currentPostZ;
-        int center = (currentPostZ + 1) * planeWidth + currentPostX + 1;
+    private int surfaceHeight(int x, int z) {
+        return (int) Math.round(terrain.column(x, z).surfaceY());
+    }
+
+    private void post(int localX, int localZ) {
+        int x = originX + localX;
+        int z = originZ + localZ;
+        int center = (localZ + 1) * planeWidth + localX + 1;
         int h = heights[center];
         int ha = heights[center + 1];
         int hb = heights[center + planeWidth];
         int hc = heights[center - 1];
         int hd = heights[center - planeWidth];
 
-        // Floating Nibs
-        int g = 0;
-
         if (h < 1) {
             return;
         }
 
-        g += ha < h - 1 ? 1 : 0;
-        g += hb < h - 1 ? 1 : 0;
-        g += hc < h - 1 ? 1 : 0;
-        g += hd < h - 1 ? 1 : 0;
-
-        if (g == 4 && isAir(x, h - 1, z, originX, originZ, currentData)) {
-            setPostBlock(x, h, z, States.AIR, originX, originZ, currentData);
-
-            for (int i = h - 1; i > 0; i--) {
-                if (!isAir(x, i, z, originX, originZ, currentData)) {
-                    h = i;
-                    break;
-                }
-            }
-        }
-
-        // Nibs
-        g = 0;
-        g += ha == h - 1 ? 1 : 0;
-        g += hb == h - 1 ? 1 : 0;
-        g += hc == h - 1 ? 1 : 0;
-        g += hd == h - 1 ? 1 : 0;
-
-        if (g >= 4) {
-            PlatformBlockState bcState = getPostBlock(x, h, z, originX, originZ, currentData);
-            PlatformBlockState bState = getPostBlock(x, h + 1, z, originX, originZ, currentData);
-
-            if (bState.isOccluding() && bState.isSolid()) {
-                if (bcState.isSolid()) {
-                    setPostBlock(x, h, z, bState, originX, originZ, currentData);
-                    h--;
-                }
-            }
-        } else {
-            // Potholes
-            g = 0;
-            g += ha == h + 1 ? 1 : 0;
-            g += hb == h + 1 ? 1 : 0;
-            g += hc == h + 1 ? 1 : 0;
-            g += hd == h + 1 ? 1 : 0;
-
-            if (g >= 4) {
-                PlatformBlockState ba = getPostBlock(x, ha, z, originX, originZ, currentData);
-                PlatformBlockState bb = getPostBlock(x, hb, z, originX, originZ, currentData);
-                PlatformBlockState bc = getPostBlock(x, hc, z, originX, originZ, currentData);
-                PlatformBlockState bd = getPostBlock(x, hd, z, originX, originZ, currentData);
-                g = 0;
-                g = B.isSolid(ba) ? g + 1 : g;
-                g = B.isSolid(bb) ? g + 1 : g;
-                g = B.isSolid(bc) ? g + 1 : g;
-                g = B.isSolid(bd) ? g + 1 : g;
-
-                if (g >= 3) {
-                    setPostBlock(x, h + 1, z, getPostBlock(x, h, z, originX, originZ, currentData), originX, originZ, currentData);
-                    h++;
-                }
-            }
-        }
-
-        // Wall Patcher
-        IrisBiome biome = context.getBiome().get(currentPostX, currentPostZ);
-
+        h = removeFloatingNib(x, z, h, ha, hb, hc, hd);
+        h = levelBumpOrPothole(x, z, h, ha, hb, hc, hd);
         if (walls) {
-            if (!biome.getWall().getPalette().isEmpty()) {
-                if (ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
-                    boolean brokeGround = false;
-                    int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
-
-                    for (int i = h; i > h - max; i--) {
-                        PlatformBlockState d = biome.getWall().get(rng, x + i, i + h, z + i, engine.getData());
-
-                        if (d != null) {
-                            if (isAirOrWater(x, i, z, originX, originZ, currentData)) {
-                                if (brokeGround) {
-                                    break;
-                                }
-
-                                continue;
-                            }
-
-                            setPostBlock(x, i, z, d, originX, originZ, currentData);
-                            brokeGround = true;
-                        }
-                    }
-                }
-            }
+            paintWall(x, z, h, ha, hb, hc, hd);
         }
-
-        // Slab
         if (slabs) {
-            //@builder
-            if ((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, originX, originZ, currentData))
-                    || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, originX, originZ, currentData))
-                    || (hc == h + 1 && isSolidNonSlab(x - 1, hc, z, originX, originZ, currentData))
-                    || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, originX, originZ, currentData)))
-            //@done
-            {
-                SlopeClip sc = biome.getSlab().getSlopeCondition();
-                PlatformBlockState d = sc.isValid(engine.getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, engine.getData()) : null;
+            h = placeSlab(x, z, h, ha, hb, hc, hd);
+        }
+        settleWaterlogging(x, z, h);
+        settleFoliage(x, z, h);
+    }
 
-                if (d != null) {
-                    boolean cancel = B.isAir(d);
-
-                    if (IrisProceduralBlocks.materialKey(d).equals("minecraft:snow") && h + 1 <= fluidHeight) {
-                        cancel = true;
-                    }
-
-                    if (isSnowLayer(x, h, z, originX, originZ, currentData)) {
-                        cancel = true;
-                    }
-
-                    if (!cancel && isAirOrWater(x, h + 1, z, originX, originZ, currentData)) {
-                        setPostBlock(x, h + 1, z, d, originX, originZ, currentData);
-                        h++;
-                    }
-                }
+    private int removeFloatingNib(int x, int z, int h, int ha, int hb, int hc, int hd) {
+        int g = lower(ha, h - 1) + lower(hb, h - 1) + lower(hc, h - 1) + lower(hd, h - 1);
+        if (g != 4 || !isAir(x, h - 1, z)) {
+            return h;
+        }
+        set(x, h, z, AIR);
+        for (int i = h - 1; i > 0; i--) {
+            if (!isAir(x, i, z)) {
+                return i;
             }
         }
+        return h;
+    }
 
-        // Waterlogging
-        PlatformBlockState b = getPostBlock(x, h, z, originX, originZ, currentData);
-
-        if (IrisProceduralBlocks.hasProperty(b, "waterlogged")) {
-            boolean w = false;
-
-            if (h <= fluidHeight + 1) {
-                if (isWaterOrWaterlogged(x, h + 1, z, originX, originZ, currentData)) {
-                    w = true;
-                } else if ((isWaterOrWaterlogged(x + 1, h, z, originX, originZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, originX, originZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, originX, originZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, originX, originZ, currentData))) {
-                    w = true;
-                }
+    private int levelBumpOrPothole(int x, int z, int h, int ha, int hb, int hc, int hd) {
+        int g = same(ha, h - 1) + same(hb, h - 1) + same(hc, h - 1) + same(hd, h - 1);
+        if (g >= 4) {
+            BlockState bump = get(x, h, z);
+            BlockState above = get(x, h + 1, z);
+            if (has(above, BlockTrait.OCCLUDING) && has(above, BlockTrait.SOLID) && has(bump, BlockTrait.SOLID)) {
+                set(x, h, z, above);
+                return h - 1;
             }
-
-            if (w != "true".equals(IrisProceduralBlocks.propertyValue(b, "waterlogged"))) {
-                setPostBlock(x, h, z, b.withProperty("waterlogged", String.valueOf(w)), originX, originZ, currentData);
-            }
+            return h;
         }
-
-        // Foliage
-        b = getPostBlock(x, h + 1, z, originX, originZ, currentData);
-
-        if (B.isVineBlock(b)) {
-            PlatformBlockState result = b;
-            int finalH = h + 1;
-
-            for (String face : IrisProceduralBlocks.FACE_PROPERTIES) {
-                if (!IrisProceduralBlocks.hasProperty(b, face)) {
-                    continue;
-                }
-                int[] mod = IrisProceduralBlocks.faceOffset(face);
-                PlatformBlockState d = getPostBlock(x + mod[0], finalH + mod[1], z + mod[2], originX, originZ, currentData);
-                result = result.withProperty(face, String.valueOf(!B.isAir(d) && !B.isVineBlock(d)));
-            }
-            if (!result.equals(b)) {
-                setPostBlock(x, h + 1, z, result, originX, originZ, currentData);
-            }
+        g = same(ha, h + 1) + same(hb, h + 1) + same(hc, h + 1) + same(hd, h + 1);
+        if (g < 4) {
+            return h;
         }
-
-        if (B.isFoliage(b) || IrisProceduralBlocks.materialKey(b).equals("minecraft:dead_bush")) {
-            PlatformBlockState onto = getPostBlock(x, h, z, originX, originZ, currentData);
-
-            if (!B.canPlaceOnto(b, onto) && !B.isDecorant(b)) {
-                setPostBlock(x, h + 1, z, States.AIR, originX, originZ, currentData);
-            }
+        int solidSides = solid(get(x, ha, z)) + solid(get(x, hb, z)) + solid(get(x, hc, z)) + solid(get(x, hd, z));
+        if (solidSides < 3) {
+            return h;
         }
+        set(x, h + 1, z, get(x, h, z));
+        return h + 1;
     }
 
-    public boolean isAir(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        String material = IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData));
-        return material.equals("minecraft:air") || material.equals("minecraft:cave_air");
-    }
-
-    public boolean hasGravity(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        String material = IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData));
-        return material.equals("minecraft:sand") || material.equals("minecraft:red_sand") || material.endsWith("_concrete_powder");
-    }
-
-    public boolean isSolid(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        PlatformBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
-        return B.isSolid(d) && !B.isVineBlock(d);
-    }
-
-    public boolean isSolidNonSlab(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        PlatformBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
-        return B.isSolid(d) && !IrisProceduralBlocks.materialKey(d).endsWith("_slab");
-    }
-
-    public boolean isAirOrWater(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        String material = IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData));
-        return material.equals("minecraft:water") || material.equals("minecraft:air") || material.equals("minecraft:cave_air");
-    }
-
-    public boolean isSlab(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        return IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData)).endsWith("_slab");
-    }
-
-    public boolean isSnowLayer(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        return IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData)).equals("minecraft:snow");
-    }
-
-    public boolean isWater(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        return IrisProceduralBlocks.materialKey(getPostBlock(x, y, z, originX, originZ, currentData)).equals("minecraft:water");
-    }
-
-    public boolean isWaterOrWaterlogged(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        PlatformBlockState d = getPostBlock(x, y, z, originX, originZ, currentData);
-        return IrisProceduralBlocks.materialKey(d).equals("minecraft:water") || "true".equals(IrisProceduralBlocks.propertyValue(d, "waterlogged"));
-    }
-
-    public boolean isLiquid(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        return IrisProceduralBlocks.hasProperty(getPostBlock(x, y, z, originX, originZ, currentData), "level");
-    }
-
-    public void setPostBlock(int x, int y, int z, PlatformBlockState d, int originX, int originZ, Hunk<PlatformBlockState> currentData) {
-        int lx = x - originX;
-        int lz = z - originZ;
-
-        if (lx < 0 || lz < 0 || lx >= currentData.getWidth() || lz >= currentData.getDepth() || y < 0 || y >= currentData.getHeight()) {
+    private void paintWall(int x, int z, int h, int ha, int hb, int hc, int hd) {
+        if (ha >= h - 2 && hb >= h - 2 && hc >= h - 2 && hd >= h - 2) {
             return;
         }
+        Optional<BiomeLayer> wall = settings.wall(x, z);
+        if (wall.isEmpty()) {
+            return;
+        }
+        boolean brokeGround = false;
+        int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
+        for (int i = h; i > h - max; i--) {
+            Optional<BlockState> block = wall.get().at(x + i, i + h, z + i);
+            if (block.isEmpty()) {
+                continue;
+            }
+            if (isAirOrWater(x, i, z)) {
+                if (brokeGround) {
+                    break;
+                }
+                continue;
+            }
+            set(x, i, z, block.get());
+            brokeGround = true;
+        }
+    }
 
-        currentData.set(lx, y, lz, d);
+    private int placeSlab(int x, int z, int h, int ha, int hb, int hc, int hd) {
+        boolean step = (ha == h + 1 && isSolidNonSlab(x + 1, ha, z))
+                || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1))
+                || (hc == h + 1 && isSolidNonSlab(x - 1, hc, z))
+                || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1));
+        if (!step) {
+            return h;
+        }
+        BiomeLayer slab = settings.slab(x, z);
+        if (!slab.allowsSlope(terrain.column(x, z).slope())) {
+            return h;
+        }
+        Optional<BlockState> picked = slab.at(x, h, z);
+        if (picked.isEmpty()) {
+            return h;
+        }
+        BlockState block = picked.get();
+        boolean cancel = has(block, BlockTrait.AIR)
+                || block.material().equals(SNOW_ID) && h + 1 <= fluidHeight
+                || isSnowLayer(x, h, z);
+        if (cancel || !isAirOrWater(x, h + 1, z)) {
+            return h;
+        }
+        set(x, h + 1, z, block);
+        return h + 1;
+    }
+
+    private void settleWaterlogging(int x, int z, int h) {
+        BlockState block = get(x, h, z);
+        if (!block.properties().containsKey(WATERLOGGED)) {
+            return;
+        }
+        boolean waterlogged = h <= fluidHeight + 1 && (isWaterOrWaterlogged(x, h + 1, z)
+                || isWaterOrWaterlogged(x + 1, h, z) || isWaterOrWaterlogged(x - 1, h, z)
+                || isWaterOrWaterlogged(x, h, z + 1) || isWaterOrWaterlogged(x, h, z - 1));
+        if (waterlogged != TRUE.equals(block.properties().get(WATERLOGGED))) {
+            set(x, h, z, block.withProperty(WATERLOGGED, String.valueOf(waterlogged)));
+        }
+    }
+
+    private void settleFoliage(int x, int z, int h) {
+        BlockState block = get(x, h + 1, z);
+        if (has(block, BlockTrait.VINE)) {
+            connectVine(x, h + 1, z, block);
+        }
+        if (!has(block, BlockTrait.FOLIAGE) && !block.material().equals(DEAD_BUSH_ID)) {
+            return;
+        }
+        if (!registry.canPlaceOn(block, get(x, h, z)) && !has(block, BlockTrait.DECORATION)) {
+            set(x, h + 1, z, AIR);
+        }
+    }
+
+    /** A vine faces each neighbour it can cling to, a block that is neither air nor another vine. */
+    private void connectVine(int x, int y, int z, BlockState vine) {
+        BlockState connected = vine;
+        for (Face face : FACES) {
+            if (!vine.properties().containsKey(face.property())) {
+                continue;
+            }
+            BlockState neighbour = get(x + face.dx(), y + face.dy(), z + face.dz());
+            connected = connected.withProperty(face.property(), String.valueOf(!has(neighbour, BlockTrait.AIR) && !has(neighbour, BlockTrait.VINE)));
+        }
+        if (!connected.equals(vine)) {
+            set(x, y, z, connected);
+        }
+    }
+
+    private boolean isAir(int x, int y, int z) {
+        ResourceId material = get(x, y, z).material();
+        return material.equals(AIR_ID) || material.equals(CAVE_AIR_ID);
+    }
+
+    private boolean isSolidNonSlab(int x, int y, int z) {
+        BlockState block = get(x, y, z);
+        return has(block, BlockTrait.SOLID) && !block.material().path().endsWith(SLAB_SUFFIX);
+    }
+
+    private boolean isAirOrWater(int x, int y, int z) {
+        ResourceId material = get(x, y, z).material();
+        return material.equals(WATER_ID) || material.equals(AIR_ID) || material.equals(CAVE_AIR_ID);
+    }
+
+    private boolean isSnowLayer(int x, int y, int z) {
+        return get(x, y, z).material().equals(SNOW_ID);
+    }
+
+    private boolean isWaterOrWaterlogged(int x, int y, int z) {
+        BlockState block = get(x, y, z);
+        return block.material().equals(WATER_ID) || TRUE.equals(block.properties().get(WATERLOGGED));
+    }
+
+    private boolean has(BlockState block, BlockTrait trait) {
+        return registry.hasTrait(block, trait);
+    }
+
+    private int solid(BlockState block) {
+        return has(block, BlockTrait.SOLID) ? 1 : 0;
+    }
+
+    private static int lower(int neighbour, int than) {
+        return neighbour < than ? 1 : 0;
+    }
+
+    private static int same(int neighbour, int as) {
+        return neighbour == as ? 1 : 0;
+    }
+
+    /** Writes inside the chunk only; a step on a neighbour column outside it is left alone. */
+    private void set(int x, int y, int z, BlockState block) {
+        int localX = x - originX;
+        int localZ = z - originZ;
+        if (localX < 0 || localZ < 0 || localX >= blocks.getWidth() || localZ >= blocks.getDepth() || y < 0 || y >= blocks.getHeight()) {
+            return;
+        }
+        blocks.set(localX, y, localZ, block);
     }
 
     /**
      * Neighbour columns can sit one block outside this chunk, and the blocks of an adjacent chunk are not
-     * available while generating this one. Resolve the hunk index relative to the chunk origin and let
-     * getClosest clamp to the nearest in-chunk column instead of wrapping to the opposite chunk edge.
+     * available while generating this one. Clamp to the nearest block of the chunk instead of wrapping to the
+     * opposite edge.
      */
-    public PlatformBlockState getPostBlock(int x, int y, int z, int originX, int originZ, Hunk<PlatformBlockState> h) {
-        PlatformBlockState b = h.getClosest(x - originX, y, z - originZ);
+    private BlockState get(int x, int y, int z) {
+        return blocks.get(clamp(x - originX, blocks.getWidth()), clamp(y, blocks.getHeight()), clamp(z - originZ, blocks.getDepth()));
+    }
 
-        return b == null ? States.AIR : b;
+    private static int clamp(int value, int size) {
+        return value < 0 ? 0 : Math.min(value, size - 1);
+    }
+
+    private record Face(String property, int dx, int dy, int dz) {
     }
 }

@@ -19,21 +19,20 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisChunk;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import art.arcane.iris.builtin.PendingSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.hunk.Hunk;
+import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,12 +44,8 @@ import java.util.Map;
 public final class PerfectionModule implements IrisModule {
     private static final String VERSION = "built-in";
     private static final String HALF = "half";
-    private static final char PROPERTIES_START = '[';
-
-    private static final class States {
-        private static final PlatformBlockState AIR = B.getState("AIR");
-        private static final Map<String, PlatformBlockState> ORE_BASES = oreBases();
-    }
+    private static final BlockState AIR = new BlockState("minecraft:air");
+    private static final Map<ResourceId, BlockState> ORE_BASES = oreBases();
 
     @Override
     public ModuleInfo info() {
@@ -63,121 +58,123 @@ public final class PerfectionModule implements IrisModule {
     }
 
     private static void perfect(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
-        Engine engine = chunk.engine();
-        IrisDimension dimension = engine.getDimension();
-        PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
-        Hunk<PlatformBlockState> blocks = chunk.blocks();
-        if (dimension.isHideOresForHiddenOre()) {
-            hideOres(blocks);
+        Hunk<BlockState> blocks = context.hunk(BlockState.class);
+        if (PendingSettings.of(context.world()).hidesOres()) {
+            hideOres(blocks, new IdentityHashMap<>());
         }
+        Surfaces surfaces = new Surfaces(blocks, context.resources().blocks(), new IdentityHashMap<>());
         boolean removed;
         do {
-            removed = removeUnsupportedDecorants(blocks);
+            removed = surfaces.removeUnsupportedDecorants();
         } while (removed);
-        engine.getMetrics().getPerfection().put(stopwatch.getMilliseconds());
     }
 
-    private static void hideOres(Hunk<PlatformBlockState> blocks) {
+    /** {@code hidden} remembers per state instance what it is hidden as, itself for a block that is no ore. */
+    private static void hideOres(Hunk<BlockState> blocks, Map<BlockState, BlockState> hidden) {
         for (int x = 0; x < blocks.getWidth(); x++) {
             for (int z = 0; z < blocks.getDepth(); z++) {
                 for (int y = blocks.getHeight() - 1; y >= 0; y--) {
-                    PlatformBlockState block = blocks.get(x, y, z);
-                    PlatformBlockState base = block == null ? null : States.ORE_BASES.get(materialOf(block));
-                    if (base != null) {
-                        blocks.set(x, y, z, base);
+                    BlockState block = blocks.get(x, y, z);
+                    BlockState shown = hidden.computeIfAbsent(block, state -> ORE_BASES.getOrDefault(state.material(), state));
+                    if (shown != block) {
+                        blocks.set(x, y, z, shown);
                     }
                 }
             }
         }
     }
 
-    /** One pass over every column; whether it removed anything. */
-    private static boolean removeUnsupportedDecorants(Hunk<PlatformBlockState> blocks) {
-        boolean removed = false;
-        for (int x = 0; x < blocks.getWidth(); x++) {
-            for (int z = 0; z < blocks.getDepth(); z++) {
-                for (int surface : surfaces(blocks, x, z)) {
-                    removed |= removeIfUnsupported(blocks, x, surface, z);
+    /**
+     * The decorations of one chunk and the ground they stand on. Finding the surfaces asks about every block of the chunk,
+     * which holds few distinct states, so whether a state is solid is asked once per state instance.
+     */
+    private record Surfaces(Hunk<BlockState> blocks, BlockRegistry registry, Map<BlockState, Boolean> solidStates) {
+        /** One pass over every column; whether it removed anything. */
+        boolean removeUnsupportedDecorants() {
+            boolean removed = false;
+            for (int x = 0; x < blocks.getWidth(); x++) {
+                for (int z = 0; z < blocks.getDepth(); z++) {
+                    for (int surface : surfaces(x, z)) {
+                        removed |= removeIfUnsupported(x, surface, z);
+                    }
                 }
             }
+            return removed;
         }
-        return removed;
-    }
 
-    /** The topmost solid block of a column and each solid block with open space above it below that. */
-    private static List<Integer> surfaces(Hunk<PlatformBlockState> blocks, int x, int z) {
-        List<Integer> surfaces = new ArrayList<>();
-        int top = topSolid(blocks, x, z);
-        surfaces.add(top);
-        boolean inside = true;
-        for (int y = top; y >= 0; y--) {
-            boolean solid = isSolid(blocks.get(x, y, z));
-            if (solid != inside) {
-                inside = solid;
-                if (inside) {
-                    surfaces.add(y);
+        /** The topmost solid block of a column and each solid block with open space above it below that. */
+        private List<Integer> surfaces(int x, int z) {
+            List<Integer> surfaces = new ArrayList<>();
+            int top = topSolid(x, z);
+            surfaces.add(top);
+            boolean inside = true;
+            for (int y = top; y >= 0; y--) {
+                boolean solid = isSolid(blocks.get(x, y, z));
+                if (solid != inside) {
+                    inside = solid;
+                    if (inside) {
+                        surfaces.add(y);
+                    }
                 }
             }
+            return surfaces;
         }
-        return surfaces;
-    }
 
-    private static boolean removeIfUnsupported(Hunk<PlatformBlockState> blocks, int x, int y, int z) {
-        PlatformBlockState tip = blocks.get(x, y, z);
-        if (tip == null || !B.isDecorant(tip)) {
-            return false;
-        }
-        PlatformBlockState below = blocks.get(x, y - 1, z);
-        if (below == null || !B.canPlaceOnto(tip, below)) {
-            blocks.set(x, y, z, States.AIR);
+        private boolean removeIfUnsupported(int x, int y, int z) {
+            BlockState tip = blocks.get(x, y, z);
+            if (!registry.hasTrait(tip, BlockTrait.DECORATION)) {
+                return false;
+            }
+            BlockState below = blockAt(x, y - 1, z);
+            if (below == null || !registry.canPlaceOn(tip, below)) {
+                blocks.set(x, y, z, AIR);
+                return true;
+            }
+            if (!below.properties().containsKey(HALF)) {
+                return false;
+            }
+            BlockState belowBelow = blockAt(x, y - 2, z);
+            if (belowBelow != null && registry.canPlaceOn(below, belowBelow)) {
+                return false;
+            }
+            blocks.set(x, y, z, AIR);
+            blocks.set(x, y - 1, z, AIR);
             return true;
         }
-        if (!IrisProceduralBlocks.hasProperty(below, HALF)) {
-            return false;
-        }
-        PlatformBlockState belowBelow = blocks.get(x, y - 2, z);
-        if (belowBelow != null && B.canPlaceOnto(below, belowBelow)) {
-            return false;
-        }
-        blocks.set(x, y, z, States.AIR);
-        blocks.set(x, y - 1, z, States.AIR);
-        return true;
-    }
 
-    private static int topSolid(Hunk<PlatformBlockState> blocks, int x, int z) {
-        for (int y = blocks.getHeight() - 1; y >= 0; y--) {
-            if (isSolid(blocks.get(x, y, z))) {
-                return y;
+        private int topSolid(int x, int z) {
+            for (int y = blocks.getHeight() - 1; y >= 0; y--) {
+                if (isSolid(blocks.get(x, y, z))) {
+                    return y;
+                }
             }
+            return 0;
         }
-        return 0;
+
+        private boolean isSolid(BlockState block) {
+            return solidStates.computeIfAbsent(block, state -> !(registry.hasTrait(state, BlockTrait.AIR) || registry.hasTrait(state, BlockTrait.FLUID)));
+        }
+
+        /** The block at {@code y}, or null below the chunk's bottom. */
+        private BlockState blockAt(int x, int y, int z) {
+            return y < 0 ? null : blocks.get(x, y, z);
+        }
     }
 
-    private static boolean isSolid(PlatformBlockState block) {
-        return block != null && !(B.isAir(block) || B.isFluid(block));
-    }
-
-    private static String materialOf(PlatformBlockState state) {
-        String key = state.key();
-        int properties = key.indexOf(PROPERTIES_START);
-        return properties < 0 ? key : key.substring(0, properties);
-    }
-
-    private static Map<String, PlatformBlockState> oreBases() {
-        Map<String, PlatformBlockState> bases = new HashMap<>();
-        PlatformBlockState stone = B.getState("STONE");
-        PlatformBlockState deepslate = B.getState("DEEPSLATE");
-        PlatformBlockState netherrack = B.getState("NETHERRACK");
-        PlatformBlockState blackstone = B.getState("BLACKSTONE");
+    private static Map<ResourceId, BlockState> oreBases() {
+        Map<ResourceId, BlockState> bases = new HashMap<>();
+        BlockState stone = new BlockState("minecraft:stone");
+        BlockState deepslate = new BlockState("minecraft:deepslate");
+        BlockState netherrack = new BlockState("minecraft:netherrack");
+        BlockState blackstone = new BlockState("minecraft:blackstone");
         for (String ore : List.of("coal", "copper", "iron", "gold", "redstone", "lapis", "diamond", "emerald")) {
-            bases.put("minecraft:" + ore + "_ore", stone);
-            bases.put("minecraft:deepslate_" + ore + "_ore", deepslate);
+            bases.put(ResourceId.parse("minecraft:" + ore + "_ore"), stone);
+            bases.put(ResourceId.parse("minecraft:deepslate_" + ore + "_ore"), deepslate);
         }
-        bases.put("minecraft:nether_gold_ore", netherrack);
-        bases.put("minecraft:nether_quartz_ore", netherrack);
-        bases.put("minecraft:ancient_debris", netherrack);
-        bases.put("minecraft:gilded_blackstone", blackstone);
+        bases.put(ResourceId.parse("minecraft:nether_gold_ore"), netherrack);
+        bases.put(ResourceId.parse("minecraft:nether_quartz_ore"), netherrack);
+        bases.put(ResourceId.parse("minecraft:ancient_debris"), netherrack);
+        bases.put(ResourceId.parse("minecraft:gilded_blackstone"), blackstone);
         return bases;
     }
 }

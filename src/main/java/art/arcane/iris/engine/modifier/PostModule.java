@@ -19,16 +19,11 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisChunk;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
-import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
 
-/**
- * Module {@code iris:post}: smooths the carved surface with {@link SurfaceSmoothing}, except while maintenance
- * regeneration bypasses the mantle.
- */
+/** Module {@code iris:post}: smooths the carved surface with {@link SurfaceSmoothing}. */
 public final class PostModule implements IrisModule {
     private static final String VERSION = "built-in";
 
@@ -39,15 +34,6 @@ public final class PostModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Post.SMOOTH).requires(IrisStages.Carve.APPLY).run(PostModule::smooth);
-    }
-
-    private static void smooth(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
-        if (chunk.bypassesMantleStages()) {
-            return;
-        }
-        chunk.state(SurfaceSmoothing.class, SurfaceSmoothing::new)
-                .smooth(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
+        graph.define(IrisStages.Post.SMOOTH).requires(IrisStages.Carve.APPLY).run(SurfaceSmoothing::smooth);
     }
 }

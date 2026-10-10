@@ -57,7 +57,8 @@ public final class FloatingModule implements IrisModule {
     public void install(StageGraph graph) {
         graph.define(IrisStages.Floating.OBJECTS).softAfter(IrisStages.Objects.PLACE.ref()).reach(FloatingModule::objectReach)
                 .run(FloatingModule::objects);
-        graph.define(IrisStages.Floating.SOLIDS).requires(IrisStages.Post.SMOOTH).run(FloatingModule::solids);
+        // Ordering only: iris:post ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Floating.SOLIDS).softAfter(IrisStages.Post.SMOOTH.ref()).run(FloatingModule::solids);
         graph.define(IrisStages.Floating.DECORATE).requires(IrisStages.Decorant.DECORATE).run(FloatingModule::decorate);
     }
 

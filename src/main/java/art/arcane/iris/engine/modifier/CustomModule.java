@@ -51,7 +51,8 @@ public final class CustomModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Custom.BLOCKS).requires(IrisStages.Perfection.SURFACE).run(CustomModule::record);
+        // Ordering only: iris:perfection ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Custom.BLOCKS).softAfter(IrisStages.Perfection.SURFACE.ref()).run(CustomModule::record);
     }
 
     private static void record(ChunkStageContext context) {

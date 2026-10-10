@@ -72,7 +72,8 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Decorant.DECORATE).requires(IrisStages.Matter.INSERT).run(DecorantModule::decorate);
+        // Ordering only: iris:matter ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Decorant.DECORATE).softAfter(IrisStages.Matter.INSERT.ref()).run(DecorantModule::decorate);
     }
 
     private static void decorate(ChunkStageContext context) {

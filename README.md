@@ -455,7 +455,7 @@ public final class FloraSettings implements IrisFeature {
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
-  `POTION_EFFECT`, `ENCHANTMENT` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
+  `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
   styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION` or `PACK_IMAGE_MAP` of the pack.
   The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.

@@ -27,6 +27,8 @@ public enum Reference {
     POTION_EFFECT,
     /** An enchantment, such as {@code minecraft:sharpness}. */
     ENCHANTMENT,
+    /** A loot table of the platform, such as {@code minecraft:chests/simple_dungeon}; not a loot table of the pack. */
+    LOOT_TABLE,
     /** A mob of another plugin or content provider, such as {@code mythicmobs:skeleton_king}. */
     SPECIAL_ENTITY,
     /** A biome of the pack. */

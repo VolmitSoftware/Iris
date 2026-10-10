@@ -36,7 +36,7 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
                          Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
         RNG rng = getRNG(realX, realZ);
-        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ, decorators.log());
 
         if (decorator == null) {
             return;

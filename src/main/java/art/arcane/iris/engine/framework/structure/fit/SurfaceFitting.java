@@ -20,7 +20,7 @@ package art.arcane.iris.engine.framework.structure.fit;
 
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
-import art.arcane.iris.spi.IrisLogging;
+import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TemplateCells;
@@ -66,16 +66,17 @@ final class SurfaceFitting {
     }
 
     static VacuumFoundationPlan prepareSurfaceStructures(FitBlocks blocks, Box area, List<FitStart> starts,
-                                                         IntBinaryOperator surfaceHeight, int maximumTemplateCells) {
+                                                         IntBinaryOperator surfaceHeight, int maximumTemplateCells,
+                                                         ModuleLog log) {
         if (starts.isEmpty()) {
             return VacuumFoundationPlan.EMPTY;
         }
         Objects.requireNonNull(surfaceHeight, "Surface structure terrain fitting requires an Iris height resolver");
-        List<SurfaceAnchor> anchors = collectSourceSurfaceAnchors(blocks, area, starts, maximumTemplateCells);
+        List<SurfaceAnchor> anchors = collectSourceSurfaceAnchors(blocks, area, starts, maximumTemplateCells, log);
         if (!anchors.isEmpty()) {
             fitSurfaceTerrain(blocks, area, anchors, surfaceHeight);
         }
-        VacuumFootprint vacuum = collectVacuumFootprint(blocks, area, starts, maximumTemplateCells);
+        VacuumFootprint vacuum = collectVacuumFootprint(blocks, area, starts, maximumTemplateCells, log);
         if (!vacuum.anchors().isEmpty()) {
             fitVacuumTerrain(blocks, area, vacuum, surfaceHeight);
         }
@@ -208,7 +209,7 @@ final class SurfaceFitting {
     }
 
     private static List<SurfaceAnchor> collectSourceSurfaceAnchors(FitBlocks blocks, Box area, List<FitStart> starts,
-                                                                   int maximumTemplateCells) {
+                                                                   int maximumTemplateCells, ModuleLog log) {
         Box influenceArea = area.widened(SURFACE_TERRAIN_RADIUS);
         List<SurfaceAnchor> anchors = new ArrayList<>();
         Set<Object> seenStarts = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -228,7 +229,7 @@ final class SurfaceFitting {
                         } catch (TemplateBudgetExceeded ignored) {
                             budgetExceeded = true;
                             warnBudget(WARNED_SOURCE_BUDGET, start, "SOURCE",
-                                    "skipping remaining processed footprints for this start");
+                                    "skipping remaining processed footprints for this start", log);
                         }
                     }
                     for (BlockPosition junction : piece.junctions()) {
@@ -263,15 +264,15 @@ final class SurfaceFitting {
         }
     }
 
-    private static void warnBudget(Set<String> warned, FitStart start, String mode, String consequence) {
+    private static void warnBudget(Set<String> warned, FitStart start, String mode, String consequence, ModuleLog log) {
         if (warned.add(start.structureId())) {
-            IrisLogging.warn("Native structure " + mode + " fitting for '" + start.structureId()
+            log.warn("Native structure " + mode + " fitting for '" + start.structureId()
                     + "' exceeded its bounded template budget; " + consequence);
         }
     }
 
     private static VacuumFootprint collectVacuumFootprint(FitBlocks blocks, Box area, List<FitStart> starts,
-                                                          int maximumTemplateCells) {
+                                                          int maximumTemplateCells, ModuleLog log) {
         Box influenceArea = area.widened(SURFACE_TERRAIN_RADIUS);
         Map<Long, VacuumAnchor> anchors = new HashMap<>();
         Map<Long, Integer> columnCaps = new HashMap<>();
@@ -316,7 +317,7 @@ final class SurfaceFitting {
                     }
                 }
             } catch (TemplateBudgetExceeded ignored) {
-                warnBudget(WARNED_VACUUM_BUDGET, start, "VACUUM", "using jigsaw junction smoothing for oversized starts");
+                warnBudget(WARNED_VACUUM_BUDGET, start, "VACUUM", "using jigsaw junction smoothing for oversized starts", log);
                 continue;
             }
             targetAnchors.forEach((column, anchor) -> anchors.merge(column, anchor, SurfaceFitting::preferredVacuumAnchor));

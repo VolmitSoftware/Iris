@@ -36,7 +36,7 @@ import java.util.Set;
 public final class ObjectLocating implements ObjectsAt {
     @Override
     public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
-        return ObjectModule.placing(engine(world)).guess(chunkX, chunkZ);
+        return ObjectModule.placing(engine(world), world.log()).guess(chunkX, chunkZ);
     }
 
     @Override

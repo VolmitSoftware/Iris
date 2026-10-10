@@ -24,6 +24,7 @@ import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import com.volmit.ModuleLog;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
@@ -48,16 +49,22 @@ public final class BiomeDecorators {
     private static final long INDEX_SEED_FACTOR = 0xC2B2AE3D27D4EB4FL;
 
     private final Engine engine;
+    private final ModuleLog log;
     private final Map<DecorantSettings, Map<DecorationPart, ResolvedDecorator[]>> decorators = new ConcurrentHashMap<>();
     private volatile Double busiestBiomeLoad;
 
     /** @param world a world of an Iris engine */
     BiomeDecorators(PackWorld world) {
-        this(IrisPackWorld.of(world).engine());
+        this(IrisPackWorld.of(world).engine(), world.log());
     }
 
     BiomeDecorators(Engine engine) {
+        this(engine, engine.getGeneration().world().log());
+    }
+
+    BiomeDecorators(Engine engine, ModuleLog log) {
         this.engine = engine;
+        this.log = log;
     }
 
     /** The world {@code engine} generates now. */
@@ -68,6 +75,11 @@ public final class BiomeDecorators {
     /** The world's decorators, kept in its state store. */
     public static BiomeDecorators of(PackWorld world) {
         return world.state(BiomeDecorators.class, BiomeDecorators::new);
+    }
+
+    /** The log of the module that decorates, which the decorators write to. */
+    ModuleLog log() {
+        return log;
     }
 
     /** Whether the biome declares any decorator. */
@@ -158,7 +170,7 @@ public final class BiomeDecorators {
             if (decorator == null) {
                 continue;
             }
-            ResolvedDecorator resolved = ResolvedDecorator.of(decorator, engine, decoratorSeed(biomeKey, index));
+            ResolvedDecorator resolved = ResolvedDecorator.of(decorator, engine, decoratorSeed(biomeKey, index), log);
             staging.computeIfAbsent(decorator.partOf(), part -> new ArrayList<>()).add(resolved);
         }
 

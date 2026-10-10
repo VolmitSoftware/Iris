@@ -35,7 +35,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.IrisBlockVector;
@@ -44,6 +43,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 
+import com.volmit.ModuleLog;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,9 +62,11 @@ public class FloatingObjectPlacing {
     private static final IrisObjectRotation ROTATION_NONE = IrisObjectRotation.of(0, 0, 0);
 
     private final Engine engine;
+    private final ModuleLog log;
 
-    public FloatingObjectPlacing(Engine engine) {
+    public FloatingObjectPlacing(Engine engine, ModuleLog log) {
         this.engine = engine;
+        this.log = log;
     }
 
     /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
@@ -74,7 +76,7 @@ public class FloatingObjectPlacing {
         int minX = x << 4;
         int minZ = z << 4;
         RNG chunkRng = new RNG(Cache.key(x, z) + engine.getSeedManager().getMantle() + 0x0FA710BEL);
-        FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(engine.getMantle(), context.getFloatingIslandBoundarySampler());
+        FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(engine.getMantle(), context.getFloatingIslandBoundarySampler(), log);
 
         FloatingIslandSample.clearChunkMemo();
 
@@ -212,7 +214,7 @@ public class FloatingObjectPlacing {
                     }
                 }, null, data);
             } catch (Throwable e) {
-                IrisLogging.reportError(e);
+                log.error("Failed to place a floating object", e);
             }
         }
     }
@@ -297,7 +299,7 @@ public class FloatingObjectPlacing {
                 }
             } catch (Throwable e) {
                 transaction.discard();
-                IrisLogging.reportError(e);
+                log.error("Failed to place an anchored floating object", e);
             }
         }
     }
@@ -399,7 +401,7 @@ public class FloatingObjectPlacing {
                 }
             } catch (Throwable e) {
                 transaction.discard();
-                IrisLogging.reportError(e);
+                log.error("Failed to place an inverted floating object", e);
             }
         }
     }
@@ -559,12 +561,12 @@ public class FloatingObjectPlacing {
                             maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveBottomObjects(target), data, sizeCache, warnedLargeObjects));
                         }
                     } catch (Throwable e) {
-                        IrisLogging.reportError(e);
+                        log.error("Failed to work out the reach of a floating biome's objects", e);
                     }
                 }
             }
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
+            log.error("Failed to work out the reach of the floating biomes' objects", e);
         }
         return maxObjectExtent;
     }
@@ -593,11 +595,11 @@ public class FloatingObjectPlacing {
                     }
                     int reach = ObjectPlacing.calculatePlacementReach(size, placement);
                     if (reach > 128 && warnedLargeObjects.add(objectKey)) {
-                        IrisLogging.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
+                        log.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
                     }
                     radius = Math.max(radius, reach);
                 } catch (Throwable e) {
-                    IrisLogging.reportError(e);
+                    log.error("Failed to size a floating object", e);
                 }
             }
         }

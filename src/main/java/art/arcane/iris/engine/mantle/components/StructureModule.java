@@ -35,6 +35,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
@@ -63,6 +64,8 @@ import com.volmit.world.PackWorld;
 public final class StructureModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
+    private ModuleLog log;
+
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:structure", "Structures", VERSION);
@@ -71,11 +74,12 @@ public final class StructureModule implements IrisModule, ModuleLifecycle {
     @Override
     public void install(StageGraph graph) {
         graph.define(IrisStages.Structure.PLACE).requires(IrisStages.Objects.PLACE).softAfter(IrisStages.Floating.OBJECTS.ref())
-                .reach(StructureModule::reach).run(StructureModule::place);
+                .reach(this::reach).run(StructureModule::place);
     }
 
     @Override
     public void register(FeatureRegistry registry) {
+        log = registry.log();
         registry.registerSettings(StructureSettings.class);
         StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
@@ -95,14 +99,14 @@ public final class StructureModule implements IrisModule, ModuleLifecycle {
 
     private static void place(MantleStageContext context) {
         IrisMantleChunk chunk = IrisMantleChunk.current();
-        placing(chunk.engine()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
+        placing(chunk.engine(), context.log()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
     }
 
-    private static int reach(PackSettings settings) {
-        return placing(IrisPackSettings.of(settings).engine()).reach();
+    private int reach(PackSettings settings) {
+        return placing(IrisPackSettings.of(settings).engine(), log).reach();
     }
 
-    private static StructurePlacing placing(Engine engine) {
-        return engine.getGeneration().state(StructurePlacing.class, StructurePlacing::new);
+    private static StructurePlacing placing(Engine engine, ModuleLog log) {
+        return engine.getGeneration().state(StructurePlacing.class, generating -> new StructurePlacing(generating, log));
     }
 }

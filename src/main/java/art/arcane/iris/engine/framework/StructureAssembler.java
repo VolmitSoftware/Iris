@@ -45,6 +45,7 @@ import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
+import com.volmit.ModuleLog;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,11 +90,11 @@ public final class StructureAssembler {
                 ? this.structure.getMaxSizeChunks() * 16 : 0;
     }
 
-    public static StructureAssembler forData(IrisData data, IrisStructure structure, IrisPosition origin) {
+    public static StructureAssembler forData(IrisData data, IrisStructure structure, IrisPosition origin, ModuleLog log) {
         IrisData activeData = Objects.requireNonNull(data, "Structure assembly data must not be null");
         IrisStructure activeStructure = Objects.requireNonNull(
                 structure, "Structure assembly structure must not be null");
-        return forCompilation(StructureGraphCatalog.compile(activeData, activeStructure), origin);
+        return forCompilation(StructureGraphCatalog.compile(activeData, activeStructure, log), origin);
     }
 
     public static StructureAssembler forResolver(StructureGraphResolver resolver, IrisStructure structure,

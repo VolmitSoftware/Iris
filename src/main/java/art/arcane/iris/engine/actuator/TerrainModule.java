@@ -55,6 +55,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleLog;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
@@ -103,7 +104,8 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
 
     private static void shape(ChunkStageContext context) {
         IrisChunk chunk = IrisChunk.current();
-        chunk.state(TerrainShaper.class, TerrainShaper::new).shape(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.context());
+        ModuleLog log = context.log();
+        chunk.state(TerrainShaper.class, generating -> new TerrainShaper(generating, log)).shape(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.context());
     }
 
     /** What shaping terrain keeps for one engine runtime: the terrain stream's random. */
@@ -116,8 +118,8 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
         private final TerrainOres ores;
         private final RNG rng;
 
-        TerrainShaper(Engine engine) {
-            this(engine, TerrainPalettes.of(engine), BiomeLayers.of(engine), TerrainOres.of(engine));
+        TerrainShaper(Engine engine, ModuleLog log) {
+            this(engine, TerrainPalettes.of(engine), BiomeLayers.of(engine, log), TerrainOres.of(engine));
         }
 
         TerrainShaper(Engine engine, TerrainPalettes palettes, BiomeLayers layers, TerrainOres ores) {

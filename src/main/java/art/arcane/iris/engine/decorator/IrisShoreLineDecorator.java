@@ -50,7 +50,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
         }
 
         RNG rng = getRNG(realX, realZ);
-        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ, decorators.log());
 
         if (decorator == null) {
             return;

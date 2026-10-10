@@ -22,11 +22,11 @@ import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.ModuleLog;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockSupport;
 import org.bukkit.block.data.BlockData;
@@ -68,7 +68,7 @@ final class DecoratorCore {
     }
 
     /** The decorator of {@code bucket} that decorates the column, drawing from {@code colRng} to choose between those whose chance noise passes. */
-    static ResolvedDecorator pickDecorator(ResolvedDecorator[] bucket, RNG colRng, double realX, double realZ) {
+    static ResolvedDecorator pickDecorator(ResolvedDecorator[] bucket, RNG colRng, double realX, double realZ, ModuleLog log) {
         ResolvedDecorator picked = null;
         int count = 0;
 
@@ -81,7 +81,7 @@ final class DecoratorCore {
                     }
                 }
             } catch (Throwable e) {
-                IrisLogging.reportError(e);
+                log.error("A decorator failed to pick for the column", e);
             }
         }
 
@@ -99,7 +99,7 @@ final class DecoratorCore {
     static void placeSurfaceSingle(ResolvedDecorator decorator,
                                    int x, int z, int realX, int height, int realZ,
                                    Hunk<PlatformBlockState> data,
-                                   boolean underwater, boolean caveSkipFluid, EngineMantle mantle) {
+                                   boolean underwater, boolean caveSkipFluid, EngineMantle mantle, ModuleLog log) {
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
@@ -140,7 +140,7 @@ final class DecoratorCore {
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, upper);
             } catch (Throwable e) {
-                IrisLogging.reportError(e);
+                log.error("Failed to place a two-block plant", e);
             }
             return;
         }
@@ -291,7 +291,7 @@ final class DecoratorCore {
 
     static void placeFloatingSimple(ResolvedDecorator decorator,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data) {
+                                    int height, int max, Hunk<PlatformBlockState> data, ModuleLog log) {
         PlatformBlockState bd = decorator.pickBlock(realX, realZ);
         if (bd == null) {
             return;
@@ -311,7 +311,7 @@ final class DecoratorCore {
                 data.set(xf, lowerY, zf, lower);
                 data.set(xf, upperY, zf, upper);
             } catch (Throwable e) {
-                IrisLogging.reportError(e);
+                log.error("Failed to place a two-block plant", e);
             }
             return;
         }

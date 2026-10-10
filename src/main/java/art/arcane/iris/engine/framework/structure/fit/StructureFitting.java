@@ -90,7 +90,7 @@ public final class StructureFitting {
 
         private void prepare() {
             vacuumFoundations = SurfaceFitting.prepareSurfaceStructures(blocks, area, starts, surfaceHeight,
-                    SurfaceFitting.MAX_SURFACE_TEMPLATE_CELLS);
+                    SurfaceFitting.MAX_SURFACE_TEMPLATE_CELLS, fit.log());
             TerrainIntegration.prepareTerrain(blocks, area, starts, fit.seed(), this::naturalBlock, this::paletteBlock);
             RigidSupport.bridgeRigidPieceSupport(blocks, area, starts);
         }

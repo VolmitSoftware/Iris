@@ -39,8 +39,10 @@ import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppressio
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.iris.core.modules.IrisModuleHost;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 import java.util.ArrayList;
@@ -509,14 +511,14 @@ public final class IrisStructureLocator {
             throw new IllegalStateException("Iris structure placement references missing structure '"
                     + selectedKey + "'");
         }
-        StructureGraphCompilation compilation = StructureGraphCatalog.compile(engine.getData(), structure);
+        StructureGraphCompilation compilation = StructureGraphCatalog.compile(engine.getData(), structure, IrisModuleHost.hostLog());
         if (!compilation.isAssemblyViable()) {
             throw new IllegalStateException("Iris structure '" + selectedKey
                     + "' has no runtime-viable assembly graph");
         }
 
         StructureAssembler assembler = StructureAssembler.forData(
-                engine.getData(), structure, new IrisPosition(originX, baseY, originZ));
+                engine.getData(), structure, new IrisPosition(originX, baseY, originZ), IrisModuleHost.hostLog());
         StructureAssemblyResult assembly = assembler.assemble(rng);
         if (!requirePlacementOutput(placement, selectedKey, cx, cz,
                 assembly.hasOutput(), "runtime assembly produced " + assembly.status() + ": " + assembly.detail())) {
@@ -1118,17 +1120,18 @@ public final class IrisStructureLocator {
 
     private static PlacementIndex build(Engine engine) {
         IrisData data = engine.getData();
+        ModuleLog log = IrisModuleHost.hostLog();
         Set<String> loadKeys = new LinkedHashSet<>();
         Set<String> normalizedLoadKeys = new LinkedHashSet<>();
         Set<String> vanillaAliases = new LinkedHashSet<>();
         Set<String> suppressedVanillaSources = new LinkedHashSet<>();
         List<IrisStructurePlacement> placements = new ArrayList<>();
-        collect(engine.getDimension().getStructures(), data, loadKeys, normalizedLoadKeys, vanillaAliases,
+        collect(engine.getDimension().getStructures(), data, log, loadKeys, normalizedLoadKeys, vanillaAliases,
                 suppressedVanillaSources, placements, true);
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         if (regions != null) {
             for (IrisRegion region : regions) {
-                collect(region == null ? null : region.getStructures(), data,
+                collect(region == null ? null : region.getStructures(), data, log,
                         loadKeys, normalizedLoadKeys, vanillaAliases,
                         suppressedVanillaSources, placements, false);
             }
@@ -1136,7 +1139,7 @@ public final class IrisStructureLocator {
         KList<IrisBiome> biomes = engine.getDimension().getReachableBiomes(engine);
         if (biomes != null) {
             for (IrisBiome biome : biomes) {
-                collect(biome == null ? null : biome.getStructures(), data,
+                collect(biome == null ? null : biome.getStructures(), data, log,
                         loadKeys, normalizedLoadKeys, vanillaAliases,
                         suppressedVanillaSources, placements, false);
             }
@@ -1165,7 +1168,7 @@ public final class IrisStructureLocator {
         return Collections.unmodifiableSet(nativeKeys);
     }
 
-    private static void collect(KList<IrisStructurePlacement> source, IrisData data, Set<String> loadKeys,
+    private static void collect(KList<IrisStructurePlacement> source, IrisData data, ModuleLog log, Set<String> loadKeys,
                                 Set<String> normalizedLoadKeys, Set<String> vanillaAliases,
                                 Set<String> suppressedVanillaSources,
                                 List<IrisStructurePlacement> placements, boolean allowNativeSuppression) {
@@ -1230,7 +1233,7 @@ public final class IrisStructureLocator {
                         throw new IllegalStateException("REPLACE_SOURCE structure '" + structureKey
                                 + "' must declare a valid namespaced vanillaSource");
                     }
-                    if (!StructureGraphCatalog.guaranteesRuntimeOutput(data, structure)) {
+                    if (!StructureGraphCatalog.guaranteesRuntimeOutput(data, structure, log)) {
                         throw new IllegalStateException("REPLACE_SOURCE structure '" + structureKey
                                 + "' is not runtime-viable; native generation will not be used as a fallback");
                     }

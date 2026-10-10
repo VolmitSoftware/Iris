@@ -27,6 +27,7 @@ import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.jetbrains.annotations.Nullable;
@@ -39,13 +40,15 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
     private final FloatingIslandBoundarySampler boundarySampler;
     private final Long2ObjectOpenHashMap<FloatingIslandSample> sampleCache;
     private final LongOpenHashSet resolvedSamples;
+    private final ModuleLog log;
 
-    FloatingIslandSampleResolver(EngineMantle engineMantle, FloatingIslandBoundarySampler boundarySampler) {
+    FloatingIslandSampleResolver(EngineMantle engineMantle, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
         this.data = engineMantle.getData();
         this.engine = engineMantle.getEngine();
         this.chunkHeight = engine.getHeight();
         this.baseSeed = engine.getSeedManager().getTerrain() ^ FloatingIslands.FLOATING_BASE_SEED_SALT;
         this.boundarySampler = boundarySampler;
+        this.log = log;
         this.sampleCache = new Long2ObjectOpenHashMap<>();
         this.resolvedSamples = new LongOpenHashSet();
     }
@@ -61,7 +64,7 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
             resolvedSamples.add(key);
             return null;
         }
-        FloatingIslandSample sample = FloatingIslandSample.sample(parent, x, z, chunkHeight, baseSeed, data, engine, boundarySampler);
+        FloatingIslandSample sample = FloatingIslandSample.sample(parent, x, z, chunkHeight, baseSeed, data, engine, boundarySampler, log);
         resolvedSamples.add(key);
         if (sample != null) {
             sampleCache.put(key, sample);

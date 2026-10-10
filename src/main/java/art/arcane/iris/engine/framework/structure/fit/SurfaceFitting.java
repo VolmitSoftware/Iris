@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
-import com.volmit.vanilla.StructureStep;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.world.BlockPosition;
@@ -114,8 +114,8 @@ final class SurfaceFitting {
         }
     }
 
-    static boolean shouldPrepareSurfaceTerrain(TerrainAdaptation adaptation, StructureStep step) {
-        return step == StructureStep.SURFACE_STRUCTURES
+    static boolean shouldPrepareSurfaceTerrain(TerrainAdaptation adaptation, DecorationStep step) {
+        return step == DecorationStep.SURFACE_STRUCTURES
                 && (adaptation == TerrainAdaptation.BEARD_THIN || adaptation == TerrainAdaptation.BEARD_BOX);
     }
 

@@ -23,8 +23,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.NativeFeatureGenerationPolicy;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationStep;
-import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
 import art.arcane.iris.util.project.context.IrisContext;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -49,6 +47,7 @@ import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -172,23 +171,23 @@ final class ModdedImportedFeatureStage {
     }
 
     private void build(Engine engine, long generation) {
-        IrisImportedFeatureControl control;
+        boolean enabled;
         try {
-            control = NativeFeatureGenerationPolicy.control(engine);
+            enabled = NativeFeatureGenerationPolicy.isEnabled(engine);
         } catch (RuntimeException error) {
             ModdedIrisLog.error("Iris could not read importedFeatures for this dimension; features off: {}",
                     error.toString());
             markInert(generation);
             return;
         }
-        if (!control.shouldGenerateFeatures()) {
+        if (!enabled) {
             markInert(generation);
             return;
         }
         FeatureTable built;
         try (GenerationSessionLease lease = engine.acquireGenerationLease("modded_imported_features");
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
-            built = buildTable(engine, control, generation);
+            built = buildTable(engine, generation);
         } catch (Throwable error) {
             ModdedIrisLog.error("Iris importedFeatures is off for {}: feature table construction failed: {}",
                     dimensionKey(engine), error.toString());
@@ -214,7 +213,7 @@ final class ModdedImportedFeatureStage {
         inertGeneration = generation;
     }
 
-    private FeatureTable buildTable(Engine engine, IrisImportedFeatureControl control, long generation) {
+    private FeatureTable buildTable(Engine engine, long generation) {
         // Registry-ordered biome list. FeatureSorter's cycle detection walks it, so an unordered list makes
         // detection depend on JVM hash order and turns a real cycle into an intermittent one.
         List<Holder<Biome>> biomes = biomeSource.orderedPossibleBiomes();
@@ -248,9 +247,17 @@ final class ModdedImportedFeatureStage {
                     dimensionKey(engine), message);
             return null;
         }
-        boolean filtered = control.getDisabled() != null && !control.getDisabled().isEmpty();
-        return new FeatureTable(generation, control, List.copyOf(biomes), Set.copyOf(biomes),
-                Map.copyOf(byKey), steps, Map.copyOf(derivatives), filtered);
+        return new FeatureTable(generation, List.copyOf(biomes), Set.copyOf(biomes),
+                Map.copyOf(byKey), steps, Map.copyOf(derivatives), generatedSteps(engine, steps.size()));
+    }
+
+    /** The decoration steps whose features generate, by the platform's step index. */
+    private static BitSet generatedSteps(Engine engine, int stepCount) {
+        BitSet generated = new BitSet(stepCount);
+        for (int stepIndex = 0; stepIndex < stepCount; stepIndex++) {
+            generated.set(stepIndex, NativeFeatureGenerationPolicy.shouldGenerateStep(engine, stepIndex));
+        }
+        return generated;
     }
 
     /**
@@ -324,10 +331,10 @@ final class ModdedImportedFeatureStage {
 
         try {
             for (int stepIndex = 0; stepIndex < steps.size(); stepIndex++) {
-                if (!table.control().shouldGenerateStep(IrisDecorationStep.byOrdinal(stepIndex))) {
+                if (!table.generatedSteps().get(stepIndex)) {
                     continue;
                 }
-                placeStep(level, table, steps.get(stepIndex), featureRegistry, chunkBiomes, owner,
+                placeStep(level, engine, table, steps.get(stepIndex), featureRegistry, chunkBiomes, owner,
                         random, decorationSeed, origin, stepIndex);
             }
         } catch (Throwable error) {
@@ -340,7 +347,7 @@ final class ModdedImportedFeatureStage {
         WorldCheckFeaturePlacement.recordPlacementPass();
     }
 
-    private void placeStep(WorldGenLevel level, FeatureTable table, FeatureSorter.StepFeatureData stepData,
+    private void placeStep(WorldGenLevel level, Engine engine, FeatureTable table, FeatureSorter.StepFeatureData stepData,
                            Registry<PlacedFeature> featureRegistry, Set<Holder<Biome>> chunkBiomes,
                            IrisModdedChunkGenerator owner, WorldgenRandom random, long decorationSeed,
                            BlockPos origin, int stepIndex) {
@@ -363,11 +370,9 @@ final class ModdedImportedFeatureStage {
         Arrays.sort(featureIndices);
         for (int globalIndex : featureIndices) {
             PlacedFeature feature = stepData.features().get(globalIndex);
-            if (table.filtered()) {
-                Identifier featureId = featureRegistry.getKey(feature);
-                if (featureId != null && !table.control().shouldGenerate(featureId.toString())) {
-                    continue;
-                }
+            Identifier featureId = featureRegistry.getKey(feature);
+            if (featureId != null && !NativeFeatureGenerationPolicy.shouldGenerate(engine, featureId.toString())) {
+                continue;
             }
             random.setFeatureSeed(decorationSeed, globalIndex, stepIndex);
             level.setCurrentlyGenerating(() -> describeFeature(featureRegistry, feature));
@@ -423,10 +428,10 @@ final class ModdedImportedFeatureStage {
         return identifier == null ? null : identifier.toString().toLowerCase(Locale.ROOT);
     }
 
-    private record FeatureTable(long generation, IrisImportedFeatureControl control,
+    private record FeatureTable(long generation,
                                 List<Holder<Biome>> biomes, Set<Holder<Biome>> biomeSet,
                                 Map<String, Holder<Biome>> byKey,
                                 List<FeatureSorter.StepFeatureData> steps,
-                                Map<String, Holder<Biome>> derivatives, boolean filtered) {
+                                Map<String, Holder<Biome>> derivatives, BitSet generatedSteps) {
     }
 }

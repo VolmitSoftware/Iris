@@ -33,6 +33,7 @@ import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
+import com.volmit.service.VanillaFeatures;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
@@ -82,6 +83,14 @@ public final class ModuleServices {
         return engine.getGeneration().state(CaveBiomeAnswers.class, owner -> firstProvider(owner, CaveBiomes.class)
                 .map(provider -> new CaveBiomeAnswers(owner, provider.service(), provider.world()))
                 .orElseGet(() -> new CaveBiomeAnswers(owner, null, owner.getGeneration().world())));
+    }
+
+    /** What the modules say about the platform's own placed features in the engine's world, kept for the world. */
+    public static VanillaFeatureAnswers vanillaFeatures(Engine engine) {
+        return engine.getGeneration().state(VanillaFeatureAnswers.class, owner -> new VanillaFeatureAnswers(
+                providers(owner, VanillaFeatures.class).stream()
+                        .map(provider -> new VanillaFeatureAnswers.Provider(provider.service(), provider.world()))
+                        .toList()));
     }
 
     /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */

@@ -18,102 +18,163 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.ModuleSettings;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.decoration.IrisDecorationStep;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
-import art.arcane.iris.engine.object.decoration.NativeFeatureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
+import com.volmit.FeatureRegistry;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
+import com.volmit.host.LoadedPack;
+import com.volmit.resource.ResourceId;
+import com.volmit.service.VanillaFeatures;
+import com.volmit.stage.StageGraph;
+import com.volmit.vanilla.DecorationStep;
+import com.volmit.world.PackWorld;
+import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/** The platform's placed features as the pack's modules decide them through {@link VanillaFeatures}, kept per world. */
 public class NativeFeatureGenerationPolicyTest {
-    private static Engine engineWith(IrisDimension dimension) {
-        Engine engine = mock(Engine.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        return engine;
+    private static final int UNDERGROUND_ORES = DecorationStep.UNDERGROUND_ORES.ordinal();
+    private static final int VEGETAL_DECORATION = DecorationStep.VEGETAL_DECORATION.ordinal();
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private final List<LoadedPack> packs = new ArrayList<>();
+
+    @After
+    public void closePacks() {
+        packs.forEach(LoadedPack::close);
     }
 
     @Test
-    public void dimensionDefaultsToFeaturesOff() {
-        Engine engine = engineWith(new IrisDimension());
+    public void aDimensionWithoutImportedFeaturesRunsNone() throws IOException {
+        Engine engine = engine(ModuleSettings.NONE, List.of());
 
         assertFalse(NativeFeatureGenerationPolicy.isEnabled(engine));
-        assertFalse(NativeFeatureGenerationPolicy.shouldGenerateStep(engine,
-                IrisDecorationStep.UNDERGROUND_ORES));
-        assertEquals(NativeFeatureGenerationStatus.FEATURES_DISABLED,
-                NativeFeatureGenerationPolicy.resolve(engine, "minecraft:ore_diamond",
-                        IrisDecorationStep.UNDERGROUND_ORES));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerateStep(engine, UNDERGROUND_ORES));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:ore_diamond"));
     }
 
     @Test
-    public void enabledDimensionResolvesThroughItsControl() {
-        KList<String> disabled = new KList<>();
-        disabled.add("minecraft:trees");
-        IrisDimension dimension = new IrisDimension();
-        dimension.setImportedFeatures(new IrisImportedFeatureControl()
-                .setEnabled(true)
-                .setDisabled(disabled));
-        Engine engine = engineWith(dimension);
+    public void theDimensionsImportedFeaturesDecideThroughTheBuiltInModule() throws IOException {
+        Engine engine = engine(BuiltInPack.settings(TestSettings.with(new ImportedFeaturesSettings(),
+                "enabled", true, "disabled", List.of("minecraft:trees"), "disabledSteps", List.of(DecorationStep.LAKES))), List.of());
 
         assertTrue(NativeFeatureGenerationPolicy.isEnabled(engine));
-        assertEquals(NativeFeatureGenerationStatus.GENERATE_NATIVE,
-                NativeFeatureGenerationPolicy.resolve(engine, "minecraft:ore_diamond",
-                        IrisDecorationStep.UNDERGROUND_ORES));
-        assertEquals(NativeFeatureGenerationStatus.DISABLED_BY_PACK,
-                NativeFeatureGenerationPolicy.resolve(engine, "minecraft:trees_plains",
-                        IrisDecorationStep.VEGETAL_DECORATION));
+        assertTrue(NativeFeatureGenerationPolicy.shouldGenerateStep(engine, UNDERGROUND_ORES));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerateStep(engine, DecorationStep.LAKES.ordinal()));
+        assertTrue(NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:ore_diamond"));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:trees_plains"));
+        assertFalse("a blank key is no feature", NativeFeatureGenerationPolicy.shouldGenerate(engine, " "));
     }
 
     @Test
-    public void missingEngineOrDimensionFailsLoudly() {
-        assertTrue(assertThrows(NullPointerException.class,
-                () -> NativeFeatureGenerationPolicy.control(null))
-                .getMessage().contains("requires an engine"));
-        assertTrue(assertThrows(NullPointerException.class,
-                () -> NativeFeatureGenerationPolicy.control(engineWith(null)))
-                .getMessage().contains("requires a bound dimension"));
-    }
+    public void aStepPastTheOnesTheApiNamesGeneratesUnlessTheStepsWereNarrowed() throws IOException {
+        Engine open = engine(BuiltInPack.settings(TestSettings.with(new ImportedFeaturesSettings(), "enabled", true)), List.of());
+        Engine narrowed = engine(BuiltInPack.settings(TestSettings.with(new ImportedFeaturesSettings(),
+                "enabled", true, "steps", List.of(DecorationStep.UNDERGROUND_ORES))), List.of());
+        int newerStep = DecorationStep.values().length;
 
-    /**
-     * The field initializer gives every dimension a control block, but an explicit
-     * {@code "importedFeatures": null} in dimension JSON overwrites it - Gson assigns what the document says. This
-     * policy is consulted per feature decision on the generation path, so a stray null must disable native features,
-     * not fail the chunk.
-     */
-    @Test
-    public void nullControlBlockDisablesNativeFeaturesInsteadOfFailingGeneration() {
-        IrisDimension dimension = new IrisDimension();
-        dimension.setImportedFeatures(null);
-        Engine engine = engineWith(dimension);
-
-        assertFalse(NativeFeatureGenerationPolicy.isEnabled(engine));
-        assertFalse(NativeFeatureGenerationPolicy.shouldGenerateStep(engine, IrisDecorationStep.VEGETAL_DECORATION));
-        assertEquals(NativeFeatureGenerationStatus.FEATURES_DISABLED,
-                NativeFeatureGenerationPolicy.resolve(engine, "minecraft:ore_diamond",
-                        IrisDecorationStep.UNDERGROUND_ORES));
+        assertTrue(NativeFeatureGenerationPolicy.shouldGenerateStep(open, newerStep));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerateStep(narrowed, newerStep));
     }
 
     @Test
-    public void generationStatusMessagesAreSharedAcrossPlatforms() {
-        assertEquals("Native feature minecraft:ore_diamond is disabled by this dimension's"
-                        + " importedFeatures.disabled list.",
-                NativeFeatureGenerationPolicy.generationStatusMessage("minecraft:ore_diamond",
-                        NativeFeatureGenerationStatus.DISABLED_BY_PACK));
-        assertEquals("Native feature minecraft:ore_diamond does not generate because this dimension's"
-                        + " importedFeatures.enabled is false.",
-                NativeFeatureGenerationPolicy.generationStatusMessage("minecraft:ore_diamond",
-                        NativeFeatureGenerationStatus.FEATURES_DISABLED));
-        assertEquals("Native feature minecraft:ore_diamond does not generate because its decoration step is"
-                        + " excluded by importedFeatures.",
-                NativeFeatureGenerationPolicy.generationStatusMessage("minecraft:ore_diamond",
-                        NativeFeatureGenerationStatus.STEP_DISABLED));
+    public void aPackModuleMayTurnFeaturesOnAndAnyModuleMayRefuseAStepOrAFeature() throws IOException {
+        VanillaFeatures packModule = new VanillaFeatures() {
+            @Override
+            public boolean generates(PackWorld world) {
+                return true;
+            }
+
+            @Override
+            public boolean generatesStep(PackWorld world, Optional<DecorationStep> step) {
+                return !step.equals(Optional.of(DecorationStep.VEGETAL_DECORATION));
+            }
+
+            @Override
+            public boolean generatesFeature(PackWorld world, ResourceId feature) {
+                return !feature.path().startsWith("ore_");
+            }
+        };
+        Engine engine = engine(BuiltInPack.settings(TestSettings.with(new ImportedFeaturesSettings(),
+                "disabled", List.of("minecraft:spring"))), List.of(new ProviderModule(packModule)));
+
+        assertTrue(NativeFeatureGenerationPolicy.isEnabled(engine));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerateStep(engine, VEGETAL_DECORATION));
+        assertTrue(NativeFeatureGenerationPolicy.shouldGenerateStep(engine, UNDERGROUND_ORES));
+        assertFalse(NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:ore_diamond"));
+        assertFalse("the dimension's own list still applies", NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:spring_water"));
+        assertTrue(NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:trees_plains"));
+    }
+
+    @Test
+    public void eachStepAndFeatureIsAskedOncePerWorld() throws IOException {
+        AtomicInteger steps = new AtomicInteger();
+        AtomicInteger features = new AtomicInteger();
+        VanillaFeatures counting = new VanillaFeatures() {
+            @Override
+            public boolean generates(PackWorld world) {
+                return true;
+            }
+
+            @Override
+            public boolean generatesStep(PackWorld world, Optional<DecorationStep> step) {
+                steps.incrementAndGet();
+                return true;
+            }
+
+            @Override
+            public boolean generatesFeature(PackWorld world, ResourceId feature) {
+                features.incrementAndGet();
+                return true;
+            }
+        };
+        Engine engine = engine(ModuleSettings.NONE, List.of(new ProviderModule(counting)));
+
+        for (int chunk = 0; chunk < 3; chunk++) {
+            NativeFeatureGenerationPolicy.shouldGenerateStep(engine, UNDERGROUND_ORES);
+            NativeFeatureGenerationPolicy.shouldGenerate(engine, "minecraft:ore_diamond");
+        }
+
+        assertEquals(1, steps.get());
+        assertEquals(1, features.get());
+    }
+
+    /** The platforms convert their decoration steps by index, so a drift here silently mislabels every step gate. */
+    @Test
+    public void decorationStepsAreInTheOrderOfTheVanillaTable() {
+        String[] vanilla = {
+                "raw_generation", "lakes", "local_modifications", "underground_structures",
+                "surface_structures", "strongholds", "underground_ores", "underground_decoration",
+                "fluid_springs", "vegetal_decoration", "top_layer_modification"
+        };
+        assertEquals(vanilla.length, DecorationStep.values().length);
+        for (int index = 0; index < vanilla.length; index++) {
+            assertEquals(vanilla[index], DecorationStep.values()[index].name().toLowerCase(Locale.ROOT));
+        }
     }
 
     /**
@@ -139,5 +200,38 @@ public class NativeFeatureGenerationPolicyTest {
         IrisBiome modded = new IrisBiome();
         modded.setDerivative("somemod:alien_waste");
         assertEquals("somemod:alien_waste", modded.getVanillaDerivativeKey());
+    }
+
+    /** An engine whose dimension declares {@code dimensionSettings}, its pack loading the built-ins and {@code packModules}. */
+    private Engine engine(ModuleSettings dimensionSettings, List<IrisModule> packModules) throws IOException {
+        IrisData data = mock(IrisData.class);
+        Engine engine = mock(Engine.class);
+        IrisDimension dimension = mock(IrisDimension.class);
+        packs.add(BuiltInPack.serveWithResources(data, folder, packModules));
+        when(engine.getData()).thenReturn(data);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
+        when(dimension.getLoadKey()).thenReturn("overworld");
+        when(dimension.getModuleSettings()).thenReturn(dimensionSettings);
+        when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
+        when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
+        return engine;
+    }
+
+    /** A pack module whose only part is a vanilla features provider. */
+    private record ProviderModule(VanillaFeatures provider) implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("test:features", "Features", "1");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+        }
+
+        @Override
+        public void register(FeatureRegistry registry) {
+            registry.registerService(VanillaFeatures.class, provider);
+        }
     }
 }

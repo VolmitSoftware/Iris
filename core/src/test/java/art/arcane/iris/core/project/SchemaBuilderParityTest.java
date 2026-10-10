@@ -76,6 +76,7 @@ import com.volmit.host.ModuleHost;
 import com.volmit.host.schema.PackSchema;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
+import com.volmit.vanilla.DecorationStep;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,8 +88,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
@@ -273,6 +276,29 @@ public class SchemaBuilderParityTest {
         assertEquals("enum-native-jigsaw-pool", definitionKey(jigsaw.getJSONObject("startPool")));
         assertEquals(List.of("minecraft:village/plains/town_centers"),
                 values(definitions.getJSONObject("enum-native-jigsaw-pool").getJSONArray("enum")));
+    }
+
+    /** {@code importedFeatures} comes from {@code iris:vanilla-features}; its steps keep the descriptions studio showed. */
+    @Test
+    public void importedFeaturesListTheDecorationStepsWithTheirDescriptions() throws IOException {
+        JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData()).construct();
+        JSONObject definitions = schema.getJSONObject("definitions");
+        JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("importedFeatures")))
+                .getJSONObject("properties");
+
+        assertEquals("boolean", settings.getJSONObject("enabled").getString("type"));
+        assertEquals(1, settings.getJSONObject("disabled").getInt("minItems"));
+        for (String field : List.of("steps", "disabledSteps")) {
+            JSONObject items = settings.getJSONObject(field).getJSONObject("items");
+            JSONObject steps = items.has("$ref") ? definitions.getJSONObject(definitionKey(items)) : items;
+            assertEquals(1, settings.getJSONObject(field).getInt("minItems"));
+            assertEquals(Arrays.stream(DecorationStep.values()).map(step -> "\"" + step.name() + "\"").collect(Collectors.joining(",")),
+                    steps.getJSONArray("enum").join(","));
+            JSONArray descriptions = steps.getJSONArray("enumDescriptions");
+            for (int index = 0; index < descriptions.length(); index++) {
+                assertFalse(field + " " + index, descriptions.getString(index).isBlank());
+            }
+        }
     }
 
     @Test

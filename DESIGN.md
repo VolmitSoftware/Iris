@@ -502,6 +502,8 @@ that `column` works out). The sampler also gives the dimension's
 above it. The mantle's `blocks()` are the blocks placements wrote into the mantle for chunks to take over (objects,
 structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` does. They are the host's layer, so they
 need no registration, and stages only read them; placements keep writing blocks through `PlacementAccess.set`.
+A mantle stage's `TerrainSampler` covers the same margin (at least 16 blocks, more when its reach is larger): a carver blends
+the profiles of the columns around its chunk, so it reads their heights and biomes though it writes only the mantle.
 `ChunkRunner.generate(inputs, seed, timings)` reports how long each stage that ran took, so the host times modules
 instead of modules timing themselves.
 

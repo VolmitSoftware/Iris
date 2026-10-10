@@ -127,7 +127,7 @@ running Iris is the pack publisher's responsibility.
   every chunk within that stage's reach plus the reach of every later stage of a chunk, each chunk once,
   before the next stage and before that chunk generates, with the mantle widened by the stage's reach.
   Give chunk stages that chunk's mantle; `ChunkRunner` makes it read-only. Give chunk stages a `TerrainSampler` over the
-  chunk and the 16 blocks around it.
+  chunk and the 16 blocks around it, and mantle stages one over the chunk and the larger of their reach and 16 blocks.
 - Serve `Mantle.blocks()` in every invocation: the blocks placements wrote into the mantle, read-only, none where the
   dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
   the host's own identity of it (a custom block of a content plugin stays one).

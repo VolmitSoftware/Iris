@@ -27,6 +27,8 @@ public enum Reference {
     POTION_EFFECT,
     /** An enchantment, such as {@code minecraft:sharpness}. */
     ENCHANTMENT,
+    /** A mob of another plugin or content provider, such as {@code mythicmobs:skeleton_king}. */
+    SPECIAL_ENTITY,
     /** A biome of the pack. */
     PACK_BIOME,
     /** A region of the pack. */

@@ -178,7 +178,9 @@ List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in
 ```
 
 - A file's key is its path below the folder without `.json` (`towers/north`), and its id is
-  `<pack namespace>:<key>`, like every pack resource. JSON keys inside the file are the class's field names.
+  `<pack namespace>:<key>`, like every pack resource (`resources.idOf("towers/north")` makes it, in lower case with
+  characters outside `[a-z0-9_./-]` replaced by `_`: `ResourceId.ofPackKey`). JSON keys inside the file are the class's
+  field names.
 - The kind's id follows the module id. The folder is one folder name directly below the pack root; the module
   chooses it, so a kind that replaces one of Iris's own keeps the folder and file format packs already have.
 - One folder holds one kind and one class backs one kind: `PackResources` finds resources by type. Two kinds

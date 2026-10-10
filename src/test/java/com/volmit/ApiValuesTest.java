@@ -20,6 +20,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ApiValuesTest {
     @Test
+    void aPackKeyBecomesTheIdOfItsResource() {
+        assertEquals(ResourceId.parse("overworld:dungeon/chest"), ResourceId.ofPackKey("overworld", "dungeon/chest"));
+        assertEquals(ResourceId.parse("overworld:dungeon/chest_1"), ResourceId.ofPackKey("overworld", "Dungeon/Chest 1"));
+        assertEquals(ResourceId.parse("test:a/b"), new com.volmit.support.EmptyResources().idOf("a/b"));
+    }
+
+    @Test
     void idsAndStateKeysAreExplicitCanonicalImmutableValues() {
         for (String invalid : List.of("stone", "Minecraft:stone", "a:b:c", "a:", ":a")) {
             assertThrows(IllegalArgumentException.class, () -> ResourceId.parse(invalid));

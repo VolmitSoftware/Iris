@@ -175,7 +175,7 @@ public void register(FeatureRegistry registry) {
 }
 
 // anywhere the pack's resources are at hand, such as a stage or a validator
-Keep keep = resources.require(KEEPS.key(new ResourceId(resources.packId().namespace(), "towers/north")));
+Keep keep = resources.require(KEEPS.key(resources.idOf("towers/north")));
 List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in id order
 ```
 

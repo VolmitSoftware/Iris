@@ -387,8 +387,21 @@ class PackSchemaTest {
         jar.writeInto(pack, "flora.jar");
 
         var failure = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, NO_BUILT_INS));
-        assertTrue(failure.getMessage().contains("Held type pack.flora.Clamp") && failure.getMessage().contains("only built-in modules"),
+        assertTrue(failure.getMessage().contains("Held type pack.flora.Clamp") && failure.getMessage().contains("own jar"),
                 failure.getMessage());
+    }
+
+    @Test
+    void packModulesMayDescribeAHostClassOfAnExposedPackage() {
+        var jar = module("pack.flora.FloraModule", FLORA,
+                "public void register(com.volmit.FeatureRegistry registry) { registry.registerHeldType(com.volmit.example.held.ClampSettings.class); }", NO_STAGES)
+                .compileAgainstHostOf(ClampSettings.class);
+        var pack = pack("held-exposed");
+        jar.writeInto(pack, "flora.jar");
+
+        var schema = LoadedPack.load(pack, NO_BUILT_INS.exposing("com.volmit.example.held")).schema();
+
+        assertEquals("Limits a placement by height", schema.type(ClampSettings.class.getName()).description());
     }
 
     @Test

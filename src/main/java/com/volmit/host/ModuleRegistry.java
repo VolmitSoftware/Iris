@@ -129,9 +129,9 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         Objects.requireNonNull(type, "type");
         requireRegistering("Held type " + type.getName());
-        if (registering.source() != DiscoveredModule.Source.HOST) {
-            throw new IllegalArgumentException("Held type " + type.getName() + " of module " + registering + " is registered by a"
-                    + " pack module; only built-in modules may describe a class that Iris's own classes hold");
+        if (registering.source() != DiscoveredModule.Source.HOST && type.getClassLoader() == registering.module().getClass().getClassLoader()) {
+            throw new IllegalArgumentException("Held type " + type.getName() + " of module " + registering + " is a class of the pack module's"
+                    + " own jar; only a class the host loads, such as one of an exposed package, can be held by Iris's own classes");
         }
         heldTypes.putIfAbsent(type, new HeldTypeRegistration(type, registering));
     }

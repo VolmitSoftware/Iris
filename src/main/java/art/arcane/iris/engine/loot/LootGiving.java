@@ -55,7 +55,7 @@ public final class LootGiving implements Loot {
         IrisObjectPlacement placement = site.container() == null ? null : placementAt(engine, x, relativeY, z);
         if (placement != null) {
             objectLootDefined = objectLootDefined || placement.getLoot().isNotEmpty() || placement.getVanillaLoot().isNotEmpty();
-            Source picked = placementLoot(world, engine).pick(placement, platformState(site), rng, x, worldY, z);
+            Source picked = placementLoot(world, engine).pick(placement.getVanillaLoot(), placement.getLoot(), platformState(site), rng, x, worldY, z);
             if (picked != null) {
                 sources.add(picked);
                 if (placement.isOverrideGlobalLoot()) {

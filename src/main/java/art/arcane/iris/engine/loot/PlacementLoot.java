@@ -21,7 +21,6 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -61,13 +60,15 @@ final class PlacementLoot {
     }
 
     /**
-     * The table the placement gives {@code container}, a storage chest, at the spot {@code x}, {@code worldY},
-     * {@code z}; null when it gives it none.
+     * The table a placement, whose platform tables are {@code platformLoot} and whose pack tables are {@code packLoot},
+     * gives {@code container}, a storage chest, at the spot {@code x}, {@code worldY}, {@code z}; null when it gives
+     * it none.
      */
-    Loot.Source pick(IrisObjectPlacement placement, PlatformBlockState container, RNG rng, int x, int worldY, int z) {
+    Loot.Source pick(List<? extends IObjectLoot> platformLoot, List<? extends IObjectLoot> packLoot, PlatformBlockState container,
+                     RNG rng, int x, int worldY, int z) {
         Candidates candidates = new Candidates(container);
-        add(candidates, placement.getVanillaLoot(), name -> platformSource(name, x, worldY, z));
-        add(candidates, placement.getLoot(), this::packSource);
+        add(candidates, platformLoot, name -> platformSource(name, x, worldY, z));
+        add(candidates, packLoot, this::packSource);
         List<Candidate> pool = candidates.pool();
         Candidate picked = LootResolver.pickWeighted(pool, Candidate::weight, rng);
         return picked == null ? null : picked.source();

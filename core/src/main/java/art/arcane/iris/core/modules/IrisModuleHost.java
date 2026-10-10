@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.actuator.BiomeModule;
 import art.arcane.iris.engine.actuator.DecorantModule;
 import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.loot.LootModule;
@@ -27,7 +26,6 @@ import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.spawn.SpawnModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.modifier.CarveModule;
-import art.arcane.iris.engine.modifier.CustomModule;
 import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.FloatingModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
@@ -72,14 +70,19 @@ public final class IrisModuleHost {
         return Holder.HOST;
     }
 
-    /** The modules every pack loads before its own: Iris's built-in features, placement and the chunk generation every world runs. */
+    /** The modules every pack loads before its own: Iris's own, placement and the chunk generation every world runs. */
     public static List<IrisModule> builtInModules() {
-        return Stream.concat(PlacementModules.all().stream(), generationModules().stream()).toList();
+        return Stream.of(hostModules(), PlacementModules.all(), generationModules()).flatMap(List::stream).toList();
+    }
+
+    /** Modules that are Iris itself, not features: they write the layout's platform biomes and record the platform's custom blocks. A pack never replaces them and the built-ins jar does not hold them. */
+    private static List<IrisModule> hostModules() {
+        return List.of(new BiomeModule(), new CustomModule());
     }
 
     private static List<IrisModule> generationModules() {
-        return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
-                new FloatingModule(), new DepositModule(), new DecorantModule(), new CustomModule(), new LootModule(), new SpawnModule());
+        return List.of(new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
+                new FloatingModule(), new DepositModule(), new DecorantModule(), new LootModule(), new SpawnModule());
     }
 
     /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */

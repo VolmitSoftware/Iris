@@ -36,6 +36,7 @@ import art.arcane.iris.core.structure.authoring.StructureSource;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.core.modules.ModuleVanillaStructures;
+import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
@@ -2593,10 +2594,20 @@ public final class DatapackIngestService {
         }
     }
 
-    private static boolean packDisablesOverrides(IrisData data) {
+    /** Whether a dimension of the pack keeps the platform's structure definitions; a pack whose modules fail to load is skipped. */
+    static boolean packDisablesOverrides(IrisData data) {
         if (data == null || data.getDimensionLoader() == null) {
             return false;
         }
+        try {
+            return dimensionsDisableOverrides(data);
+        } catch (PackModulesException failure) {
+            IrisLogging.error("Datapack ingest skips a pack: %s", failure.getMessage());
+            return false;
+        }
+    }
+
+    private static boolean dimensionsDisableOverrides(IrisData data) {
         for (IrisDimension dimension : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys())) {
             if (dimension == null) {
                 continue;

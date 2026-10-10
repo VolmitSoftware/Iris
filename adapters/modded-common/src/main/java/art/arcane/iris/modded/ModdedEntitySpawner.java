@@ -20,14 +20,10 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.loot.IrisLoot;
+import art.arcane.iris.core.content.ContentEntity;
+import art.arcane.iris.core.content.ContentItem;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -82,8 +78,9 @@ public final class ModdedEntitySpawner {
     private ModdedEntitySpawner() {
     }
 
-    public static Entity spawn(Engine engine, IrisEntity irisEntity, ServerLevel level, int blockX, int blockY, int blockZ, RNG rng) {
-        if (engine == null || irisEntity == null || level == null) {
+    /** Spawns {@code entity}, whose every random choice a module made, at the block; null when it cannot appear. */
+    public static Entity spawn(Engine engine, ContentEntity entity, ServerLevel level, int blockX, int blockY, int blockZ) {
+        if (engine == null || entity == null || level == null) {
             return null;
         }
         if (!chunksSafe(level, blockX >> 4, blockZ >> 4)) {
@@ -93,73 +90,71 @@ public final class ModdedEntitySpawner {
         double x = blockX + 0.5;
         double y = blockY + 0.5;
         double z = blockZ + 0.5;
-        boolean riseEffectActive = irisEntity.isSpawnEffectRiseOutOfGround() && hasPlayersNearby(level, x, y, z);
+        boolean riseEffectActive = entity.riseOutOfGround() && hasPlayersNearby(level, x, y, z);
         int spawnBlockY = riseEffectActive ? blockY - 5 : blockY;
         double spawnY = spawnBlockY + 0.5;
 
-        Entity created = create(irisEntity, level, x, spawnY, z);
+        Entity created = create(entity, level, x, spawnY, z);
         if (created == null) {
             return null;
         }
 
-        if (irisEntity.isSpecialType() && !irisEntity.isApplySettingsToCustomMobAnyways()) {
+        if (entity.isSpecial() && !entity.applySettingsToSpecial()) {
             return created;
         }
 
-        applyConfig(engine, irisEntity, created, level, blockX, spawnBlockY, blockZ, rng, riseEffectActive);
+        applyConfig(engine, entity, created, level, blockX, spawnBlockY, blockZ, riseEffectActive);
         return created;
     }
 
-    private static Entity create(IrisEntity irisEntity, ServerLevel level, double x, double y, double z) {
-        if (irisEntity.isSpecialType()) {
-            return ModdedCustomContentRegistry.spawnMob(level, x, y, z, irisEntity.getSpecialType());
+    private static Entity create(ContentEntity entity, ServerLevel level, double x, double y, double z) {
+        if (entity.isSpecial()) {
+            return ModdedCustomContentRegistry.spawnMob(level, x, y, z, entity.specialType());
         }
 
-        EntityType<?> type = resolveType(irisEntity.getType());
+        EntityType<?> type = resolveType(entity.type());
         if (type == null) {
             return null;
         }
 
-        Entity entity = type.spawn(level, BlockPos.containing(x, y, z), reasonFor(irisEntity.getReason()));
-        if (entity != null) {
-            entity.snapTo(x, y, z, 0F, 0F);
+        Entity created = type.spawn(level, BlockPos.containing(x, y, z), reasonFor(entity.reason()));
+        if (created != null) {
+            created.snapTo(x, y, z, 0F, 0F);
         }
-        return entity;
+        return created;
     }
 
-    private static void applyConfig(Engine engine, IrisEntity irisEntity, Entity entity, ServerLevel level, int blockX, int blockY, int blockZ, RNG rng, boolean riseEffectActive) {
-        String customName = irisEntity.getCustomName();
-        if (customName != null) {
-            entity.setCustomName(Component.literal(colorize(customName)));
-        }
-        entity.setCustomNameVisible(irisEntity.isCustomNameVisible());
-        entity.setGlowingTag(irisEntity.isGlowing());
-        entity.setNoGravity(!irisEntity.isGravity());
-        entity.setInvulnerable(irisEntity.isInvulnerable());
-        entity.setSilent(irisEntity.isSilent());
+    private static void applyConfig(Engine engine, ContentEntity spec, Entity entity, ServerLevel level, int blockX, int blockY, int blockZ, boolean riseEffectActive) {
+        ContentEntity.Flags flags = spec.flags();
+        entity.setCustomName(Component.literal(colorize(spec.customName())));
+        entity.setCustomNameVisible(flags.customNameVisible());
+        entity.setGlowingTag(flags.glowing());
+        entity.setNoGravity(!flags.gravity());
+        entity.setInvulnerable(flags.invulnerable());
+        entity.setSilent(flags.silent());
 
-        boolean persistent = irisEntity.isKeepEntity() || forcePersist();
+        boolean persistent = flags.keepEntity() || forcePersist();
         applyPersistence(entity, persistent);
 
-        applyPassengers(engine, irisEntity, entity, level, blockX, blockY, blockZ, rng);
+        applyPassengers(engine, spec, entity, level, blockX, blockY, blockZ);
 
         if (entity instanceof LivingEntity living) {
-            applyAttributes(irisEntity, living, level, rng);
+            applyAttributes(spec, living, level);
         }
 
-        if (!irisEntity.getLoot().getTables().isEmpty()) {
-            ModdedDeathLoot.bind(engine, entity, irisEntity.getLoot().getTables(), blockX, blockY, blockZ, rng);
+        if (!spec.lootTables().isEmpty()) {
+            ModdedDeathLoot.bind(engine, entity, spec.lootTables(), blockX, blockY, blockZ, spec.lootShuffleSeed());
         }
 
         if (entity instanceof Mob mob) {
-            mob.setNoAi(shouldDisableAi(irisEntity.isAi()));
-            ModdedEntityAwareness.configure(mob, irisEntity.isAware());
-            mob.setCanPickUpLoot(irisEntity.isPickupItems());
-            if (!irisEntity.isRemovable()) {
+            mob.setNoAi(shouldDisableAi(flags.ai()));
+            ModdedEntityAwareness.configure(mob, flags.aware());
+            mob.setCanPickUpLoot(flags.pickupItems());
+            if (!flags.removable()) {
                 mob.setPersistenceRequired();
             }
-            if (irisEntity.getLeashHolder() != null) {
-                Entity holder = spawn(engine, irisEntity.getLeashHolder(), level, blockX, blockY, blockZ, rng.nextParallelRNG(LEASH_RNG_SEED));
+            if (spec.leashHolder() != null) {
+                Entity holder = spawn(engine, spec.leashHolder(), level, blockX, blockY, blockZ);
                 if (holder != null) {
                     mob.setLeashedTo(holder, true);
                 }
@@ -167,56 +162,51 @@ public final class ModdedEntitySpawner {
         }
 
         if (entity instanceof LivingEntity equippable) {
-            applyEquipment(irisEntity, equippable, level, rng);
+            applyEquipment(spec, equippable, level);
         }
 
-        if (irisEntity.isBaby()) {
+        if (flags.baby()) {
             applyBaby(entity);
         }
 
         if (entity instanceof Panda panda) {
-            panda.setMainGene(gene(irisEntity.getPandaMainGene()));
-            panda.setHiddenGene(gene(irisEntity.getPandaHiddenGene()));
+            panda.setMainGene(gene(spec.pandaMainGene()));
+            panda.setHiddenGene(gene(spec.pandaHiddenGene()));
         }
 
         if (entity instanceof Villager villager) {
             ModdedEntityPersistence.configure(villager, true);
         }
 
-        applySpawnEffect(irisEntity.getSpawnEffect(), entity, level);
-        ModdedEntityCommandRunner.run(irisEntity.getRawCommands(), level, blockX, blockY, blockZ);
+        applySpawnEffect(spec.spawnEffect(), entity, level);
+        ModdedEntityCommandRunner.run(spec.commands(), level, blockX, blockY, blockZ);
         if (riseEffectActive && entity instanceof LivingEntity living) {
             startRiseEffect(engine, level, entity, living);
         }
     }
 
-    private static void applyPassengers(Engine engine, IrisEntity irisEntity, Entity entity, ServerLevel level, int blockX, int blockY, int blockZ, RNG rng) {
-        int index = 0;
-        for (IrisEntity passengerEntity : irisEntity.getPassengers()) {
-            Entity passenger = spawn(engine, passengerEntity, level, blockX, blockY, blockZ, rng.nextParallelRNG(PASSENGER_RNG_BASE + index++));
+    private static void applyPassengers(Engine engine, ContentEntity spec, Entity entity, ServerLevel level, int blockX, int blockY, int blockZ) {
+        for (ContentEntity passengerSpec : spec.passengers()) {
+            Entity passenger = spawn(engine, passengerSpec, level, blockX, blockY, blockZ);
             if (passenger != null) {
                 passenger.startRiding(entity);
             }
         }
     }
 
-    private static void applyAttributes(IrisEntity irisEntity, LivingEntity living, ServerLevel level, RNG rng) {
-        KList<IrisAttributeModifier> modifiers = irisEntity.getAttributes();
-        if (modifiers.isEmpty()) {
+    private static void applyAttributes(ContentEntity spec, LivingEntity living, ServerLevel level) {
+        if (spec.attributes().isEmpty()) {
             return;
         }
 
         Registry<Attribute> registry = level.registryAccess().lookupOrThrow(Registries.ATTRIBUTE);
         int index = 0;
-        for (IrisAttributeModifier modifier : modifiers) {
+        for (ContentItem.Attribute modifier : spec.attributes()) {
             index++;
-            if (rng.nextDouble() >= modifier.getChance()) {
-                continue;
-            }
-            Holder<Attribute> holder = ModdedItemTranslator.resolveAttribute(registry, modifier.getAttribute());
+            Holder<Attribute> holder = ModdedItemTranslator.resolveAttribute(registry, modifier.attribute());
             if (holder == null) {
-                if (WARNED_ATTRIBUTES.add(modifier.getAttribute())) {
-                    IrisLogging.warn("Iris entity: unknown attribute '" + modifier.getAttribute() + "'");
+                if (WARNED_ATTRIBUTES.add(modifier.attribute())) {
+                    IrisLogging.warn("Iris entity: unknown attribute '" + modifier.attribute() + "'");
                 }
                 continue;
             }
@@ -224,28 +214,29 @@ public final class ModdedEntitySpawner {
             if (instance == null) {
                 continue;
             }
-            Identifier id = Identifier.tryParse("iris:" + normalizeName(modifier.getName()) + "_" + index);
+            Identifier id = Identifier.tryParse("iris:" + normalizeName(modifier.name()) + "_" + index);
             if (id == null) {
                 continue;
             }
-            instance.addOrReplacePermanentModifier(new AttributeModifier(id, modifier.getAmount(rng), ModdedItemTranslator.operationFor(modifier.getOperation())));
+            instance.addOrReplacePermanentModifier(new AttributeModifier(id, modifier.amount(), ModdedItemTranslator.operationFor(modifier.operation())));
         }
     }
 
-    private static void applyEquipment(IrisEntity irisEntity, LivingEntity living, ServerLevel level, RNG rng) {
-        setSlot(living, EquipmentSlot.HEAD, irisEntity.getHelmet(), level, rng);
-        setSlot(living, EquipmentSlot.CHEST, irisEntity.getChestplate(), level, rng);
-        setSlot(living, EquipmentSlot.LEGS, irisEntity.getLeggings(), level, rng);
-        setSlot(living, EquipmentSlot.FEET, irisEntity.getBoots(), level, rng);
-        setSlot(living, EquipmentSlot.MAINHAND, irisEntity.getMainHand(), level, rng);
-        setSlot(living, EquipmentSlot.OFFHAND, irisEntity.getOffHand(), level, rng);
+    private static void applyEquipment(ContentEntity spec, LivingEntity living, ServerLevel level) {
+        ContentEntity.Equipment equipment = spec.equipment();
+        setSlot(living, EquipmentSlot.HEAD, equipment.helmet(), level);
+        setSlot(living, EquipmentSlot.CHEST, equipment.chestplate(), level);
+        setSlot(living, EquipmentSlot.LEGS, equipment.leggings(), level);
+        setSlot(living, EquipmentSlot.FEET, equipment.boots(), level);
+        setSlot(living, EquipmentSlot.MAINHAND, equipment.mainHand(), level);
+        setSlot(living, EquipmentSlot.OFFHAND, equipment.offHand(), level);
     }
 
-    private static void setSlot(LivingEntity living, EquipmentSlot slot, IrisLoot loot, ServerLevel level, RNG rng) {
-        if (loot == null || !LootResolver.oneIn(rng, loot.getRarity())) {
+    private static void setSlot(LivingEntity living, EquipmentSlot slot, ContentItem item, ServerLevel level) {
+        if (item == null) {
             return;
         }
-        ItemStack stack = ModdedItemTranslator.stack(loot, rng, level);
+        ItemStack stack = ModdedItemTranslator.stack(item, level);
         if (stack != null && !stack.isEmpty()) {
             living.setItemSlot(slot, stack);
         }
@@ -257,11 +248,11 @@ public final class ModdedEntitySpawner {
         }
     }
 
-    static boolean isAreaClearForSpawn(ServerLevel level, IrisEntity irisEntity, int blockX, int blockY, int blockZ) {
-        if (irisEntity.isSpecialType()) {
+    static boolean isAreaClearForSpawn(ServerLevel level, ContentEntity entity, int blockX, int blockY, int blockZ) {
+        if (entity.isSpecial()) {
             return true;
         }
-        EntityType<?> type = resolveType(irisEntity.getType());
+        EntityType<?> type = resolveType(entity.type());
         if (type == null) {
             return true;
         }
@@ -320,21 +311,21 @@ public final class ModdedEntitySpawner {
         return false;
     }
 
-    private static void applySpawnEffect(IrisEffect effect, Entity entity, ServerLevel level) {
-        if (effect == null || !effect.shouldApplyNow()) {
+    private static void applySpawnEffect(ContentEntity.SpawnEffect effect, Entity entity, ServerLevel level) {
+        if (effect == null) {
             return;
         }
 
-        SoundEvent sound = resolveSound(effect.getSoundKey());
+        SoundEvent sound = resolveSound(effect.sound());
         if (sound != null) {
-            double soundX = entity.getX() + RNG.r.i(-effect.getSoundDistance(), effect.getSoundDistance());
-            double soundY = entity.getY() + RNG.r.i(-effect.getSoundDistance(), effect.getSoundDistance());
-            double soundZ = entity.getZ() + RNG.r.i(-effect.getSoundDistance(), effect.getSoundDistance());
+            double soundX = entity.getX() + RNG.r.i(-effect.soundDistance(), effect.soundDistance());
+            double soundY = entity.getY() + RNG.r.i(-effect.soundDistance(), effect.soundDistance());
+            double soundZ = entity.getZ() + RNG.r.i(-effect.soundDistance(), effect.soundDistance());
             level.playSound(null, soundX, soundY, soundZ, sound, SoundSource.MASTER,
-                    (float) effect.getVolume(), (float) RNG.r.d(effect.getMinPitch(), effect.getMaxPitch()));
+                    (float) effect.volume(), (float) RNG.r.d(effect.minPitch(), effect.maxPitch()));
         }
 
-        ParticleOptions particle = resolveParticle(effect.getParticleEffectKey());
+        ParticleOptions particle = resolveParticle(effect.particle());
         if (particle == null) {
             return;
         }
@@ -342,13 +333,13 @@ public final class ModdedEntitySpawner {
         double addition = RNG.r.d();
         double subtraction = RNG.r.d();
         double particleX = entity.getX() + addition - subtraction + RNG.r.d();
-        double particleY = entity.getY() + 0.25 + addition - subtraction + RNG.r.i(effect.getParticleOffset());
+        double particleY = entity.getY() + 0.25 + addition - subtraction + RNG.r.i(effect.particleOffset());
         double particleZ = entity.getZ() + addition - subtraction + RNG.r.d();
-        double altX = effect.isRandomAltX() ? RNG.r.d(-effect.getParticleAltX(), effect.getParticleAltX()) : effect.getParticleAltX();
-        double altY = effect.isRandomAltY() ? RNG.r.d(-effect.getParticleAltY(), effect.getParticleAltY()) : effect.getParticleAltY();
-        double altZ = effect.isRandomAltZ() ? RNG.r.d(-effect.getParticleAltZ(), effect.getParticleAltZ()) : effect.getParticleAltZ();
-        level.sendParticles(particle, particleX, particleY, particleZ, effect.getParticleCount(),
-                altX, altY, altZ, effect.getExtra());
+        double altX = effect.randomAltX() ? RNG.r.d(-effect.altX(), effect.altX()) : effect.altX();
+        double altY = effect.randomAltY() ? RNG.r.d(-effect.altY(), effect.altY()) : effect.altY();
+        double altZ = effect.randomAltZ() ? RNG.r.d(-effect.altZ(), effect.altZ()) : effect.altZ();
+        level.sendParticles(particle, particleX, particleY, particleZ, effect.particleCount(),
+                altX, altY, altZ, effect.extra());
     }
 
     private static SoundEvent resolveSound(String key) {

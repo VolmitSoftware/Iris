@@ -59,9 +59,9 @@ public class PackExportClosureTest {
 
         String modded = Files.readString(Path.of(
                 "../adapters/modded-common/src/main/java/art/arcane/iris/modded/command/ModdedStudioCommands.java")).replace("\r\n", "\n");
-        assertTrue("modded packager must write spawners/", modded.contains("\"spawners\""));
-        assertTrue("modded packager must write markers/", modded.contains("\"markers\""));
-        assertTrue("modded packager must include initial spawns", modded.contains("getInitialSpawns"));
+        assertTrue("modded packager must write the spawn and loot resources the settings reference",
+                modded.contains("moduleResources.writeTo(folder, true)"));
+        assertTrue("modded packager must export the placements' references", modded.contains("moduleResources.follow(region.getObjects())"));
         assertTrue("modded packager must export region objects", modded.contains("region.getObjects()"));
         int moddedValidation = modded.indexOf("PackValidator.validateForPackaging(packFolder)");
         assertTrue("modded packager must validate before mutating package state",

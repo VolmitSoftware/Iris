@@ -18,6 +18,9 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.core.modules.ModuleSettings;
+import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.floating.TopShapeMode;
@@ -563,7 +566,8 @@ public class FloatingIslandBoundarySamplerTest {
         IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(320).build();
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(entry);
-        when(parent.isMergeFloatingChildBiomes()).thenReturn(false);
+        ModuleSettings separate = BuiltInPack.settings(new MergeFloatingChildrenSettings(false));
+        when(parent.getModuleSettings()).thenReturn(separate);
         when(entry.getFootprintCng(anyLong(), same(data))).thenReturn(footprint);
         when(entry.getAltitudeCng(anyLong(), same(data))).thenReturn(constant);
         when(entry.getRealBiome(parent, data)).thenReturn(parent);
@@ -630,7 +634,8 @@ public class FloatingIslandBoundarySamplerTest {
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(lower);
         entries.add(upper);
-        when(parent.isMergeFloatingChildBiomes()).thenReturn(true);
+        ModuleSettings merged = BuiltInPack.settings(new MergeFloatingChildrenSettings(true));
+        when(parent.getModuleSettings()).thenReturn(merged);
         for (ResolvedFloatingChild entry : entries) {
             when(entry.getFootprintCng(anyLong(), same(data))).thenReturn(footprint);
             when(entry.getAltitudeCng(anyLong(), same(data))).thenReturn(constant);

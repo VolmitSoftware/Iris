@@ -1,18 +1,21 @@
 package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.engine.object.value.IRare;
-import art.arcane.iris.engine.object.value.IrisRange;
+import com.volmit.config.Range;
+import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Server;
@@ -24,7 +27,6 @@ import org.mockito.invocation.InvocationOnMock;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,7 +50,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class IrisDimensionCarvingResolverParityTest {
+public class CarvingResolverParityTest {
     private static final int MAX_CHILD_DEPTH = 32;
     private static final long CHILD_SEED_SALT = 0x9E3779B97F4A7C15L;
 
@@ -81,17 +83,17 @@ public class IrisDimensionCarvingResolverParityTest {
     @Test
     public void resolverStatefulOverloadsMatchLegacyResolverAcrossSampleGrid() {
         Fixture fixture = createFixture();
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        CarvingResolver.State state = new CarvingResolver.State();
 
         for (int worldY = -64; worldY <= 320; worldY += 11) {
-            IrisDimensionCarvingEntry legacyRoot = legacyResolveRootEntry(fixture.engine, worldY);
-            IrisDimensionCarvingEntry statefulRoot = IrisDimensionCarvingResolver.resolveRootEntry(fixture.engine, worldY, state);
+            ResolvedCarvingEntry legacyRoot = legacyResolveRootEntry(fixture.engine, worldY);
+            ResolvedCarvingEntry statefulRoot = CarvingResolver.resolveRootEntry(fixture.engine, worldY, state);
             assertSame("root mismatch at worldY=" + worldY, legacyRoot, statefulRoot);
 
             for (int worldX = -384; worldX <= 384; worldX += 29) {
                 for (int worldZ = -384; worldZ <= 384; worldZ += 31) {
-                    IrisDimensionCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
-                    IrisDimensionCarvingEntry statefulResolved = IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
+                    ResolvedCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
+                    ResolvedCarvingEntry statefulResolved = CarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
                     assertSame("entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
                 }
             }
@@ -101,34 +103,18 @@ public class IrisDimensionCarvingResolverParityTest {
     @Test
     public void resolverStatefulOverloadsMatchLegacyResolverAcrossMixedDepthGraph() {
         Fixture fixture = createMixedDepthFixture();
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        CarvingResolver.State state = new CarvingResolver.State();
 
         for (int worldY = -64; worldY <= 320; worldY += 17) {
-            IrisDimensionCarvingEntry legacyRoot = legacyResolveRootEntry(fixture.engine, worldY);
-            IrisDimensionCarvingEntry statefulRoot = IrisDimensionCarvingResolver.resolveRootEntry(fixture.engine, worldY, state);
+            ResolvedCarvingEntry legacyRoot = legacyResolveRootEntry(fixture.engine, worldY);
+            ResolvedCarvingEntry statefulRoot = CarvingResolver.resolveRootEntry(fixture.engine, worldY, state);
             assertSame("mixed root mismatch at worldY=" + worldY, legacyRoot, statefulRoot);
 
             for (int worldX = -640; worldX <= 640; worldX += 79) {
                 for (int worldZ = -640; worldZ <= 640; worldZ += 83) {
-                    IrisDimensionCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
-                    IrisDimensionCarvingEntry statefulResolved = IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
+                    ResolvedCarvingEntry legacyResolved = legacyResolveFromRoot(fixture.engine, legacyRoot, worldX, worldZ);
+                    ResolvedCarvingEntry statefulResolved = CarvingResolver.resolveFromRoot(fixture.engine, statefulRoot, worldX, worldZ, state);
                     assertSame("mixed entry mismatch at worldY=" + worldY + " worldX=" + worldX + " worldZ=" + worldZ, legacyResolved, statefulResolved);
-                }
-            }
-        }
-    }
-
-    @Test
-    public void caveBiomeStateOverloadMatchesDefaultOverloadAcrossSampleGrid() {
-        Fixture fixture = createFixture();
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
-
-        for (int y = 1; y <= 300; y += 17) {
-            for (int x = -160; x <= 160; x += 23) {
-                for (int z = -160; z <= 160; z += 29) {
-                    IrisBiome defaultBiome = fixture.engine.getCaveBiome(x, y, z);
-                    IrisBiome stateBiome = fixture.engine.getCaveBiome(x, y, z, state);
-                    assertSame("cave biome mismatch at x=" + x + " y=" + y + " z=" + z, defaultBiome, stateBiome);
                 }
             }
         }
@@ -137,13 +123,13 @@ public class IrisDimensionCarvingResolverParityTest {
     @Test
     public void columnAnchoredChunkPlanResolutionIsStableAcrossRepeatedBuilds() {
         Fixture fixture = createMixedDepthFixture();
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
-        IrisDimensionCarvingEntry root = legacyResolveRootEntry(fixture.engine, 80);
+        CarvingResolver.State state = new CarvingResolver.State();
+        ResolvedCarvingEntry root = legacyResolveRootEntry(fixture.engine, 80);
 
         for (int chunkX = -24; chunkX <= 24; chunkX += 6) {
             for (int chunkZ = -24; chunkZ <= 24; chunkZ += 6) {
-                IrisDimensionCarvingEntry[] firstPlan = buildColumnPlan(fixture.engine, root, chunkX, chunkZ, state);
-                IrisDimensionCarvingEntry[] secondPlan = buildColumnPlan(fixture.engine, root, chunkX, chunkZ, state);
+                ResolvedCarvingEntry[] firstPlan = buildColumnPlan(fixture.engine, root, chunkX, chunkZ, state);
+                ResolvedCarvingEntry[] secondPlan = buildColumnPlan(fixture.engine, root, chunkX, chunkZ, state);
                 for (int columnIndex = 0; columnIndex < firstPlan.length; columnIndex++) {
                     assertSame(
                             "column plan mismatch at chunkX=" + chunkX + " chunkZ=" + chunkZ + " columnIndex=" + columnIndex,
@@ -159,14 +145,14 @@ public class IrisDimensionCarvingResolverParityTest {
     public void sharedResolverStateNeverCarriesDimensionEntriesAcrossEngines() {
         Fixture first = createFixture();
         Fixture second = createMixedDepthFixture();
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+        CarvingResolver.State state = new CarvingResolver.State();
 
-        IrisDimensionCarvingEntry firstExpected = legacyResolveRootEntry(first.engine, 80);
-        IrisDimensionCarvingEntry secondExpected = legacyResolveRootEntry(second.engine, 80);
+        ResolvedCarvingEntry firstExpected = legacyResolveRootEntry(first.engine, 80);
+        ResolvedCarvingEntry secondExpected = legacyResolveRootEntry(second.engine, 80);
 
-        assertSame(firstExpected, IrisDimensionCarvingResolver.resolveRootEntry(first.engine, 80, state));
-        assertSame(secondExpected, IrisDimensionCarvingResolver.resolveRootEntry(second.engine, 80, state));
-        assertSame(firstExpected, IrisDimensionCarvingResolver.resolveRootEntry(first.engine, 80, state));
+        assertSame(firstExpected, CarvingResolver.resolveRootEntry(first.engine, 80, state));
+        assertSame(secondExpected, CarvingResolver.resolveRootEntry(second.engine, 80, state));
+        assertSame(firstExpected, CarvingResolver.resolveRootEntry(first.engine, 80, state));
     }
 
     @Test
@@ -175,11 +161,11 @@ public class IrisDimensionCarvingResolverParityTest {
         Fixture second = createMixedDepthFixture();
         int worldY = 83;
 
-        IrisDimensionCarvingEntry firstExpected = legacyResolveRootEntry(first.engine, worldY);
-        IrisDimensionCarvingEntry secondExpected = legacyResolveRootEntry(second.engine, worldY);
+        ResolvedCarvingEntry firstExpected = legacyResolveRootEntry(first.engine, worldY);
+        ResolvedCarvingEntry secondExpected = legacyResolveRootEntry(second.engine, worldY);
 
-        assertSame(firstExpected, IrisDimensionCarvingResolver.resolveRootEntry(first.engine, worldY));
-        assertSame(secondExpected, IrisDimensionCarvingResolver.resolveRootEntry(second.engine, worldY));
+        assertSame(firstExpected, CarvingResolver.resolveRootEntry(first.engine, worldY));
+        assertSame(secondExpected, CarvingResolver.resolveRootEntry(second.engine, worldY));
     }
 
     @Test
@@ -188,25 +174,28 @@ public class IrisDimensionCarvingResolverParityTest {
         Fixture replacement = createMixedDepthFixture();
         AtomicReference<IrisDimension> dimension = new AtomicReference<>(first.engine.getDimension());
         AtomicReference<IrisData> data = new AtomicReference<>(first.engine.getData());
+        AtomicReference<EngineGeneration> generation = new AtomicReference<>(first.engine.getGeneration());
         Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         doAnswer((InvocationOnMock invocation) -> dimension.get()).when(engine).getDimension();
         doAnswer((InvocationOnMock invocation) -> data.get()).when(engine).getData();
+        doAnswer((InvocationOnMock invocation) -> generation.get()).when(engine).getGeneration();
 
         int worldY = 83;
-        IrisDimensionCarvingEntry firstExpected = legacyResolveRootEntry(first.engine, worldY);
-        IrisDimensionCarvingEntry replacementExpected = legacyResolveRootEntry(replacement.engine, worldY);
-        assertSame(firstExpected, IrisDimensionCarvingResolver.resolveRootEntry(engine, worldY));
+        ResolvedCarvingEntry firstExpected = legacyResolveRootEntry(first.engine, worldY);
+        ResolvedCarvingEntry replacementExpected = legacyResolveRootEntry(replacement.engine, worldY);
+        assertSame(firstExpected, CarvingResolver.resolveRootEntry(engine, worldY));
 
         dimension.set(replacement.engine.getDimension());
         data.set(replacement.engine.getData());
-        assertSame(replacementExpected, IrisDimensionCarvingResolver.resolveRootEntry(engine, worldY));
+        generation.set(replacement.engine.getGeneration());
+        assertSame(replacementExpected, CarvingResolver.resolveRootEntry(engine, worldY));
     }
 
     @Test
     public void resolverStateUsesWeakRuntimeIdentityBindings() throws NoSuchFieldException {
-        Field engineIdentity = IrisDimensionCarvingResolver.State.class.getDeclaredField("engineIdentity");
-        Field dimensionIdentity = IrisDimensionCarvingResolver.State.class.getDeclaredField("dimensionIdentity");
-        Field dataIdentity = IrisDimensionCarvingResolver.State.class.getDeclaredField("dataIdentity");
+        Field engineIdentity = CarvingResolver.State.class.getDeclaredField("engineIdentity");
+        Field dimensionIdentity = CarvingResolver.State.class.getDeclaredField("dimensionIdentity");
+        Field dataIdentity = CarvingResolver.State.class.getDeclaredField("dataIdentity");
 
         assertSame(WeakReference.class, engineIdentity.getType());
         assertSame(WeakReference.class, dimensionIdentity.getType());
@@ -240,19 +229,19 @@ public class IrisDimensionCarvingResolverParityTest {
 
     private LifetimeReferences populateThreadLocalLifetimeReferences() throws Exception {
         RetainedFixture fixture = createRetainedFixture();
-        assertNotNull(IrisDimensionCarvingResolver.resolveRootEntry(fixture.engine(), 80));
+        assertNotNull(CarvingResolver.resolveRootEntry(fixture.engine(), 80));
 
-        Field threadStateField = IrisDimensionCarvingResolver.class.getDeclaredField("THREAD_STATE");
+        Field threadStateField = CarvingResolver.class.getDeclaredField("THREAD_STATE");
         threadStateField.setAccessible(true);
         ThreadLocal<?> threadState = (ThreadLocal<?>) threadStateField.get(null);
         Object value = threadState.get();
         assertTrue(value instanceof WeakReference<?>);
         @SuppressWarnings("unchecked")
-        WeakReference<IrisDimensionCarvingResolver.State> state =
-                (WeakReference<IrisDimensionCarvingResolver.State>) value;
-        IrisDimensionCarvingResolver.State populatedState = state.get();
+        WeakReference<CarvingResolver.State> state =
+                (WeakReference<CarvingResolver.State>) value;
+        CarvingResolver.State populatedState = state.get();
         assertNotNull(populatedState);
-        Field biomeCacheField = IrisDimensionCarvingResolver.State.class.getDeclaredField("biomeCache");
+        Field biomeCacheField = CarvingResolver.State.class.getDeclaredField("biomeCache");
         biomeCacheField.setAccessible(true);
         assertFalse(((Map<?, ?>) biomeCacheField.get(populatedState)).isEmpty());
         return new LifetimeReferences(
@@ -278,11 +267,11 @@ public class IrisDimensionCarvingResolverParityTest {
     @Test
     public void explicitStateRemainsStronglyCallerOwned() throws Exception {
         RetainedFixture fixture = createRetainedFixture();
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
-        assertSame(fixture.entry(), IrisDimensionCarvingResolver.resolveRootEntry(
+        CarvingResolver.State state = new CarvingResolver.State();
+        assertSame(fixture.entry(), CarvingResolver.resolveRootEntry(
                 fixture.engine(), 80, state));
 
-        Field rootEntriesField = IrisDimensionCarvingResolver.State.class
+        Field rootEntriesField = CarvingResolver.State.class
                 .getDeclaredField("rootEntriesByWorldY");
         rootEntriesField.setAccessible(true);
         System.gc();
@@ -300,26 +289,24 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(biome).when(biomeLoader).load("retained");
         doReturn(biomeLoader).when(data).getBiomeLoader();
 
-        IrisDimensionCarvingEntry entry = buildEntry(
-                "retained", "retained", new IrisRange(-64, 320), 0, List.of());
-        KList<IrisDimensionCarvingEntry> carvingEntries = new KList<>();
-        carvingEntries.add(entry);
-
+        CarvingBands bands = new CarvingBands(List.of(buildEntry("retained", "retained", Range.of(-64, 320), 0, List.of())));
         IrisDimension dimension = new IrisDimension();
-        dimension.setCarving(carvingEntries);
 
-        Engine engine = (Engine) Proxy.newProxyInstance(
+        Engine[] engine = new Engine[1];
+        AtomicReference<EngineGeneration> generation = new AtomicReference<>();
+        engine[0] = (Engine) Proxy.newProxyInstance(
                 Engine.class.getClassLoader(),
                 new Class<?>[]{Engine.class},
                 (proxy, method, arguments) -> switch (method.getName()) {
                     case "getDimension" -> dimension;
                     case "getData" -> data;
+                    case "getGeneration" -> generation.updateAndGet(existing -> existing != null ? existing : generationWith(engine[0], bands));
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == arguments[0];
                     case "toString" -> "carving-retention-test-engine";
                     default -> throw new UnsupportedOperationException(method.toString());
                 });
-        return new RetainedFixture(engine, entry);
+        return new RetainedFixture(engine[0], bands.entries().getFirst());
     }
 
     private Fixture createFixture() {
@@ -336,7 +323,6 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(2).when(childABiome).getRarity();
         doReturn(5).when(childBBiome).getRarity();
         doReturn(1).when(childCBiome).getRarity();
-        doReturn(0).when(fallbackBiome).getCaveMinDepthBelowSurface();
 
         @SuppressWarnings("unchecked")
         ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
@@ -349,29 +335,15 @@ public class IrisDimensionCarvingResolverParityTest {
         IrisData data = mock(IrisData.class);
         doReturn(biomeLoader).when(data).getBiomeLoader();
 
-        IrisDimensionCarvingEntry rootLow = buildEntry("root-low", "root-low", new IrisRange(-64, 120), 4, List.of("child-a", "child-b"));
-        IrisDimensionCarvingEntry rootHigh = buildEntry("root-high", "root-high", new IrisRange(121, 320), 3, List.of("child-b", "child-c"));
-        IrisDimensionCarvingEntry childA = buildEntry("child-a", "child-a", new IrisRange(-2048, -1024), 3, List.of("child-b"));
-        IrisDimensionCarvingEntry childB = buildEntry("child-b", "child-b", new IrisRange(-2048, -1024), 2, List.of("child-c", "child-a"));
-        IrisDimensionCarvingEntry childC = buildEntry("child-c", "child-c", new IrisRange(-2048, -1024), 1, List.of());
+        CarvingEntry rootLow = buildEntry("root-low", "root-low", Range.of(-64, 120), 4, List.of("child-a", "child-b"));
+        CarvingEntry rootHigh = buildEntry("root-high", "root-high", Range.of(121, 320), 3, List.of("child-b", "child-c"));
+        CarvingEntry childA = buildEntry("child-a", "child-a", Range.of(-2048, -1024), 3, List.of("child-b"));
+        CarvingEntry childB = buildEntry("child-b", "child-b", Range.of(-2048, -1024), 2, List.of("child-c", "child-a"));
+        CarvingEntry childC = buildEntry("child-c", "child-c", Range.of(-2048, -1024), 1, List.of());
 
-        KList<IrisDimensionCarvingEntry> carvingEntries = new KList<>();
-        carvingEntries.add(rootLow);
-        carvingEntries.add(rootHigh);
-        carvingEntries.add(childA);
-        carvingEntries.add(childB);
-        carvingEntries.add(childC);
-
-        Map<String, IrisDimensionCarvingEntry> index = new HashMap<>();
-        index.put(rootLow.getId(), rootLow);
-        index.put(rootHigh.getId(), rootHigh);
-        index.put(childA.getId(), childA);
-        index.put(childB.getId(), childB);
-        index.put(childC.getId(), childC);
+        CarvingBands bands = new CarvingBands(List.of(rootLow, rootHigh, childA, childB, childC));
 
         IrisDimension dimension = mock(IrisDimension.class);
-        doReturn(carvingEntries).when(dimension).getCarving();
-        doReturn(index).when(dimension).getCarvingEntryIndex();
 
         Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         doReturn(dimension).when(engine).getDimension();
@@ -380,6 +352,7 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build()).when(engine).getWorld();
         doReturn(surfaceBiome).when(engine).getSurfaceBiome(anyInt(), anyInt());
         doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());
+        DecoratorTestEngines.withGeneration(engine).state(CarvingBands.class, ignored -> bands);
 
         return new Fixture(engine);
     }
@@ -406,7 +379,6 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(4).when(childEBiome).getRarity();
         doReturn(8).when(childFBiome).getRarity();
         doReturn(2).when(childGBiome).getRarity();
-        doReturn(0).when(fallbackBiome).getCaveMinDepthBelowSurface();
 
         @SuppressWarnings("unchecked")
         ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
@@ -423,41 +395,19 @@ public class IrisDimensionCarvingResolverParityTest {
         IrisData data = mock(IrisData.class);
         doReturn(biomeLoader).when(data).getBiomeLoader();
 
-        IrisDimensionCarvingEntry rootLow = buildEntry("root-low", "root-low", new IrisRange(-64, 120), 7, List.of("child-a", "child-d", "child-e"));
-        IrisDimensionCarvingEntry rootHigh = buildEntry("root-high", "root-high", new IrisRange(121, 320), 6, List.of("child-b", "child-c", "child-f"));
-        IrisDimensionCarvingEntry childA = buildEntry("child-a", "child-a", new IrisRange(-4096, 4096), 5, List.of("child-b", "child-g"));
-        IrisDimensionCarvingEntry childB = buildEntry("child-b", "child-b", new IrisRange(-4096, 4096), 1, List.of("child-c"));
-        IrisDimensionCarvingEntry childC = buildEntry("child-c", "child-c", new IrisRange(-4096, 4096), 0, List.of());
-        IrisDimensionCarvingEntry childD = buildEntry("child-d", "child-d", new IrisRange(-4096, 4096), 6, List.of("child-e", "child-f"));
-        IrisDimensionCarvingEntry childE = buildEntry("child-e", "child-e", new IrisRange(-4096, 4096), 2, List.of("child-a"));
-        IrisDimensionCarvingEntry childF = buildEntry("child-f", "child-f", new IrisRange(-4096, 4096), 8, List.of("child-g", "child-c"));
-        IrisDimensionCarvingEntry childG = buildEntry("child-g", "child-g", new IrisRange(-4096, 4096), 3, List.of("child-d"));
+        CarvingEntry rootLow = buildEntry("root-low", "root-low", Range.of(-64, 120), 7, List.of("child-a", "child-d", "child-e"));
+        CarvingEntry rootHigh = buildEntry("root-high", "root-high", Range.of(121, 320), 6, List.of("child-b", "child-c", "child-f"));
+        CarvingEntry childA = buildEntry("child-a", "child-a", Range.of(-4096, 4096), 5, List.of("child-b", "child-g"));
+        CarvingEntry childB = buildEntry("child-b", "child-b", Range.of(-4096, 4096), 1, List.of("child-c"));
+        CarvingEntry childC = buildEntry("child-c", "child-c", Range.of(-4096, 4096), 0, List.of());
+        CarvingEntry childD = buildEntry("child-d", "child-d", Range.of(-4096, 4096), 6, List.of("child-e", "child-f"));
+        CarvingEntry childE = buildEntry("child-e", "child-e", Range.of(-4096, 4096), 2, List.of("child-a"));
+        CarvingEntry childF = buildEntry("child-f", "child-f", Range.of(-4096, 4096), 8, List.of("child-g", "child-c"));
+        CarvingEntry childG = buildEntry("child-g", "child-g", Range.of(-4096, 4096), 3, List.of("child-d"));
 
-        KList<IrisDimensionCarvingEntry> carvingEntries = new KList<>();
-        carvingEntries.add(rootLow);
-        carvingEntries.add(rootHigh);
-        carvingEntries.add(childA);
-        carvingEntries.add(childB);
-        carvingEntries.add(childC);
-        carvingEntries.add(childD);
-        carvingEntries.add(childE);
-        carvingEntries.add(childF);
-        carvingEntries.add(childG);
-
-        Map<String, IrisDimensionCarvingEntry> index = new HashMap<>();
-        index.put(rootLow.getId(), rootLow);
-        index.put(rootHigh.getId(), rootHigh);
-        index.put(childA.getId(), childA);
-        index.put(childB.getId(), childB);
-        index.put(childC.getId(), childC);
-        index.put(childD.getId(), childD);
-        index.put(childE.getId(), childE);
-        index.put(childF.getId(), childF);
-        index.put(childG.getId(), childG);
+        CarvingBands bands = new CarvingBands(List.of(rootLow, rootHigh, childA, childB, childC, childD, childE, childF, childG));
 
         IrisDimension dimension = mock(IrisDimension.class);
-        doReturn(carvingEntries).when(dimension).getCarving();
-        doReturn(index).when(dimension).getCarvingEntryIndex();
 
         Engine engine = mock(Engine.class, CALLS_REAL_METHODS);
         doReturn(dimension).when(engine).getDimension();
@@ -466,43 +416,51 @@ public class IrisDimensionCarvingResolverParityTest {
         doReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build()).when(engine).getWorld();
         doReturn(surfaceBiome).when(engine).getSurfaceBiome(anyInt(), anyInt());
         doReturn(fallbackBiome).when(engine).getCaveBiome(anyInt(), anyInt());
+        DecoratorTestEngines.withGeneration(engine).state(CarvingBands.class, ignored -> bands);
 
         return new Fixture(engine);
     }
 
-    private IrisDimensionCarvingEntry[] buildColumnPlan(Engine engine, IrisDimensionCarvingEntry rootEntry, int chunkX, int chunkZ, IrisDimensionCarvingResolver.State state) {
-        IrisDimensionCarvingEntry[] plan = new IrisDimensionCarvingEntry[256];
+    private ResolvedCarvingEntry[] buildColumnPlan(Engine engine, ResolvedCarvingEntry rootEntry, int chunkX, int chunkZ, CarvingResolver.State state) {
+        ResolvedCarvingEntry[] plan = new ResolvedCarvingEntry[256];
         for (int localX = 0; localX < 16; localX++) {
             int worldX = (chunkX << 4) + localX;
             for (int localZ = 0; localZ < 16; localZ++) {
                 int worldZ = (chunkZ << 4) + localZ;
                 int columnIndex = (localX << 4) | localZ;
-                plan[columnIndex] = IrisDimensionCarvingResolver.resolveFromRoot(engine, rootEntry, worldX, worldZ, state);
+                plan[columnIndex] = CarvingResolver.resolveFromRoot(engine, rootEntry, worldX, worldZ, state);
             }
         }
         return plan;
     }
 
-    private IrisDimensionCarvingEntry buildEntry(String id, String biome, IrisRange worldRange, int depth, List<String> children) {
-        IrisDimensionCarvingEntry entry = new IrisDimensionCarvingEntry();
-        entry.setId(id);
-        entry.setEnabled(true);
-        entry.setBiome(biome);
-        entry.setWorldYRange(worldRange);
-        entry.setChildRecursionDepth(depth);
-        entry.setChildren(new KList<>(children));
-        return entry;
+    private static EngineGeneration generationWith(Engine engine, CarvingBands bands) {
+        EngineGeneration generation = new EngineGeneration(engine);
+        generation.state(CarvingBands.class, ignored -> bands);
+        return generation;
     }
 
-    private IrisDimensionCarvingEntry legacyResolveRootEntry(Engine engine, int worldY) {
-        IrisDimension dimension = engine.getDimension();
-        List<IrisDimensionCarvingEntry> entries = dimension.getCarving();
-        if (entries == null || entries.isEmpty()) {
+    private CarvingEntry buildEntry(String id, String biome, Range worldRange, int depth, List<String> children) {
+        JsonObject json = new JsonObject();
+        json.addProperty("id", id);
+        json.addProperty("biome", biome);
+        JsonObject range = new JsonObject();
+        range.addProperty("min", worldRange.min());
+        range.addProperty("max", worldRange.max());
+        json.add("worldYRange", range);
+        json.addProperty("childRecursionDepth", depth);
+        json.add("children", new Gson().toJsonTree(children));
+        return new Gson().fromJson(json, CarvingEntry.class);
+    }
+
+    private ResolvedCarvingEntry legacyResolveRootEntry(Engine engine, int worldY) {
+        List<ResolvedCarvingEntry> entries = CarvingBands.of(engine).entries();
+        if (entries.isEmpty()) {
             return null;
         }
 
-        IrisDimensionCarvingEntry resolved = null;
-        for (IrisDimensionCarvingEntry entry : entries) {
+        ResolvedCarvingEntry resolved = null;
+        for (ResolvedCarvingEntry entry : entries) {
             if (!legacyIsRootCandidate(engine, entry, worldY)) {
                 continue;
             }
@@ -513,7 +471,7 @@ public class IrisDimensionCarvingResolverParityTest {
         return resolved;
     }
 
-    private IrisDimensionCarvingEntry legacyResolveFromRoot(Engine engine, IrisDimensionCarvingEntry rootEntry, int worldX, int worldZ) {
+    private ResolvedCarvingEntry legacyResolveFromRoot(Engine engine, ResolvedCarvingEntry rootEntry, int worldX, int worldZ) {
         if (rootEntry == null) {
             return null;
         }
@@ -523,22 +481,22 @@ public class IrisDimensionCarvingResolverParityTest {
             return null;
         }
 
-        int remainingDepth = clampDepth(rootEntry.getChildRecursionDepth());
+        int remainingDepth = clampDepth(rootEntry.childRecursionDepth());
         if (remainingDepth <= 0) {
             return rootEntry;
         }
 
-        Map<String, IrisDimensionCarvingEntry> entryIndex = engine.getDimension().getCarvingEntryIndex();
-        IrisDimensionCarvingEntry current = rootEntry;
+        Map<String, ResolvedCarvingEntry> entryIndex = CarvingBands.of(engine).index();
+        ResolvedCarvingEntry current = rootEntry;
         int depth = remainingDepth;
         while (depth > 0) {
-            IrisDimensionCarvingEntry selected = legacySelectChild(engine, current, worldX, worldZ, entryIndex);
+            ResolvedCarvingEntry selected = legacySelectChild(engine, current, worldX, worldZ, entryIndex);
             if (selected == null || selected == current) {
                 break;
             }
 
             depth--;
-            int childDepthLimit = clampDepth(selected.getChildRecursionDepth());
+            int childDepthLimit = clampDepth(selected.childRecursionDepth());
             if (childDepthLimit < depth) {
                 depth = childDepthLimit;
             }
@@ -548,20 +506,20 @@ public class IrisDimensionCarvingResolverParityTest {
         return current;
     }
 
-    private IrisBiome legacyResolveEntryBiome(Engine engine, IrisDimensionCarvingEntry entry) {
+    private IrisBiome legacyResolveEntryBiome(Engine engine, ResolvedCarvingEntry entry) {
         if (entry == null) {
             return null;
         }
 
-        return entry.getRealBiome(engine.getData());
+        return entry.realBiome(engine.getData());
     }
 
-    private boolean legacyIsRootCandidate(Engine engine, IrisDimensionCarvingEntry entry, int worldY) {
-        if (entry == null || !entry.isEnabled()) {
+    private boolean legacyIsRootCandidate(Engine engine, ResolvedCarvingEntry entry, int worldY) {
+        if (entry == null || !entry.enabled()) {
             return false;
         }
 
-        IrisRange worldYRange = entry.getWorldYRange();
+        Range worldYRange = entry.worldYRange();
         if (worldYRange != null && !worldYRange.contains(worldY)) {
             return false;
         }
@@ -569,15 +527,15 @@ public class IrisDimensionCarvingResolverParityTest {
         return legacyResolveEntryBiome(engine, entry) != null;
     }
 
-    private IrisDimensionCarvingEntry legacySelectChild(
+    private ResolvedCarvingEntry legacySelectChild(
             Engine engine,
-            IrisDimensionCarvingEntry parent,
+            ResolvedCarvingEntry parent,
             int worldX,
             int worldZ,
-            Map<String, IrisDimensionCarvingEntry> entryIndex
+            Map<String, ResolvedCarvingEntry> entryIndex
     ) {
-        KList<String> children = parent.getChildren();
-        if (children == null || children.isEmpty()) {
+        List<String> children = parent.children();
+        if (children.isEmpty()) {
             return parent;
         }
 
@@ -592,8 +550,8 @@ public class IrisDimensionCarvingResolverParityTest {
                 continue;
             }
 
-            IrisDimensionCarvingEntry child = entryIndex.get(childId.trim());
-            if (child == null || !child.isEnabled()) {
+            ResolvedCarvingEntry child = entryIndex.get(childId.trim());
+            if (child == null || !child.enabled()) {
                 continue;
             }
 
@@ -611,7 +569,7 @@ public class IrisDimensionCarvingResolverParityTest {
         }
 
         long seed = engine.getSeedManager().getCarve() ^ CHILD_SEED_SALT;
-        CNG childGenerator = parent.getChildrenGenerator(seed, engine.getData());
+        CNG childGenerator = parent.childrenGenerator(seed, engine.getData());
         LegacyCarvingChoice selected = childGenerator.fitRarity(options, worldX, worldZ);
         if (selected == null || selected.entry == null) {
             return parent;
@@ -640,20 +598,20 @@ public class IrisDimensionCarvingResolverParityTest {
     private record Fixture(Engine engine) {
     }
 
-    private record RetainedFixture(Engine engine, IrisDimensionCarvingEntry entry) {
+    private record RetainedFixture(Engine engine, ResolvedCarvingEntry entry) {
     }
 
     private record LifetimeReferences(
-            WeakReference<IrisDimensionCarvingResolver.State> state,
+            WeakReference<CarvingResolver.State> state,
             WeakReference<Engine> engine
     ) {
     }
 
     private static final class LegacyCarvingChoice implements IRare {
-        private final IrisDimensionCarvingEntry entry;
+        private final ResolvedCarvingEntry entry;
         private final int rarity;
 
-        private LegacyCarvingChoice(IrisDimensionCarvingEntry entry, int rarity) {
+        private LegacyCarvingChoice(ResolvedCarvingEntry entry, int rarity) {
             this.entry = entry;
             this.rarity = rarity;
         }

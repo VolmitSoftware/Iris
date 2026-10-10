@@ -8,7 +8,6 @@ import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatform;
@@ -83,7 +82,6 @@ public class CaveApplyingInferenceIsolationTest {
                 int.class,
                 int.class,
                 int.class,
-                IrisDimensionCarvingResolver.State.class,
                 Long2ObjectOpenHashMap.class,
                 Map.class
         );
@@ -98,7 +96,6 @@ public class CaveApplyingInferenceIsolationTest {
                 0,
                 1,
                 1,
-                new IrisDimensionCarvingResolver.State(),
                 new Long2ObjectOpenHashMap<IrisBiome>(),
                 customBiomes
         );

@@ -19,12 +19,17 @@
 package art.arcane.iris.core.modules;
 
 import com.volmit.IrisFeature;
+import com.volmit.config.LinkedBiomes;
 import com.volmit.host.ConfiguredSettings;
 import com.volmit.resource.ResourceId;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Module settings one dimension, region, biome or object placement declares, at most one value per settings
@@ -53,6 +58,32 @@ public final class ModuleSettings {
 
     public boolean isEmpty() {
         return values.isEmpty();
+    }
+
+    /** The biomes these settings add to the biome tree of the owner's regions ({@link LinkedBiomes#treeBiomes}), in a fixed order. */
+    public Set<String> treeBiomes() {
+        return linkedBiomes(LinkedBiomes::treeBiomes);
+    }
+
+    /**
+     * The biomes these settings use besides ({@link LinkedBiomes#usedBiomes}), in a fixed order.
+     *
+     * @param dimension the settings of the dimension the owner is part of
+     */
+    public Set<String> usedBiomes(ModuleSettings dimension) {
+        return linkedBiomes(linked -> linked.usedBiomes(dimension.values()));
+    }
+
+    private Set<String> linkedBiomes(Function<LinkedBiomes, Set<String>> pick) {
+        if (values.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> biomes = new LinkedHashSet<>();
+        values.values().stream()
+                .filter(LinkedBiomes.class::isInstance)
+                .sorted(Comparator.comparing(value -> value.getClass().getName()))
+                .forEach(value -> biomes.addAll(pick.apply((LinkedBiomes) value)));
+        return biomes;
     }
 
     /** These settings as one placement's own, declared by {@code source}. */

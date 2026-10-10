@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
@@ -44,6 +46,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -96,7 +99,8 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
                 .setPlace(new KList<>("test/floating"))
                 .setTranslate(new IrisObjectTranslate().setX(32));
         FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "floatingObjects", new KList<>(placement));
-        IrisBiome biome = new IrisBiome().setFloatingChildBiomes(new KList<>(floatingChild));
+        IrisBiome biome = new IrisBiome();
+        biome.setModuleSettings(BuiltInPack.settings(new FloatingChildSettings(List.of(floatingChild))));
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getReachableBiomes(org.mockito.ArgumentMatchers.any())).thenReturn(new KList<>(biome));
 

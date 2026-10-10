@@ -1,0 +1,292 @@
+{
+    "name": "Amethyst Cavern",
+    "derivative": "minecraft:dripstone_caves",
+    "vanillaDerivative": "minecraft:dripstone_caves",
+    "wall": {
+        "palette": [
+            {
+                "block": "minecraft:amethyst_block",
+                "weight": 6
+            },
+            {
+                "block": "minecraft:budding_amethyst"
+            }
+        ]
+    },
+    "layers": [
+        {
+            "palette": [
+                {
+                    "block": "minecraft:amethyst_block",
+                    "weight": 6
+                },
+                {
+                    "block": "minecraft:budding_amethyst"
+                }
+            ],
+            "maxHeight": 2,
+            "minHeight": 2
+        },
+        {
+            "palette": [
+                {
+                    "block": "minecraft:deepslate"
+                }
+            ]
+        }
+    ],
+    "decorators": [
+        {
+            "chance": 0.1,
+            "palette": [
+                {
+                    "block": "minecraft:amethyst_cluster",
+                    "weight": 4
+                },
+                {
+                    "block": "minecraft:small_amethyst_bud",
+                    "weight": 3
+                },
+                {
+                    "block": "minecraft:medium_amethyst_bud",
+                    "weight": 2
+                },
+                {
+                    "block": "minecraft:large_amethyst_bud"
+                }
+            ]
+        },
+        {
+            "partOf": "CEILING",
+            "chance": 0.1,
+            "palette": [
+                {
+                    "block": "minecraft:amethyst_cluster",
+                    "data": {
+                        "facing": "down"
+                    },
+                    "weight": 4
+                },
+                {
+                    "block": "minecraft:small_amethyst_bud",
+                    "data": {
+                        "facing": "down"
+                    },
+                    "weight": 3
+                },
+                {
+                    "block": "minecraft:medium_amethyst_bud",
+                    "data": {
+                        "facing": "down"
+                    },
+                    "weight": 2
+                },
+                {
+                    "block": "minecraft:large_amethyst_bud",
+                    "data": {
+                        "facing": "down"
+                    }
+                }
+            ]
+        }
+    ],
+    "caveCeilingLayers": [
+        {
+            "palette": [
+                {
+                    "block": "minecraft:amethyst_block",
+                    "weight": 6
+                },
+                {
+                    "block": "minecraft:budding_amethyst"
+                }
+            ],
+            "maxHeight": 2,
+            "minHeight": 2
+        },
+        {
+            "palette": [
+                {
+                    "block": "minecraft:deepslate"
+                }
+            ]
+        }
+    ],
+    "objects": [
+        {
+            "chance": 0.21,
+            "density": 4,
+            "carvingSupport": "CARVING_ONLY",
+            "caveAnchorMode": "PROFILE_DEFAULT",
+            "translate": {
+                "y": -1
+            },
+            "place": [
+                "clutter/amethyst-cluster1",
+                "clutter/amethyst-cluster2",
+                "clutter/amethyst-cluster3",
+                "clutter/amethyst-cluster4"
+            ],
+            "bottom": true,
+            "force": true,
+            "scale": {
+                "size": 0.75
+            }
+        },
+        {
+            "chance": 0.165,
+            "density": 4,
+            "carvingSupport": "CARVING_ONLY",
+            "caveAnchorMode": "PROFILE_DEFAULT",
+            "translate": {
+                "y": -1
+            },
+            "place": [
+                "clutter/amethyst-cluster1",
+                "clutter/amethyst-cluster2",
+                "clutter/amethyst-cluster3",
+                "clutter/amethyst-cluster4",
+                "clutter/amethyst-cluster5"
+            ],
+            "bottom": true,
+            "force": true,
+            "scale": {
+                "size": 0.75
+            }
+        },
+        {
+            "chance": 0.0972,
+            "density": 4,
+            "carvingSupport": "CARVING_ONLY",
+            "caveAnchorMode": "PROFILE_DEFAULT",
+            "translate": {
+                "y": -1
+            },
+            "place": [
+                "clutter/amethyst-cluster1",
+                "clutter/amethyst-cluster2",
+                "clutter/amethyst-cluster3"
+            ],
+            "bottom": true,
+            "force": true,
+            "scale": {
+                "size": 0.75
+            }
+        },
+        {
+            "chance": 0.0972,
+            "density": 4,
+            "carvingSupport": "CARVING_ONLY",
+            "caveAnchorMode": "PROFILE_DEFAULT",
+            "translate": {
+                "y": -1
+            },
+            "place": [
+                "clutter/rock1",
+                "clutter/rock2",
+                "clutter/rock3",
+                "clutter/rock4",
+                "clutter/boulder1",
+                "clutter/boulder2",
+                "clutter/boulder3",
+                "clutter/boulder4"
+            ],
+            "bottom": true,
+            "force": true,
+            "scale": {
+                "size": 0.75
+            }
+        }
+    ],
+    "caveProfile": {
+        "enabled": true,
+        "verticalRange": {
+            "min": 6,
+            "max": 620
+        },
+        "baseDensityStyle": {
+            "style": "PERLIN_IRIS",
+            "zoom": 0.8
+        },
+        "detailDensityStyle": {
+            "style": "FRACTAL_BILLOW_SIMPLEX",
+            "zoom": 0.52
+        },
+        "warpStyle": {
+            "style": "SIMPLEX",
+            "zoom": 0.46
+        },
+        "baseWeight": 0.91,
+        "detailWeight": 0.1,
+        "warpStrength": 0.18,
+        "densityThreshold": {
+            "min": -0.12,
+            "max": -0.04,
+            "style": {
+                "style": "SIMPLEX",
+                "zoom": 0.7
+            }
+        },
+        "thresholdBias": 0.12,
+        "sampleStep": 2,
+        "surfaceClearance": 6,
+        "allowSurfaceBreak": true,
+        "surfaceBreakStyle": {
+            "style": "SIMPLEX",
+            "zoom": 0.9
+        },
+        "surfaceBreakNoiseThreshold": 0.68,
+        "surfaceBreakDepth": 12,
+        "surfaceBreakThresholdBoost": 0.1,
+        "objectMinDepthBelowSurface": 16,
+        "defaultObjectAnchor": "FLOOR",
+        "defaultObjectPlaceMode": "ORGANIC_STILT",
+        "anchorScanStep": 1,
+        "anchorSearchAttempts": 18,
+        "allowFluid": true,
+        "fluidMinDepthBelowSurface": 20,
+        "fluidRequiresFloor": true,
+        "allowLava": true,
+        "modules": [
+            {
+                "style": {
+                    "style": "SIMPLEX_VASCULAR",
+                    "zoom": 0.98
+                },
+                "weight": 0.08,
+                "threshold": 0.03,
+                "verticalRange": {
+                    "min": 24,
+                    "max": 680
+                },
+                "invert": false
+            },
+            {
+                "style": {
+                    "style": "FRACTAL_BILLOW_SIMPLEX",
+                    "zoom": 0.34
+                },
+                "weight": 0.04,
+                "threshold": 0.07,
+                "verticalRange": {
+                    "min": 8,
+                    "max": 260
+                },
+                "invert": true
+            }
+        ],
+        "verticalEdgeFade": 26,
+        "verticalEdgeFadeStrength": 0.18,
+        "minCarveCells": 24,
+        "recoveryThresholdBoost": 0.07
+    },
+    "caveMinDepthBelowSurface": 10,
+    "children": [
+        "carving/amethyst-child"
+    ],
+    "childStyle": {
+        "style": "CELLULAR_IRIS_DOUBLE",
+        "zoom": 0.74
+    },
+    "childShrinkFactor": 1.54
+}

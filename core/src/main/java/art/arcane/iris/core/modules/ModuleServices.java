@@ -24,6 +24,7 @@ import com.volmit.host.FeatureCatalog;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.BlockDrops;
+import com.volmit.service.CaveBiomes;
 import com.volmit.service.EntitySpawns;
 import com.volmit.service.LocateResult;
 import com.volmit.service.Loot;
@@ -45,6 +46,19 @@ import java.util.Set;
  */
 public final class ModuleServices {
     private ModuleServices() {
+    }
+
+    /** The pack biome key the module that decides cave biomes puts at the position, whatever the regions say; empty where it overrides nothing. {@code y} is the height above the dimension's bottom. */
+    public static Optional<String> overriddenCaveBiome(Engine engine, int x, int y, int z) {
+        return catalog(engine.getData()).service(CaveBiomes.class)
+                .flatMap(provider -> provider.overriddenBiome(engine.getGeneration().world(), x, y, z));
+    }
+
+    /** How many blocks below the surface the caves of the pack biome {@code biomeKey} begin; 0 where nothing limits them. */
+    public static int caveMinDepthBelowSurface(Engine engine, String biomeKey) {
+        return catalog(engine.getData()).service(CaveBiomes.class)
+                .map(provider -> provider.minDepthBelowSurface(engine.getGeneration().world(), biomeKey))
+                .orElse(0);
     }
 
     /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */

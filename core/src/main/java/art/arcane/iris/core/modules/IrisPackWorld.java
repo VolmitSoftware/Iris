@@ -18,8 +18,10 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.PendingSettings;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.world.PackWorld;
@@ -32,7 +34,7 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld, PendingSettings {
+public final class IrisPackWorld implements PackWorld, PendingSettings, IrisSeed.Source {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states = new WorldStates();
@@ -75,6 +77,23 @@ public final class IrisPackWorld implements PackWorld, PendingSettings {
     @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));
+    }
+
+    @Override
+    public long seed(IrisSeed seed) {
+        SeedManager seeds = engine.getSeedManager();
+        return switch (seed) {
+            case BIOME -> seeds.getBiome();
+            case CARVE -> seeds.getCarve();
+            case COMPONENT -> seeds.getComponent();
+            case DECORATOR -> seeds.getDecorator();
+            case DEPOSIT -> seeds.getDeposit();
+            case ENTITY -> seeds.getEntity();
+            case LOOT -> seeds.getLoot();
+            case MANTLE -> seeds.getMantle();
+            case POST -> seeds.getPost();
+            case TERRAIN -> seeds.getTerrain();
+        };
     }
 
     @Override

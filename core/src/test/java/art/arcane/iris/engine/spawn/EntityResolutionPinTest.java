@@ -52,7 +52,7 @@ public class EntityResolutionPinTest {
              "loot": {"tables": ["zombie/drops", "zombie/rare"]},
              "passengers": [{"type": "minecraft:chicken", "baby": true, "helmet": {"type": "bread"}}],
              "leashHolder": {"type": "minecraft:bat", "attributes": [{"attribute": "max_health", "name": "tiny", "minAmount": 1, "maxAmount": 3}]},
-             "spawnEffect": {"sound": "entity.zombie.ambient", "particleEffect": "SMOKE", "particleCount": 3, "interval": 0, "chance": 1},
+             "spawnEffect": {"sound": "entity.zombie.ambient", "particleEffect": "SMOKE", "particleCount": 3, "interval": 1, "chance": 1},
              "spawnEffectRiseOutOfGround": true,
              "rawCommands": [{"commands": ["say hello {x}"], "delay": 5, "repeat": true, "repeatDelay": 40}]}
             """;
@@ -68,6 +68,6 @@ public class EntityResolutionPinTest {
 
         EntitySpec spec = new EntityResolution(new LootItems(registry, false), world).resolve(entity, new RNG(STREAM_SEED));
 
-        assertEquals(1726532922, spec.toString().hashCode());
+        assertEquals(-819231818, spec.toString().hashCode());
     }
 }

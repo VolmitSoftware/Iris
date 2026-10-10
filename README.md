@@ -39,8 +39,15 @@ objects are trees) and says which biomes and regions place an object (`ObjectLoc
 them (`LootValidator`), and provides `Loot` (`LootGiving`: which tables a container draws from and the `ItemDrop`s a
 table gives) and `BlockDrops` (`BlockDropping`). `iris:spawn` owns spawners, entities and markers (`SpawnResources`,
 folders `spawners`, `entities`, `markers`) and provides `EntitySpawns` (`EntitySpawning`: what to spawn in a chunk or at
-a marker, as `EntitySpec`s; `EntityResolution` makes the entity's random choices). Iris's Bukkit code creates the items
-and entities from those values (`BukkitItemStacks`, `BukkitEntitySpawner`).
+a marker, as `EntitySpec`s; `EntityResolution` makes the entity's random choices) and `AmbientEffects` (`AmbientEffecting`:
+the effects due around a player, with their random values). Iris's Bukkit code creates the items and entities from those
+values (`BukkitItemStacks`, `BukkitEntitySpawner`, `BukkitAmbientEffects`); the modded adapters, which cannot name IrisApi
+types, ask through the host-typed `ContentServices`.
+The settings of both modules are `builtin.loot` and `builtin.spawn` types of IrisApi annotations only: `iris:loot` declares
+`loot` (object, also the shape of an entity's `loot`) and `blockDrops` (list) for dimensions, regions and biomes;
+`iris:spawn` declares `entitySpawners` (list of spawner keys) for the same and `effects` (list, `iris:spawn/effects`) for
+regions and biomes. The loot tables, spawners, entities and markers are plain module types too (`LootTable`, `Spawner`,
+`EntityDefinition`, `SpawnMarker`). `PlacementLoot` picks the table an object placement gives one of its chests.
 `iris:decorant` keeps its per-world `Decorating` in the world's state store (`context.world().state(...)`); the other
 built-ins still reach the same store through `IrisChunk.state(...)` / `engine.getGeneration().state(...)`.
 

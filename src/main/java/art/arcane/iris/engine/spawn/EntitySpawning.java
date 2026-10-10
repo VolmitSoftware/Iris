@@ -27,7 +27,7 @@ import art.arcane.iris.builtin.spawn.SpawnerSettings;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.value.IrisPosition;

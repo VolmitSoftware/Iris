@@ -24,7 +24,7 @@ import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatforms;

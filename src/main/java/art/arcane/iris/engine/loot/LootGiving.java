@@ -21,7 +21,7 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.spi.IrisPlatforms;

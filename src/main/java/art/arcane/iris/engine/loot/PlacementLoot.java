@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;

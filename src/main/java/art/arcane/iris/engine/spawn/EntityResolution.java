@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.math.RNG;

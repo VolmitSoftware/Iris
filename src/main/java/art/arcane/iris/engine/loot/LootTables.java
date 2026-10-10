@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.loot.LootMode;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.math.RNG;

@@ -44,6 +44,7 @@ import art.arcane.iris.engine.object.annotations.RegistryListSpecialEntity;
 import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructure;
 import art.arcane.iris.engine.object.annotations.functions.LootTableKeyFunction;
 import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiome;
@@ -127,7 +128,7 @@ public class SchemaBuilderParityTest {
         if (previous != null) {
             IrisPlatforms.unbind();
         }
-        IrisPlatforms.bind(new FakePlatform());
+        IrisPlatforms.bind(new FakePlatform(null));
     }
 
     @After
@@ -229,6 +230,24 @@ public class SchemaBuilderParityTest {
         }
         assertFalse("the feature ids are not keys", properties.has("iris:deposit"));
         assertFalse("the feature ids are not keys", properties.has("iris:decorant"));
+    }
+
+    /** A native structure's jigsaw start pool names one of the platform's template pools, and studio lists them. */
+    @Test
+    public void jigsawStartPoolsCompleteThePlatformsTemplatePools() {
+        PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
+        when(hooks.templatePoolKeys()).thenReturn(List.of("minecraft:village/plains/town_centers"));
+        IrisPlatforms.unbind();
+        IrisPlatforms.bind(new FakePlatform(hooks));
+
+        JSONObject schema = new SchemaBuilder(IrisNativeStructure.class, structureSchemaData()).construct();
+        JSONObject definitions = schema.getJSONObject("definitions");
+        JSONObject jigsaw = definitions.getJSONObject(definitionKey(schema.getJSONObject("properties").getJSONObject("jigsaw")))
+                .getJSONObject("properties");
+
+        assertEquals("enum-native-jigsaw-pool", definitionKey(jigsaw.getJSONObject("startPool")));
+        assertEquals(List.of("minecraft:village/plains/town_centers"),
+                values(definitions.getJSONObject("enum-native-jigsaw-pool").getJSONArray("enum")));
     }
 
     @Test
@@ -670,6 +689,11 @@ public class SchemaBuilderParityTest {
 
     private static final class FakePlatform implements IrisPlatform {
         private final PlatformRegistries registries = new FakeRegistries();
+        private final PlatformStructureHooks structureHooks;
+
+        private FakePlatform(PlatformStructureHooks structureHooks) {
+            this.structureHooks = structureHooks;
+        }
 
         @Override
         public String platformName() {
@@ -693,7 +717,7 @@ public class SchemaBuilderParityTest {
 
         @Override
         public PlatformStructureHooks structureHooks() {
-            return null;
+            return structureHooks;
         }
 
         @Override

@@ -48,7 +48,6 @@ import art.arcane.iris.engine.object.annotations.RegistryListEntityType;
 import art.arcane.iris.engine.object.annotations.RegistryListFont;
 import art.arcane.iris.engine.object.annotations.RegistryListFunction;
 import art.arcane.iris.engine.object.annotations.RegistryListItemType;
-import art.arcane.iris.engine.object.annotations.RegistryListNativeJigsawPool;
 import art.arcane.iris.engine.object.annotations.RegistryListPotionEffect;
 import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.RegistryListSpecialEntity;
@@ -446,6 +445,7 @@ public class SchemaBuilder {
             case STRUCTURE_PREFIX -> putRegistryEnumOrPrefixRef(property, "enum-vanilla-structure-or-prefix",
                     "enum-vanilla-structure", this::vanillaStructures, VANILLA_STRUCTURE_PREFIX_PATTERN);
             case STRUCTURE_SET -> putRegistryEnumRef(property, "enum-vanilla-structure-set", this::vanillaStructureSets);
+            case TEMPLATE_POOL -> putRegistryEnumRef(property, "enum-native-jigsaw-pool", this::nativeJigsawPools);
             case POTION_EFFECT -> putRegistryEnumRef(property, "enum-potion-effect-type", this::potionTypes);
             case ENCHANTMENT -> putRegistryEnumRef(property, "enum-enchantment", this::enchantTypes);
             case PACK_BIOME -> putPackResourceRef(property, IrisBiome.class);
@@ -614,11 +614,6 @@ public class SchemaBuilder {
                     fancyType = "Block Type";
                     putRegistryEnumRef(prop, "enum-block-type", this::blockTypes);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Block Type (use ctrl+space for auto complete!)");
-
-                } else if (k.isAnnotationPresent(RegistryListNativeJigsawPool.class)) {
-                    fancyType = "Native Jigsaw Pool";
-                    putRegistryEnumRef(prop, "enum-native-jigsaw-pool", this::nativeJigsawPools);
-                    description.add(SYMBOL_TYPE__N + "  Must be a registered vanilla, datapack, or modded template pool key (use ctrl+space for auto complete!)");
 
                 } else if (k.isAnnotationPresent(RegistryListVanillaStructure.class)) {
                     fancyType = "Vanilla Structure";
@@ -792,10 +787,6 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla, datapack, or imported Iris structure (use ctrl+space for auto complete!)");
-                            } else if (k.isAnnotationPresent(RegistryListNativeJigsawPool.class)) {
-                                fancyType = "List<Native Jigsaw Pool>";
-                                putRegistryEnumItems(prop, "enum-native-jigsaw-pool", this::nativeJigsawPools);
-                                description.add(SYMBOL_TYPE__N + "  Must be a registered vanilla, datapack, or modded template pool key (use ctrl+space for auto complete!)");
                             } else if (k.isAnnotationPresent(RegistryListVanillaStructure.class)) {
                                 fancyType = "List<Vanilla Structure>";
                                 putRegistryEnumItems(prop, "enum-vanilla-structure", this::vanillaStructures);

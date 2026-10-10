@@ -3,6 +3,7 @@ package com.volmit;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.EntitySpawns;
 import com.volmit.service.SaplingGrowth;
@@ -55,6 +56,19 @@ class ItemAndEntityValuesTest {
         assertTrue(BlockDrops.Result.NONE.drops().isEmpty());
         assertFalse(BlockDrops.Result.NONE.replacesVanillaDrops());
         assertTrue(SaplingGrowth.TreeObjects.NONE.objects().isEmpty());
+    }
+
+    @Test
+    void anAmbientEffectKeepsItsCommandsApartAndRefusesPartsWithoutKeys() {
+        List<AmbientEffects.Command> commands = new ArrayList<>(List.of(
+                new AmbientEffects.Command(new EntitySpec.Command(List.of("say hi"), 0, false, 100), 1, 0, -1)));
+        AmbientEffects.Effect effect = new AmbientEffects.Effect(null, null, commands, new AmbientEffects.Potion("luck", 0, 100));
+        commands.clear();
+
+        assertEquals(1, effect.commands().size());
+        assertThrows(UnsupportedOperationException.class, () -> effect.commands().clear());
+        assertThrows(NullPointerException.class, () -> new AmbientEffects.Sound(null, 0, 0, 0, 1, 1));
+        assertThrows(NullPointerException.class, () -> new AmbientEffects.Command(null, 0, 0, 0));
     }
 
     private static EntitySpec entity(String type, String specialType) {

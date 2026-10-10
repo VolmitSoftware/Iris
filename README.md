@@ -120,6 +120,19 @@ graph.define(CARVE).when(CaveSettings.class).reach(32).writesMantle(CAVES).run(C
 graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and writes blocks
 ```
 
+A chunk stage writes only its own chunk but may look around it: `ctx.terrain()` covers the chunk and the 16 blocks
+around it, gives the dimension's `fluidHeight()` and, per column, `upperDimensionY(x, z)` where a dimension stacked above
+begins (write nothing there). `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
+take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). Stages only read them.
+
+```java
+graph.define(INSERT).run(ctx -> {
+    var blocks = ctx.hunk(BlockState.class);
+    var chunk = new BlockBox(ctx.originX(), 0, ctx.originZ(), ctx.originX() + 16, blocks.getHeight(), ctx.originZ() + 16);
+    ctx.mantle().blocks().visit(chunk, (x, y, z, block) -> blocks.set(x - ctx.originX(), y, z - ctx.originZ(), block));
+});
+```
+
 `reach(blocks)` is the distance in blocks along X and Z beyond the stage's footprint: the chunk for a
 mantle stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
 It defaults to 0. `writesMantle(...)` names the mantle layers the stage writes; each must be
@@ -333,12 +346,13 @@ refuse.
 
 A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
 Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the
-packages the host exposes besides it (meant for built-in modules, so packs can require their
-stages), the JDK and the classes in its pack's module jars. Iris internals and the libraries Iris
-bundles are hidden.
+packages the host exposes besides it (the built-in modules' stages and types, so packs can require
+their stages, and the libraries the host shares: Iris exposes VolmLib, `art.arcane.volmlib`, and Gson,
+`com.google.gson`), the JDK and the classes in its pack's module jars. Iris internals and the other
+libraries Iris bundles are hidden.
 
-A module may use any library. It ships the library inside its own jar or as another jar of the
-pack, and never borrows Iris's copy. A class may appear in only one jar of a pack, so two jars that
+A module may use any library. One the host does not expose it ships inside its own jar or as another
+jar of the pack, and never borrows Iris's copy. A class may appear in only one jar of a pack, so two jars that
 shade the same library must relocate it. The API's package and the other exposed packages belong
 to Iris: module classes, and the libraries they shade, must not use them.
 
@@ -446,6 +460,7 @@ A load error names the field, the settings and the module:
 Field com.example.flora.FloraSettings.id of settings example:flora (module example:flora from modules/flora.jar) uses java.util.UUID, a JDK class settings cannot use; settings fields can be booleans, numbers, String, ResourceId, BlockState, enums, lists, sets and arrays of these, Map with String keys and classes with a no-argument constructor
 Field com.example.flora.FloraSettings.count of settings example:flora (module example:flora from modules/flora.jar) has @Ref(BLOCK) on int, but @Ref fits only String and ResourceId and lists, sets and arrays of them
 Class com.example.flora.Shape of settings example:flora (module example:flora from modules/flora.jar) has no no-argument constructor; the host creates settings with it and reads their defaults from it, so declare one, private if nothing else should use it
+Module old:flora from modules/old.jar: The @Feature of settings class com.example.flora.Patch has no key, the JSON field packs write the settings under; add key = "floraPatch" (or another plain field name) to it and rebuild the jar
 Snippet name 'patch' of com.example.flora.Patch of settings example:flora (module example:flora from modules/flora.jar) is not under a module of the pack; snippets of pack modules start with their module's id as a folder path, such as 'example/flora/patch' (folder snippet/example/flora/patch/)
 ```
 
@@ -592,7 +607,7 @@ try (var pack = LoadedPack.load(packRoot, host)) {
     for (var stage : pack.mantle().stages()) {                            // each stage its own pass, first
         mantle.generate(stage.stage(), mantleContext, chunkSeed);         // for each chunk it reaches
     }
-    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed);
+    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed, (stage, nanos) -> metrics.time(stage, nanos));
 }   // stop using the runners before the pack closes
 ```
 
@@ -749,7 +764,9 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
   resource kind; the requested type selects the kind, so `BiomeSample` ids look up directly. `ids(type)` lists
   a kind.
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
-  platform and resolves `BlockSpec`s. `BlockPalette` and `NoiseSampler` are typed resources (`PaletteSampler` is the noise-picked palette of settings);
+  platform and resolves `BlockSpec`s. It answers a state's traits (`AIR`, `SOLID`, `FLUID`, `FOLIAGE`, `DECORATION`,
+  `VINE`, ...), tags, whether it attaches to a face (`canAttach`) and whether it can stand on a block (`canPlaceOn`, the
+  rule decorations need), as the platform does. `BlockPalette` and `NoiseSampler` are typed resources (`PaletteSampler` is the noise-picked palette of settings);
   `PackResources.noise()` builds noise samplers from `NoiseStyle`s.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
   with a world position using checked arithmetic.

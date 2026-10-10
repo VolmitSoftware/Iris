@@ -66,7 +66,8 @@ JSON fields. The description is in a fixed order and holds module entries only.
 
 Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
 (`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
-own pack's jars. They may use any library they ship in the pack, never Iris's copy. JDK modules
+own pack's jars. A host may expose libraries it shares with modules (Iris exposes VolmLib and Gson); any other
+library a module ships in the pack, never borrowing the host's copy. JDK modules
 outside the platform class loader, such as `jdk.compiler`, are not available, and neither are JDK
 packages not exported to unnamed modules, such as `jdk.internal.misc`, unless the server is started
 with `--add-exports <module>/<package>=ALL-UNNAMED`. `sun.misc.Unsafe` from `jdk.unsupported` is the
@@ -121,7 +122,13 @@ running Iris is the pack publisher's responsibility.
 - Run each mantle stage (`MantleRunner.generate(stage, ...)`) as its own pass, in resolved order: for
   every chunk within that stage's reach plus the reach of every later stage of a chunk, each chunk once,
   before the next stage and before that chunk generates, with the mantle widened by the stage's reach.
-  Give chunk stages that chunk's mantle; `ChunkRunner` makes it read-only.
+  Give chunk stages that chunk's mantle; `ChunkRunner` makes it read-only. Give chunk stages a `TerrainSampler` over the
+  chunk and the 16 blocks around it.
+- Serve `Mantle.blocks()` in every invocation: the blocks placements wrote into the mantle, read-only, none where the
+  dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
+  the host's own identity of it (a custom block of a content plugin stays one).
+- Answer `TerrainSampler.fluidHeight()` (the height the host fills with fluid below) and `upperDimensionY(x, z)` (where a
+  dimension stacked above begins; empty when none does).
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
@@ -134,8 +141,8 @@ running Iris is the pack publisher's responsibility.
   to `ModuleHost.copyingJarsTo(...)` for the jar copies.
 - Provide the API at runtime from the plugin's class loader, for example by shading it into the
   Iris plugin jar. Pack jars must not ship it.
-- Pass the packages of built-in modules whose stages packs may require to
-  `ModuleHost.exposing(...)`. They must be on the loader that defines the
+- Pass the packages of built-in modules whose stages packs may require, and of libraries the host shares with
+  modules, to `ModuleHost.exposing(...)`. They must be on the loader that defines the
   API. Keep them narrow: everything in an exposed package and its subpackages becomes visible to
   packs and is part of what packs can break on. Stage output types and settings types that pack
   code uses through those stages must be in exposed packages too. The API is always exposed.
@@ -192,6 +199,8 @@ running Iris is the pack publisher's responsibility.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
   the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat, a missing
   expression falls back to the base style, and a missing image map fails.
+- Answer `BlockRegistry.hasTrait` (`VINE` included) and `canPlaceOn` (the support rule decorations need) as the platform
+  does; stages ask per block, so answer from memory once a state was seen.
 - Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their
   `tileData` into the host's block entity format.
 - Build `BlockRegistry.palette(spec, seed)` pickers: blocks expanded by weight, the style's noise at (x, y, z) over

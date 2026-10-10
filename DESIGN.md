@@ -159,9 +159,13 @@ definition of the id. Names match whole packages: `com.volmit` does not expose `
 trailing dot is accepted; anything that is not a package name, such as a blank string or a
 wildcard, is rejected. `PackageName` holds these rules; module optional packages use them too.
 
-A module may use any library, but it ships that library itself, inside its own jar or as another
-jar of the pack. It never borrows Iris's copy: Iris's libraries can change with any Iris update,
-and two modules would otherwise depend on whatever version Iris happens to bundle.
+A module may use any library. A library the host does not expose it ships itself, inside its own jar or as another
+jar of the pack, and never borrows the host's hidden copy: those can change with any host update, and two modules would
+otherwise depend on whatever version the host happens to bundle. A host may instead expose a library it promises to
+keep, by passing its packages to `ModuleHost.exposing`; the pack loader then gives modules the host's classes of it,
+like the API's. Iris exposes VolmLib (`art.arcane.volmlib`, its utility library, shaded unrelocated) and Gson
+(`com.google.gson`, which every platform it runs on provides), so Iris's built-ins and pack modules share one copy of
+each. A module jar may not contain classes of an exposed library, as it may not contain API classes.
 
 Resources follow the same rule by path: `com/volmit/...` and the paths of other exposed packages
 from the host's loader, everything else from the platform loader, then the pack's jars. A class
@@ -491,6 +495,15 @@ world X and Z, and Y as the height above the dimension's bottom. A chunk stage w
 whose writes throw. The runner does no neighbor scheduling or rollback. A failed invocation must stop
 the host from publishing the chunk.
 
+A chunk stage writes only its chunk but may look around it: its `TerrainSampler` covers the chunk and the 16 blocks
+around it, so a stage that smooths a surface reads its neighbors' heights. The sampler also gives the dimension's
+`fluidHeight()` and, per column, `upperDimensionY` where a dimension stacked above begins; a stage writes nothing at or
+above it. The mantle's `blocks()` are the blocks placements wrote into the mantle for chunks to take over (objects,
+structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` does. They are the host's layer, so they
+need no registration, and stages only read them; placements keep writing blocks through `PlacementAccess.set`.
+`ChunkRunner.generate(inputs, seed, timings)` reports how long each stage that ran took, so the host times modules
+instead of modules timing themselves.
+
 ## Mantle invocations
 
 Some work writes beyond its chunk: a carver whose tunnels cross chunk borders, a vein running on into
@@ -591,6 +604,13 @@ value and the object form is not accepted. `root` must name the class's only opt
 shorthand wave 2 removed (a bare value accepted as an alternative to the object, so every renderer needed an `anyOf`):
 the class chooses its one shape once, and the decoder, the studio schema and the pack author see only that shape.
 A `@Snippet` class may still be written as a `"snippet/..."` string instead of its object.
+
+*A class built before keys existed.* A settings class compiled against an API whose `@Feature` had no `key` has an
+incomplete annotation; reading it would throw `IncompleteAnnotationException`, which names neither module nor class.
+`FeatureDescriptor.of` turns it into a load error that names the module and its jar, the class, and the key to add,
+suggested from the id: `Module old:flora from modules/old.jar: The @Feature of settings class pack.old.Old$Patch has no
+key, the JSON field packs write the settings under; add key = "floraWildPatch" (or another plain field name) to it and
+rebuild the jar`.
 
 `GeneratedObject` is sparse, immutable local geometry with bounds, an anchor, sorted blocks,
 optional block entity payloads and markers. `ObjectGenerator` produces it from settings and a
@@ -978,6 +998,26 @@ from a sapling, which drops a block has. A module answers such questions through
   world, but every service method would then hide which world it answers for, and a host could not ask a pack-level
   question without a world. Passing the world keeps providers stateless like stage bodies and puts all per-world data
   in one place.
+
+## How a module reaches the host
+
+A module jar sees three things besides the JDK and its own pack's jars, and nothing else of the host:
+
+1. **The API** for everything a worldgen module needs: blocks (`BlockState`, `BlockRegistry` traits, tags, support and
+   specs), noise (`NoiseFactory`), randomness (`WorldRandom`, stage streams), the layout as values (`TerrainSampler`,
+   `BiomeSample`, `PackBiome`, `PackRegion`, settings per column), the chunk's hunk and mantle (layers and planned
+   blocks), pack resources and module resource kinds, per-world state, lifecycle hooks, services and validation.
+   Whatever a second module could want goes here, host-neutral and tested without Iris.
+2. **Packages the host exposes**: libraries it shares (VolmLib, Gson) and the public face of its built-in modules
+   (`art.arcane.iris.builtin`: stage constants, settings and output types packs may read).
+3. **Narrow facades for the host's own built-ins**, in that same exposed package: interfaces the host's worlds
+   implement, for what only the host's own features need from its internals, such as Iris's per-feature world seeds
+   (`IrisSeed`), which existing worlds depend on. A pack module never needs one. Every such type is a promise the host
+   keeps, so there are few, each answers one question, and none hands out an engine.
+
+A module never reaches the host's engine, its data loader or its layout classes; it reads the layout through the API's
+values and its settings through `FeatureSettings`. Iris's mapping from its internals to this surface, with the
+utilities that move into VolmLib, is in its notes (context.md, "How a module reaches the host").
 
 ## Not implemented
 

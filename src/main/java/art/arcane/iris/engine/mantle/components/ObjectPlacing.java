@@ -25,6 +25,7 @@ import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
+import art.arcane.iris.engine.object.terrain.carving.CaveProfiles;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import art.arcane.iris.core.IrisSettings;
@@ -235,8 +236,8 @@ public class ObjectPlacing {
         int rejected = 0;
         int nullObjects = 0;
         int errors = 0;
-        CaveProfile biomeCaveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
-        CaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome.getCaveProfile());
+        CaveProfile biomeCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(caveBiome), CaveProfiles.declaredBy(region));
+        CaveProfile regionCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(region), CaveProfiles.declaredBy(caveBiome));
         CaveAnchorCache caveAnchorCache = new CaveAnchorCache();
 
         for (IrisObjectPlacement i : surfaceBiome.getSurfaceObjects()) {
@@ -384,12 +385,12 @@ public class ObjectPlacing {
 
     @ChunkCoordinates
     private void placeProceduralObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region) {
-        CaveProfile surfaceCaveProfile = resolveCaveProfile(surfaceBiome.getCaveProfile(), region.getCaveProfile());
-        CaveProfile regionCaveProfile = resolveCaveProfile(region.getCaveProfile(), caveBiome == null ? null : caveBiome.getCaveProfile());
+        CaveProfile surfaceCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(surfaceBiome), CaveProfiles.declaredBy(region));
+        CaveProfile regionCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(region), caveBiome == null ? null : CaveProfiles.declaredBy(caveBiome));
         placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceCaveProfile, surfaceBiome.getLoadKey());
         placeProceduralFrom(writer, rng, x, z, region.getProceduralObjects(), region.getName(), regionCaveProfile, null);
         if (caveBiome != null && caveBiome != surfaceBiome) {
-            CaveProfile caveProfile = resolveCaveProfile(caveBiome.getCaveProfile(), region.getCaveProfile());
+            CaveProfile caveProfile = resolveCaveProfile(CaveProfiles.declaredBy(caveBiome), CaveProfiles.declaredBy(region));
             placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveProfile, caveBiome.getLoadKey());
         }
     }
@@ -1319,7 +1320,7 @@ public class ObjectPlacing {
     }
 
     private CaveProfile resolveCaveProfile(CaveProfile preferred, CaveProfile secondary) {
-        CaveProfile dimensionProfile = engine.getDimension().getCaveProfile();
+        CaveProfile dimensionProfile = CaveProfiles.declaredBy(engine.getDimension());
         if (preferred != null && preferred.enabled()) {
             return preferred;
         }

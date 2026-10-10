@@ -196,8 +196,8 @@ public final class FloatingIslandSample {
     }
 
     public static FloatingIslandSample sample(IrisBiome parent, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler) {
-        List<FloatingChildBiome> settings = parent.getFloatingChildBiomes();
-        if (settings == null || settings.isEmpty()) {
+        List<FloatingChildBiome> settings = FloatingChildren.declaredBy(parent);
+        if (settings.isEmpty()) {
             return reject(REJECT_NO_ENTRIES);
         }
         KList<ResolvedFloatingChild> entries = new KList<>(FloatingChildren.of(data).of(settings));
@@ -208,7 +208,7 @@ public final class FloatingIslandSample {
         int boundaryFieldWidth = maximumEdgeFieldWidth(entries, baseSeed, data, parent);
         int parentBoundaryDistance = boundarySampler.edgeDistance(parent, wx, wz, boundaryFieldWidth);
 
-        if (parent.isMergeFloatingChildBiomes()) {
+        if (FloatingChildren.merges(parent)) {
             return sampleMerged(parent, entries, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler,
                     parentBoundaryDistance, boundaryFieldWidth);
         }

@@ -18,8 +18,6 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.entity.IrisEffect;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.loot.IrisBlockDrops;
@@ -104,7 +102,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private transient volatile SeededBiomeGenerator recentBiomeGenerator;
     private final transient AtomicCache<Integer> maxHeight = new AtomicCache<>();
     private final transient AtomicCache<Integer> maxWithObjectHeight = new AtomicCache<>();
-    private final transient AtomicCache<IrisBiome> realCarveBiome = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
@@ -138,8 +135,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private boolean lockLayers = false;
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
-    @Desc("Profile-driven 3D cave configuration")
-    private CaveProfile caveProfile = new CaveProfile();
     @MinNumber(1)
     @MaxNumber(512)
     @Desc("The rarity of this biome (integer)")
@@ -172,13 +167,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = String.class)
     @Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 4 biomes down the tree.")
     private KList<String> children = new KList<>();
-    @RegistryListResource(IrisBiome.class)
-    @Desc("Registers the referenced biome with this pack's reachable biome set. It is NOT applied as a substitute under carvings; cave biomes come from the region's caveBiomes list.")
-    private String carvingBiome = "";
-    @MinNumber(0)
-    @MaxNumber(256)
-    @Desc("Minimum depth below terrain surface required before this cave biome can be selected.")
-    private int caveMinDepthBelowSurface = 0;
     @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
     private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
     @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
@@ -201,11 +189,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisStructurePlacement.class)
     @Desc("Structures define jigsaw or vanilla/datapack structures iris will place in this biome")
     private KList<IrisStructurePlacement> structures = new KList<>();
-    @ArrayType(min = 1, type = FloatingChildBiome.class)
-    @Desc("Floating child biomes that procedurally generate above this biome's terrain. Each entry references a target biome whose layers, decorators, and objects drive the floating island's visual design, while the config here drives size, shape, altitude, rarity, and water level. Multiple entries are supported and selected by rarity per column unless mergeFloatingChildBiomes is enabled.")
-    private KList<FloatingChildBiome> floatingChildBiomes = new KList<>();
-    @Desc("When true, every floating child entry is sampled independently and their solid masks are unioned, so multiple floating islands can stack, overlap, and collide instead of the picker choosing only one child per column.")
-    private boolean mergeFloatingChildBiomes = false;
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
@@ -319,19 +302,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public IrisBiomeGeneratorLink getGenLink(String loadKey) {
         return IrisBiomeGenLinks.getGenLink(this, loadKey);
-    }
-
-    public IrisBiome getRealCarvingBiome(IrisData data) {
-        return realCarveBiome.aquire(() ->
-        {
-            IrisBiome biome = data.getBiomeLoader().load(getCarvingBiome());
-
-            if (biome == null) {
-                biome = this;
-            }
-
-            return biome;
-        });
     }
 
     public KList<IrisObjectPlacement> getSurfaceObjects() {

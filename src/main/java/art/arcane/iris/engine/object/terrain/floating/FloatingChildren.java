@@ -19,8 +19,11 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.builtin.floating.FloatingChildSettings;
+import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 
 import java.util.List;
 import java.util.Map;
@@ -44,6 +47,16 @@ public final class FloatingChildren {
 
     public static FloatingChildren of(Engine engine) {
         return engine.getGeneration().state(FloatingChildren.class, FloatingChildren::new);
+    }
+
+    /** The floating children {@code biome} declares, in the order it lists them; none when it declares none. */
+    public static List<FloatingChildBiome> declaredBy(IrisBiome biome) {
+        return biome.getModuleSettings().find(FloatingChildSettings.class).map(FloatingChildSettings::children).orElse(List.of());
+    }
+
+    /** Whether {@code biome} samples every floating child on its own and unions their islands instead of picking one per column. */
+    public static boolean merges(IrisBiome biome) {
+        return biome.getModuleSettings().find(MergeFloatingChildrenSettings.class).map(MergeFloatingChildrenSettings::merge).orElse(false);
     }
 
     public ResolvedFloatingChild of(FloatingChildBiome settings) {

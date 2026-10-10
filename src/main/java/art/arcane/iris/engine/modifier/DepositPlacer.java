@@ -30,7 +30,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -102,7 +101,6 @@ public class DepositPlacer extends EngineAssignedComponent {
     }
 
     public void generate(DepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
-        IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
         ResolvedDeposit deposit = resolved(k);
         if (k.spawnChance() < rng.d())
             return;
@@ -148,8 +146,7 @@ public class DepositPlacer extends EngineAssignedComponent {
             boolean oreDeposit = deposit.isOre();
             IrisBiome surfaceBiome = context.getBiome().get(x, z);
             IrisBiome depositBiome = oreDeposit || k.usesCaveBiomeFilter()
-                    ? getEngine().getCaveBiome(
-                            (cx << 4) + x, biomeY, (cz << 4) + z, carvingState)
+                    ? getEngine().getCaveBiome((cx << 4) + x, biomeY, (cz << 4) + z)
                     : null;
             if (!deposit.matchesBiome(surfaceBiome, depositBiome)) {
                 continue;
@@ -211,7 +208,7 @@ public class DepositPlacer extends EngineAssignedComponent {
                 if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
                     PlatformBlockState ore = clump.getBlocks().get(j);
                     PlatformBlockState remapped = resolveDepositVariant(
-                            cx, cz, nx, ny, nz, ore, dimension, context, carvingState);
+                            cx, cz, nx, ny, nz, ore, dimension, context);
                     PlatformBlockState finalBlock = remapped != null
                             ? remapped
                             : B.toDeepSlateOre(current, ore);
@@ -317,12 +314,12 @@ public class DepositPlacer extends EngineAssignedComponent {
         return Math.max(minimum, Math.min(center, maximum));
     }
 
-    private PlatformBlockState resolveDepositVariant(int cx, int cz, int nx, int localY, int nz, PlatformBlockState ore, IrisDimension dimension, ChunkContext context, IrisDimensionCarvingResolver.State carvingState) {
+    private PlatformBlockState resolveDepositVariant(int cx, int cz, int nx, int localY, int nz, PlatformBlockState ore, IrisDimension dimension, ChunkContext context) {
         int worldX = (cx << 4) + nx;
         int worldZ = (cz << 4) + nz;
         int worldY = absoluteWorldY(getEngine().getMinHeight(), localY);
 
-        IrisBiome biome = getEngine().getCaveBiome(worldX, localY, worldZ, carvingState);
+        IrisBiome biome = getEngine().getCaveBiome(worldX, localY, worldZ);
         if (biome != null) {
             PlatformBlockState match = matchDepositVariant(biome, ore, worldY);
             if (match != null) {

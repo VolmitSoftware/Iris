@@ -42,11 +42,18 @@ final class TerrainOres {
         return engine.getGeneration().state(TerrainOres.class, TerrainOres::new);
     }
 
-    /** The ore generators {@code owner}, a dimension, region or biome, declares; {@link ResolvedOres#NONE} when it declares none. */
+    /**
+     * The ore generators {@code owner}, a dimension, region or biome, declares; {@link ResolvedOres#NONE} when it declares none. The
+     * terrain asks this for two owners per column, so a resolved set is read without taking the map's lock.
+     */
     ResolvedOres of(IrisRegistrant owner) {
         OreSettings settings = owner.getModuleSettings().find(OreSettings.class).orElse(null);
         if (settings == null) {
             return ResolvedOres.NONE;
+        }
+        ResolvedOres existing = resolved.get(settings);
+        if (existing != null) {
+            return existing;
         }
         return resolved.computeIfAbsent(settings, declared -> ResolvedOres.of(declared, engine));
     }

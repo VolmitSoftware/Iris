@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.object.world.region;
 
-import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.entity.IrisEffect;
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.loot.IrisBlockDrops;
@@ -32,7 +31,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
@@ -123,8 +121,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(0.0001)
     @Desc("How large cave biomes are in this region")
     private double caveBiomeZoom = 1;
-    @Desc("Profile-driven 3D cave configuration")
-    private CaveProfile caveProfile = new CaveProfile();
     @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
@@ -216,7 +212,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                     continue;
                 }
 
-                names.add(biome.getCarvingBiome());
+                names.addAll(biome.getModuleSettings().treeBiomes());
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
             }
@@ -313,7 +309,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                     continue;
                 }
 
-                names.add(biome.getCarvingBiome());
+                names.addAll(biome.getModuleSettings().treeBiomes());
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
             }

@@ -105,11 +105,19 @@ final class ResolvedOre {
         if (settings.palette().palette().isEmpty()) {
             return null;
         }
-        NoiseSampler sampler = chance.aquire(() -> noise.sampler(settings.chanceStyle(), terrainSeed));
-        if (sampler.sample(x, y, z) > settings.threshold()) {
+        if (chanceNoise().sample(x, y, z) > settings.threshold()) {
             return null;
         }
         return pick(x, y, z);
+    }
+
+    /** The chance noise, which this runs per block of the terrain, so a built one is read without creating a supplier. */
+    private NoiseSampler chanceNoise() {
+        NoiseSampler built = chance.getIfPresent();
+        if (built != null) {
+            return built;
+        }
+        return chance.aquire(() -> noise.sampler(settings.chanceStyle(), terrainSeed));
     }
 
     private PlatformBlockState pick(int x, int y, int z) {

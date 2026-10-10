@@ -16,6 +16,16 @@ mantle components outside the stage graph any more. Their stage constants, and t
 types packs may read, live in `src/main/java/art/arcane/iris/builtin`, the package Iris exposes to pack
 modules; their stage bodies live beside the features they replace.
 
+Two of those modules are not in this project: `iris:biome` (writes the layout's platform biomes into the chunk) and
+`iris:custom` (records the platform's custom blocks of content plugins) are Iris itself, so their classes live in Iris
+core (`art.arcane.iris.core.modules.BiomeModule` and `CustomModule`) and Iris registers them (`IrisModuleHost`), not
+the built-ins jar. Their stage constants stay in `art.arcane.iris.builtin.IrisStages`, so packs can still order after them.
+
+Built-in modules log through the `ModuleLog` IrisApi hands them (`context.log()` in a stage body, `world.log()` in a
+service or hook, `registry.log()` while registering), which labels each line with the module's id, so these sources do not
+use `IrisLogging`. Classes of the host's object model (the host-classes list) and code that only has an engine or pack
+data still log as Iris itself.
+
 Built-in modules also own pack resources and checks of their own. `iris:structure` reads structures, jigsaw
 pools and jigsaw pieces as resource kinds (`StructureResources`), from the folders and files packs have always
 used, and checks them with its validator (`StructureValidator`: assembly samples and vanilla structure
@@ -130,7 +140,9 @@ The jar holds `iris:post`, `iris:perfection` and `iris:matter`. They are written
 sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks.
 Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
 `iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
-`iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads.
+`iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads. Iris warns once per pack folder
+when a pack loads none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps equal to
+`builtin-modules.txt`): add a module to the jar and to that list together.
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class: `IrisSeed` (Iris's per-feature world seeds, a facade Iris's worlds implement, so existing worlds generate the

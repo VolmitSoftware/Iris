@@ -83,7 +83,7 @@ final class IrisBiomeColorRenderer {
             }
             case LAYER_LOAD -> {
                 return biome.getCacheColorLayerLoad().aquire(() -> {
-                    BiomeLayers layers = BiomeLayers.of(engine);
+                    BiomeLayers layers = BiomeLayers.of(engine, engine.getGeneration().world().log());
                     return Color.getHSBColor(0.625f, (float) (BiomeLayers.layersOf(biome).size() / layers.busiestLayerCount(engine)), 1f);
                 });
             }

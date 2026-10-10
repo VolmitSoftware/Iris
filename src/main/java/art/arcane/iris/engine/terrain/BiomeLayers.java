@@ -35,13 +35,13 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
+import com.volmit.ModuleLog;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,20 +67,22 @@ public final class BiomeLayers {
     }
 
     private final Supplier<LayerBlocks> layerBlocks;
+    private final ModuleLog log;
     private final Map<PaletteLayer, ResolvedLayer> resolved = new ConcurrentHashMap<>();
     private final Map<LayersSettings, AtomicCache<KList<CNG>>> surfaceHeights = new ConcurrentHashMap<>();
     private final Map<SeaLayersSettings, AtomicCache<KList<CNG>>> seaHeights = new ConcurrentHashMap<>();
     private volatile Double busiestBiomeLayerCount;
 
-    /** The layers of the world {@code engine} generates now. */
-    public static BiomeLayers of(Engine engine) {
+    /** The layers of the world {@code engine} generates now, reporting failures to {@code log}. */
+    public static BiomeLayers of(Engine engine, ModuleLog log) {
         return engine.getGeneration().state(BiomeLayers.class,
-                generating -> new BiomeLayers(() -> LayerBlocks.of(generating.getGeneration().world())));
+                generating -> new BiomeLayers(() -> LayerBlocks.of(generating.getGeneration().world()), log));
     }
 
     /** The layers of a world whose layer blocks {@code layerBlocks} gives, asked for when a layer first picks a block. */
-    public BiomeLayers(Supplier<LayerBlocks> layerBlocks) {
+    public BiomeLayers(Supplier<LayerBlocks> layerBlocks, ModuleLog log) {
         this.layerBlocks = layerBlocks;
+        this.log = log;
     }
 
     /** {@code layer} ready for this world; its block picks are the world's {@link LayerBlocks}. */
@@ -272,7 +274,7 @@ public final class BiomeLayers {
         try {
             blocks.add(layer.get(random, index + j, (wx + j) / zoom, j, (wz - j) / zoom));
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
+            log.error("A biome layer failed to pick a block", e);
         }
     }
 

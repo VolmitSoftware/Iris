@@ -31,6 +31,7 @@ import art.arcane.iris.engine.mantle.components.CaveCarving;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLog;
 import com.volmit.service.CaveBiomes;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStageContext;
@@ -82,7 +83,8 @@ public final class CarveModule implements IrisModule {
         if (chunk.bypassesMantleStages()) {
             return;
         }
-        chunk.state(CaveApplying.class, CaveApplying::new).apply(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT,
+        ModuleLog log = context.log();
+        chunk.state(CaveApplying.class, generating -> new CaveApplying(generating, log)).apply(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT,
                 chunk.blocks(), chunk.multicore(), chunk.context());
     }
 

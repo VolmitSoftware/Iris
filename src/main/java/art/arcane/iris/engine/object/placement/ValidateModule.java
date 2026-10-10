@@ -28,10 +28,10 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.PlacementStageContext;
@@ -87,7 +87,7 @@ public final class ValidateModule implements IrisModule {
         int y = context.output(IrisStages.Anchor.HEIGHT).y();
         boolean sampled = placement.requestedY() < 0;
         if (sampled && config.getCarvingSupport().supportsSurface() && isOnBedrock(prepared, y)) {
-            warnImplausibleBedrockPlacement(placement, config, y);
+            warnImplausibleBedrockPlacement(placement, config, y, context.log());
             context.reject("bedrock-anchor");
             return;
         }
@@ -239,7 +239,7 @@ public final class ValidateModule implements IrisModule {
         return false;
     }
 
-    private static void warnImplausibleBedrockPlacement(IrisPlacement placement, IrisObjectPlacement config, int y) {
+    private static void warnImplausibleBedrockPlacement(IrisPlacement placement, IrisObjectPlacement config, int y, ModuleLog log) {
         String key = placement.object().getLoadKey();
         String fingerprint = (key == null ? "<null>" : key) + "|" + config.getMode();
         long now = System.currentTimeMillis();
@@ -248,7 +248,7 @@ public final class ValidateModule implements IrisModule {
             return;
         }
         IMPLAUSIBLE_BEDROCK_WARNS.put(fingerprint, now);
-        IrisLogging.warn("Implausible object placement rejected: "
+        log.warn("Implausible object placement rejected: "
                 + (key == null ? "<no loadKey>" : key)
                 + " resolved anchorY=" + y + " at (" + placement.x() + "," + placement.z() + ") mode=" + config.getMode()
                 + " carving=" + config.getCarvingSupport()

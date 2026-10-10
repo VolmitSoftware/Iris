@@ -44,6 +44,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.Data;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -72,11 +73,11 @@ public class CaveApplying {
     private final IrisSurfaceDecorator surfaceDecorator;
     private final IrisCeilingDecorator ceilingDecorator;
 
-    public CaveApplying(Engine engine) {
+    public CaveApplying(Engine engine, ModuleLog log) {
         this.engine = engine;
         rng = new RNG(engine.getSeedManager().getCarve());
         decorators = BiomeDecorators.of(engine);
-        layers = BiomeLayers.of(engine);
+        layers = BiomeLayers.of(engine, log);
         palettes = TerrainPalettes.of(engine);
         surfaceDecorator = new IrisSurfaceDecorator(engine);
         ceilingDecorator = new IrisCeilingDecorator(engine);

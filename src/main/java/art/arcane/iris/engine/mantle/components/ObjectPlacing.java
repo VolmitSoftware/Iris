@@ -47,7 +47,6 @@ import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
 import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
@@ -59,6 +58,7 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.NoiseType;
+import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -87,18 +87,20 @@ public class ObjectPlacing {
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
 
     private final Engine engine;
+    private final ModuleLog log;
 
-    public ObjectPlacing(Engine engine) {
+    public ObjectPlacing(Engine engine, ModuleLog log) {
         this.engine = engine;
+        this.log = log;
     }
 
-    private static String placementMarker(IrisObject object, int id, String context) {
+    private String placementMarker(IrisObject object, int id, String context) {
         String key = object == null ? null : object.getLoadKey();
         if (key == null || key.isEmpty() || key.equals("null")) {
             String fingerprint = context + "|" + (object == null ? "<null>" : object.getClass().getSimpleName());
             if (MISSING_LOAD_KEY_WARNED.add(fingerprint)) {
                 java.io.File file = object == null ? null : object.getLoadFile();
-                IrisLogging.warn("Skipping placement marker write: IrisObject has no loadKey (context=" + context
+                log.warn("Skipping placement marker write: IrisObject has no loadKey (context=" + context
                         + ", file=" + (file == null ? "<unknown>" : file.getPath()) + "). "
                         + "This would previously produce 'Couldn't find Object: null' warnings on chunk reload.");
             }
@@ -137,7 +139,7 @@ public class ObjectPlacing {
                     carvedBlocks++;
                 }
             }
-            IrisLogging.debug("Cave object diag: chunk=" + x + "," + z
+            log.debug("Cave object diag: chunk=" + x + "," + z
                     + " surfaceBiome=" + surfaceBiome.getLoadKey()
                     + " caveBiome=" + caveBiome.getLoadKey()
                     + " surfaceY=" + surfaceY
@@ -148,7 +150,7 @@ public class ObjectPlacing {
                     + " sameBiome=" + (caveBiome == surfaceBiome || java.util.Objects.equals(caveBiome.getLoadKey(), surfaceBiome.getLoadKey())));
         }
         if (traceRegen) {
-            IrisLogging.debug("Regen object layer start: chunk=" + x + "," + z
+            log.debug("Regen object layer start: chunk=" + x + "," + z
                     + " surfaceBiome=" + surfaceBiome.getLoadKey()
                     + " caveBiome=" + caveBiome.getLoadKey()
                     + " region=" + region.getLoadKey()
@@ -165,7 +167,7 @@ public class ObjectPlacing {
             placeUpperObjects(writer, rng, x, z, xxx, zzz, surfaceY, upperCtx, dimension, complex, traceRegen);
         }
         if (traceRegen) {
-            IrisLogging.debug("Regen object layer done: chunk=" + x + "," + z
+            log.debug("Regen object layer done: chunk=" + x + "," + z
                     + " biomeSurfacePlacersChecked=" + summary.biomeSurfacePlacersChecked()
                     + " biomeSurfacePlacersTriggered=" + summary.biomeSurfacePlacersTriggered()
                     + " biomeCavePlacersChecked=" + summary.biomeCavePlacersChecked()
@@ -245,7 +247,7 @@ public class ObjectPlacing {
             biomeSurfaceChecked++;
             boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
             if (traceRegen) {
-                IrisLogging.debug("Regen object placer chance: chunk=" + x + "," + z
+                log.debug("Regen object placer chance: chunk=" + x + "," + z
                         + " scope=biome-surface"
                         + " chanceResult=" + chance
                         + " chanceBase=" + i.getChance()
@@ -263,10 +265,9 @@ public class ObjectPlacing {
                     errors += result.errors();
                 } catch (Throwable e) {
                     errors++;
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place objects in the following biome: " + surfaceBiome.getName());
-                    IrisLogging.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
-                    IrisLogging.error("Are these objects missing?");
+                    log.error("Failed to place objects in the following biome: " + surfaceBiome.getName(), e);
+                    log.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").", null);
+                    log.error("Are these objects missing?", null);
                 }
             }
         }
@@ -278,7 +279,7 @@ public class ObjectPlacing {
             biomeCaveChecked++;
             boolean chance = rng.chance(i.getChance());
             if (traceRegen) {
-                IrisLogging.debug("Regen object placer chance: chunk=" + x + "," + z
+                log.debug("Regen object placer chance: chunk=" + x + "," + z
                         + " scope=biome-cave"
                         + " chanceResult=" + chance
                         + " chanceBase=" + i.getChance()
@@ -296,10 +297,9 @@ public class ObjectPlacing {
                     errors += result.errors();
                 } catch (Throwable e) {
                     errors++;
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place cave objects in the following biome: " + caveBiome.getName());
-                    IrisLogging.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
-                    IrisLogging.error("Are these objects missing?");
+                    log.error("Failed to place cave objects in the following biome: " + caveBiome.getName(), e);
+                    log.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").", null);
+                    log.error("Are these objects missing?", null);
                 }
             }
         }
@@ -308,7 +308,7 @@ public class ObjectPlacing {
             regionSurfaceChecked++;
             boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
             if (traceRegen) {
-                IrisLogging.debug("Regen object placer chance: chunk=" + x + "," + z
+                log.debug("Regen object placer chance: chunk=" + x + "," + z
                         + " scope=region-surface"
                         + " chanceResult=" + chance
                         + " chanceBase=" + i.getChance()
@@ -326,10 +326,9 @@ public class ObjectPlacing {
                     errors += result.errors();
                 } catch (Throwable e) {
                     errors++;
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place objects in the following region: " + region.getName());
-                    IrisLogging.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
-                    IrisLogging.error("Are these objects missing?");
+                    log.error("Failed to place objects in the following region: " + region.getName(), e);
+                    log.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").", null);
+                    log.error("Are these objects missing?", null);
                 }
             }
         }
@@ -341,7 +340,7 @@ public class ObjectPlacing {
             regionCaveChecked++;
             boolean chance = rng.chance(i.getChance());
             if (traceRegen) {
-                IrisLogging.debug("Regen object placer chance: chunk=" + x + "," + z
+                log.debug("Regen object placer chance: chunk=" + x + "," + z
                         + " scope=region-cave"
                         + " chanceResult=" + chance
                         + " chanceBase=" + i.getChance()
@@ -359,10 +358,9 @@ public class ObjectPlacing {
                     errors += result.errors();
                 } catch (Throwable e) {
                     errors++;
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place cave objects in the following region: " + region.getName());
-                    IrisLogging.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
-                    IrisLogging.error("Are these objects missing?");
+                    log.error("Failed to place cave objects in the following region: " + region.getName(), e);
+                    log.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").", null);
+                    log.error("Are these objects missing?", null);
                 }
             }
         }
@@ -419,7 +417,7 @@ public class ObjectPlacing {
             boolean treePlacement = p instanceof IrisProceduralTree;
             boolean chancePassed = passesProceduralChance(rng, p.getChance());
             if (golden) {
-                IrisLogging.debug("Goldendebug procedural chance: chunk=" + x + "," + z
+                log.debug("Goldendebug procedural chance: chunk=" + x + "," + z
                         + " scope=" + scope
                         + " placement=" + p.getName()
                         + " passed=" + chancePassed);
@@ -438,13 +436,13 @@ public class ObjectPlacing {
             int minDepthBelowSurface = resolveObjectMinDepthBelowSurface(caveProfile);
             int anchorSearchAttempts = resolveAnchorSearchAttempts(caveProfile);
             IObjectPlacer basePlacer = p.isPlausible() ? new DecayControlPlacer(writer) : writer;
-            IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName()) : basePlacer;
+            IObjectPlacer placer = golden ? new GoldenDebugObjectPlacer(basePlacer, scope + "/" + p.getName(), log) : basePlacer;
             int density = Math.max(1, p.getDensity());
             for (int i = 0; i < density; i++) {
                 IrisObject variant = p.getVariantObject(engine.getData(), rng);
                 if (variant == null) {
                     if (golden) {
-                        IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
+                        log.debug("Goldendebug procedural pick: chunk=" + x + "," + z
                                 + " placement=" + p.getName()
                                 + " densityIndex=" + i
                                 + " variant=null");
@@ -469,7 +467,7 @@ public class ObjectPlacing {
                 }
                 if (carving && caveAnchor == null) {
                     if (golden) {
-                        IrisLogging.debug("Goldendebug procedural cave anchor rejected: chunk=" + x + "," + z
+                        log.debug("Goldendebug procedural cave anchor rejected: chunk=" + x + "," + z
                                 + " placement=" + p.getName()
                                 + " minDepthBelowSurface=" + minDepthBelowSurface);
                     }
@@ -480,7 +478,7 @@ public class ObjectPlacing {
                 int id = rng.i(0, Integer.MAX_VALUE);
                 if (golden) {
                     KList<IrisObject> pool = p.getVariantObjects(engine.getData());
-                    IrisLogging.debug("Goldendebug procedural pick: chunk=" + x + "," + z
+                    log.debug("Goldendebug procedural pick: chunk=" + x + "," + z
                             + " placement=" + p.getName()
                             + " densityIndex=" + i
                             + " variant=" + variant.getLoadKey()
@@ -496,7 +494,7 @@ public class ObjectPlacing {
                     if (carving) {
                         int caveFloorY = caveAnchor.y();
                         if (golden) {
-                            IrisLogging.debug("Goldendebug procedural caveFloor: chunk=" + x + "," + z
+                            log.debug("Goldendebug procedural caveFloor: chunk=" + x + "," + z
                                     + " placement=" + p.getName()
                                     + " xx=" + xx
                                     + " zz=" + zz
@@ -530,7 +528,7 @@ public class ObjectPlacing {
                         }, null, engine.getData());
                     }
                     if (golden) {
-                        IrisLogging.debug("Goldendebug procedural result: chunk=" + x + "," + z
+                        log.debug("Goldendebug procedural result: chunk=" + x + "," + z
                                 + " placement=" + p.getName()
                                 + " variant=" + variant.getLoadKey()
                                 + " xx=" + xx
@@ -539,8 +537,7 @@ public class ObjectPlacing {
                                 + " commit=" + commitResult);
                     }
                 } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place procedural object '" + p.getName() + "' in " + scope);
+                    log.error("Failed to place procedural object '" + p.getName() + "' in " + scope, e);
                 }
             }
         }
@@ -670,7 +667,7 @@ public class ObjectPlacing {
             if (v == null) {
                 nullObjects++;
                 if (traceRegen) {
-                    IrisLogging.debug("Regen object placement null object: chunk=" + chunkX + "," + chunkZ
+                    log.debug("Regen object placement null object: chunk=" + chunkX + "," + chunkZ
                             + " scope=" + scope
                             + " densityIndex=" + i
                             + " density=" + density
@@ -683,9 +680,9 @@ public class ObjectPlacing {
             IrisObjectPlacement effectivePlacement = resolveEffectivePlacement(objectPlacement, v);
             boolean treePlacement = isTreePlacement(v, effectivePlacement);
             int id = rng.i(0, Integer.MAX_VALUE);
-            IObjectPlacer placePlacer = golden ? new GoldenDebugObjectPlacer(writer, scope + "/" + v.getLoadKey()) : writer;
+            IObjectPlacer placePlacer = golden ? new GoldenDebugObjectPlacer(writer, scope + "/" + v.getLoadKey(), log) : writer;
             if (golden) {
-                IrisLogging.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ
+                log.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ
                         + " scope=" + scope
                         + " object=" + v.getLoadKey()
                         + " densityIndex=" + i
@@ -714,7 +711,7 @@ public class ObjectPlacing {
                 }
 
                 if (golden) {
-                    IrisLogging.debug("Goldendebug object result: chunk=" + chunkX + "," + chunkZ
+                    log.debug("Goldendebug object result: chunk=" + chunkX + "," + chunkZ
                             + " scope=" + scope
                             + " object=" + v.getLoadKey()
                             + " resultY=" + result
@@ -722,7 +719,7 @@ public class ObjectPlacing {
                 }
 
                 if (traceRegen) {
-                    IrisLogging.debug("Regen object placement result: chunk=" + chunkX + "," + chunkZ
+                    log.debug("Regen object placement result: chunk=" + chunkX + "," + chunkZ
                             + " scope=" + scope
                             + " object=" + v.getLoadKey()
                             + " resultY=" + result
@@ -734,13 +731,12 @@ public class ObjectPlacing {
                 }
             } catch (Throwable e) {
                 errors++;
-                IrisLogging.reportError(e);
-                IrisLogging.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ
+                log.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ
                         + " scope=" + scope
                         + " object=" + v.getLoadKey()
                         + " densityIndex=" + i
                         + " density=" + density
-                        + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage());
+                        + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage(), e);
             }
         }
 
@@ -808,7 +804,7 @@ public class ObjectPlacing {
             if (object == null) {
                 nullObjects++;
                 if (traceRegen) {
-                    IrisLogging.debug("Regen cave object placement null object: chunk=" + metricChunkX + "," + metricChunkZ
+                    log.debug("Regen cave object placement null object: chunk=" + metricChunkX + "," + metricChunkZ
                             + " scope=" + scope
                             + " densityIndex=" + i
                             + " density=" + density
@@ -922,7 +918,7 @@ public class ObjectPlacing {
                 }
 
                 if (traceRegen) {
-                    IrisLogging.debug("Regen cave object placement result: chunk=" + metricChunkX + "," + metricChunkZ
+                    log.debug("Regen cave object placement result: chunk=" + metricChunkX + "," + metricChunkZ
                             + " scope=" + scope
                             + " object=" + object.getLoadKey()
                             + " resultY=" + result
@@ -935,13 +931,12 @@ public class ObjectPlacing {
                 }
             } catch (Throwable e) {
                 errors++;
-                IrisLogging.reportError(e);
-                IrisLogging.error("Regen cave object placement exception: chunk=" + metricChunkX + "," + metricChunkZ
+                log.error("Regen cave object placement exception: chunk=" + metricChunkX + "," + metricChunkZ
                         + " scope=" + scope
                         + " object=" + object.getLoadKey()
                         + " densityIndex=" + i
                         + " density=" + density
-                        + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage());
+                        + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage(), e);
                 logCaveReject(
                         scope,
                         "EXCEPTION",
@@ -993,9 +988,8 @@ public class ObjectPlacing {
                 try {
                     placeUpperObject(writer, rng, chunkX, chunkZ, i, upperCtx, dimension, complex, forcePlace, traceRegen, "upper-biome-surface");
                 } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place upper-dimension objects in biome " + upperBiome.getName()
-                            + ": " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ")");
+                    log.error("Failed to place upper-dimension objects in biome " + upperBiome.getName()
+                            + ": " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ")", e);
                 }
             }
         }
@@ -1008,9 +1002,8 @@ public class ObjectPlacing {
                 try {
                     placeUpperObject(writer, rng, chunkX, chunkZ, i, upperCtx, dimension, complex, forcePlace, traceRegen, "upper-region-surface");
                 } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                    IrisLogging.error("Failed to place upper-dimension objects in region " + upperRegion.getName()
-                            + ": " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ")");
+                    log.error("Failed to place upper-dimension objects in region " + upperRegion.getName()
+                            + ": " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ")", e);
                 }
             }
         }
@@ -1081,7 +1074,7 @@ public class ObjectPlacing {
             }, null, engine.getData());
 
             if (traceRegen) {
-                IrisLogging.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ
+                log.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ
                         + " scope=" + scope
                         + " object=" + v.getLoadKey()
                         + " anchorY=" + anchorY
@@ -1140,7 +1133,7 @@ public class ObjectPlacing {
         int suppressed = state.suppressed.getAndSet(0);
         String anchorYText = anchorY == null ? "none" : String.valueOf(anchorY);
         String errorText = error == null ? "none" : error.getClass().getSimpleName() + ":" + String.valueOf(error.getMessage());
-        IrisLogging.debug("Cave object reject: scope=" + scope
+        log.debug("Cave object reject: scope=" + scope
                 + " reason=" + reason
                 + " chunk=" + chunkX + "," + chunkZ
                 + " object=" + objectKey
@@ -1496,11 +1489,11 @@ public class ObjectPlacing {
                     }
                     int reach = calculatePlacementReach(size, placement);
                     if (reach > 128 && warnedLargeObjects.add(objectKey)) {
-                        IrisLogging.warn("Object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
+                        log.warn("Object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
                     }
                     radius = Math.max(radius, reach);
                 } catch (Throwable e) {
-                    IrisLogging.reportError(e);
+                    log.error("Failed to work out the reach of an object placement", e);
                 }
             }
         }
@@ -1586,7 +1579,7 @@ public class ObjectPlacing {
             try {
                 return IrisObject.sampleSize(engine.getData().getObjectLoader().findFile(objectKey));
             } catch (IOException e) {
-                IrisLogging.reportError(e);
+                log.error("Failed to size an object", e);
             }
 
             return null;

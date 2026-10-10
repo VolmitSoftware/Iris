@@ -21,10 +21,10 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.loot.IObjectLoot;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.ModuleLog;
 import com.volmit.service.Loot;
 
 import java.util.ArrayList;
@@ -46,12 +46,14 @@ final class PlacementLoot {
     private final IrisData data;
     private final Supplier<Set<String>> platformTables;
     private final long lootSeed;
+    private final ModuleLog log;
 
     /** @param platformTables the keys of the loot tables the platform has, asked for only when a placement names one */
-    PlacementLoot(IrisData data, Supplier<Set<String>> platformTables, long lootSeed) {
+    PlacementLoot(IrisData data, Supplier<Set<String>> platformTables, long lootSeed, ModuleLog log) {
         this.data = data;
         this.platformTables = platformTables;
         this.lootSeed = lootSeed;
+        this.log = log;
     }
 
     /** The platform's loot table keys, which a placement may name, in the form a placement names them. */
@@ -81,7 +83,7 @@ final class PlacementLoot {
             }
             Loot.Source source = sourceOf.apply(entry.getName());
             if (source == null) {
-                IrisLogging.warn("Couldn't find loot table " + entry.getName());
+                log.warn("Couldn't find loot table " + entry.getName());
                 continue;
             }
             candidates.add(entry, data, new Candidate(source, entry.getWeight()));

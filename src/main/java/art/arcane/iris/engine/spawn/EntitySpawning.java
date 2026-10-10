@@ -34,7 +34,6 @@ import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.spawn.SpawnResources.KeyedSpawner;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
@@ -108,7 +107,7 @@ public final class EntitySpawning implements EntitySpawns {
         List<String> spawners = new ArrayList<>();
         for (String key : marker.spawners()) {
             if (SpawnResources.spawner(engine.getData(), key) == null) {
-                IrisLogging.error("Cannot load spawner: " + key + " for marker " + tag);
+                world.log().error("Cannot load spawner: " + key + " for marker " + tag, null);
                 continue;
             }
             spawners.add(key);
@@ -216,7 +215,7 @@ public final class EntitySpawning implements EntitySpawns {
     private void addAttempt(List<Attempt> attempts, PackWorld world, Engine engine, Candidate candidate, BlockPosition at, boolean checkSurface) {
         EntityDefinition entity = SpawnResources.entity(engine.getData(), candidate.spawn().entity());
         if (entity == null) {
-            IrisLogging.debug("      You are trying to spawn an entity that does not exist!");
+            world.log().debug("      You are trying to spawn an entity that does not exist!");
             return;
         }
 

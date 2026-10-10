@@ -38,7 +38,6 @@ import art.arcane.iris.engine.terrain.BiomeLayers;
 import art.arcane.iris.engine.terrain.ResolvedLayer;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
@@ -51,6 +50,7 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 
+import com.volmit.ModuleLog;
 import java.util.IdentityHashMap;
 
 import static art.arcane.iris.engine.mantle.EngineMantle.AIR;
@@ -68,6 +68,7 @@ public class FloatingIslands {
     private final RNG rng;
     private final EngineDecorator seaSurfaceDecorator;
     private final BiomeLayers biomeLayers;
+    private final ModuleLog log;
 
     private KList<PlatformBlockState> generateBottomPaletteLayers(ResolvedFloatingChild entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
         if (entry == null || entry.settings().bottomPaletteMode() != FloatingBottomPaletteMode.CUSTOM || entry.settings().bottomPalette() == null || entry.settings().bottomPalette().isEmpty()) {
@@ -108,7 +109,7 @@ public class FloatingIslands {
                 try {
                     generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom()));
                 } catch (Throwable e) {
-                    IrisLogging.reportError(e);
+                    log.error("Failed to pick a block of a floating island's palette", e);
                 }
             }
 
@@ -207,11 +208,12 @@ public class FloatingIslands {
         }
     }
 
-    public FloatingIslands(Engine engine) {
+    public FloatingIslands(Engine engine, ModuleLog log) {
         this.engine = engine;
+        this.log = log;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
-        biomeLayers = BiomeLayers.of(engine);
+        biomeLayers = BiomeLayers.of(engine, log);
     }
 
     /** Fills the islands' solids into the chunk whose first block is {@code x}, {@code z}. */
@@ -233,7 +235,7 @@ public class FloatingIslands {
                 if (parent == null || FloatingChildren.declaredBy(parent).isEmpty()) {
                     continue;
                 }
-                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
+                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler, log);
                 if (sample == null) {
                     continue;
                 }
@@ -318,7 +320,7 @@ public class FloatingIslands {
                 if (parent == null || FloatingChildren.declaredBy(parent).isEmpty()) {
                     continue;
                 }
-                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
+                FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler, log);
                 if (sample == null) {
                     continue;
                 }
@@ -338,7 +340,7 @@ public class FloatingIslands {
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
                             FloatingDecorator.decorateColumn(engine, target, DecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
-                            IrisLogging.reportError(e);
+                            log.error("Failed to decorate the top of a floating island", e);
                         }
                     }
                 }
@@ -370,7 +372,7 @@ public class FloatingIslands {
                         try {
                             seaSurfaceDecorator.decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, output, target, fluidTopY, chunkHeight);
                         } catch (Throwable e) {
-                            IrisLogging.reportError(e);
+                            log.error("Failed to decorate the sea surface of a floating island", e);
                         }
                     }
                 }
@@ -402,7 +404,7 @@ public class FloatingIslands {
                 engine.getMantle().getMantle().set(wx, y, wz, matter);
             }
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
+            log.error("Failed to write the sky biomes of a floating island", e);
         }
     }
 

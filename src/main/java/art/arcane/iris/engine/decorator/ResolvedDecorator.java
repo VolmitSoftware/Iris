@@ -23,9 +23,9 @@ import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
+import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.noise.NoiseFactory;
@@ -57,6 +57,7 @@ final class ResolvedDecorator {
     private final AtomicCache<NoiseSampler> chanceNoise = new AtomicCache<>();
     private final AtomicCache<NoiseSampler> varianceNoise = new AtomicCache<>();
     private final AtomicCache<NoiseSampler> heightNoise = new AtomicCache<>();
+    private final ModuleLog log;
 
     /**
      * @param blocks the palette as the platform's blocks, each repeated by its weight
@@ -64,9 +65,11 @@ final class ResolvedDecorator {
      * @param forceBlock the block it forces onto the surface, or null
      * @param whitelist the blocks it may only be placed onto; ignored unless the decorator has a whitelist
      * @param blacklist the blocks it is never placed onto; ignored unless the decorator has a blacklist
+     * @param log the log of the module that decorates
      */
     ResolvedDecorator(Decorator settings, long seed, NoiseFactory noise, List<PlatformBlockState> blocks, List<PlatformBlockState> topBlocks,
-                      PlatformBlockState forceBlock, List<PlatformBlockState> whitelist, List<PlatformBlockState> blacklist) {
+                      PlatformBlockState forceBlock, List<PlatformBlockState> whitelist, List<PlatformBlockState> blacklist,
+                      ModuleLog log) {
         this.settings = settings;
         this.seed = seed;
         this.noise = noise;
@@ -77,15 +80,16 @@ final class ResolvedDecorator {
         this.forceBlock = forceBlock;
         this.whitelist = whitelist.toArray(new PlatformBlockState[0]);
         this.blacklist = blacklist.toArray(new PlatformBlockState[0]);
+        this.log = log;
     }
 
     /** {@code settings} ready for {@code engine}: its blocks resolved through the pack, its noise seeded from {@code seed}. */
-    static ResolvedDecorator of(Decorator settings, Engine engine, long seed) {
+    static ResolvedDecorator of(Decorator settings, Engine engine, long seed, ModuleLog log) {
         var resources = engine.getData().getPackResources();
         BlockRegistry registry = resources.blocks();
         PlatformBlockState forced = settings.forceBlock().map(spec -> platformState(registry, spec)).orElse(null);
         return new ResolvedDecorator(settings, seed, resources.noise(), weighted(registry, settings.palette()),
-                weighted(registry, settings.topPalette()), forced, each(registry, settings.whitelist()), each(registry, settings.blacklist()));
+                weighted(registry, settings.topPalette()), forced, each(registry, settings.whitelist()), each(registry, settings.blacklist()), log);
     }
 
     private static PlatformBlockState platformState(BlockRegistry registry, BlockSpec spec) {
@@ -195,7 +199,7 @@ final class ResolvedDecorator {
     /** The block of the palette at the position, for decorations that fill a column block by block; null when the palette has no block. */
     PlatformBlockState blockAt(IrisBiome biome, double x, double y, double z) {
         if (blocks.isEmpty()) {
-            IrisLogging.warnOnce("decorator-empty:" + biome.getName(), "Empty Block Data for " + biome.getName());
+            log.warnOnce("decorator-empty:" + biome.getName(), "Empty Block Data for " + biome.getName());
             return null;
         }
 

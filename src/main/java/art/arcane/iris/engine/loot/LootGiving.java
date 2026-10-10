@@ -82,7 +82,7 @@ public final class LootGiving implements Loot {
 
     private static PlacementLoot placementLoot(PackWorld world, Engine engine) {
         PlatformLootTables platformTables = world.state(PlatformLootTables.class, ignored -> new PlatformLootTables());
-        return new PlacementLoot(engine.getData(), platformTables::keys, lootSeed(engine));
+        return new PlacementLoot(engine.getData(), platformTables::keys, lootSeed(engine), world.log());
     }
 
     private static IrisObjectPlacement placementAt(Engine engine, int x, int relativeY, int z) {

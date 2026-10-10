@@ -36,7 +36,8 @@ public class FloatingDecorator {
                                      int xf, int zf, int realX, int realZ,
                                      int height, int max, Hunk<PlatformBlockState> data, RNG rng,
                                      Runnable candidatesNullCallback) {
-        ResolvedDecorator decorator = DecoratorCore.pickDecorator(BiomeDecorators.of(engine).decorators(target, part), rng, realX, realZ);
+        BiomeDecorators decorators = BiomeDecorators.of(engine);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(target, part), rng, realX, realZ, decorators.log());
 
         if (decorator == null) {
             candidatesNullCallback.run();
@@ -44,7 +45,7 @@ public class FloatingDecorator {
         }
 
         if (!decorator.isStacking()) {
-            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data);
+            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data, decorators.log());
             return max > 1 ? 1 : 0;
         }
 

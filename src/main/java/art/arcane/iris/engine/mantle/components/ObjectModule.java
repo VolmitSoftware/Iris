@@ -35,6 +35,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
@@ -53,6 +54,8 @@ import com.volmit.world.PackWorld;
 public final class ObjectModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
+    private ModuleLog log;
+
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:objects", "Objects", VERSION);
@@ -60,11 +63,12 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Objects.PLACE).requires(IrisStages.Carve.CAVES).reach(ObjectModule::reach).run(ObjectModule::place);
+        graph.define(IrisStages.Objects.PLACE).requires(IrisStages.Carve.CAVES).reach(this::reach).run(ObjectModule::place);
     }
 
     @Override
     public void register(FeatureRegistry registry) {
+        log = registry.log();
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
         registry.registerHeldType(TreeCanopy.class);
@@ -85,15 +89,15 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
 
     private static void place(MantleStageContext context) {
         IrisMantleChunk chunk = IrisMantleChunk.current();
-        placing(chunk.engine()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
+        placing(chunk.engine(), context.log()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
     }
 
-    private static int reach(PackSettings settings) {
-        return placing(IrisPackSettings.of(settings).engine()).reach();
+    private int reach(PackSettings settings) {
+        return placing(IrisPackSettings.of(settings).engine(), log).reach();
     }
 
-    /** The engine runtime's object placing, which the module's {@link ObjectsAt} also asks. */
-    public static ObjectPlacing placing(Engine engine) {
-        return engine.getGeneration().state(ObjectPlacing.class, ObjectPlacing::new);
+    /** The engine runtime's object placing, which the module's {@link ObjectsAt} also asks; {@code log} is the module's. */
+    public static ObjectPlacing placing(Engine engine, ModuleLog log) {
+        return engine.getGeneration().state(ObjectPlacing.class, generating -> new ObjectPlacing(generating, log));
     }
 }

@@ -5,11 +5,11 @@ import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.framework.StructureAssembler;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import com.volmit.ModuleLog;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,35 +30,35 @@ public final class StructureGraphCatalog {
     private StructureGraphCatalog() {
     }
 
-    public static StructureGraphCompilation compile(IrisData data, IrisStructure structure) {
+    public static StructureGraphCompilation compile(IrisData data, IrisStructure structure, ModuleLog log) {
         IrisData activeData = Objects.requireNonNull(data);
         IrisStructure activeStructure = Objects.requireNonNull(structure);
         String structureKey = activeStructure.getLoadKey();
         if (structureKey == null || structureKey.isBlank()) {
-            return compileAndReport(activeData, activeStructure);
+            return compileAndReport(activeData, activeStructure, log);
         }
         ConcurrentMap<String, StructureGraphCompilation> catalog = CACHE.get(
                 activeData.getPackResources(), ignored -> new ConcurrentHashMap<>());
-        return catalog.computeIfAbsent(structureKey, ignored -> compileAndReport(activeData, activeStructure));
+        return catalog.computeIfAbsent(structureKey, ignored -> compileAndReport(activeData, activeStructure, log));
     }
 
-    public static boolean guaranteesRuntimeOutput(IrisData data, IrisStructure structure) {
+    public static boolean guaranteesRuntimeOutput(IrisData data, IrisStructure structure, ModuleLog log) {
         IrisData activeData = Objects.requireNonNull(data);
         IrisStructure activeStructure = Objects.requireNonNull(structure);
-        if (!compile(activeData, activeStructure).guaranteesAssemblyOutput()) {
+        if (!compile(activeData, activeStructure, log).guaranteesAssemblyOutput()) {
             return false;
         }
         String structureKey = activeStructure.getLoadKey();
         if (structureKey == null || structureKey.isBlank()) {
-            return sampleRuntimeAssembly(activeData, activeStructure);
+            return sampleRuntimeAssembly(activeData, activeStructure, log);
         }
         ConcurrentMap<String, Boolean> catalog = RUNTIME_OUTPUT.get(
                 activeData.getPackResources(), ignored -> new ConcurrentHashMap<>());
         return catalog.computeIfAbsent(
-                structureKey, ignored -> sampleRuntimeAssembly(activeData, activeStructure));
+                structureKey, ignored -> sampleRuntimeAssembly(activeData, activeStructure, log));
     }
 
-    private static StructureGraphCompilation compileAndReport(IrisData data, IrisStructure structure) {
+    private static StructureGraphCompilation compileAndReport(IrisData data, IrisStructure structure, ModuleLog log) {
         StructureGraphCompilation compilation = StructureGraphCompiler.compile(
                 structure, StructureGraphResolver.forData(data));
         String structureKey = structure.getLoadKey() == null || structure.getLoadKey().isBlank()
@@ -66,29 +66,29 @@ public final class StructureGraphCatalog {
         for (StructureGraphDiagnostic diagnostic : compilation.getDiagnostics()) {
             String message = "[StructureGraph:" + structureKey + "] " + diagnostic.message();
             if (diagnostic.severity() == StructureGraphDiagnostic.Severity.ERROR) {
-                IrisLogging.error(message);
+                log.error(message, null);
             } else {
-                IrisLogging.warn(message);
+                log.warn(message);
             }
         }
         if (!compilation.isAssemblyViable()) {
-            IrisLogging.error("[StructureGraph:" + structureKey
-                    + "] Graph rejected because deterministic assembly did not complete.");
+            log.error("[StructureGraph:" + structureKey
+                    + "] Graph rejected because deterministic assembly did not complete.", null);
         }
         return compilation;
     }
 
-    private static boolean sampleRuntimeAssembly(IrisData data, IrisStructure structure) {
+    private static boolean sampleRuntimeAssembly(IrisData data, IrisStructure structure, ModuleLog log) {
         for (long seed : RUNTIME_SAMPLE_SEEDS) {
             try {
                 StructureAssembler assembler = StructureAssembler.forData(
-                        data, structure, new IrisPosition(0, 64, 0));
+                        data, structure, new IrisPosition(0, 64, 0), log);
                 StructureAssemblyResult result = assembler.assemble(new RNG(seed));
                 if (!result.hasOutput()) {
                     return false;
                 }
             } catch (Throwable e) {
-                IrisLogging.reportError(e);
+                log.error("Failed to sample the runtime assembly of a structure", e);
                 return false;
             }
         }

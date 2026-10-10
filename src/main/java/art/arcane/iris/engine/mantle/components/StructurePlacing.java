@@ -39,11 +39,11 @@ import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.builtin.structure.StructureStilts;
+import com.volmit.ModuleLog;
 import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.common.math.IrisBlockVector;
@@ -72,9 +72,11 @@ public class StructurePlacing {
     private static final MatterCavern CARVE_CAVERN = new MatterCavern(true, "", (byte) 3);
 
     private final Engine engine;
+    private final ModuleLog log;
 
-    public StructurePlacing(Engine engine) {
+    public StructurePlacing(Engine engine, ModuleLog log) {
         this.engine = engine;
+        this.log = log;
     }
 
     /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
@@ -99,7 +101,7 @@ public class StructurePlacing {
 
         boolean trace = IrisSettings.get().getGeneral().isDebug();
         if (trace) {
-            IrisLogging.debug("[StructTrace] ORIGIN chunk=" + cx + "," + cz + " structures=" + placement.getStructures()
+            log.debug("[StructTrace] ORIGIN chunk=" + cx + "," + cz + " structures=" + placement.getStructures()
                     + " anchor=" + placement.resolvedAnchor() + " band=" + placement.getMinHeight() + ".." + placement.getMaxHeight());
         }
 
@@ -112,7 +114,7 @@ public class StructurePlacing {
         RNG rng = resolved.rng();
         int baseY = resolved.baseY();
         if (trace) {
-            IrisLogging.debug("[StructTrace] ASSEMBLED chunk=" + cx + "," + cz + " key=" + key + " baseY=" + baseY + " pieces=" + pieces.size());
+            log.debug("[StructTrace] ASSEMBLED chunk=" + cx + "," + cz + " key=" + key + " baseY=" + baseY + " pieces=" + pieces.size());
         }
 
         if (!placement.isAnchoredUnderground()) {
@@ -319,7 +321,7 @@ public class StructurePlacing {
         }
 
         if (IrisSettings.get().getGeneral().isDebug()) {
-            IrisLogging.info("Overbore carving structure cavern: shape=" + shape + " pieces=" + pieces.size()
+            log.info("Overbore carving structure cavern: shape=" + shape + " pieces=" + pieces.size()
                     + " footprint=" + footprint.width() + "x" + footprint.depth()
                     + " margin=" + margin + " head=" + head + " floorCut=" + floorCut + " work=" + work);
         }

@@ -58,7 +58,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         boolean underwater = isUnderwater(inferredType, height, fluidHeight);
         boolean caveSkipFluid = skipsFluid(inferredType);
         RNG rng = getRNG(realX, realZ);
-        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ);
+        ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ, decorators.log());
 
         if (decorator == null || !isSlopeValid(decorator, realX, realZ)) {
             return;
@@ -75,7 +75,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         }
 
         DecoratorCore.placeSurfaceSingle(decorator, x, z, realX, height, realZ,
-                data, underwater, caveSkipFluid, getEngine().getMantle());
+                data, underwater, caveSkipFluid, getEngine().getMantle(), decorators.log());
     }
 
     static boolean isUnderwater(InferredType inferredType, int height, int fluidHeight) {

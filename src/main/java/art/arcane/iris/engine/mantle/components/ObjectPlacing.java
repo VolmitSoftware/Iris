@@ -79,6 +79,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * placement reach of any object the dimension can place.
  */
 public class ObjectPlacing {
+    private static final CaveProfile DEFAULT_CAVE_PROFILE = new CaveProfile();
     private static final long CAVE_REJECT_LOG_THROTTLE_MS = 5000L;
     private static final int BEDROCK_CLEARANCE = 6;
     private static final byte LIQUID_FORCED_AIR = 3;
@@ -1333,7 +1334,7 @@ public class ObjectPlacing {
             return dimensionProfile;
         }
 
-        return new CaveProfile();
+        return DEFAULT_CAVE_PROFILE;
     }
 
     private CaveAnchorMode resolveAnchorMode(IrisObjectPlacement objectPlacement, CaveProfile caveProfile) {

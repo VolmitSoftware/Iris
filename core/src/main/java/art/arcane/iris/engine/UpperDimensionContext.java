@@ -35,7 +35,6 @@ public class UpperDimensionContext implements DataProvider {
     private final ProceduralStream<Double> heightStream;
     private final ProceduralStream<IrisBiome> biomeStream;
     private final ProceduralStream<IrisRegion> regionStream;
-    private final ProceduralStream<PlatformBlockState> rockStream;
     private final IrisImageMapRuntime imageMapRuntime;
     private final boolean selfReferencing;
 
@@ -46,7 +45,6 @@ public class UpperDimensionContext implements DataProvider {
         this.heightStream = state.heightStream();
         this.biomeStream = state.biomeStream();
         this.regionStream = state.regionStream();
-        this.rockStream = state.rockStream();
         this.imageMapRuntime = state.imageMapRuntime();
         this.selfReferencing = state.selfReferencing();
     }
@@ -69,7 +67,6 @@ public class UpperDimensionContext implements DataProvider {
                 complex.getHeightStream(),
                 complex.getTrueBiomeStream(),
                 complex.getRegionStream(),
-                complex.getRockStream(),
                 complex.getImageMapRuntime(),
                 true
         ));
@@ -276,10 +273,6 @@ public class UpperDimensionContext implements DataProvider {
                     : implode(resolved, x, z, rng, dataProvider, childSelectionPlans, 3);
         }).cache2D("upperImageMappedFinalBiomeStream", engine, cacheSize);
 
-        ProceduralStream<PlatformBlockState> rockStream = upperDim.getRockPalette()
-                .getLayerGenerator(rng.nextParallelRNG(45), upperData).stream()
-                .select(upperDim.getRockPalette().getBlockData(upperData));
-
         return new UpperDimensionContext(new ContextState(
                 upperDim,
                 upperData,
@@ -287,7 +280,6 @@ public class UpperDimensionContext implements DataProvider {
                 heightStream,
                 finalBiomeStream,
                 regionStream,
-                rockStream,
                 imageMapRuntime,
                 false
         ));
@@ -414,10 +406,6 @@ public class UpperDimensionContext implements DataProvider {
         return regionStream == null ? null : regionStream.get((double) x, (double) z);
     }
 
-    public PlatformBlockState getRockBlock(int x, int z) {
-        return rockStream.get((double) x, (double) z);
-    }
-
     public PlatformBlockState getSurfaceBlock(int x, int z) {
         return imageMapRuntime.sampleSurfaceBlock(x, z);
     }
@@ -442,7 +430,6 @@ public class UpperDimensionContext implements DataProvider {
             ProceduralStream<Double> heightStream,
             ProceduralStream<IrisBiome> biomeStream,
             ProceduralStream<IrisRegion> regionStream,
-            ProceduralStream<PlatformBlockState> rockStream,
             IrisImageMapRuntime imageMapRuntime,
             boolean selfReferencing
     ) {

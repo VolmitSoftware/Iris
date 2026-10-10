@@ -5,6 +5,7 @@ import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -91,12 +92,10 @@ public class IrisCaveCarver3DNearParityTest {
     @Test
     public void genericFluidContractKeepsOverworldDefaults() {
         CaveProfile profile = new CaveProfile();
-        IrisDimension dimension = new IrisDimension();
-
         assertTrue(profile.allowFluid());
         assertEquals(12, profile.fluidMinDepthBelowSurface());
         assertTrue(profile.fluidRequiresFloor());
-        assertEquals("water", dimension.getFluidPalette().getPalette().get(0).getBlock());
+        assertEquals("water", new FluidPaletteSettings().palette().palette().get(0).block());
     }
 
     @Test

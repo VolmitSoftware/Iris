@@ -129,8 +129,6 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     double getMaxBiomeObjectDensity();
 
-    double getMaxBiomeLayerDensity();
-
     boolean isClosed();
 
     default GenerationSessionManager getGenerationSessions() {

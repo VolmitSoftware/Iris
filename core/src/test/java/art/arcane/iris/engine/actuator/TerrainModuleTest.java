@@ -9,6 +9,8 @@ import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.terrain.BiomeLayers;
+import art.arcane.iris.engine.terrain.TerrainPalettes;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.context.ChunkedDataCache;
@@ -26,6 +28,7 @@ import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,13 +51,9 @@ public class TerrainModuleTest {
     @SuppressWarnings("unchecked")
     public void aColumnIsBedrockThenRockThenLayersThenFluid() {
         UsableBlockPlatform.bind();
-        TerrainModule.TerrainShaper shaper = new TerrainModule.TerrainShaper(engine());
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 64, 16);
         IrisBiome biome = mock(IrisBiome.class);
-        KList<PlatformBlockState> layers = new KList<>();
-        layers.add(grass, dirt);
-        when(biome.generateLayers(any(), anyDouble(), anyDouble(), any(RNG.class), anyInt(), anyInt(), any(), any())).thenReturn(layers);
-        when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), any())).thenReturn(new KList<>());
+        TerrainModule.TerrainShaper shaper = new TerrainModule.TerrainShaper(engine(), palettes(), layersOf(biome));
+        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 64, 16);
 
         shaper.shape(0, 0, blocks, context(biome));
 
@@ -75,17 +74,27 @@ public class TerrainModuleTest {
         when(biomes.get(anyInt(), anyInt())).thenReturn(biome);
         ChunkedDataCache<IrisRegion> regions = mock(ChunkedDataCache.class);
         when(regions.get(anyInt(), anyInt())).thenReturn(mock(IrisRegion.class));
-        ChunkedDataCache<PlatformBlockState> fluids = mock(ChunkedDataCache.class);
-        when(fluids.get(anyInt(), anyInt())).thenReturn(water);
-        ChunkedDataCache<PlatformBlockState> rocks = mock(ChunkedDataCache.class);
-        when(rocks.get(anyInt(), anyInt())).thenReturn(rock);
         ChunkContext context = mock(ChunkContext.class);
         when(context.getBiome()).thenReturn(biomes);
         when(context.getRegion()).thenReturn(regions);
-        when(context.getFluid()).thenReturn(fluids);
-        when(context.getRock()).thenReturn(rocks);
         when(context.getRoundedHeight(anyInt(), anyInt())).thenReturn(HEIGHT);
         return context;
+    }
+
+    private TerrainPalettes palettes() {
+        TerrainPalettes palettes = mock(TerrainPalettes.class);
+        when(palettes.rockAt(anyDouble(), anyDouble())).thenReturn(rock);
+        when(palettes.fluidAt(anyDouble(), anyDouble())).thenReturn(water);
+        return palettes;
+    }
+
+    private BiomeLayers layersOf(IrisBiome biome) {
+        KList<PlatformBlockState> layers = new KList<>();
+        layers.add(grass, dirt);
+        BiomeLayers biomeLayers = mock(BiomeLayers.class);
+        when(biomeLayers.generateLayers(eq(biome), any(), anyDouble(), anyDouble(), any(RNG.class), anyInt(), anyInt(), any(), any())).thenReturn(layers);
+        when(biomeLayers.generateSeaLayers(eq(biome), anyDouble(), anyDouble(), any(RNG.class), anyInt(), any())).thenReturn(new KList<>());
+        return biomeLayers;
     }
 
     private Engine engine() {

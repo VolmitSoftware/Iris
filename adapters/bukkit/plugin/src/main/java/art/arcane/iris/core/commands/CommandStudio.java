@@ -38,7 +38,7 @@ import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.loot.InventorySlotType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
+import art.arcane.iris.engine.terrain.BiomeLayers;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.entity.IrisEntity;
 import art.arcane.iris.engine.platform.BukkitEntitySpawner;
@@ -556,10 +556,10 @@ public class CommandStudio implements DirectorExecutor {
             double score = 0;
 
             int m = 0;
-            for (IrisBiomePaletteLayer j : b.getLayers()) {
+            for (NoiseStyle layerStyle : BiomeLayers.layerStyles(b)) {
                 m++;
-                score += styleTimings.get(j.getStyle().getStyle());
-                vv.add("Palette Layer " + m + ": " + styleTimings.get(j.getStyle().getStyle()));
+                score += styleTimings.get(layerStyle);
+                vv.add("Palette Layer " + m + ": " + styleTimings.get(layerStyle));
             }
 
             score += styleTimings.get(b.getBiomeStyle().getStyle());

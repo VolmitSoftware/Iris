@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
@@ -18,6 +20,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import com.google.gson.Gson;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -57,8 +60,7 @@ public class CaveApplyingInferenceIsolationTest {
     @SuppressWarnings("unchecked")
     public void cavePaintingDoesNotMutateSharedBiomeInference() throws Exception {
         IrisBiome biome = new IrisBiome().setInferredType(InferredType.LAND);
-        biome.getLayers().clear();
-        biome.getCaveCeilingLayers().clear();
+        biome.setModuleSettings(BuiltInPack.settings(new Gson().fromJson("{\"layers\": []}", LayersSettings.class)));
 
         Engine engine = mock(Engine.class);
         doReturn(mock(IrisData.class)).when(engine).getData();

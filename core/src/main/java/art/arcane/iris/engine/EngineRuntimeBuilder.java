@@ -29,7 +29,6 @@ import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
 import art.arcane.iris.engine.framework.EngineWorldManagerProvider;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.IrisBiomePaletteLayer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
@@ -197,7 +196,6 @@ final class EngineRuntimeBuilder {
 
     BiomeMaxes computeBiomeMaxes() {
         double objectDensity = 0D;
-        double layerDensity = 0D;
         for (IrisBiome i : engine.getDimension().getReachableBiomes(engine)) {
             double density = 0;
 
@@ -206,15 +204,8 @@ final class EngineRuntimeBuilder {
             }
 
             objectDensity = Math.max(objectDensity, density);
-            density = 0;
-
-            for (IrisBiomePaletteLayer j : i.getLayers()) {
-                density++;
-            }
-
-            layerDensity = Math.max(layerDensity, density);
         }
-        return new BiomeMaxes(objectDensity, layerDensity);
+        return new BiomeMaxes(objectDensity);
     }
 
     void restoreRuntimeAfterFailedTransition(EngineRuntime previous) {

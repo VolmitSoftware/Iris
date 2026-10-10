@@ -92,7 +92,7 @@ public class FloatingChildBiomeDecodingTest {
         assertEquals(4, child.edgeTaperVariationAmplitude(), 0);
         assertEquals(FloatingBottomPaletteMode.CUSTOM, child.bottomPaletteMode());
         assertEquals(1, child.bottomPalette().size());
-        assertEquals(5, child.bottomPalette().get(0).getMaxHeight());
+        assertEquals(5, child.bottomPalette().get(0).maxHeight());
         assertEquals("SIMPLEX", child.wallWarpStyle().orElseThrow().style());
         assertEquals(5, child.wallWarpAmplitude(), 0);
         assertEquals("carving/sand-hollows-child", child.carving());

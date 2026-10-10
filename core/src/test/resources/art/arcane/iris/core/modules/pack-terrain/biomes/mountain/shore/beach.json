@@ -1,0 +1,48 @@
+{
+    "name": "Mountain Beach",
+    "color": "#365B8F",
+    "rarity": 1,
+    "derivative": "minecraft:old_growth_spruce_taiga",
+    "vanillaDerivative": "minecraft:old_growth_spruce_taiga",
+    "generators": [{
+        "min": 0,
+        "max": 2,
+        "generator": "plain"
+    }],
+    "layers": [
+        {
+            "minHeight": 1,
+            "maxHeight": 1,
+            "palette": [
+                {"block": "minecraft:stone"},
+                {"block": "minecraft:andesite"}
+            ]
+        },
+        {
+            "minHeight": 1,
+            "maxHeight": 6,
+            "palette": [{"block": "minecraft:stone"}]
+        }
+    ],
+    "objects": [{
+        "mode": "PAINT",
+        "chance": 0.0025,
+        "rotation": {
+            "yAxis": {
+                "min": 0,
+                "max": 270,
+                "interval": 90,
+                "enabled": true
+            },
+            "enabled": true
+        },
+        "place": ["clutter/bincluster1"]
+    }],
+    "slab": {
+        "style": {"style": "STATIC"},
+        "palette": [
+            {"block": "minecraft:stone_slab"},
+            {"block": "minecraft:air"}
+        ]
+    }
+}

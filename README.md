@@ -122,7 +122,8 @@ graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and
 
 A chunk stage writes only its own chunk but may look around it: `ctx.terrain()` covers the chunk and the 16 blocks
 around it, gives the dimension's `fluidHeight()` and, per column, `upperDimensionY(x, z)` where a dimension stacked above
-begins (write nothing there). `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
+begins (write nothing there). `surfaceY(x, z)` is a column's height alone, cheaper than `column(x, z)` when a stage needs
+no slope. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
 take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). Stages only read them.
 
 ```java

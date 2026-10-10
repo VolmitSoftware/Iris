@@ -11,6 +11,13 @@ import java.util.OptionalInt;
 public interface TerrainSampler {
     BlockBox bounds();
     TerrainSample column(int worldX, int worldZ);
+
+    /** The column's {@link TerrainSample#surfaceY()} alone, for a module that needs neither slope nor fluid: the host
+     * may answer it without working out the rest of {@link #column}. Outside the bounds it throws like {@link #column}.
+     */
+    default double surfaceY(int worldX, int worldZ) {
+        return column(worldX, worldZ).surfaceY();
+    }
     BiomeSample biome(int worldX, int y, int worldZ);
 
     /** The height up to which the host fills the world with fluid wherever the terrain lies lower, the sea level of the

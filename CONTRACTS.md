@@ -132,7 +132,8 @@ running Iris is the pack publisher's responsibility.
   dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
   the host's own identity of it (a custom block of a content plugin stays one).
 - Answer `TerrainSampler.fluidHeight()` (the height the host fills with fluid below) and `upperDimensionY(x, z)` (where a
-  dimension stacked above begins; empty when none does).
+  dimension stacked above begins; empty when none does). `surfaceY(x, z)` equals `column(x, z).surfaceY()`; a host
+  overrides it when the height costs less than the whole column.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.

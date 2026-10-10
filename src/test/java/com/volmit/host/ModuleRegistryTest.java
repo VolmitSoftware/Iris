@@ -395,6 +395,11 @@ class ModuleRegistryTest {
         var several = assertThrows(IllegalArgumentException.class, () -> catalog.service(Greeting.class));
         assertTrue(several.getMessage().contains("services(...)"), several.getMessage());
         assertThrows(IllegalArgumentException.class, () -> catalog.services(NotAService.class));
+        assertThrows(IllegalArgumentException.class, () -> catalog.registrations(NotAService.class), "asking again still refuses it");
+        assertEquals(List.of(alphaFirst, alphaSecond, zeta),
+                catalog.registrations(Greeting.class).stream().map(ServiceRegistration::provider).toList());
+        assertEquals(List.of(), catalog.registrations(Clock.class));
+        assertThrows(UnsupportedOperationException.class, () -> catalog.services(Greeting.class).clear(), "the catalog is frozen");
     }
 
     @Test

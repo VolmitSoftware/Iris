@@ -21,7 +21,8 @@ public interface CaveBiomes {
 
     /**
      * How many blocks below the surface a position must lie for the pack biome {@code biomeKey} to be the cave biome there;
-     * nearer the surface the surface's biome is. 0 for a biome that has no such limit.
+     * nearer the surface the surface's biome is. 0 for a biome that has no such limit. The answer depends on the world and the
+     * biome only: the host asks once per biome and keeps it while the world runs.
      */
     int minDepthBelowSurface(PackWorld world, String biomeKey);
 }

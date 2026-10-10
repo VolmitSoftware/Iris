@@ -5,11 +5,13 @@ import com.volmit.service.Providers;
 import com.volmit.service.Service;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** Frozen registrations. Lists use lexical feature/layer/kind ID order, and validators, lifecycle hooks, service
  * providers are in module id order, each module's in the order it registered them, so
@@ -17,6 +19,19 @@ import java.util.function.Function;
  * concurrency contracts.
  */
 public final class FeatureCatalog {
+    /** Services are asked for on the generation hot path, so each type's annotation is read once. */
+    private static final ClassValue<Providers> SERVICE_PROVIDERS = new ClassValue<>() {
+        @Override
+        protected Providers computeValue(Class<?> type) {
+            var service = type.isInterface() ? type.getAnnotation(Service.class) : null;
+            if (service == null) {
+                throw new IllegalArgumentException(type.getName() + " is not a service: services are interfaces marked @"
+                        + Service.class.getName());
+            }
+            return service.value();
+        }
+    };
+
     private final Map<Class<?>, FeatureDescriptor<?>> settings;
     private final Map<Class<?>, ObjectRegistration<?>> objects;
     private final Map<String, MantleRegistration<?>> mantle;
@@ -24,7 +39,8 @@ public final class FeatureCatalog {
     private final List<HeldTypeRegistration> heldTypes;
     private final List<ValidatorRegistration> validators;
     private final List<LifecycleRegistration> lifecycles;
-    private final List<ServiceRegistration> services;
+    private final Map<Class<?>, List<ServiceRegistration>> registrationsByService;
+    private final Map<Class<?>, List<?>> providersByService;
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
@@ -42,7 +58,8 @@ public final class FeatureCatalog {
         this.heldTypes = sorted(heldTypes, registration -> registration.type().getName());
         this.validators = inModuleOrder(validators, ValidatorRegistration::module);
         this.lifecycles = inModuleOrder(lifecycles, LifecycleRegistration::module);
-        this.services = inModuleOrder(services, ServiceRegistration::module);
+        this.registrationsByService = byService(inModuleOrder(services, ServiceRegistration::module));
+        this.providersByService = providersByService(registrationsByService);
     }
 
     /** Settings types that activate stages; the host decodes them from pack JSON. */
@@ -81,39 +98,53 @@ public final class FeatureCatalog {
     /** Every provider of {@code service}, an interface marked {@link Service}, in module id order and each module's in the
      * order it registered them; empty when no module provides it.
      */
+    @SuppressWarnings("unchecked") // ModuleRegistry.registerService checked that every provider implements its service.
     public <S> List<S> services(Class<S> service) {
-        requireService(service);
-        return services.stream()
-                .filter(registration -> registration.service() == service)
-                .map(registration -> service.cast(registration.provider()))
-                .toList();
+        var providers = providersByService.get(service);
+        if (providers == null) {
+            providersOf(service);
+            return List.of();
+        }
+        return (List<S>) providers;
     }
 
     /** Every provider of {@code service} with the module that registered it, in the order of {@link #services}, so the host
      * can name the module whose provider failed.
      */
     public List<ServiceRegistration> registrations(Class<?> service) {
-        requireService(service);
-        return services.stream().filter(registration -> registration.service() == service).toList();
+        var registrations = registrationsByService.get(service);
+        if (registrations == null) {
+            providersOf(service);
+            return List.of();
+        }
+        return registrations;
     }
 
     /** The one provider of {@code service}, a service whose providers are {@link Providers#ONE}, if a module provides it. */
     public <S> Optional<S> service(Class<S> service) {
-        if (requireService(service).value() != Providers.ONE) {
+        if (providersOf(service) != Providers.ONE) {
             throw new IllegalArgumentException("Service " + service.getName() + " may have several providers; ask for all of"
                     + " them with services(...)");
         }
-        return services(service).stream().findFirst();
+        var providers = services(service);
+        return providers.isEmpty() ? Optional.empty() : Optional.of(providers.getFirst());
     }
 
-    /** The {@link Service} annotation of {@code type}, which must be an interface carrying one. */
-    static Service requireService(Class<?> type) {
-        var service = type.isInterface() ? type.getAnnotation(Service.class) : null;
-        if (service == null) {
-            throw new IllegalArgumentException(type.getName() + " is not a service: services are interfaces marked @"
-                    + Service.class.getName());
-        }
-        return service;
+    /** How many modules may provide {@code service}, which must be an interface marked {@link Service}. */
+    static Providers providersOf(Class<?> service) {
+        return SERVICE_PROVIDERS.get(service);
+    }
+
+    private static Map<Class<?>, List<ServiceRegistration>> byService(List<ServiceRegistration> inModuleOrder) {
+        return Map.copyOf(inModuleOrder.stream()
+                .collect(Collectors.groupingBy(ServiceRegistration::service, Collectors.toUnmodifiableList())));
+    }
+
+    private static Map<Class<?>, List<?>> providersByService(Map<Class<?>, List<ServiceRegistration>> registrationsByService) {
+        var providers = new HashMap<Class<?>, List<?>>();
+        registrationsByService.forEach((service, registrations) ->
+                providers.put(service, registrations.stream().map(ServiceRegistration::provider).toList()));
+        return Map.copyOf(providers);
     }
 
     private static <T> List<T> inModuleOrder(List<T> registrations, Function<? super T, DiscoveredModule> module) {

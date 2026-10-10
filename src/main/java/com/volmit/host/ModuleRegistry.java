@@ -170,7 +170,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         Objects.requireNonNull(service, "service");
         Objects.requireNonNull(provider, "provider");
         requireRegistering("Provider of " + service.getName());
-        var providers = FeatureCatalog.requireService(service).value();
+        var providers = FeatureCatalog.providersOf(service);
         if (!service.isInstance(provider)) {
             throw new IllegalArgumentException("Provider " + provider + " of module " + registering + " does not implement "
                     + service.getName());

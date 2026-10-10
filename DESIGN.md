@@ -496,7 +496,8 @@ whose writes throw. The runner does no neighbor scheduling or rollback. A failed
 the host from publishing the chunk.
 
 A chunk stage writes only its chunk but may look around it: its `TerrainSampler` covers the chunk and the 16 blocks
-around it, so a stage that smooths a surface reads its neighbors' heights. The sampler also gives the dimension's
+around it, so a stage that smooths a surface reads its neighbors' heights (`surfaceY`, which spares the host the slope
+that `column` works out). The sampler also gives the dimension's
 `fluidHeight()` and, per column, `upperDimensionY` where a dimension stacked above begins; a stage writes nothing at or
 above it. The mantle's `blocks()` are the blocks placements wrote into the mantle for chunks to take over (objects,
 structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` does. They are the host's layer, so they
@@ -1024,7 +1025,7 @@ from a sapling, which drops a block has. A module answers such questions through
   switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
   `CaveBiomes` (`ONE`): the pack biome a module puts at a position whatever the regions say (a band of the deep dark,
   `overriddenBiome`, the height counted above the dimension's bottom) and how deep below the surface a biome's caves begin
-  (`minDepthBelowSurface`). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
+  (`minDepthBelowSurface`, asked once per biome and kept while the world runs). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
   and asks this only where a module decides; one provider, since two modules could not both decide the biome of one cave.
 - **Settings that name biomes.** The host owns the biome tree (a region's biomes and their children) and the set of
   biomes a dimension reaches, and both must include biomes that module settings name: a cave band's biome, the target of a

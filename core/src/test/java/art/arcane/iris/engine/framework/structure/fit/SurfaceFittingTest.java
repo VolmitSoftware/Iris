@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
 import com.volmit.host.ModuleLogs;
-import com.volmit.vanilla.StructureStep;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.TerrainAdaptation;
 import org.junit.Test;
 
@@ -30,14 +30,14 @@ public class SurfaceFittingTest {
 
     @Test
     public void sourceBeardAdjustmentsPrepareOnlyAtTheSurfaceStructuresStep() {
-        assertTrue(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_THIN, StructureStep.SURFACE_STRUCTURES));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_BOX, StructureStep.FLUID_SPRINGS));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_THIN, StructureStep.UNDERGROUND_STRUCTURES));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_BOX, StructureStep.UNDERGROUND_DECORATION));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_THIN, StructureStep.STRONGHOLDS));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BURY, StructureStep.SURFACE_STRUCTURES));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.ENCAPSULATE, StructureStep.SURFACE_STRUCTURES));
-        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.NONE, StructureStep.FLUID_SPRINGS));
+        assertTrue(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_THIN, DecorationStep.SURFACE_STRUCTURES));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_BOX, DecorationStep.FLUID_SPRINGS));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_THIN, DecorationStep.UNDERGROUND_STRUCTURES));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_BOX, DecorationStep.UNDERGROUND_DECORATION));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BEARD_THIN, DecorationStep.STRONGHOLDS));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.BURY, DecorationStep.SURFACE_STRUCTURES));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.ENCAPSULATE, DecorationStep.SURFACE_STRUCTURES));
+        assertFalse(SurfaceFitting.shouldPrepareSurfaceTerrain(TerrainAdaptation.NONE, DecorationStep.FLUID_SPRINGS));
     }
 
     @Test
@@ -45,17 +45,17 @@ public class SurfaceFittingTest {
         FitFixture.Piece piece = FitFixture.Piece.fixed(new Box(0, 64, 0, 4, 70, 4));
 
         assertTrue(SurfaceFitting.requiresSurfaceTerrain(
-                FitFixture.start(SOURCE, TerrainAdaptation.BEARD_BOX, StructureStep.SURFACE_STRUCTURES, piece)));
+                FitFixture.start(SOURCE, TerrainAdaptation.BEARD_BOX, DecorationStep.SURFACE_STRUCTURES, piece)));
         assertFalse(SurfaceFitting.requiresSurfaceTerrain(
-                FitFixture.start(PRESERVE, TerrainAdaptation.BEARD_BOX, StructureStep.SURFACE_STRUCTURES, piece)));
+                FitFixture.start(PRESERVE, TerrainAdaptation.BEARD_BOX, DecorationStep.SURFACE_STRUCTURES, piece)));
         assertFalse(SurfaceFitting.requiresSurfaceTerrain(
-                FitFixture.start(SOURCE, TerrainAdaptation.NONE, StructureStep.SURFACE_STRUCTURES, piece)));
+                FitFixture.start(SOURCE, TerrainAdaptation.NONE, DecorationStep.SURFACE_STRUCTURES, piece)));
         assertTrue(SurfaceFitting.requiresSurfaceTerrain(
-                FitFixture.start(VACUUM, TerrainAdaptation.NONE, StructureStep.SURFACE_STRUCTURES, piece)));
+                FitFixture.start(VACUUM, TerrainAdaptation.NONE, DecorationStep.SURFACE_STRUCTURES, piece)));
         assertTrue(SurfaceFitting.requiresSurfaceTerrain(
-                FitFixture.start(VACUUM, TerrainAdaptation.BEARD_BOX, StructureStep.SURFACE_STRUCTURES, piece)));
+                FitFixture.start(VACUUM, TerrainAdaptation.BEARD_BOX, DecorationStep.SURFACE_STRUCTURES, piece)));
         assertFalse(TerrainIntegration.clearsLegacyTemplateAir(
-                FitFixture.start(VACUUM, TerrainAdaptation.NONE, StructureStep.SURFACE_STRUCTURES, piece)));
+                FitFixture.start(VACUUM, TerrainAdaptation.NONE, DecorationStep.SURFACE_STRUCTURES, piece)));
     }
 
     @Test
@@ -227,7 +227,7 @@ public class SurfaceFittingTest {
         Box area = new Box(0, 54, 0, 15, 72, 15);
         FitFixture.World world = new FitFixture.World(area).flat(area, 60);
         Map<?, ?> before = world.snapshot();
-        FitStart start = FitFixture.start(VACUUM, TerrainAdaptation.NONE, StructureStep.SURFACE_STRUCTURES,
+        FitStart start = FitFixture.start(VACUUM, TerrainAdaptation.NONE, DecorationStep.SURFACE_STRUCTURES,
                 FitFixture.Piece.rigid(new Box(0, 66, 0, 0, 70, 0), 1).cell(0, 66, 0, COBBLESTONE));
 
         SurfaceFitting.prepareSurfaceStructures(world.fitBlocks(), area, List.of(start), (x, z) -> 60, 1, ModuleLogs.discarding());
@@ -239,7 +239,7 @@ public class SurfaceFittingTest {
     public void vacuumRaisesTheTerrainToAFloatingFoundationAndRepairsItsGapAfterPlacement() {
         Box area = new Box(0, 54, 0, 3, 74, 3);
         FitFixture.World world = new FitFixture.World(area).flat(area, 60);
-        FitStart start = FitFixture.start(VACUUM, TerrainAdaptation.NONE, StructureStep.SURFACE_STRUCTURES,
+        FitStart start = FitFixture.start(VACUUM, TerrainAdaptation.NONE, DecorationStep.SURFACE_STRUCTURES,
                 FitFixture.Piece.rigid(new Box(0, 65, 0, 0, 72, 0), 1).cell(0, 65, 0, COBBLESTONE));
 
         SurfaceFitting.VacuumFoundationPlan plan = SurfaceFitting.prepareSurfaceStructures(

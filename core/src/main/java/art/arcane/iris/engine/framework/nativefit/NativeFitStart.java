@@ -12,7 +12,7 @@ public interface NativeFitStart<S> {
 
     int chunkZ();
 
-    /** The name of the platform's decoration step, as the API's {@code StructureStep} names it. */
+    /** The name of the platform's decoration step, as the API's {@code DecorationStep} names it. */
     String step();
 
     /** The name of the structure definition's terrain adaptation, as the API's {@code TerrainAdaptation} names it. */

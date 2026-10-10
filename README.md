@@ -49,8 +49,8 @@ only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its en
 `art.arcane.iris.builtin.deposit`), and packs write `"deposits": [...]`, as they always have (`@Feature(key = "deposits", root = "generators")`: the key holds the one option's list). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
 
-Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition,
-a cave profile, a floating child biome or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
+Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition
+or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
 `.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). The module registers each with
 `registry.registerHeldType(...)` so studio describes it from the module's own annotations; packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
@@ -72,6 +72,18 @@ default Iris always had (one grass layer, no slab or wall, stone and water, post
 for a pack, `BiomeLayers`, the world's state, keeps them and stacks a biome's layers into the blocks of a column, and `TerrainPalettes` is the world's
 rock and fluid as a block for every column; the terrain, cave, floating and post stages ask them. The slope limit of a layer, a decorator and an
 object placement is the one `SlopeClip`.
+
+Caves, floating islands and ores are settings of their modules too, written under the keys they always had. `iris:carve` owns
+`caveProfile` (dimension, region, biome; an object, or a `snippet/cave-profile/...` reference), `carving` (dimension; a list of bands) and
+`carvingEnabled` (dimension; a boolean), `carvingBiome` (biome; a biome key) and `caveMinDepthBelowSurface` (biome; a number). `iris:floating`
+owns `floatingChildBiomes` (biome; a list) and `mergeFloatingChildBiomes` (biome; a boolean). `iris:terrain` owns `ores` (dimension, region,
+biome; a list of generators) and `hideOresForHiddenOre` (dimension; a boolean); `iris:deposit` owns `depositVariants` (dimension, region, biome; a list)
+and `oreDepositFrequencyMultiplier` and `oreDepositSizeMultiplier` (biome; numbers). Behaviour that needs Iris lives in the `Resolved*` classes beside the
+workers: `ResolvedOre`/`ResolvedOres` (blocks and chance noise per world, `TerrainOres` the world's state), `ResolvedDepositVariant`,
+`ResolvedCarvingEntry`/`CarvingBands`/`CarvingResolver` (the band for a position) and `ResolvedFloatingChild`. The settings that name biomes
+(`carvingBiome`, a band's biome, a floating child's target and carving) implement `LinkedBiomes`, which is how Iris's biome tree and the biomes a
+dimension reaches learn of them without reading the settings classes; and `iris:carve` provides the `CaveBiomes` service
+(`CaveBiomeBands`), which Iris asks for the dimension's carving band at a position and for a biome's minimum cave depth.
 
 Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
 (biome; a list) and `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest). The feature ids

@@ -28,14 +28,15 @@ import art.arcane.iris.builtin.terrain.RockPaletteSettings;
 import art.arcane.iris.builtin.terrain.SeaLayersSettings;
 import art.arcane.iris.builtin.terrain.SlabSettings;
 import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.builtin.terrain.HideOresSettings;
+import art.arcane.iris.builtin.terrain.OreSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisChunk;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
+import art.arcane.iris.engine.actuator.ResolvedOres.YBand;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -83,6 +84,8 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
         registry.registerSettings(LockLayersMaxSettings.class);
         registry.registerSettings(RockPaletteSettings.class);
         registry.registerSettings(FluidPaletteSettings.class);
+        registry.registerSettings(OreSettings.class);
+        registry.registerSettings(HideOresSettings.class);
         registry.registerLifecycle(this);
     }
 
@@ -110,16 +113,18 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
         private final Engine engine;
         private final TerrainPalettes palettes;
         private final BiomeLayers layers;
+        private final TerrainOres ores;
         private final RNG rng;
 
         TerrainShaper(Engine engine) {
-            this(engine, TerrainPalettes.of(engine), BiomeLayers.of(engine));
+            this(engine, TerrainPalettes.of(engine), BiomeLayers.of(engine), TerrainOres.of(engine));
         }
 
-        TerrainShaper(Engine engine, TerrainPalettes palettes, BiomeLayers layers) {
+        TerrainShaper(Engine engine, TerrainPalettes palettes, BiomeLayers layers, TerrainOres ores) {
             this.engine = engine;
             this.palettes = palettes;
             this.layers = layers;
+            this.ores = ores;
             this.rng = new RNG(engine.getSeedManager().getTerrain());
         }
 
@@ -145,17 +150,16 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
             int fluidHeight = dimension.getFluidHeight();
             int clampedFluidHeight = Math.min(chunkHeight, fluidHeight);
             boolean bedrockEnabled = dimension.isBedrock();
-            boolean hideOres = dimension.isHideOresForHiddenOre();
+            boolean hideOres = HiddenOres.in(dimension);
             ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
             ChunkedDataCache<IrisRegion> regionCache = context.getRegion();
             int realX = xf + x;
             UpperDimensionContext upperContext = engine.getUpperContext();
             // Dimension-level ore lookups are chunk-invariant; resolving them per column paid
-            // four accessor chains times 256 per chunk for constants.
-            KList<IrisOreGenerator> dimensionSurfaceOres = hideOres ? null : dimension.getSurfaceOreGenerators();
-            KList<IrisOreGenerator> dimensionUndergroundOres = hideOres ? null : dimension.getUndergroundOreGenerators();
-            IrisOreGeneratorBounds dimensionSurfaceOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : dimension.getSurfaceOreGeneratorBounds();
-            IrisOreGeneratorBounds dimensionUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : dimension.getUndergroundOreGeneratorBounds();
+            // the settings lookup times 256 per chunk for a constant.
+            ResolvedOres dimensionOres = hideOres ? ResolvedOres.NONE : ores.of(dimension);
+            YBand dimensionSurfaceBand = dimensionOres.surfaceBand();
+            YBand dimensionUndergroundBand = dimensionOres.undergroundBand();
 
             for (int zf = 0; zf < chunkDepth; zf++) {
                 int realZ = zf + z;
@@ -171,16 +175,14 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                 PlatformBlockState fluid = palettes.fluidAt(realX, realZ);
                 PlatformBlockState rock = palettes.rockAt(realX, realZ);
                 PlatformBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
-                KList<IrisOreGenerator> biomeSurfaceOres = hideOres ? null : biome.getSurfaceOreGenerators();
-                KList<IrisOreGenerator> regionSurfaceOres = hideOres ? null : region.getSurfaceOreGenerators();
-                KList<IrisOreGenerator> biomeUndergroundOres = hideOres ? null : biome.getUndergroundOreGenerators();
-                KList<IrisOreGenerator> regionUndergroundOres = hideOres ? null : region.getUndergroundOreGenerators();
-                IrisOreGeneratorBounds biomeSurfaceOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : biome.getSurfaceOreGeneratorBounds();
-                IrisOreGeneratorBounds regionSurfaceOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : region.getSurfaceOreGeneratorBounds();
-                IrisOreGeneratorBounds biomeUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : biome.getUndergroundOreGeneratorBounds();
-                IrisOreGeneratorBounds regionUndergroundOreBounds = hideOres ? IrisOreGeneratorBounds.EMPTY : region.getUndergroundOreGeneratorBounds();
-                boolean hasSurfaceOres = biomeSurfaceOreBounds.hasOres() || regionSurfaceOreBounds.hasOres() || dimensionSurfaceOreBounds.hasOres();
-                boolean hasUndergroundOres = biomeUndergroundOreBounds.hasOres() || regionUndergroundOreBounds.hasOres() || dimensionUndergroundOreBounds.hasOres();
+                ResolvedOres biomeOres = hideOres ? ResolvedOres.NONE : ores.of(biome);
+                ResolvedOres regionOres = hideOres ? ResolvedOres.NONE : ores.of(region);
+                YBand biomeSurfaceBand = biomeOres.surfaceBand();
+                YBand regionSurfaceBand = regionOres.surfaceBand();
+                YBand biomeUndergroundBand = biomeOres.undergroundBand();
+                YBand regionUndergroundBand = regionOres.undergroundBand();
+                boolean hasSurfaceOres = biomeSurfaceBand.hasOres() || regionSurfaceBand.hasOres() || dimensionSurfaceBand.hasOres();
+                boolean hasUndergroundOres = biomeUndergroundBand.hasOres() || regionUndergroundBand.hasOres() || dimensionUndergroundBand.hasOres();
                 KList<PlatformBlockState> blocks = null;
                 KList<PlatformBlockState> fblocks = null;
 
@@ -192,14 +194,14 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
 
                     PlatformBlockState ore = null;
                     if (hasSurfaceOres) {
-                        if (biomeSurfaceOreBounds.contains(i)) {
-                            ore = generateOres(biomeSurfaceOres, realX, i, realZ, localRng, data);
+                        if (biomeSurfaceBand.contains(i)) {
+                            ore = biomeOres.generateSurface(realX, i, realZ);
                         }
-                        if (ore == null && regionSurfaceOreBounds.contains(i)) {
-                            ore = generateOres(regionSurfaceOres, realX, i, realZ, localRng, data);
+                        if (ore == null && regionSurfaceBand.contains(i)) {
+                            ore = regionOres.generateSurface(realX, i, realZ);
                         }
-                        if (ore == null && dimensionSurfaceOreBounds.contains(i)) {
-                            ore = generateOres(dimensionSurfaceOres, realX, i, realZ, localRng, data);
+                        if (ore == null && dimensionSurfaceBand.contains(i)) {
+                            ore = dimensionOres.generateSurface(realX, i, realZ);
                         }
                     }
                     if (ore != null) {
@@ -237,14 +239,14 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                         }
 
                         if (hasUndergroundOres) {
-                            if (biomeUndergroundOreBounds.contains(i)) {
-                                ore = generateOres(biomeUndergroundOres, realX, i, realZ, localRng, data);
+                            if (biomeUndergroundBand.contains(i)) {
+                                ore = biomeOres.generateUnderground(realX, i, realZ);
                             }
-                            if (ore == null && regionUndergroundOreBounds.contains(i)) {
-                                ore = generateOres(regionUndergroundOres, realX, i, realZ, localRng, data);
+                            if (ore == null && regionUndergroundBand.contains(i)) {
+                                ore = regionOres.generateUnderground(realX, i, realZ);
                             }
-                            if (ore == null && dimensionUndergroundOreBounds.contains(i)) {
-                                ore = generateOres(dimensionUndergroundOres, realX, i, realZ, localRng, data);
+                            if (ore == null && dimensionUndergroundBand.contains(i)) {
+                                ore = dimensionOres.generateUnderground(realX, i, realZ);
                             }
                         }
 
@@ -291,23 +293,6 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                     }
                 }
             }
-        }
-
-        private PlatformBlockState generateOres(KList<IrisOreGenerator> oreGenerators, int x, int y, int z, RNG rng, IrisData data) {
-            if (oreGenerators == null || oreGenerators.isEmpty()) {
-                return null;
-            }
-
-            int oreCount = oreGenerators.size();
-            for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
-                IrisOreGenerator oreGenerator = oreGenerators.get(oreIndex);
-                PlatformBlockState ore = oreGenerator.generate(x, y, z, rng, data);
-                if (ore != null) {
-                    return ore;
-                }
-            }
-
-            return null;
         }
     }
 }

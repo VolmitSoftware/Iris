@@ -19,7 +19,10 @@
 package art.arcane.iris.builtin.carve;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
+import com.volmit.config.Feature;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
@@ -35,11 +38,13 @@ import java.util.Optional;
 /**
  * A 3D cave profile as packs write it for a dimension, region or biome ({@code caveProfile}) or under
  * {@code snippet/cave-profile/}: the noise fields that decide where caves are, how they meet the surface, where
- * cave fluid may sit and how objects find anchors in them. IrisApi types only; the carving module builds the noise.
+ * cave fluid may sit and how objects find anchors in them. A level that writes none has no profile, which is the
+ * same as one that is not {@code enabled}. IrisApi types only; the carving module builds the noise.
  */
 @Snippet("cave-profile")
 @Desc("Represents a configurable 3D cave profile.")
-public final class CaveProfile {
+@Feature(id = "iris:carve/profile", name = "Cave profile", key = "caveProfile", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+public final class CaveProfile implements IrisFeature {
     @Desc("Enable profile-driven cave carving.")
     private boolean enabled = false;
 

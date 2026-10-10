@@ -20,6 +20,7 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
+import art.arcane.iris.engine.actuator.HiddenOres;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -68,7 +69,7 @@ public final class PerfectionModule implements IrisModule {
         IrisDimension dimension = engine.getDimension();
         PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
         Hunk<PlatformBlockState> blocks = chunk.blocks();
-        if (dimension.isHideOresForHiddenOre()) {
+        if (HiddenOres.in(dimension)) {
             hideOres(blocks);
         }
         boolean removed;

@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 
+import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
 import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
 import art.arcane.iris.builtin.prepare.SlopeClip;
@@ -229,7 +230,7 @@ public class FloatingIslands {
                 int wx = x + xf;
                 int wz = z + zf;
                 IrisBiome parent = boundarySampler.parent(wx, wz);
-                if (parent == null || parent.getFloatingChildBiomes() == null || parent.getFloatingChildBiomes().isEmpty()) {
+                if (parent == null || FloatingChildren.declaredBy(parent).isEmpty()) {
                     continue;
                 }
                 FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);
@@ -314,7 +315,7 @@ public class FloatingIslands {
                 int wx = x + xf;
                 int wz = z + zf;
                 IrisBiome parent = boundarySampler.parent(wx, wz);
-                if (parent == null || parent.getFloatingChildBiomes() == null || parent.getFloatingChildBiomes().isEmpty()) {
+                if (parent == null || FloatingChildren.declaredBy(parent).isEmpty()) {
                     continue;
                 }
                 FloatingIslandSample sample = FloatingIslandSample.sampleMemoized(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler);

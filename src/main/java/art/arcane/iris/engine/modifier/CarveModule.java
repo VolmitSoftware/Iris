@@ -18,7 +18,10 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.carve.CaveFieldModule;
+import art.arcane.iris.builtin.carve.CarvingBiomeSettings;
+import art.arcane.iris.builtin.carve.CarvingEnabledSettings;
+import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.builtin.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
@@ -28,6 +31,7 @@ import art.arcane.iris.engine.mantle.components.CaveCarving;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.service.CaveBiomes;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
@@ -51,8 +55,12 @@ public final class CarveModule implements IrisModule {
 
     @Override
     public void register(FeatureRegistry registry) {
-        registry.registerHeldType(CaveProfile.class);
-        registry.registerHeldType(CaveFieldModule.class);
+        registry.registerSettings(CaveProfile.class);
+        registry.registerSettings(CarvingSettings.class);
+        registry.registerSettings(CarvingEnabledSettings.class);
+        registry.registerSettings(CarvingBiomeSettings.class);
+        registry.registerSettings(CaveDepthSettings.class);
+        registry.registerService(CaveBiomes.class, new CaveBiomeBands());
     }
 
     @Override
@@ -83,6 +91,6 @@ public final class CarveModule implements IrisModule {
      * also does: Iris then skips this stage's mantle pass like any disabled component.
      */
     private static boolean carves(IrisDimension dimension) {
-        return dimension.isCarvingEnabled();
+        return dimension.getModuleSettings().find(CarvingEnabledSettings.class).map(CarvingEnabledSettings::enabled).orElse(true);
     }
 }

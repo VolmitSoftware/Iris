@@ -543,8 +543,8 @@ public class FloatingObjectPlacing {
         try {
             IrisData data = engine.getData();
             for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-                List<FloatingChildBiome> settings = biome.getFloatingChildBiomes();
-                if (settings == null || settings.isEmpty()) {
+                List<FloatingChildBiome> settings = FloatingChildren.declaredBy(biome);
+                if (settings.isEmpty()) {
                     continue;
                 }
                 for (ResolvedFloatingChild entry : FloatingChildren.of(engine).of(settings)) {

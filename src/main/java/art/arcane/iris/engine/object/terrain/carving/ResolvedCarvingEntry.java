@@ -1,0 +1,101 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.engine.object.terrain.carving;
+
+import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.IrisValues;
+import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.volmlib.util.math.RNG;
+import com.volmit.config.Range;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * One {@link CarvingEntry} made ready for one world: the biome it names, loaded from the pack when first asked for, and the
+ * noise that splits it into child entries, built once per seed. What the entry describes stays in the settings.
+ */
+public final class ResolvedCarvingEntry {
+    private static final long CHILD_GENERATOR_SALT = 2137L;
+    private static final int CHILD_GENERATOR_SIGNATURE = 2137;
+    private static final double MIN_CHILD_SCALE = 0.0001D;
+
+    private final CarvingEntry settings;
+    private final IrisGeneratorStyle childStyle;
+    private final AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
+    private final Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
+
+    ResolvedCarvingEntry(CarvingEntry settings) {
+        this.settings = settings;
+        this.childStyle = IrisValues.generatorStyle(settings.childStyle());
+    }
+
+    public String id() {
+        return settings.id();
+    }
+
+    public boolean enabled() {
+        return settings.enabled();
+    }
+
+    /** The biome key the entry names, as the pack wrote it. */
+    public String biomeKey() {
+        return settings.biome();
+    }
+
+    public Range worldYRange() {
+        return settings.worldYRange();
+    }
+
+    public List<String> children() {
+        return settings.children();
+    }
+
+    public int childRecursionDepth() {
+        return settings.childRecursionDepth();
+    }
+
+    /** The pack biome the entry names; null when it names none or the pack has no such biome. */
+    public IrisBiome realBiome(IrisData data) {
+        return realBiome.aquire(() -> {
+            String biomeKey = settings.biome();
+            if (biomeKey.isBlank()) {
+                return null;
+            }
+
+            return data.getBiomeLoader().load(biomeKey.trim());
+        });
+    }
+
+    /** The noise that picks between the entry and its children, seeded by {@code seed} and the entry's id. */
+    public CNG childrenGenerator(long seed, IrisData data) {
+        long idHash = settings.id().trim().hashCode();
+        long generatorSeed = seed ^ (idHash << 32) ^ CHILD_GENERATOR_SALT;
+        return childGenerators.computeIfAbsent(generatorSeed, key -> {
+            double scale = Math.max(MIN_CHILD_SCALE, settings.childShrinkFactor());
+            RNG random = new RNG(key);
+            return childStyle.create(random.nextParallelRNG(CHILD_GENERATOR_SIGNATURE), data).bake().scale(scale).bake();
+        });
+    }
+}

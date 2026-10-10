@@ -800,6 +800,10 @@ Why these lines:
   the module's: noise lines up across chunks only when it comes from `worldSeed()`, not a stage's stream.
 - **`NoiseSampler` moved to `com.volmit.noise`** and gained a two-dimensional `sample(x, z)`: Iris's noise
   gives different fields in two and three dimensions, and most features sample columns.
+- **`NoiseSampler.scaled(factor)`** is a style with an extra coordinate scale that the host folds into its generator: a cave
+  biome band splits into child bands with noise shrunk by a factor, and a module that multiplied the coordinates itself would
+  round differently from the generator Iris has always built, moving a cell border here and there. A default method
+  (multiply the coordinates) keeps every other sampler valid.
 - **`PackWorld.minHeight()`**: all heights are above the dimension's bottom, but packs write some settings as absolute
   world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with the
   platform's Y of the bottom, a default method (0) so a fixture without negative Y needs nothing.

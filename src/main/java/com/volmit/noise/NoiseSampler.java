@@ -23,4 +23,34 @@ public interface NoiseSampler {
     default double signed(double worldX, double y, double worldZ) {
         return sample(worldX, y, worldZ) * 2D - 1D;
     }
+
+    /** This noise with its coordinates multiplied by {@code factor}: a factor above 1 squeezes the pattern, below 1
+     * stretches it. A host folds the factor into the generator's own scale, so the result is the very noise the style
+     * would give with that extra scale (same values and float rounding), and builds it without touching this sampler.
+     * The default multiplies the coordinates before sampling, which may round differently.
+     */
+    default NoiseSampler scaled(double factor) {
+        NoiseSampler source = this;
+        return new NoiseSampler() {
+            @Override
+            public double sample(double worldX, double worldZ) {
+                return source.sample(worldX * factor, worldZ * factor);
+            }
+
+            @Override
+            public double sample(double worldX, double y, double worldZ) {
+                return source.sample(worldX * factor, y * factor, worldZ * factor);
+            }
+
+            @Override
+            public double signed(double worldX, double worldZ) {
+                return source.signed(worldX * factor, worldZ * factor);
+            }
+
+            @Override
+            public double signed(double worldX, double y, double worldZ) {
+                return source.signed(worldX * factor, y * factor, worldZ * factor);
+            }
+        };
+    }
 }

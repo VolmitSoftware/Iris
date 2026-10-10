@@ -32,4 +32,19 @@ class NoiseSamplerTest {
         assertEquals(7D, noise.signed(1D, 1D), EXACT);
         assertEquals(0.25D * 2D - 1D, noise.signed(1D, 1D, 1D), EXACT);
     }
+
+    @Test
+    void scaledSamplesAtTheScaledCoordinates() {
+        NoiseSampler noise = new NoiseSampler() {
+            public double sample(double worldX, double worldZ) { return worldX + worldZ * 100D; }
+            public double sample(double worldX, double y, double worldZ) { return worldX + y * 100D + worldZ * 10000D; }
+        };
+
+        NoiseSampler scaled = noise.scaled(2D);
+
+        assertEquals(noise.sample(6D, 4D), scaled.sample(3D, 2D), EXACT);
+        assertEquals(noise.sample(6D, 4D, 2D), scaled.sample(3D, 2D, 1D), EXACT);
+        assertEquals(noise.signed(6D, 4D), scaled.signed(3D, 2D), EXACT);
+        assertEquals(noise.signed(6D, 4D, 2D), scaled.signed(3D, 2D, 1D), EXACT);
+    }
 }

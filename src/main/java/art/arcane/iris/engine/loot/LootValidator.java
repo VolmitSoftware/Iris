@@ -18,269 +18,210 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.core.modules.IrisValidationContext;
-import art.arcane.iris.core.pack.PackIntegerChecks;
-import art.arcane.iris.core.pack.PackValidationIo;
+import art.arcane.iris.builtin.loot.LootEnchantment;
 import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootMode;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.LootTable;
-import art.arcane.volmlib.util.json.JSONArray;
-import art.arcane.volmlib.util.json.JSONObject;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Subject;
 import com.volmit.validation.ValidationContext;
 import com.volmit.validation.Validator;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 /**
  * Module {@code iris:loot}'s check of a pack: every loot table has sane picks, tries and entries, and every loot
- * reference of a dimension, region or biome names a table the pack has. The files are read as written, like the pack
- * validator's other file checks, so a malformed table is reported rather than failing the load.
+ * reference of a dimension, region or biome names a table the pack has. It checks the tables and settings as they
+ * decoded; a file that is not valid JSON, or holds a value of the wrong type, is reported by the load that reads it.
  */
 public final class LootValidator implements Validator {
-    private static final List<String> LOOT_HOST_FOLDERS = List.of("dimensions", "regions", "biomes");
     private static final String JSON_EXTENSION = ".json";
+    private static final String LEVEL_FOLDER_SEPARATOR = "/";
 
     @Override
     public void validate(ValidationContext pack) {
-        check(IrisValidationContext.of(pack).data().getDataFolder()).forEach(pack::report);
+        checkTables(pack.resources()).forEach(pack::report);
+        checkReferences(pack).forEach(pack::report);
     }
 
-    /** What is wrong with the loot tables and loot references of the pack in {@code packFolder}. */
-    public static List<Problem> check(File packFolder) {
+    private static List<Problem> checkTables(PackResources resources) {
         List<Problem> problems = new ArrayList<>();
-        if (packFolder == null || !packFolder.isDirectory()) {
-            return problems;
-        }
-
-        File lootFolder = new File(packFolder, LootResources.TABLES.folder());
-        Set<String> lootKeys = keysOf(lootFolder);
-        checkTables(lootFolder, problems);
-        for (String folderName : LOOT_HOST_FOLDERS) {
-            checkReferences(new File(packFolder, folderName), folderName, lootKeys, problems);
-        }
-        return problems;
-    }
-
-    private static void checkTables(File lootFolder, List<Problem> problems) {
-        if (!lootFolder.isDirectory()) {
-            return;
-        }
-        List<File> lootFiles = PackValidationIo.listJsonRecursive(lootFolder);
-        lootFiles.sort(Comparator.comparing(File::getPath));
-        for (File lootFile : lootFiles) {
-            String lootKey = PackValidationIo.deriveKey(lootFolder, lootFile);
+        for (ResourceId id : resources.ids(LootTable.class)) {
+            String lootKey = id.path();
             List<String> errors = new ArrayList<>();
-            JSONObject table = readTable(lootFile, lootKey, errors);
+            LootTable table = readTable(resources, id, lootKey, errors);
             if (table != null) {
                 validateLootTable(lootKey, table, errors);
             }
             report(problems, Problem::error, Subject.file(LootResources.TABLES.folder() + "/" + lootKey + JSON_EXTENSION), errors);
         }
+        return problems;
     }
 
-    private static void checkReferences(File resourceFolder, String folderName, Set<String> lootKeys, List<Problem> problems) {
-        if (!resourceFolder.isDirectory()) {
-            return;
-        }
-        List<File> resourceFiles = PackValidationIo.listJsonRecursive(resourceFolder);
-        resourceFiles.sort(Comparator.comparing(File::getPath));
-        for (File resourceFile : resourceFiles) {
-            JSONObject resource = PackValidationIo.readJson(resourceFile);
-            if (resource == null || !resource.has("loot")) {
-                continue;
-            }
-            String resourceKey = PackValidationIo.deriveKey(resourceFolder, resourceFile);
+    private static List<Problem> checkReferences(ValidationContext pack) {
+        Set<ResourceId> lootIds = Set.copyOf(pack.resources().ids(LootTable.class));
+        List<Problem> problems = new ArrayList<>();
+        List<Entry<LootSettings>> declared = new ArrayList<>(pack.settings().declared(LootSettings.class));
+        declared.sort(Comparator.comparing(Entry<LootSettings>::level).thenComparing(Entry::source));
+        for (Entry<LootSettings> entry : declared) {
+            String resourceKey = keyOf(entry);
             List<String> errors = new ArrayList<>();
             List<String> warnings = new ArrayList<>();
-            validateLootReference(hostType(folderName), resourceKey, resource.opt("loot"), lootKeys, errors, warnings);
-            Subject subject = Subject.file(folderName + "/" + resourceKey + JSON_EXTENSION);
+            validateLootReference(pack.resources(), hostType(entry.level()), resourceKey, entry.value(), lootIds, errors, warnings);
+            Subject subject = Subject.file(folderOf(entry.level()) + "/" + resourceKey + JSON_EXTENSION);
             report(problems, Problem::error, subject, errors);
             report(problems, Problem::warning, subject, warnings);
         }
+        return problems;
     }
 
-    private static void report(List<Problem> problems, java.util.function.BiFunction<Subject, String, Problem> severity,
+    private static void report(List<Problem> problems, BiFunction<Subject, String, Problem> severity,
                                Subject subject, List<String> messages) {
         for (String message : messages) {
             problems.add(severity.apply(subject, message));
         }
     }
 
-    private static Set<String> keysOf(File folder) {
-        Set<String> keys = new HashSet<>();
-        if (!folder.isDirectory()) {
-            return keys;
-        }
-        for (File file : PackValidationIo.listJsonRecursive(folder)) {
-            String key = PackValidationIo.deriveKey(folder, file);
-            if (key != null && !key.isBlank()) {
-                keys.add(key);
-            }
-        }
-        return keys;
-    }
-
-    private static JSONObject readTable(File file, String key, List<String> errors) {
+    private static LootTable readTable(PackResources resources, ResourceId id, String key, List<String> errors) {
         try {
-            return new JSONObject(Files.readString(file.toPath(), StandardCharsets.UTF_8));
-        } catch (IOException | RuntimeException e) {
-            String reason = e.getMessage();
-            if (reason == null || reason.isBlank()) {
-                reason = e.getClass().getSimpleName();
-            }
-            errors.add("Loot table '" + key + "' has invalid JSON: " + reason);
+            return resources.find(LootResources.TABLES.key(id)).orElse(null);
+        } catch (IllegalStateException failedToLoad) {
+            errors.add("Loot table '" + key + "' cannot be read; the log says what is wrong with the file.");
             return null;
         }
     }
 
-    private static String hostType(String folderName) {
-        return switch (folderName) {
-            case "dimensions" -> "Dimension";
-            case "regions" -> "Region";
-            case "biomes" -> "Biome";
-            default -> "Resource";
+    /** The key of the dimension, region or biome that declared {@code entry}: its source id is {@code <pack>:<level>/<key>}. */
+    private static String keyOf(Entry<LootSettings> entry) {
+        String path = entry.source().path();
+        return path.substring(path.indexOf(LEVEL_FOLDER_SEPARATOR) + 1);
+    }
+
+    private static String hostType(Target level) {
+        return switch (level) {
+            case DIMENSION -> "Dimension";
+            case REGION -> "Region";
+            case BIOME -> "Biome";
+            case OBJECT_PLACEMENT -> "Resource";
         };
     }
 
-    private static void validateLootTable(String lootKey, JSONObject table, List<String> blockingErrors) {
-        String path = "Loot table '" + lootKey + "'";
-        Integer rarity = PackIntegerChecks.integerField(table, "rarity", 1, path, blockingErrors);
-        Integer minimumPicked = PackIntegerChecks.integerField(table, "minPicked", 1, path, blockingErrors);
-        Integer maximumPicked = PackIntegerChecks.integerField(table, "maxPicked", 5, path, blockingErrors);
-        Integer maximumTries = PackIntegerChecks.integerField(table, "maxTries", 10, path, blockingErrors);
-        PackIntegerChecks.requireMinimum(path + ".rarity", rarity, 1, blockingErrors);
-        PackIntegerChecks.requireMinimum(path + ".minPicked", minimumPicked, 0, blockingErrors);
-        PackIntegerChecks.requireMinimum(path + ".maxPicked", maximumPicked, 1, blockingErrors);
-        PackIntegerChecks.requireMinimum(path + ".maxTries", maximumTries, 1, blockingErrors);
-        PackIntegerChecks.requireMaximum(path + ".minPicked", minimumPicked, LootTable.MAX_PICKED, blockingErrors);
-        PackIntegerChecks.requireMaximum(path + ".maxPicked", maximumPicked, LootTable.MAX_PICKED, blockingErrors);
-        PackIntegerChecks.requireMaximum(path + ".maxTries", maximumTries, LootTable.MAX_TRIES, blockingErrors);
-        PackIntegerChecks.requireOrdered(path + ".minPicked", minimumPicked, path + ".maxPicked", maximumPicked, blockingErrors);
+    private static String folderOf(Target level) {
+        return switch (level) {
+            case DIMENSION -> "dimensions";
+            case REGION -> "regions";
+            case BIOME -> "biomes";
+            case OBJECT_PLACEMENT -> "placements";
+        };
+    }
 
-        JSONArray entries = table.optJSONArray("loot");
-        if (entries == null || entries.length() == 0) {
+    private static void validateLootTable(String lootKey, LootTable table, List<String> blockingErrors) {
+        String path = "Loot table '" + lootKey + "'";
+        requireMinimum(path + ".rarity", table.rarity(), 1, blockingErrors);
+        requireMinimum(path + ".minPicked", table.minPicked(), 0, blockingErrors);
+        requireMinimum(path + ".maxPicked", table.maxPicked(), 1, blockingErrors);
+        requireMinimum(path + ".maxTries", table.maxTries(), 1, blockingErrors);
+        requireMaximum(path + ".minPicked", table.minPicked(), LootTable.MAX_PICKED, blockingErrors);
+        requireMaximum(path + ".maxPicked", table.maxPicked(), LootTable.MAX_PICKED, blockingErrors);
+        requireMaximum(path + ".maxTries", table.maxTries(), LootTable.MAX_TRIES, blockingErrors);
+        requireOrdered(path + ".minPicked", table.minPicked(), path + ".maxPicked", table.maxPicked(), blockingErrors);
+
+        List<LootEntry> entries = table.loot();
+        if (entries.isEmpty()) {
             blockingErrors.add(path + ".loot must be a non-empty array.");
             return;
         }
-        for (int entryIndex = 0; entryIndex < entries.length(); entryIndex++) {
-            JSONObject entry = entries.optJSONObject(entryIndex);
-            String entryPath = path + ".loot[" + entryIndex + "]";
-            if (entry == null) {
-                blockingErrors.add(entryPath + " must be an object.");
-                continue;
-            }
-            String type = entry.optString("type", "").trim();
-            if (type.isEmpty()) {
-                blockingErrors.add(entryPath + ".type must not be blank.");
-            }
-            Integer entryRarity = PackIntegerChecks.integerField(entry, "rarity", 1, entryPath, blockingErrors);
-            Integer minimumAmount = PackIntegerChecks.integerField(entry, "minAmount", 1, entryPath, blockingErrors);
-            Integer maximumAmount = PackIntegerChecks.integerField(entry, "maxAmount", 1, entryPath, blockingErrors);
-            PackIntegerChecks.requireMinimum(entryPath + ".rarity", entryRarity, 1, blockingErrors);
-            PackIntegerChecks.requireMinimum(entryPath + ".minAmount", minimumAmount, 1, blockingErrors);
-            PackIntegerChecks.requireMinimum(entryPath + ".maxAmount", maximumAmount, 1, blockingErrors);
-            PackIntegerChecks.requireMaximum(entryPath + ".minAmount", minimumAmount, LootEntry.MAX_AMOUNT, blockingErrors);
-            PackIntegerChecks.requireMaximum(entryPath + ".maxAmount", maximumAmount, LootEntry.MAX_AMOUNT, blockingErrors);
-            PackIntegerChecks.requireOrdered(entryPath + ".minAmount", minimumAmount,
-                    entryPath + ".maxAmount", maximumAmount, blockingErrors);
-            validateLootEnchantments(entryPath, entry.opt("enchantments"), blockingErrors);
+        for (int entryIndex = 0; entryIndex < entries.size(); entryIndex++) {
+            validateLootEntry(path + ".loot[" + entryIndex + "]", entries.get(entryIndex), blockingErrors);
         }
     }
 
-    private static void validateLootEnchantments(String entryPath, Object rawEnchantments,
-                                                  List<String> blockingErrors) {
-        if (rawEnchantments == null || rawEnchantments == JSONObject.NULL) {
+    private static void validateLootEntry(String entryPath, LootEntry entry, List<String> blockingErrors) {
+        if (entry == null) {
+            blockingErrors.add(entryPath + " must be an object.");
             return;
         }
-        if (!(rawEnchantments instanceof JSONArray enchantments)) {
-            blockingErrors.add(entryPath + ".enchantments must be an array.");
-            return;
+        if (entry.type().trim().isEmpty()) {
+            blockingErrors.add(entryPath + ".type must not be blank.");
         }
-        for (int enchantmentIndex = 0; enchantmentIndex < enchantments.length(); enchantmentIndex++) {
-            JSONObject enchantment = enchantments.optJSONObject(enchantmentIndex);
-            String enchantmentPath = entryPath + ".enchantments[" + enchantmentIndex + "]";
-            if (enchantment == null) {
-                blockingErrors.add(enchantmentPath + " must be an object.");
-                continue;
-            }
-            if (enchantment.optString("enchantment", "").isBlank()) {
-                blockingErrors.add(enchantmentPath + ".enchantment must not be blank.");
-            }
-            Integer minimumLevel = PackIntegerChecks.integerField(enchantment, "minLevel", 1, enchantmentPath, blockingErrors);
-            Integer maximumLevel = PackIntegerChecks.integerField(enchantment, "maxLevel", 1, enchantmentPath, blockingErrors);
-            PackIntegerChecks.requireMinimum(enchantmentPath + ".minLevel", minimumLevel, 1, blockingErrors);
-            PackIntegerChecks.requireMinimum(enchantmentPath + ".maxLevel", maximumLevel, 1, blockingErrors);
-            PackIntegerChecks.requireOrdered(enchantmentPath + ".minLevel", minimumLevel,
-                    enchantmentPath + ".maxLevel", maximumLevel, blockingErrors);
-            if (enchantment.has("chance")) {
-                Object rawChance = enchantment.opt("chance");
-                if (!(rawChance instanceof Number number)
-                        || !Double.isFinite(number.doubleValue())
-                        || number.doubleValue() < 0D
-                        || number.doubleValue() > 1D) {
-                    blockingErrors.add(enchantmentPath + ".chance must be a finite number from 0 to 1.");
-                }
-            }
+        requireMinimum(entryPath + ".rarity", entry.rarity(), 1, blockingErrors);
+        requireMinimum(entryPath + ".minAmount", entry.minAmount(), 1, blockingErrors);
+        requireMinimum(entryPath + ".maxAmount", entry.maxAmount(), 1, blockingErrors);
+        requireMaximum(entryPath + ".minAmount", entry.minAmount(), LootEntry.MAX_AMOUNT, blockingErrors);
+        requireMaximum(entryPath + ".maxAmount", entry.maxAmount(), LootEntry.MAX_AMOUNT, blockingErrors);
+        requireOrdered(entryPath + ".minAmount", entry.minAmount(), entryPath + ".maxAmount", entry.maxAmount(), blockingErrors);
+
+        List<LootEnchantment> enchantments = entry.enchantments();
+        for (int enchantmentIndex = 0; enchantmentIndex < enchantments.size(); enchantmentIndex++) {
+            validateEnchantment(entryPath + ".enchantments[" + enchantmentIndex + "]", enchantments.get(enchantmentIndex), blockingErrors);
         }
     }
 
-    private static void validateLootReference(String resourceType, String resourceKey, Object rawLoot,
-                                              Set<String> lootKeys, List<String> blockingErrors, List<String> warnings) {
+    private static void validateEnchantment(String enchantmentPath, LootEnchantment enchantment, List<String> blockingErrors) {
+        if (enchantment == null) {
+            blockingErrors.add(enchantmentPath + " must be an object.");
+            return;
+        }
+        String name = enchantment.enchantment();
+        if (name == null || name.isBlank()) {
+            blockingErrors.add(enchantmentPath + ".enchantment must not be blank.");
+        }
+        requireMinimum(enchantmentPath + ".minLevel", enchantment.minLevel(), 1, blockingErrors);
+        requireMinimum(enchantmentPath + ".maxLevel", enchantment.maxLevel(), 1, blockingErrors);
+        requireOrdered(enchantmentPath + ".minLevel", enchantment.minLevel(),
+                enchantmentPath + ".maxLevel", enchantment.maxLevel(), blockingErrors);
+        double chance = enchantment.chance();
+        if (!Double.isFinite(chance) || chance < 0D || chance > 1D) {
+            blockingErrors.add(enchantmentPath + ".chance must be a finite number from 0 to 1.");
+        }
+    }
+
+    private static void validateLootReference(PackResources resources, String resourceType, String resourceKey, LootSettings reference,
+                                              Set<ResourceId> lootIds, List<String> blockingErrors, List<String> warnings) {
         String path = resourceType + " '" + resourceKey + "'.loot";
-        if (!(rawLoot instanceof JSONObject reference)) {
-            blockingErrors.add(path + " must be an object.");
-            return;
+        double multiplier = reference.multiplier();
+        if (!Double.isFinite(multiplier) || multiplier < 0D || multiplier > LootSettings.MAX_MULTIPLIER) {
+            blockingErrors.add(path + ".multiplier must be a finite number from 0 to " + (int) LootSettings.MAX_MULTIPLIER + ".");
         }
-        boolean clearMode = false;
-        if (reference.has("mode")) {
-            Object rawMode = reference.opt("mode");
-            if (!(rawMode instanceof String mode)
-                    || !Set.of("ADD", "CLEAR", "REPLACE", "FALLBACK").contains(mode)) {
-                blockingErrors.add(path + ".mode must be ADD, CLEAR, REPLACE, or FALLBACK.");
-            } else {
-                clearMode = "CLEAR".equals(mode);
-            }
-        }
-        if (reference.has("multiplier")) {
-            Object rawMultiplier = reference.opt("multiplier");
-            if (!(rawMultiplier instanceof Number multiplier)
-                    || !Double.isFinite(multiplier.doubleValue())
-                    || multiplier.doubleValue() < 0D
-                    || multiplier.doubleValue() > LootSettings.MAX_MULTIPLIER) {
-                blockingErrors.add(path + ".multiplier must be a finite number from 0 to "
-                        + (int) LootSettings.MAX_MULTIPLIER + ".");
-            }
-        }
-        if (!reference.has("tables")) {
-            return;
-        }
-        JSONArray tables = reference.optJSONArray("tables");
-        if (tables == null) {
-            blockingErrors.add(path + ".tables must be an array.");
-            return;
-        }
-        if (clearMode && tables.length() > 0) {
-            warnings.add(path + " uses mode CLEAR and lists " + tables.length()
+        List<String> tables = reference.tables();
+        if (reference.mode() == LootMode.CLEAR && !tables.isEmpty()) {
+            warnings.add(path + " uses mode CLEAR and lists " + tables.size()
                     + " table(s); CLEAR clears parent tables and contributes no tables of its own, so these entries are dead. Use REPLACE to substitute them.");
         }
-        for (int tableIndex = 0; tableIndex < tables.length(); tableIndex++) {
-            Object rawTableKey = tables.opt(tableIndex);
-            if (!(rawTableKey instanceof String tableKey) || tableKey.isBlank()) {
+        for (int tableIndex = 0; tableIndex < tables.size(); tableIndex++) {
+            String tableKey = tables.get(tableIndex);
+            if (tableKey == null || tableKey.isBlank()) {
                 blockingErrors.add(path + ".tables[" + tableIndex + "] must name a loot table.");
-            } else if (!lootKeys.contains(tableKey)) {
-                blockingErrors.add(path + ".tables[" + tableIndex
-                        + "] references missing loot table '" + tableKey + "'.");
+            } else if (!lootIds.contains(resources.idOf(tableKey))) {
+                blockingErrors.add(path + ".tables[" + tableIndex + "] references missing loot table '" + tableKey + "'.");
             }
+        }
+    }
+
+    private static void requireMinimum(String fieldPath, int value, int minimum, List<String> blockingErrors) {
+        if (value < minimum) {
+            blockingErrors.add(fieldPath + " must be at least " + minimum + ".");
+        }
+    }
+
+    private static void requireMaximum(String fieldPath, int value, int maximum, List<String> blockingErrors) {
+        if (value > maximum) {
+            blockingErrors.add(fieldPath + " must be at most " + maximum + ".");
+        }
+    }
+
+    private static void requireOrdered(String minimumPath, int minimum, String maximumPath, int maximum, List<String> blockingErrors) {
+        if (minimum > maximum) {
+            blockingErrors.add(minimumPath + " must not exceed " + maximumPath + ".");
         }
     }
 }

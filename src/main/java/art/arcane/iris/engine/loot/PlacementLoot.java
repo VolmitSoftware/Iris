@@ -18,13 +18,13 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.loot.LootResolver;
-import art.arcane.iris.engine.object.loot.IObjectLoot;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.builtin.loot.ObjectLootEntry;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
+import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
+import com.volmit.resource.PackResources;
 import com.volmit.service.Loot;
 
 import java.util.ArrayList;
@@ -43,22 +43,17 @@ final class PlacementLoot {
     private static final char NAMESPACE_SEPARATOR = ':';
     private static final char PROPERTIES_START = '[';
 
-    private final IrisData data;
+    private final PackResources resources;
     private final Supplier<Set<String>> platformTables;
     private final long lootSeed;
     private final ModuleLog log;
 
     /** @param platformTables the keys of the loot tables the platform has, asked for only when a placement names one */
-    PlacementLoot(IrisData data, Supplier<Set<String>> platformTables, long lootSeed, ModuleLog log) {
-        this.data = data;
+    PlacementLoot(PackResources resources, Supplier<Set<String>> platformTables, long lootSeed, ModuleLog log) {
+        this.resources = resources;
         this.platformTables = platformTables;
         this.lootSeed = lootSeed;
         this.log = log;
-    }
-
-    /** The platform's loot table keys, which a placement may name, in the form a placement names them. */
-    static Set<String> platformTableKeys() {
-        return Set.copyOf(IrisPlatforms.get().registries().lootTableKeys());
     }
 
     /**
@@ -66,9 +61,9 @@ final class PlacementLoot {
      * gives {@code container}, a storage chest, at the spot {@code x}, {@code worldY}, {@code z}; null when it gives
      * it none.
      */
-    Loot.Source pick(List<? extends IObjectLoot> platformLoot, List<? extends IObjectLoot> packLoot, PlatformBlockState container,
+    Loot.Source pick(List<? extends ObjectLootEntry> platformLoot, List<? extends ObjectLootEntry> packLoot, BlockState container,
                      RNG rng, int x, int worldY, int z) {
-        Candidates candidates = new Candidates(container);
+        Candidates candidates = new Candidates(resources.blocks().resolve(container));
         add(candidates, platformLoot, name -> platformSource(name, x, worldY, z));
         add(candidates, packLoot, this::packSource);
         List<Candidate> pool = candidates.pool();
@@ -76,22 +71,22 @@ final class PlacementLoot {
         return picked == null ? null : picked.source();
     }
 
-    private void add(Candidates candidates, List<? extends IObjectLoot> entries, Function<String, Loot.Source> sourceOf) {
-        for (IObjectLoot entry : entries) {
-            if (entry == null || entry.getWeight() <= 0) {
+    private void add(Candidates candidates, List<? extends ObjectLootEntry> entries, Function<String, Loot.Source> sourceOf) {
+        for (ObjectLootEntry entry : entries) {
+            if (entry == null || entry.weight() <= 0) {
                 continue;
             }
-            Loot.Source source = sourceOf.apply(entry.getName());
+            Loot.Source source = sourceOf.apply(entry.name());
             if (source == null) {
-                log.warn("Couldn't find loot table " + entry.getName());
+                log.warn("Couldn't find loot table " + entry.name());
                 continue;
             }
-            candidates.add(entry, data, new Candidate(source, entry.getWeight()));
+            candidates.add(entry, resources, new Candidate(source, entry.weight()));
         }
     }
 
     private Loot.Source packSource(String key) {
-        return LootResources.table(data, key) == null ? null : new Loot.Table(key);
+        return LootResources.table(resources, key) == null ? null : new Loot.Table(key);
     }
 
     private Loot.Source platformSource(String name, int x, int worldY, int z) {
@@ -121,21 +116,22 @@ final class PlacementLoot {
         private final List<Candidate> basic = new ArrayList<>();
         private final List<Candidate> global = new ArrayList<>();
 
-        private Candidates(PlatformBlockState container) {
+        private Candidates(BlockState container) {
             this.containerKey = container.key();
             this.containerMaterial = materialOf(containerKey);
         }
 
-        void add(IObjectLoot entry, IrisData data, Candidate candidate) {
-            List<PlatformBlockState> filter = entry.getFilter(data);
+        void add(ObjectLootEntry entry, PackResources resources, Candidate candidate) {
+            List<BlockSpec> filter = entry.filter();
             if (filter.isEmpty()) {
                 global.add(candidate);
                 return;
             }
-            for (PlatformBlockState filterState : filter) {
-                if (entry.isExact() && filterState.key().equals(containerKey)) {
+            for (BlockSpec filterSpec : filter) {
+                String filterKey = resources.blocks().resolve(filterSpec).key();
+                if (entry.exact() && filterKey.equals(containerKey)) {
                     exact.add(candidate);
-                } else if (!entry.isExact() && materialOf(filterState.key()).equals(containerMaterial)) {
+                } else if (!entry.exact() && materialOf(filterKey).equals(containerMaterial)) {
                     basic.add(candidate);
                 }
             }

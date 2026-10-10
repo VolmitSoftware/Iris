@@ -18,11 +18,11 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.SpawnTimeBlock;
 import art.arcane.iris.builtin.spawn.SpawnWeather;
-import art.arcane.iris.spi.PlatformWorld;
 
-/** The time of day and the weather a command or spawner of the pack asks for, checked against a world. */
+/** The time of day and the weather a command or spawner of the pack asks for, checked against a world's sky. */
 final class SpawnConditions {
     private static final double TICKS_PER_HOUR = 1000D;
     private static final double HOURS_AT_TIME_ZERO = 6;
@@ -31,12 +31,12 @@ final class SpawnConditions {
     private SpawnConditions() {
     }
 
-    static boolean allow(SpawnTimeBlock time, SpawnWeather weather, PlatformWorld world) {
-        return time.contains(hourOf(world)) && weather.matches(world.isStorming(), world.isThundering());
+    static boolean allow(SpawnTimeBlock time, SpawnWeather weather, Sky sky) {
+        return time.contains(hourOf(sky)) && weather.matches(sky.storming(), sky.thundering());
     }
 
     /** The world's time of day as a clock hour: tick 0 is 6 in the morning. */
-    static double hourOf(PlatformWorld world) {
-        return ((world.getTime() / TICKS_PER_HOUR) + HOURS_AT_TIME_ZERO) % HOURS_PER_DAY;
+    static double hourOf(Sky sky) {
+        return ((sky.time() / TICKS_PER_HOUR) + HOURS_AT_TIME_ZERO) % HOURS_PER_DAY;
     }
 }

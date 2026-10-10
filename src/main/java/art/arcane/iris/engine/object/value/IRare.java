@@ -93,23 +93,5 @@ public interface IRare {
         return v instanceof IRare ? Math.max(1, ((IRare) v).getRarity()) : 1;
     }
 
-    /**
-     * Expands a candidate list into a rarity-weighted list: each entry appears totalRarity/rarity
-     * times, so picking uniformly from the result applies rarity exactly once. Both the Bukkit and
-     * modded entity spawners select through this expansion; rarity must never be applied a second
-     * time per spawn position.
-     */
-    static <T> KList<T> expandWeighted(List<T> possibilities) {
-        KList<T> rarityTypes = new KList<>();
-        int totalRarity = 0;
-        for (T i : possibilities) {
-            totalRarity += get(i);
-        }
-        for (T i : possibilities) {
-            rarityTypes.addMultiple(i, totalRarity / get(i));
-        }
-        return rarityTypes;
-    }
-
     int getRarity();
 }

@@ -146,7 +146,7 @@ final class SurfaceSmoothing {
     }
 
     private int surfaceHeight(int x, int z) {
-        return (int) Math.round(terrain.column(x, z).surfaceY());
+        return (int) Math.round(terrain.surfaceY(x, z));
     }
 
     private void post(int localX, int localZ) {

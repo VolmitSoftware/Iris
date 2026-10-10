@@ -23,14 +23,13 @@ import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.iris.engine.framework.PreservationRegistry;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.IrisEntitySpawn;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
+import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.EntitySpawn;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootTable;
+import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
-import art.arcane.volmlib.util.collection.KList;
 
 import java.io.File;
 import java.io.IOException;
@@ -130,58 +129,58 @@ public final class DeserializationProbe {
     }
 
     private static void assertEntity(IrisData data) {
-        IrisEntity entity = SpawnResources.entity(data, ENTITY_KEY);
+        EntityDefinition entity = SpawnResources.entity(data, ENTITY_KEY);
         require(entity != null, "entity deserialized");
-        require("minecraft:panda".equals(entity.getType()), "type round-trips as authored namespaced string");
-        require("COMMAND".equals(entity.getReason()), "reason retained as string");
-        require("BROWN".equals(entity.getPandaMainGene()), "pandaMainGene retained as string");
-        require("LAZY".equals(entity.getPandaHiddenGene()), "pandaHiddenGene retained as string");
-        require(entity.isBaby(), "baby flag retained");
-        require(entity.isGlowing(), "glowing flag retained");
+        require("minecraft:panda".equals(entity.type()), "type round-trips as authored namespaced string");
+        require("COMMAND".equals(entity.reason()), "reason retained as string");
+        require("BROWN".equals(entity.pandaMainGene()), "pandaMainGene retained as string");
+        require("LAZY".equals(entity.pandaHiddenGene()), "pandaHiddenGene retained as string");
+        require(entity.baby(), "baby flag retained");
+        require(entity.glowing(), "glowing flag retained");
 
-        IrisLoot helmet = entity.getHelmet();
+        LootEntry helmet = entity.helmet();
         require(helmet != null, "helmet equipment loot deserialized");
-        require(helmet.isUnbreakable(), "helmet unbreakable flag retained");
-        require(helmet.getItemFlags().contains("HIDE_ATTRIBUTES"), "helmet item flags retained as strings");
-        KList<?> helmetEnchants = helmet.getEnchantments();
+        require(helmet.unbreakable(), "helmet unbreakable flag retained");
+        require(helmet.itemFlags().contains("HIDE_ATTRIBUTES"), "helmet item flags retained as strings");
+        List<?> helmetEnchants = helmet.enchantments();
         require(!helmetEnchants.isEmpty(), "helmet enchantments deserialized");
-        require(entity.getMainHand() != null, "mainHand equipment loot deserialized");
+        require(entity.mainHand() != null, "mainHand equipment loot deserialized");
 
-        List<IrisEntity> passengers = entity.getPassengers();
+        List<EntityDefinition> passengers = entity.passengers();
         require(passengers.size() == 1, "single passenger entity deserialized");
-        require("minecraft:zombie".equals(passengers.get(0).getType()), "nested passenger type round-trips");
+        require("minecraft:zombie".equals(passengers.get(0).type()), "nested passenger type round-trips");
 
-        require(entity.getAttributes().size() == 1, "attribute modifier deserialized");
-        require("generic.max_health".equals(entity.getAttributes().get(0).getAttribute()), "attribute key retained as string");
+        require(entity.attributes().size() == 1, "attribute modifier deserialized");
+        require("generic.max_health".equals(entity.attributes().get(0).attribute()), "attribute key retained as string");
 
-        require(entity.getLoot() != null, "loot reference deserialized");
-        require(entity.getLoot().getTables().contains(LOOT_KEY), "loot reference table retained");
+        require(entity.loot() != null, "loot reference deserialized");
+        require(entity.loot().tables().contains(LOOT_KEY), "loot reference table retained");
     }
 
     private static void assertSpawner(IrisData data) {
-        IrisSpawner spawner = SpawnResources.spawner(data, SPAWNER_KEY);
+        Spawner spawner = SpawnResources.spawner(data, SPAWNER_KEY);
         require(spawner != null, "spawner deserialized");
-        List<IrisEntitySpawn> spawns = spawner.getSpawns();
+        List<EntitySpawn> spawns = spawner.spawns();
         require(spawns.size() == 1, "single entity spawn deserialized");
-        require(ENTITY_KEY.equals(spawns.get(0).getEntity()), "spawn references the probe entity by key");
-        require("NORMAL".equals(spawner.getGroup().name()), "spawn group enum deserialized");
-        require(spawner.getMaxEntitiesPerChunk() == 4, "spawner numeric field retained");
+        require(ENTITY_KEY.equals(spawns.get(0).entity()), "spawn references the probe entity by key");
+        require("NORMAL".equals(spawner.group().name()), "spawn group enum deserialized");
+        require(spawner.maxEntitiesPerChunk() == 4, "spawner numeric field retained");
     }
 
     private static void assertLoot(IrisData data) {
-        IrisLootTable table = LootResources.table(data, LOOT_KEY);
+        LootTable table = LootResources.table(data, LOOT_KEY);
         require(table != null, "loot table deserialized");
-        require(LOOT_KEY.equals(table.getName()), "loot table name retained");
-        require(table.getRarity() == 4, "loot table rarity retained");
+        require(LOOT_KEY.equals(table.name()), "loot table name retained");
+        require(table.rarity() == 4, "loot table rarity retained");
 
-        KList<IrisLoot> items = table.getLoot();
+        List<LootEntry> items = table.loot();
         require(!items.isEmpty(), "loot items deserialized");
-        IrisLoot item = items.get(0);
-        require(item.getMaxAmount() == 3, "loot item amount retained");
-        require("STORAGE".equals(item.getSlotTypes().name()), "loot item slot type enum deserialized");
-        require(item.getItemFlags().contains("HIDE_ENCHANTS"), "loot item flags retained as strings");
-        require(!item.getEnchantments().isEmpty(), "loot item enchantments deserialized");
-        require("unbreaking".equals(item.getEnchantments().get(0).getEnchantment()), "loot item enchantment key retained as string");
+        LootEntry item = items.get(0);
+        require(item.maxAmount() == 3, "loot item amount retained");
+        require("STORAGE".equals(item.slotTypes().name()), "loot item slot type enum deserialized");
+        require(item.itemFlags().contains("HIDE_ENCHANTS"), "loot item flags retained as strings");
+        require(!item.enchantments().isEmpty(), "loot item enchantments deserialized");
+        require("unbreaking".equals(item.enchantments().get(0).enchantment()), "loot item enchantment key retained as string");
     }
 
     private static void require(boolean condition, String description) {

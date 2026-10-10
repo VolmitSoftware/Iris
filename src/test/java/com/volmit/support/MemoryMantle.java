@@ -21,6 +21,9 @@ public final class MemoryMantle {
     /** Where the planned blocks are kept; the host owns them, so no module registers this layer. */
     private static final MantleKey<BlockState> PLANNED_BLOCKS = new MantleKey<>("host:planned-blocks", BlockState.class);
 
+    /** Where the carved voids are kept; the host owns them, so no module registers this layer. */
+    private static final MantleKey<Boolean> CAVERNS = new MantleKey<>("host:caverns", Boolean.class);
+
     private final Map<String, TreeMap<BlockPosition, Object>> layers = new HashMap<>();
 
     /** A view that accepts reads and writes inside {@code bounds} only. */
@@ -29,6 +32,7 @@ public final class MemoryMantle {
             public BlockBox bounds() { return bounds; }
             public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds, true); }
             public MantleLayer<BlockState> blocks() { return new Layer<>(PLANNED_BLOCKS, bounds, false); }
+            public MantleLayer<Boolean> caverns() { return new Layer<>(CAVERNS, bounds, false); }
             public MantleEdit edit() { throw new UnsupportedOperationException("Edits are not used in these tests"); }
         };
     }
@@ -36,6 +40,11 @@ public final class MemoryMantle {
     /** Puts a planned block into the mantle, as a placement would; stages only read them. */
     public void plan(int x, int y, int z, BlockState block) {
         values(PLANNED_BLOCKS).put(new BlockPosition(x, y, z), block);
+    }
+
+    /** Carves a void into the mantle, as the cave planner would; stages only read them. */
+    public void carve(int x, int y, int z) {
+        values(CAVERNS).put(new BlockPosition(x, y, z), Boolean.TRUE);
     }
 
     public <T> T get(MantleKey<T> key, int x, int y, int z) {

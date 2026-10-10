@@ -111,6 +111,12 @@ final class PlacementViews {
             bounds();
             return new RestrictedMantleLayer<>(this, parent.blocks());
         }
+
+        @Override
+        public MantleLayer<Boolean> caverns() {
+            bounds();
+            return new RestrictedMantleLayer<>(this, parent.caverns());
+        }
     }
 
     private static final class RestrictedMantleLayer<T> implements MantleLayer<T> {

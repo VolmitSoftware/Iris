@@ -32,6 +32,13 @@ public interface Mantle {
      */
     MantleLayer<BlockState> blocks();
 
+    /** Where the mantle holds a carved void for the chunk to take over: a cave's air or fluid, planned before the chunks
+     * were generated. Present ({@code true}) at carved positions, absent elsewhere, also where the chunk's own blocks
+     * show no void, such as under a dimension stacked above. The host owns this layer, so it needs no registration.
+     * Stages read it only, and writes throw UnsupportedOperationException. A dimension that keeps no mantle holds none.
+     */
+    MantleLayer<Boolean> caverns();
+
     /** Only one edit may be active per view. Parent reads remain allowed, but parent
      * mutations are prohibited until the edit ends (IllegalStateException).
      */

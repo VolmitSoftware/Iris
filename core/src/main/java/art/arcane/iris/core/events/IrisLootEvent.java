@@ -51,6 +51,7 @@ public class IrisLootEvent extends Event {
 
     private final Engine engine;
     private final Block block;
+    private final InventorySlotType slot;
     private final KList<Loot.Source> tables;
 
     /**
@@ -58,11 +59,13 @@ public class IrisLootEvent extends Event {
      *
      * @param engine The engine instance.
      * @param block The block associated with the event.
+     * @param slot The inventory slot type the loot fills.
      * @param tables The loot tables the container draws from, as the pack's modules named them. (mutable*)
      */
-    public IrisLootEvent(Engine engine, Block block, KList<Loot.Source> tables) {
+    public IrisLootEvent(Engine engine, Block block, InventorySlotType slot, KList<Loot.Source> tables) {
         this.engine = engine;
         this.block = block;
+        this.slot = slot;
         this.tables = tables;
     }
 

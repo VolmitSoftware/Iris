@@ -23,13 +23,16 @@ import art.arcane.iris.engine.framework.Engine;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
+import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
+import com.volmit.service.CaveBiomes;
 import com.volmit.service.EntitySpawns;
 import com.volmit.service.LocateResult;
 import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
+import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -45,6 +48,19 @@ import java.util.Set;
  */
 public final class ModuleServices {
     private ModuleServices() {
+    }
+
+    /** The pack biome key the module that decides cave biomes puts at the position, whatever the regions say; empty where it overrides nothing. {@code y} is the height above the dimension's bottom. */
+    public static Optional<String> overriddenCaveBiome(Engine engine, int x, int y, int z) {
+        return catalog(engine.getData()).service(CaveBiomes.class)
+                .flatMap(provider -> provider.overriddenBiome(engine.getGeneration().world(), x, y, z));
+    }
+
+    /** How many blocks below the surface the caves of the pack biome {@code biomeKey} begin; 0 where nothing limits them. */
+    public static int caveMinDepthBelowSurface(Engine engine, String biomeKey) {
+        return catalog(engine.getData()).service(CaveBiomes.class)
+                .map(provider -> provider.minDepthBelowSurface(engine.getGeneration().world(), biomeKey))
+                .orElse(0);
     }
 
     /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */
@@ -162,6 +178,16 @@ public final class ModuleServices {
             }
         }
         return Optional.empty();
+    }
+
+    /** The ambient effects every module says are due for a player standing at {@code at}, in module order. */
+    public static List<AmbientEffects.Effect> ambientEffects(Engine engine, BlockPosition at) {
+        PackWorld world = engine.getGeneration().world();
+        List<AmbientEffects.Effect> effects = new ArrayList<>();
+        for (AmbientEffects provider : catalog(engine.getData()).services(AmbientEffects.class)) {
+            effects.addAll(provider.due(world, at));
+        }
+        return effects;
     }
 
     /** A plan and the module that made it, which hears how many of its entities appeared. */

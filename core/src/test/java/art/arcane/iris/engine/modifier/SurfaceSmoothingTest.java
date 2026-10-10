@@ -60,7 +60,7 @@ public class SurfaceSmoothingTest {
     public void aStepUpGetsASlabWhereTheSlopeAllowsIt() {
         BlockState slab = block("minecraft:stone_slab[type=bottom]");
         ApiChunk chunk = ground((x, z) -> x > X ? GROUND + 1 : GROUND);
-        chunk.pending().slabs(slab, 1);
+        chunk.slab(slab, 1);
 
         chunk.generate(new PostModule());
 
@@ -70,7 +70,7 @@ public class SurfaceSmoothingTest {
     @Test
     public void slabsWaitForASlopeTheirLayerAllows() {
         ApiChunk chunk = ground((x, z) -> x > X ? GROUND + 1 : GROUND).slope(2);
-        chunk.pending().slabs(block("minecraft:stone_slab[type=bottom]"), 1);
+        chunk.slab(block("minecraft:stone_slab[type=bottom]"), 1);
 
         chunk.generate(new PostModule());
 
@@ -82,12 +82,23 @@ public class SurfaceSmoothingTest {
         BlockState wall = block("minecraft:cobblestone");
         int cliff = GROUND + 4;
         ApiChunk chunk = ground((x, z) -> x <= X ? cliff : GROUND);
-        chunk.pending().walls(wall);
+        chunk.wall(wall);
 
         chunk.generate(new PostModule());
 
         assertEquals(wall, chunk.get(X, cliff, Z));
         assertEquals(wall, chunk.get(X, cliff - 1, Z));
+    }
+
+    @Test
+    public void aDimensionThatSwitchesWallsAndSlabsOffGetsNeither() {
+        ApiChunk chunk = ground((x, z) -> x <= X ? GROUND + 4 : x == X + 1 ? GROUND : GROUND + 1)
+                .wall(block("minecraft:cobblestone")).slab(block("minecraft:stone_slab[type=bottom]"), 1).postProcessing(false, false);
+
+        chunk.generate(new PostModule());
+
+        assertEquals(STONE, chunk.get(X, GROUND + 4, Z));
+        assertEquals(AIR, chunk.get(X + 1, GROUND + 1, Z));
     }
 
     @Test

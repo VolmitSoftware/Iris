@@ -19,14 +19,11 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.content.ContentEffect;
+import art.arcane.iris.core.content.ContentServices;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.framework.EngineEffects;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.marker.IrisCommand;
-import art.arcane.iris.engine.object.marker.IrisCommandRegistry;
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.math.RNG;
 import net.minecraft.core.Holder;
@@ -194,17 +191,16 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
         }
 
         samplePlayer(state);
-        if (!IrisSettings.get().getWorld().isEffectSystem()) {
+        if (!IrisSettings.get().getWorld().isEffectSystem() || !state.sampled()) {
             return;
         }
 
-        IrisRegion region = state.region();
-        if (region != null) {
-            applyEffects(level, player, region.getEffects());
-        }
-        IrisBiome biome = state.biome();
-        if (biome != null) {
-            applyEffects(level, player, biome.getEffects());
+        for (ContentEffect effect : ContentServices.ambientEffects(getEngine(), state.sampledX(), state.sampledY(), state.sampledZ())) {
+            try {
+                applyEffect(level, player, effect);
+            } catch (Throwable error) {
+                IrisLogging.reportError(error);
+            }
         }
     }
 
@@ -222,36 +218,24 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
         state.sampled(true);
         state.lastPosition(player.getX(), player.getY(), player.getZ());
         state.lastSample(now);
-        int blockX = floor(player.getX());
-        int blockY = floor(player.getY()) - getEngine().getWorld().minHeight();
-        int blockZ = floor(player.getZ());
-        state.biome(getEngine().getBiome(blockX, blockY, blockZ));
-        state.region(getEngine().getRegion(blockX, blockZ));
+        state.sampledAt(floor(player.getX()), floor(player.getY()), floor(player.getZ()));
     }
 
-    private void applyEffects(ServerLevel level, ServerPlayer player, Iterable<IrisEffect> effects) {
-        for (IrisEffect effect : effects) {
-            try {
-                applyEffect(level, player, effect);
-            } catch (Throwable error) {
-                IrisLogging.reportError(error);
-            }
+    private void applyEffect(ServerLevel level, ServerPlayer player, ContentEffect effect) {
+        if (effect.sound() != null) {
+            applySound(player, effect.sound());
+        }
+        if (effect.particles() != null) {
+            applyParticles(level, player, effect.particles());
+        }
+        applyCommands(level, player, effect.commands());
+        if (effect.potion() != null) {
+            applyPotion(player, effect.potion());
         }
     }
 
-    private void applyEffect(ServerLevel level, ServerPlayer player, IrisEffect effect) {
-        if (!effect.shouldApplyNow()) {
-            return;
-        }
-
-        applySound(player, effect);
-        applyParticles(level, player, effect);
-        applyCommands(level, player, effect.getCommandRegistry());
-        applyPotion(player, effect);
-    }
-
-    private void applySound(ServerPlayer player, IrisEffect effect) {
-        String key = normalizeRegistryKey(effect.getSoundKey());
+    private void applySound(ServerPlayer player, ContentEffect.Sound effect) {
+        String key = normalizeRegistryKey(effect.key());
         if (key == null) {
             return;
         }
@@ -264,18 +248,13 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
             return;
         }
 
-        int distance = effect.getSoundDistance();
-        double x = player.getX() + RNG.r.i(-distance, distance);
-        double y = player.getY() + RNG.r.i(-distance, distance);
-        double z = player.getZ() + RNG.r.i(-distance, distance);
-        float volume = (float) effect.getVolume();
-        float pitch = (float) RNG.r.d(effect.getMinPitch(), effect.getMaxPitch());
         player.connection.send(new ClientboundSoundPacket(
-                sound.get(), SoundSource.MASTER, x, y, z, volume, pitch, ThreadLocalRandom.current().nextLong()));
+                sound.get(), SoundSource.MASTER, player.getX() + effect.offsetX(), player.getY() + effect.offsetY(),
+                player.getZ() + effect.offsetZ(), effect.volume(), effect.pitch(), ThreadLocalRandom.current().nextLong()));
     }
 
-    private void applyParticles(ServerLevel level, ServerPlayer player, IrisEffect effect) {
-        String key = normalizeRegistryKey(effect.getParticleEffectKey());
+    private void applyParticles(ServerLevel level, ServerPlayer player, ContentEffect.Particles effect) {
+        String key = normalizeRegistryKey(effect.key());
         if (key == null) {
             return;
         }
@@ -295,59 +274,34 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
         }
 
         Vec3 direction = player.getLookAngle();
-        double forward = RNG.r.i(effect.getParticleDistance()) + effect.getParticleAway();
-        double sideways = RNG.r.d(-effect.getParticleDistanceWidth(), effect.getParticleDistanceWidth());
-        double surfaceX = player.getX() + direction.x * forward + direction.z * sideways;
-        double surfaceZ = player.getZ() + direction.z * forward - direction.x * sideways;
+        double surfaceX = player.getX() + direction.x * effect.forward() + direction.z * effect.sideways();
+        double surfaceZ = player.getZ() + direction.z * effect.forward() - direction.x * effect.sideways();
         int surfaceY = getEngine().getHeight(floor(surfaceX), floor(surfaceZ));
-        double x = surfaceX + RNG.r.d();
-        double y = surfaceY + 1.0D + level.getMinY() + RNG.r.i(effect.getParticleOffset());
-        double z = surfaceZ + RNG.r.d();
-        double altX = randomized(effect.getParticleAltX(), effect.isRandomAltX());
-        double altY = randomized(effect.getParticleAltY(), effect.isRandomAltY());
-        double altZ = randomized(effect.getParticleAltZ(), effect.isRandomAltZ());
+        double x = surfaceX + effect.jitterX();
+        double y = surfaceY + 1.0D + level.getMinY() + effect.lift();
+        double z = surfaceZ + effect.jitterZ();
         level.sendParticles(player, simpleParticle, false, false,
-                x, y, z, effect.getParticleCount(), altX, altY, altZ, effect.getExtra());
+                x, y, z, effect.count(), effect.altX(), effect.altY(), effect.altZ(), effect.extra());
     }
 
-    private void applyCommands(ServerLevel level, ServerPlayer player, IrisCommandRegistry registry) {
-        if (registry == null || registry.getRawCommands() == null || registry.getRawCommands().isEmpty()) {
-            return;
-        }
-
-        ModdedPlatformWorld world = new ModdedPlatformWorld(level);
-        double x = commandCoordinate(player.getX(), registry.getCommandOffsetX(), registry.isCommandRandomAltX());
-        double y = commandCoordinate(player.getY(), registry.getCommandOffsetY(), registry.isCommandRandomAltY());
-        double z = commandCoordinate(player.getZ(), registry.getCommandOffsetZ(), registry.isCommandRandomAltZ());
-        for (IrisCommand command : registry.getRawCommands()) {
-            command.run(world, floor(x), floor(y), floor(z));
-            if (registry.isCommandAllRandomLocations()) {
-                x = commandCoordinate(player.getX(), registry.getCommandOffsetX(), registry.isCommandRandomAltX());
-                y = commandCoordinate(player.getY(), registry.getCommandOffsetY(), registry.isCommandRandomAltY());
-                z = commandCoordinate(player.getZ(), registry.getCommandOffsetZ(), registry.isCommandRandomAltZ());
-            }
+    private void applyCommands(ServerLevel level, ServerPlayer player, List<ContentEffect.Command> commands) {
+        for (ContentEffect.Command command : commands) {
+            ModdedEntityCommandRunner.run(List.of(command.command()), level, floor(player.getX() + command.offsetX()),
+                    floor(player.getY() + command.offsetY()), floor(player.getZ() + command.offsetZ()));
         }
     }
 
-    private void applyPotion(ServerPlayer player, IrisEffect effect) {
-        int strength = effect.getPotionStrength();
-        if (strength < 0) {
-            return;
-        }
-
-        Holder<MobEffect> type = resolvePotion(effect.getPotionEffect());
+    private void applyPotion(ServerPlayer player, ContentEffect.Potion effect) {
+        Holder<MobEffect> type = resolvePotion(effect.key());
         MobEffectInstance current = player.getEffect(type);
-        if (current != null && !shouldReplacePotionEffect(current.getAmplifier(), strength)) {
+        if (current != null && !shouldReplacePotionEffect(current.getAmplifier(), effect.strength())) {
             return;
         }
         if (current != null) {
             player.removeEffect(type);
         }
 
-        int minimum = Math.min(effect.getPotionTicksMin(), effect.getPotionTicksMax());
-        int maximum = Math.max(effect.getPotionTicksMin(), effect.getPotionTicksMax());
-        int duration = RNG.r.i(minimum, maximum);
-        player.addEffect(new MobEffectInstance(type, duration, strength, true, false, false));
+        player.addEffect(new MobEffectInstance(type, effect.ticks(), effect.strength(), true, false, false));
     }
 
     private Holder<MobEffect> resolvePotion(String rawKey) {
@@ -405,14 +359,6 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
         return (int) Math.floor(value);
     }
 
-    private static double randomized(double value, boolean random) {
-        return random ? RNG.r.d(-value, value) : value;
-    }
-
-    private static double commandCoordinate(double base, double offset, boolean random) {
-        return base + randomized(offset, random);
-    }
-
     private static void warnUnknown(Set<String> warned, String type, String key) {
         if (warned.add(key)) {
             IrisLogging.warn("Unknown " + type + " type: \"" + key + "\".");
@@ -421,8 +367,9 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
 
     private static final class PlayerState {
         private ServerPlayer player;
-        private IrisBiome biome;
-        private IrisRegion region;
+        private int sampledX;
+        private int sampledY;
+        private int sampledZ;
         private double lastX;
         private double lastY;
         private double lastZ;
@@ -446,20 +393,22 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
             this.player = player;
         }
 
-        private IrisBiome biome() {
-            return biome;
+        private int sampledX() {
+            return sampledX;
         }
 
-        private void biome(IrisBiome biome) {
-            this.biome = biome;
+        private int sampledY() {
+            return sampledY;
         }
 
-        private IrisRegion region() {
-            return region;
+        private int sampledZ() {
+            return sampledZ;
         }
 
-        private void region(IrisRegion region) {
-            this.region = region;
+        private void sampledAt(int x, int y, int z) {
+            sampledX = x;
+            sampledY = y;
+            sampledZ = z;
         }
 
         private double lastX() {

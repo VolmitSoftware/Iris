@@ -32,7 +32,6 @@ import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.math.M;
@@ -116,8 +115,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> topSurfaceStream;
-    private ProceduralStream<PlatformBlockState> rockStream;
-    private ProceduralStream<PlatformBlockState> fluidStream;
     private IrisBiome focusBiome;
     private IrisRegion focusRegion;
     private Map<IrisInterpolator, IdentityHashMap<IrisBiome, GeneratorBounds>> generatorBounds;
@@ -198,10 +195,6 @@ public class IrisComplex implements DataProvider {
 
             return value;
         });
-        rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
-                .select(engine.getDimension().getRockPalette().getBlockData(data));
-        fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
-                .select(engine.getDimension().getFluidPalette().getBlockData(data));
         regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
                 .zoom(engine.getDimension().getRegionZoom());
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE);

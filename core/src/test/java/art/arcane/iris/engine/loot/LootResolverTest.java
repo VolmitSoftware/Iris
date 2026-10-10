@@ -6,13 +6,16 @@ import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.loot.IrisLootMode;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.builtin.loot.LootSettings;
+import art.arcane.iris.builtin.loot.LootTable;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.core.modules.ModuleSettings;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.volmlib.util.collection.KList;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemRegistry;
 import org.junit.Test;
@@ -70,20 +73,17 @@ public class LootResolverTest {
 
     @Test
     public void spatialSeedsIncludeWorldTableAndAbsolutePosition() {
-        IrisLootTable first = new IrisLootTable().setName("first");
-        IrisLootTable second = new IrisLootTable().setName("second");
+        long baseline = LootTables.seed(41L, "first", 0, 64, 0);
 
-        long baseline = LootTables.seed(41L, first, 0, 64, 0);
-
-        assertEquals(baseline, LootTables.seed(41L, first, 0, 64, 0));
-        assertNotEquals(baseline, LootTables.seed(42L, first, 0, 64, 0));
-        assertNotEquals(baseline, LootTables.seed(41L, second, 0, 64, 0));
-        assertNotEquals(baseline, LootTables.seed(41L, first, 16, 64, 0));
+        assertEquals(baseline, LootTables.seed(41L, "first", 0, 64, 0));
+        assertNotEquals(baseline, LootTables.seed(42L, "first", 0, 64, 0));
+        assertNotEquals(baseline, LootTables.seed(41L, "second", 0, 64, 0));
+        assertNotEquals(baseline, LootTables.seed(41L, "first", 16, 64, 0));
     }
 
     @Test
     public void spatialRarityIsStableAndDistributed() {
-        IrisLootTable table = new IrisLootTable().setName("distribution");
+        String table = "distribution";
         int successes = 0;
 
         for (int x = 0; x < 65_536; x++) {
@@ -103,7 +103,7 @@ public class LootResolverTest {
     @Test
     public void nativeOrObjectLootSuppressesFallbackReferences() {
         ResolutionFixture fixture = new ResolutionFixture();
-        List<IrisLootTable> sources = new ArrayList<>();
+        List<String> sources = new ArrayList<>();
 
         LootTables.resolveEnvironmentSources(
                 sources,
@@ -113,7 +113,7 @@ public class LootResolverTest {
                 70,
                 20,
                 true,
-                table -> table
+                key -> key
         );
 
         assertTrue(sources.isEmpty());
@@ -122,7 +122,7 @@ public class LootResolverTest {
     @Test
     public void emptyPlacementUsesEachFallbackScopeOnce() {
         ResolutionFixture fixture = new ResolutionFixture();
-        List<IrisLootTable> sources = new ArrayList<>();
+        List<String> sources = new ArrayList<>();
 
         LootTables.resolveEnvironmentSources(
                 sources,
@@ -132,10 +132,10 @@ public class LootResolverTest {
                 70,
                 20,
                 false,
-                table -> table
+                key -> key
         );
 
-        assertEquals(List.of(fixture.dimensionTable, fixture.regionTable, fixture.surfaceTable), sources);
+        assertEquals(List.of("dimension", "region", "surface"), sources);
     }
 
     @Test
@@ -170,7 +170,7 @@ public class LootResolverTest {
         }
 
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                () -> LootResolver.scaleSources(sources, IrisLootReference.MAX_MULTIPLIER, new RNG(17L)));
+                () -> LootResolver.scaleSources(sources, LootSettings.MAX_MULTIPLIER, new RNG(17L)));
 
         assertTrue(failure.getMessage().contains("maximum of 256 sources"));
         assertEquals(17, sources.size());
@@ -183,7 +183,7 @@ public class LootResolverTest {
             sources.add("table-" + index);
         }
 
-        LootResolver.scaleSources(sources, IrisLootReference.MAX_MULTIPLIER, new RNG(17L));
+        LootResolver.scaleSources(sources, LootSettings.MAX_MULTIPLIER, new RNG(17L));
 
         assertEquals(256, sources.size());
     }
@@ -231,26 +231,26 @@ public class LootResolverTest {
     public void combinedMultiplierAboveReferenceCapRemainsUsableUnderResolvedSourceCap() {
         List<String> sources = new ArrayList<>(List.of("table"));
 
-        LootResolver.scaleSources(sources, IrisLootReference.MAX_MULTIPLIER * 2D, new RNG(17L));
+        LootResolver.scaleSources(sources, LootSettings.MAX_MULTIPLIER * 2D, new RNG(17L));
 
         assertEquals(32, sources.size());
     }
 
     @Test
     public void lootMultiplierCapIsPublishedInSchemaMetadata() throws Exception {
-        Field multiplier = IrisLootReference.class.getDeclaredField("multiplier");
+        Field multiplier = LootSettings.class.getDeclaredField("multiplier");
         MaxNumber maximum = multiplier.getAnnotation(MaxNumber.class);
         Desc description = multiplier.getAnnotation(Desc.class);
 
-        assertEquals(IrisLootReference.MAX_MULTIPLIER, maximum.value(), 0D);
+        assertEquals(LootSettings.MAX_MULTIPLIER, maximum.value(), 0D);
         assertTrue(description.value().contains("0 to 16"));
     }
 
     @Test
     public void emptyLootTableReturnsNoItems() {
-        IrisLootTable table = new IrisLootTable().setName("empty");
+        LootTable table = TestSettings.of(LootTable.class, "{\"name\": \"empty\"}");
 
-        assertTrue(new LootItems(mock(ItemRegistry.class), false).draw(table, 7L, 0, 64, 0).isEmpty());
+        assertTrue(new LootItems(mock(ItemRegistry.class), false).draw("empty", table, 7L, 0, 64, 0).isEmpty());
     }
 
     @Test
@@ -264,23 +264,23 @@ public class LootResolverTest {
 
     private static final class ResolutionFixture {
         private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
-        private final IrisLootTable dimensionTable = new IrisLootTable().setName("dimension");
-        private final IrisLootTable regionTable = new IrisLootTable().setName("region");
-        private final IrisLootTable surfaceTable = new IrisLootTable().setName("surface");
 
         private ResolutionFixture() {
             IrisDimension dimension = mock(IrisDimension.class);
             IrisRegion region = mock(IrisRegion.class);
             IrisBiome surface = mock(IrisBiome.class);
             IrisComplex complex = engine.getComplex();
-            IrisLootReference dimensionReference = reference(dimensionTable);
-            IrisLootReference regionReference = reference(regionTable);
-            IrisLootReference surfaceReference = reference(surfaceTable);
+            IrisData data = mock(IrisData.class);
+            ModuleResourceFixture tables = ModuleResourceFixture.serve(data);
+            for (String key : List.of("dimension", "region", "surface")) {
+                tables.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, "{\"name\": \"" + key + "\"}"));
+            }
 
+            when(engine.getData()).thenReturn(data);
             when(engine.getDimension()).thenReturn(dimension);
-            when(dimension.getLoot()).thenReturn(dimensionReference);
-            when(region.getLoot()).thenReturn(regionReference);
-            when(surface.getLoot()).thenReturn(surfaceReference);
+            when(dimension.getModuleSettings()).thenReturn(fallbackTo("dimension"));
+            when(region.getModuleSettings()).thenReturn(fallbackTo("region"));
+            when(surface.getModuleSettings()).thenReturn(fallbackTo("surface"));
             when(surface.getLoadKey()).thenReturn("surface");
             when(complex.getRegionStream().get(10, 20)).thenReturn(region);
             when(complex.getTrueBiomeStream().get(10, 20)).thenReturn(surface);
@@ -288,12 +288,8 @@ public class LootResolverTest {
             when(engine.getCaveBiome(10, 70, 20)).thenReturn(surface);
         }
 
-        private IrisLootReference reference(IrisLootTable table) {
-            IrisLootReference reference = mock(IrisLootReference.class);
-            when(reference.getMode()).thenReturn(IrisLootMode.FALLBACK);
-            when(reference.getMultiplier()).thenReturn(1D);
-            when(reference.getLootTables(any())).thenReturn(new KList<>(table));
-            return reference;
+        private static ModuleSettings fallbackTo(String table) {
+            return BuiltInPack.settings(TestSettings.of(LootSettings.class, "{\"mode\": \"FALLBACK\", \"tables\": [\"" + table + "\"]}"));
         }
     }
 

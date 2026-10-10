@@ -109,7 +109,7 @@ public class BuiltInModulesJarTest {
             }
         }
         chunk.set(8, GROUND + 9, 8, STONE);
-        chunk.pending().hidingOres().walls(block("minecraft:cobblestone")).slabs(block("minecraft:stone_slab[type=bottom]"), 1);
+        chunk.hidingOres().wall(block("minecraft:cobblestone")).slab(block("minecraft:stone_slab[type=bottom]"), 1);
         return chunk;
     }
 

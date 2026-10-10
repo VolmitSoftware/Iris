@@ -11,7 +11,6 @@ import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
@@ -441,23 +440,13 @@ public class CustomBiomeSource extends BiomeSource {
             int z,
             Climate.Sampler sampler
     ) {
-        return getVisibleNoiseBiomeWithActiveGenerationLease(x, y, z, sampler, null);
-    }
-
-    Holder<Biome> getVisibleNoiseBiomeWithActiveGenerationLease(
-            int x,
-            int y,
-            int z,
-            Climate.Sampler sampler,
-            IrisDimensionCarvingResolver.State resolverState
-    ) {
         long cacheKey = packNoiseKey(x, y, z);
         Holder<Biome> cachedHolder = noiseBiomeCache.get(cacheKey);
         if (cachedHolder != null) {
             return cachedHolder;
         }
 
-        Holder<Biome> resolvedHolder = resolveVisibleBiomeHolder(x, y, z, resolverState);
+        Holder<Biome> resolvedHolder = resolveVisibleBiomeHolder(x, y, z);
         Holder<Biome> existingHolder = noiseBiomeCache.putIfAbsent(cacheKey, resolvedHolder);
         if (existingHolder != null) {
             return existingHolder;
@@ -530,13 +519,8 @@ public class CustomBiomeSource extends BiomeSource {
         return holder;
     }
 
-    private Holder<Biome> resolveVisibleBiomeHolder(
-            int x,
-            int y,
-            int z,
-            IrisDimensionCarvingResolver.State resolverState
-    ) {
-        BiomeResolution resolution = resolveBiomeResolution(x, y, z, resolverState);
+    private Holder<Biome> resolveVisibleBiomeHolder(int x, int y, int z) {
+        BiomeResolution resolution = resolveBiomeResolution(x, y, z);
         if (resolution == null) {
             return getFallbackBiome();
         }
@@ -569,15 +553,6 @@ public class CustomBiomeSource extends BiomeSource {
     }
 
     private BiomeResolution resolveBiomeResolution(int x, int y, int z) {
-        return resolveBiomeResolution(x, y, z, null);
-    }
-
-    private BiomeResolution resolveBiomeResolution(
-            int x,
-            int y,
-            int z,
-            IrisDimensionCarvingResolver.State resolverState
-    ) {
         if (engine == null || engine.isClosed()) {
             return null;
         }
@@ -599,7 +574,7 @@ public class CustomBiomeSource extends BiomeSource {
             int surfaceInternalY = engine.getComplex().getHeightStream().get(blockX, blockZ).intValue();
             underground = internalY <= surfaceInternalY - 8;
             irisBiome = underground
-                    ? engine.getCaveBiome(blockX, internalY, blockZ, resolverState)
+                    ? engine.getCaveBiome(blockX, internalY, blockZ)
                     : engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);
         } else {
             irisBiome = engine.getComplex().getTrueBiomeStream().get(blockX, blockZ);

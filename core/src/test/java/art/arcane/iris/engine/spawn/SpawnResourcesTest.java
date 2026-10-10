@@ -19,9 +19,12 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.core.project.ModuleResourceSchemas;
+import art.arcane.iris.core.project.SchemaTestPlatform;
+import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.SpawnMarker;
+import art.arcane.iris.builtin.spawn.Spawner;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -35,6 +38,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /** Spawners, entities and markers are resource kinds of module {@code iris:spawn}, read from the folders packs have always had. */
 public class SpawnResourcesTest {
@@ -51,9 +55,9 @@ public class SpawnResourcesTest {
                     .filter(kind -> kind.id().toString().startsWith("iris:spawn/")).toList();
             assertEquals(List.of("iris:spawn/entity", "iris:spawn/marker", "iris:spawn/spawner"), kinds.stream().map(kind -> kind.id().toString()).toList());
             assertEquals(List.of("entities", "markers", "spawners"), kinds.stream().map(kind -> kind.folder()).toList());
-            assertFalse(data.getLoaders().containsKey(IrisSpawner.class));
-            assertFalse(data.getLoaders().containsKey(IrisEntity.class));
-            assertFalse(data.getLoaders().containsKey(IrisMarker.class));
+            assertFalse(data.getLoaders().containsKey(Spawner.class));
+            assertFalse(data.getLoaders().containsKey(EntityDefinition.class));
+            assertFalse(data.getLoaders().containsKey(SpawnMarker.class));
         } finally {
             data.close();
         }
@@ -64,13 +68,12 @@ public class SpawnResourcesTest {
         Path pack = spawnPack("spawns");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            IrisSpawner spawner = SpawnResources.spawner(data, "camp/zombies");
+            Spawner spawner = SpawnResources.spawner(data, "camp/zombies");
 
-            assertEquals("camp/zombies", spawner.getLoadKey());
-            assertEquals(pack.resolve("spawners/camp/zombies.json").toFile(), spawner.getLoadFile());
-            assertEquals("minecraft:zombie", SpawnResources.entity(data, "zombie").getType());
-            assertEquals(List.of("camp/zombies"), SpawnResources.marker(data, "camp").getSpawners());
-            assertEquals(List.of(spawner), SpawnResources.spawners(data, List.of("camp/zombies", "missing")));
+            assertEquals("zombie", spawner.spawns().getFirst().entity());
+            assertEquals("minecraft:zombie", SpawnResources.entity(data, "zombie").type());
+            assertEquals(List.of("camp/zombies"), SpawnResources.marker(data, "camp").spawners());
+            assertEquals(List.of(new SpawnResources.KeyedSpawner("camp/zombies", spawner)), SpawnResources.spawners(data, List.of("camp/zombies", "missing")));
             assertEquals(List.of("zombie"), SpawnResources.entityKeys(data));
             assertEquals(List.of("camp"), SpawnResources.markerKeys(data));
             assertEquals(List.of("camp/zombies"), SpawnResources.spawnerKeys(data));
@@ -79,7 +82,26 @@ public class SpawnResourcesTest {
 
             write(pack, "entities/zombie.json", "{\"type\":\"minecraft:husk\"}");
             data.dump();
-            assertEquals("minecraft:husk", SpawnResources.entity(data, "zombie").getType());
+            assertEquals("minecraft:husk", SpawnResources.entity(data, "zombie").type());
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void studioDescribesSpawnersEntitiesAndMarkers() throws Exception {
+        Path pack = spawnPack("studio");
+        IrisData data = IrisData.openValidation(pack.toFile());
+        try (SchemaTestPlatform ignored = SchemaTestPlatform.bind(temporaryFolder.getRoot())) {
+            List<JSONObject> entries = ModuleResourceSchemas.entries(data, true);
+
+            for (String schema : List.of("spawners", "entities", "markers")) {
+                assertTrue(schema, entries.stream().anyMatch(entry -> entry.getString("url").equals("./.iris/schema/" + schema + "-schema.json")));
+                assertTrue(schema, Files.exists(pack.resolve(".iris/schema/" + schema + "-schema.json")));
+            }
+            JSONObject entity = new JSONObject(Files.readString(pack.resolve(".iris/schema/entities-schema.json")));
+            assertTrue(entity.toString().contains("passengers"));
+            assertTrue(entity.toString().contains("tables"));
         } finally {
             data.close();
         }

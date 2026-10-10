@@ -104,20 +104,15 @@ art/arcane/iris/engine/object/world/biome/IrisBiome.java
 art/arcane/iris/engine/object/world/biome/custom/IrisBiomeCustomParticle.java
 art/arcane/iris/engine/object/world/biome/IrisBiomeDerivatives.java
 art/arcane/iris/engine/object/world/biome/custom/IrisBiomeCustomSpawn.java
-art/arcane/iris/engine/object/marker/IrisCommandRegistry.java
 art/arcane/iris/engine/object/compatibility/IrisCompat.java
 art/arcane/iris/engine/object/compatibility/IrisCompatabilityBlockFilter.java
 art/arcane/iris/engine/object/compatibility/IrisCompatabilityItemFilter.java
 art/arcane/iris/engine/object/value/IrisDirection.java
-art/arcane/iris/engine/object/entity/IrisEffect.java
 art/arcane/iris/engine/object/prefab/IrisObject.java
 art/arcane/iris/engine/object/placement/IrisObjectPlacement.java
 art/arcane/iris/engine/object/prefab/IrisObjectRotation.java
-art/arcane/iris/engine/object/entity/IrisPotionEffect.java
 art/arcane/iris/engine/object/placement/IrisTree.java
-art/arcane/iris/engine/object/loot/IrisVanillaLootTable.java
 art/arcane/iris/engine/object/prefab/LegacyTileData.java
-art/arcane/iris/engine/object/entity/PotionEffectTypes.java
 art/arcane/iris/engine/object/prefab/TileData.java
 art/arcane/iris/engine/platform/BukkitChunkGenerator.java
 art/arcane/iris/engine/platform/DummyBiomeProvider.java
@@ -182,3 +177,5 @@ art/arcane/iris/engine/platform/BukkitEntitySpawner.java
 art/arcane/iris/engine/platform/BukkitSurfaces.java
 art/arcane/iris/platform/bukkit/BukkitAttributes.java
 art/arcane/iris/platform/bukkit/BukkitItemStacks.java
+art/arcane/iris/platform/bukkit/BukkitAmbientEffects.java
+art/arcane/iris/platform/bukkit/PotionEffectTypes.java

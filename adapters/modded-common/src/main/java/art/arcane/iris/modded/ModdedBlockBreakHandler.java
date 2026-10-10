@@ -18,21 +18,13 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.spawn.SpawnResources;
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.content.ContentLoot;
+import art.arcane.iris.core.content.ContentServices;
+import art.arcane.iris.core.content.ContentSpawns;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.marker.IrisMarker;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.modded.service.ModdedTreeFellerService;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -204,26 +196,13 @@ public final class ModdedBlockBreakHandler {
             BlockState brokenState,
             Engine engine
     ) {
-        KList<IrisBlockDrops> providers = providers(engine, position, brokenState);
-        if (providers.isEmpty()) {
+        ContentLoot.BlockDrops dropped = ContentServices.blockDrops(engine, position.getX(), position.getY(), position.getZ(),
+                ModdedBlockState.serialize(brokenState));
+        if (dropped.drops().isEmpty() && !dropped.replacesVanillaDrops()) {
             return Result.empty();
         }
 
-        KList<ItemStack> drops = new KList<>();
-        boolean replaceVanillaDrops = false;
-        for (IrisBlockDrops provider : providers) {
-            replaceVanillaDrops |= provider.isReplaceVanillaDrops();
-            for (IrisLoot loot : provider.getDrops()) {
-                if (!LootResolver.oneIn(RNG.r, loot.getRarity())) {
-                    continue;
-                }
-                ItemStack stack = ModdedItemTranslator.stack(loot, RNG.r, level);
-                if (stack != null && !stack.isEmpty()) {
-                    drops.add(stack);
-                }
-            }
-        }
-        return new Result(drops, replaceVanillaDrops, null);
+        return new Result(ModdedItemTranslator.stacks(dropped.drops(), level), dropped.replacesVanillaDrops(), null);
     }
 
     private static void removeMarker(Engine engine, BlockPos position) {
@@ -236,8 +215,7 @@ public final class ModdedBlockBreakHandler {
         if ("cave_floor".equals(tag) || "cave_ceiling".equals(tag)) {
             return;
         }
-        IrisMarker configured = SpawnResources.marker(engine.getData(), tag);
-        if (configured == null || configured.isRemoveOnChange()) {
+        if (ContentServices.markerRule(engine, tag).map(ContentSpawns.MarkerRule::removeOnChange).orElse(true)) {
             engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), MatterMarker.class);
         }
     }
@@ -246,59 +224,6 @@ public final class ModdedBlockBreakHandler {
         int mantleY = position.getY() - engine.getMinHeight();
         engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), String.class);
         engine.getMantle().getMantle().remove(position.getX(), mantleY, position.getZ(), TreeBlockMaterial.class);
-    }
-
-    private static KList<IrisBlockDrops> providers(Engine engine, BlockPos position, BlockState brokenState) {
-        KList<IrisBlockDrops> providers = new KList<>();
-        IrisData data = engine.getData();
-        int relativeY = position.getY() - engine.getMinHeight();
-        IrisBiome biome = engine.getBiome(position.getX(), relativeY, position.getZ());
-        if (biome != null) {
-            addMatching(providers, biome.getBlockDrops(), brokenState, data);
-        }
-        if (skipsParents(providers)) {
-            return providers;
-        }
-        IrisRegion region = engine.getRegion(position.getX(), position.getZ());
-        if (region != null) {
-            addMatching(providers, region.getBlockDrops(), brokenState, data);
-        }
-        addMatching(providers, engine.getDimension().getBlockDrops(), brokenState, data);
-        return providers;
-    }
-
-    private static void addMatching(KList<IrisBlockDrops> matches, KList<IrisBlockDrops> candidates, BlockState brokenState, IrisData data) {
-        for (IrisBlockDrops candidate : candidates) {
-            if (matches(candidate, brokenState, data)) {
-                matches.add(candidate);
-            }
-        }
-    }
-
-    private static boolean skipsParents(KList<IrisBlockDrops> providers) {
-        for (IrisBlockDrops provider : providers) {
-            if (provider.isSkipParents()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean matches(IrisBlockDrops provider, BlockState brokenState, IrisData data) {
-        for (IrisBlockData configuredBlock : provider.getBlocks()) {
-            PlatformBlockState resolved = configuredBlock.getBlockData(data);
-            if (resolved == null || !(resolved.nativeHandle() instanceof BlockState configuredState)) {
-                continue;
-            }
-            if (matchesState(configuredState, brokenState, provider.isExactBlocks())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static boolean matchesState(BlockState configuredState, BlockState brokenState, boolean exact) {
-        return exact ? configuredState.equals(brokenState) : configuredState.getBlock() == brokenState.getBlock();
     }
 
     public static Engine engineFor(ServerLevel level) {

@@ -19,7 +19,16 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.PendingSettings;
+import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
+import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
+import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.builtin.terrain.HideOresSettings;
+import art.arcane.iris.builtin.terrain.PaletteLayer;
+import art.arcane.iris.builtin.terrain.SlabSettings;
+import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.engine.object.TestSettings;
+import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -50,6 +59,7 @@ import com.volmit.noise.NoiseFactory;
 import com.volmit.object.BlockEntityData;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceKey;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.StageGraph;
@@ -74,12 +84,15 @@ import java.util.function.IntBinaryOperator;
 /**
  * One chunk as IrisApi shows it to a chunk stage, held in memory, so the ported built-ins are tested through the surface
  * alone, without an Iris engine: the chunk's blocks, the blocks placements planned in its mantle, a terrain of given
- * heights, a block registry that knows a few plants, and a world with the pending settings Iris still holds.
+ * heights, a block registry that knows a few plants, settings the dimension and every biome of the chunk declare, and a
+ * world with Iris's seeds.
  */
 public final class ApiChunk implements GenerationContext {
     public static final int WIDTH = 16;
     public static final BlockState AIR = new BlockState("minecraft:air");
     private static final long SEED = 1337L;
+    private static final ResourceId DIMENSION = ResourceId.parse("test:dimension/overworld");
+    private static final ResourceId BIOME = ResourceId.parse("test:biome/plains");
     private static final int TERRAIN_MARGIN = 16;
     private static final Set<String> AIRS = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
     private static final Set<String> FLUIDS = Set.of("minecraft:water", "minecraft:lava");
@@ -97,6 +110,8 @@ public final class ApiChunk implements GenerationContext {
     private final ArrayHunk<BlockState> blocks;
     private final Map<BlockPosition, BlockState> planned = new HashMap<>();
     private final World world = new World();
+    private final List<IrisFeature> dimensionSettings = new ArrayList<>();
+    private final List<IrisFeature> biomeSettings = new ArrayList<>();
     private IntBinaryOperator surface = (x, z) -> 0;
     private IntBinaryOperator upperDimension;
     private double slope;
@@ -150,8 +165,34 @@ public final class ApiChunk implements GenerationContext {
         return blocks.get(x, y, z);
     }
 
-    public Pending pending() {
-        return world.pending;
+    /** The dimension's {@code hideOresForHiddenOre}: true. */
+    public ApiChunk hidingOres() {
+        dimensionSettings.add(new HideOresSettings(true));
+        return this;
+    }
+
+    /** The dimension's {@code postProcessingWalls} and {@code postProcessingSlabs}. */
+    public ApiChunk postProcessing(boolean walls, boolean slabs) {
+        dimensionSettings.add(TestSettings.with(new PostProcessingWallsSettings(), "enabled", walls));
+        dimensionSettings.add(TestSettings.with(new PostProcessingSlabsSettings(), "enabled", slabs));
+        return this;
+    }
+
+    /** Every biome's {@code wall}: one block. */
+    public ApiChunk wall(BlockState block) {
+        biomeSettings.add(TestSettings.with(new WallSettings(), "layer", layerOf(block, new SlopeClip())));
+        return this;
+    }
+
+    /** Every biome's {@code slab}: one block, placed where the slope is at most {@code maxSlope}. */
+    public ApiChunk slab(BlockState block, double maxSlope) {
+        SlopeClip slope = TestSettings.with(new SlopeClip(), "maximumSlope", maxSlope);
+        biomeSettings.add(TestSettings.with(new SlabSettings(), "layer", layerOf(block, slope)));
+        return this;
+    }
+
+    private static PaletteLayer layerOf(BlockState block, SlopeClip slope) {
+        return TestSettings.with(new PaletteLayer(), "palette", List.of(BlockSpec.of(block.key())), "slopeCondition", slope);
     }
 
     /** Empty stand-ins for the built-in stages the ported modules order after: carving and floating islands. */
@@ -197,7 +238,10 @@ public final class ApiChunk implements GenerationContext {
         return new FeatureSettings() {
             @Override
             public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
-                return List.of();
+                List<Entry<F>> entries = new ArrayList<>();
+                addEntries(entries, featureType, Target.DIMENSION, DIMENSION, dimensionSettings);
+                addEntries(entries, featureType, Target.BIOME, BIOME, biomeSettings);
+                return entries;
             }
         };
     }
@@ -231,75 +275,13 @@ public final class ApiChunk implements GenerationContext {
         return world;
     }
 
-    private BlockBox chunkColumns() {
-        return new BlockBox(originX, 0, originZ, originX + WIDTH, blocks.getHeight(), originZ + WIDTH);
+    private static <F extends IrisFeature> void addEntries(List<Entry<F>> entries, Class<F> type, Target level, ResourceId source,
+                                                           List<IrisFeature> declared) {
+        declared.stream().filter(type::isInstance).map(type::cast).forEach(value -> entries.add(new Entry<>(level, source, value)));
     }
 
-    /** The settings Iris still holds on its dimension and biomes, as one world returns them. */
-    public static final class Pending implements PendingSettings {
-        private boolean hidesOres;
-        private boolean walls;
-        private boolean slabs;
-        private BlockState wall;
-        private BlockState slabBlock;
-        private double maxSlabSlope = Double.MAX_VALUE;
-
-        public Pending hidingOres() {
-            hidesOres = true;
-            return this;
-        }
-
-        public Pending walls(BlockState wall) {
-            this.walls = true;
-            this.wall = wall;
-            return this;
-        }
-
-        public Pending slabs(BlockState slab, double maxSlope) {
-            this.slabs = true;
-            this.slabBlock = slab;
-            this.maxSlabSlope = maxSlope;
-            return this;
-        }
-
-        @Override
-        public boolean hidesOres() {
-            return hidesOres;
-        }
-
-        @Override
-        public boolean postProcessingWalls() {
-            return walls;
-        }
-
-        @Override
-        public boolean postProcessingSlabs() {
-            return slabs;
-        }
-
-        @Override
-        public Optional<BiomeLayer> wall(int x, int z) {
-            return wall == null ? Optional.empty() : Optional.of(layer(wall, Double.MAX_VALUE));
-        }
-
-        @Override
-        public BiomeLayer slab(int x, int z) {
-            return layer(slabBlock, maxSlabSlope);
-        }
-
-        private static BiomeLayer layer(BlockState block, double maxSlope) {
-            return new BiomeLayer() {
-                @Override
-                public Optional<BlockState> at(double x, double y, double z) {
-                    return Optional.ofNullable(block);
-                }
-
-                @Override
-                public boolean allowsSlope(double slope) {
-                    return slope <= maxSlope;
-                }
-            };
-        }
+    private BlockBox chunkColumns() {
+        return new BlockBox(originX, 0, originZ, originX + WIDTH, blocks.getHeight(), originZ + WIDTH);
     }
 
     private final class Terrain implements TerrainSampler {
@@ -397,9 +379,8 @@ public final class ApiChunk implements GenerationContext {
         }
     }
 
-    /** A world of the chunk: its pack's blocks and the pending settings, and a state store. */
-    private static final class World implements PackWorld, PendingSettings {
-        private final Pending pending = new Pending();
+    /** A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. */
+    private static final class World implements PackWorld, IrisSeed.Source {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
 
@@ -420,32 +401,17 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
-            return type.cast(states.computeIfAbsent(type, ignored -> create.apply(this)));
+            Object known = states.get(type);
+            if (known == null) {
+                known = create.apply(this);
+                states.put(type, known);
+            }
+            return type.cast(known);
         }
 
         @Override
-        public boolean hidesOres() {
-            return pending.hidesOres();
-        }
-
-        @Override
-        public boolean postProcessingWalls() {
-            return pending.postProcessingWalls();
-        }
-
-        @Override
-        public boolean postProcessingSlabs() {
-            return pending.postProcessingSlabs();
-        }
-
-        @Override
-        public Optional<BiomeLayer> wall(int x, int z) {
-            return pending.wall(x, z);
-        }
-
-        @Override
-        public BiomeLayer slab(int x, int z) {
-            return pending.slab(x, z);
+        public long seed(IrisSeed seed) {
+            return SEED + seed.ordinal();
         }
     }
 
@@ -500,7 +466,11 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public BlockState resolve(BlockSpec spec) {
-            throw new UnsupportedOperationException("No specs here");
+            BlockState block = BlockState.parse(spec.block().contains(":") ? spec.block() : "minecraft:" + spec.block());
+            for (Map.Entry<String, String> property : spec.data().entrySet()) {
+                block = block.withProperty(property.getKey(), property.getValue());
+            }
+            return block;
         }
 
         @Override

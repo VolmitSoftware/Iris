@@ -233,6 +233,30 @@ public class SchemaBuilderParityTest {
         assertFalse("the feature ids are not keys", properties.has("iris:decorant"));
     }
 
+    @Test
+    public void terrainSettingsRenderTheirOneValueUnderTheOldKeys() throws IOException {
+        JSONObject biome = rootProperties(new SchemaBuilder(IrisBiome.class, structureSchemaData()).construct());
+        JSONObject dimension = rootProperties(new SchemaBuilder(IrisDimension.class, structureSchemaData()).construct());
+
+        JSONObject layers = biome.getJSONObject("layers");
+        assertEquals("array", layers.getString("type"));
+        assertEquals("module-art-arcane-iris-builtin-terrain-palettelayer", definitionKey(layers.getJSONObject("items")));
+        assertEquals("a slab is one layer", "module-art-arcane-iris-builtin-terrain-palettelayer", definitionKey(biome.getJSONObject("slab")));
+        assertEquals("module-art-arcane-iris-builtin-terrain-palettelayer", definitionKey(biome.getJSONObject("wall")));
+        assertEquals("array", biome.getJSONObject("seaLayers").getString("type"));
+        assertEquals("array", biome.getJSONObject("caveCeilingLayers").getString("type"));
+        assertEquals("boolean", biome.getJSONObject("lockLayers").getString("type"));
+        assertEquals("integer", biome.getJSONObject("lockLayersMax").getString("type"));
+        assertEquals("module-com-volmit-block-palettespec", definitionKey(dimension.getJSONObject("rockPalette")));
+        assertEquals("module-com-volmit-block-palettespec", definitionKey(dimension.getJSONObject("fluidPalette")));
+        for (String key : List.of("postProcessing", "postProcessingSlabs", "postProcessingWalls")) {
+            assertEquals(key, "boolean", dimension.getJSONObject(key).getString("type"));
+        }
+        for (String id : List.of("iris:terrain/layers", "iris:terrain/slab", "iris:terrain/lock-layers")) {
+            assertFalse("the feature ids are not keys", biome.has(id));
+        }
+    }
+
     /** A native structure's jigsaw start pool names one of the platform's template pools, and studio lists them. */
     @Test
     public void jigsawStartPoolsCompleteThePlatformsTemplatePools() {

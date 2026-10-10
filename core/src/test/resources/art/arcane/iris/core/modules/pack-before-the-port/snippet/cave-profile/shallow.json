@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "verticalRange": {"min": 10, "max": 100},
+  "sampleStep": 2
+}

@@ -2,11 +2,15 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
+import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.ModuleSettings;
+import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.volmlib.util.collection.KList;
+import com.google.gson.Gson;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Server;
@@ -15,6 +19,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -68,11 +73,9 @@ public class ResolvedFloatingChildCarvingResolutionTest {
     public void resolveCarvingBiome_prefersDimensionCarvingEntryId() {
         IrisBiome entryBiome = mock(IrisBiome.class);
         IrisBiome sameKeyBiome = mock(IrisBiome.class);
-        IrisDimensionCarvingEntry entry = new IrisDimensionCarvingEntry();
-        entry.setId("global-deepdark-band");
-        entry.setBiome("carving/standard-deepdark");
+        CarvingEntry entry = new Gson().fromJson("{\"id\": \"global-deepdark-band\", \"biome\": \"carving/standard-deepdark\"}", CarvingEntry.class);
 
-        Map<String, IrisDimensionCarvingEntry> entries = new HashMap<>();
+        Map<String, CarvingEntry> entries = new HashMap<>();
         entries.put("global-deepdark-band", entry);
 
         Map<String, IrisBiome> biomes = new HashMap<>();
@@ -86,7 +89,7 @@ public class ResolvedFloatingChildCarvingResolutionTest {
         assertSame(entryBiome, resolved);
     }
 
-    private Fixture createFixture(Map<String, IrisDimensionCarvingEntry> entries, Map<String, IrisBiome> biomes) {
+    private Fixture createFixture(Map<String, CarvingEntry> entries, Map<String, IrisBiome> biomes) {
         @SuppressWarnings("unchecked")
         ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
         for (Map.Entry<String, IrisBiome> biome : biomes.entrySet()) {
@@ -97,12 +100,13 @@ public class ResolvedFloatingChildCarvingResolutionTest {
         doReturn(biomeLoader).when(data).getBiomeLoader();
 
         IrisDimension dimension = mock(IrisDimension.class);
-        doReturn(entries).when(dimension).getCarvingEntryIndex();
-        doReturn(new KList<>(entries.values())).when(dimension).getCarving();
+        ModuleSettings declared = BuiltInPack.settings(new CarvingSettings(new ArrayList<>(entries.values())));
+        doReturn(declared).when(dimension).getModuleSettings();
 
         Engine engine = mock(Engine.class);
         doReturn(data).when(engine).getData();
         doReturn(dimension).when(engine).getDimension();
+        DecoratorTestEngines.withGeneration(engine);
 
         return new Fixture(engine, data);
     }

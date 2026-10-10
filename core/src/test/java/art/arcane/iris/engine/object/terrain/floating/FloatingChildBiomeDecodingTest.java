@@ -23,7 +23,6 @@ import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.floating.OverrideMode;
 import art.arcane.iris.builtin.floating.TopShapeMode;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
@@ -33,7 +32,6 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -92,7 +90,7 @@ public class FloatingChildBiomeDecodingTest {
         assertEquals(4, child.edgeTaperVariationAmplitude(), 0);
         assertEquals(FloatingBottomPaletteMode.CUSTOM, child.bottomPaletteMode());
         assertEquals(1, child.bottomPalette().size());
-        assertEquals(5, child.bottomPalette().get(0).getMaxHeight());
+        assertEquals(5, child.bottomPalette().get(0).maxHeight());
         assertEquals("SIMPLEX", child.wallWarpStyle().orElseThrow().style());
         assertEquals(5, child.wallWarpAmplitude(), 0);
         assertEquals("carving/sand-hollows-child", child.carving());
@@ -131,15 +129,6 @@ public class FloatingChildBiomeDecodingTest {
         assertEquals(1.0, child.carveThreshold(), 0);
         assertTrue(child.topObjectOverrides().isEmpty());
         assertNull(child.color().isEmpty() ? null : child.color());
-    }
-
-    @Test
-    public void aBiomeHoldsItsChildrenAsSettings() {
-        IrisBiome biome = gson.fromJson("{\"floatingChildBiomes\": [" + DUNES_CHILD + ", {}]}", IrisBiome.class);
-
-        assertEquals(2, biome.getFloatingChildBiomes().size());
-        assertEquals("magnetics/dunes", biome.getFloatingChildBiomes().get(0).biome());
-        assertNotNull(biome.getFloatingChildBiomes().get(1));
     }
 
     @Test

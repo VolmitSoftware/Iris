@@ -1,0 +1,33 @@
+{
+  "group": "NORMAL",
+  "maximumRate": {
+    "amount": 8,
+    "per": { "seconds": 30 }
+  },
+  "maxEntitiesPerChunk": 5,
+  "spawns": [
+    {
+      "entity": "standard/passive/frog",
+      "maxSpawns": 3,
+      "minSpawns": 1
+    },
+    {
+      "entity": "standard/passive/tadpole",
+      "maxSpawns": 3,
+      "minSpawns": 1,
+      "rarity": 2
+    },
+    {
+      "entity": "standard/passive/tropicalfish",
+      "maxSpawns": 3,
+      "minSpawns": 1,
+      "rarity": 2
+    },
+    {
+      "entity": "standard/passive/turtle",
+      "maxSpawns": 3,
+      "minSpawns": 1,
+      "rarity": 2
+    }
+  ]
+}

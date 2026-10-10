@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
@@ -8,7 +10,6 @@ import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.IrisPlatform;
@@ -18,6 +19,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import com.google.gson.Gson;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -57,8 +59,7 @@ public class CaveApplyingInferenceIsolationTest {
     @SuppressWarnings("unchecked")
     public void cavePaintingDoesNotMutateSharedBiomeInference() throws Exception {
         IrisBiome biome = new IrisBiome().setInferredType(InferredType.LAND);
-        biome.getLayers().clear();
-        biome.getCaveCeilingLayers().clear();
+        biome.setModuleSettings(BuiltInPack.settings(new Gson().fromJson("{\"layers\": []}", LayersSettings.class)));
 
         Engine engine = mock(Engine.class);
         doReturn(mock(IrisData.class)).when(engine).getData();
@@ -83,7 +84,6 @@ public class CaveApplyingInferenceIsolationTest {
                 int.class,
                 int.class,
                 int.class,
-                IrisDimensionCarvingResolver.State.class,
                 Long2ObjectOpenHashMap.class,
                 Map.class
         );
@@ -98,7 +98,6 @@ public class CaveApplyingInferenceIsolationTest {
                 0,
                 1,
                 1,
-                new IrisDimensionCarvingResolver.State(),
                 new Long2ObjectOpenHashMap<IrisBiome>(),
                 customBiomes
         );

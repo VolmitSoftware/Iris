@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.PendingSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -31,13 +30,11 @@ import java.util.EnumMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** An Iris world answers the built-ins' narrow questions: Iris's own seeds, and the settings still on its dimension. */
+/** An Iris world gives the built-ins Iris's own seeds. */
 public class IrisWorldFacadesTest {
     @Test
     public void everyIrisSeedIsTheSeedManagersSeedOfThatName() {
@@ -67,23 +64,8 @@ public class IrisWorldFacadesTest {
     }
 
     @Test
-    public void pendingSettingsAreTheDimensionsOwn() {
-        IrisDimension dimension = new IrisDimension();
-        dimension.setHideOresForHiddenOre(true);
-        dimension.setPostProcessingWalls(false);
-        PendingSettings pending = PendingSettings.of(new IrisPackWorld(engine(dimension)));
-
-        assertTrue(pending.hidesOres());
-        assertFalse(pending.postProcessingWalls());
-        assertTrue("slabs are on by default", pending.postProcessingSlabs());
-    }
-
-    @Test
-    public void aWorldIrisDoesNotGenerateHasNeither() {
-        PackWorld foreign = mock(PackWorld.class);
-
-        assertThrows(IllegalArgumentException.class, () -> IrisSeed.POST.of(foreign));
-        assertThrows(IllegalArgumentException.class, () -> PendingSettings.of(foreign));
+    public void aWorldIrisDoesNotGenerateHasNoIrisSeeds() {
+        assertThrows(IllegalArgumentException.class, () -> IrisSeed.POST.of(mock(PackWorld.class)));
     }
 
     private static Engine engine(IrisDimension dimension) {

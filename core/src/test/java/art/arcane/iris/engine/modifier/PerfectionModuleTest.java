@@ -61,7 +61,7 @@ public class PerfectionModuleTest {
         BlockState ore = block("minecraft:deepslate_iron_ore");
         ApiChunk shown = new ApiChunk(0, 0, HEIGHT).set(0, 0, 0, ore);
         ApiChunk hidden = new ApiChunk(0, 0, HEIGHT).set(0, 0, 0, ore);
-        hidden.pending().hidingOres();
+        hidden.hidingOres();
 
         shown.generate(new PerfectionModule());
         hidden.generate(new PerfectionModule());

@@ -633,6 +633,35 @@ class PackModulesTest {
     }
 
     @Test
+    void settingsWithoutAKeyFailNamingTheModuleTheClassAndTheKeyToAdd(@TempDir Path build) {
+        var apiWithoutKeys = new TestModuleJar().source("com.volmit.config.Feature", """
+                package com.volmit.config;
+                import java.lang.annotation.*;
+                @Retention(RetentionPolicy.RUNTIME)
+                @Target(ElementType.TYPE)
+                public @interface Feature {
+                    String id();
+                    String name();
+                    com.volmit.FeatureAttachment.Target[] targets();
+                }
+                """).writeInto(build, "api-without-keys.jar");
+        module("pack.old.Old", "old:flora", """
+                public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(Patch.class); }
+                @com.volmit.config.Feature(id = "old:flora/wild-patch", name = "Patch", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                public static final class Patch implements com.volmit.IrisFeature {}
+                """, NO_STAGES)
+                .compileAgainstOlderApi(apiWithoutKeys)
+                .writeInto(pack, "old.jar");
+
+        try (var packModules = PackModules.load(pack)) {
+            assertEquals("Module old:flora from " + origin("old.jar") + ": The @Feature of settings class pack.old.Old$Patch"
+                            + " has no key, the JSON field packs write the settings under; add key = \"floraWildPatch\" (or"
+                            + " another plain field name) to it and rebuild the jar",
+                    failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of())));
+        }
+    }
+
+    @Test
     void duplicateModuleIdsAcrossJarsFailNamingBothJars() {
         module("pack.one.Duplicate", "dup:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "one.jar");
         module("pack.two.Duplicate", "dup:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "two.jar");

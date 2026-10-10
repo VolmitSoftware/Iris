@@ -94,6 +94,14 @@ public final class TestModuleJar {
         return this;
     }
 
+    /** Puts a jar or class directory before the API on the compile classpath, so the sources compile against an
+     * older copy of an API class it holds; it is not packaged.
+     */
+    public TestModuleJar compileAgainstOlderApi(Path classes) {
+        classpath.addFirst(classes);
+        return this;
+    }
+
     /** Compiles against wherever {@code type} was loaded from, such as a host library jar. */
     public TestModuleJar compileAgainstHostOf(Class<?> type) {
         return compileAgainst(classesOf(type));

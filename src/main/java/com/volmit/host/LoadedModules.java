@@ -83,6 +83,9 @@ public record LoadedModules(
             throw new IllegalArgumentException("Module " + discovered.info().id() + " from "
                     + discovered.origin() + " failed to link or initialize a class while installing: " + error
                     + "; a missing method or field means the jar was built against a different Iris API", error);
+        } catch (IncompleteFeatureException incomplete) {
+            throw new IllegalArgumentException("Module " + discovered.info().id() + " from " + discovered.origin() + ": "
+                    + incomplete.getMessage(), incomplete);
         }
     }
 }

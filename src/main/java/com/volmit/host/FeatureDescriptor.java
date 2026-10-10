@@ -5,6 +5,7 @@ import com.volmit.IrisFeature;
 import com.volmit.config.Feature;
 import com.volmit.config.OptionsMetadata;
 import com.volmit.resource.ResourceId;
+import java.lang.annotation.IncompleteAnnotationException;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Objects;
@@ -49,14 +50,18 @@ public record FeatureDescriptor<F extends IrisFeature>(
             throw new IllegalArgumentException("Missing @Feature: " + type.getName());
         }
 
-        return new FeatureDescriptor<>(
-                ResourceId.parse(annotation.id()),
-                annotation.name(),
-                annotation.key(),
-                annotation.root().isEmpty() ? Optional.empty() : Optional.of(annotation.root()),
-                type,
-                new FeatureAttachment(Set.of(annotation.targets())),
-                OptionsMetadata.inspect(type));
+        try {
+            return new FeatureDescriptor<>(
+                    ResourceId.parse(annotation.id()),
+                    annotation.name(),
+                    annotation.key(),
+                    annotation.root().isEmpty() ? Optional.empty() : Optional.of(annotation.root()),
+                    type,
+                    new FeatureAttachment(Set.of(annotation.targets())),
+                    OptionsMetadata.inspect(type));
+        } catch (IncompleteAnnotationException missing) {
+            throw IncompleteFeatureException.of(type, annotation, missing);
+        }
     }
 
     private static void requireKey(ResourceId id, String key) {

@@ -18,6 +18,8 @@
 
 package art.arcane.iris.probe;
 
+import art.arcane.iris.engine.loot.LootResources;
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.iris.engine.framework.PreservationRegistry;
@@ -128,7 +130,7 @@ public final class DeserializationProbe {
     }
 
     private static void assertEntity(IrisData data) {
-        IrisEntity entity = data.getEntityLoader().load(ENTITY_KEY);
+        IrisEntity entity = SpawnResources.entity(data, ENTITY_KEY);
         require(entity != null, "entity deserialized");
         require("minecraft:panda".equals(entity.getType()), "type round-trips as authored namespaced string");
         require("COMMAND".equals(entity.getReason()), "reason retained as string");
@@ -157,7 +159,7 @@ public final class DeserializationProbe {
     }
 
     private static void assertSpawner(IrisData data) {
-        IrisSpawner spawner = data.getSpawnerLoader().load(SPAWNER_KEY);
+        IrisSpawner spawner = SpawnResources.spawner(data, SPAWNER_KEY);
         require(spawner != null, "spawner deserialized");
         List<IrisEntitySpawn> spawns = spawner.getSpawns();
         require(spawns.size() == 1, "single entity spawn deserialized");
@@ -167,7 +169,7 @@ public final class DeserializationProbe {
     }
 
     private static void assertLoot(IrisData data) {
-        IrisLootTable table = data.getLootLoader().load(LOOT_KEY);
+        IrisLootTable table = LootResources.table(data, LOOT_KEY);
         require(table != null, "loot table deserialized");
         require(LOOT_KEY.equals(table.getName()), "loot table name retained");
         require(table.getRarity() == 4, "loot table rarity retained");

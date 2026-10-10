@@ -29,7 +29,7 @@ public final class StubPlatformStateTest {
                 StubPlatform.rotateForTest(rotation, state("minecraft:oak_stairs[facing=north,half=bottom]")).key());
         assertEquals("minecraft:oak_log[axis=x]",
                 StubPlatform.rotateForTest(rotation, state("minecraft:oak_log[axis=z]")).key());
-        assertEquals("minecraft:oak_fence[north=false,east=false,south=false,west=true]",
+        assertEquals("minecraft:oak_fence[east=false,north=false,south=false,west=true]",
                 StubPlatform.rotateForTest(rotation,
                         state("minecraft:oak_fence[north=true,east=false,south=false,west=false]")).key());
     }
@@ -90,9 +90,9 @@ public final class StubPlatformStateTest {
         assertEquals("minecraft:oak_stairs[facing=west,half=bottom]", state("minecraft:oak_stairs[facing=east,half=bottom]").mirrorX().key());
         assertEquals("minecraft:oak_stairs[facing=north,half=bottom]", state("minecraft:oak_stairs[facing=north,half=bottom]").mirrorX().key());
         assertEquals("minecraft:oak_stairs[facing=south,half=bottom]", state("minecraft:oak_stairs[facing=north,half=bottom]").mirrorZ().key());
-        assertEquals("minecraft:oak_fence[north=true,east=false,south=false,west=false]",
+        assertEquals("minecraft:oak_fence[east=false,north=true,south=false,west=false]",
                 state("minecraft:oak_fence[north=true,east=false,south=false,west=false]").mirrorX().key());
-        assertEquals("minecraft:oak_fence[north=false,east=false,south=true,west=false]",
+        assertEquals("minecraft:oak_fence[east=false,north=false,south=true,west=false]",
                 state("minecraft:oak_fence[north=true,east=false,south=false,west=false]").mirrorZ().key());
         assertEquals("minecraft:oak_sign[rotation=12]", state("minecraft:oak_sign[rotation=4]").mirrorX().key());
         assertEquals("minecraft:oak_sign[rotation=4]", state("minecraft:oak_sign[rotation=4]").mirrorZ().key());

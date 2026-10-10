@@ -18,6 +18,7 @@
 
 package art.arcane.iris.probe;
 
+import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
@@ -41,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -61,6 +63,7 @@ public final class StubPlatform implements IrisPlatform {
         BlockDataMergeSupport.bindPlatformMerger(StubPlatform::mergeStates);
         TileData.bindPlatformReader(StubTileData::read);
         TileData.bindPlatformFactory(StubTileData::fromProperties);
+        DecoratorPlatformHooks.bind((state, hunk, rX, rZ, x, y, z, mantle) -> state, PlatformBlockState::isSolid);
     }
 
     static PlatformBlockState rotateForTest(IrisObjectRotation rotation, PlatformBlockState state) {
@@ -97,8 +100,9 @@ public final class StubPlatform implements IrisPlatform {
             this.key = key;
         }
 
+        /** The state {@code key} names, keyed the way a platform keys its states: lower case, with a namespace and the properties sorted. */
         static StubBlockState of(String key) {
-            return CACHE.computeIfAbsent(key, StubBlockState::new);
+            return CACHE.computeIfAbsent(ParsedState.parse(key).serialize(), StubBlockState::new);
         }
 
         @Override
@@ -163,7 +167,7 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean isFoliage() {
-            return false;
+            return StubPlants.isPlant(blockKey());
         }
 
         @Override
@@ -213,7 +217,7 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean isDecorant() {
-            return false;
+            return StubPlants.isPlant(blockKey());
         }
 
         @Override
@@ -238,12 +242,12 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean isVineBlock() {
-            return false;
+            return StubPlants.isVine(blockKey());
         }
 
         @Override
         public boolean canPlaceOnto(PlatformBlockState onto) {
-            return true;
+            return !isDecorant() || onto instanceof StubBlockState soil && StubPlants.holdsPlants(soil.blockKey());
         }
 
         @Override
@@ -444,7 +448,7 @@ public final class StubPlatform implements IrisPlatform {
 
     private record ParsedState(String blockKey, LinkedHashMap<String, String> properties) {
         private static ParsedState parse(String key) {
-            String normalized = key == null ? "minecraft:air" : key.trim().toLowerCase(Locale.ROOT);
+            String normalized = namespaced(key == null ? "minecraft:air" : key.trim().toLowerCase(Locale.ROOT));
             int open = normalized.indexOf('[');
             if (open < 0 || !normalized.endsWith("]")) {
                 return new ParsedState(normalized, new LinkedHashMap<>());
@@ -462,13 +466,20 @@ public final class StubPlatform implements IrisPlatform {
             return new ParsedState(normalized.substring(0, open), properties);
         }
 
+        private static String namespaced(String key) {
+            int namespaceEnd = key.indexOf(':');
+            int propertiesStart = key.indexOf('[');
+            boolean hasNamespace = namespaceEnd >= 0 && (propertiesStart < 0 || namespaceEnd < propertiesStart);
+            return hasNamespace ? key : "minecraft:" + key;
+        }
+
         private String serialize() {
             if (properties.isEmpty()) {
                 return blockKey;
             }
             StringBuilder serialized = new StringBuilder(blockKey).append('[');
             boolean first = true;
-            for (Map.Entry<String, String> entry : properties.entrySet()) {
+            for (Map.Entry<String, String> entry : new TreeMap<>(properties).entrySet()) {
                 if (!first) {
                     serialized.append(',');
                 }

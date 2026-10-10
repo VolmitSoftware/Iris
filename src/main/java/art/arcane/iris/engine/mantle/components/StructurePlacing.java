@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
@@ -46,7 +46,7 @@ import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.iris.util.project.matter.TileWrapper;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
@@ -315,7 +315,7 @@ public class StructurePlacing {
         CNG blob = null;
         CNG roll = null;
         if (eroded) {
-            RNG noiseRng = new RNG(engine.getSeedManager().getMantle() + Cache.key(bounds[0], bounds[2]));
+            RNG noiseRng = new RNG(engine.getSeedManager().getMantle() + CacheKey.key(bounds[0], bounds[2]));
             blob = CNG.signature(noiseRng);
             roll = CNG.signature(noiseRng.nextParallelRNG(0x2A17));
         }

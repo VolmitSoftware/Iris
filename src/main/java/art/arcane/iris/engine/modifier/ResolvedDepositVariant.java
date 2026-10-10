@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositVariant;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;

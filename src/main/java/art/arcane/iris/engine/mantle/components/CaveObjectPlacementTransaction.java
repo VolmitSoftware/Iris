@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.prefab.TileData;
@@ -87,7 +87,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     int getCaveCeiling(int x, int z) {
-        long key = Cache.key(x, z);
+        long key = CacheKey.key(x, z);
         int cached = caveCeilings.get(key);
         if (cached != CACHE_MISS) {
             return cached;
@@ -215,7 +215,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     private int getSurfaceHeight(int x, int z) {
-        long key = Cache.key(x, z);
+        long key = CacheKey.key(x, z);
         int cached = surfaceHeights.get(key);
         if (cached != CACHE_MISS) {
             return cached;

@@ -22,7 +22,7 @@ import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.cache.LazyBoundedCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.ArrayType;

@@ -30,7 +30,7 @@ import art.arcane.iris.builtin.terrain.WallSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;

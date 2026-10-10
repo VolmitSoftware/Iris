@@ -23,7 +23,7 @@ import com.dfsek.paralithic.Expression;
 import com.dfsek.paralithic.eval.parser.Parser;
 import com.dfsek.paralithic.eval.parser.Scope;
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.noise.expression.IrisExpressionFunction.FunctionContext;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;

@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object.procedural.fungi;
 import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.Vector3i;
+import art.arcane.volmlib.util.math.Vector3i;
 
 import java.util.Map;
 

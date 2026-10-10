@@ -176,7 +176,7 @@ public class DepositPlacer extends EngineAssignedComponent {
 
             IrisDimension dimension = getDimension();
 
-            for (art.arcane.iris.util.common.math.IrisBlockVector j : clump.getBlocks().keys()) {
+            for (art.arcane.volmlib.util.math.IrisBlockVector j : clump.getBlocks().keys()) {
                 int nx = j.getBlockX() + x;
                 int ny = j.getBlockY() + y;
                 int nz = j.getBlockZ() + z;

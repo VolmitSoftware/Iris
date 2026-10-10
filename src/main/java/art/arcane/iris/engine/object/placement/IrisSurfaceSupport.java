@@ -3,7 +3,7 @@ package art.arcane.iris.engine.object.placement;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 
 import java.util.Arrays;
 import java.util.List;

@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.modifier.FloatingIslands;
@@ -55,7 +55,7 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
 
     @Override
     public @Nullable FloatingIslandSample sample(int x, int z) {
-        long key = Cache.key(x, z);
+        long key = CacheKey.key(x, z);
         if (resolvedSamples.contains(key)) {
             return sampleCache.get(key);
         }

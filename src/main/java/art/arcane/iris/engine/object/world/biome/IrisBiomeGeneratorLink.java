@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.world.biome;
 
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.DependsOn;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;

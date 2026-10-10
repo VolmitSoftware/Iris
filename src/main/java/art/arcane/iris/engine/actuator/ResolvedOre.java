@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.terrain.OreGenerator;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;

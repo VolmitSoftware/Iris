@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import org.jetbrains.annotations.Nullable;
@@ -112,7 +112,7 @@ public final class FloatingIslandBoundarySampler {
         int width = FloatingIslandEdgeProfile.clampWidth(taperWidth);
         int chunkX = Math.floorDiv(x, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(z, CHUNK_SIZE);
-        ParentFieldKey key = new ParentFieldKey(Cache.key(chunkX, chunkZ), width);
+        ParentFieldKey key = new ParentFieldKey(CacheKey.key(chunkX, chunkZ), width);
         return parentFields.computeIfAbsent(key,
                 ignored -> new ParentBoundaryField(source, chunkX, chunkZ, width));
     }

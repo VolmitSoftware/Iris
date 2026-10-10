@@ -26,7 +26,7 @@ import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.AllArgsConstructor;

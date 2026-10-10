@@ -3,7 +3,7 @@ package art.arcane.iris.engine.object.placement;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 
 /**
  * Precomputed vector rotation for a single placement.

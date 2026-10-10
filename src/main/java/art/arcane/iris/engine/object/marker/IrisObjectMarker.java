@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object.marker;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;

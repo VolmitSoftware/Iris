@@ -20,7 +20,7 @@ package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.decorant.Decorator;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;

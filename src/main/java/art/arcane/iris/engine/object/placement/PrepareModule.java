@@ -29,7 +29,7 @@ import art.arcane.iris.engine.framework.placer.HeightmapObjectPlacer;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;

@@ -26,7 +26,7 @@ import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;

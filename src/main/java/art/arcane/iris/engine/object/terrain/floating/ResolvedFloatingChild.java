@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisValues;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfiles;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;

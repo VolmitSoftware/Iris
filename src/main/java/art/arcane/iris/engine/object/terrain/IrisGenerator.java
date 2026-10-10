@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object.terrain;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;

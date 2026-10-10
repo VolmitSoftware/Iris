@@ -42,7 +42,7 @@ import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.nms.datapack.DataVersion;
 import art.arcane.iris.core.nms.datapack.IDataFixer;
 import art.arcane.iris.core.nms.datapack.IDataFixer.Dimension;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;

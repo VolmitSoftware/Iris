@@ -21,9 +21,9 @@ package art.arcane.iris.engine.object.prefab;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.common.data.VectorMap;
-import art.arcane.iris.util.common.math.IrisBlockVector;
-import art.arcane.iris.util.common.math.IrisVector;
+import art.arcane.volmlib.util.data.VectorMap;
+import art.arcane.volmlib.util.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisVector;
 import art.arcane.iris.util.project.interpolation.Interpolation3D;
 
 import java.util.ArrayList;

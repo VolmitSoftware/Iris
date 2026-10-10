@@ -24,7 +24,7 @@ import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
@@ -37,7 +37,7 @@ import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
@@ -75,7 +75,7 @@ public class FloatingObjectPlacing {
         IrisData data = engine.getData();
         int minX = x << 4;
         int minZ = z << 4;
-        RNG chunkRng = new RNG(Cache.key(x, z) + engine.getSeedManager().getMantle() + 0x0FA710BEL);
+        RNG chunkRng = new RNG(CacheKey.key(x, z) + engine.getSeedManager().getMantle() + 0x0FA710BEL);
         FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(engine.getMantle(), context.getFloatingIslandBoundarySampler(), log);
 
         FloatingIslandSample.clearChunkMemo();

@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.compatibility;
 
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.spi.IrisLogging;

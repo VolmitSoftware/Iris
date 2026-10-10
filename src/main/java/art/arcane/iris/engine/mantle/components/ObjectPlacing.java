@@ -30,7 +30,7 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.mantle.MantleWriter;
@@ -62,7 +62,7 @@ import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -123,7 +123,7 @@ public class ObjectPlacing {
     public void place(MantleWriter writer, int x, int z, ChunkContext context) {
         IrisComplex complex = context.getComplex();
         boolean traceRegen = isRegenTraceThread();
-        RNG rng = applyNoise(x, z, Cache.key(x, z) + engine.getSeedManager().getMantle());
+        RNG rng = applyNoise(x, z, CacheKey.key(x, z) + engine.getSeedManager().getMantle());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = complex.getRegionStream().get(xxx, zzz);
@@ -1428,7 +1428,7 @@ public class ObjectPlacing {
 
     public Set<String> guess(int x, int z) {
         // todo The guess doesnt bring into account that the placer may return -1
-        RNG rng = applyNoise(x, z, Cache.key(x, z) + engine.getSeedManager().getMantle());
+        RNG rng = applyNoise(x, z, CacheKey.key(x, z) + engine.getSeedManager().getMantle());
         IrisBiome biome = engine.getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
         Set<String> v = new KSet<>();
@@ -1610,7 +1610,7 @@ public class ObjectPlacing {
                 settingCaches.put(settingKey, columnCache);
             }
 
-            long columnKey = Cache.key(x, z);
+            long columnKey = CacheKey.key(x, z);
             KList<Integer> anchors = columnCache.get(columnKey);
             if (anchors != null) {
                 return anchors;
@@ -1622,7 +1622,7 @@ public class ObjectPlacing {
         }
 
         private byte[] getCarvedColumn(MantleWriter writer, int x, int z, int height) {
-            long columnKey = Cache.key(x, z);
+            long columnKey = CacheKey.key(x, z);
             byte[] carvedColumn = carvedColumns.get(columnKey);
             if (carvedColumn != null && carvedColumn.length == height) {
                 return carvedColumn;
@@ -1634,7 +1634,7 @@ public class ObjectPlacing {
         }
 
         private int getSurfaceHeight(int x, int z) {
-            long columnKey = Cache.key(x, z);
+            long columnKey = CacheKey.key(x, z);
             int surfaceY = surfaceHeights.get(columnKey);
             if (surfaceY != Integer.MIN_VALUE) {
                 return surfaceY;

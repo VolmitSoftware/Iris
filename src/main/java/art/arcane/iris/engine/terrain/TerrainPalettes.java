@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.terrain.RockPaletteSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.UpperDimensionContext;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;

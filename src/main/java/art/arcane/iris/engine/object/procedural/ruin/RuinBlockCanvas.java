@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.ruin;
 
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.Vector3i;
+import art.arcane.volmlib.util.math.Vector3i;
 
 import java.util.HashMap;
 import java.util.Map;

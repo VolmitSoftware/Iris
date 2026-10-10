@@ -21,7 +21,7 @@ package art.arcane.iris.engine.terrain;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.terrain.LayerBlocks;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.noise.CNG;

@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.runtime;
 
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawnerCooldowns;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.Data;
@@ -33,11 +33,11 @@ public class IrisEngineData extends IrisSpawnerCooldowns {
     private Long seed = null;
 
     public void removeChunk(int x, int z) {
-        chunks.remove(Cache.key(x, z));
+        chunks.remove(CacheKey.key(x, z));
     }
 
     public IrisSpawnerCooldowns getChunk(int x, int z) {
-        return chunks.computeIfAbsent(Cache.key(x, z), k -> new IrisSpawnerCooldowns());
+        return chunks.computeIfAbsent(CacheKey.key(x, z), k -> new IrisSpawnerCooldowns());
     }
 
     public void cleanup(Engine engine) {

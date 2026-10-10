@@ -23,7 +23,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.Vector3i;
+import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.HashMap;

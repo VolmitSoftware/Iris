@@ -798,11 +798,13 @@ Why these lines:
 ## Vanilla structures
 
 Minecraft, data packs and mods register structures the platform starts on its own. Iris blocks some (a pack
-replaces them with its own structures), lets others generate, and places some itself. The decisions belonged
-to core (`NativeStructurePlacementPlanner`, `NativeStructureGenerationPolicy`) reading feature classes. A module
-now states them with a `VanillaStructureHook`, registered in `register`; the host applies them on every
-platform.
+replaces them with its own structures), lets others generate, places some itself, and fits all of them to its
+terrain. The decisions and the fit belonged to core and the platform adapters, reading feature classes. A module now
+states them through the `VanillaStructures` service; the host applies them on every platform.
 
+- **A service, every provider asked.** `@Service(Providers.ALL)`: each module that takes part in the platform's
+  structures answers for its part, in module id order. It was a dedicated hook registry; a service is the one way
+  modules answer host questions, so the catalog, ordering and failure naming are the services' own.
 - **A rule per structure, not per start.** `rule(structure, context)` answers `GENERATE`, `ALSO_PLACE`,
   `REPLACE` or `BLOCK` for one structure id in one world. The platform asks per start, but also when it locates
   a structure, which has no position; and an answer that depended on the position could block a start
@@ -812,31 +814,39 @@ platform.
   but a module places is reported, and located, as the module's. `and` combines two modules' rules, so the
   result never depends on module order.
 - **The context is the world's pack.** `resources()` and `settings()` (`PackSettings`: the dimension and every
-  region and biome it can reach), the same view reaches are worked out from. A hook that needs the world's own
-  state gets it the way stages do.
-- **Placing starts: `starts(chunkX, chunkZ, context)`, a hook method, not a service.** The question is the same
-  hook's (which platform structures does this module own), asked per chunk because the platform generates per chunk,
-  and its answers sit next to the rule a module gives the same structures. A start carries everything the platform
-  needs and nothing it can work out: structure, chunk, height above the bottom, surface or underground, whether it
-  takes the chunk from a platform start, jigsaw overrides, the fit, and an identity the host persists with the start
-  so a start found in a saved world can be traced to its placement. Several placements of one module that start one
-  structure in one chunk are the module's to resolve; across modules the host keeps the first in module id order.
-  The context is the `PackWorld` (seed, state) plus a `TerrainSampler`, not raw seeds: a start that needs heights
-  asks the host's terrain, like a stage does.
-- **The platform's own starts get an adjustment, a second per-structure method.** `importedStructures`' vertical
-  moves (`yShift`, `yBand`, `preserveSourceY`) and fit apply to starts the platform makes, which no module returns, so
-  they cannot ride on `VanillaStructureStart`. They are a per-structure answer like the rule (cached the same way,
-  with the platform's underground-step flag as the only extra input), so `adjustment(structure, underground,
-  context)`. A separate value rather than a richer rule keeps the rule's order-free `and`; adjustments compose in
-  module id order (`then`), which is what one module's list of matching entries always did.
-- **Fit values are value types, the host keeps Iris's classes.** `StructureTerrain`, `StructureStilts`, `YBand` and
-  `JigsawOverrides` read the JSON Iris's classes read, so settings can hold them and packs keep their JSON. The host
-  converts them into its own classes for the platform code, which also persists the fit of every start it publishes:
-  the stored JSON stays the same. Modes, shapes and heightmaps are API enums because the host implements each one.
+  region and biome it can reach), the same view reaches are worked out from.
+- **Placing starts: `starts(chunkX, chunkZ, context)`.** Asked per chunk because the platform generates per chunk. A
+  start carries everything the platform needs and nothing it can work out: structure, chunk, height above the
+  bottom, surface or underground, whether it takes the chunk from a platform start, jigsaw overrides, a memo, and an
+  identity the host persists with the start so a start found in a saved world can be traced to its placement. Across
+  modules the host keeps the first start per structure and chunk in module id order. The context is the `PackWorld`
+  plus a `TerrainSampler`.
+- **No fit values in the API.** How a start meets the terrain (Iris's SOURCE, PRESERVE, VACUUM, ENCASE, BORE,
+  FORCE_CARVE, stilts, bands) is a feature's vocabulary; an API type would freeze one feature's choices. The API gives
+  a module what it needs to fit: the platform start's place (`shift`), how far a start changes terrain (`reach`) and
+  the chunk around the pieces (`beforePieces`, `afterPieces`). The host keeps only what every platform needs: move and
+  clamp a start, wrap its references, place its pieces.
+- **Shift and reach, not an adjustment value.** A start the platform makes is moved by the sum of every module's
+  `shift(PlatformStart, context)`. `PlatformStart` gives what a module needs to decide (bounds, underground, aligned
+  by the host, the dimension's bottom, the surface per column) without platform types. `reach` is asked for every
+  start before it is published, so the platform hands it to every chunk whose terrain a module changes; `PLATFORM`
+  means the platform's own adaptation envelope, so a module that changes nothing more need not know it.
+- **The fit sees one chunk at a time.** `StructureFit` is a chunk's area and its starts in placing order, each with
+  its pieces: box, kind (`FIXED` built in code, `RIGID` and `TERRAIN_MATCHING` jigsaw pieces), ground level, jigsaw
+  junctions, the template's cells after the platform's processors (`TemplateCells`, with removed blocks and the
+  number of template blocks read, so a module can bound its work), template columns and legacy template air. Blocks
+  go through `BlockAccess`: `get`, `column` and `set` work on plain states, traits and tags answer the platform's own
+  questions, so a fit scans millions of cells without a value per block. `state(type, factory)` holds a module's
+  object for the chunk from `beforePieces` to the last `afterPieces`, the only place a fit keeps state.
+- **A memo instead of a persisted fit.** A start a module places carries a `StartMemo` (two texts, the module's to
+  fill). The host stores it with the start's ownership record and hands it back in `reach` and in every chunk's
+  `StructureFit`, so a start fits the same in every chunk it reaches, also after a restart or a pack change. Iris's
+  structure module writes its terrain and stilts JSON there, in the two places records always held them, so records
+  written before read the same.
 - **Setup before a world exists: `setup(context)`.** Structure set frequencies and protecting the platform's
   definitions from installed data packs are decided when the platform builds its structure state or the host
-  installs data packs, before any world of the dimension runs. The context is the dimension's settings without an
-  engine. Frequencies multiply across modules; protection holds when any module asks for it.
+  installs data packs, before any world of the dimension runs. Frequencies multiply across modules; protection holds
+  when any module asks for it.
 
 ## Pack resource kinds
 
@@ -996,7 +1006,7 @@ This is an inventory of where each existing family should land, not a claim that
 | Cave profiles, carving, cave fluids and decoration | Chunk stages + typed carve layers |
 | Floating islands and child biomes | Terrain/biome sampling + chunk and placement stages |
 | Structures, jigsaw pools and foundations | Structure assembly producing placement requests |
-| Imported/native structures and ownership | `VanillaStructureHook` (rule, adjustment, starts, setup); host native-generation adapter per platform |
+| Imported/native structures and ownership | `VanillaStructures` service (rule, starts, shift, reach, beforePieces, afterPieces, setup); host native-generation bridge per platform |
 | Terrain layers, fluids, bedrock, interpolation | Terrain providers + chunk stages |
 | Region/biome selection | Biome providers + platform biome writer |
 | Image maps, noise expressions, pack injection | Compiled immutable pack resources |

@@ -27,8 +27,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`), `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
-| Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `StructureTerrain`, `StructureStilts`, `YBand`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
-| Decisions over the platform's own structures | `VanillaStructureHook` (`rule`, `adjustment`, `starts`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureAdjustment`, `VanillaStructureFit`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `FeatureRegistry.registerVanillaStructureHook`, host `FeatureCatalog.vanillaStructureHooks()` |
+| Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
+| Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `StructureStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
@@ -87,8 +87,8 @@ kinds claim, or one the host reads itself, fails the pack load naming both owner
 values, read once per pack snapshot. Validators only report: an `ERROR` blocks the pack, a `WARNING` is shown.
 
 IrisApi's value types are values: the host decodes them like settings, and nothing changes them afterwards.
-Noise belongs to the host; modules describe it and get samplers built from the description. A vanilla structure
-hook answers per structure and world, never per position.
+Noise belongs to the host; modules describe it and get samplers built from the description. A
+`VanillaStructures` rule answers per structure and world, never per position.
 
 There is no API version gating. Packs ship their module jars, so their compatibility with the
 running Iris is the pack publisher's responsibility.
@@ -196,17 +196,25 @@ running Iris is the pack publisher's responsibility.
   `tileData` into the host's block entity format.
 - Build `BlockRegistry.palette(spec, seed)` pickers: blocks expanded by weight, the style's noise at (x, y, z) over
   the zoom picks the entry, resolved as above, cached per pack snapshot; refuse a palette without a block to pick.
-- Ask every vanilla structure hook (`catalog().vanillaStructureHooks()`) before the platform starts one of its
-  structures and when it locates one, combine the rules with `VanillaStructureRule.and`, keep the result per world,
-  structure and pack snapshot, and apply it on every platform: block the platform's starts of a blocked
-  structure, and report a structure a module places as that module's. A hook that throws fails naming its module.
-- Ask `adjustment` per world, structure, underground flag and pack snapshot, compose with
-  `VanillaStructureAdjustment.then` in module id order, and apply it to the platform's own starts: keeping the source
-  height over a band over the host's repositioning, then the shift; fit the terrain before the pieces and build
-  stilts after. Convert API heights (above the bottom) to world Y at the boundary; `YBand` is world Y.
+- Ask every `VanillaStructures` provider (`catalog().registrations(VanillaStructures.class)`, module id order) before
+  the platform starts one of its structures and when it locates one, combine the rules with `VanillaStructureRule.and`,
+  keep the result per world, structure and pack snapshot, and apply it on every platform: block the platform's starts
+  of a blocked structure, and report a structure a module places as that module's. A provider that throws or answers
+  nothing fails naming its module.
+- Before publishing a start the platform made, add up every provider's `shift` for it (after the host's own
+  alignment of monuments and temples) and move the start by it, less where it would leave the world. Before
+  publishing any start, cover every provider's `reach` in its references (`PLATFORM`: the platform's own terrain
+  adaptation envelope), within Minecraft's reference range; a recorded envelope only grows.
+- Per chunk, call every provider's `beforePieces` once before the platform places any piece of the chunk's starts,
+  then per start in placing order the platform's placement and `afterPieces`. Give `StructureFit` in the API's heights
+  (above the bottom, maxima exclusive): the processed template cells of a piece, its template columns, its legacy
+  template air, the surface per column without fluids and the dimension's natural block. `BlockAccess.is` answers
+  `AIR`, `SOLID`, `FLUID`, `LOG` and `LEAVES` as the platform's world does and refuses other traits.
+- Persist every start's `StartMemo` with its ownership record, unchanged, and hand it back in `reach` and
+  `StructureFit`; a start without a memo stays without one.
 - Ask `starts` per chunk, in module id order, refuse a start outside the chunk asked for, keep the first start per
   structure, let a start take the chunk from a platform start only when it says so or the structure is `REPLACE`d,
-  apply its jigsaw overrides and fit, record its identity with every start the host publishes, and ask again (same
+  apply its jigsaw overrides, keep its memo, record its identity with every start the host publishes, and ask again (same
   answer) when locating or verifying a start found in the world.
 - Ask `setup` per dimension before its worlds build their structure state and when installing data packs; multiply
   frequencies per structure set (0.01 to 16), protect the platform's definitions in every installed data pack once

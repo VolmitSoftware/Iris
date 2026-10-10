@@ -52,7 +52,7 @@ public final class MossModule implements IrisModule {
 
 `IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators,
 mantle layers, settings no stage names (see Settings for studio), pack resource kinds, validators,
-lifecycle hooks, services and vanilla structure hooks (see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
+lifecycle hooks and services (see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
 like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
 module naming it owns in that sense, or its owner must have registered it, so another module may
 still condition its stages on it, as moss does on `iris:snow`.
@@ -295,6 +295,7 @@ final class RuinsObjects implements ObjectsAt {
 | `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, and the `ItemDrop`s one table gives there. The host puts them together, tells listeners, creates the stacks and shuffles the container. |
 | `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
 | `EntitySpawns` | `ALL` | A `Plan` of entities to spawn in a chunk or at a marker, each `Attempt` an `EntitySpec` with the block, light range and surface it needs; how many appeared (`spawned`); what a marker means (`MarkerRule`); one entity of the pack on request. The host checks light, surface and free space, spawns, and applies the spec. |
+| `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, and fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over (see Vanilla structures). |
 
 ```
 Service example.Clock is provided by module example:alpha from modules/alpha.jar already, and module example:beta from modules/beta.jar provides it too; a pack has one provider of it (Providers.ONE), so remove one of them
@@ -504,51 +505,68 @@ own enum or settings class with the same JSON, and applies a rotation through `O
 ## Vanilla structures
 
 A module decides over the platform's own structures, the ones Minecraft, data packs and mods register, with a
-`VanillaStructureHook`: the platform keeps generating one (`GENERATE`), the module places it as well
+`VanillaStructures` service provider: the platform keeps generating one (`GENERATE`), the module places it as well
 (`ALSO_PLACE`), the module places it instead and the platform's own starts are blocked (`REPLACE`), or nobody
 generates it (`BLOCK`).
 
 ```java
 public void register(FeatureRegistry registry) {
-    registry.registerVanillaStructureHook((structure, world) ->
-            world.settings().declared(CastleSettings.class).stream()
+    registry.registerService(VanillaStructures.class, new VanillaStructures() {
+        @Override
+        public VanillaStructureRule rule(ResourceId structure, VanillaStructureContext world) {
+            return world.settings().declared(CastleSettings.class).stream()
                     .anyMatch(castle -> castle.value().replaces().equals(structure.toString()))
-                    ? VanillaStructureRule.REPLACE : VanillaStructureRule.GENERATE);
+                    ? VanillaStructureRule.REPLACE : VanillaStructureRule.GENERATE;
+        }
+    });
 }
 ```
 
-The host asks every hook of the pack once per world, structure and pack snapshot, before the platform starts the
-structure and when it locates it, so a hook decides from the pack, never from a position. Rules combine: a
-structure is blocked when any module blocks it, and placed by a module when any module places it. The host applies
-the result on every platform it runs on.
+The host asks every provider of the pack, in module id order. It asks `rule` once per world, structure and pack
+snapshot, before the platform starts the structure and when it locates it, so a provider decides from the pack, never
+from a position. Rules combine: a structure is blocked when any module blocks it, and placed by a module when any
+module places it. The host applies the result on every platform it runs on.
 
-A hook has three more methods, each with a default that changes nothing, so a hook that only rules stays a lambda:
+Every method has a default that changes nothing, so a provider implements only what it takes part in:
 
-- `adjustment(structure, underground, context)`: how the platform's own starts of a structure are moved (`shifted`,
-  `withYBand` in world Y, `keepingSourceY`) and fitted (`VanillaStructureFit`: a `StructureTerrain` fitting before
-  the pieces are placed, `StructureStilts` foundation columns after). Asked and kept like the rule; adjustments of
-  several modules apply one after the other in module id order (`then`: shifts add up, a later band or fit part wins).
 - `starts(chunkX, chunkZ, context)`: the platform structures the module starts in that chunk itself. A
   `VanillaStructureStart` names the structure, its height above the bottom (`underground()` puts the structure's
   lowest block there; otherwise it sits on the surface), whether it takes the chunk from a platform start of the same
-  structure, a stable `identity` the host records with it, `JigsawOverrides` for jigsaw structures and a fit. The
-  context gives the world (`PackWorld`) and a `TerrainSampler` over the chunk. Answer from the world and chunk only:
-  the host asks again when it locates structures and when it checks starts it finds in the world.
+  structure, a stable `identity` the host records with it, `JigsawOverrides` for jigsaw structures and a `StartMemo`.
+  The context gives the world (`PackWorld`) and a `TerrainSampler` over the chunk. Answer from the world and chunk
+  only: the host asks again when it locates structures and when it checks starts it finds in the world.
+- `shift(start, context)`: how many blocks one of the platform's own starts moves up or down before the host
+  publishes it. A `PlatformStart` gives its bounds, whether the platform generates it underground, whether the host
+  aligns it itself (ocean monuments to the sea, desert and jungle temples to the terrain; a shift then applies on top),
+  the dimension's bottom and the terrain's surface per column. Shifts of several modules add up; the host keeps the
+  start inside the world.
+- `reach(structure, underground, memo, context)`: how far around its pieces the module changes the terrain for a
+  start (`StartReach.blocks(n)`, or `PLATFORM` for no further than the platform's own terrain adaptation). The host
+  hands the start to every chunk any module's reach covers.
+- `beforePieces(fit)` and `afterPieces(fit, placed)`: around the platform placing the pieces of the starts in one
+  chunk. `StructureFit` is that chunk: its area, the world's blocks (`BlockAccess`, written in batches), the terrain's
+  surface and natural block per column, and every start with its structure, step, the platform's terrain adaptation,
+  memo and pieces (box, kind, ground level, jigsaw junctions, the processed template cells, template columns and
+  legacy air). `state(type, factory)` keeps one object per chunk for the module, from `beforePieces` to the last
+  `afterPieces`.
 - `setup(context)`: before any world of the dimension exists, how often each structure set starts (`withFrequency`,
   multipliers of several modules multiply) and whether the data packs the host installs must leave the platform's own
   structure definitions alone (`protectingVanillaDefinitions`, for every pack once any dimension asks for it).
 
 ```java
+@Override
 public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructureStartContext context) {
     if (!castleChunk(context.world().seed(), chunkX, chunkZ)) return List.of();
     int surface = (int) context.terrain().column((chunkX << 4) + 8, (chunkZ << 4) + 8).surfaceY();
     return List.of(VanillaStructureStart.at(ResourceId.parse("minecraft:village_plains"), chunkX, chunkZ, surface)
-            .withFit(VanillaStructureFit.SOURCE.withTerrain(StructureTerrain.of(StructureTerrain.Mode.VACUUM))));
+            .withMemo(new StartMemo("{\"mode\":\"VACUUM\"}", "")));
 }
 ```
 
-`StructureTerrain`, `StructureStilts`, `YBand` and `JigsawOverrides` are value types like `PaletteSpec`: settings may
-hold them, and packs write them as Iris always read them.
+How a start meets the terrain is the module's: the API has no fit values. A `StartMemo` is two texts the module gives
+a start it places; the host persists them with the start and hands them back in `reach` and in every chunk's
+`StructureFit`, so every chunk the start reaches fits it the same way, also after a restart. `JigsawOverrides` is a
+value type like `PaletteSpec`: settings may hold it, and packs write it as Iris always read it.
 
 ## Host side
 
@@ -654,8 +672,8 @@ A pack without jars logs `Pack overworld uses no modules: no jars in its modules
 
 `LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
 together with explicitly registered settings, geometry and mantle registrations, resource kinds and
-validators and vanilla structure hooks (`catalog().resourceKinds()`, `catalog().validators()`,
-`catalog().vanillaStructureHooks()`), describes them and resolves the pipelines. Graph errors
+validators and service providers (`catalog().resourceKinds()`, `catalog().validators()`,
+`catalog().registrations(service)`), describes them and resolves the pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do duplicate module ids and feature ids or mantle keys outside the
 module's id, and a settings key two features take at one target or that is a reserved host field. Errors about one module name its jar or "host classpath", and so does a module
@@ -780,7 +798,7 @@ failures. `LifecycleRunnerTest` checks hook order, warm-ups after the starts (ea
 fails, and that every stop runs. `WorldStateExampleTest` (`example/world`) has a chunk stage, a service and a hook share
 one world's state, and a new world start empty. `PackSchemaTest` also describes settings holding IrisApi's value types (`BlockSpec`, `NoiseStyle`,
 `StyledRange`, `Range`, `BlockPosition`) and `Object`, and `SettingsValuesTest` checks the value types themselves
-and how vanilla structure rules combine. `ModuleRegistryTest` also checks the order of vanilla structure hooks. `DiscoveredModuleTest`
+and how vanilla structure rules combine. `ModuleRegistryTest` also checks the order of service providers. `DiscoveredModuleTest`
 checks that `info()` is read once. `LoadedPackTest` loads a pack with
 built-ins and checks that a failed load and `close()` leave nothing open. `PackJarSnapshotTest` checks
 that classes come from the copies, that the original can be replaced while loaded, that copies go

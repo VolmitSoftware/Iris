@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,34 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.loot;
+package art.arcane.iris.builtin.loot;
 
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.Required;
-import art.arcane.volmlib.util.collection.KList;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinItems;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Required;
 
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
+import java.util.Collections;
+import java.util.List;
+
+/** A loot table of the pack, one file of {@code loot/}. */
 @Desc("Represents a loot table. Biomes, Regions & Objects can add or replace the virtual table with these loot tables")
-@Data
-@EqualsAndHashCode(callSuper = false)
-public class IrisLootTable extends IrisRegistrant {
+public final class LootTable {
     public static final int MAX_PICKED = 64;
     public static final int MAX_TRIES = 256;
 
     @Required
     @Desc("The name of this loot table")
-    @MinNumber(2)
     private String name = "";
 
     @MinNumber(1)
@@ -65,17 +56,34 @@ public class IrisLootTable extends IrisRegistrant {
     @Desc("The maximum amount of tries to generate loot, from 1 to 256")
     private int maxTries = 10;
 
+    @MinItems(1)
     @Desc("The loot in this table")
-    @ArrayType(min = 1, type = IrisLoot.class)
-    private KList<IrisLoot> loot = new KList<>();
+    private List<LootEntry> loot = List.of();
 
-    @Override
-    public String getFolderName() {
-        return "loot";
+    public LootTable() {
     }
 
-    @Override
-    public String getTypeName() {
-        return "Loot";
+    public String name() {
+        return name == null ? "" : name;
+    }
+
+    public int rarity() {
+        return rarity;
+    }
+
+    public int maxPicked() {
+        return maxPicked;
+    }
+
+    public int minPicked() {
+        return minPicked;
+    }
+
+    public int maxTries() {
+        return maxTries;
+    }
+
+    public List<LootEntry> loot() {
+        return loot == null ? List.of() : Collections.unmodifiableList(loot);
     }
 }

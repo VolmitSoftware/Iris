@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,13 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.world;
+package art.arcane.iris.builtin.spawn;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.spi.PlatformWorld;
+import com.volmit.config.Desc;
 
 @Desc("Represents a weather type")
-public enum IrisWeather {
+public enum SpawnWeather {
     @Desc("Represents when weather is not causing downfall")
     NONE,
 
@@ -35,11 +34,12 @@ public enum IrisWeather {
     @Desc("Any weather")
     ANY;
 
-    public boolean is(PlatformWorld world) {
+    /** Whether the weather of a world, which is {@code storming} and {@code thundering} or neither, is this one. */
+    public boolean matches(boolean storming, boolean thundering) {
         return switch (this) {
-            case NONE -> !world.isStorming() && !world.isThundering();
-            case DOWNFALL -> world.isStorming();
-            case DOWNFALL_WITH_THUNDER -> world.isStorming() && world.isThundering();
+            case NONE -> !storming && !thundering;
+            case DOWNFALL -> storming;
+            case DOWNFALL_WITH_THUNDER -> storming && thundering;
             case ANY -> true;
         };
     }

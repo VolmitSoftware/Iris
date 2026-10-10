@@ -18,26 +18,29 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.EntitySpawn;
+import art.arcane.iris.builtin.spawn.SpawnMarker;
+import art.arcane.iris.builtin.spawn.SpawnSurface;
+import art.arcane.iris.builtin.spawn.Spawner;
+import art.arcane.iris.builtin.spawn.SpawnerSettings;
+import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.IrisEntitySpawn;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.entity.spawn.IrisSurface;
-import art.arcane.iris.engine.object.marker.IrisMarker;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.engine.spawn.SpawnResources.KeyedSpawner;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
+import com.volmit.config.Range;
 import com.volmit.entity.EntitySpec;
 import com.volmit.service.EntitySpawns;
 import com.volmit.world.BlockPosition;
@@ -76,15 +79,15 @@ public final class EntitySpawning implements EntitySpawns {
         if (count <= 0) {
             return;
         }
-        IrisSpawner spawner = SpawnResources.spawner(engine(world).getData(), plan.spawner());
+        Spawner spawner = SpawnResources.spawner(engine(world).getData(), plan.spawner());
         if (spawner != null) {
-            spawner.spawn(engine(world), plan.chunkX(), plan.chunkZ());
+            SpawnerGate.spawned(plan.spawner(), spawner, engine(world), plan.chunkX(), plan.chunkZ());
         }
     }
 
     @Override
     public Optional<EntitySpec> entity(PackWorld world, String key) {
-        IrisEntity entity = SpawnResources.entity(engine(world).getData(), key);
+        EntityDefinition entity = SpawnResources.entity(engine(world).getData(), key);
         if (entity == null) {
             return Optional.empty();
         }
@@ -97,40 +100,40 @@ public final class EntitySpawning implements EntitySpawns {
             return Optional.empty();
         }
         Engine engine = engine(world);
-        IrisMarker marker = SpawnResources.marker(engine.getData(), tag);
+        SpawnMarker marker = SpawnResources.marker(engine.getData(), tag);
         if (marker == null) {
             return Optional.empty();
         }
 
         List<String> spawners = new ArrayList<>();
-        for (String key : marker.getSpawners()) {
+        for (String key : marker.spawners()) {
             if (SpawnResources.spawner(engine.getData(), key) == null) {
                 IrisLogging.error("Cannot load spawner: " + key + " for marker " + tag);
                 continue;
             }
             spawners.add(key);
         }
-        return Optional.of(new MarkerRule(spawners, marker.isEmptyAbove(), marker.isRemoveOnChange()));
+        return Optional.of(new MarkerRule(spawners, marker.emptyAbove(), marker.removeOnChange()));
     }
 
     private Optional<Plan> planChunk(PackWorld world, Engine engine, Chunk chunk) {
-        Predicate<IrisSpawner> canSpawn = spawner -> spawner.canSpawn(engine, chunk.chunkX(), chunk.chunkZ());
+        Predicate<KeyedSpawner> canSpawn = keyed -> SpawnerGate.canSpawn(keyed.key(), keyed.spawner(), engine, chunk.chunkX(), chunk.chunkZ());
         int blockX = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkX());
         int blockZ = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkZ());
         IrisBiome centreBiome = engine.getSurfaceBiome(blockX + BLOCKS_TO_CHUNK_CENTRE, blockZ + BLOCKS_TO_CHUNK_CENTRE);
         IrisRegion region = engine.getRegion(blockX, blockZ);
         IrisBiome biome = engine.getSurfaceBiome(blockX, blockZ);
 
-        List<IrisSpawner> candidates = Stream.concat(
-                        shuffled(engine, engine.getDimension().getEntitySpawners()).stream()
-                                .filter(canSpawn).filter(spawner -> spawner.isValid(centreBiome)),
+        List<KeyedSpawner> candidates = Stream.concat(
+                        shuffled(engine, engine.getDimension()).stream()
+                                .filter(canSpawn).filter(keyed -> SpawnerGate.suits(keyed.spawner(), centreBiome)),
                         Stream.concat(
-                                shuffled(engine, region.getEntitySpawners()).stream().filter(canSpawn),
-                                shuffled(engine, biome.getEntitySpawners()).stream().filter(canSpawn)))
-                .filter(spawner -> chunk.livingEntities() < spawner.getMaxEntitiesPerChunk())
+                                shuffled(engine, region).stream().filter(canSpawn),
+                                shuffled(engine, biome).stream().filter(canSpawn)))
+                .filter(keyed -> chunk.livingEntities() < keyed.spawner().maxEntitiesPerChunk())
                 .toList();
 
-        List<Candidate> spawns = candidates.stream().flatMap(spawner -> spawnsOf(spawner, chunk.initial())).collect(Collectors.toList());
+        List<Candidate> spawns = candidates.stream().flatMap(keyed -> spawnsOf(keyed, chunk.initial())).collect(Collectors.toList());
         Candidate chosen = IRare.expandWeighted(spawns).getRandom();
         if (chosen == null) {
             return Optional.empty();
@@ -139,26 +142,25 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private Optional<Plan> planChunkSpawn(PackWorld world, Engine engine, Chunk chunk, Candidate chosen) {
-        IrisSpawner spawner = chosen.spawner();
-        IrisEntitySpawn spawn = chosen.spawn();
-        int count = LootResolver.inclusive(RNG.r, spawn.getMinSpawns(), spawn.getMaxSpawns());
+        EntitySpawn spawn = chosen.spawn();
+        int count = LootResolver.inclusive(RNG.r, spawn.minSpawns(), spawn.maxSpawns());
         List<Attempt> attempts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             int x = (chunk.chunkX() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
             int z = (chunk.chunkZ() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
-            BlockPosition at = spawnPosition(engine, spawner, chunk.chunkX(), chunk.chunkZ(), x, z);
+            BlockPosition at = spawnPosition(engine, chosen.spawner(), chunk.chunkX(), chunk.chunkZ(), x, z);
             if (at != null) {
                 addAttempt(attempts, world, engine, chosen, at, true);
             }
         }
-        return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(spawner.getLoadKey(), chunk.chunkX(), chunk.chunkZ(), false, attempts));
+        return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(chosen.key(), chunk.chunkX(), chunk.chunkZ(), false, attempts));
     }
 
     /** Where a spawner of its group puts an entity at the column; null when it has no place for one. */
-    private static BlockPosition spawnPosition(Engine engine, IrisSpawner spawner, int chunkX, int chunkZ, int x, int z) {
+    private static BlockPosition spawnPosition(Engine engine, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
         int height = engine.getHeight(x, z, true);
         int heightWithFluid = engine.getHeight(x, z, false);
-        return switch (spawner.getGroup()) {
+        return switch (spawner.group()) {
             case NORMAL -> new BlockPosition(x, heightWithFluid + 1, z);
             case CAVE -> caveSpawnPosition(engine, chunkX, chunkZ);
             case UNDERWATER, BEACH -> new BlockPosition(x, RNG.r.i(height + 1, heightWithFluid), z);
@@ -175,78 +177,92 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private Optional<Plan> planMarker(PackWorld world, Engine engine, Marker marker) {
-        IrisSpawner spawner = SpawnResources.spawner(engine.getData(), marker.spawner());
-        IrisMarker irisMarker = SpawnResources.marker(engine.getData(), marker.marker());
+        Spawner spawner = SpawnResources.spawner(engine.getData(), marker.spawner());
+        SpawnMarker spawnMarker = SpawnResources.marker(engine.getData(), marker.marker());
         if (spawner == null) {
             return Optional.empty();
         }
 
-        KList<IrisEntitySpawn> candidates = marker.initial() ? spawner.getInitialSpawns() : spawner.getSpawns();
+        List<EntitySpawn> candidates = marker.initial() ? spawner.initialSpawns() : spawner.spawns();
         if (candidates.isEmpty()) {
             return Optional.empty();
         }
-        IrisEntitySpawn spawn = IRare.expandWeighted(candidates).getRandom();
+        EntitySpawn spawn = IRare.expandWeighted(candidates.stream().map(RareSpawn::new).toList()).getRandom().spawn();
 
         BlockPosition position = marker.position();
         int chunkX = PowerOfTwoCoordinates.blockToChunkFloor(position.x());
         int chunkZ = PowerOfTwoCoordinates.blockToChunkFloor(position.z());
-        if (!spawner.canSpawn(engine, chunkX, chunkZ)) {
+        if (!SpawnerGate.canSpawn(marker.spawner(), spawner, engine, chunkX, chunkZ)) {
             return Optional.empty();
         }
 
-        int count = LootResolver.inclusive(RNG.r, spawn.getMinSpawns(), spawn.getMaxSpawns());
+        int count = LootResolver.inclusive(RNG.r, spawn.minSpawns(), spawn.maxSpawns());
         if (count <= 0) {
             return Optional.empty();
         }
-        boolean exhaustsMarker = irisMarker != null && irisMarker.shouldExhaust();
+        boolean exhaustsMarker = spawnMarker != null && shouldExhaust(spawnMarker);
         List<Attempt> attempts = new ArrayList<>();
         BlockPosition above = new BlockPosition(position.x(), position.y() + AIR_ABOVE_MARKER, position.z());
         for (int i = 0; i < count; i++) {
-            addAttempt(attempts, world, engine, new Candidate(spawner, spawn), above, false);
+            addAttempt(attempts, world, engine, new Candidate(marker.spawner(), spawner, spawn), above, false);
         }
-        return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(spawner.getLoadKey(), chunkX, chunkZ, exhaustsMarker, attempts));
+        return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(marker.spawner(), chunkX, chunkZ, exhaustsMarker, attempts));
+    }
+
+    private static boolean shouldExhaust(SpawnMarker marker) {
+        return marker.exhaustionChance() > RNG.r.nextDouble();
     }
 
     private void addAttempt(List<Attempt> attempts, PackWorld world, Engine engine, Candidate candidate, BlockPosition at, boolean checkSurface) {
-        IrisEntity entity = candidate.spawn().getRealEntity(engine);
+        EntityDefinition entity = SpawnResources.entity(engine.getData(), candidate.spawn().entity());
         if (entity == null) {
             IrisLogging.debug("      You are trying to spawn an entity that does not exist!");
             return;
         }
 
-        IrisRange light = candidate.spawner().getAllowedLightLevels();
+        Range light = candidate.spawner().allowedLightLevels();
         EntitySpec spec = resolution(world, engine).resolve(entity, entityRandom(world).rng());
-        attempts.add(new Attempt(at, spec, surfaceOf(entity.getSurface()),
-                (int) Math.ceil(light.getMin()), (int) Math.floor(light.getMax()), checkSurface));
+        attempts.add(new Attempt(at, spec, surfaceOf(entity.surface()),
+                (int) Math.ceil(light.min()), (int) Math.floor(light.max()), checkSurface));
     }
 
     private static EntityResolution resolution(PackWorld world, Engine engine) {
         LootItems items = new LootItems(world.resources().items(), engine.isStudio());
-        return new EntityResolution(items, engine.getWorld().platformWorld());
+        return new EntityResolution(items, engine.getWorld().platformWorld(), world.state(EffectTimers.class, ignored -> new EffectTimers()));
     }
 
     private static EntityRandom entityRandom(PackWorld world) {
         return world.state(EntityRandom.class, EntityRandom::new);
     }
 
-    private static Surface surfaceOf(IrisSurface surface) {
+    private static Surface surfaceOf(SpawnSurface surface) {
         return Surface.valueOf(surface.name());
     }
 
-    private static KList<IrisSpawner> shuffled(Engine engine, KList<String> keys) {
-        return SpawnResources.spawners(engine.getData(), keys).shuffleCopy(RNG.r);
+    /** The spawners an area lists, in a random order. */
+    private static List<KeyedSpawner> shuffled(Engine engine, IrisRegistrant owner) {
+        List<String> keys = owner.getModuleSettings().find(SpawnerSettings.class).map(SpawnerSettings::spawners).orElse(List.of());
+        return new KList<>(SpawnResources.spawners(engine.getData(), keys)).shuffleCopy(RNG.r);
     }
 
-    private static Stream<Candidate> spawnsOf(IrisSpawner spawner, boolean initial) {
-        KList<IrisEntitySpawn> spawns = initial ? spawner.getInitialSpawns() : spawner.getSpawns();
-        return spawns.stream().map(spawn -> new Candidate(spawner, spawn));
+    private static Stream<Candidate> spawnsOf(KeyedSpawner keyed, boolean initial) {
+        List<EntitySpawn> spawns = initial ? keyed.spawner().initialSpawns() : keyed.spawner().spawns();
+        return spawns.stream().map(spawn -> new Candidate(keyed.key(), keyed.spawner(), spawn));
     }
 
     /** A spawn of a spawner, which picks as often as the spawn's rarity says. */
-    private record Candidate(IrisSpawner spawner, IrisEntitySpawn spawn) implements IRare {
+    private record Candidate(String key, Spawner spawner, EntitySpawn spawn) implements IRare {
         @Override
         public int getRarity() {
-            return spawn.getRarity();
+            return spawn.rarity();
+        }
+    }
+
+    /** A spawn that picks as often as its rarity says. */
+    private record RareSpawn(EntitySpawn spawn) implements IRare {
+        @Override
+        public int getRarity() {
+            return spawn.rarity();
         }
     }
 

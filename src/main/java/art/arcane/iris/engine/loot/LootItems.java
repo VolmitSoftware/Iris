@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.loot.ItemAttributeModifier;
+import art.arcane.iris.builtin.loot.LootEnchantment;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootSlot;
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
-import art.arcane.iris.engine.object.loot.IrisEnchantment;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
@@ -54,26 +54,28 @@ public final class LootItems {
     }
 
     /**
-     * The items {@code table} gives at the spot {@code x}, {@code y}, {@code z} (world coordinates): picks entries
-     * from the table's own random stream until it has the number of items the table asks for or runs out of tries.
+     * The items {@code table}, which the pack names {@code tableKey}, gives at the spot {@code x}, {@code y}, {@code z}
+     * (world coordinates): picks entries from the table's own random stream until it has the number of items the table
+     * asks for or runs out of tries.
      */
-    public List<ItemDrop> draw(IrisLootTable table, long lootSeed, int x, int y, int z) {
+    public List<ItemDrop> draw(String tableKey, LootTable table, long lootSeed, int x, int y, int z) {
         List<ItemDrop> drops = new ArrayList<>();
-        List<IrisLoot> entries = table.getLoot();
-        if (entries.isEmpty() || table.getMaxTries() <= 0) {
+        List<LootEntry> entries = table.loot();
+        if (entries.isEmpty() || table.maxTries() <= 0) {
             return drops;
         }
 
-        RNG rng = LootTables.rng(lootSeed, table, x, y, z);
-        int wanted = Math.max(0, LootResolver.inclusive(rng, table.getMinPicked(), table.getMaxPicked()));
+        String identity = LootTables.identity(tableKey);
+        RNG rng = LootTables.rng(lootSeed, identity, x, y, z);
+        int wanted = Math.max(0, LootResolver.inclusive(rng, table.minPicked(), table.maxPicked()));
         int tries = 0;
-        while (drops.size() < wanted && tries++ < table.getMaxTries()) {
+        while (drops.size() < wanted && tries++ < table.maxTries()) {
             int index = rng.nextInt(entries.size());
-            IrisLoot entry = entries.get(index);
-            if (entry == null || entry.getSlotTypes() != InventorySlotType.STORAGE) {
+            LootEntry entry = entries.get(index);
+            if (entry == null || entry.slotTypes() != LootSlot.STORAGE) {
                 continue;
             }
-            ItemDrop drop = drawEntry(entry, table, rng, lootSeed, index, x, y, z);
+            ItemDrop drop = drawEntry(entry, table, identity, rng, lootSeed, index, x, y, z);
             if (drop != null) {
                 drops.add(drop);
             }
@@ -82,66 +84,67 @@ public final class LootItems {
     }
 
     /** The item {@code entry} gives when nothing else decides whether it does, such as a block's drop or a mob's equipment; null for no item. */
-    public ItemDrop give(IrisLoot entry, RNG rng) {
+    public ItemDrop give(LootEntry entry, RNG rng) {
         return resolve(entry, rng, null);
     }
 
-    private ItemDrop drawEntry(IrisLoot entry, IrisLootTable table, RNG rng, long lootSeed, int index, int x, int y, int z) {
-        long combinedRarity = LootResolver.combinedRarity(entry.getRarity(), table.getRarity());
-        if (!LootTables.spatialOneIn(lootSeed, table, index, x, y, z, combinedRarity)) {
+    private ItemDrop drawEntry(LootEntry entry, LootTable table, String identity, RNG rng, long lootSeed, int index, int x, int y, int z) {
+        long combinedRarity = LootResolver.combinedRarity(entry.rarity(), table.rarity());
+        if (!LootTables.spatialOneIn(lootSeed, identity, index, x, y, z, combinedRarity)) {
             return null;
         }
         return resolve(entry, rng, table);
     }
 
-    private ItemDrop resolve(IrisLoot entry, RNG rng, IrisLootTable table) {
-        String type = entry.getTypeKey();
+    private ItemDrop resolve(LootEntry entry, RNG rng, LootTable table) {
+        String type = entry.type();
         OptionalInt maxDurability = items.maxDurability(type);
         if (maxDurability.isEmpty() || isAir(type)) {
             return null;
         }
 
-        int amount = Math.max(MIN_AMOUNT, LootResolver.inclusive(rng, entry.getMinAmount(), entry.getMaxAmount()));
+        int amount = Math.max(MIN_AMOUNT, LootResolver.inclusive(rng, entry.minAmount(), entry.maxAmount()));
         List<ItemEnchantment> enchantments = drawEnchantments(entry, rng);
         List<ItemAttribute> attributes = drawAttributes(entry, rng);
-        Double damage = maxDurability.getAsInt() > 0 ? 1D - rng.d(entry.getMinDurability(), entry.getMaxDurability()) : null;
-        return new ItemDrop(type, amount, entry.getDisplayName(), entry.getLore(), enchantments, attributes,
-                entry.isUnbreakable(), entry.getItemFlags(), entry.getCustomModel(), damage, entry.getLeatherColor(),
-                entry.getDyeColorKey(), entry.getCustomNbt(), debug ? sourceOf(entry, table) : null);
+        Double damage = maxDurability.getAsInt() > 0 ? 1D - rng.d(entry.minDurability(), entry.maxDurability()) : null;
+        return new ItemDrop(type, amount, entry.displayName(), entry.lore(), enchantments, attributes,
+                entry.unbreakable(), entry.itemFlags(), entry.customModel(), damage, entry.leatherColor(),
+                entry.dyeColor(), entry.customNbt(), debug ? sourceOf(entry, table) : null);
     }
 
-    private static List<ItemEnchantment> drawEnchantments(IrisLoot entry, RNG rng) {
+    private static List<ItemEnchantment> drawEnchantments(LootEntry entry, RNG rng) {
         List<ItemEnchantment> enchantments = new ArrayList<>();
-        for (IrisEnchantment enchantment : entry.getEnchantments()) {
-            String key = enchantment.getEnchantment();
-            if (key == null || key.isBlank() || rng.nextDouble() >= enchantment.getChance()) {
+        for (LootEnchantment enchantment : entry.enchantments()) {
+            String key = enchantment.enchantment();
+            if (key == null || key.isBlank() || rng.nextDouble() >= enchantment.chance()) {
                 continue;
             }
-            enchantments.add(new ItemEnchantment(key, Math.max(1, enchantment.getLevel(rng))));
+            int level = LootResolver.inclusive(rng, enchantment.minLevel(), enchantment.maxLevel());
+            enchantments.add(new ItemEnchantment(key, Math.max(1, level)));
         }
         return enchantments;
     }
 
-    private static List<ItemAttribute> drawAttributes(IrisLoot entry, RNG rng) {
+    private static List<ItemAttribute> drawAttributes(LootEntry entry, RNG rng) {
         List<ItemAttribute> attributes = new ArrayList<>();
-        for (IrisAttributeModifier modifier : entry.getAttributes()) {
-            if (rng.nextDouble() >= modifier.getChance()) {
+        for (ItemAttributeModifier modifier : entry.attributes()) {
+            if (rng.nextDouble() >= modifier.chance()) {
                 continue;
             }
-            String attribute = modifier.getAttribute();
+            String attribute = modifier.attribute();
             if (attribute == null || attribute.isBlank()) {
                 continue;
             }
-            attributes.add(new ItemAttribute(attribute, modifier.getName(), modifier.getOperation(), modifier.getAmount(rng)));
+            attributes.add(new ItemAttribute(attribute, modifier.name(), modifier.operation(), rng.d(modifier.minAmount(), modifier.maxAmount())));
         }
         return attributes;
     }
 
-    private static ItemDrop.Source sourceOf(IrisLoot entry, IrisLootTable table) {
+    private static ItemDrop.Source sourceOf(LootEntry entry, LootTable table) {
         if (table == null) {
-            return new ItemDrop.Source(null, 0, entry.getRarity());
+            return new ItemDrop.Source(null, 0, entry.rarity());
         }
-        return new ItemDrop.Source(table.getName(), table.getRarity(), entry.getRarity());
+        return new ItemDrop.Source(table.name(), table.rarity(), entry.rarity());
     }
 
     private static boolean isAir(String type) {

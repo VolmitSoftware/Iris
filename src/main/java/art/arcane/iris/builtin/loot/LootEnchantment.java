@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,33 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.loot;
+package art.arcane.iris.builtin.loot;
 
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListEnchantment;
-import art.arcane.iris.engine.object.annotations.Required;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.math.RNG;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-
-
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
+import com.volmit.config.Required;
+import com.volmit.config.Snippet;
 
 @Snippet("enchantment")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
 @Desc("Represents an enchantment & level")
-@Data
-public class IrisEnchantment {
+public final class LootEnchantment {
     @Required
-    @RegistryListEnchantment
+    @Ref(Reference.ENCHANTMENT)
     @Desc("The enchantment")
     private String enchantment;
 
@@ -59,7 +47,22 @@ public class IrisEnchantment {
     @Desc("The chance that this enchantment is applied (0 to 1)")
     private double chance = 1;
 
-    public int getLevel(RNG rng) {
-        return LootResolver.inclusive(rng, getMinLevel(), getMaxLevel());
+    public LootEnchantment() {
+    }
+
+    public String enchantment() {
+        return enchantment;
+    }
+
+    public int minLevel() {
+        return minLevel;
+    }
+
+    public int maxLevel() {
+        return maxLevel;
+    }
+
+    public double chance() {
+        return chance;
     }
 }

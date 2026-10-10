@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,30 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.world;
+package art.arcane.iris.builtin.spawn;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.PlatformWorld;
-import lombok.Data;
+import com.volmit.config.Desc;
+import com.volmit.config.Snippet;
 
 @Snippet("time-block")
-@Data
 @Desc("Represents a time of day (24h time, not 12h am/pm). Set both to the same number for any time. If they are both set to -1, it will always be not allowed.")
-public class IrisTimeBlock {
+public final class SpawnTimeBlock {
+    private static final double NEVER = -1;
+
     @Desc("The beginning hour. Set both to the same number for any time. If they are both set to -1, it will always be not allowed.")
     private double startHour = 0;
 
     @Desc("The ending hour. Set both to the same number for any time. If they are both set to -1, it will always be not allowed.")
     private double endHour = 0;
 
-    public boolean isWithin(PlatformWorld world) {
-        return isWithin(((world.getTime() / 1000D) + 6) % 24);
+    public SpawnTimeBlock() {
     }
 
-    public boolean isWithin(double hour) {
+    /** Whether {@code hour}, a time of day from 0 to 24, lies in the block; a block that wraps past midnight includes both ends. */
+    public boolean contains(double hour) {
         if (startHour == endHour) {
-            return endHour != -1;
+            return endHour != NEVER;
         }
 
         if (startHour > endHour) {

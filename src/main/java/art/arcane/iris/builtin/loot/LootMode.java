@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.loot;
+package art.arcane.iris.builtin.loot;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("A loot mode is used to describe what to do with the existing loot layers before adding this loot. ADD appends to the building list of tables (dimension tables, then region tables, then biome tables). REPLACE swaps the parent tables for this reference's tables. CLEAR suppresses loot entirely at this point.")
-public enum IrisLootMode {
+public enum LootMode {
     @Desc("Add to the existing parent loot tables")
     ADD,
     @Desc("Clear all parent loot tables and contribute nothing at this level. Any tables listed here are ignored.")

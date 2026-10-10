@@ -18,22 +18,22 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.framework.PlacedObject;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.iris.engine.object.loot.IrisVanillaLootTable;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.Loot;
 import com.volmit.world.PackWorld;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * How {@code iris:loot} fills containers: the tables of the object placed around a container, then those of the
@@ -47,57 +47,47 @@ public final class LootGiving implements Loot {
         int x = site.position().x();
         int z = site.position().z();
         int relativeY = site.position().y();
-        RNG rng = LootResolver.containerRng(lootSeed(engine), x, relativeY + engine.getMinHeight(), z);
+        int worldY = relativeY + engine.getMinHeight();
+        RNG rng = LootResolver.containerRng(lootSeed(engine), x, worldY, z);
 
-        List<IrisLootTable> tables = new KList<>();
+        List<Source> sources = new ArrayList<>();
         boolean objectLootDefined = site.nativeLootDefined();
         IrisObjectPlacement placement = site.container() == null ? null : placementAt(engine, x, relativeY, z);
         if (placement != null) {
             objectLootDefined = objectLootDefined || placement.getLoot().isNotEmpty() || placement.getVanillaLoot().isNotEmpty();
-            IrisLootTable table = placement.getTable(platformState(site), engine.getData(), rng);
-            if (table != null) {
-                tables.add(table);
+            Source picked = placementLoot(world, engine).pick(placement.getVanillaLoot(), placement.getLoot(), platformState(site), rng, x, worldY, z);
+            if (picked != null) {
+                sources.add(picked);
                 if (placement.isOverrideGlobalLoot()) {
-                    return sourcesOf(engine, site, List.of(table));
+                    return sources;
                 }
             }
         }
 
-        LootTables.resolveEnvironmentSources(tables, engine, rng, x, relativeY, z, objectLootDefined, table -> table);
-        return sourcesOf(engine, site, tables);
+        LootTables.resolveEnvironmentSources(sources, engine, rng, x, relativeY, z, objectLootDefined, Table::new);
+        return sources;
     }
 
     @Override
     public List<ItemDrop> items(PackWorld world, Site site, String key) {
         Engine engine = engine(world);
-        IrisLootTable table = LootResources.table(engine.getData(), key);
+        LootTable table = LootResources.table(engine.getData(), key);
         if (table == null) {
             return List.of();
         }
         int worldY = site.position().y() + engine.getMinHeight();
         return new LootItems(world.resources().items(), site.debug())
-                .draw(table, lootSeed(engine), site.position().x(), worldY, site.position().z());
+                .draw(key, table, lootSeed(engine), site.position().x(), worldY, site.position().z());
+    }
+
+    private static PlacementLoot placementLoot(PackWorld world, Engine engine) {
+        PlatformLootTables platformTables = world.state(PlatformLootTables.class, ignored -> new PlatformLootTables());
+        return new PlacementLoot(engine.getData(), platformTables::keys, lootSeed(engine));
     }
 
     private static IrisObjectPlacement placementAt(Engine engine, int x, int relativeY, int z) {
         PlacedObject placed = engine.getObjectPlacement(x, relativeY, z);
         return placed == null ? null : placed.getPlacement();
-    }
-
-    private static List<Source> sourcesOf(Engine engine, Site site, List<IrisLootTable> tables) {
-        int worldY = site.position().y() + engine.getMinHeight();
-        List<Source> sources = new KList<>();
-        for (IrisLootTable table : tables) {
-            if (table instanceof IrisVanillaLootTable vanilla) {
-                long seed = LootTables.seed(lootSeed(engine), vanilla, site.position().x(), worldY, site.position().z());
-                sources.add(new PlatformTable(vanilla.getLootTableKey(), seed));
-                continue;
-            }
-            if (table != null && table.getLoadKey() != null) {
-                sources.add(new Table(table.getLoadKey()));
-            }
-        }
-        return sources;
     }
 
     private static PlatformBlockState platformState(Site site) {
@@ -110,5 +100,19 @@ public final class LootGiving implements Loot {
 
     private static Engine engine(PackWorld world) {
         return IrisPackWorld.of(world).engine();
+    }
+
+    /** The loot table keys of the platform, which do not change while a world runs. */
+    private static final class PlatformLootTables {
+        private volatile Set<String> keys;
+
+        private Set<String> keys() {
+            Set<String> known = keys;
+            if (known == null) {
+                known = PlacementLoot.platformTableKeys();
+                keys = known;
+            }
+            return known;
+        }
     }
 }

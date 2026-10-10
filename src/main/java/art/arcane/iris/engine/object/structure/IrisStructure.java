@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.loot.LootTable;
-import art.arcane.iris.engine.object.loot.IrisObjectLoot;
+import art.arcane.iris.builtin.loot.ObjectLoot;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawCompatibility;
@@ -138,7 +138,7 @@ public class IrisStructure extends IrisRegistrant {
         }
         for (String lootTable : loot) {
             if (lootTable != null && !lootTable.isBlank()) {
-                placement.getLoot().add(new IrisObjectLoot().setName(lootTable).setWeight(1));
+                placement.getLoot().add(new ObjectLoot(lootTable, 1));
             }
         }
         return placement;

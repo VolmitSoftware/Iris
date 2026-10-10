@@ -28,8 +28,8 @@ import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.core.modules.BlockEntities;
 import art.arcane.iris.core.modules.IrisPlacement;
+import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
-import art.arcane.iris.engine.object.marker.IrisObjectMarker;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
 import art.arcane.iris.engine.object.prefab.TileData;
@@ -39,6 +39,8 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
+import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
 import com.volmit.ModuleInfo;
 import com.volmit.object.ObjectBlock;
 import com.volmit.placement.PlacedBlock;
@@ -204,27 +206,36 @@ public final class BlocksModule implements IrisModule {
         PlacementWorld world = new PlacementWorld(context.access(), placement.states());
         RNG markerRandom = new RNG(context.random().nextLong());
         int salt = 0;
-        for (IrisObjectMarker markerConfig : config.getMarkers()) {
-            SpawnMarker marker = SpawnResources.marker(placement.object().getLoader(), markerConfig.getMarker());
+        for (PlacementMarker markerConfig : config.getMarkers()) {
+            SpawnMarker marker = SpawnResources.marker(placement.data().getPackResources(), markerConfig.marker());
             int markerSalt = salt++;
             if (marker == null) {
                 continue;
             }
-            KList<BlockPosition> candidates = candidates(written, markerConfig, markerConfig.getMark(placement.data()), placement);
-            int remaining = markerConfig.getMaximumMarkers();
+            KList<BlockPosition> candidates = candidates(written, markerConfig, markTargets(markerConfig, placement), placement);
+            int remaining = markerConfig.maximumMarkers();
             for (BlockPosition position : candidates.shuffleCopy(markerRandom.nextParallelRNG(markerSalt))) {
                 if (remaining <= 0) {
                     break;
                 }
                 if (!marker.emptyAbove() || hasAirAbove(world, position)) {
-                    context.access().marker(ObjectMarkers.of(position, markerConfig.getMarker()));
+                    context.access().marker(ObjectMarkers.of(position, markerConfig.marker()));
                     remaining--;
                 }
             }
         }
     }
 
-    private static KList<BlockPosition> candidates(WrittenBlocks written, IrisObjectMarker markerConfig,
+    private static KList<PlatformBlockState> markTargets(PlacementMarker markerConfig, IrisPlacement placement) {
+        KList<PlatformBlockState> targets = new KList<>();
+        for (BlockSpec spec : markerConfig.mark()) {
+            BlockState state = placement.data().getPackResources().blocks().resolve(spec);
+            targets.add(placement.states().toPlatform(state));
+        }
+        return targets;
+    }
+
+    private static KList<BlockPosition> candidates(WrittenBlocks written, PlacementMarker markerConfig,
                                                    KList<PlatformBlockState> targets, IrisPlacement placement) {
         KList<BlockPosition> candidates = new KList<>();
         for (PlacedBlock block : written.blocks()) {
@@ -236,8 +247,8 @@ public final class BlocksModule implements IrisModule {
         return candidates;
     }
 
-    private static boolean marks(IrisObjectMarker markerConfig, PlatformBlockState target, PlatformBlockState state) {
-        return markerConfig.isExact()
+    private static boolean marks(PlacementMarker markerConfig, PlatformBlockState target, PlatformBlockState state) {
+        return markerConfig.exact()
                 ? target.matches(state)
                 : IrisObjectShaping.materialKey(target).equals(IrisObjectShaping.materialKey(state));
     }

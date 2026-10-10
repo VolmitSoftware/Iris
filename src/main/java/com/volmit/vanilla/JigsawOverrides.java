@@ -1,6 +1,8 @@
 package com.volmit.vanilla;
 
 import com.volmit.config.Desc;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
 import java.util.Objects;
@@ -50,6 +52,7 @@ public final class JigsawOverrides {
     }
 
     @Desc("Optional registered template-pool key used instead of the source jigsaw's start pool. Empty preserves the source pool.")
+    @Ref(Reference.TEMPLATE_POOL)
     private String startPool = "";
 
     @Desc("Optional start connector name. Empty preserves the source value; the literal NONE removes the source constraint.")

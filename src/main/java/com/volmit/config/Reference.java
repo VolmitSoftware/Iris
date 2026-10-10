@@ -21,6 +21,8 @@ public enum Reference {
     STRUCTURE_PREFIX,
     /** A platform structure set, such as {@code minecraft:villages}. */
     STRUCTURE_SET,
+    /** A platform jigsaw template pool, such as {@code minecraft:village/plains/town_centers}. */
+    TEMPLATE_POOL,
     /** A potion effect type, such as {@code minecraft:speed}. */
     POTION_EFFECT,
     /** An enchantment, such as {@code minecraft:sharpness}. */

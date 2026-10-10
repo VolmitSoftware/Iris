@@ -296,6 +296,7 @@ final class RuinsObjects implements ObjectsAt {
 | `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
 | `EntitySpawns` | `ALL` | A `Plan` of entities to spawn in a chunk or at a marker, each `Attempt` an `EntitySpec` with the block, light range and surface it needs; how many appeared (`spawned`); what a marker means (`MarkerRule`); one entity of the pack on request. The host checks light, surface and free space, spawns, and applies the spec. |
 | `CaveBiomes` | `ONE` | The pack biome a module puts at a position whatever the regions say (a band of the deep dark), and how far below the surface a biome's caves begin. The host places the cave biome of a position itself and asks this where a module overrides it. |
+| `AmbientEffects` | `ALL` | The effects due for a player standing at a position: a `Sound`, `Particles`, `Command`s and a `Potion` per `Effect`, every random choice already made (offsets, scatter, duration). The host asks now and then, carries out the parts the platform has, and keeps a stronger potion effect the player already has. |
 | `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, and fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over (see Vanilla structures). |
 
 ```
@@ -409,7 +410,7 @@ public final class FloraSettings implements IrisFeature {
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
-  `POTION_EFFECT` or `ENCHANTMENT` from the server's registries, `NOISE_STYLE` from the host's noise
+  `POTION_EFFECT`, `ENCHANTMENT` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
   styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION` or `PACK_IMAGE_MAP` of the pack.
   The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.

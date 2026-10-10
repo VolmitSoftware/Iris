@@ -34,7 +34,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
-| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`; values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
+| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`; values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.hunk`, reference `ArrayHunk<T>` |
 | Sparse geometry and transforms | `ObjectGenerator`, `GeneratedObject`, `ObjectTransform`, `ObjectTransformer` |
@@ -184,6 +184,9 @@ running Iris is the pack publisher's responsibility.
 - Create what `ItemDrop` and `EntitySpec` describe on the platform, skip what the platform lacks (an unknown enchantment,
   attribute or item flag) with a warning, and run the checks that come with an `EntitySpawns.Attempt` (light, surface,
   free space) before spawning. Report how many entities appeared with `EntitySpawns.spawned`.
+- `AmbientEffects.due`: ask for the player's last sampled position (not every tick's), carry out an `Effect` in the order
+  sound, particles, commands, potion, skip a part the platform lacks, and give no potion to a player who already has the
+  same one with a higher amplifier.
 - Decode IrisApi's value types like settings: `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range` and
   `BlockPosition` from the JSON shapes in their docs, `Object` as maps, lists, `Double`s, strings and booleans.
   Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from

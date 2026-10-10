@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
@@ -33,15 +32,16 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.builtin.structure.StructureStilts;
+import com.volmit.block.PaletteSampler;
+import com.volmit.block.PaletteSpec;
+import art.arcane.iris.builtin.structure.StructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -61,7 +61,6 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Places the Iris structures of the dimension, its regions and biomes into the mantle for
@@ -119,24 +118,24 @@ public class StructurePlacing {
             clearIntersectingObjectTrees(writer, resolved);
         }
 
-        IrisStructureTerrain terrain = placement.resolvedTerrain();
-        IrisStructureTerrainMode terrainMode = terrain.resolvedMode();
-        if (terrainMode == IrisStructureTerrainMode.FORCE_CARVE) {
+        StructureTerrain terrain = placement.resolvedTerrain();
+        StructureTerrainMode terrainMode = terrain.resolvedMode();
+        if (terrainMode == StructureTerrainMode.FORCE_CARVE) {
             forceCarveStructure(writer, pieces, terrain);
-        } else if (terrainMode == IrisStructureTerrainMode.BORE) {
+        } else if (terrainMode == StructureTerrainMode.BORE) {
             boreStructure(writer, pieces, terrain);
-        } else if (terrainMode != IrisStructureTerrainMode.PRESERVE
-                && terrainMode != IrisStructureTerrainMode.SOURCE) {
+        } else if (terrainMode != StructureTerrainMode.PRESERVE
+                && terrainMode != StructureTerrainMode.SOURCE) {
             throw new IllegalStateException("Iris assembly terrain mode " + terrainMode
                     + " is not implemented for structure '" + key + "'");
         }
 
         ObjectPlaceMode mode = structure.getPlaceMode();
         int failedPieces = 0;
-        IrisStructureStiltSettings stilt = placement.getStilt();
+        StructureStilts stilt = placement.getStilt();
         Long2IntOpenHashMap foundationColumns = stilt == null
                 ? null : new Long2IntOpenHashMap();
-        boolean supportNonOccluding = stilt != null && stilt.isSupportNonOccluding();
+        boolean supportNonOccluding = stilt != null && stilt.supportNonOccluding();
         if (placement.isAnchoredUnderground()) {
             ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
                     ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
@@ -173,12 +172,13 @@ public class StructurePlacing {
     }
 
     private void placeFoundation(MantleWriter writer, Long2IntOpenHashMap columns,
-                                 IrisStructureStiltSettings settings, RNG rng,
+                                 StructureStilts settings, RNG rng,
                                  boolean surfaceStructure) {
-        IrisMaterialPalette palette = Objects.requireNonNull(
-                settings.getPalette(), "Structure stilt palette must not be null");
+        PaletteSpec palette = settings.palette().orElseThrow(
+                () -> new NullPointerException("Structure stilt palette must not be null"));
+        PaletteSampler picker = engine.getData().getPackResources().blocks().palette(palette, rng.getSeed());
         int mantleOffset = engine.getMinHeight();
-        int maxDepth = Math.max(1, settings.getMaxDepth());
+        int maxDepth = Math.max(1, settings.maxDepth());
         for (Long2IntMap.Entry column : columns.long2IntEntrySet()) {
             int worldX = StructureFoundationPlanner.unpackX(column.getLongKey());
             int worldZ = StructureFoundationPlanner.unpackZ(column.getLongKey());
@@ -206,17 +206,16 @@ public class StructurePlacing {
                 continue;
             }
             StructureFoundationPlanner.fillSupportColumn(foundationY, groundY, y -> {
-                writeFoundationSupport(
-                        writer, palette, rng, engine.getData(), worldX, y, worldZ, mantleOffset);
+                writeFoundationSupport(writer, picker, worldX, y, worldZ, mantleOffset);
             });
         }
     }
 
-    static void writeFoundationSupport(MantleWriter writer, IrisMaterialPalette palette, RNG rng,
-                                       IrisData data, int worldX, int mantleY, int worldZ,
+    /** Writes the stilt palette's block at the column's mantle height, clearing any carve there. */
+    static void writeFoundationSupport(MantleWriter writer, PaletteSampler picker, int worldX, int mantleY, int worldZ,
                                        int mantleOffset) {
         int worldY = mantleY + mantleOffset;
-        PlatformBlockState support = palette.get(rng, worldX, worldY, worldZ, data);
+        PlatformBlockState support = B.getState(picker.at(worldX, worldY, worldZ).key());
         if (support == null) {
             throw new IllegalStateException("Structure stilt palette resolved no block at "
                     + worldX + "," + worldY + "," + worldZ);
@@ -251,17 +250,17 @@ public class StructurePlacing {
     }
 
     private void boreStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
-                               IrisStructureTerrain terrain) {
+                               StructureTerrain terrain) {
         int[] bounds = computePieceBounds(pieces);
         if (bounds == null) {
             return;
         }
-        int pad = Math.max(0, terrain.getHorizontalPadding());
+        int pad = Math.max(0, terrain.horizontalPadding());
         int minX = bounds[0] - pad;
-        int minY = bounds[1] - Math.max(0, terrain.getFloorPadding());
+        int minY = bounds[1] - Math.max(0, terrain.floorPadding());
         int minZ = bounds[2] - pad;
         int maxX = bounds[3] + pad;
-        int maxY = bounds[4] + Math.max(0, terrain.getCeilingPadding());
+        int maxY = bounds[4] + Math.max(0, terrain.ceilingPadding());
         int maxZ = bounds[5] + pad;
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
@@ -281,22 +280,22 @@ public class StructurePlacing {
     }
 
     private void forceCarveStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
-                                     IrisStructureTerrain terrain) {
+                                     StructureTerrain terrain) {
         int[] bounds = computePieceBounds(pieces);
         if (bounds == null) {
             return;
         }
-        IrisStructureCarveShape shape = terrain.resolvedShape();
-        int margin = Math.max(0, terrain.getHorizontalPadding());
-        int head = Math.max(0, terrain.getCeilingPadding());
-        int floorCut = Math.max(0, terrain.getFloorPadding());
+        StructureCarveShape shape = terrain.resolvedShape();
+        int margin = Math.max(0, terrain.horizontalPadding());
+        int head = Math.max(0, terrain.ceilingPadding());
+        int floorCut = Math.max(0, terrain.floorPadding());
         double strength = terrain.resolvedErosionStrength();
         int mantleOffset = engine.getMinHeight();
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         int upExtension = shape.maximumCeilingExtension(head, strength);
 
-        if (shape == IrisStructureCarveShape.BOX) {
+        if (shape == StructureCarveShape.BOX) {
             carveOverboreBox(writer, bounds, margin, head, floorCut, mantleOffset, worldMin, worldMax);
             return;
         }
@@ -309,7 +308,7 @@ public class StructurePlacing {
         }
 
         double frequency = terrain.resolvedErosionFrequency();
-        boolean eroded = shape == IrisStructureCarveShape.ERODED && strength > 0D;
+        boolean eroded = shape == StructureCarveShape.ERODED && strength > 0D;
         CNG blob = null;
         CNG roll = null;
         if (eroded) {
@@ -604,10 +603,10 @@ public class StructurePlacing {
             if (!placement.hasIrisStructures()) {
                 continue;
             }
-            IrisStructureTerrain terrain = placement.resolvedTerrain();
-            int carvePadding = terrain.resolvedMode() == IrisStructureTerrainMode.FORCE_CARVE
-                    || terrain.resolvedMode() == IrisStructureTerrainMode.BORE
-                    ? Math.max(0, terrain.getHorizontalPadding()) : 0;
+            StructureTerrain terrain = placement.resolvedTerrain();
+            int carvePadding = terrain.resolvedMode() == StructureTerrainMode.FORCE_CARVE
+                    || terrain.resolvedMode() == StructureTerrainMode.BORE
+                    ? Math.max(0, terrain.horizontalPadding()) : 0;
             for (String key : placement.getStructures()) {
                 IrisStructure structure = StructureResources.structure(engine.getData(), key);
                 if (structure != null) {

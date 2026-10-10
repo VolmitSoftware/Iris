@@ -20,6 +20,8 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.structure.StructureSettings;
+import art.arcane.iris.builtin.structure.StructureStilts;
+import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.core.modules.IrisPackWorld;
@@ -28,15 +30,17 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
-import art.arcane.iris.engine.framework.structure.StructureVanillaHook;
+import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.config.PackSettings;
 import com.volmit.service.StructureLocator;
+import com.volmit.service.VanillaStructures;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.vanilla.JigsawOverrides;
 import com.volmit.world.PackWorld;
 
 /**
@@ -50,9 +54,11 @@ import com.volmit.world.PackWorld;
  * {@link StructureLocating}, and forgets a world's structure index when the world stops, which includes every reload of
  * the pack's structure files.
  * <p>
- * It decides over the platform's own structures through its vanilla structure hook ({@link StructureVanillaHook}): the
- * dimension's {@code importedStructures} settings disable, adjust and set them up, and the pack's structure placements
- * replace them, place them alongside, and start them where their {@code nativeStructures} grids say.
+ * It decides over the platform's own structures through its {@link VanillaStructures} provider
+ * ({@link StructureVanillaStructures}): the dimension's {@code importedStructures} settings disable, move, fit and set
+ * them up, and the pack's structure placements replace them, place them alongside, start them where their
+ * {@code nativeStructures} grids say and fit them into the terrain. It describes the fit settings Iris's structure
+ * placements hold.
  */
 public final class StructureModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
@@ -75,7 +81,10 @@ public final class StructureModule implements IrisModule, ModuleLifecycle {
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerLifecycle(this);
-        registry.registerVanillaStructureHook(new StructureVanillaHook());
+        registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
+        registry.registerHeldType(StructureTerrain.class);
+        registry.registerHeldType(StructureStilts.class);
+        registry.registerHeldType(JigsawOverrides.class);
     }
 
     /** The structure index is still kept per engine rather than in the world's state, so a stopping world drops it. */

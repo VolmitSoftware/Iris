@@ -24,8 +24,6 @@ import art.arcane.iris.builtin.structure.StructureSettings;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.ResourceId;
-import com.volmit.vanilla.VanillaStructureAdjustment;
-import com.volmit.vanilla.VanillaStructureFit;
 import com.volmit.vanilla.VanillaStructureSetup;
 
 import java.util.List;
@@ -66,8 +64,8 @@ public final class ImportedStructures {
      * How the platform's own starts of {@code key} are adjusted: the underground shift for underground steps, then every
      * matching adjustment in the order the pack lists them.
      */
-    public VanillaStructureAdjustment adjustment(String key, boolean underground) {
-        VanillaStructureAdjustment adjustment = VanillaStructureAdjustment.NONE.shifted(underground ? settings.undergroundYShift() : 0);
+    public NativeStructureFit adjustment(String key, boolean underground) {
+        NativeStructureFit adjustment = NativeStructureFit.NONE.shifted(underground ? settings.undergroundYShift() : 0);
         for (StructureAdjustment entry : settings.adjustments()) {
             if (entry != null && matchesAny(entry.match(), key)) {
                 adjustment = adjustment.then(asAdjustment(entry));
@@ -130,13 +128,9 @@ public final class ImportedStructures {
         return patterns.stream().anyMatch(pattern -> matchesKey(pattern, key));
     }
 
-    private static VanillaStructureAdjustment asAdjustment(StructureAdjustment entry) {
-        VanillaStructureFit fit = VanillaStructureFit.SOURCE;
-        fit = entry.stilt().map(fit::withStilts).orElse(fit);
-        fit = entry.terrain().map(fit::withTerrain).orElse(fit);
-        VanillaStructureAdjustment adjustment = VanillaStructureAdjustment.NONE.shifted(entry.yShift()).withFit(fit);
-        adjustment = entry.yBand().map(adjustment::withYBand).orElse(adjustment);
-        return entry.preserveSourceY() ? adjustment.keepingSourceY() : adjustment;
+    private static NativeStructureFit asAdjustment(StructureAdjustment entry) {
+        return new NativeStructureFit(entry.yShift(), entry.yBand().orElse(null), entry.preserveSourceY(),
+                entry.stilt().orElse(null), entry.terrain().orElse(null));
     }
 
     private static String normalize(String key) {

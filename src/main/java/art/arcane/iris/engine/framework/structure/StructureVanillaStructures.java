@@ -23,33 +23,33 @@ import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
+import art.arcane.iris.engine.framework.structure.fit.StartLayouts;
+import art.arcane.iris.engine.framework.structure.fit.StructureFitting;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
-import com.google.gson.Gson;
 import com.volmit.resource.ResourceId;
-import com.volmit.vanilla.JigsawOverrides;
-import com.volmit.vanilla.StructureStilts;
-import com.volmit.vanilla.StructureTerrain;
-import com.volmit.vanilla.VanillaStructureAdjustment;
+import com.volmit.service.VanillaStructures;
+import com.volmit.vanilla.PlatformStart;
+import com.volmit.vanilla.StartMemo;
+import com.volmit.vanilla.StartReach;
+import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.VanillaStructureContext;
-import com.volmit.vanilla.VanillaStructureFit;
-import com.volmit.vanilla.VanillaStructureHook;
 import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.vanilla.VanillaStructureSetup;
 import com.volmit.vanilla.VanillaStructureStart;
 import com.volmit.vanilla.VanillaStructureStartContext;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * What {@code iris:structure} says about the platform's own structures. The dimension's {@code importedStructures}
- * settings ({@link ImportedStructures}) disable, adjust and set them up; the pack's structure placements replace
- * them ({@code vanillaSource} with native suppression), place them alongside ({@link IrisStructureLocator#isPlaced})
- * and start them where their {@code nativeStructures} grids say ({@link NativeStartPlanner}).
+ * settings ({@link ImportedStructures}) disable, move, fit and set them up; the pack's structure placements replace
+ * them ({@code vanillaSource} with native suppression), place them alongside ({@link IrisStructureLocator#isPlaced}),
+ * start them where their {@code nativeStructures} grids say ({@link NativeStartPlanner}) and fit those starts the way
+ * the placement says, which their memo carries to every chunk they reach ({@link StructureFitting}).
  */
-public final class StructureVanillaHook implements VanillaStructureHook {
-    private static final Gson SAME_JSON = new Gson();
-
+public final class StructureVanillaStructures implements VanillaStructures {
     /**
      * {@link VanillaStructureRule#REPLACE} for a structure an Iris structure replaces or the dimension disables while a
      * placement places it, {@link VanillaStructureRule#BLOCK} for one the dimension disables, and
@@ -67,11 +67,6 @@ public final class StructureVanillaHook implements VanillaStructureHook {
     }
 
     @Override
-    public VanillaStructureAdjustment adjustment(ResourceId structure, boolean underground, VanillaStructureContext context) {
-        return ImportedStructures.of(context.settings()).adjustment(structure.toString(), underground);
-    }
-
-    @Override
     public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructureStartContext context) {
         Engine engine = IrisPackWorld.of(context.world()).engine();
         return NativeStartPlanner.plansAt(engine, chunkX, chunkZ).stream()
@@ -80,17 +75,42 @@ public final class StructureVanillaHook implements VanillaStructureHook {
     }
 
     @Override
+    public int shift(PlatformStart start, VanillaStructureContext context) {
+        return StartLayouts.shift(start, ImportedStructures.of(context.settings())
+                .adjustment(start.structure().toString(), start.underground()));
+    }
+
+    @Override
+    public StartReach reach(ResourceId structure, boolean underground, Optional<StartMemo> memo,
+                            VanillaStructureContext context) {
+        NativeStructureFit fit = memo.map(NativeStructureFit::of)
+                .orElseGet(() -> ImportedStructures.of(context.settings()).adjustment(structure.toString(), underground));
+        return StartLayouts.reach(fit.resolvedTerrain());
+    }
+
+    @Override
+    public void beforePieces(StructureFit fit) {
+        StructureFitting.beforePieces(fit);
+    }
+
+    @Override
+    public void afterPieces(StructureFit fit, StructureFit.Start placed) {
+        StructureFitting.afterPieces(fit, placed);
+    }
+
+    @Override
     public VanillaStructureSetup setup(VanillaStructureContext context) {
         return ImportedStructures.of(context.settings()).setup();
     }
 
-    /** {@code plan} as the start the platform generates: heights above the bottom, the placement's fit and identity. */
+    /** {@code plan} as the start the platform generates: heights above the bottom, the placement's identity and fit. */
     static VanillaStructureStart start(NativeStartPlanner.Plan plan, int minHeight) {
         IrisStructurePlacement placement = plan.placement();
+        NativeStructureFit fit = new NativeStructureFit(0, null, false, placement.getStilt(), placement.resolvedTerrain());
         VanillaStructureStart start = VanillaStructureStart.at(ResourceId.parse(plan.source().getStructure()),
                         plan.chunkX(), plan.chunkZ(), plan.baseY() - minHeight)
                 .withIdentity(StructurePlacementGrid.placementIdentity(placement))
-                .withFit(fit(placement));
+                .withMemo(fit.memo());
         if (placement.isUnderground()) {
             start = start.underground();
         }
@@ -98,18 +118,8 @@ public final class StructureVanillaHook implements VanillaStructureHook {
             start = start.replacingPlatformStart();
         }
         if (plan.source().getJigsaw() != null) {
-            start = start.withJigsaw(sameJson(plan.source().getJigsaw(), JigsawOverrides.class));
+            start = start.withJigsaw(plan.source().getJigsaw());
         }
         return start;
-    }
-
-    private static VanillaStructureFit fit(IrisStructurePlacement placement) {
-        VanillaStructureFit fit = VanillaStructureFit.SOURCE.withTerrain(sameJson(placement.resolvedTerrain(), StructureTerrain.class));
-        return placement.getStilt() == null ? fit : fit.withStilts(sameJson(placement.getStilt(), StructureStilts.class));
-    }
-
-    /** The placement classes are Iris's; the API values read the same JSON. */
-    private static <T> T sameJson(Object irisValue, Class<T> apiType) {
-        return SAME_JSON.fromJson(SAME_JSON.toJsonTree(irisValue), apiType);
     }
 }

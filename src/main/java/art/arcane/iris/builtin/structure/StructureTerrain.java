@@ -1,20 +1,37 @@
-package art.arcane.iris.engine.object.structure;
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+package art.arcane.iris.builtin.structure;
 
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
+import com.volmit.block.PaletteSpec;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinNumber;
+
+import java.util.Optional;
+
+/**
+ * How a structure meets the terrain, as packs write it: {"mode": "FORCE_CARVE", "horizontalPadding": 4, "shape": "ERODED"}.
+ * Held by structure placements and by the {@code importedStructures} adjustments; ownership records keep its JSON for
+ * the starts they track, so its field names and defaults are the persisted format.
+ */
 @Desc("Terrain integration applied after a structure graph is assembled and before its pieces are placed.")
-public class IrisStructureTerrain {
+public final class StructureTerrain {
     private static final double AUTO_LOBE_FREQUENCY_RATIO = 0.3D;
     private static final double DEFAULT_EROSION_STRENGTH = 0.8D;
     private static final double DEFAULT_EROSION_FREQUENCY = 0.07D;
@@ -24,7 +41,7 @@ public class IrisStructureTerrain {
     private static final double MAX_LOBE_FREQUENCY = 1D;
 
     @Desc("Terrain operation. SOURCE applies the registered native structure's authored terrain adaptation and is a no-op for editable Iris structures. PRESERVE disables terrain integration. VACUUM raises terrain from processed rigid-template foundations at or below each authored ground plane with a 12-block falloff without lowering existing ground. BORE and FORCE_CARVE clear the requested envelope, while ENCASE fills it before placement so native shells are not lost to pre-carved air.")
-    private IrisStructureTerrainMode mode = IrisStructureTerrainMode.SOURCE;
+    private StructureTerrainMode mode = StructureTerrainMode.SOURCE;
 
     @MinNumber(0)
     @MaxNumber(128)
@@ -42,10 +59,10 @@ public class IrisStructureTerrain {
     private int floorPadding = 0;
 
     @Desc("Shape used by FORCE_CARVE.")
-    private IrisStructureCarveShape shape = IrisStructureCarveShape.BOX;
+    private StructureCarveShape shape = StructureCarveShape.BOX;
 
     @Desc("Block palette used by ENCASE. When unset, the Overworld uses stone or deepslate, the Nether uses netherrack, and the End uses end stone.")
-    private IrisMaterialPalette encasePalette = null;
+    private PaletteSpec encasePalette = null;
 
     @MinNumber(0)
     @MaxNumber(1)
@@ -67,12 +84,34 @@ public class IrisStructureTerrain {
     @Desc("Fraction of the horizontal padding the lobes may remove for ERODED force carving. Zero keeps a uniform boundary.")
     private double lobeStrength = DEFAULT_LOBE_STRENGTH;
 
-    public IrisStructureTerrainMode resolvedMode() {
-        return mode == null ? IrisStructureTerrainMode.SOURCE : mode;
+    public StructureTerrain() {
     }
 
-    public IrisStructureCarveShape resolvedShape() {
-        return shape == null ? IrisStructureCarveShape.BOX : shape;
+    /** The terrain operation; SOURCE where the pack wrote none or one Iris does not know. */
+    public StructureTerrainMode resolvedMode() {
+        return mode == null ? StructureTerrainMode.SOURCE : mode;
+    }
+
+    public int horizontalPadding() {
+        return horizontalPadding;
+    }
+
+    public int ceilingPadding() {
+        return ceilingPadding;
+    }
+
+    public int floorPadding() {
+        return floorPadding;
+    }
+
+    /** The carve shape; BOX where the pack wrote none or one Iris does not know. */
+    public StructureCarveShape resolvedShape() {
+        return shape == null ? StructureCarveShape.BOX : shape;
+    }
+
+    /** The blocks ENCASE fills with; empty for the dimension's own stone. */
+    public Optional<PaletteSpec> encasePalette() {
+        return Optional.ofNullable(encasePalette);
     }
 
     public double resolvedErosionStrength() {

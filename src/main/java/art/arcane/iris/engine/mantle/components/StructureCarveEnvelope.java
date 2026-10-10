@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.util.project.noise.CNG;
 
 /**
@@ -129,12 +129,12 @@ public final class StructureCarveEnvelope {
         return 1D - clampedStrength * (1D - clampedNoise);
     }
 
-    public static boolean shouldCarveOverboreCell(IrisStructureCarveShape shape, double distanceSquared,
+    public static boolean shouldCarveOverboreCell(StructureCarveShape shape, double distanceSquared,
                                                   double noise, double strength) {
         if (distanceSquared <= 0.0) {
             return true;
         }
-        IrisStructureCarveShape resolvedShape = shape == null ? IrisStructureCarveShape.ERODED : shape;
+        StructureCarveShape resolvedShape = shape == null ? StructureCarveShape.ERODED : shape;
         return switch (resolvedShape) {
             case BOX -> true;
             case ROUNDED -> distanceSquared <= 1D;

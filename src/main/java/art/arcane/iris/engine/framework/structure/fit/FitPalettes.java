@@ -16,11 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.structure.vanilla;
+package art.arcane.iris.engine.framework.structure.fit;
 
-public enum NativeStructureGenerationStatus {
-    GENERATE_NATIVE,
-    DISABLED_BY_PACK,
-    REPLACED_BY_IRIS,
-    INVALID_REGISTRY_KEY
+import com.volmit.block.BlockState;
+import com.volmit.block.PaletteSpec;
+
+/** Picks a block of a pack palette for the structure fit, seeded the way the fit's own randomness is. */
+@FunctionalInterface
+interface FitPalettes {
+    /** The block {@code palette}, seeded with {@code seed}, gives at the world position. */
+    BlockState at(PaletteSpec palette, long seed, int x, int y, int z);
 }

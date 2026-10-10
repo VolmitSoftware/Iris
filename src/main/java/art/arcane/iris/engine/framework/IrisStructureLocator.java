@@ -31,10 +31,10 @@ import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.builtin.structure.StructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
@@ -698,17 +698,17 @@ public final class IrisStructureLocator {
             return null;
         }
 
-        IrisStructureTerrain terrain = placement.resolvedTerrain();
-        IrisStructureTerrainMode terrainMode = terrain.resolvedMode();
-        boolean forceCarve = terrainMode == IrisStructureTerrainMode.FORCE_CARVE;
-        boolean bore = terrainMode == IrisStructureTerrainMode.BORE;
-        int sideExtension = forceCarve || bore ? Math.max(0, terrain.getHorizontalPadding()) : 0;
-        IrisStructureCarveShape carveShape = terrain.resolvedShape();
+        StructureTerrain terrain = placement.resolvedTerrain();
+        StructureTerrainMode terrainMode = terrain.resolvedMode();
+        boolean forceCarve = terrainMode == StructureTerrainMode.FORCE_CARVE;
+        boolean bore = terrainMode == StructureTerrainMode.BORE;
+        int sideExtension = forceCarve || bore ? Math.max(0, terrain.horizontalPadding()) : 0;
+        StructureCarveShape carveShape = terrain.resolvedShape();
         int topExtension = forceCarve
                 ? carveShape.maximumCeilingExtension(
-                        terrain.getCeilingPadding(), terrain.resolvedErosionStrength())
-                : bore ? Math.max(0, terrain.getCeilingPadding()) : 0;
-        int bottomExtension = forceCarve || bore ? Math.max(0, terrain.getFloorPadding()) : 0;
+                        terrain.ceilingPadding(), terrain.resolvedErosionStrength())
+                : bore ? Math.max(0, terrain.ceilingPadding()) : 0;
+        int bottomExtension = forceCarve || bore ? Math.max(0, terrain.floorPadding()) : 0;
         int bandMin = Math.max(worldMin, Math.min(placement.getMinHeight(), placement.getMaxHeight()));
         int bandMax = Math.min(worldMax, Math.max(placement.getMinHeight(), placement.getMaxHeight()));
         int minimumShift = Math.max(worldMin - (bounds[1] - bottomExtension), bandMin - baseY);
@@ -719,7 +719,7 @@ public final class IrisStructureLocator {
 
         Long2IntOpenHashMap surfaceHeights = new Long2IntOpenHashMap();
         surfaceHeights.defaultReturnValue(Integer.MIN_VALUE);
-        if (bore || forceCarve && carveShape == IrisStructureCarveShape.BOX) {
+        if (bore || forceCarve && carveShape == StructureCarveShape.BOX) {
             maximumShift = resolveBurialEnvelopeShift(
                     engine,
                     bounds[0] - sideExtension,

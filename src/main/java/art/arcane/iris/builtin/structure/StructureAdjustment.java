@@ -24,9 +24,6 @@ import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
-import com.volmit.vanilla.StructureStilts;
-import com.volmit.vanilla.StructureTerrain;
-import com.volmit.vanilla.YBand;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +42,7 @@ public final class StructureAdjustment {
     private int yShift = 0;
 
     @Desc("Optional absolute world Y band. The structure is relocated so its vertical midpoint lands inside the band, deterministically from its start chunk and clamped to the world's build bounds. Precedence: preserveSourceY wins over yBand, and yBand wins over both yShift and Iris burial repositioning. Structures with a fixed vanilla alignment (ocean monument sea level, desert and jungle pyramid surface fit) ignore it.")
-    private YBand yBand = null;
+    private StructureYBand yBand = null;
 
     @Desc("When true, skip Iris burial repositioning so the structure keeps the Y its own vanilla placement chose. Underground structures are otherwise pushed below the lowest solid column across their whole footprint, which hides terrain-aware structures such as mineshafts that intentionally breach cliffs and surfaces. Vertical shifts still apply on top of the preserved Y: this dimension's undergroundYShift plus every matching adjustment's yShift.")
     private boolean preserveSourceY = false;
@@ -59,7 +56,7 @@ public final class StructureAdjustment {
     public StructureAdjustment() {
     }
 
-    public StructureAdjustment(List<String> match, int yShift, YBand yBand, boolean preserveSourceY, StructureStilts stilt,
+    public StructureAdjustment(List<String> match, int yShift, StructureYBand yBand, boolean preserveSourceY, StructureStilts stilt,
                                StructureTerrain terrain) {
         this.match = List.copyOf(match);
         this.yShift = yShift;
@@ -78,7 +75,7 @@ public final class StructureAdjustment {
         return yShift;
     }
 
-    public Optional<YBand> yBand() {
+    public Optional<StructureYBand> yBand() {
         return Optional.ofNullable(yBand);
     }
 

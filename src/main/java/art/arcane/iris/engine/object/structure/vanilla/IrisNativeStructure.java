@@ -1,6 +1,5 @@
 package art.arcane.iris.engine.object.structure.vanilla;
 
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructure;
@@ -9,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import com.volmit.vanilla.JigsawOverrides;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -26,5 +26,5 @@ public class IrisNativeStructure {
     private int weight = 1;
 
     @Desc("Optional jigsaw-only assembly overrides. Null preserves the complete registered structure definition.")
-    private IrisJigsawConfiguration jigsaw = null;
+    private JigsawOverrides jigsaw = null;
 }

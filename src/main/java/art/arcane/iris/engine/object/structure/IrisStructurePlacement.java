@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.structure;
 
+import art.arcane.iris.builtin.structure.StructureStilts;
+import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -119,16 +121,16 @@ public class IrisStructurePlacement {
     private int caveMinimumClearance = 3;
 
     @Desc("Terrain integration for this placement. The editable structures backend supports SOURCE, PRESERVE, BORE, and FORCE_CARVE. The nativeStructures backend supports every terrain mode.")
-    private IrisStructureTerrain terrain = new IrisStructureTerrain();
+    private StructureTerrain terrain = new StructureTerrain();
 
     @Desc("Optional foundation columns placed beneath the assembled structure's occupied bottom cells. Columns pass through air and fluids until they reach solid ground, up to maxDepth.")
-    private IrisStructureStiltSettings stilt = null;
+    private StructureStilts stilt = null;
 
     @Desc("If false, the placement is skipped when its selected surface or cave column is submerged.")
     private boolean underwater = false;
 
-    public IrisStructureTerrain resolvedTerrain() {
-        return terrain == null ? new IrisStructureTerrain() : terrain;
+    public StructureTerrain resolvedTerrain() {
+        return terrain == null ? new StructureTerrain() : terrain;
     }
 
     public boolean hasIrisStructures() {

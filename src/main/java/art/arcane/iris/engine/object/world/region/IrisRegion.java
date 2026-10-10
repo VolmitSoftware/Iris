@@ -19,10 +19,6 @@
 package art.arcane.iris.engine.object.world.region;
 
 import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
@@ -85,20 +81,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Required
     @Desc("The name of the region")
     private String name = "A Region";
-    @ArrayType(min = 1, type = IrisEffect.class)
-    @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
-    private KList<IrisEffect> effects = new KList<>();
-    @Desc("Spawn Entities in this region over time. Iris will continually replenish these mobs just like vanilla does.")
-    @ArrayType(min = 1, type = String.class)
-    @RegistryListResource(IrisSpawner.class)
-    private KList<String> entitySpawners = new KList<>();
     @MinNumber(1)
     @MaxNumber(128)
     @Desc("The rarity of the region")
     private int rarity = 1;
-    @ArrayType(min = 1, type = IrisBlockDrops.class)
-    @Desc("Define custom block drops for this region")
-    private KList<IrisBlockDrops> blockDrops = new KList<>();
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this region")
     private KList<IrisObjectPlacement> objects = new KList<>();
@@ -110,8 +96,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(0)
     @Desc("The min shore height")
     private double shoreHeightMin = 1.2;
-    @Desc("Reference loot tables in this area")
-    private IrisLootReference loot = new IrisLootReference();
     @MinNumber(0)
     @Desc("The the max shore height")
     private double shoreHeightMax = 3.2;

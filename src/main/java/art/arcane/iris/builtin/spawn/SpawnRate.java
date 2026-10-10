@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,42 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.value;
+package art.arcane.iris.builtin.spawn;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.volmlib.util.format.Form;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.volmit.config.Desc;
+import com.volmit.config.Snippet;
 
 @Snippet("rate")
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
 @Desc("Represents a count of something per time duration")
-public class IrisRate {
+public final class SpawnRate {
     @Desc("The amount of things. Leave 0 for infinite (meaning always spawn whenever)")
     private int amount = 0;
 
     @Desc("The time interval. Leave blank for infinite 0 (meaning always spawn all the time)")
-    private IrisDuration per = new IrisDuration();
+    private SpawnDuration per = new SpawnDuration();
 
-    public String toString() {
-        return Form.f(amount) + "/" + per;
+    public SpawnRate() {
     }
 
-    public long getInterval() {
-        long t = per.toMilliseconds() / (amount == 0 ? 1 : amount);
+    /** The milliseconds between two things: the interval divided by the amount, at least 1. */
+    public long interval() {
+        long t = duration().toMilliseconds() / (amount == 0 ? 1 : amount);
         return Math.abs(t <= 0 ? 1 : t);
     }
 
-    public ChronoLatch toChronoLatch() {
-        return new ChronoLatch(getInterval());
+    /** Whether there is no limit: no interval was given. */
+    public boolean isInfinite() {
+        return duration().toMilliseconds() == 0;
     }
 
-    public boolean isInfinite() {
-        return per.toMilliseconds() == 0;
+    private SpawnDuration duration() {
+        return per == null ? new SpawnDuration() : per;
     }
 }

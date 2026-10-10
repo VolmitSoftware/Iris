@@ -21,9 +21,9 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.core.modules.IrisValidationContext;
 import art.arcane.iris.core.pack.PackIntegerChecks;
 import art.arcane.iris.core.pack.PackValidationIo;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootSettings;
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.validation.Problem;
@@ -162,9 +162,9 @@ public final class LootValidator implements Validator {
         PackIntegerChecks.requireMinimum(path + ".minPicked", minimumPicked, 0, blockingErrors);
         PackIntegerChecks.requireMinimum(path + ".maxPicked", maximumPicked, 1, blockingErrors);
         PackIntegerChecks.requireMinimum(path + ".maxTries", maximumTries, 1, blockingErrors);
-        PackIntegerChecks.requireMaximum(path + ".minPicked", minimumPicked, IrisLootTable.MAX_PICKED, blockingErrors);
-        PackIntegerChecks.requireMaximum(path + ".maxPicked", maximumPicked, IrisLootTable.MAX_PICKED, blockingErrors);
-        PackIntegerChecks.requireMaximum(path + ".maxTries", maximumTries, IrisLootTable.MAX_TRIES, blockingErrors);
+        PackIntegerChecks.requireMaximum(path + ".minPicked", minimumPicked, LootTable.MAX_PICKED, blockingErrors);
+        PackIntegerChecks.requireMaximum(path + ".maxPicked", maximumPicked, LootTable.MAX_PICKED, blockingErrors);
+        PackIntegerChecks.requireMaximum(path + ".maxTries", maximumTries, LootTable.MAX_TRIES, blockingErrors);
         PackIntegerChecks.requireOrdered(path + ".minPicked", minimumPicked, path + ".maxPicked", maximumPicked, blockingErrors);
 
         JSONArray entries = table.optJSONArray("loot");
@@ -189,8 +189,8 @@ public final class LootValidator implements Validator {
             PackIntegerChecks.requireMinimum(entryPath + ".rarity", entryRarity, 1, blockingErrors);
             PackIntegerChecks.requireMinimum(entryPath + ".minAmount", minimumAmount, 1, blockingErrors);
             PackIntegerChecks.requireMinimum(entryPath + ".maxAmount", maximumAmount, 1, blockingErrors);
-            PackIntegerChecks.requireMaximum(entryPath + ".minAmount", minimumAmount, IrisLoot.MAX_AMOUNT, blockingErrors);
-            PackIntegerChecks.requireMaximum(entryPath + ".maxAmount", maximumAmount, IrisLoot.MAX_AMOUNT, blockingErrors);
+            PackIntegerChecks.requireMaximum(entryPath + ".minAmount", minimumAmount, LootEntry.MAX_AMOUNT, blockingErrors);
+            PackIntegerChecks.requireMaximum(entryPath + ".maxAmount", maximumAmount, LootEntry.MAX_AMOUNT, blockingErrors);
             PackIntegerChecks.requireOrdered(entryPath + ".minAmount", minimumAmount,
                     entryPath + ".maxAmount", maximumAmount, blockingErrors);
             validateLootEnchantments(entryPath, entry.opt("enchantments"), blockingErrors);
@@ -256,9 +256,9 @@ public final class LootValidator implements Validator {
             if (!(rawMultiplier instanceof Number multiplier)
                     || !Double.isFinite(multiplier.doubleValue())
                     || multiplier.doubleValue() < 0D
-                    || multiplier.doubleValue() > IrisLootReference.MAX_MULTIPLIER) {
+                    || multiplier.doubleValue() > LootSettings.MAX_MULTIPLIER) {
                 blockingErrors.add(path + ".multiplier must be a finite number from 0 to "
-                        + (int) IrisLootReference.MAX_MULTIPLIER + ".");
+                        + (int) LootSettings.MAX_MULTIPLIER + ".");
             }
         }
         if (!reference.has("tables")) {

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.entity.spawn;
+package art.arcane.iris.builtin.spawn;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("The type of surface entities should spawn on")
-public enum IrisSurface {
+public enum SpawnSurface {
 
     @Desc("Land surfaces")
     LAND,
@@ -36,5 +36,5 @@ public enum IrisSurface {
     OVERWORLD,
 
     @Desc("Within lava")
-    LAVA;
+    LAVA
 }

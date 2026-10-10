@@ -21,12 +21,9 @@ package art.arcane.iris.engine.object.world.dimension;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.image.IrisImageMapApplication;
 import art.arcane.iris.engine.object.image.IrisImageMapBinding;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
@@ -142,18 +139,9 @@ public class IrisDimension extends IrisRegistrant {
     private int debugCrossSectionsMod = 3;
     @Desc("Tree growth override settings")
     private IrisTreeSettings treeSettings = new IrisTreeSettings();
-    @Desc("Spawn Entities in this dimension over time. Iris will continually replenish these mobs just like vanilla does.")
-    @ArrayType(min = 1, type = String.class)
-    @RegistryListResource(IrisSpawner.class)
-    private KList<String> entitySpawners = new KList<>();
-    @Desc("Reference loot tables in this area")
-    private IrisLootReference loot = new IrisLootReference();
     @MinNumber(0)
     @Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
     private int version = 1;
-    @ArrayType(min = 1, type = IrisBlockDrops.class)
-    @Desc("Define custom block drops for this dimension")
-    private KList<IrisBlockDrops> blockDrops = new KList<>();
     @Desc("Should bedrock be generated or not.")
     private boolean bedrock = true;
     @MinNumber(0)

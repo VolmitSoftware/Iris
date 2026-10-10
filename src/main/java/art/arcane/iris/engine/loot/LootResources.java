@@ -18,10 +18,9 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisPackResources;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.volmlib.util.collection.KList;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
@@ -37,7 +36,7 @@ import java.util.List;
  */
 public final class LootResources {
     /** Loot tables, in {@code loot/}. */
-    public static final ResourceKind<IrisLootTable> TABLES = ResourceKind.of("iris:loot/table", "loot", IrisLootTable.class);
+    public static final ResourceKind<LootTable> TABLES = ResourceKind.of("iris:loot/table", "loot", LootTable.class);
 
     private LootResources() {
     }
@@ -47,7 +46,7 @@ public final class LootResources {
         return List.of(TABLES);
     }
 
-    public static IrisLootTable table(IrisData data, String key) {
+    public static LootTable table(IrisData data, String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
@@ -57,18 +56,6 @@ public final class LootResources {
         } catch (IllegalStateException failedToLoad) {
             return null;
         }
-    }
-
-    /** The tables of the pack named by {@code keys}, in order, without the ones the pack lacks. */
-    public static KList<IrisLootTable> tables(IrisData data, List<String> keys) {
-        KList<IrisLootTable> tables = new KList<>();
-        for (String key : keys) {
-            IrisLootTable table = table(data, key);
-            if (table != null) {
-                tables.add(table);
-            }
-        }
-        return tables;
     }
 
     /** The key of every loot table of the pack, in key order. */

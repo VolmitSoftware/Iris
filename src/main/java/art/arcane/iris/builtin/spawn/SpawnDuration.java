@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.value;
+package art.arcane.iris.builtin.spawn;
 
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.volmlib.util.format.Form;
-import lombok.Data;
+import com.volmit.config.Desc;
+import com.volmit.config.Snippet;
 
 import java.util.concurrent.TimeUnit;
 
 @Snippet("duration")
-@Data
 @Desc("Represents a combined duration. Fill each property to add time into a single duration")
-public class IrisDuration {
+public final class SpawnDuration {
+    private static final long MILLISECONDS_PER_MINECRAFT_TICK = 50L;
+    private static final long MILLISECONDS_PER_MINECRAFT_HOUR = 50_000L;
+    private static final long MILLISECONDS_PER_MINECRAFT_DAY = 1_200_000L;
+    private static final long MILLISECONDS_PER_MINECRAFT_WEEK = 8_400_000L;
+    private static final long MILLISECONDS_PER_MINECRAFT_LUNAR_CYCLE = 9_600_000L;
+
     @Desc("Milliseconds (1000ms = 1 second)")
     private int milliseconds = 0;
 
@@ -59,20 +62,19 @@ public class IrisDuration {
     @Desc("REAL (not minecraft) Days")
     private int days = 0;
 
-    public String toString() {
-        return Form.duration((double) toMilliseconds(), 2);
+    public SpawnDuration() {
     }
 
     public long toMilliseconds() {
-        return getMilliseconds()
-                + TimeUnit.SECONDS.toMillis(getSeconds())
-                + TimeUnit.MINUTES.toMillis(getMinutes())
-                + TimeUnit.HOURS.toMillis(getHours())
-                + TimeUnit.DAYS.toMillis(getDays())
-                + (getMinecraftTicks() * 50L)
-                + (getMinecraftHours() * 50000L)
-                + (getMinecraftDays() * 1_200_000L)
-                + (getMinecraftWeeks() * 8_400_000L)
-                + (getMinecraftLunarCycles() * 9_600_000L);
+        return milliseconds
+                + TimeUnit.SECONDS.toMillis(seconds)
+                + TimeUnit.MINUTES.toMillis(minutes)
+                + TimeUnit.HOURS.toMillis(hours)
+                + TimeUnit.DAYS.toMillis(days)
+                + (minecraftTicks * MILLISECONDS_PER_MINECRAFT_TICK)
+                + (minecraftHours * MILLISECONDS_PER_MINECRAFT_HOUR)
+                + (minecraftDays * MILLISECONDS_PER_MINECRAFT_DAY)
+                + (minecraftWeeks * MILLISECONDS_PER_MINECRAFT_WEEK)
+                + (minecraftLunarCycles * MILLISECONDS_PER_MINECRAFT_LUNAR_CYCLE);
     }
 }

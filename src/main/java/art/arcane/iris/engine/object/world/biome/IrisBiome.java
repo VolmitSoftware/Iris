@@ -20,10 +20,6 @@ package art.arcane.iris.engine.object.world.biome;
 
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -127,21 +123,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisBiomeCustom.class)
     @Desc("If the biome type custom is defined, specify this")
     private KList<IrisBiomeCustom> customDerivitives;
-    @Desc("Spawn Entities in this area over time. Iris will continually replenish these mobs just like vanilla does.")
-    @ArrayType(min = 1, type = String.class)
-    @RegistryListResource(IrisSpawner.class)
-    private KList<String> entitySpawners = new KList<>();
-    @ArrayType(min = 1, type = IrisEffect.class)
-    @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play around the player even if where the effect was played is no longer in the biome the player is in.")
-    private KList<IrisEffect> effects = new KList<>();
     @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
     @Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
     private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
-    @ArrayType(min = 1, type = IrisBlockDrops.class)
-    @Desc("Define custom block drops for this biome")
-    private KList<IrisBlockDrops> blockDrops = new KList<>();
-    @Desc("Reference loot tables in this area")
-    private IrisLootReference loot = new IrisLootReference();
     @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
     private boolean lockLayers = false;
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")

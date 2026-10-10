@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
@@ -28,11 +27,8 @@ import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.core.modules.ModuleSettings;
-import art.arcane.iris.engine.object.loot.IObjectLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
 import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
-import art.arcane.iris.engine.object.loot.IrisVanillaLootTable;
 import art.arcane.iris.engine.object.marker.IrisObjectMarker;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
@@ -42,13 +38,10 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.AtomicCache;
 import art.arcane.iris.engine.data.cache.LazyBoundedCache;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
@@ -56,10 +49,7 @@ import art.arcane.iris.engine.object.annotations.MinNumber;
 import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.common.data.DataProvider;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.noise.CNG;
@@ -73,14 +63,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.TreeType;
-import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
-import java.util.function.Function;
 
 @Snippet("object-placer")
 @EqualsAndHashCode()
@@ -204,7 +189,6 @@ public class IrisObjectPlacement {
     @Desc("Ignore any placement restrictions for this object")
     @SerializedName(value = "forcePlace", alternate = {"force"})
     private boolean forcePlace = false;
-    private transient AtomicCache<TableCache> cache = new AtomicCache<>();
     /** The pack modules' settings this placement declares, decoded with it. */
     private transient ModuleSettings moduleSettings = ModuleSettings.NONE;
 
@@ -313,96 +297,6 @@ public class IrisObjectPlacement {
         return (int) Math.round(densityStyle.get(rng, x, z, data));
     }
 
-    private TableCache getCache(IrisData manager) {
-        return cache.aquire(() -> {
-            TableCache cache = new TableCache();
-
-            cache.merge(getCache(manager, getVanillaLoot(), IrisObjectPlacement::getVanillaTable));
-            cache.merge(getCache(manager, getLoot(), key -> LootResources.table(manager, key)));
-
-            return cache;
-        });
-    }
-
-    private TableCache getCache(IrisData manager, KList<? extends IObjectLoot> list, Function<String, IrisLootTable> loader) {
-        TableCache tc = new TableCache();
-
-        for (IObjectLoot loot : list) {
-            if (loot == null || loot.getWeight() <= 0)
-                continue;
-            IrisLootTable table = loader.apply(loot.getName());
-            if (table == null) {
-                IrisLogging.warn("Couldn't find loot table " + loot.getName());
-                continue;
-            }
-
-            if (loot.getFilter().isEmpty()) //Table applies to all containers
-            {
-                tc.global.put(table, loot.getWeight());
-            } else if (!loot.isExact()) //Table is meant to be by type
-            {
-                for (PlatformBlockState filterState : loot.getFilter(manager)) {
-                    BlockData filterData = (BlockData) filterState.nativeHandle();
-                    if (!tc.basic.containsKey(filterData.getMaterial())) {
-                        tc.basic.put(filterData.getMaterial(), new WeightedTables());
-                    }
-
-                    tc.basic.get(filterData.getMaterial()).put(table, loot.getWeight());
-                }
-            } else //Filter is exact
-            {
-                for (PlatformBlockState filterState : loot.getFilter(manager)) {
-                    BlockData filterData = (BlockData) filterState.nativeHandle();
-                    if (!tc.exact.containsKey(filterData.getMaterial())) {
-                        tc.exact.put(filterData.getMaterial(), new KMap<>());
-                    }
-
-                    if (!tc.exact.get(filterData.getMaterial()).containsKey(filterData)) {
-                        tc.exact.get(filterData.getMaterial()).put(filterData, new WeightedTables());
-                    }
-
-                    tc.exact.get(filterData.getMaterial()).get(filterData).put(table, loot.getWeight());
-                }
-            }
-        }
-        return tc;
-    }
-
-    @Nullable
-    private static IrisVanillaLootTable getVanillaTable(String name) {
-        return Optional.ofNullable(NamespacedKey.fromString(name))
-                .map(Bukkit::getLootTable)
-                // Hand over the key, not the LootTable: IrisVanillaLootTable holds no Bukkit fields.
-                .map(table -> new IrisVanillaLootTable(String.valueOf(table.getKey())))
-                .orElse(null);
-    }
-
-    /**
-     * Gets the loot table that should be used for the block
-     *
-     * @param state       The block state of the block
-     * @param dataManager Iris Data Manager
-     * @return The loot table it should use.
-     */
-    public IrisLootTable getTable(PlatformBlockState state, IrisData dataManager, RNG rng) {
-        TableCache cache = getCache(dataManager);
-        BlockData data = (BlockData) state.nativeHandle();
-        if (BukkitBlockResolution.isStorageChest(data)) {
-            IrisLootTable picked = null;
-            if (cache.exact.containsKey(data.getMaterial()) && cache.exact.get(data.getMaterial()).containsKey(data)) {
-                picked = cache.exact.get(data.getMaterial()).get(data).pullRandom(rng);
-            } else if (cache.basic.containsKey(data.getMaterial())) {
-                picked = cache.basic.get(data.getMaterial()).pullRandom(rng);
-            } else if (!cache.global.isEmpty()) {
-                picked = cache.global.pullRandom(rng);
-            }
-
-            return picked;
-        }
-
-        return null;
-    }
-
     private static final class SurfaceWarpCacheKey {
         private final IrisData data;
         private final Engine engine;
@@ -431,42 +325,5 @@ public class IrisObjectPlacement {
             result = 31 * result + System.identityHashCode(engine);
             return 31 * result + Long.hashCode(seed);
         }
-    }
-
-    private static class TableCache {
-        final transient WeightedTables global = new WeightedTables();
-        final transient KMap<Material, WeightedTables> basic = new KMap<>();
-        final transient KMap<Material, KMap<BlockData, WeightedTables>> exact = new KMap<>();
-
-        private void merge(TableCache other) {
-            global.merge(other.global);
-            basic.merge(other.basic, WeightedTables::merge);
-            exact.merge(other.exact, (a, b) -> a.merge(b, WeightedTables::merge));
-        }
-    }
-
-    private static final class WeightedTables {
-        private final KList<WeightedTable> tables = new KList<>();
-
-        private void put(IrisLootTable table, int weight) {
-            tables.add(new WeightedTable(table, weight));
-        }
-
-        private IrisLootTable pullRandom(RNG rng) {
-            WeightedTable picked = LootResolver.pickWeighted(tables, WeightedTable::weight, rng);
-            return picked == null ? null : picked.table();
-        }
-
-        private boolean isEmpty() {
-            return tables.isEmpty();
-        }
-
-        private WeightedTables merge(WeightedTables other) {
-            tables.addAll(other.tables);
-            return this;
-        }
-    }
-
-    private record WeightedTable(IrisLootTable table, int weight) {
     }
 }

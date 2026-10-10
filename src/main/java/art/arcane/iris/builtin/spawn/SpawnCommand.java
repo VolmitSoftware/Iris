@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,32 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.marker;
+package art.arcane.iris.builtin.spawn;
 
-import art.arcane.iris.engine.object.world.IrisTimeBlock;
-import art.arcane.iris.engine.object.world.IrisWeather;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.Required;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.spi.PlatformWorld;
-import art.arcane.iris.util.common.scheduling.ConsoleCommands;
-import art.arcane.volmlib.util.collection.KList;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.config.Desc;
+import com.volmit.config.MinItems;
+import com.volmit.config.Required;
+import com.volmit.config.Snippet;
+
+import java.util.Collections;
+import java.util.List;
 
 @Snippet("command")
-@Accessors(chain = true)
-@NoArgsConstructor
 @Desc("Represents a set of Iris commands")
-@Data
-public class IrisCommand {
-
+public final class SpawnCommand {
     @Required
-    @ArrayType(min = 1, type = String.class)
+    @MinItems(1)
     @Desc("List of commands. Iris replaces {x} {y} and {z} with the location of the entity spawn")
-    private KList<String> commands = new KList<>();
+    private List<String> commands = List.of();
 
     @Desc("The delay for running the command. Instant by default")
     private long delay = 0;
@@ -53,20 +44,35 @@ public class IrisCommand {
     private long repeatDelay = 100;
 
     @Desc("The block of 24 hour time in which the command should execute.")
-    private IrisTimeBlock timeBlock = new IrisTimeBlock();
+    private SpawnTimeBlock timeBlock = new SpawnTimeBlock();
 
     @Desc("The weather that is required for the command to execute.")
-    private IrisWeather weather = IrisWeather.ANY;
+    private SpawnWeather weather = SpawnWeather.ANY;
 
-    public boolean isValid(PlatformWorld world) {
-        return timeBlock.isWithin(world) && weather.is(world);
+    public SpawnCommand() {
     }
 
-    public void run(PlatformWorld world, int x, int y, int z) {
-        if (!isValid(world)) {
-            return;
-        }
+    public List<String> commands() {
+        return commands == null ? List.of() : Collections.unmodifiableList(commands);
+    }
 
-        ConsoleCommands.run(commands, delay, repeat, repeatDelay, x, y, z);
+    public long delay() {
+        return delay;
+    }
+
+    public boolean repeat() {
+        return repeat;
+    }
+
+    public long repeatDelay() {
+        return repeatDelay;
+    }
+
+    public SpawnTimeBlock timeBlock() {
+        return timeBlock == null ? new SpawnTimeBlock() : timeBlock;
+    }
+
+    public SpawnWeather weather() {
+        return weather == null ? SpawnWeather.ANY : weather;
     }
 }

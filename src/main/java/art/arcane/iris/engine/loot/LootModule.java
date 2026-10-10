@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.loot.BlockDropSettings;
+import art.arcane.iris.builtin.loot.LootSettings;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -26,9 +28,10 @@ import com.volmit.service.Loot;
 import com.volmit.stage.StageGraph;
 
 /**
- * Module {@code iris:loot}: the loot tables of the pack ({@link LootResources}) and the items they and the block drops
- * of the dimension, regions and biomes give. It checks the tables and the references to them ({@link LootValidator}). It has no generation stage; Iris asks it through {@link Loot} when a container is filled and through
- * {@link BlockDrops} when a player breaks a block.
+ * Module {@code iris:loot}: the loot tables of the pack ({@link LootResources}), the {@link LootSettings} and
+ * {@link BlockDropSettings} that dimensions, regions and biomes declare, and the items they give. It checks the tables
+ * and the references to them ({@link LootValidator}). It has no generation stage; Iris asks it through {@link Loot} when
+ * a container is filled and through {@link BlockDrops} when a player breaks a block.
  */
 public final class LootModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -44,6 +47,8 @@ public final class LootModule implements IrisModule {
 
     @Override
     public void register(FeatureRegistry registry) {
+        registry.registerSettings(LootSettings.class);
+        registry.registerSettings(BlockDropSettings.class);
         LootResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new LootValidator());
         registry.registerService(Loot.class, new LootGiving());

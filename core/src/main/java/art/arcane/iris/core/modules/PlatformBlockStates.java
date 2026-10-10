@@ -46,6 +46,9 @@ public final class PlatformBlockStates {
     private final Map<PlatformBlockState, BlockState> read = new HashMap<>();
     private final Map<BlockState, PlatformBlockState> written = new HashMap<>();
     private final Map<BlockState, PlatformBlockState> origins = new IdentityHashMap<>();
+    /** The state read last: scans over a chunk read long runs of one state, such as stone or air, so most reads hit it. */
+    private PlatformBlockState lastRead;
+    private BlockState lastReadAsApi;
 
     /** {@code platformStates} turns a block state key into the platform's state, such as {@code B::getState}. */
     public PlatformBlockStates(Function<String, PlatformBlockState> platformStates) {
@@ -60,6 +63,14 @@ public final class PlatformBlockStates {
         if (state == null) {
             return AIR;
         }
+        if (state != lastRead) {
+            lastReadAsApi = convertRead(state);
+            lastRead = state;
+        }
+        return lastReadAsApi;
+    }
+
+    private BlockState convertRead(PlatformBlockState state) {
         BlockState known = read.get(state);
         if (known != null) {
             return known;

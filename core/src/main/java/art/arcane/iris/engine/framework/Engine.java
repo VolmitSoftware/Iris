@@ -28,6 +28,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
+import art.arcane.iris.core.modules.CaveBiomeAnswers;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
@@ -71,7 +72,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -275,8 +275,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z) {
         IrisBiome surfaceBiome = getSurfaceBiome(x, z);
-        Optional<String> overriddenKey = ModuleServices.overriddenCaveBiome(this, x, y, z);
-        IrisBiome overriddenBiome = overriddenKey.map(key -> getData().getBiomeLoader().load(key)).orElse(null);
+        CaveBiomeAnswers caves = ModuleServices.caveBiomes(this);
+        IrisBiome overriddenBiome = caves.overriddenBiome(x, y, z);
         if (overriddenBiome != null) {
             return overriddenBiome;
         }
@@ -292,7 +292,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return surfaceBiome;
         }
 
-        int minDepth = Math.max(0, ModuleServices.caveMinDepthBelowSurface(this, caveBiome.getLoadKey()));
+        int minDepth = Math.max(0, caves.minDepthBelowSurface(caveBiome.getLoadKey()));
         if (depthBelowSurface < minDepth) {
             return surfaceBiome;
         }

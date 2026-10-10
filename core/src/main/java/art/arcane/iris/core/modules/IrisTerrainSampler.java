@@ -71,6 +71,12 @@ final class IrisTerrainSampler implements TerrainSampler {
     }
 
     @Override
+    public double surfaceY(int worldX, int worldZ) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        return engine.getComplex().getHeightStream().get(worldX, worldZ);
+    }
+
+    @Override
     public BiomeSample biome(int worldX, int y, int worldZ) {
         requireInside(worldX, y, worldZ);
         IrisBiome surface = engine.getSurfaceBiome(worldX, worldZ);

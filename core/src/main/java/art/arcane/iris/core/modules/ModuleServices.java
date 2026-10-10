@@ -77,17 +77,11 @@ public final class ModuleServices {
         return Optional.of(new Provider<>(service.cast(first.provider()), first.scope(engine.getGeneration().world())));
     }
 
-    /** The pack biome key the module that decides cave biomes puts at the position, whatever the regions say; empty where it overrides nothing. {@code y} is the height above the dimension's bottom. */
-    public static Optional<String> overriddenCaveBiome(Engine engine, int x, int y, int z) {
-        return firstProvider(engine, CaveBiomes.class)
-                .flatMap(provider -> provider.service().overriddenBiome(provider.world(), x, y, z));
-    }
-
-    /** How many blocks below the surface the caves of the pack biome {@code biomeKey} begin; 0 where nothing limits them. */
-    public static int caveMinDepthBelowSurface(Engine engine, String biomeKey) {
-        return firstProvider(engine, CaveBiomes.class)
-                .map(provider -> provider.service().minDepthBelowSurface(provider.world(), biomeKey))
-                .orElse(0);
+    /** What the module that decides cave biomes says for the engine's world, kept for the world, its log the module's own. */
+    public static CaveBiomeAnswers caveBiomes(Engine engine) {
+        return engine.getGeneration().state(CaveBiomeAnswers.class, owner -> firstProvider(owner, CaveBiomes.class)
+                .map(provider -> new CaveBiomeAnswers(owner, provider.service(), provider.world()))
+                .orElseGet(() -> new CaveBiomeAnswers(owner, null, owner.getGeneration().world())));
     }
 
     /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */

@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
@@ -29,11 +30,14 @@ public class CustomModuleTest {
     @Before
     public void bindPlatform() {
         UsableBlockPlatform.bind();
+        // The recording runs on Iris's burst executor, which reads Iris's settings; the test platform has no settings file.
+        IrisSettings.installHotloadSnapshot("{}");
     }
 
     @After
     public void unbindPlatform() {
         UsableBlockPlatform.unbind();
+        IrisSettings.invalidate();
     }
 
     private static final int CHUNK_X = 3;

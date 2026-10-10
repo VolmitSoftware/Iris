@@ -496,7 +496,8 @@ whose writes throw. The runner does no neighbor scheduling or rollback. A failed
 the host from publishing the chunk.
 
 A chunk stage writes only its chunk but may look around it: its `TerrainSampler` covers the chunk and the 16 blocks
-around it, so a stage that smooths a surface reads its neighbors' heights. The sampler also gives the dimension's
+around it, so a stage that smooths a surface reads its neighbors' heights (`surfaceY`, which spares the host the slope
+that `column` works out). The sampler also gives the dimension's
 `fluidHeight()` and, per column, `upperDimensionY` where a dimension stacked above begins; a stage writes nothing at or
 above it. The mantle's `blocks()` are the blocks placements wrote into the mantle for chunks to take over (objects,
 structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` does. They are the host's layer, so they

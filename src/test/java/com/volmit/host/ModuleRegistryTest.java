@@ -7,8 +7,7 @@ import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
 import com.volmit.service.Service;
 import com.volmit.validation.Validator;
-import com.volmit.vanilla.VanillaStructureHook;
-import com.volmit.vanilla.VanillaStructureRule;
+import com.volmit.service.VanillaStructures;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
 import com.volmit.stage.StageGraph;
@@ -429,22 +428,14 @@ class ModuleRegistryTest {
     }
 
     @Test
-    void vanillaStructureHooksAreCataloguedByModuleIdInTheOrderEachModuleRegisteredThem() {
+    void vanillaStructuresAreAServiceEveryModuleMayProvide() {
         var registry = new ModuleRegistry();
-        VanillaStructureHook first = (structure, world) -> VanillaStructureRule.REPLACE;
-        VanillaStructureHook second = (structure, world) -> VanillaStructureRule.GENERATE;
-        VanillaStructureHook other = (structure, world) -> VanillaStructureRule.BLOCK;
-        registerAs(registry, "test:zeta", hooks -> hooks.registerVanillaStructureHook(other));
-        registerAs(registry, "test:alpha", hooks -> {
-            hooks.registerVanillaStructureHook(first);
-            hooks.registerVanillaStructureHook(second);
-        });
+        VanillaStructures first = new VanillaStructures() { };
+        VanillaStructures other = new VanillaStructures() { };
+        registerAs(registry, "test:zeta", services -> services.registerService(VanillaStructures.class, other));
+        registerAs(registry, "test:alpha", services -> services.registerService(VanillaStructures.class, first));
 
-        assertThrows(IllegalStateException.class, () -> registry.registerVanillaStructureHook(first), "outside register");
-        var hooks = registry.freeze().vanillaStructureHooks();
-        assertEquals(List.of(first, second, other), hooks.stream().map(VanillaStructureHookRegistration::hook).toList());
-        assertEquals("test:alpha", hooks.getFirst().module().info().id().toString());
-        assertThrows(IllegalStateException.class, () -> registry.registerVanillaStructureHook(first), "registration has ended");
+        assertEquals(List.of(first, other), registry.freeze().services(VanillaStructures.class));
     }
 
     private static MantleCodec<String> codec(int version) {

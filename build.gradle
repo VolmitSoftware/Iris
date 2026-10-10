@@ -127,8 +127,8 @@ nmsBindings.each { key, value ->
                 rootProject.file("adapters/bukkit/nms/${key}/src/main/java/art/arcane/iris/core/nms/${key}/IrisChunkGenerator.java").absolutePath)
             systemProperty('iris.nmsBindingSource',
                 rootProject.file("adapters/bukkit/nms/${key}/src/main/java/art/arcane/iris/core/nms/${key}/NMSBinding.java").absolutePath)
-            systemProperty('iris.nativeStructurePostProcessorSource',
-                rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructurePostProcessor.java').absolutePath)
+            systemProperty('iris.nativeStructureFitBridgeSource',
+                rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructureFitBridge.java').absolutePath)
             systemProperty('iris.nativeStructureStartInjectorSource',
                 rootProject.file('adapters/minecraft-common/src/main/java/art/arcane/iris/nativegen/NativeStructureStartInjector.java').absolutePath)
             systemProperty('iris.nativeStructureGenerationKeysSource',

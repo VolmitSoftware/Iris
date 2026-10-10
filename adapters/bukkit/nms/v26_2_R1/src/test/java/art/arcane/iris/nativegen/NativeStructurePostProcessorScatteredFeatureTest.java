@@ -11,6 +11,7 @@ import net.minecraft.world.level.levelgen.structure.ScatteredFeaturePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.TerrainAdjustment;
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
 import net.minecraft.world.level.levelgen.structure.structures.DesertPyramidPiece;
 import net.minecraft.world.level.levelgen.structure.structures.DesertPyramidStructure;
@@ -46,8 +47,7 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
         BoundingBox footprint = piece.getBoundingBox();
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:desert_pyramid", 0, 63, -64, 320, false, false, null,
-                (x, z) -> x == footprint.maxX() && z == footprint.maxZ() ? 64 : 92);
+                start, "minecraft:desert_pyramid", 0, 63, -64, 320, (x, z) -> x == footprint.maxX() && z == footprint.maxZ() ? 64 : 92);
 
         assertEquals(1, offset);
         assertSame(cachedBounds, start.getBoundingBox());
@@ -64,8 +64,7 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
         BoundingBox footprint = piece.getBoundingBox();
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:jungle_pyramid", 4, 63, -64, 320, false, false, null,
-                (x, z) -> x == footprint.minX() && z == footprint.minZ() ? 88 : 70);
+                start, "minecraft:jungle_pyramid", 4, 63, -64, 320, (x, z) -> x == footprint.minX() && z == footprint.minZ() ? 88 : 70);
 
         assertEquals(11, offset);
         assertEquals(75, piece.getBoundingBox().minY());
@@ -79,9 +78,9 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
         StructureStart start = desertStart(piece);
 
         int initialOffset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:desert_pyramid", 0, 63, -64, 320, false, false, null, (x, z) -> 80);
+                start, "minecraft:desert_pyramid", 0, 63, -64, 320, (x, z) -> 80);
         int repeatedOffset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:desert_pyramid", 0, 63, -64, 320, false, false, null, (x, z) -> 80);
+                start, "minecraft:desert_pyramid", 0, 63, -64, 320, (x, z) -> 80);
 
         assertEquals(17, initialOffset);
         assertEquals(0, repeatedOffset);
@@ -94,7 +93,7 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
         StructureStart start = desertStart(piece);
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:desert_pyramid", 0, 63, -64, 320, false, false, null, (x, z) -> 318);
+                start, "minecraft:desert_pyramid", 0, 63, -64, 320, (x, z) -> 318);
 
         assertEquals(241, offset);
         assertEquals(305, piece.getBoundingBox().minY());
@@ -110,14 +109,13 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
         StructureStart jungleStart = jungleStart(jungle);
         StructureStart swampStart = swampStart(swamp);
 
-        assertFalse(NativeStructureSurfaceFitter.requiresSurfaceTerrain(desertStart));
-        assertFalse(NativeStructureSurfaceFitter.requiresSurfaceTerrain(jungleStart));
-        assertFalse(NativeStructureSurfaceFitter.requiresSurfaceTerrain(swampStart));
+        assertEquals(TerrainAdjustment.NONE, desertStart.getStructure().terrainAdaptation());
+        assertEquals(TerrainAdjustment.NONE, jungleStart.getStructure().terrainAdaptation());
+        assertEquals(TerrainAdjustment.NONE, swampStart.getStructure().terrainAdaptation());
 
         AtomicInteger terrainQueries = new AtomicInteger();
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                swampStart, "minecraft:swamp_hut", 0, 63, -64, 320, false, false, null,
-                (x, z) -> terrainQueries.incrementAndGet());
+                swampStart, "minecraft:swamp_hut", 0, 63, -64, 320, (x, z) -> terrainQueries.incrementAndGet());
         assertEquals(0, offset);
         assertEquals(0, terrainQueries.get());
         assertEquals(64, swamp.getBoundingBox().minY());
@@ -142,7 +140,7 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
         int pyramidMinY = pyramidOverride.getBoundingBox().minY();
         int pyramidOffset = NativeStructureVerticalPlacer.applyVerticalPlacement(
                 pyramidOverride, "minecraft:desert_pyramid", 5,
-                63, -64, 320, false, false, null, (x, z) -> 200);
+                63, -64, 320, (x, z) -> 200);
 
         assertEquals(5, pyramidOffset);
         assertEquals(pyramidMinY + 5, pyramidOverride.getBoundingBox().minY());
@@ -151,7 +149,7 @@ public class NativeStructurePostProcessorScatteredFeatureTest {
                 new SwampHutPiece(RandomSource.create(47L), 0, 0));
         int monumentMinY = monumentOverride.getBoundingBox().minY();
         NativeStructureVerticalPlacer.ensureMonumentSeaLevelAlignment(
-                monumentOverride, "minecraft:monument", 0, 40, -64, 320);
+                monumentOverride, "minecraft:monument", () -> 0, 40, -64, 320);
 
         assertEquals(monumentMinY, monumentOverride.getBoundingBox().minY());
     }

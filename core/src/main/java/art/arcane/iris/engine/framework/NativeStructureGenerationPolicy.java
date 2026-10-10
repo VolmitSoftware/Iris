@@ -18,44 +18,32 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.core.modules.ModuleVanillaStructures;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
-import com.volmit.vanilla.VanillaStructureAdjustment;
-import com.volmit.vanilla.VanillaStructureFit;
 import com.volmit.vanilla.VanillaStructureRule;
 
 import java.util.Objects;
 
 /**
- * Whether the platform generates one of its own structures in an engine's world, and how its starts are adjusted, the
- * same on every platform: the rule and adjustment the pack's modules give the structure through their vanilla
- * structure hooks ({@link ModuleVanillaStructures}). A structure a module blocks does not generate; one a module
- * places itself is reported as replaced, so find, goto and verify locate the module's placement.
+ * Whether the platform generates one of its own structures in an engine's world, the same on every platform: the rule
+ * the pack's modules give the structure through their {@code VanillaStructures} providers
+ * ({@link ModuleVanillaStructures}). A structure a module blocks does not generate; one a module places itself is
+ * reported as replaced, so find, goto and verify locate the module's placement.
  */
 public final class NativeStructureGenerationPolicy {
     private NativeStructureGenerationPolicy() {
     }
 
-    public static IrisNativeStructureDecision resolve(Engine engine, String structureKey,
-                                                       boolean undergroundStep) {
+    public static NativeStructureGenerationStatus resolve(Engine engine, String structureKey) {
         Engine activeEngine = Objects.requireNonNull(engine, "Native structure policy requires an engine");
         if (structureKey == null || structureKey.isBlank()) {
-            return decision(NativeStructureGenerationStatus.INVALID_REGISTRY_KEY, VanillaStructureAdjustment.NONE);
+            return NativeStructureGenerationStatus.INVALID_REGISTRY_KEY;
         }
-        VanillaStructureRule rule = ModuleVanillaStructures.ruleFor(activeEngine, structureKey);
-        VanillaStructureAdjustment adjustment = ModuleVanillaStructures.adjustmentFor(activeEngine, structureKey, undergroundStep);
-        return decision(status(rule), adjustment);
+        return status(ModuleVanillaStructures.ruleFor(activeEngine, structureKey));
     }
 
-    private static IrisNativeStructureDecision decision(NativeStructureGenerationStatus status,
-                                                        VanillaStructureAdjustment adjustment) {
-        VanillaStructureFit fit = adjustment.fit();
-        return new IrisNativeStructureDecision(status, adjustment.yShift(),
-                adjustment.yBand().map(IrisValues::yBand).orElse(null), adjustment.keepsSourceY(),
-                fit.stilts().map(IrisValues::structureStilts).orElse(null),
-                fit.terrain().map(IrisValues::structureTerrain).orElse(null));
+    /** Whether the platform generates {@code structureKey} itself in {@code engine}'s world. */
+    public static boolean generates(Engine engine, String structureKey) {
+        return resolve(engine, structureKey) == NativeStructureGenerationStatus.GENERATE_NATIVE;
     }
 
     private static NativeStructureGenerationStatus status(VanillaStructureRule rule) {

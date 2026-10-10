@@ -123,8 +123,8 @@ public class NativeStructureVolumeIndexTest {
     public void vanillaVolumesAreGatedOnPackPolicy() throws Exception {
         String source = Files.readString(Path.of(System.getProperty("iris.nativeStructureVolumeIndexSource")));
 
-        assertTrue(source.contains("NativeStructureGenerationPolicy.resolve("));
-        assertTrue(source.contains("if (!decision.generate())"));
+        assertTrue(source.contains("if (!NativeStructureGenerationPolicy.generates(engine, structureId))"));
+        assertTrue(source.contains("NativeStructureLayouts.shift(engine"));
         assertTrue(source.contains("isStructureChunk("));
     }
 

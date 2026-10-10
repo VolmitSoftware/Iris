@@ -1,7 +1,7 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.engine.framework.NativeJigsawOverrides;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.MapCodec;
@@ -98,7 +98,8 @@ public class NativeStructureFactoryTest {
                 new Structure.StructureSettings(HolderSet.empty()));
 
         assertThrows(IllegalStateException.class, () -> NativeStructureFactory.configure(
-                null, source, new IrisJigsawConfiguration(), false, 80));
+                null, source, new NativeJigsawOverrides("", "", null, null, null, null,
+                        NativeJigsawOverrides.SOURCE, null, null, NativeJigsawOverrides.SOURCE), false, 80));
     }
 
     @Test
@@ -303,11 +304,11 @@ public class NativeStructureFactoryTest {
         );
 
         StructureStart boundaryResult = NativeStructureReferenceEnvelope.wrapForPublication(
-                boundary, source, 0, new IrisStructureTerrain(), "test:boundary_content");
+                boundary, source, 0, List.of(NativeStructureReach.PLATFORM), "test:boundary_content");
 
         StructureStart result = NativeStructureReferenceEnvelope.wrapForPublication(
                 oversized, source, 0,
-                new IrisStructureTerrain(),
+                List.of(NativeStructureReach.PLATFORM),
                 "test:oversized_content");
 
         assertTrue(boundaryResult.isValid());

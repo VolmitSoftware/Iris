@@ -26,8 +26,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedServerLevels;
@@ -133,14 +132,14 @@ final class ModdedCommandSuggestions {
             for (Identifier identifier : registry.keySet()) {
                 String key = identifier.toString();
                 registeredKeys.add(normalizeKey(key));
-                IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
+                NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
                 boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
                 boolean locatableNativePlacement = nativePlacement
                         && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
                 boolean locatableEditableReplacement = !nativePlacement
-                        && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
+                        && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                         && ModuleServices.canLocateStructure(engine, key);
-                if (isEligibleRegisteredStructure(decision, nativePlacement,
+                if (isEligibleRegisteredStructure(status, nativePlacement,
                         locatableNativePlacement, locatableEditableReplacement,
                         reachableNativeKeys.contains(normalizeKey(key)), nativeGenerationEnabled)) {
                     nativeKeys.add(key);
@@ -157,17 +156,17 @@ final class ModdedCommandSuggestions {
         return builder.buildFuture();
     }
 
-    static boolean isEligibleRegisteredStructure(IrisNativeStructureDecision decision,
+    static boolean isEligibleRegisteredStructure(NativeStructureGenerationStatus status,
                                                  boolean nativePlacement,
                                                  boolean locatableNativePlacement,
                                                  boolean locatableEditableReplacement,
                                                  boolean reachable,
                                                  boolean nativeGenerationEnabled) {
-        if (decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+        if (status == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
             return locatableEditableReplacement
                     || nativeGenerationEnabled && nativePlacement && locatableNativePlacement;
         }
-        return nativeGenerationEnabled && decision.generate()
+        return nativeGenerationEnabled && status == NativeStructureGenerationStatus.GENERATE_NATIVE
                 && (reachable || nativePlacement && locatableNativePlacement);
     }
 

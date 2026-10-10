@@ -1,7 +1,6 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderSet;
@@ -41,7 +40,7 @@ public class NativeStructurePostProcessorMonumentTest {
         StructureStart start = monumentStart(1337L);
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:monument", 0, 63, -64, 320, false, false, null, (x, z) -> 0);
+                start, "minecraft:monument", 0, 63, -64, 320, (x, z) -> 0);
 
         assertEquals(0, offset);
         assertEquals(39, start.getBoundingBox().minY());
@@ -57,7 +56,7 @@ public class NativeStructurePostProcessorMonumentTest {
         BoundingBox cachedBounds = start.getBoundingBox();
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:monument", 0, 50, -256, 512, false, false, null, (x, z) -> 0);
+                start, "minecraft:monument", 0, 50, -256, 512, (x, z) -> 0);
 
         assertEquals(-13, offset);
         assertSame(cachedBounds, start.getBoundingBox());
@@ -71,7 +70,7 @@ public class NativeStructurePostProcessorMonumentTest {
         }
 
         int repeatedOffset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:monument", 0, 50, -256, 512, false, false, null, (x, z) -> 0);
+                start, "minecraft:monument", 0, 50, -256, 512, (x, z) -> 0);
         assertEquals(0, repeatedOffset);
     }
 
@@ -80,7 +79,7 @@ public class NativeStructurePostProcessorMonumentTest {
         StructureStart start = monumentStart(1337L);
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                start, "minecraft:monument", 3, 50, -256, 512, false, false, null, (x, z) -> 0);
+                start, "minecraft:monument", 3, 50, -256, 512, (x, z) -> 0);
 
         assertEquals(-10, offset);
         assertEquals(29, start.getBoundingBox().minY());
@@ -94,13 +93,10 @@ public class NativeStructurePostProcessorMonumentTest {
                 start,
                 start.getStructure(),
                 0,
-                new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                        .setHorizontalPadding(4));
+                List.of(new NativeStructureReach(false, 4)));
 
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                wrapped, "minecraft:monument", 0, 63, -64, 320,
-                false, false, null, (x, z) -> 0);
+                wrapped, "minecraft:monument", 0, 63, -64, 320, (x, z) -> 0);
 
         assertEquals(0, offset);
         assertEquals(1, wrapped.getPieces().size());
@@ -112,7 +108,7 @@ public class NativeStructurePostProcessorMonumentTest {
         ChunkPos chunkPos = new ChunkPos(0, 0);
         StructureStart initial = monumentStart(seed);
         NativeStructureVerticalPlacer.applyVerticalPlacement(
-                initial, "minecraft:monument", 0, 50, -256, 512, false, false, null, (x, z) -> 0);
+                initial, "minecraft:monument", 0, 50, -256, 512, (x, z) -> 0);
 
         PiecesContainer regenerated = OceanMonumentStructure.regeneratePiecesAfterLoad(
                 chunkPos, seed, new PiecesContainer(initial.getPieces()));
@@ -121,7 +117,7 @@ public class NativeStructurePostProcessorMonumentTest {
 
         assertEquals(39, reloaded.getBoundingBox().minY());
         int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(
-                reloaded, "minecraft:monument", 0, 50, -256, 512, false, false, null, (x, z) -> 0);
+                reloaded, "minecraft:monument", 0, 50, -256, 512, (x, z) -> 0);
         assertEquals(-13, offset);
         assertEquals(26, reloaded.getBoundingBox().minY());
         assertEquals(48, reloaded.getBoundingBox().maxY());
@@ -133,8 +129,7 @@ public class NativeStructurePostProcessorMonumentTest {
         ChunkPos chunkPos = new ChunkPos(0, 0);
         StructureStart initial = monumentStart(seed);
         NativeStructureVerticalPlacer.applyVerticalPlacement(
-                initial, "minecraft:monument", 0, 50, -256, 512,
-                false, false, null, (x, z) -> 0);
+                initial, "minecraft:monument", 0, 50, -256, 512, (x, z) -> 0);
         PiecesContainer regenerated = OceanMonumentStructure.regeneratePiecesAfterLoad(
                 chunkPos, seed, new PiecesContainer(initial.getPieces()));
         StructureStart reloaded = new StructureStart(
@@ -147,7 +142,7 @@ public class NativeStructurePostProcessorMonumentTest {
                 futures.add(executor.submit(() -> {
                     release.await();
                     NativeStructureVerticalPlacer.ensureMonumentSeaLevelAlignment(
-                            reloaded, "minecraft:monument", 0, 50, -256, 512);
+                            reloaded, "minecraft:monument", () -> 0, 50, -256, 512);
                     return null;
                 }));
             }
@@ -168,7 +163,7 @@ public class NativeStructurePostProcessorMonumentTest {
         StructureStart start = monumentStart(1337L);
         try {
             NativeStructureVerticalPlacer.applyVerticalPlacement(
-                    start, "minecraft:monument", 0, -50, -64, 320, false, false, null, (x, z) -> 0);
+                    start, "minecraft:monument", 0, -50, -64, 320, (x, z) -> 0);
         } catch (IllegalStateException error) {
             assertTrue(error.getMessage().contains("cannot align"));
             return;

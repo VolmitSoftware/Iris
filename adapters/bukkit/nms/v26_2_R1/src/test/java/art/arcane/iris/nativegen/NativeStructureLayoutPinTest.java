@@ -1,8 +1,6 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.object.structure.IrisStructureYBand;
-import com.google.gson.Gson;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderSet;
 import net.minecraft.server.Bootstrap;
@@ -21,6 +19,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntBinaryOperator;
@@ -30,15 +29,18 @@ import static org.junit.Assert.assertEquals;
 /**
  * Pins where the platform's own starts end up vertically for each adjustment the dimension can give them (shift,
  * band, keeping the platform's height, burial under the terrain), and which chunks a start reaches for each terrain
- * fit, so both can move without changing what a world generates.
+ * fit. The values were taken before the fit moved into the structure module; since then the module answers the shift
+ * and the reach ({@code StartLayoutsPinTest} in core pins those answers for the same starts) and the platform side,
+ * pinned here, aligns, moves and references the starts with them.
  */
 public class NativeStructureLayoutPinTest {
-    private static final Gson GSON = new Gson();
     private static final int SEA_LEVEL = 61;
     private static final int WORLD_MIN_Y = -64;
     private static final int WORLD_MAX_Y_EXCLUSIVE = 320;
     private static final IntBinaryOperator SURFACE = (x, z) -> 62 + Math.floorMod(x * 7 + z * 3, 11) - 5;
     private static final int[][] CHUNKS = {{0, 0}, {3, -5}, {-11, 7}};
+    private static final Map<String, Integer> ADJUSTMENT_SHIFTS = adjustmentShifts();
+    private static final Map<String, NativeStructureReach> TERRAIN_REACHES = terrainReaches();
 
     private static final List<String> PINNED_SHIFTS = List.of(
             "none minecraft:stronghold 0,0 offset 0 minY 50",
@@ -118,63 +120,68 @@ public class NativeStructureLayoutPinTest {
         Bootstrap.bootStrap();
     }
 
+    /**
+     * The module's shift for a stronghold is the move it makes; for a desert temple, which the platform aligns to the
+     * terrain itself, it is the adjustment's own shift on top of that alignment.
+     */
     @Test
     public void platformStartsMoveWhereTheirAdjustmentSays() {
         List<String> actual = new ArrayList<>();
-        for (Adjustment adjustment : adjustments()) {
-            for (int[] chunkXZ : CHUNKS) {
-                ChunkPos chunk = new ChunkPos(chunkXZ[0], chunkXZ[1]);
-                for (String structureId : List.of("minecraft:stronghold", "minecraft:desert_pyramid")) {
-                    StructureStart start = start(chunk, structureId.equals("minecraft:stronghold") ? 50 : 64,
-                            TerrainAdjustment.NONE);
-                    int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(start, structureId,
-                            adjustment.yShift(), SEA_LEVEL, WORLD_MIN_Y, WORLD_MAX_Y_EXCLUSIVE, adjustment.underground(),
-                            adjustment.keepsSourceY(), band(adjustment.bandJson()), SURFACE);
-                    actual.add(adjustment.name() + " " + structureId + " " + chunk.x() + "," + chunk.z()
-                            + " offset " + offset + " minY " + start.getBoundingBox().minY());
-                }
-            }
+        for (String pinned : PINNED_SHIFTS) {
+            String[] parts = pinned.split(" ");
+            String structureId = parts[1];
+            String[] chunkXZ = parts[2].split(",");
+            ChunkPos chunk = new ChunkPos(Integer.parseInt(chunkXZ[0]), Integer.parseInt(chunkXZ[1]));
+            boolean stronghold = structureId.equals("minecraft:stronghold");
+            int moduleShift = stronghold ? Integer.parseInt(parts[4]) : ADJUSTMENT_SHIFTS.get(parts[0]);
+            StructureStart start = start(chunk, stronghold ? 50 : 64, TerrainAdjustment.NONE);
+            int offset = NativeStructureVerticalPlacer.applyVerticalPlacement(start, structureId, moduleShift,
+                    SEA_LEVEL, WORLD_MIN_Y, WORLD_MAX_Y_EXCLUSIVE, SURFACE);
+            actual.add(parts[0] + " " + structureId + " " + parts[2] + " offset " + offset
+                    + " minY " + start.getBoundingBox().minY());
         }
-        assertEquals("Pinned shifts changed:\n" + String.join("\n", quoted(actual)), PINNED_SHIFTS, actual);
+        assertEquals(PINNED_SHIFTS, actual);
     }
 
     @Test
     public void startsReachTheChunksTheirTerrainFitSays() {
         List<String> actual = new ArrayList<>();
-        for (String terrainJson : List.of("{}", "{\"mode\":\"PRESERVE\"}", "{\"mode\":\"VACUUM\"}",
-                "{\"mode\":\"ENCASE\",\"horizontalPadding\":4}", "{\"mode\":\"BORE\",\"horizontalPadding\":20}",
-                "{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":112}", "{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":0}")) {
+        for (Map.Entry<String, NativeStructureReach> fit : TERRAIN_REACHES.entrySet()) {
             for (TerrainAdjustment adjustment : List.of(TerrainAdjustment.NONE, TerrainAdjustment.BEARD_THIN, TerrainAdjustment.BURY)) {
                 StructureStart start = start(new ChunkPos(2, -3), 40, adjustment);
                 BoundingBox bounds = NativeStructureReferenceEnvelope.referenceBounds(start, start.getStructure(),
-                        NativeStructureTerrainIntegrator.resolveNativeTerrain(start,
-                                new NativeStructureOwnershipRecord.DecisionSnapshot("null", terrainJson).restore().terrain()),
-                        "minecraft:village_plains");
-                actual.add(terrainJson + " " + adjustment + " " + bounds.minX() + "," + bounds.minY() + "," + bounds.minZ()
+                        List.of(fit.getValue()), "minecraft:village_plains");
+                actual.add(fit.getKey() + " " + adjustment + " " + bounds.minX() + "," + bounds.minY() + "," + bounds.minZ()
                         + " " + bounds.maxX() + "," + bounds.maxY() + "," + bounds.maxZ());
             }
         }
-        assertEquals("Pinned reaches changed:\n" + String.join("\n", quoted(actual)), PINNED_REACHES, actual);
+        assertEquals(PINNED_REACHES, actual);
     }
 
-    private static List<String> quoted(List<String> lines) {
-        return lines.stream().map(line -> "            \"" + line.replace("\"", "\\\"") + "\",").toList();
+    private static Map<String, Integer> adjustmentShifts() {
+        Map<String, Integer> shifts = new LinkedHashMap<>();
+        shifts.put("none", 0);
+        shifts.put("shift", 5);
+        shifts.put("burial", -7);
+        shifts.put("burial-unshifted", 0);
+        shifts.put("kept", 3);
+        shifts.put("band", 0);
+        shifts.put("narrow-band", 4);
+        shifts.put("kept-over-band", 2);
+        return shifts;
     }
 
-    private static List<Adjustment> adjustments() {
-        return List.of(
-                new Adjustment("none", 0, null, false, false),
-                new Adjustment("shift", 5, null, false, false),
-                new Adjustment("burial", -7, null, false, true),
-                new Adjustment("burial-unshifted", 0, null, false, true),
-                new Adjustment("kept", 3, null, true, true),
-                new Adjustment("band", 0, "{\"min\":-50,\"max\":20}", false, true),
-                new Adjustment("narrow-band", 4, "{\"min\":10,\"max\":12}", false, false),
-                new Adjustment("kept-over-band", 2, "{\"min\":-40,\"max\":80}", true, false));
-    }
-
-    private static IrisStructureYBand band(String json) {
-        return json == null ? null : GSON.fromJson(json, IrisStructureYBand.class);
+    /** What the structure module answers for each terrain fit (pinned in core by {@code StartLayoutsPinTest}). */
+    private static Map<String, NativeStructureReach> terrainReaches() {
+        Map<String, NativeStructureReach> reaches = new LinkedHashMap<>();
+        reaches.put("{}", NativeStructureReach.PLATFORM);
+        reaches.put("{\"mode\":\"PRESERVE\"}", new NativeStructureReach(false, 0));
+        reaches.put("{\"mode\":\"VACUUM\"}", new NativeStructureReach(false, 12));
+        reaches.put("{\"mode\":\"ENCASE\",\"horizontalPadding\":4}", new NativeStructureReach(false, 4));
+        reaches.put("{\"mode\":\"BORE\",\"horizontalPadding\":20}", new NativeStructureReach(false, 20));
+        reaches.put("{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":112}", new NativeStructureReach(false, 112));
+        reaches.put("{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":0}", new NativeStructureReach(false, 0));
+        return reaches;
     }
 
     private static StructureStart start(ChunkPos chunk, int minY, TerrainAdjustment adjustment) {
@@ -183,8 +190,5 @@ public class NativeStructureLayoutPinTest {
         StructurePiece piece = new DesertPyramidPiece(RandomSource.create(7L), chunk.getMinBlockX(), chunk.getMinBlockZ());
         piece.move(0, minY - piece.getBoundingBox().minY(), 0);
         return new StructureStart(structure, chunk, 0, new PiecesContainer(List.of(piece)));
-    }
-
-    private record Adjustment(String name, int yShift, String bandJson, boolean keepsSourceY, boolean underground) {
     }
 }

@@ -1,11 +1,9 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
-import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.builtin.structure.StructureCarveShape;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
+import art.arcane.iris.engine.framework.structure.NativeStructureFit;
+import com.volmit.vanilla.StartMemo;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -45,46 +43,42 @@ public class NativeStructureOwnershipRecordTest {
         assertEquals(crypt, restored.find("nova_structures:undead_crypt", 4, -7));
     }
 
+    /** The stilts and terrain fit JSON records written before memos hold, as the old Iris classes wrote them. */
     @Test
-    public void decisionSnapshotFreezesTerrainAndStiltSettings() {
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(9)
-                .setCeilingPadding(3)
-                .setFloorPadding(2)
-                .setShape(IrisStructureCarveShape.ERODED)
-                .setErosionStrength(0.42D)
-                .setErosionFrequency(0.17D)
-                .setLobeFrequency(0.03D)
-                .setLobeStrength(0.61D);
-        IrisStructureStiltSettings stilt = new IrisStructureStiltSettings()
-                .setMaxDepth(91)
-                .setSpacing(4)
-                .setSupportNonOccluding(true);
-        IrisNativeStructureDecision source = new IrisNativeStructureDecision(
-                NativeStructureGenerationStatus.GENERATE_NATIVE,
-                0,
-                null,
-                false,
-                stilt,
-                terrain
-        );
+    public void recordsWrittenBeforeMemosReadAsTheStructureModulesMemo() throws Exception {
+        String stilts = "{\"maxDepth\":91,\"palette\":{\"style\":{\"style\":\"STATIC\",\"cellularFrequency\":0.0,"
+                + "\"cellularZoom\":1.0,\"zoom\":1.0,\"multiplier\":1.0,\"exponent\":1.0,\"cacheSize\":0},\"zoom\":5.0,"
+                + "\"palette\":[{\"block\":\"minecraft:stone_bricks\",\"debug\":false,\"weight\":2,"
+                + "\"data\":{\"waterlogged\":false},\"tileData\":{}}]},\"spacing\":4,\"supportNonOccluding\":true}";
+        String terrain = "{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":9,\"ceilingPadding\":3,\"floorPadding\":2,"
+                + "\"shape\":\"ERODED\",\"erosionStrength\":0.42,\"erosionFrequency\":0.17,\"lobeFrequency\":0.03,"
+                + "\"lobeStrength\":0.61}";
+        ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+        new NativeStructureOwnershipRecord.MemoSnapshot(stilts, terrain).write(new DataOutputStream(encoded));
 
-        NativeStructureOwnershipRecord.DecisionSnapshot snapshot =
-                NativeStructureOwnershipRecord.DecisionSnapshot.capture(source);
-        terrain.setHorizontalPadding(1);
-        stilt.setMaxDepth(2);
-        IrisNativeStructureDecision restored = snapshot.restore();
+        NativeStartMemo memo = NativeStructureOwnershipRecord.MemoSnapshot.read(
+                new DataInputStream(new ByteArrayInputStream(encoded.toByteArray()))).restore();
+        NativeStructureFit fit = NativeStructureFit.of(new StartMemo(memo.terrain(), memo.foundation()));
 
-        assertTrue(restored.generate());
-        assertEquals(IrisStructureTerrainMode.FORCE_CARVE, restored.terrain().resolvedMode());
-        assertEquals(IrisStructureCarveShape.ERODED, restored.terrain().resolvedShape());
-        assertEquals(9, restored.terrain().getHorizontalPadding());
-        assertEquals(0.42D, restored.terrain().getErosionStrength(), 0D);
-        assertNotNull(restored.stilt());
-        assertEquals(91, restored.stilt().getMaxDepth());
-        assertEquals(4, restored.stilt().getSpacing());
-        assertTrue(restored.stilt().isSupportNonOccluding());
+        assertEquals(StructureTerrainMode.FORCE_CARVE, fit.terrain().resolvedMode());
+        assertEquals(StructureCarveShape.ERODED, fit.terrain().resolvedShape());
+        assertEquals(9, fit.terrain().horizontalPadding());
+        assertEquals(0.42D, fit.terrain().resolvedErosionStrength(), 0D);
+        assertEquals(0.61D, fit.terrain().resolvedLobeStrength(), 0D);
+        assertEquals(91, fit.stilts().maxDepth());
+        assertEquals(4, fit.stilts().spacing());
+        assertTrue(fit.stilts().supportNonOccluding());
+        assertEquals("minecraft:stone_bricks", fit.stilts().palette().orElseThrow().palette().getFirst().block());
+        assertEquals(2, fit.stilts().palette().orElseThrow().palette().getFirst().weight());
+    }
+
+    @Test
+    public void aStartWithoutAMemoRoundTripsWithoutOne() throws Exception {
+        ByteArrayOutputStream encoded = new ByteArrayOutputStream();
+        NativeStructureOwnershipRecord.MemoSnapshot.of(null).write(new DataOutputStream(encoded));
+
+        assertNull(NativeStructureOwnershipRecord.MemoSnapshot.read(
+                new DataInputStream(new ByteArrayInputStream(encoded.toByteArray()))).restore());
     }
 
     @Test
@@ -120,7 +114,7 @@ public class NativeStructureOwnershipRecordTest {
         assertEquals(original.contentMaxZ(), refreshed.contentMaxZ());
         assertEquals(original.locatorY(), refreshed.locatorY());
         assertEquals(original.contentFingerprint(), refreshed.contentFingerprint());
-        assertEquals(original.decision(), refreshed.decision());
+        assertEquals(original.memo(), refreshed.memo());
         assertEquals(-6, refreshed.referenceMinChunkX());
         assertEquals(0, refreshed.referenceMaxChunkX());
         assertEquals(6, refreshed.referenceMinChunkZ());
@@ -184,8 +178,8 @@ public class NativeStructureOwnershipRecordTest {
 
         Map<NativeStructureOwnershipRecord.OwnershipKey, NativeStructureOwnershipRecord> oversized =
                 new LinkedHashMap<>();
-        NativeStructureOwnershipRecord.DecisionSnapshot largeDecision =
-                new NativeStructureOwnershipRecord.DecisionSnapshot(
+        NativeStructureOwnershipRecord.MemoSnapshot largeDecision =
+                new NativeStructureOwnershipRecord.MemoSnapshot(
                         "null",
                         "{\"unused\":\"" + "x".repeat(65_000) + "\"}"
                 );
@@ -298,7 +292,8 @@ public class NativeStructureOwnershipRecordTest {
     @Test
     public void nullableStiltRoundTripsAsNull() {
         NativeStructureOwnershipRecord record = record("test:no_stilt", 0, 0, 1L);
-        assertNull(record.restoredDecision().stilt());
+        NativeStartMemo memo = record.restoredMemo();
+        assertNull(NativeStructureFit.of(new StartMemo(memo.terrain(), memo.foundation())).stilts());
     }
 
     @Test
@@ -369,15 +364,8 @@ public class NativeStructureOwnershipRecordTest {
         );
     }
 
-    private static NativeStructureOwnershipRecord.DecisionSnapshot decision() {
-        return NativeStructureOwnershipRecord.DecisionSnapshot.capture(
-                new IrisNativeStructureDecision(
-                        NativeStructureGenerationStatus.GENERATE_NATIVE,
-                        0,
-                        null,
-                        false,
-                        null,
-                        new IrisStructureTerrain()
-                ));
+    private static NativeStructureOwnershipRecord.MemoSnapshot decision() {
+        StartMemo memo = NativeStructureFit.NONE.memo();
+        return NativeStructureOwnershipRecord.MemoSnapshot.of(new NativeStartMemo(memo.terrain(), memo.foundation()));
     }
 }

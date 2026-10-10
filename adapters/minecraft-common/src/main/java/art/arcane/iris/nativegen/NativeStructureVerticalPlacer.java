@@ -1,10 +1,8 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.framework.NativeStartPlacement;
 import art.arcane.iris.engine.framework.StructureVerticalBounds;
-import art.arcane.iris.engine.object.structure.IrisStructureYBand;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.math.RNG;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
@@ -25,33 +23,47 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntBinaryOperator;
+import java.util.function.IntSupplier;
 
 public final class NativeStructureVerticalPlacer {
     private static final String DESERT_PYRAMID_ID = "minecraft:desert_pyramid";
     private static final String JUNGLE_PYRAMID_ID = "minecraft:jungle_pyramid";
-    private static final int MAX_BURIAL_COLUMNS = 2_000_000;
     private static final int MONUMENT_BASE_BELOW_SEA_LEVEL = 24;
     private static final String OCEAN_MONUMENT_ID = "minecraft:monument";
-    private static final int UNDERGROUND_SURFACE_CLEARANCE = 1;
 
     private NativeStructureVerticalPlacer() {
     }
 
-    public static int applyVerticalPlacement(StructureStart start, String structureId, int requestedOffset,
+    /**
+     * Moves the platform's start {@code shift} blocks up (negative: down), as the modules asked, inside the world: an
+     * ocean monument and a desert or jungle temple are aligned first (to the sea level, to the terrain) and shifted from
+     * there. Returns how far the start moved.
+     */
+    public static int applyVerticalPlacement(StructureStart start, String structureId, int shift,
                                              int seaLevel, int worldMinY, int worldMaxYExclusive,
-                                             boolean underground, boolean preserveSourceY,
-                                             IrisStructureYBand yBand,
                                              IntBinaryOperator surfaceHeight) {
         if (isOceanMonument(start, structureId)) {
             return alignOceanMonumentToSeaLevel(
-                    start, requestedOffset, seaLevel, worldMinY, worldMaxYExclusive);
+                    start, shift, seaLevel, worldMinY, worldMaxYExclusive);
         }
         if (isAdjustedScatteredStructure(start, structureId)) {
             return alignScatteredStructureToSurface(
-                    start, structureId, requestedOffset, worldMinY, worldMaxYExclusive, surfaceHeight);
+                    start, structureId, shift, worldMinY, worldMaxYExclusive, surfaceHeight);
         }
-        return applyVerticalShift(start, requestedOffset, worldMinY, worldMaxYExclusive,
-                underground, preserveSourceY, yBand, surfaceHeight);
+        return applyVerticalShift(start, structureId, shift, worldMinY, worldMaxYExclusive);
+    }
+
+    /**
+     * The platform start as the modules see it before it is published: its bounds, whether the platform generates it
+     * underground and whether the host aligns it itself.
+     */
+    public static NativeStartPlacement placementOf(StructureStart start, String structureId, boolean underground,
+                                                   int bottomY, IntBinaryOperator surfaceHeight) {
+        BoundingBox bounds = start.getBoundingBox();
+        return new NativeStartPlacement(structureId, start.getChunkPos().x(), start.getChunkPos().z(),
+                bounds.minX(), bounds.minY(), bounds.minZ(), bounds.maxX(), bounds.maxY(), bounds.maxZ(),
+                underground, isOceanMonument(start, structureId) || isAdjustedScatteredStructure(start, structureId),
+                bottomY, surfaceHeight);
     }
 
     public static StructureStart relocateToMinY(StructureStart start, Structure source, int targetMinY,
@@ -115,37 +127,21 @@ public final class NativeStructureVerticalPlacer {
         return offsetY;
     }
 
-    public static int applyVerticalShift(StructureStart start, int requestedOffset, int worldMinY,
-                                         int worldMaxYExclusive, boolean underground,
-                                         boolean preserveSourceY, IrisStructureYBand yBand,
-                                         IntBinaryOperator surfaceHeight) {
+    /** Moves the start {@code shift} blocks, less where it would leave the world. Returns how far it moved. */
+    public static int applyVerticalShift(StructureStart start, String structureId, int shift, int worldMinY,
+                                         int worldMaxYExclusive) {
         BoundingBox bounds = start.getBoundingBox();
-        int resolvedOffset = resolveShiftOffset(start, bounds, requestedOffset, worldMinY,
-                worldMaxYExclusive, underground, preserveSourceY, yBand, surfaceHeight);
         int offsetY = StructureVerticalBounds.clampOffset(
-                bounds.minY(), bounds.maxY(), resolvedOffset, worldMinY, worldMaxYExclusive);
+                bounds.minY(), bounds.maxY(), shift, worldMinY, worldMaxYExclusive);
+        if (offsetY != shift) {
+            IrisLogging.warn("Native structure " + structureId + " at " + bounds.minX() + "," + bounds.minZ()
+                    + " clamped to the world's height: wanted a shift of " + shift + ", used " + offsetY);
+        }
         if (offsetY == 0) {
             return 0;
         }
         moveStructureStart(start, bounds, offsetY);
         return offsetY;
-    }
-
-    private static int resolveShiftOffset(StructureStart start, BoundingBox bounds, int requestedOffset,
-                                          int worldMinY, int worldMaxYExclusive, boolean underground,
-                                          boolean preserveSourceY, IrisStructureYBand yBand,
-                                          IntBinaryOperator surfaceHeight) {
-        if (preserveSourceY) {
-            return requestedOffset;
-        }
-        if (yBand != null) {
-            return resolveYBandOffset(bounds, yBand, start.getChunkPos());
-        }
-        if (underground) {
-            return resolveBuriedOffset(
-                    bounds, requestedOffset, worldMinY, worldMaxYExclusive, surfaceHeight);
-        }
-        return requestedOffset;
     }
 
     static int alignOceanMonumentToSeaLevel(StructureStart start, int configuredOffset, int seaLevel,
@@ -169,15 +165,16 @@ public final class NativeStructureVerticalPlacer {
         return offsetY;
     }
 
-    static void ensureMonumentSeaLevelAlignment(StructureStart start, String structureId,
-                                                 int configuredOffset, int seaLevel,
-                                                 int worldMinY, int worldMaxYExclusive) {
+    /** Keeps an ocean monument at the sea level, shifted by {@code shift}, before each chunk places its pieces. */
+    public static void ensureMonumentSeaLevelAlignment(StructureStart start, String structureId,
+                                                       IntSupplier shift, int seaLevel,
+                                                       int worldMinY, int worldMaxYExclusive) {
         if (!isOceanMonument(start, structureId)) {
             return;
         }
         synchronized (start) {
             alignOceanMonumentToSeaLevel(
-                    start, configuredOffset, seaLevel, worldMinY, worldMaxYExclusive);
+                    start, shift.getAsInt(), seaLevel, worldMinY, worldMaxYExclusive);
         }
     }
 
@@ -326,59 +323,5 @@ public final class NativeStructureVerticalPlacer {
             pieces.add(monumentPiece);
         }
         return List.copyOf(pieces);
-    }
-
-    static int resolveYBandOffset(BoundingBox bounds, IrisStructureYBand yBand, ChunkPos startChunk) {
-        Objects.requireNonNull(bounds, "Native structure bounds must not be null");
-        Objects.requireNonNull(startChunk, "Native structure Y band requires a start chunk");
-        int target = yBandTargetMidpointY(
-                bounds.minY(), bounds.maxY(), yBand.resolvedMin(), yBand.resolvedMax(), startChunk);
-        return Math.subtractExact(target, midpointY(bounds.minY(), bounds.maxY()));
-    }
-
-    static int yBandTargetMidpointY(int minY, int maxY, int bandMin, int bandMax, ChunkPos startChunk) {
-        int height = Math.subtractExact(maxY, minY);
-        int lowest = Math.addExact(bandMin, height / 2);
-        int highest = Math.subtractExact(bandMax, height - height / 2);
-        if (lowest > highest) {
-            // The band is shorter than the structure, so only its midpoint can be honoured.
-            return Math.floorDiv(Math.addExact(bandMin, bandMax), 2);
-        }
-        int span = highest - lowest + 1;
-        if (span == 1) {
-            return lowest;
-        }
-        long identity = (long) startChunk.x() * 341873128712L ^ (long) startChunk.z() * 132897987541L;
-        return lowest + new RNG(identity).nextInt(span);
-    }
-
-    private static int midpointY(int minY, int maxY) {
-        return minY + (maxY - minY) / 2;
-    }
-
-    static int resolveBuriedOffset(BoundingBox bounds, int requestedOffset, int worldMinY,
-                                   int worldMaxYExclusive, IntBinaryOperator surfaceHeight) {
-        Objects.requireNonNull(bounds, "Native structure bounds must not be null");
-        Objects.requireNonNull(surfaceHeight, "Underground native structure requires a terrain height resolver");
-        long width = (long) bounds.maxX() - bounds.minX() + 1L;
-        long depth = (long) bounds.maxZ() - bounds.minZ() + 1L;
-        if (width <= 0L || depth <= 0L || width > MAX_BURIAL_COLUMNS / depth) {
-            throw new IllegalStateException("Underground native structure burial footprint is invalid or exceeds "
-                    + MAX_BURIAL_COLUMNS + " columns");
-        }
-        int maximumOffset = requestedOffset;
-        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
-            for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
-                int allowedTopY = surfaceHeight.applyAsInt(x, z) - UNDERGROUND_SURFACE_CLEARANCE;
-                maximumOffset = Math.min(maximumOffset, allowedTopY - bounds.maxY());
-            }
-        }
-        int clampedOffset = StructureVerticalBounds.clampOffset(
-                bounds.minY(), bounds.maxY(), maximumOffset, worldMinY, worldMaxYExclusive);
-        if (clampedOffset > maximumOffset) {
-            IrisLogging.warn("Native structure burial at " + bounds.minX() + "," + bounds.minZ()
-                    + " clamped to world floor: wanted " + maximumOffset + ", used " + clampedOffset);
-        }
-        return clampedOffset;
     }
 }

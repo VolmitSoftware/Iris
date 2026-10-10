@@ -974,7 +974,7 @@ public final class IrisModdedChunkGenerator extends ChunkGenerator {
         }
     }
 
-    Integer worldCheckStructureShift(String structureId, ChunkPos startChunk) {
+    ModdedNativeStructureStage.WorldCheckShift worldCheckStructureShift(String structureId, ChunkPos startChunk) {
         return nativeStructures.worldCheckStructureShift(structureId, startChunk);
     }
 

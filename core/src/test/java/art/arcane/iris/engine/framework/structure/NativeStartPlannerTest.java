@@ -3,11 +3,13 @@ package art.arcane.iris.engine.framework.structure;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
-import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
+import art.arcane.iris.builtin.structure.StructureStilts;
+import art.arcane.iris.builtin.structure.StructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
+import com.google.gson.Gson;
+import com.volmit.vanilla.JigsawOverrides;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import com.volmit.resource.ResourceId;
-import com.volmit.vanilla.StructureTerrain;
 import com.volmit.vanilla.VanillaStructureStart;
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +19,6 @@ import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -83,31 +83,31 @@ public class NativeStartPlannerTest {
 
     @Test
     public void aPlanBecomesAStartWithHeightsAboveTheBottomAndThePlacementsFitAndIdentity() {
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(24);
+        Gson json = new Gson();
+        StructureTerrain terrain = json.fromJson("{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":24}", StructureTerrain.class);
         IrisStructurePlacement placement = nativePlacement()
                 .setUnderground(true)
                 .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE)
                 .setTerrain(terrain)
-                .setStilt(new IrisStructureStiltSettings().setSpacing(3));
-        placement.getNativeStructures().getFirst().setJigsaw(new IrisJigsawConfiguration().setMaxDepth(4));
+                .setStilt(json.fromJson("{\"spacing\":3}", StructureStilts.class));
+        placement.getNativeStructures().getFirst().setJigsaw(JigsawOverrides.none().withMaxDepth(4));
         NativeStartPlanner.Plan plan = new NativeStartPlanner.Plan(
                 placement, placement.getNativeStructures().getFirst(), 3, 5, -30);
 
-        VanillaStructureStart start = StructureVanillaHook.start(plan, -64);
+        VanillaStructureStart start = StructureVanillaStructures.start(plan, -64);
 
         assertEquals(ResourceId.parse("minecraft:ancient_city"), start.structure());
         assertEquals(34, start.y());
         assertTrue(start.isUnderground());
         assertTrue(start.replacesPlatformStart());
         assertEquals(StructurePlacementGrid.placementIdentity(placement), start.identity());
-        assertEquals(StructureTerrain.Mode.FORCE_CARVE, start.fit().terrain().orElseThrow().mode());
-        assertEquals(24, start.fit().terrain().orElseThrow().horizontalPadding());
-        assertEquals(3, start.fit().stilts().orElseThrow().spacing());
+        NativeStructureFit fit = NativeStructureFit.of(start.memo().orElseThrow());
+        assertEquals(StructureTerrainMode.FORCE_CARVE, fit.terrain().resolvedMode());
+        assertEquals(24, fit.terrain().horizontalPadding());
+        assertEquals(3, fit.stilts().spacing());
         assertEquals(OptionalInt.of(4), start.jigsaw().orElseThrow().maxDepth());
         assertEquals("a source without jigsaw overrides has none", Optional.empty(),
-                StructureVanillaHook.start(new NativeStartPlanner.Plan(nativePlacement(),
+                StructureVanillaStructures.start(new NativeStartPlanner.Plan(nativePlacement(),
                         nativePlacement().getNativeStructures().getFirst(), 0, 0, 70), -64).jigsaw());
     }
 

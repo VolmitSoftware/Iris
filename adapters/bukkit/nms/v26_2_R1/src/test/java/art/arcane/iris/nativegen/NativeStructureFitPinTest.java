@@ -1,7 +1,7 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
+import art.arcane.iris.engine.framework.NativeStartMemo;
+import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -61,12 +61,15 @@ import static org.junit.Assert.assertTrue;
  * starts with real pieces and inline templates, and fit records written the way ownership records persist them. It
  * then runs the chunk's fit in the generator's order (terrain fitting for every start, then each start's pieces and
  * stilts, then the foundation repair) with a fixed stand-in for the platform's piece placement, and hashes every block
- * that differs from the untouched terrain.
+ * that differs from the untouched terrain. The hashes were taken from the platform-side fit before it moved into the
+ * structure module; they now run through the platform bridge and the built-in modules.
  */
 public class NativeStructureFitPinTest {
     private static final long WORLD_SEED = 8675309L;
     private static final int SEA_LEVEL = 61;
-    private static final BoundingBox CHUNK_AREA = new BoundingBox(0, -63, 0, 15, 318, 15);
+    private static final int WORLD_MIN_Y = -64;
+    private static final int WORLD_HEIGHT = 384;
+    private static final BoundingBox CHUNK_AREA = new BoundingBox(0, WORLD_MIN_Y + 1, 0, 15, WORLD_MIN_Y + WORLD_HEIGHT - 2, 15);
     private static final String NO_STILTS = "null";
     private static final String SOURCE_TERRAIN = "{}";
 
@@ -117,35 +120,27 @@ public class NativeStructureFitPinTest {
         return terrain.changedBlocksHash(CHUNK_AREA);
     }
 
-    /** The chunk's fit in the order the generators run it; the platform's placement is {@link #placePieces}. */
+    /**
+     * The chunk's fit in the order the generators run it, through the platform bridge and the built-in modules: the
+     * fit before any piece, then each start's pieces ({@link #placePieces}) and its fit after them.
+     */
     private static void fitChunk(WorldGenLevel world, Scenario scenario) {
-        IntBinaryOperator surface = TerrainWorld::surfaceY;
-        List<NativeStructureTerrainIntegrator.TerrainTarget> targets = new ArrayList<>();
-        List<IrisNativeStructureDecision> decisions = new ArrayList<>();
+        List<NativeStructureFitBridge.FitTarget> targets = new ArrayList<>();
         for (FitTarget target : scenario.targets()) {
-            IrisNativeStructureDecision decision = new NativeStructureOwnershipRecord.DecisionSnapshot(
-                    target.stiltJson(), target.terrainJson()).restore();
-            decisions.add(decision);
-            targets.add(new NativeStructureTerrainIntegrator.TerrainTarget(target.structureId(), target.start(),
-                    NativeStructureTerrainIntegrator.resolveNativeTerrain(target.start(), decision.terrain())));
+            targets.add(new NativeStructureFitBridge.FitTarget(target.structureId(), target.start(),
+                    new NativeStartMemo(target.terrainJson(), target.stiltJson())));
         }
-        NativeStructureSurfaceFitter.VacuumFoundationPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world, CHUNK_AREA, targets, surface);
-        NativeStructurePostProcessor.prepareTerrain(world, CHUNK_AREA, targets, NativeStructureFitPinTest::noPalette);
+        NativeStructureFitting.Session fit = BuiltInFitting.FITTING.beforePieces(
+                NativeStructureFitBridge.chunk(world, CHUNK_AREA, targets, TerrainWorld::surfaceY));
         for (int index = 0; index < targets.size(); index++) {
-            FitTarget target = scenario.targets().get(index);
-            placePieces(world, target);
-            if (decisions.get(index).stilt() != null) {
-                NativeStructureFoundationBuilder.placeStilts(world, CHUNK_AREA, target.structureId(), target.start(),
-                        decisions.get(index).stilt(), NativeStructureFitPinTest::noPalette, surface,
-                        !NativeStructureVegetationClearer.isUndergroundStep(target.start().getStructure().step()));
-            }
+            placePieces(world, scenario.targets().get(index));
+            fit.afterPieces(index);
         }
-        NativeStructureSurfaceFitter.repairVacuumFoundations(world, CHUNK_AREA, plan);
     }
 
-    private static BlockState noPalette(Object palette, Object rng, int x, int y, int z) {
-        throw new AssertionError("The pinned scenarios use the default fill blocks, never a palette");
+    /** The built-in modules load once for every scenario. */
+    private static final class BuiltInFitting {
+        private static final NativeStructureFitting FITTING = NativeStructureFitting.builtInModules();
     }
 
     /**
@@ -541,7 +536,8 @@ public class NativeStructureFitPinTest {
                     yield true;
                 }
                 case "getSeed" -> WORLD_SEED;
-                case "getHeight" -> heightmapY((int) arguments[1], (int) arguments[2]);
+                case "getMinY" -> WORLD_MIN_Y;
+                case "getHeight" -> arguments == null ? WORLD_HEIGHT : heightmapY((int) arguments[1], (int) arguments[2]);
                 case "getLevel" -> null;
                 case "holderLookup" -> BuiltInRegistries.BLOCK;
                 case "hashCode" -> System.identityHashCode(proxy);

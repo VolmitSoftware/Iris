@@ -30,9 +30,8 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -144,20 +143,20 @@ public class CommandFind implements DirectorExecutor {
         String structureKey = structure == null ? "" : structure.trim();
         Structure nativeStructure = resolveNativeStructure(structureKey);
         boolean registered = nativeStructure != null;
-        IrisNativeStructureDecision decision = registered
-                ? NativeStructureGenerationPolicy.resolve(e, structureKey, false)
+        NativeStructureGenerationStatus status = registered
+                ? NativeStructureGenerationPolicy.resolve(e, structureKey)
                 : null;
         boolean nativePlacement = IrisStructureLocator.hasNativePlacement(e, structureKey);
         boolean locatableNativePlacement = IrisStructureLocator.hasLocatableNativePlacement(e, structureKey);
         boolean locatableEditablePlacement = ModuleServices.canLocateStructure(e, structureKey);
         World targetWorld = target.getWorld();
         boolean nativeGenerationEnabled = targetWorld.canGenerateStructures();
-        boolean requiresReachability = registered && decision.generate()
-                && decision.status() != NativeStructureGenerationStatus.REPLACED_BY_IRIS
+        boolean requiresReachability = registered && status == NativeStructureGenerationStatus.GENERATE_NATIVE
+                && status != NativeStructureGenerationStatus.REPLACED_BY_IRIS
                 && nativeGenerationEnabled;
         boolean reachable = !requiresReachability || StructureReachability.isReachable(e, structureKey);
         StructureLookupRoute route = selectStructureLookupRoute(
-                registered, decision, nativePlacement, locatableNativePlacement,
+                registered, status, nativePlacement, locatableNativePlacement,
                 locatableEditablePlacement, nativeGenerationEnabled, reachable);
 
         if (route == StructureLookupRoute.UNKNOWN) {
@@ -166,7 +165,7 @@ public class CommandFind implements DirectorExecutor {
         }
         if (route == StructureLookupRoute.POLICY_DISABLED) {
             commandSender.sendMessage(C.RED + NativeStructureGenerationPolicy.generationStatusMessage(
-                    structureKey, decision.status()));
+                    structureKey, status));
             return;
         }
         if (route == StructureLookupRoute.NO_ACTIVE_PLACEMENT) {
@@ -273,24 +272,24 @@ public class CommandFind implements DirectorExecutor {
         for (Map.Entry<String, String> entry : registeredKeys.entrySet()) {
             String normalizedKey = entry.getKey();
             String key = entry.getValue();
-            IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
+            NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
             boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
             boolean locatableNativePlacement = IrisStructureLocator.hasLocatableNativePlacement(engine, key);
             boolean locatableEditablePlacement = ModuleServices.canLocateStructure(engine, key);
             StructureLookupRoute route = selectStructureLookupRoute(
-                    true, decision, nativePlacement, locatableNativePlacement,
+                    true, status, nativePlacement, locatableNativePlacement,
                     locatableEditablePlacement, nativeGenerationEnabled,
                     reachableKeys.contains(normalizedKey));
             if (route == StructureLookupRoute.IRIS || route == StructureLookupRoute.NATIVE) {
                 continue;
             }
-            List<String> requiredBiomes = needsNativeReachabilityReason(route, decision)
+            List<String> requiredBiomes = needsNativeReachabilityReason(route, status)
                     ? structureHooks.structureBiomeKeys(key)
                     : List.of();
             exclusions.add(new StructureExclusion(
                     StructureExclusionKind.EXCLUDED, key, null,
                     describeStructureExclusion(
-                            route, key, decision.status(), nativePlacement,
+                            route, key, status, nativePlacement,
                             requiredBiomes, possibleBiomeKeys)));
             registeredExcluded++;
         }
@@ -418,9 +417,9 @@ public class CommandFind implements DirectorExecutor {
     }
 
     private static boolean needsNativeReachabilityReason(
-            StructureLookupRoute route, IrisNativeStructureDecision decision) {
+            StructureLookupRoute route, NativeStructureGenerationStatus status) {
         return route == StructureLookupRoute.UNREACHABLE
-                || route == StructureLookupRoute.NO_ACTIVE_PLACEMENT && decision.generate();
+                || route == StructureLookupRoute.NO_ACTIVE_PLACEMENT && status == NativeStructureGenerationStatus.GENERATE_NATIVE;
     }
 
     static String describeStructureExclusion(
@@ -529,7 +528,7 @@ public class CommandFind implements DirectorExecutor {
     }
 
     static StructureLookupRoute selectStructureLookupRoute(
-            boolean registered, IrisNativeStructureDecision decision, boolean nativePlacement,
+            boolean registered, NativeStructureGenerationStatus status, boolean nativePlacement,
             boolean locatableNativePlacement, boolean locatableEditablePlacement,
             boolean nativeGenerationEnabled, boolean reachable) {
         if (!registered) {
@@ -537,14 +536,14 @@ public class CommandFind implements DirectorExecutor {
                     ? StructureLookupRoute.IRIS
                     : StructureLookupRoute.UNKNOWN;
         }
-        if (decision == null) {
-            throw new IllegalArgumentException("Registered structure lookup requires a generation decision");
+        if (status == null) {
+            throw new IllegalArgumentException("Registered structure lookup requires a generation status");
         }
-        if (!decision.generate()
-                && decision.status() != NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+        if (status != NativeStructureGenerationStatus.GENERATE_NATIVE
+                && status != NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
             return StructureLookupRoute.POLICY_DISABLED;
         }
-        if (decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+        if (status == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
             if (!nativePlacement) {
                 return locatableEditablePlacement
                         ? StructureLookupRoute.IRIS

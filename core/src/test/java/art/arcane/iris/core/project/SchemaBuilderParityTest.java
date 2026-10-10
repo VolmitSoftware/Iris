@@ -183,10 +183,6 @@ public class SchemaBuilderParityTest {
         JSONObject erosionFrequency = terrainProperties.getJSONObject("erosionFrequency");
         JSONObject lobeFrequency = terrainProperties.getJSONObject("lobeFrequency");
         JSONObject lobeStrength = terrainProperties.getJSONObject("lobeStrength");
-        String carveShapeDefinition = carveShape.getString("$ref")
-                .substring("#/definitions/".length());
-        String terrainModeDefinition = terrainMode.getString("$ref")
-                .substring("#/definitions/".length());
 
         assertTrue(properties.has("structures"));
         assertTrue(properties.has("nativeStructures"));
@@ -195,9 +191,8 @@ public class SchemaBuilderParityTest {
                 "The editable structures backend supports SOURCE, PRESERVE, BORE, and FORCE_CARVE. "
                         + "The nativeStructures backend supports every terrain mode."));
         assertEquals(List.of("SOURCE", "PRESERVE", "BORE", "FORCE_CARVE", "VACUUM", "ENCASE"),
-                oneOfValues(schema.getJSONObject("definitions"), terrainModeDefinition));
-        assertEquals(List.of("BOX", "ROUNDED", "ERODED"), oneOfValues(
-                schema.getJSONObject("definitions"), carveShapeDefinition));
+                values(terrainMode.getJSONArray("enum")));
+        assertEquals(List.of("BOX", "ROUNDED", "ERODED"), values(carveShape.getJSONArray("enum")));
         assertEquals(0D, erosionStrength.getDouble("minimum"), 0D);
         assertEquals(1D, erosionStrength.getDouble("maximum"), 0D);
         assertEquals(0.001D, erosionFrequency.getDouble("minimum"), 0D);
@@ -237,19 +232,18 @@ public class SchemaBuilderParityTest {
     }
 
     @Test
-    public void structureSettingsRenderTheirFitsWithIrisDefinitionsOfTheSameJson() throws IOException {
+    public void structureSettingsRenderTheirFitsWithTheModulesDefinitions() throws IOException {
         JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData(structureSettingsSchema())).construct();
         JSONObject definitions = schema.getJSONObject("definitions");
         JSONObject settings = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("importedStructures")))
                 .getJSONObject("properties");
         JSONObject adjustment = definitions.getJSONObject(definitionKey(settings.getJSONObject("adjustments").getJSONObject("items")))
                 .getJSONObject("properties");
-        JSONObject band = irisDefinition(definitions, adjustment.getJSONObject("yBand")).getJSONObject("properties");
-        JSONObject stilt = irisDefinition(definitions, adjustment.getJSONObject("stilt")).getJSONObject("properties");
-        JSONObject terrain = irisDefinition(definitions, adjustment.getJSONObject("terrain")).getJSONObject("properties");
+        JSONObject band = definitions.getJSONObject(definitionKey(adjustment.getJSONObject("yBand"))).getJSONObject("properties");
+        JSONObject stilt = definitions.getJSONObject(definitionKey(adjustment.getJSONObject("stilt"))).getJSONObject("properties");
+        JSONObject terrain = definitions.getJSONObject(definitionKey(adjustment.getJSONObject("terrain"))).getJSONObject("properties");
 
-        assertEquals("obj-art-arcane-iris-engine-object-structure-irisstructureyband",
-                definitionKey(definitions.getJSONObject(definitionKey(adjustment.getJSONObject("yBand")))));
+        assertEquals("module-art-arcane-iris-builtin-structure-structureyband", definitionKey(adjustment.getJSONObject("yBand")));
         assertEquals("boolean", adjustment.getJSONObject("preserveSourceY").getString("type"));
         assertEquals(-4064, band.getJSONObject("min").getInt("minimum"));
         assertEquals(4064, band.getJSONObject("max").getInt("maximum"));
@@ -477,10 +471,6 @@ public class SchemaBuilderParityTest {
     }
 
     /** The definition an API value type's reference leads to: the module's, which refers to Iris's own. */
-    private static JSONObject irisDefinition(JSONObject definitions, JSONObject reference) {
-        return definitions.getJSONObject(definitionKey(definitions.getJSONObject(definitionKey(reference))));
-    }
-
     private static String definitionKey(JSONObject reference) {
         return reference.getString("$ref").substring("#/definitions/".length());
     }
@@ -490,7 +480,10 @@ public class SchemaBuilderParityTest {
     }
 
     private static List<String> enumValues(JSONObject definitions, String key) {
-        JSONArray array = definitions.getJSONObject(key).getJSONArray("enum");
+        return values(definitions.getJSONObject(key).getJSONArray("enum"));
+    }
+
+    private static List<String> values(JSONArray array) {
         List<String> values = new ArrayList<>(array.length());
         for (int index = 0; index < array.length(); index++) {
             values.add(array.getString(index));

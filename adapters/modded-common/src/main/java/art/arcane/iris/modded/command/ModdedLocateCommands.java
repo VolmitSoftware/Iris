@@ -31,9 +31,8 @@ import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.util.project.context.IrisContext;
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -166,21 +165,21 @@ final class ModdedLocateCommands {
             return 0;
         }
         NativeStructureTarget target = resolved.get();
-        IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, target.key(), false);
+        NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, target.key());
         boolean nativeGenerationEnabled =
                 source.getServer().getWorldGenSettings().options().generateStructures();
         boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, target.key());
         boolean locatableNativePlacement = nativePlacement
                 && IrisStructureLocator.hasLocatableNativePlacement(engine, target.key());
         boolean locatableEditableReplacement = !nativePlacement
-                && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
+                && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                 && ModuleServices.canLocateStructure(engine, target.key());
         boolean reachable = StructureReachability.isReachable(engine, target.key());
         if (!ModdedCommandSuggestions.isEligibleRegisteredStructure(
-                decision, nativePlacement, locatableNativePlacement, locatableEditableReplacement,
+                status, nativePlacement, locatableNativePlacement, locatableEditableReplacement,
                 reachable, nativeGenerationEnabled)) {
             IrisModdedCommands.fail(source, registeredStructureUnavailableMessage(
-                    target.key(), target.availability(), decision,
+                    target.key(), target.availability(), status,
                     nativePlacement, locatableNativePlacement,
                     nativeGenerationEnabled, reachable));
             return 0;
@@ -196,14 +195,14 @@ final class ModdedLocateCommands {
 
     static String registeredStructureUnavailableMessage(
             String key, NativeStructureAvailability nativeAvailability,
-            IrisNativeStructureDecision decision,
+            NativeStructureGenerationStatus status,
             boolean nativePlacement, boolean locatableNativePlacement,
             boolean nativeGenerationEnabled, boolean reachable) {
-        if (!decision.generate()
-                && decision.status() != NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
-            return NativeStructureGenerationPolicy.generationStatusMessage(key, decision.status());
+        if (status != NativeStructureGenerationStatus.GENERATE_NATIVE
+                && status != NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+            return NativeStructureGenerationPolicy.generationStatusMessage(key, status);
         }
-        if (decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+        if (status == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
             if (nativePlacement && !nativeGenerationEnabled) {
                 return withInactiveNativePlacement(
                         nativeUnavailableMessage(key, NativeStructureAvailability.WORLD_DISABLED),
@@ -408,9 +407,9 @@ final class ModdedLocateCommands {
                                                            Engine engine, String key,
                                                            Holder.Reference<Structure> holder) {
         boolean worldEnabled = source.getServer().getWorldGenSettings().options().generateStructures();
-        IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
-        boolean selected = decision.status() != NativeStructureGenerationStatus.DISABLED_BY_PACK;
-        boolean suppressed = decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS;
+        NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
+        boolean selected = status != NativeStructureGenerationStatus.DISABLED_BY_PACK;
+        boolean suppressed = status == NativeStructureGenerationStatus.REPLACED_BY_IRIS;
         boolean biomeFilterEmpty = holder.value().biomes().stream().findAny().isEmpty();
         ChunkGenerator chunkGenerator = level.getChunkSource().getGenerator();
         boolean biomeReachable = chunkGenerator instanceof IrisModdedChunkGenerator irisGenerator

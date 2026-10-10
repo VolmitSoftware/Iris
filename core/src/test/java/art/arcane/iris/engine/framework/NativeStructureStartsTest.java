@@ -3,20 +3,16 @@ package art.arcane.iris.engine.framework;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleSettings;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.builtin.structure.StructureStilts;
+import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawHeightmap;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
 import com.volmit.host.LoadedPack;
+import com.volmit.vanilla.JigsawOverrides;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -133,13 +129,13 @@ public class NativeStructureStartsTest {
 
     @Test
     public void fitsAndJigsawOverridesReachThePlatformWithTheirJsonUnchanged() throws IOException {
-        IrisStructureTerrain terrain = new IrisStructureTerrain().setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setShape(IrisStructureCarveShape.ERODED).setHorizontalPadding(12).setErosionStrength(0.4D)
-                .setEncasePalette(new IrisMaterialPalette().qclear().qadd("minecraft:deepslate").qadd("minecraft:tuff"));
-        IrisStructureStiltSettings stilt = new IrisStructureStiltSettings().setMaxDepth(40).setSpacing(2)
-                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:stone_bricks"));
-        IrisJigsawConfiguration jigsaw = new IrisJigsawConfiguration().setStartPool("minecraft:village/plains/town_centers")
-                .setMaxDepth(5).setProjectStartToHeightmap(IrisJigsawHeightmap.OCEAN_FLOOR_WG).setUseExpansionHack(false);
+        StructureTerrain terrain = GSON.fromJson("{\"mode\":\"FORCE_CARVE\",\"shape\":\"ERODED\",\"horizontalPadding\":12,"
+                + "\"erosionStrength\":0.4,\"encasePalette\":{\"palette\":[{\"block\":\"minecraft:deepslate\"},"
+                + "{\"block\":\"minecraft:tuff\"}]}}", StructureTerrain.class);
+        StructureStilts stilt = GSON.fromJson("{\"maxDepth\":40,\"spacing\":2,"
+                + "\"palette\":{\"palette\":[{\"block\":\"minecraft:stone_bricks\"}]}}", StructureStilts.class);
+        JigsawOverrides jigsaw = JigsawOverrides.none().withStartPool("minecraft:village/plains/town_centers")
+                .withMaxDepth(5).withHeightmap(JigsawOverrides.Heightmap.OCEAN_FLOOR_WG).withExpansionHack(false);
         IrisStructurePlacement fitted = placement("fitted", true, -40, -20, 1D, source("minecraft:ancient_city", 1)
                 .setJigsaw(jigsaw)).setTerrain(terrain).setStilt(stilt);
         KList<IrisStructurePlacement> placements = new KList<>();
@@ -148,11 +144,10 @@ public class NativeStructureStartsTest {
 
         NativeStructureStartPlan plan = NativeStructureStarts.matchingPlan(engine, "MINECRAFT:ANCIENT_CITY", 0, 0);
 
-        assertEquals(GSON.toJson(terrain), GSON.toJson(plan.terrain()));
-        assertEquals(GSON.toJson(stilt), GSON.toJson(plan.stilt()));
-        assertEquals(GSON.toJson(jigsaw), GSON.toJson(plan.jigsaw()));
-        assertEquals(GSON.toJson(new NativeStructureStartPlan(plan.structureKey(), 0, 0, plan.baseY(), true, false,
-                StructurePlacementGrid.placementIdentity(fitted), jigsaw, stilt, terrain).decision()), GSON.toJson(plan.decision()));
+        assertEquals(new NativeStartMemo(GSON.toJson(terrain), GSON.toJson(stilt)), plan.memo());
+        assertEquals(new NativeJigsawOverrides("minecraft:village/plains/town_centers", "", 5, null, null, false,
+                "OCEAN_FLOOR_WG", null, null, NativeJigsawOverrides.SOURCE), plan.jigsaw());
+        assertEquals(StructurePlacementGrid.placementIdentity(fitted), plan.placementIdentity());
         assertNull(NativeStructureStarts.matchingPlan(engine, "minecraft:stronghold", 0, 0));
     }
 

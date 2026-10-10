@@ -4,7 +4,6 @@ import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.host.LoadedPack;
 import org.junit.After;
@@ -41,9 +40,9 @@ public class NativeStructureVolumeSuppressionTest {
         Engine engine = engine();
 
         assertFalse(NativeStructureGenerationPolicy
-                .resolve(engine, "minecraft:village_swamp", false).generate());
+                .generates(engine, "minecraft:village_swamp"));
         assertFalse(NativeStructureGenerationPolicy
-                .resolve(engine, "minecraft:village_plains", false).generate());
+                .generates(engine, "minecraft:village_plains"));
     }
 
     @Test
@@ -51,15 +50,7 @@ public class NativeStructureVolumeSuppressionTest {
         Engine engine = engine();
 
         assertTrue(NativeStructureGenerationPolicy
-                .resolve(engine, "towns_and_towers:village_swamp", false).generate());
-    }
-
-    @Test
-    public void plannedModuleStartsContributeVolumesThroughTheirOwnDecision() {
-        NativeStructureStartPlan plan = new NativeStructureStartPlan("minecraft:ancient_city", 3, 5, -30, true, false, 7L,
-                null, null, new IrisStructureTerrain());
-
-        assertTrue(plan.decision().generate());
+                .generates(engine, "towns_and_towers:village_swamp"));
     }
 
     private Engine engine() throws IOException {

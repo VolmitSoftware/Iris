@@ -45,7 +45,7 @@ public class IrisChunkGeneratorMonumentLocateContractTest {
         int reachabilityStart = source.indexOf("private Set<String> reachableStructureKeys", filterStart);
         assertTrue(reachabilityStart > filterStart);
         String filterMethod = source.substring(filterStart, reachabilityStart);
-        int policyFilter = filterMethod.indexOf("if (!decision.generate())");
+        int policyFilter = filterMethod.indexOf("if (!NativeStructureGenerationPolicy.generates(engine, key))");
         int filterContinue = filterMethod.indexOf("continue;", policyFilter);
         int emptyNativePartition = filterMethod.indexOf("if (candidates.isEmpty())", filterContinue);
         int reachabilityLookup = filterMethod.indexOf("reachableStructureKeys(level)", emptyNativePartition);
@@ -119,7 +119,7 @@ public class IrisChunkGeneratorMonumentLocateContractTest {
 
     @Test
     public void nativePredictionIsReadOnlyUntilTheWinnerIsCommitted() throws IOException {
-        Path nativegen = Path.of(System.getProperty("iris.nativeStructurePostProcessorSource")).getParent();
+        Path nativegen = Path.of(System.getProperty("iris.nativeStructureFitBridgeSource")).getParent();
         String source = Files.readString(nativegen.resolve("NativeStructureVanillaLocator.java")).replace("\r\n", "\n");
         int predictionStart = source.indexOf("private static Candidate predictAt(");
         int candidateStart = source.indexOf("public static final class Candidate", predictionStart);
@@ -132,32 +132,9 @@ public class IrisChunkGeneratorMonumentLocateContractTest {
     }
 
     @Test
-    public void stiltSupportUsesPlacedSolidOccupancyWithoutSnapshotDifferenceRequirement() throws IOException {
-        Path processor = Path.of(System.getProperty("iris.nativeStructurePostProcessorSource"));
-        String source = Files.readString(processor).replace("\r\n", "\n");
-        String foundation = Files.readString(
-                processor.resolveSibling("NativeStructureFoundationBuilder.java")).replace("\r\n", "\n");
-        int placement = source.indexOf("start.placeInChunk(world, structureManager, generator");
-        int stiltPlacement = source.indexOf("placeStilts(world, area, structureId, start", placement);
-        int stiltDefinition = foundation.indexOf("static void placeStilts(");
-        int occupancyCheck = foundation.indexOf("if (state.isSolid())", stiltDefinition);
-        int terrainFloor = foundation.indexOf("Math.max(terrainY,", stiltDefinition);
-
-        assertTrue(placement >= 0);
-        assertTrue(stiltPlacement > placement);
-        assertTrue(stiltDefinition >= 0);
-        assertTrue(occupancyCheck > stiltDefinition);
-        assertTrue(terrainFloor > stiltDefinition);
-        assertFalse(source.contains("state.equals("));
-        assertFalse(foundation.contains("state.equals("));
-        assertFalse(source.contains("snapshot.states"));
-        assertFalse(foundation.contains("snapshot.states"));
-    }
-
-    @Test
     public void verticalPlacementMovesPiecesMonumentChildrenJigsawJunctionsAndCachedBoundsTogether() throws IOException {
         String source = Files.readString(
-                Path.of(System.getProperty("iris.nativeStructurePostProcessorSource"))
+                Path.of(System.getProperty("iris.nativeStructureFitBridgeSource"))
                         .resolveSibling("NativeStructureVerticalPlacer.java")).replace("\r\n", "\n");
         int placementStart = source.indexOf("public static int applyVerticalPlacement");
         int shiftStart = source.indexOf("public static int applyVerticalShift", placementStart);

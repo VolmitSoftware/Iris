@@ -2,16 +2,14 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.structure.StructureAdjustment;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
-import com.volmit.vanilla.StructureTerrain;
-import com.volmit.vanilla.YBand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,7 +19,6 @@ import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -93,29 +90,31 @@ public class StructureSettingsDecodingTest {
         List<StructureAdjustment> adjustments = settings.adjustments();
         assertEquals(4, adjustments.size());
         StructureAdjustment stronghold = adjustments.getFirst();
-        assertEquals(Optional.of(YBand.of(-120, -20)), stronghold.yBand());
+        assertEquals(-120, stronghold.yBand().orElseThrow().resolvedMin());
+        assertEquals(-20, stronghold.yBand().orElseThrow().resolvedMax());
         StructureTerrain terrain = stronghold.terrain().orElseThrow();
-        assertEquals(StructureTerrain.Mode.ENCASE, terrain.mode());
+        assertEquals(StructureTerrainMode.ENCASE, terrain.resolvedMode());
         assertEquals(4, terrain.horizontalPadding());
         assertEquals(BlockSpec.of("minecraft:stone_bricks").withWeight(6), terrain.encasePalette().orElseThrow().palette().getFirst());
         assertEquals(-64, adjustments.get(1).yShift());
         assertTrue(adjustments.get(2).preserveSourceY());
         assertEquals(2, adjustments.get(3).stilt().orElseThrow().maxDepth());
-        assertEquals(List.of(BlockSpec.of("minecraft:dirt")), adjustments.get(3).stilt().orElseThrow().palette().palette());
+        assertEquals(List.of(BlockSpec.of("minecraft:dirt")), adjustments.get(3).stilt().orElseThrow().palette().orElseThrow().palette());
     }
 
+    /** Starts remember their fit as the JSON of these settings, so the settings must write back what the pack wrote. */
     @Test
-    public void fitsBecomeTheIrisClassesTheOldDimensionFieldReadFromTheSameJson() {
-        JSONObject json = new JSONObject(MIGRATED_DIMENSION).getJSONObject("importedStructures").getJSONArray("adjustments").getJSONObject(0);
-        JSONObject stiltJson = new JSONObject(MIGRATED_DIMENSION).getJSONObject("importedStructures").getJSONArray("adjustments")
-                .getJSONObject(3).getJSONObject("stilt");
-        List<StructureAdjustment> adjustments = settings(MIGRATED_DIMENSION).adjustments();
+    public void fitsWriteBackTheJsonThePackWrote() {
+        JSONObject adjustments = new JSONObject(MIGRATED_DIMENSION).getJSONObject("importedStructures");
+        JSONObject terrainJson = adjustments.getJSONArray("adjustments").getJSONObject(0).getJSONObject("terrain");
+        JSONObject stiltJson = adjustments.getJSONArray("adjustments").getJSONObject(3).getJSONObject("stilt");
+        List<StructureAdjustment> decoded = settings(MIGRATED_DIMENSION).adjustments();
         Gson gson = new Gson();
 
-        assertEquals(gson.toJson(gson.fromJson(json.getJSONObject("terrain").toString(), IrisStructureTerrain.class)),
-                gson.toJson(IrisValues.structureTerrain(adjustments.getFirst().terrain().orElseThrow())));
-        assertEquals(gson.toJson(gson.fromJson(stiltJson.toString(), IrisStructureStiltSettings.class)),
-                gson.toJson(IrisValues.structureStilts(adjustments.get(3).stilt().orElseThrow())));
+        assertEquals(gson.toJson(gson.fromJson(terrainJson.toString(), StructureTerrain.class)),
+                gson.toJson(decoded.getFirst().terrain().orElseThrow()));
+        assertEquals(gson.toJson(gson.fromJson(stiltJson.toString(), art.arcane.iris.builtin.structure.StructureStilts.class)),
+                gson.toJson(decoded.get(3).stilt().orElseThrow()));
     }
 
     @Test

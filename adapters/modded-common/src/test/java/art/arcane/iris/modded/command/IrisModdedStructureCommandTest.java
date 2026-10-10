@@ -1,7 +1,6 @@
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.nativegen.NativeStructureLocateResults;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
@@ -74,11 +73,9 @@ public class IrisModdedStructureCommandTest {
 
     @Test
     public void registeredStructureEligibilityMatchesGotoAndSuggestions() {
-        IrisNativeStructureDecision nativeDecision = decision(NativeStructureGenerationStatus.GENERATE_NATIVE);
-        IrisNativeStructureDecision replacementDecision = decision(
-                NativeStructureGenerationStatus.REPLACED_BY_IRIS);
-        IrisNativeStructureDecision disabledDecision = decision(
-                NativeStructureGenerationStatus.DISABLED_BY_PACK);
+        NativeStructureGenerationStatus nativeDecision = NativeStructureGenerationStatus.GENERATE_NATIVE;
+        NativeStructureGenerationStatus replacementDecision = NativeStructureGenerationStatus.REPLACED_BY_IRIS;
+        NativeStructureGenerationStatus disabledDecision = NativeStructureGenerationStatus.DISABLED_BY_PACK;
 
         assertTrue(ModdedCommandSuggestions.isEligibleRegisteredStructure(
                 nativeDecision, false, false, false, true, true));
@@ -161,7 +158,7 @@ public class IrisModdedStructureCommandTest {
         String combined = ModdedLocateCommands.registeredStructureUnavailableMessage(
                 "towns_and_towers:exclusive",
                 ModdedLocateCommands.NativeStructureAvailability.EMPTY_BIOME_FILTER,
-                decision(NativeStructureGenerationStatus.GENERATE_NATIVE),
+                NativeStructureGenerationStatus.GENERATE_NATIVE,
                 true, false, true, false);
         assertTrue(combined.contains("resolves to zero registered biomes"));
         assertTrue(combined.contains("matching Iris nativeStructures placement is also configured"));
@@ -203,7 +200,7 @@ public class IrisModdedStructureCommandTest {
         assertFalse(method.contains("IrisStructureLocator.locatableKeys(engine)"));
         assertTrue(method.contains("ModuleServices.locatableStructures(engine)"));
         assertTrue(method.contains("StructureReachability.reachableKeys(engine)"));
-        assertTrue(method.contains("NativeStructureGenerationPolicy.resolve(engine, key, false)"));
+        assertTrue(method.contains("NativeStructureGenerationPolicy.resolve(engine, key)"));
         assertTrue(method.contains("IrisStructureLocator.hasLocatableNativePlacement(engine, key)"));
         assertTrue(method.contains("ModuleServices.canLocateStructure(engine, key)"));
         assertTrue(method.contains("reachableNativeKeys.contains(normalizeKey(key))"));
@@ -260,7 +257,7 @@ public class IrisModdedStructureCommandTest {
         int editableIrisLookup = method.indexOf(
                 "ModuleServices.canLocateStructure(engine, key)", nativeResolution);
         int policyResolution = method.indexOf(
-                "NativeStructureGenerationPolicy.resolve(engine, target.key(), false)", editableIrisLookup);
+                "NativeStructureGenerationPolicy.resolve(engine, target.key())", editableIrisLookup);
         int eligibilityCheck = method.indexOf(
                 "ModdedCommandSuggestions.isEligibleRegisteredStructure(", policyResolution);
         int replacementLocate = method.indexOf(
@@ -329,9 +326,5 @@ public class IrisModdedStructureCommandTest {
         return Path.of(System.getProperty("user.dir"))
                 .resolve("../modded-common/src/main/java")
                 .normalize();
-    }
-
-    private IrisNativeStructureDecision decision(NativeStructureGenerationStatus status) {
-        return new IrisNativeStructureDecision(status, 0, null, false, null, null);
     }
 }

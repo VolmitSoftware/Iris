@@ -1,7 +1,6 @@
 package art.arcane.iris.nativegen;
 
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import art.arcane.iris.spi.IrisLogging;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -24,13 +23,13 @@ public final class NativeStructureReferenceEnvelope {
     }
 
     public static StructureStart wrap(StructureStart generated, Structure source, int references,
-                                      IrisStructureTerrain terrain) {
-        return wrap(generated, source, references, terrain, null);
+                                      List<NativeStructureReach> reaches) {
+        return wrap(generated, source, references, reaches, null);
     }
 
     public static StructureStart wrap(StructureStart generated, Structure source, int references,
-                                      IrisStructureTerrain terrain, String structureKey) {
-        referenceBounds(generated, source, terrain, structureKey);
+                                      List<NativeStructureReach> reaches, String structureKey) {
+        referenceBounds(generated, source, reaches, structureKey);
         return new StructureStart(
                 source,
                 generated.getChunkPos(),
@@ -41,9 +40,9 @@ public final class NativeStructureReferenceEnvelope {
 
     public static StructureStart wrapForPublication(
             StructureStart generated, Structure source, int references,
-            IrisStructureTerrain terrain, String structureKey) {
+            List<NativeStructureReach> reaches, String structureKey) {
         try {
-            return wrap(generated, source, references, terrain, structureKey);
+            return wrap(generated, source, references, reaches, structureKey);
         } catch (UnrepresentableContentException exception) {
             warnSkippedContent(generated, source, structureKey);
             return StructureStart.INVALID_START;
@@ -51,22 +50,17 @@ public final class NativeStructureReferenceEnvelope {
     }
 
     public static BoundingBox referenceBounds(StructureStart start, Structure source,
-                                              IrisStructureTerrain terrain) {
-        return referenceBounds(start, source, terrain, null);
+                                              List<NativeStructureReach> reaches) {
+        return referenceBounds(start, source, reaches, null);
     }
 
+    /**
+     * The blocks a start's references must cover: its pieces and, around them, every module's reach (the area the
+     * structure's own terrain adaptation covers for a platform reach), clipped to Minecraft's reference range.
+     */
     public static BoundingBox referenceBounds(StructureStart start, Structure source,
-                                              IrisStructureTerrain terrain,
+                                              List<NativeStructureReach> reaches,
                                               String structureKey) {
-        IrisStructureTerrainMode mode = terrain == null
-                ? IrisStructureTerrainMode.PRESERVE : terrain.resolvedMode();
-        boolean usesEnvelope = mode == IrisStructureTerrainMode.BORE
-                || mode == IrisStructureTerrainMode.FORCE_CARVE
-                || mode == IrisStructureTerrainMode.VACUUM
-                || mode == IrisStructureTerrainMode.ENCASE;
-        int horizontalPadding = mode == IrisStructureTerrainMode.VACUUM
-                ? NativeStructureSurfaceFitter.surfaceTerrainRadius()
-                : usesEnvelope ? Math.max(0, terrain.getHorizontalPadding()) : 0;
         BoundingBox content = contentBounds(start);
         if (!fitsReferenceRange(start.getChunkPos(), content)) {
             throw new UnrepresentableContentException("Native structure content at "
@@ -74,22 +68,12 @@ public final class NativeStructureReferenceEnvelope {
                     + " exceeds Minecraft's " + MAX_REFERENCE_DISTANCE_CHUNKS
                     + "-chunk structure reference range");
         }
-        BoundingBox adjustedEnvelope;
+        BoundingBox adjustedEnvelope = content;
         boolean arithmeticClipped = false;
         try {
-            BoundingBox envelope = horizontalPadding == 0
-                    ? content
-                    : new BoundingBox(
-                    Math.subtractExact(content.minX(), horizontalPadding),
-                    content.minY(),
-                    Math.subtractExact(content.minZ(), horizontalPadding),
-                    Math.addExact(content.maxX(), horizontalPadding),
-                    content.maxY(),
-                    Math.addExact(content.maxZ(), horizontalPadding)
-            );
-            adjustedEnvelope = mode == IrisStructureTerrainMode.SOURCE
-                    ? source.adjustBoundingBox(content) : envelope;
-            adjustedEnvelope = encapsulating(adjustedEnvelope, content);
+            for (NativeStructureReach reach : reaches) {
+                adjustedEnvelope = encapsulating(adjustedEnvelope, reachEnvelope(source, content, reach));
+            }
         } catch (ArithmeticException exception) {
             adjustedEnvelope = maximumReferenceBounds(start.getChunkPos(), content);
             arithmeticClipped = true;
@@ -100,6 +84,23 @@ public final class NativeStructureReferenceEnvelope {
             return referencedEnvelope;
         }
         return adjustedEnvelope;
+    }
+
+    private static BoundingBox reachEnvelope(Structure source, BoundingBox content, NativeStructureReach reach) {
+        if (reach.platform()) {
+            return source.adjustBoundingBox(content);
+        }
+        int padding = reach.blocks();
+        if (padding == 0) {
+            return content;
+        }
+        return new BoundingBox(
+                Math.subtractExact(content.minX(), padding),
+                content.minY(),
+                Math.subtractExact(content.minZ(), padding),
+                Math.addExact(content.maxX(), padding),
+                content.maxY(),
+                Math.addExact(content.maxZ(), padding));
     }
 
     public static boolean contentFitsReferenceRange(StructureStart start) {

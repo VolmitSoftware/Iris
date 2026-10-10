@@ -64,20 +64,18 @@ public class IrisChunkGeneratorFailureContractTest {
         assertTrue(adjustment.contains("\"vertical adjustment\""));
         assertFalse(adjustment.contains("IrisLogging.reportError"));
         assertTrue(placement.contains("\"resolution\""));
-        assertTrue(placement.contains("\"terrain integration\""));
-        assertTrue(placement.contains("\"terrain preparation\""));
-        assertTrue(placement.contains("\"foundation repair\""));
+        assertTrue(placement.contains("\"terrain fitting\""));
         assertFalse(placement.contains("\"terrain carving\""));
         assertTrue(placement.contains("\"vegetation cleanup\""));
         assertTrue(placement.contains("\"placement\""));
         assertTrue(placement.contains("because structure generation is disabled outside the pack"));
-        assertTrue(placement.contains("prepareSurfaceStructures"));
+        assertTrue(placement.contains(".beforePieces("));
         assertTrue(placement.contains("clearIntersectingVegetation"));
         assertTrue(placement.indexOf("clearIntersectingVegetation")
-                < placement.indexOf("prepareSurfaceStructures"));
-        assertTrue(placement.indexOf("prepareSurfaceStructures")
+                < placement.indexOf(".beforePieces("));
+        assertTrue(placement.indexOf(".beforePieces(")
                 < placement.indexOf("for (NativePlacementGroup group"));
-        assertTrue(placement.indexOf("repairVacuumFoundations")
+        assertTrue(placement.indexOf("fit.afterPieces(")
                 > placement.indexOf("for (NativePlacementGroup group"));
         assertFalse(placement.contains("IrisLogging.reportError"));
     }
@@ -215,7 +213,7 @@ public class IrisChunkGeneratorFailureContractTest {
         assertEquals(1, occurrences(source, "WorldgenTerrainHeightmaps.primeTerrain("));
         assertTrue(placement.contains("WorldgenTerrainHeightmaps.primeStructurePlacement("));
         assertTrue(placement.indexOf("WorldgenTerrainHeightmaps.primeStructurePlacement(")
-                < placement.indexOf("prepareSurfaceStructures"));
+                < placement.indexOf(".beforePieces("));
         assertTrue(fill.contains("requireGenerationLease(\"bukkit_nms_chunk_pipeline\")"));
         assertTrue(source.contains("int minY = chunk.getMinY() + 1;"));
     }
@@ -443,7 +441,7 @@ public class IrisChunkGeneratorFailureContractTest {
 
     @Test
     public void worldgenHeightmapPrimingLivesInTheSharedNativegenSources() throws IOException {
-        Path nativegen = Path.of(System.getProperty("iris.nativeStructurePostProcessorSource")).getParent();
+        Path nativegen = Path.of(System.getProperty("iris.nativeStructureFitBridgeSource")).getParent();
         Path shared = nativegen.resolve("WorldgenTerrainHeightmaps.java");
 
         assertTrue("Worldgen heightmap priming must be shared with the modded loaders through "
@@ -470,11 +468,11 @@ public class IrisChunkGeneratorFailureContractTest {
         String placement = source.substring(placementStart, placementEnd);
         int ownershipResolution = placement.indexOf(
                 "NativeStructureOwnershipRecovery.resolve(");
-        int persistedDecision = placement.indexOf("ownership.restoredDecision()", ownershipResolution);
+        int persistedDecision = placement.indexOf("ownership.restoredMemo()", ownershipResolution);
         int adjustmentStart = source.indexOf("private void adjustGeneratedStructures");
         int adjustmentEnd = source.indexOf("public ChunkGeneratorStructureState createState", adjustmentStart);
         String adjustment = source.substring(adjustmentStart, adjustmentEnd);
-        Path nativegen = Path.of(System.getProperty("iris.nativeStructurePostProcessorSource")).getParent();
+        Path nativegen = Path.of(System.getProperty("iris.nativeStructureFitBridgeSource")).getParent();
         String factory = Files.readString(nativegen.resolve("NativeStructureFactory.java")).replace("\r\n", "\n");
         String injector = Files.readString(nativegen.resolve("NativeStructureStartInjector.java")).replace("\r\n", "\n");
         String recovery = Files.readString(nativegen.resolve("NativeStructureOwnershipRecovery.java")).replace("\r\n", "\n");

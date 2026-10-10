@@ -2,9 +2,10 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureLayouts;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.spi.IrisLogging;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -132,15 +133,12 @@ public final class NativeStructureReferenceRepair {
 
     private static boolean naturalPolicyAllows(
             Engine engine, String structureKey, Structure structure) {
-        IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(
-                engine, structureKey,
-                NativeStructureVegetationClearer.isUndergroundStep(structure.step()));
-        return naturalDecisionAllows(decision);
+        return naturalStatusAllows(NativeStructureGenerationPolicy.resolve(engine, structureKey));
     }
 
-    static boolean naturalDecisionAllows(IrisNativeStructureDecision decision) {
-        return Objects.requireNonNull(
-                decision, "Native structure decision must not be null").generate();
+    static boolean naturalStatusAllows(NativeStructureGenerationStatus status) {
+        return Objects.requireNonNull(status, "Native structure status must not be null")
+                == NativeStructureGenerationStatus.GENERATE_NATIVE;
     }
 
     private static void invalidateStart(
@@ -181,15 +179,13 @@ public final class NativeStructureReferenceRepair {
         if (target == null || start == null || !start.isValid()) {
             return false;
         }
-        IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(
-                engine, structureKey,
-                NativeStructureVegetationClearer.isUndergroundStep(structure.step()));
-        if (!decision.generate()) {
+        if (!NativeStructureGenerationPolicy.generates(engine, structureKey)) {
             return false;
         }
         BoundingBox referenceBounds = NativeStructureReferenceEnvelope.referenceBounds(
                 start, structure,
-                NativeStructureTerrainIntegrator.resolveNativeTerrain(start, decision.terrain()),
+                NativeStructureLayouts.reaches(engine, structureKey,
+                        NativeStructureVegetationClearer.isUndergroundStep(structure.step()), null),
                 structureKey);
         return referenceBounds.intersects(
                 target.getMinBlockX(), target.getMinBlockZ(),

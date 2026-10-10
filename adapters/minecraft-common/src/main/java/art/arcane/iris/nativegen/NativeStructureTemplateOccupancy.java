@@ -1,5 +1,6 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.framework.nativefit.NativeTemplateCells;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
@@ -74,44 +75,34 @@ final class NativeStructureTemplateOccupancy {
         return new OccupancyResult(true, occupancy);
     }
 
-    static Map<Long, LowestCell> lowestCells(Map<Long, OccupancyCell> occupancy) {
-        Map<Long, LowestCell> lowest = new HashMap<>();
-        for (Map.Entry<Long, OccupancyCell> entry : occupancy.entrySet()) {
-            OccupancyCell cell = entry.getValue();
-            BlockPos position = BlockPos.of(entry.getKey());
-            long column = columnKey(position.getX(), position.getZ());
-            LowestCell current = lowest.get(column);
-            if (current == null || position.getY() < current.y()) {
-                lowest.put(column, new LowestCell(
-                        position.getX(), position.getY(), position.getZ(), cell));
-            }
+    /**
+     * The piece's processed template blocks inside {@code region}, processed against the world as it is now, as the
+     * modules' fit reads them: removed blocks have no state, and the count of template blocks read is reported.
+     */
+    static NativeTemplateCells<BlockState> cells(
+            WorldGenLevel world, PoolElementStructurePiece piece, BlockPos referencePosition, BoundingBox region,
+            Supplier<StructureTemplateManager> templates) {
+        int[] readBlocks = {0};
+        OccupancyResult occupancy = resolve(world, piece, referencePosition, region, templates, region::isInside,
+                amount -> readBlocks[0] = Math.addExact(readBlocks[0], amount));
+        if (!occupancy.resolved()) {
+            return new NativeTemplateCells<>(false, new int[0], new int[0], new int[0], new BlockState[0], 0);
         }
-        return lowest;
-    }
-
-    static Map<Long, LowestCell> lowestProcessedSolidCells(Map<Long, OccupancyCell> occupancy) {
-        Map<Long, LowestCell> lowest = new HashMap<>();
-        for (Map.Entry<Long, OccupancyCell> entry : occupancy.entrySet()) {
-            OccupancyCell cell = entry.getValue();
-            if (cell.blocker() || !isSolidBase(cell.state())) {
-                continue;
-            }
+        int size = occupancy.cells().size();
+        int[] xs = new int[size];
+        int[] ys = new int[size];
+        int[] zs = new int[size];
+        BlockState[] states = new BlockState[size];
+        int cell = 0;
+        for (Map.Entry<Long, OccupancyCell> entry : occupancy.cells().entrySet()) {
             BlockPos position = BlockPos.of(entry.getKey());
-            long column = columnKey(position.getX(), position.getZ());
-            LowestCell current = lowest.get(column);
-            if (current == null || position.getY() < current.y()) {
-                lowest.put(column, new LowestCell(
-                        position.getX(), position.getY(), position.getZ(), cell));
-            }
+            xs[cell] = position.getX();
+            ys[cell] = position.getY();
+            zs[cell] = position.getZ();
+            states[cell] = entry.getValue().state();
+            cell++;
         }
-        return lowest;
-    }
-
-    static boolean isSolidBase(BlockState state) {
-        return state != null && state.isSolid()
-                && !state.is(Blocks.STRUCTURE_VOID)
-                && !state.is(Blocks.JIGSAW)
-                && state.getFluidState().isEmpty();
+        return new NativeTemplateCells<>(true, xs, ys, zs, states, readBlocks[0]);
     }
 
     static long columnKey(int x, int z) {
@@ -152,9 +143,6 @@ final class NativeStructureTemplateOccupancy {
     }
 
     record OccupancyCell(BlockState state, boolean blocker) {
-    }
-
-    record LowestCell(int x, int y, int z, OccupancyCell occupancy) {
     }
 
     private record LeafPlacement(

@@ -1,10 +1,5 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.IrisStructureStiltSettings;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
-import com.google.gson.Gson;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -32,7 +27,7 @@ public record NativeStructureOwnershipRecord(
         int referenceMinChunkZ,
         int referenceMaxChunkZ,
         String contentFingerprint,
-        DecisionSnapshot decision
+        MemoSnapshot memo
 ) {
     public static final int CURRENT_SCHEMA = 2;
     public static final int MAX_REFERENCE_DISTANCE_CHUNKS = 8;
@@ -69,7 +64,7 @@ public record NativeStructureOwnershipRecord(
         if (!contentFingerprint.matches("[0-9a-f]{64}")) {
             throw new IllegalArgumentException("Native structure content fingerprint must be SHA-256 hex");
         }
-        decision = Objects.requireNonNull(decision, "Native structure decision snapshot must not be null");
+        memo = Objects.requireNonNull(memo, "Native structure memo snapshot must not be null");
     }
 
     public static NativeStructureOwnershipRecord create(String structureKey,
@@ -89,7 +84,7 @@ public record NativeStructureOwnershipRecord(
                                                          int referenceMinChunkZ,
                                                          int referenceMaxChunkZ,
                                                          String contentFingerprint,
-                                                         IrisNativeStructureDecision decision) {
+                                                         NativeStartMemo memo) {
         return new NativeStructureOwnershipRecord(
                 CURRENT_SCHEMA,
                 structureKey,
@@ -109,7 +104,7 @@ public record NativeStructureOwnershipRecord(
                 referenceMinChunkZ,
                 referenceMaxChunkZ,
                 contentFingerprint,
-                DecisionSnapshot.capture(decision)
+                MemoSnapshot.of(memo)
         );
     }
 
@@ -140,7 +135,7 @@ public record NativeStructureOwnershipRecord(
                 referenceMinChunkZ,
                 referenceMaxChunkZ,
                 contentFingerprint,
-                decision
+                memo
         );
     }
 
@@ -148,8 +143,9 @@ public record NativeStructureOwnershipRecord(
         return new OwnershipKey(structureKey, originChunkX, originChunkZ);
     }
 
-    public IrisNativeStructureDecision restoredDecision() {
-        return decision.restore();
+    /** The memo the module gave the start when it placed it; null when it gave none. */
+    public NativeStartMemo restoredMemo() {
+        return memo.restore();
     }
 
     void write(DataOutputStream output) throws IOException {
@@ -171,7 +167,7 @@ public record NativeStructureOwnershipRecord(
         output.writeInt(referenceMinChunkZ);
         output.writeInt(referenceMaxChunkZ);
         writeString(output, contentFingerprint, MAX_FINGERPRINT_BYTES, "content fingerprint");
-        decision.write(output);
+        memo.write(output);
     }
 
     static NativeStructureOwnershipRecord read(DataInputStream input) throws IOException {
@@ -199,7 +195,7 @@ public record NativeStructureOwnershipRecord(
                     input.readInt(),
                     input.readInt(),
                     readString(input, MAX_FINGERPRINT_BYTES, "content fingerprint"),
-                    DecisionSnapshot.read(input)
+                    MemoSnapshot.read(input)
             );
         } catch (IllegalArgumentException exception) {
             throw new IOException("Native structure ownership record is invalid", exception);
@@ -251,56 +247,39 @@ public record NativeStructureOwnershipRecord(
         }
     }
 
-    public record DecisionSnapshot(String stiltJson, String terrainJson) {
-        private static final Gson GSON = new Gson();
-        private static final int MAX_JSON_BYTES = 65_536;
+    /**
+     * The start's memo as the record stores it: the foundation text, then the terrain text. Records written before
+     * memos existed hold the JSON of the start's stilts and terrain fit in these two places, which is what the module
+     * writes as its memo, so they read the same. A start without a memo stores two empty texts.
+     */
+    public record MemoSnapshot(String foundation, String terrain) {
+        private static final int MAX_MEMO_BYTES = 65_536;
+        private static final MemoSnapshot NONE = new MemoSnapshot("", "");
 
-        public DecisionSnapshot {
-            stiltJson = Objects.requireNonNull(stiltJson, "Native structure stilt snapshot must not be null");
-            terrainJson = Objects.requireNonNull(terrainJson, "Native structure terrain snapshot must not be null");
-            requireUtf8Limit(stiltJson, MAX_JSON_BYTES, "stilt snapshot");
-            requireUtf8Limit(terrainJson, MAX_JSON_BYTES, "terrain snapshot");
+        public MemoSnapshot {
+            foundation = Objects.requireNonNull(foundation, "Native structure foundation memo must not be null");
+            terrain = Objects.requireNonNull(terrain, "Native structure terrain memo must not be null");
+            requireUtf8Limit(foundation, MAX_MEMO_BYTES, "foundation memo");
+            requireUtf8Limit(terrain, MAX_MEMO_BYTES, "terrain memo");
         }
 
-        public static DecisionSnapshot capture(IrisNativeStructureDecision decision) {
-            IrisNativeStructureDecision resolved = Objects.requireNonNull(
-                    decision, "Native structure decision must not be null");
-            if (!resolved.generate()) {
-                throw new IllegalArgumentException("Only generated native structure decisions can be persisted");
-            }
-            return new DecisionSnapshot(
-                    GSON.toJson(resolved.stilt()),
-                    GSON.toJson(Objects.requireNonNullElseGet(
-                            resolved.terrain(), IrisStructureTerrain::new))
-            );
+        public static MemoSnapshot of(NativeStartMemo memo) {
+            return memo == null ? NONE : new MemoSnapshot(memo.foundation(), memo.terrain());
         }
 
-        public IrisNativeStructureDecision restore() {
-            IrisStructureStiltSettings stilt = "null".equals(stiltJson)
-                    ? null : GSON.fromJson(stiltJson, IrisStructureStiltSettings.class);
-            IrisStructureTerrain terrain = GSON.fromJson(terrainJson, IrisStructureTerrain.class);
-            if (terrain == null) {
-                throw new IllegalStateException("Persisted native structure terrain snapshot is null");
-            }
-            return new IrisNativeStructureDecision(
-                    NativeStructureGenerationStatus.GENERATE_NATIVE,
-                    0,
-                    null,
-                    false,
-                    stilt,
-                    terrain
-            );
+        public NativeStartMemo restore() {
+            return equals(NONE) ? null : new NativeStartMemo(terrain, foundation);
         }
 
         void write(DataOutputStream output) throws IOException {
-            writeString(output, stiltJson, MAX_JSON_BYTES, "stilt snapshot");
-            writeString(output, terrainJson, MAX_JSON_BYTES, "terrain snapshot");
+            writeString(output, foundation, MAX_MEMO_BYTES, "foundation memo");
+            writeString(output, terrain, MAX_MEMO_BYTES, "terrain memo");
         }
 
-        static DecisionSnapshot read(DataInputStream input) throws IOException {
-            return new DecisionSnapshot(
-                    readString(input, MAX_JSON_BYTES, "stilt snapshot"),
-                    readString(input, MAX_JSON_BYTES, "terrain snapshot")
+        static MemoSnapshot read(DataInputStream input) throws IOException {
+            return new MemoSnapshot(
+                    readString(input, MAX_MEMO_BYTES, "foundation memo"),
+                    readString(input, MAX_MEMO_BYTES, "terrain memo")
             );
         }
     }

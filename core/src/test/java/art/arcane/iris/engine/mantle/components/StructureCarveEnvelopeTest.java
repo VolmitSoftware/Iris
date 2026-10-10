@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
+import art.arcane.iris.builtin.structure.StructureCarveShape;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
@@ -13,31 +13,31 @@ public class StructureCarveEnvelopeTest {
     @Test
     public void exactStructureFootprintAlwaysCarves() {
         assertTrue(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.ERODED, 0D, 0D, 1D));
+                StructureCarveShape.ERODED, 0D, 0D, 1D));
         assertTrue(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.ROUNDED, 0D, 0D, 1D));
+                StructureCarveShape.ROUNDED, 0D, 0D, 1D));
     }
 
     @Test
     public void boxModeKeepsStraightCandidateVolume() {
         assertTrue(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.BOX, 100D, 0D, 1D));
+                StructureCarveShape.BOX, 100D, 0D, 1D));
     }
 
     @Test
     public void roundedModeStopsAtConfiguredReach() {
         assertTrue(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.ROUNDED, 1D, 0D, 1D));
+                StructureCarveShape.ROUNDED, 1D, 0D, 1D));
         assertFalse(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.ROUNDED, 1.000001D, 1D, 0D));
+                StructureCarveShape.ROUNDED, 1.000001D, 1D, 0D));
     }
 
     @Test
     public void zeroErosionStrengthMatchesRoundedMode() {
         assertTrue(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.ERODED, 1D, 0D, 0D));
+                StructureCarveShape.ERODED, 1D, 0D, 0D));
         assertFalse(StructureCarveEnvelope.shouldCarveOverboreCell(
-                IrisStructureCarveShape.ERODED, 1.000001D, 1D, 0D));
+                StructureCarveShape.ERODED, 1.000001D, 1D, 0D));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class StructureCarveEnvelopeTest {
         CNG roll = CNG.signature(new RNG(4242L));
 
         for (double strength : new double[]{0.25D, 0.5D, 1D}) {
-            int limit = IrisStructureCarveShape.ERODED.maximumCeilingExtension(10, strength);
+            int limit = StructureCarveShape.ERODED.maximumCeilingExtension(10, strength);
             for (int x = -32; x <= 32; x++) {
                 for (int z = -32; z <= 32; z++) {
                     double reach = StructureCarveEnvelope.erodedUpReach(roll, 0.05D, strength, x, z, 10);

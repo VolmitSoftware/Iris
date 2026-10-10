@@ -18,6 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.structure.StructureTerrain;
+import com.google.gson.Gson;
+
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
@@ -35,10 +38,7 @@ import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructureCarveShape;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
 import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
@@ -652,27 +652,22 @@ public class IrisStructureLocatorContractTest {
         placement.setUnderground(true);
         placement.setMinHeight(-64);
         placement.setMaxHeight(100);
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(2)
-                .setCeilingPadding(20)
-                .setShape(IrisStructureCarveShape.ERODED);
-        placement.setTerrain(terrain);
+        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ERODED\""));
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(0, 60, 0, 1, 80, 1));
 
         assertEquals(Integer.valueOf(-14), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        terrain.setErosionStrength(0D);
+        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ERODED\",\"erosionStrength\":0"));
         assertEquals(Integer.valueOf(-1), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        terrain.setShape(IrisStructureCarveShape.ROUNDED);
+        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ROUNDED\",\"erosionStrength\":0"));
         assertEquals(Integer.valueOf(-1), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        terrain.setCeilingPadding(0);
+        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":0,\"shape\":\"ROUNDED\",\"erosionStrength\":0"));
         assertEquals(Integer.valueOf(0), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
     }
@@ -686,11 +681,7 @@ public class IrisStructureLocatorContractTest {
                 .setUnderground(true)
                 .setMinHeight(-64)
                 .setMaxHeight(100)
-                .setTerrain(new IrisStructureTerrain()
-                        .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                        .setShape(IrisStructureCarveShape.ROUNDED)
-                        .setHorizontalPadding(0)
-                        .setCeilingPadding(0));
+                .setTerrain(forceCarve("\"shape\":\"ROUNDED\",\"horizontalPadding\":0,\"ceilingPadding\":0"));
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(4, 60, 7, 4, 80, 7));
 
@@ -866,5 +857,9 @@ public class IrisStructureLocatorContractTest {
             int nearestChunkZ,
             int nearestOriginX,
             int nearestOriginZ) {
+    }
+
+    private static StructureTerrain forceCarve(String options) {
+        return new Gson().fromJson("{\"mode\":\"FORCE_CARVE\"," + options + "}", StructureTerrain.class);
     }
 }

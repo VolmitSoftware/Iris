@@ -72,7 +72,7 @@ public final class NativeStructureOwnershipFingerprint {
                 references.minZ() >> 4,
                 references.maxZ() >> 4,
                 fingerprint(structureKey, resolvedStart),
-                resolvedPlan.decision()
+                resolvedPlan.memo()
         );
     }
 

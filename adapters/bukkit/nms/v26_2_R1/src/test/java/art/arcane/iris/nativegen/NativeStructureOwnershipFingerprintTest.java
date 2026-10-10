@@ -4,8 +4,8 @@ import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
+import art.arcane.iris.engine.framework.NativeStartMemo;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -63,9 +63,7 @@ public class NativeStructureOwnershipFingerprintTest {
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
         int alignedLocatorY = NativeStructureOwnershipFingerprint.locatorY(generated);
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(24);
+        List<NativeStructureReach> terrain = List.of(new NativeStructureReach(false, 24));
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
                 generated,
                 structure,
@@ -127,9 +125,7 @@ public class NativeStructureOwnershipFingerprintTest {
         StructureStart generated = monumentStart(structure, origin, seed);
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(24);
+        List<NativeStructureReach> terrain = List.of(new NativeStructureReach(false, 24));
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
                 generated,
                 structure,
@@ -247,7 +243,7 @@ public class NativeStructureOwnershipFingerprintTest {
     private static NativeStructureStartPlan plan(ChunkPos origin, int baseY) {
         return new NativeStructureStartPlan("minecraft:monument", origin.x(), origin.z(), baseY, false, false,
                 StructurePlacementGrid.placementIdentity(new IrisStructurePlacement().setPlacementId("monument-test")),
-                null, null, new IrisStructureTerrain());
+                null, new NativeStartMemo("{\"mode\":\"SOURCE\"}", "null"));
     }
 
     private static NativeStructureOwnershipRecord ownership(
@@ -257,7 +253,7 @@ public class NativeStructureOwnershipFingerprintTest {
                 start,
                 plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()),
                 NativeStructureReferenceEnvelope.referenceBounds(
-                        start, structure, new IrisStructureTerrain())
+                        start, structure, List.of(NativeStructureReach.PLATFORM))
         );
     }
 

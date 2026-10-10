@@ -21,25 +21,21 @@ package art.arcane.iris.modded;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.framework.NativeStructureLayouts;
+import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.nativegen.NativeStructureGenerationException;
 import art.arcane.iris.nativegen.NativeStructureLocatePersistence;
 import art.arcane.iris.nativegen.NativeStructureLocateResults;
 import art.arcane.iris.nativegen.NativeStructureOwnershipRecovery;
-import art.arcane.iris.nativegen.NativeStructurePostProcessor;
+import art.arcane.iris.nativegen.NativeStructureFitBridge;
 import art.arcane.iris.nativegen.NativeStructureReferenceEnvelope;
-import art.arcane.iris.nativegen.NativeStructureSurfaceFitter;
-import art.arcane.iris.nativegen.NativeStructureTerrainIntegrator;
 import art.arcane.iris.nativegen.NativeStructureVegetationClearer;
 import art.arcane.iris.nativegen.NativeStructureVerticalPlacer;
 import art.arcane.iris.nativegen.NativeStructureVanillaLocator;
 import art.arcane.iris.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.nativegen.WorldgenTerrainHeightmaps;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.math.RNG;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -88,7 +84,7 @@ final class ModdedNativeStructureStage {
     private static final boolean WORLD_CHECK_ENABLED = Boolean.getBoolean("iris.worldcheck");
 
     private final IrisModdedChunkGenerator generator;
-    private final ConcurrentHashMap<NativeStructureStartKey, Integer> worldCheckStructureShifts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<NativeStructureStartKey, WorldCheckShift> worldCheckStructureShifts = new ConcurrentHashMap<>();
     private volatile StructureStepCache structureStepCache;
 
     ModdedNativeStructureStage(IrisModdedChunkGenerator generator) {
@@ -206,9 +202,8 @@ final class ModdedNativeStructureStage {
                 throw new IllegalStateException("Native structure filtering received an unregistered structure holder");
             }
             String key = id.toString();
-            IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(current,
-                    key, NativeStructureVegetationClearer.isUndergroundStep(holder.value().step()));
-            if (!decision.generate() || !generator.structureBiomeSource.isStructureReachable(holder)) {
+            if (!NativeStructureGenerationPolicy.generates(current, key)
+                    || !generator.structureBiomeSource.isStructureReachable(holder)) {
                 continue;
             }
             kept.add(holder);
@@ -231,7 +226,7 @@ final class ModdedNativeStructureStage {
             }
             if (configuredStarts.containsKey(structure)) {
                 recordWorldCheckStructureShift(
-                        configuredStarts.get(structure).structureKey(), start.getChunkPos(), 0);
+                        configuredStarts.get(structure).structureKey(), start.getChunkPos(), 0, 0);
                 continue;
             }
             Identifier id = registry.getKey(structure);
@@ -241,34 +236,34 @@ final class ModdedNativeStructureStage {
                         "resolution", null, chunkPos.x(), chunkPos.z());
             }
             boolean undergroundStep = NativeStructureVegetationClearer.isUndergroundStep(structure.step());
-            IrisNativeStructureDecision decision;
+            boolean generates;
             try {
-                decision = NativeStructureGenerationPolicy.resolve(current,
-                        structureId, undergroundStep);
+                generates = NativeStructureGenerationPolicy.generates(current, structureId);
             } catch (Throwable error) {
                 throw NativeStructureGenerationException.failure(
                         "policy resolution", structureId, chunkPos.x(), chunkPos.z(), error);
             }
-            if (!decision.generate()) {
+            if (!generates) {
                 chunk.setStartForStructure(structure, StructureStart.INVALID_START);
                 continue;
             }
+            int shift;
             int offsetY;
             try {
+                IntBinaryOperator surface = (x, z) -> current.getHeight(x, z, true) + current.getMinHeight();
+                shift = NativeStructureLayouts.shift(current, NativeStructureVerticalPlacer.placementOf(
+                        start, structureId, undergroundStep, chunk.getMinY(), surface));
                 offsetY = NativeStructureVerticalPlacer.applyVerticalPlacement(
                         start,
                         structureId,
-                        decision.yShift(),
+                        shift,
                         generator.getSeaLevel(),
                         chunk.getMinY(),
                         chunk.getMinY() + chunk.getHeight(),
-                        undergroundStep,
-                        decision.preserveSourceY(),
-                        decision.yBand(),
-                        (x, z) -> current.getHeight(x, z, true) + current.getMinHeight());
+                        surface);
                 StructureStart wrapped = NativeStructureReferenceEnvelope.wrapForPublication(
                         start, structure, start.getReferences(),
-                        NativeStructureTerrainIntegrator.resolveNativeTerrain(start, decision.terrain()),
+                        NativeStructureLayouts.reaches(current, structureId, undergroundStep, null),
                         structureId);
                 chunk.setStartForStructure(structure, wrapped);
                 if (!wrapped.isValid()) {
@@ -278,7 +273,7 @@ final class ModdedNativeStructureStage {
                 throw NativeStructureGenerationException.failure(
                         "vertical adjustment", structureId, chunkPos.x(), chunkPos.z(), error);
             }
-            recordWorldCheckStructureShift(structureId, start.getChunkPos(), offsetY);
+            recordWorldCheckStructureShift(structureId, start.getChunkPos(), shift, offsetY);
         }
     }
 
@@ -306,7 +301,7 @@ final class ModdedNativeStructureStage {
         List<NativePlacementGroup> placementGroups = new ArrayList<>();
         List<StructureStart> heightmapStarts = new ArrayList<>();
         List<StructureStart> vegetationTargets = new ArrayList<>();
-        List<NativeStructureTerrainIntegrator.TerrainTarget> terrainTargets = new ArrayList<>();
+        List<NativeStructureFitBridge.FitTarget> fitTargets = new ArrayList<>();
         for (int step = 0; step < steps; step++) {
             int index = 0;
             for (Structure structure : byStep.get(step)) {
@@ -317,25 +312,20 @@ final class ModdedNativeStructureStage {
                             "resolution", null, chunkPos.x(), chunkPos.z());
                 }
                 try {
-                    IrisNativeStructureDecision sourceDecision = NativeStructureGenerationPolicy.resolve(current,
-                            structureId, NativeStructureVegetationClearer.isUndergroundStep(structure.step()));
+                    boolean platformGenerates = NativeStructureGenerationPolicy.generates(current, structureId);
                     List<StructureStart> starts = structureManager.startsForStructure(sectionPos, structure);
                     List<NativePlacement> resolvedPlacements = new ArrayList<>(starts.size());
                     for (StructureStart start : starts) {
                         NativeStructureOwnershipRecord ownership =
                                 NativeStructureOwnershipRecovery.resolve(
                                         current, world.getLevel(), structureId, structure, start);
-                        IrisNativeStructureDecision decision =
-                                ownership == null ? sourceDecision : ownership.restoredDecision();
-                        if (!decision.generate()) {
+                        if (ownership == null && !platformGenerates) {
                             continue;
                         }
-                        resolvedPlacements.add(new NativePlacement(start, decision));
+                        resolvedPlacements.add(new NativePlacement(start, ownership != null));
                         heightmapStarts.add(start);
-                        terrainTargets.add(new NativeStructureTerrainIntegrator.TerrainTarget(
-                                structureId, start,
-                                NativeStructureTerrainIntegrator.resolveNativeTerrain(
-                                        start, decision.terrain())));
+                        fitTargets.add(new NativeStructureFitBridge.FitTarget(structureId, start,
+                                ownership == null ? null : ownership.restoredMemo()));
                         vegetationTargets.add(start);
                     }
                     if (!resolvedPlacements.isEmpty()) {
@@ -373,43 +363,28 @@ final class ModdedNativeStructureStage {
                     "vegetation cleanup", nativeStructureBatchContext(placementGroups),
                     chunkPos.x(), chunkPos.z(), error);
         }
-        NativeStructureSurfaceFitter.VacuumFoundationPlan vacuumFoundationPlan;
+        NativeStructureFitting.Session fit;
         try {
-            vacuumFoundationPlan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                    world, area, terrainTargets,
-                    (x, z) -> current.getHeight(x, z, true) + current.getMinHeight());
+            fit = NativeStructureFitting.of(current).beforePieces(NativeStructureFitBridge.chunk(
+                    world, area, fitTargets, (x, z) -> current.getHeight(x, z, true) + current.getMinHeight()));
         } catch (Throwable error) {
             throw NativeStructureGenerationException.failure(
-                    "terrain integration", nativeStructureBatchContext(placementGroups),
+                    "terrain fitting", nativeStructureBatchContext(placementGroups),
                     chunkPos.x(), chunkPos.z(), error);
         }
-        try {
-            NativeStructurePostProcessor.prepareTerrain(
-                    world, area, terrainTargets, this::resolvePaletteBlock);
-        } catch (Throwable error) {
-            throw NativeStructureGenerationException.failure(
-                    "terrain preparation", nativeStructureBatchContext(placementGroups),
-                    chunkPos.x(), chunkPos.z(), error);
-        }
+        int placed = 0;
         for (NativePlacementGroup group : placementGroups) {
             random.setFeatureSeed(decorationSeed, group.featureIndex(), group.step());
             try {
                 for (NativePlacement placement : group.placements()) {
                     placeVanillaStructure(world, structureManager, random, area, chunkPos,
-                            group.structureId(), placement.start(), placement.decision());
+                            group.structureId(), placement);
+                    fit.afterPieces(placed++);
                 }
             } catch (Throwable error) {
                 throw NativeStructureGenerationException.failure(
                         "placement", group.structureId(), chunkPos.x(), chunkPos.z(), error);
             }
-        }
-        try {
-            NativeStructureSurfaceFitter.repairVacuumFoundations(
-                    world, area, vacuumFoundationPlan);
-        } catch (Throwable error) {
-            throw NativeStructureGenerationException.failure(
-                    "foundation repair", nativeStructureBatchContext(placementGroups),
-                    chunkPos.x(), chunkPos.z(), error);
         }
     }
 
@@ -433,8 +408,7 @@ final class ModdedNativeStructureStage {
 
     private void placeVanillaStructure(WorldGenLevel world, StructureManager structureManager,
                                        WorldgenRandom random, BoundingBox area, ChunkPos chunkPos,
-                                       String structureId, StructureStart start,
-                                       IrisNativeStructureDecision decision) {
+                                       String structureId, NativePlacement placement) {
         Engine current = generator.engine();
         int runtimeMinY = world.getMinY();
         WorldGenLevel boundedWorld = ModdedNativeStructureWorldgenAccess.create(
@@ -443,13 +417,21 @@ final class ModdedNativeStructureStage {
                 worldgenFloorHeight(current, runtimeMinY));
         world.setCurrentlyGenerating(() -> "Iris native structure " + structureId);
         try {
-            NativeStructurePostProcessor.place(
-                    boundedWorld, structureManager, generator, random, area, chunkPos,
-                    structureId, start, decision, this::resolvePaletteBlock,
-                    (x, z) -> current.getHeight(x, z, true) + current.getMinHeight());
+            StructureStart start = placement.start();
+            NativeStructureVerticalPlacer.ensureMonumentSeaLevelAlignment(start, structureId,
+                    () -> placement.recorded() ? 0 : platformShift(current, start, structureId, runtimeMinY),
+                    generator.getSeaLevel(), area.minY(), area.maxY() + 1);
+            start.placeInChunk(boundedWorld, structureManager, generator, random, area, chunkPos);
         } finally {
             world.setCurrentlyGenerating(null);
         }
+    }
+
+    /** The shift the pack's modules give the platform's own start, as when the start was published. */
+    private static int platformShift(Engine current, StructureStart start, String structureId, int bottomY) {
+        return NativeStructureLayouts.shift(current, NativeStructureVerticalPlacer.placementOf(start, structureId,
+                NativeStructureVegetationClearer.isUndergroundStep(start.getStructure().step()), bottomY,
+                (x, z) -> current.getHeight(x, z, true) + current.getMinHeight()));
     }
 
     private List<List<Structure>> structuresByStep(Registry<Structure> registry) {
@@ -479,17 +461,19 @@ final class ModdedNativeStructureStage {
         }
     }
 
-    private void recordWorldCheckStructureShift(String structureId, ChunkPos startChunk, int offsetY) {
+    private void recordWorldCheckStructureShift(String structureId, ChunkPos startChunk, int requestedShift,
+                                                int appliedShift) {
         if (!WORLD_CHECK_ENABLED || structureId == null) {
             return;
         }
         if (worldCheckStructureShifts.size() >= WORLD_CHECK_SHIFT_RECORD_LIMIT) {
             worldCheckStructureShifts.clear();
         }
-        worldCheckStructureShifts.put(new NativeStructureStartKey(structureId, startChunk.pack()), offsetY);
+        worldCheckStructureShifts.put(new NativeStructureStartKey(structureId, startChunk.pack()),
+                new WorldCheckShift(requestedShift, appliedShift));
     }
 
-    Integer worldCheckStructureShift(String structureId, ChunkPos startChunk) {
+    WorldCheckShift worldCheckStructureShift(String structureId, ChunkPos startChunk) {
         if (structureId == null || startChunk == null) {
             return null;
         }
@@ -498,16 +482,6 @@ final class ModdedNativeStructureStage {
 
     void clearWorldCheckStructureShifts() {
         worldCheckStructureShifts.clear();
-    }
-
-    private BlockState resolvePaletteBlock(IrisMaterialPalette palette, RNG rng,
-                                          int x, int y, int z) {
-        PlatformBlockState platformState = palette.get(rng, x, y, z, generator.engine().getData());
-        if (platformState == null || !(platformState.nativeHandle() instanceof BlockState blockState)) {
-            throw new IllegalStateException("Configured native structure palette did not resolve a Minecraft block at "
-                    + x + "," + y + "," + z);
-        }
-        return blockState;
     }
 
     private BoundingBox writableArea(ChunkAccess chunk) {
@@ -530,7 +504,12 @@ final class ModdedNativeStructureStage {
     private record NativeStructureStartKey(String structureId, long chunkPosition) {
     }
 
-    private record NativePlacement(StructureStart start, IrisNativeStructureDecision decision) {
+    /** A start placed in the chunk, and whether a module placed it (its ownership record kept its fit). */
+    private record NativePlacement(StructureStart start, boolean recorded) {
+    }
+
+    /** The shift the pack's modules asked for a platform start, and the shift generation applied. */
+    record WorldCheckShift(int requested, int applied) {
     }
 
     private record NativePlacementGroup(String structureId, int featureIndex, int step,

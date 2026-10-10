@@ -63,22 +63,20 @@ public class NativeStructureFailureContractTest {
         int placementEnd = source.indexOf("private static String nativeStructureBatchContext", placementStart);
         String placement = source.substring(placementStart, placementEnd);
 
-        assertTrue(placement.contains("\"terrain integration\""));
-        assertTrue(placement.contains("\"terrain preparation\""));
-        assertTrue(placement.contains("\"foundation repair\""));
+        assertTrue(placement.contains("\"terrain fitting\""));
         assertFalse(placement.contains("\"terrain carving\""));
         assertTrue(placement.contains("visitExistingPois(chunk"));
         assertTrue(placement.contains("level.updatePOIOnBlockStateChange("));
         assertTrue(placement.contains("Blocks.AIR.defaultBlockState(), state"));
         assertTrue(placement.indexOf("visitExistingPois(chunk")
                 < placement.indexOf("WorldgenTerrainHeightmaps.primeStructurePlacement("));
-        assertTrue(placement.contains("prepareSurfaceStructures"));
+        assertTrue(placement.contains(".beforePieces("));
         assertTrue(placement.contains("clearIntersectingVegetation"));
         assertTrue(placement.indexOf("clearIntersectingVegetation")
-                < placement.indexOf("prepareSurfaceStructures"));
-        assertTrue(placement.indexOf("prepareSurfaceStructures")
+                < placement.indexOf(".beforePieces("));
+        assertTrue(placement.indexOf(".beforePieces(")
                 < placement.indexOf("for (NativePlacementGroup group"));
-        assertTrue(placement.indexOf("repairVacuumFoundations")
+        assertTrue(placement.indexOf("fit.afterPieces(")
                 > placement.indexOf("for (NativePlacementGroup group"));
     }
 
@@ -94,7 +92,7 @@ public class NativeStructureFailureContractTest {
         assertTrue(placement.contains("\"heightmap priming\""));
         assertTrue(placement.contains("heightmapStarts.add(start);"));
         assertTrue(placement.indexOf("WorldgenTerrainHeightmaps.primeStructurePlacement(")
-                < placement.indexOf("prepareSurfaceStructures"));
+                < placement.indexOf(".beforePieces("));
         assertTrue(source.contains("generationEngine.getHeight(x, z, false) + runtimeMinY + 1"));
         assertTrue(source.contains("generationEngine.getHeight(x, z, true) + runtimeMinY + 1"));
         assertTrue(source.contains("int minY = chunk.getMinY() + 1;"));
@@ -108,8 +106,8 @@ public class NativeStructureFailureContractTest {
         String placement = source.substring(placementStart, placementEnd);
 
         assertTrue(placement.contains("ModdedNativeStructureWorldgenAccess.create("));
-        assertTrue(placement.contains("NativeStructurePostProcessor.place(\n                    boundedWorld"));
-        assertFalse(placement.contains("NativeStructurePostProcessor.place(world,"));
+        assertTrue(placement.contains("start.placeInChunk(boundedWorld,"));
+        assertFalse(placement.contains("start.placeInChunk(world,"));
         assertTrue(placement.contains("world.setCurrentlyGenerating(null);"));
     }
 

@@ -20,17 +20,24 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.NativeJigsawOverrides;
+import art.arcane.iris.engine.framework.NativeStartMemo;
+import art.arcane.iris.engine.framework.NativeStartPlacement;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import com.volmit.config.PackSettings;
 import com.volmit.host.DiscoveredModule;
-import com.volmit.host.VanillaStructureHookRegistration;
+import com.volmit.host.ServiceRegistration;
+import com.volmit.mantle.BlockBox;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.vanilla.VanillaStructureAdjustment;
+import com.volmit.service.VanillaStructures;
+import com.volmit.vanilla.JigsawOverrides;
+import com.volmit.vanilla.PlatformStart;
+import com.volmit.vanilla.StartMemo;
+import com.volmit.vanilla.StartReach;
 import com.volmit.vanilla.VanillaStructureContext;
-import com.volmit.vanilla.VanillaStructureHook;
 import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.vanilla.VanillaStructureSetup;
 import com.volmit.vanilla.VanillaStructureStart;
@@ -43,31 +50,31 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
- * What the pack's modules want for the platform's own structures, asked through their vanilla structure hooks in module
- * id order: per structure in one engine's world the combined rule ({@link VanillaStructureRule#and}) and adjustment
- * ({@link VanillaStructureAdjustment#then}), kept per engine and pack snapshot so a hotload or a reload of the pack's
- * resources asks again; per chunk the starts modules place, converted to the host's plans; and per dimension, before a
- * world exists, the combined setup ({@link VanillaStructureSetup#and}). The platform side applies the results on Bukkit
- * and the modded platforms alike.
+ * What the pack's modules want for the platform's own structures, asked through their {@link VanillaStructures}
+ * providers in module id order: per structure in one engine's world the combined rule ({@link VanillaStructureRule#and}),
+ * kept per engine and pack snapshot so a hotload or a reload of the pack's resources asks again; per chunk the starts
+ * modules place, converted to the host's plans; per platform start the shift every module gives it and every module's
+ * reach; and per dimension, before a world exists, the combined setup ({@link VanillaStructureSetup#and}). The platform
+ * side applies the results on Bukkit and the modded platforms alike.
  */
 public final class ModuleVanillaStructures {
     private static final Map<Engine, ModuleVanillaStructures> WORLDS = Collections.synchronizedMap(new WeakHashMap<>());
     private static final int START_TERRAIN_REACH_BLOCKS = 8;
 
     private final PackResources snapshot;
-    private final List<VanillaStructureHookRegistration> hooks;
+    private final List<ServiceRegistration> providers;
     private final VanillaStructureContext world;
     private final Map<String, VanillaStructureRule> rules = new ConcurrentHashMap<>();
-    private final Map<AdjustedStructure, VanillaStructureAdjustment> adjustments = new ConcurrentHashMap<>();
 
     private ModuleVanillaStructures(Engine engine, PackResources snapshot) {
         this.snapshot = snapshot;
-        this.hooks = hooksOf(engine.getData());
+        this.providers = providersOf(engine.getData());
         this.world = new World(snapshot, new IrisPackSettings(engine));
     }
 
@@ -77,44 +84,71 @@ public final class ModuleVanillaStructures {
     }
 
     /**
-     * The combined adjustment of the pack's modules for the platform's own starts of {@code structureKey} in
-     * {@code engine}'s world; {@code underground} is whether the platform generates it in an underground step.
-     */
-    public static VanillaStructureAdjustment adjustmentFor(Engine engine, String structureKey, boolean underground) {
-        return of(engine).adjustment(structureKey, underground);
-    }
-
-    /**
      * The starts the pack's modules place in chunk {@code chunkX, chunkZ} of {@code engine}'s world, in module id order,
-     * as the host's plans: world heights, Iris's fit and jigsaw classes.
+     * as the host's plans: world heights, the platform's jigsaw changes and the modules' memos.
      */
     public static List<NativeStructureStartPlan> startsAt(Engine engine, int chunkX, int chunkZ) {
         StartContext context = new StartContext(engine.getGeneration().world(),
                 new IrisTerrainSampler(engine, new PackResourceIds(engine.getData().getDataFolder()),
                         chunkX << 4, chunkZ << 4, START_TERRAIN_REACH_BLOCKS));
         List<NativeStructureStartPlan> plans = new ArrayList<>();
-        for (VanillaStructureHookRegistration registration : hooksOf(engine.getData())) {
+        for (ServiceRegistration registration : providersOf(engine.getData())) {
             for (VanillaStructureStart start : ask(registration, "placing starts in chunk " + chunkX + "," + chunkZ,
-                    hook -> hook.starts(chunkX, chunkZ, context))) {
+                    provider -> provider.starts(chunkX, chunkZ, context))) {
                 plans.add(plan(registration.module(), start, chunkX, chunkZ, engine.getMinHeight()));
             }
         }
         return List.copyOf(plans);
     }
 
+    /** The shifts every module of the pack gives the platform's own start {@code start}, added up. */
+    public static int shiftOf(Engine engine, NativeStartPlacement start) {
+        ModuleVanillaStructures structures = of(engine);
+        Optional<ResourceId> structure = structureId(start.structureKey());
+        if (structure.isEmpty()) {
+            return 0;
+        }
+        PlatformStart platformStart = new HostPlatformStart(structure.get(), start);
+        int shift = 0;
+        for (ServiceRegistration registration : structures.providers) {
+            shift = Math.addExact(shift, ask(registration, "moving vanilla structure " + structure.get(),
+                    provider -> provider.shift(platformStart, structures.world)));
+        }
+        return shift;
+    }
+
+    /** Every module's reach around a start of {@code structureKey}, placed by a module with {@code memo} or by the platform. */
+    public static List<NativeStructureReach> reachesOf(Engine engine, String structureKey, boolean underground,
+                                                       NativeStartMemo memo) {
+        ModuleVanillaStructures structures = of(engine);
+        Optional<ResourceId> structure = structureId(structureKey);
+        if (structure.isEmpty()) {
+            return List.of(NativeStructureReach.PLATFORM);
+        }
+        Optional<StartMemo> startMemo = Optional.ofNullable(memo).map(note -> new StartMemo(note.terrain(), note.foundation()));
+        List<NativeStructureReach> reaches = new ArrayList<>(structures.providers.size());
+        for (ServiceRegistration registration : structures.providers) {
+            StartReach reach = ask(registration, "reaching around vanilla structure " + structure.get(),
+                    provider -> provider.reach(structure.get(), underground, startMemo, structures.world));
+            reaches.add(new NativeStructureReach(reach.platform(), reach.blocks()));
+        }
+        return reaches.isEmpty() ? List.of(NativeStructureReach.PLATFORM) : List.copyOf(reaches);
+    }
+
     /** The combined setup of the pack's modules for {@code dimension} of the pack {@code data} serves, before any world exists. */
     public static VanillaStructureSetup setupFor(IrisData data, IrisDimension dimension) {
         VanillaStructureContext context = new World(data.getPackResources(), new DimensionSettings(data, dimension));
         VanillaStructureSetup combined = VanillaStructureSetup.UNCHANGED;
-        for (VanillaStructureHookRegistration registration : hooksOf(data)) {
+        for (ServiceRegistration registration : providersOf(data)) {
             combined = combined.and(ask(registration, "setting up the vanilla structures of dimension " + dimension.getLoadKey(),
-                    hook -> hook.setup(context)));
+                    provider -> provider.setup(context)));
         }
         return combined;
     }
 
-    private static List<VanillaStructureHookRegistration> hooksOf(IrisData data) {
-        return data.getModules().pack().catalog().vanillaStructureHooks();
+    /** The pack's {@link VanillaStructures} providers with the modules that registered them, in module id order. */
+    static List<ServiceRegistration> providersOf(IrisData data) {
+        return data.getModules().pack().catalog().registrations(VanillaStructures.class);
     }
 
     private static ModuleVanillaStructures of(Engine engine) {
@@ -132,10 +166,6 @@ public final class ModuleVanillaStructures {
         return rules.computeIfAbsent(structureKey, this::askRules);
     }
 
-    private VanillaStructureAdjustment adjustment(String structureKey, boolean underground) {
-        return adjustments.computeIfAbsent(new AdjustedStructure(structureKey, underground), this::askAdjustments);
-    }
-
     /** A key that is no resource id names no structure a module could decide over. */
     private VanillaStructureRule askRules(String structureKey) {
         Optional<ResourceId> structure = structureId(structureKey);
@@ -143,24 +173,10 @@ public final class ModuleVanillaStructures {
             return VanillaStructureRule.GENERATE;
         }
         VanillaStructureRule combined = VanillaStructureRule.GENERATE;
-        for (VanillaStructureHookRegistration registration : hooks) {
+        for (ServiceRegistration registration : providers) {
             VanillaStructureRule rule = ask(registration, "deciding over vanilla structure " + structure.get(),
-                    hook -> hook.rule(structure.get(), world));
+                    provider -> provider.rule(structure.get(), world));
             combined = combined.and(rule);
-        }
-        return combined;
-    }
-
-    private VanillaStructureAdjustment askAdjustments(AdjustedStructure adjusted) {
-        Optional<ResourceId> structure = structureId(adjusted.key());
-        if (structure.isEmpty()) {
-            return VanillaStructureAdjustment.NONE;
-        }
-        VanillaStructureAdjustment combined = VanillaStructureAdjustment.NONE;
-        for (VanillaStructureHookRegistration registration : hooks) {
-            VanillaStructureAdjustment adjustment = ask(registration, "adjusting vanilla structure " + structure.get(),
-                    hook -> hook.adjustment(structure.get(), adjusted.underground(), world));
-            combined = combined.then(adjustment);
         }
         return combined;
     }
@@ -173,12 +189,11 @@ public final class ModuleVanillaStructures {
         }
     }
 
-    /** One hook's answer to {@code question}; a hook that throws or answers nothing fails naming its module. */
-    private static <T> T ask(VanillaStructureHookRegistration registration, String question,
-                             Function<VanillaStructureHook, T> answer) {
+    /** One provider's answer to {@code question}; a provider that throws or answers nothing fails naming its module. */
+    static <T> T ask(ServiceRegistration registration, String question, Function<VanillaStructures, T> answer) {
         T result;
         try {
-            result = answer.apply(registration.hook());
+            result = answer.apply((VanillaStructures) registration.provider());
         } catch (RuntimeException failure) {
             throw new IllegalStateException("Module " + registration.module() + " failed " + question + ": " + failure, failure);
         }
@@ -202,18 +217,72 @@ public final class ModuleVanillaStructures {
                 start.isUnderground(),
                 start.replacesPlatformStart(),
                 start.identity(),
-                start.jigsaw().map(IrisValues::jigsawConfiguration).orElse(null),
-                start.fit().stilts().map(IrisValues::structureStilts).orElse(null),
-                start.fit().terrain().map(IrisValues::structureTerrain).orElseGet(IrisStructureTerrain::new));
+                start.jigsaw().map(ModuleVanillaStructures::jigsaw).orElse(null),
+                start.memo().map(memo -> new NativeStartMemo(memo.terrain(), memo.foundation())).orElse(null));
     }
 
-    /** The world the hooks decide for: the engine's pack snapshot and the settings its dimension reaches. */
+    private static NativeJigsawOverrides jigsaw(JigsawOverrides overrides) {
+        return new NativeJigsawOverrides(
+                overrides.startPool(),
+                overrides.startJigsawName(),
+                boxed(overrides.maxDepth()),
+                boxed(overrides.maxDistanceHorizontal()),
+                boxed(overrides.maxDistanceVertical()),
+                overrides.useExpansionHack().orElse(null),
+                overrides.projectStartToHeightmap().name(),
+                boxed(overrides.dimensionPaddingBottom()),
+                boxed(overrides.dimensionPaddingTop()),
+                overrides.liquidSettings().name());
+    }
+
+    private static Integer boxed(OptionalInt value) {
+        return value.isPresent() ? value.getAsInt() : null;
+    }
+
+    /** The world the providers decide for: the engine's pack snapshot and the settings its dimension reaches. */
     private record World(PackResources resources, PackSettings settings) implements VanillaStructureContext {
     }
 
     private record StartContext(PackWorld world, TerrainSampler terrain) implements VanillaStructureStartContext {
     }
 
-    private record AdjustedStructure(String key, boolean underground) {
+    /** A platform start in the API's heights: above the dimension's bottom, maxima exclusive. */
+    private record HostPlatformStart(ResourceId structure, NativeStartPlacement start) implements PlatformStart {
+        @Override
+        public int chunkX() {
+            return start.chunkX();
+        }
+
+        @Override
+        public int chunkZ() {
+            return start.chunkZ();
+        }
+
+        @Override
+        public BlockBox bounds() {
+            int bottom = start.bottomY();
+            return new BlockBox(start.minX(), start.minY() - bottom, start.minZ(),
+                    start.maxX() + 1, start.maxY() + 1 - bottom, start.maxZ() + 1);
+        }
+
+        @Override
+        public boolean underground() {
+            return start.underground();
+        }
+
+        @Override
+        public boolean aligned() {
+            return start.aligned();
+        }
+
+        @Override
+        public int bottomY() {
+            return start.bottomY();
+        }
+
+        @Override
+        public int surfaceY(int x, int z) {
+            return start.surfaceY().applyAsInt(x, z) - start.bottomY();
+        }
     }
 }

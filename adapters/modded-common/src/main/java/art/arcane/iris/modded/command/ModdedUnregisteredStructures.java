@@ -24,8 +24,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -107,16 +106,16 @@ final class ModdedUnregisteredStructures {
                         key, "The live structure registry contains this key but has no bound structure holder."));
                 continue;
             }
-            IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
+            NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
             boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
             boolean locatableNativePlacement = nativePlacement
                     && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
             boolean locatableEditableReplacement = !nativePlacement
-                    && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
+                    && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                     && ModuleServices.canLocateStructure(engine, key);
             boolean reachable = reachableNativeKeys.contains(normalizedKey);
             if (ModdedCommandSuggestions.isEligibleRegisteredStructure(
-                    decision, nativePlacement, locatableNativePlacement,
+                    status, nativePlacement, locatableNativePlacement,
                     locatableEditableReplacement, reachable, nativeGenerationEnabled)) {
                 eligibleRegisteredKeys.add(normalizedKey);
                 continue;
@@ -124,7 +123,7 @@ final class ModdedUnregisteredStructures {
             ModdedLocateCommands.NativeStructureAvailability availability =
                     ModdedLocateCommands.nativeAvailability(source, level, engine, key, holder.get());
             String reason = ModdedLocateCommands.registeredStructureUnavailableMessage(
-                    key, availability, decision, nativePlacement, locatableNativePlacement,
+                    key, availability, status, nativePlacement, locatableNativePlacement,
                     nativeGenerationEnabled, reachable);
             excluded.put(normalizedKey, new ExcludedStructure(ReportStatus.EXCLUDED, key, reason));
         }

@@ -18,10 +18,8 @@
 
 package art.arcane.iris.modded;
 
+
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.nativegen.NativeStructureFoundationBuilder;
 import art.arcane.iris.nativegen.NativeStructureVegetationClearer;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
@@ -206,20 +204,20 @@ final class WorldCheckStructureAudit {
             return new StructureCheckResult(false, null);
         }
 
-        IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(
-                generator.commandEngine(), foundKey.toString(),
-                NativeStructureVegetationClearer.isUndergroundStep(structure.step()));
-        Integer appliedShift = generator.worldCheckStructureShift(foundKey.toString(), start.getChunkPos());
+        ModdedNativeStructureStage.WorldCheckShift recorded =
+                generator.worldCheckStructureShift(foundKey.toString(), start.getChunkPos());
+        int requestedShift = recorded == null ? 0 : recorded.requested();
+        Integer appliedShift = recorded == null ? null : recorded.applied();
         BoundingBox shiftedBounds = start.getBoundingBox();
         boolean verticalShiftOk = WorldCheckPredicates.verticalShiftMatches(
-                decision.yShift(), appliedShift, shiftedBounds.minY(), shiftedBounds.maxY(),
+                requestedShift, appliedShift, shiftedBounds.minY(), shiftedBounds.maxY(),
                 level.getMinY(), level.getMaxY());
         WorldCheckPredicates.qaEvent("structure_vertical_shift", check.label(), verticalShiftOk,
-                "configured=" + decision.yShift() + ",applied="
+                "requested=" + requestedShift + ",applied="
                         + (appliedShift == null ? "unrecorded" : appliedShift));
         if (!verticalShiftOk) {
             ModdedIrisLog.error("[worldcheck] {} expected vertical shift {} but generation recorded {}",
-                    check.label(), decision.yShift(), appliedShift);
+                    check.label(), requestedShift, appliedShift);
         }
 
         FootprintAudit footprint = auditFootprint(level, structure, start, check, foundKey);
@@ -571,9 +569,8 @@ final class WorldCheckStructureAudit {
             Engine engine = irisGenerator.commandEngine();
             IntBinaryOperator surfaceHeight = (x, z) ->
                     engine.getHeight(x, z, true) + engine.getMinHeight();
-            NativeStructureFoundationBuilder.StiltSupportAudit foundation =
-                    NativeStructureFoundationBuilder.auditStiltSupport(
-                            level, area, start, Blocks.COBBLESTONE.defaultBlockState(), surfaceHeight);
+            WorldCheckStiltAudit.Result foundation = WorldCheckStiltAudit.audit(
+                    level, area, start, Blocks.COBBLESTONE.defaultBlockState(), surfaceHeight);
             foundationBaseColumns = foundation.baseColumns();
             foundationBlocks = foundation.stiltBlocks();
             foundationColumns = foundation.stiltColumns();

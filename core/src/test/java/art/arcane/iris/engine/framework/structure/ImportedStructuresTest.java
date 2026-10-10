@@ -3,26 +3,24 @@ package art.arcane.iris.engine.framework.structure;
 import art.arcane.iris.builtin.structure.StructureAdjustment;
 import art.arcane.iris.builtin.structure.StructureSetFrequency;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import com.volmit.block.BlockSpec;
-import com.volmit.block.PaletteSpec;
+import art.arcane.iris.builtin.structure.StructureStilts;
+import art.arcane.iris.builtin.structure.StructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
+import art.arcane.iris.builtin.structure.StructureYBand;
 import com.volmit.resource.ResourceId;
-import com.volmit.vanilla.StructureStilts;
-import com.volmit.vanilla.StructureTerrain;
-import com.volmit.vanilla.VanillaStructureAdjustment;
-import com.volmit.vanilla.YBand;
 import com.google.gson.Gson;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /** What a dimension's iris:structure settings say about the platform's own structures (was IrisImportedStructureControlTest). */
 public class ImportedStructuresTest {
-    private static final StructureStilts COBBLE = StructureStilts.of(PaletteSpec.of(List.of(BlockSpec.of("minecraft:cobblestone"))));
+    private static final Gson JSON = new Gson();
 
     @Test
     public void defaultSettingsGenerateEveryStructureAndChangeNothing() {
@@ -30,7 +28,7 @@ public class ImportedStructuresTest {
 
         assertFalse(defaults.disables("minecraft:village_plains"));
         assertFalse(defaults.disables("nova_structures:desert_temple"));
-        assertEquals(VanillaStructureAdjustment.NONE, defaults.adjustment("minecraft:stronghold", true));
+        assertEquals(NativeStructureFit.NONE, defaults.adjustment("minecraft:stronghold", true));
         assertEquals(1D, defaults.setup().frequency(ResourceId.parse("minecraft:villages")), 0D);
         assertFalse(defaults.setup().protectsVanillaDefinitions());
     }
@@ -95,31 +93,31 @@ public class ImportedStructuresTest {
 
     @Test
     public void theLastMatchingTerrainBandAndStiltWin() {
-        StructureTerrain encase = StructureTerrain.of(StructureTerrain.Mode.ENCASE).withPadding(4, 0, 0);
-        StructureStilts deep = COBBLE.withMaxDepth(96);
+        StructureTerrain encase = terrain("{\"mode\":\"ENCASE\",\"horizontalPadding\":4}");
+        StructureStilts deep = stilts(96);
+        StructureYBand band = JSON.fromJson("{\"min\":-120,\"max\":-20}", StructureYBand.class);
         ImportedStructures imported = imported(settings(List.of(), List.of(), 0, true, List.of(), List.of(
-                adjustment(List.of("minecraft:stronghold"), 0, null, false, COBBLE.withMaxDepth(32),
-                        StructureTerrain.of(StructureTerrain.Mode.SOURCE)),
-                adjustment(List.of("minecraft:stronghold"), 0, YBand.of(-120, -20), false, null, encase),
+                adjustment(List.of("minecraft:stronghold"), 0, null, false, stilts(32), terrain("{\"mode\":\"SOURCE\"}")),
+                adjustment(List.of("minecraft:stronghold"), 0, band, false, null, encase),
                 adjustment(List.of("minecraft:stronghold"), 0, null, false, deep, null))));
 
-        VanillaStructureAdjustment stronghold = imported.adjustment("minecraft:stronghold", true);
-        assertEquals(Optional.of(encase), stronghold.fit().terrain());
-        assertEquals(Optional.of(deep), stronghold.fit().stilts());
-        assertEquals(Optional.of(YBand.of(-120, -20)), stronghold.yBand());
-        assertEquals(VanillaStructureAdjustment.NONE, imported.adjustment("minecraft:trial_chambers", true));
+        NativeStructureFit stronghold = imported.adjustment("minecraft:stronghold", true);
+        assertSame(encase, stronghold.terrain());
+        assertSame(deep, stronghold.stilts());
+        assertSame(band, stronghold.yBand());
+        assertEquals(NativeStructureFit.NONE, imported.adjustment("minecraft:trial_chambers", true));
     }
 
     @Test
     public void aLaterSpecificAdjustmentOverridesANamespaceTerrain() {
         ImportedStructures imported = imported(settings(List.of(), List.of(), 0, true, List.of(), List.of(
-                adjustment(List.of("towns_and_towers:"), 0, null, false, null, StructureTerrain.of(StructureTerrain.Mode.VACUUM)),
+                adjustment(List.of("towns_and_towers:"), 0, null, false, null, terrain("{\"mode\":\"VACUUM\"}")),
                 adjustment(List.of("towns_and_towers:village_ocean", "towns_and_towers:mimic_desert"), 0, null, false, null,
-                        StructureTerrain.of(StructureTerrain.Mode.PRESERVE)))));
+                        terrain("{\"mode\":\"PRESERVE\"}")))));
 
-        assertEquals(StructureTerrain.Mode.VACUUM, mode(imported, "towns_and_towers:village_forest"));
-        assertEquals(StructureTerrain.Mode.PRESERVE, mode(imported, "towns_and_towers:village_ocean"));
-        assertEquals(StructureTerrain.Mode.PRESERVE, mode(imported, "towns_and_towers:mimic_desert"));
+        assertEquals(StructureTerrainMode.VACUUM, mode(imported, "towns_and_towers:village_forest"));
+        assertEquals(StructureTerrainMode.PRESERVE, mode(imported, "towns_and_towers:village_ocean"));
+        assertEquals(StructureTerrainMode.PRESERVE, mode(imported, "towns_and_towers:mimic_desert"));
     }
 
     @Test
@@ -127,7 +125,7 @@ public class ImportedStructuresTest {
         ImportedStructures imported = imported(settings(List.of(), List.of(), -64, true, List.of(), List.of(
                 adjustment(List.of("minecraft:mineshaft"), 4, null, true, null, null))));
 
-        VanillaStructureAdjustment mesa = imported.adjustment("minecraft:mineshaft_mesa", true);
+        NativeStructureFit mesa = imported.adjustment("minecraft:mineshaft_mesa", true);
         assertTrue(mesa.keepsSourceY());
         assertEquals(-60, mesa.yShift());
         assertFalse(imported.adjustment("minecraft:stronghold", true).keepsSourceY());
@@ -141,12 +139,20 @@ public class ImportedStructuresTest {
         ImportedStructures imported = imported(nulls);
 
         assertFalse(imported.disables("minecraft:monument"));
-        assertEquals(VanillaStructureAdjustment.NONE, imported.adjustment("minecraft:monument", false));
+        assertEquals(NativeStructureFit.NONE, imported.adjustment("minecraft:monument", false));
         assertTrue(imported.setup().frequencies().isEmpty());
     }
 
-    private static StructureTerrain.Mode mode(ImportedStructures imported, String key) {
-        return imported.adjustment(key, false).fit().terrain().orElseThrow().mode();
+    private static StructureTerrainMode mode(ImportedStructures imported, String key) {
+        return imported.adjustment(key, false).terrain().resolvedMode();
+    }
+
+    private static StructureTerrain terrain(String json) {
+        return JSON.fromJson(json, StructureTerrain.class);
+    }
+
+    private static StructureStilts stilts(int maxDepth) {
+        return JSON.fromJson("{\"maxDepth\":" + maxDepth + "}", StructureStilts.class);
     }
 
     private static ImportedStructures imported(StructureSettings settings) {
@@ -159,7 +165,7 @@ public class ImportedStructuresTest {
         return new StructureSettings(disabled, disabledExact, undergroundYShift, datapackOverrides, frequencies, adjustments);
     }
 
-    private static StructureAdjustment adjustment(List<String> match, int yShift, YBand band, boolean preserveSourceY,
+    private static StructureAdjustment adjustment(List<String> match, int yShift, StructureYBand band, boolean preserveSourceY,
                                                   StructureStilts stilt, StructureTerrain terrain) {
         return new StructureAdjustment(match, yShift, band, preserveSourceY, stilt, terrain);
     }

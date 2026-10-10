@@ -30,7 +30,7 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
-import com.volmit.vanilla.StructureTerrain;
+import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -139,7 +139,7 @@ public class PackBeforeThePortDecodingTest {
         assertTrue(structures.datapackOverrides());
         assertEquals(4, structures.adjustments().size());
         assertEquals(List.of("minecraft:stronghold"), structures.adjustments().getFirst().match());
-        assertEquals(StructureTerrain.Mode.ENCASE, structures.adjustments().getFirst().terrain().orElseThrow().mode());
+        assertEquals(StructureTerrainMode.ENCASE, structures.adjustments().getFirst().terrain().orElseThrow().resolvedMode());
         assertEquals(-64, structures.adjustments().get(1).yShift());
         assertTrue(structures.adjustments().get(2).preserveSourceY());
         assertEquals(2, structures.adjustments().get(3).stilt().orElseThrow().maxDepth());

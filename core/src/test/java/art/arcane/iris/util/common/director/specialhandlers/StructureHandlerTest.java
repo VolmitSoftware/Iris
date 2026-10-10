@@ -13,11 +13,10 @@ import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.world.IrisWorld;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -47,9 +46,9 @@ import static org.mockito.Mockito.when;
 public class StructureHandlerTest {
     @Test
     public void registeredEligibilityMatchesFindExecutionTruthTable() {
-        IrisNativeStructureDecision replacement = decision(NativeStructureGenerationStatus.REPLACED_BY_IRIS);
-        IrisNativeStructureDecision generated = decision(NativeStructureGenerationStatus.GENERATE_NATIVE);
-        IrisNativeStructureDecision disabled = decision(NativeStructureGenerationStatus.DISABLED_BY_PACK);
+        NativeStructureGenerationStatus replacement = NativeStructureGenerationStatus.REPLACED_BY_IRIS;
+        NativeStructureGenerationStatus generated = NativeStructureGenerationStatus.GENERATE_NATIVE;
+        NativeStructureGenerationStatus disabled = NativeStructureGenerationStatus.DISABLED_BY_PACK;
 
         assertTrue(StructureHandler.isEligibleRegisteredKey(
                 replacement, false, false, true, false, false));
@@ -258,9 +257,6 @@ public class StructureHandlerTest {
         assertFalse(method.contains("catch ("));
     }
 
-    private static IrisNativeStructureDecision decision(NativeStructureGenerationStatus status) {
-        return new IrisNativeStructureDecision(status, 0, null, false, null, null);
-    }
 
     private static IrisStructurePlacement nativePlacement(String key, StructureDistribution distribution,
                                                           double density) {

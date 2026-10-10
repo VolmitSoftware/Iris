@@ -2,11 +2,11 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.framework.NativeStructureLayouts;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.core.Holder;
@@ -182,10 +182,6 @@ public final class NativeStructureVolumeIndex {
 
         KList<NativeStructureVolume> target = volumes;
         for (NativeStructureStartPlan plan : plans) {
-            IrisNativeStructureDecision decision = plan.decision();
-            if (!decision.generate()) {
-                continue;
-            }
             Identifier identifier = Identifier.tryParse(plan.structureKey());
             if (identifier == null) {
                 continue;
@@ -197,7 +193,9 @@ public final class NativeStructureVolumeIndex {
             String structureId = identifier.toString();
             try {
                 StructureStart generated = NativeStructureFactory.generate(
-                        generationContext(engine, bindings), registry.wrapAsHolder(structure), plan, 0);
+                        generationContext(engine, bindings), registry.wrapAsHolder(structure), plan, 0,
+                        NativeStructureLayouts.reaches(engine, structureId,
+                                NativeStructureVegetationClearer.isUndergroundStep(structure.step()), plan.memo()));
                 target = appendPieces(target, structureId, generated);
             } catch (RuntimeException | Error error) {
                 warnOnce(structureId, error);
@@ -229,9 +227,7 @@ public final class NativeStructureVolumeIndex {
                 String structureId = identifier.toString();
                 boolean undergroundStep = NativeStructureVegetationClearer.isUndergroundStep(structure.step());
                 try {
-                    IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(
-                            engine, structureId, undergroundStep);
-                    if (!decision.generate()) {
+                    if (!NativeStructureGenerationPolicy.generates(engine, structureId)) {
                         continue;
                     }
                     StructureStart generated = structure.generate(
@@ -254,13 +250,11 @@ public final class NativeStructureVolumeIndex {
                     NativeStructureVerticalPlacer.applyVerticalPlacement(
                             generated,
                             structureId,
-                            decision.yShift(),
+                            NativeStructureLayouts.shift(engine, NativeStructureVerticalPlacer.placementOf(
+                                    generated, structureId, undergroundStep, worldMinY, surfaceHeight)),
                             bindings.generator().getSeaLevel(),
                             worldMinY,
                             worldMaxYExclusive,
-                            undergroundStep,
-                            decision.preserveSourceY(),
-                            decision.yBand(),
                             surfaceHeight);
                     target = appendPieces(target, structureId, generated);
                 } catch (RuntimeException | Error error) {

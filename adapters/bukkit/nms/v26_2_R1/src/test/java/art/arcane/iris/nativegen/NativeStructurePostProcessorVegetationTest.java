@@ -173,21 +173,6 @@ public class NativeStructurePostProcessorVegetationTest {
                 GenerationStep.Decoration.SURFACE_STRUCTURES));
     }
 
-    @Test
-    public void undergroundStructuresUseTheLowestTerrainColumn() {
-        BoundingBox bounds = new BoundingBox(0, 60, 0, 1, 80, 0);
-        int offset = NativeStructureVerticalPlacer.resolveBuriedOffset(
-                bounds, 0, -64, 320, (x, z) -> x == 1 ? 76 : 100);
-        assertEquals(-5, offset);
-    }
-
-    @Test
-    public void undergroundBurialClampsToTheWorldFloorInsteadOfFailing() {
-        BoundingBox bounds = new BoundingBox(0, 60, 0, 1, 80, 0);
-        assertEquals(-2, NativeStructureVerticalPlacer.resolveBuriedOffset(
-                bounds, 0, 58, 320, (x, z) -> x == 1 ? 76 : 100));
-    }
-
     private static void clearVegetation(ProtoChunk chunk, StructureStart start) {
         NativeStructureVegetationClearer.clearIntersectingVegetation(
                 world(chunk), chunk, AREA, List.of(start));

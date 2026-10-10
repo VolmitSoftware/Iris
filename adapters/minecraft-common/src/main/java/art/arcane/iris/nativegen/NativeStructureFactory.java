@@ -1,9 +1,8 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.iris.engine.framework.NativeJigsawOverrides;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConfiguration;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawHeightmap;
-import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawLiquidSettings;
 import art.arcane.iris.spi.PlatformStructureHooks.JigsawSourceMetadata;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
@@ -25,17 +24,21 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 
 public final class NativeStructureFactory {
+    private static final String NO_HEIGHTMAP = "NONE";
     private NativeStructureFactory() {
     }
 
+    /** The start {@code plan} describes, placed at its height; {@code reaches} are the modules' reaches around it. */
     public static StructureStart generate(GenerationContext context, Holder<Structure> sourceHolder,
-                                          NativeStructureStartPlan plan, int references) {
+                                          NativeStructureStartPlan plan, int references,
+                                          List<NativeStructureReach> reaches) {
         Structure source = sourceHolder.value();
         Structure configured = configure(
                 context.registryAccess(), source, plan.jigsaw(),
@@ -75,9 +78,6 @@ public final class NativeStructureFactory {
                     context.seaLevel(),
                     context.heightAccessor().getMinY(),
                     Math.addExact(context.heightAccessor().getMinY(), context.heightAccessor().getHeight()),
-                    false,
-                    false,
-                    null,
                     context.surfaceHeight());
             positioned = generated;
         }
@@ -88,7 +88,7 @@ public final class NativeStructureFactory {
                 positioned,
                 source,
                 references,
-                plan.terrain(),
+                reaches,
                 plan.structureKey()
         );
     }
@@ -120,7 +120,7 @@ public final class NativeStructureFactory {
     }
 
     static Structure configure(RegistryAccess registryAccess, Structure source,
-                               IrisJigsawConfiguration configuration,
+                               NativeJigsawOverrides configuration,
                                boolean underground, int baseY) {
         Objects.requireNonNull(source, "Native structure source must not be null");
         if (!(source instanceof JigsawStructure sourceJigsaw)) {
@@ -162,36 +162,36 @@ public final class NativeStructureFactory {
         return structureTag;
     }
 
-    private static void applyConfiguration(CompoundTag tag, IrisJigsawConfiguration configuration) {
+    private static void applyConfiguration(CompoundTag tag, NativeJigsawOverrides configuration) {
         if (configuration == null) {
             return;
         }
-        if (configuration.getStartPool() != null && !configuration.getStartPool().isBlank()) {
-            tag.putString("start_pool", configuration.getStartPool().trim());
+        if (configuration.startPool() != null && !configuration.startPool().isBlank()) {
+            tag.putString("start_pool", configuration.startPool().trim());
         }
-        if (configuration.getStartJigsawName() != null
-                && !configuration.getStartJigsawName().isBlank()) {
-            if ("NONE".equalsIgnoreCase(configuration.getStartJigsawName().trim())) {
+        if (configuration.startJigsawName() != null
+                && !configuration.startJigsawName().isBlank()) {
+            if ("NONE".equalsIgnoreCase(configuration.startJigsawName().trim())) {
                 tag.remove("start_jigsaw_name");
             } else {
-                tag.putString("start_jigsaw_name", configuration.getStartJigsawName().trim());
+                tag.putString("start_jigsaw_name", configuration.startJigsawName().trim());
             }
         }
-        if (configuration.getMaxDepth() != null) {
-            tag.putInt("size", configuration.getMaxDepth());
+        if (configuration.maxDepth() != null) {
+            tag.putInt("size", configuration.maxDepth());
         }
         applyDistance(tag, configuration);
-        if (configuration.getUseExpansionHack() != null) {
-            tag.putBoolean("use_expansion_hack", configuration.getUseExpansionHack());
+        if (configuration.useExpansionHack() != null) {
+            tag.putBoolean("use_expansion_hack", configuration.useExpansionHack());
         }
-        applyHeightmap(tag, configuration.getProjectStartToHeightmap());
+        applyHeightmap(tag, configuration.projectStartToHeightmap());
         applyDimensionPadding(tag, configuration);
-        applyLiquidSettings(tag, configuration.getLiquidSettings());
+        applyLiquidSettings(tag, configuration.liquidSettings());
     }
 
-    private static void applyDistance(CompoundTag tag, IrisJigsawConfiguration configuration) {
-        Integer horizontal = configuration.getMaxDistanceHorizontal();
-        Integer vertical = configuration.getMaxDistanceVertical();
+    private static void applyDistance(CompoundTag tag, NativeJigsawOverrides configuration) {
+        Integer horizontal = configuration.maxDistanceHorizontal();
+        Integer vertical = configuration.maxDistanceVertical();
         if (horizontal == null && vertical == null) {
             return;
         }
@@ -223,20 +223,20 @@ public final class NativeStructureFactory {
         return Math.max(0, Math.max(expansion, adjusted.maxZ() - content.maxZ()));
     }
 
-    private static void applyHeightmap(CompoundTag tag, IrisJigsawHeightmap heightmap) {
-        if (heightmap == null || heightmap == IrisJigsawHeightmap.SOURCE) {
+    private static void applyHeightmap(CompoundTag tag, String heightmap) {
+        if (heightmap == null || heightmap.equals(NativeJigsawOverrides.SOURCE)) {
             return;
         }
-        if (heightmap == IrisJigsawHeightmap.NONE) {
+        if (heightmap.equals(NO_HEIGHTMAP)) {
             tag.remove("project_start_to_heightmap");
             return;
         }
-        tag.putString("project_start_to_heightmap", heightmap.name());
+        tag.putString("project_start_to_heightmap", heightmap);
     }
 
-    private static void applyDimensionPadding(CompoundTag tag, IrisJigsawConfiguration configuration) {
-        Integer bottom = configuration.getDimensionPaddingBottom();
-        Integer top = configuration.getDimensionPaddingTop();
+    private static void applyDimensionPadding(CompoundTag tag, NativeJigsawOverrides configuration) {
+        Integer bottom = configuration.dimensionPaddingBottom();
+        Integer top = configuration.dimensionPaddingTop();
         if (bottom == null && top == null) {
             return;
         }
@@ -260,11 +260,11 @@ public final class NativeStructureFactory {
         return tag.getIntOr("dimension_padding", 0);
     }
 
-    private static void applyLiquidSettings(CompoundTag tag, IrisJigsawLiquidSettings settings) {
-        if (settings == null || settings == IrisJigsawLiquidSettings.SOURCE) {
+    private static void applyLiquidSettings(CompoundTag tag, String settings) {
+        if (settings == null || settings.equals(NativeJigsawOverrides.SOURCE)) {
             return;
         }
-        tag.putString("liquid_settings", settings.name().toLowerCase(Locale.ROOT));
+        tag.putString("liquid_settings", settings.toLowerCase(Locale.ROOT));
     }
 
     public record GenerationContext(

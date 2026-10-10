@@ -1,8 +1,7 @@
 package art.arcane.iris.core.commands;
 
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -64,11 +63,11 @@ public class IrisStructureLocateCommandContractTest {
                         false, null, false, false, false, true, true));
         assertEquals(CommandFind.StructureLookupRoute.NO_ACTIVE_PLACEMENT,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.REPLACED_BY_IRIS),
+                        true, NativeStructureGenerationStatus.REPLACED_BY_IRIS,
                         false, false, false, true, true));
         assertEquals(CommandFind.StructureLookupRoute.NO_ACTIVE_PLACEMENT,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.GENERATE_NATIVE),
+                        true, NativeStructureGenerationStatus.GENERATE_NATIVE,
                         true, false, false, true, false));
     }
 
@@ -79,7 +78,7 @@ public class IrisStructureLocateCommandContractTest {
                         false, null, false, false, true, false, false));
         assertEquals(CommandFind.StructureLookupRoute.IRIS,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.REPLACED_BY_IRIS),
+                        true, NativeStructureGenerationStatus.REPLACED_BY_IRIS,
                         false, false, true, false, false));
     }
 
@@ -87,23 +86,23 @@ public class IrisStructureLocateCommandContractTest {
     public void findRequiresWorldGenerationAndReachabilityForNativeRoutes() {
         assertEquals(CommandFind.StructureLookupRoute.WORLD_DISABLED,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.REPLACED_BY_IRIS),
+                        true, NativeStructureGenerationStatus.REPLACED_BY_IRIS,
                         true, true, false, false, true));
         assertEquals(CommandFind.StructureLookupRoute.WORLD_DISABLED,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.GENERATE_NATIVE),
+                        true, NativeStructureGenerationStatus.GENERATE_NATIVE,
                         false, false, false, false, true));
         assertEquals(CommandFind.StructureLookupRoute.UNREACHABLE,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.GENERATE_NATIVE),
+                        true, NativeStructureGenerationStatus.GENERATE_NATIVE,
                         false, false, false, true, false));
         assertEquals(CommandFind.StructureLookupRoute.NATIVE,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.GENERATE_NATIVE),
+                        true, NativeStructureGenerationStatus.GENERATE_NATIVE,
                         true, true, false, true, false));
         assertEquals(CommandFind.StructureLookupRoute.NATIVE,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.GENERATE_NATIVE),
+                        true, NativeStructureGenerationStatus.GENERATE_NATIVE,
                         true, false, false, true, true));
     }
 
@@ -111,7 +110,7 @@ public class IrisStructureLocateCommandContractTest {
     public void findHonorsPackDisableBeforePlacementRouting() {
         assertEquals(CommandFind.StructureLookupRoute.POLICY_DISABLED,
                 CommandFind.selectStructureLookupRoute(
-                        true, decision(NativeStructureGenerationStatus.DISABLED_BY_PACK),
+                        true, NativeStructureGenerationStatus.DISABLED_BY_PACK,
                         false, false, true, true, true));
     }
 
@@ -281,7 +280,7 @@ public class IrisStructureLocateCommandContractTest {
         int methodStart = source.indexOf("private void runVerification(");
         int methodEnd = source.indexOf("private void sendVerificationMessages(", methodStart);
         String method = source.substring(methodStart, methodEnd);
-        int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(engine, keyName, false)");
+        int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(engine, keyName)");
         int nativeRequirement = method.indexOf(
                 "requiresNativeReachability |= !IrisStructureLocator.isPlaced", policyResolution);
         int reachabilityGuard = method.indexOf("if (requiresNativeReachability)", nativeRequirement);
@@ -291,10 +290,5 @@ public class IrisStructureLocateCommandContractTest {
         assertTrue(nativeRequirement > policyResolution);
         assertTrue(reachabilityGuard > nativeRequirement);
         assertTrue(reachabilityLookup > reachabilityGuard);
-    }
-
-    private static IrisNativeStructureDecision decision(NativeStructureGenerationStatus status) {
-        return new IrisNativeStructureDecision(
-                status, 0, null, false, null, null);
     }
 }

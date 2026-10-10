@@ -1,14 +1,15 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.NativeStartMemo;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureLayouts;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -22,6 +23,7 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -45,7 +47,8 @@ public final class NativeStructureOwnershipRecovery {
                 engine, structureKey, origin.x(), origin.z());
         if (persisted != null) {
             NativeStructureOwnershipRecord refreshed = refreshReferenceEnvelope(
-                    structureKey, activeStructure, start, persisted);
+                    structureKey, activeStructure, start, persisted, reachesOf(engine, structureKey, activeStructure,
+                            persisted.restoredMemo()));
             if (refreshed != null) {
                 if (refreshed != persisted) {
                     NativeStructureOwnershipStore.record(engine, refreshed);
@@ -67,9 +70,11 @@ public final class NativeStructureOwnershipRecovery {
             return null;
         }
         StructureStart expected = generateExpected(
-                engine, activeLevel, holder, plan, start.getReferences());
+                engine, activeLevel, holder, plan, start.getReferences(),
+                reachesOf(engine, structureKey, activeStructure, plan.memo()));
         NativeStructureOwnershipRecord recovered = proveCandidate(
-                structureKey, activeStructure, start, plan, expected, false);
+                structureKey, activeStructure, start, plan, expected, false,
+                reachesOf(engine, structureKey, activeStructure, plan.memo()));
         if (recovered == null) {
             return null;
         }
@@ -77,26 +82,26 @@ public final class NativeStructureOwnershipRecovery {
         return recovered;
     }
 
+    /**
+     * The record with its reference envelope grown to what today's reaches give its start: a module may reach further
+     * around its starts than when it recorded one (VACUUM's fixed falloff did), and the start must then be referenced
+     * from the farther chunks too. An envelope never shrinks, so no chunk that once referenced the start loses it.
+     */
     static NativeStructureOwnershipRecord refreshReferenceEnvelope(
             String structureKey, Structure structure, StructureStart start,
-            NativeStructureOwnershipRecord ownership) {
+            NativeStructureOwnershipRecord ownership, List<NativeStructureReach> reaches) {
         if (structure == null || start == null || !start.isValid()
                 || start.getStructure() != structure || ownership == null
                 || !ownership.structureKey().equals(normalize(structureKey))
                 || !NativeStructureOwnershipFingerprint.matches(ownership, start)) {
             return null;
         }
-        IrisStructureTerrain terrain = NativeStructureTerrainIntegrator.resolveNativeTerrain(
-                start, ownership.restoredDecision().terrain());
-        if (terrain.resolvedMode() != IrisStructureTerrainMode.VACUUM) {
-            return ownership;
-        }
         BoundingBox expected = NativeStructureReferenceEnvelope.referenceBounds(
-                start, structure, terrain, structureKey);
-        int referenceMinChunkX = expected.minX() >> 4;
-        int referenceMaxChunkX = expected.maxX() >> 4;
-        int referenceMinChunkZ = expected.minZ() >> 4;
-        int referenceMaxChunkZ = expected.maxZ() >> 4;
+                start, structure, reaches, structureKey);
+        int referenceMinChunkX = Math.min(ownership.referenceMinChunkX(), expected.minX() >> 4);
+        int referenceMaxChunkX = Math.max(ownership.referenceMaxChunkX(), expected.maxX() >> 4);
+        int referenceMinChunkZ = Math.min(ownership.referenceMinChunkZ(), expected.minZ() >> 4);
+        int referenceMaxChunkZ = Math.max(ownership.referenceMaxChunkZ(), expected.maxZ() >> 4);
         if (ownership.referenceMinChunkX() == referenceMinChunkX
                 && ownership.referenceMaxChunkX() == referenceMaxChunkX
                 && ownership.referenceMinChunkZ() == referenceMinChunkZ
@@ -111,7 +116,7 @@ public final class NativeStructureOwnershipRecovery {
     static NativeStructureOwnershipRecord proveCandidate(
             String structureKey, Structure structure, StructureStart persisted,
             NativeStructureStartPlan plan, StructureStart expected,
-            boolean naturalStartAmbiguous) {
+            boolean naturalStartAmbiguous, List<NativeStructureReach> reaches) {
         if (naturalStartAmbiguous || structure == null
                 || persisted == null || !persisted.isValid()
                 || expected == null || !expected.isValid()
@@ -122,7 +127,7 @@ public final class NativeStructureOwnershipRecovery {
             return null;
         }
         BoundingBox referenceEnvelope = NativeStructureReferenceEnvelope.referenceBounds(
-                expected, structure, plan.terrain(), structureKey);
+                expected, structure, reaches, structureKey);
         NativeStructureOwnershipRecord candidate = NativeStructureOwnershipFingerprint.capture(
                 structureKey, expected, plan, referenceEnvelope);
         return NativeStructureOwnershipFingerprint.matches(candidate, persisted)
@@ -141,7 +146,7 @@ public final class NativeStructureOwnershipRecovery {
 
     private static StructureStart generateExpected(
             Engine engine, ServerLevel level, Holder<Structure> holder,
-            NativeStructureStartPlan plan, int references) {
+            NativeStructureStartPlan plan, int references, List<NativeStructureReach> reaches) {
         ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
         ChunkGenerator generator = level.getChunkSource().getGenerator();
         BiomeSource biomeSource = generator.getBiomeSource();
@@ -159,7 +164,7 @@ public final class NativeStructureOwnershipRecovery {
                         generator.getSeaLevel(),
                         (x, z) -> engine.getHeight(x, z, true) + engine.getMinHeight()
                 );
-        return NativeStructureFactory.generate(generationContext, holder, plan, references);
+        return NativeStructureFactory.generate(generationContext, holder, plan, references, reaches);
     }
 
     private static boolean naturalStartIsAmbiguous(
@@ -169,10 +174,8 @@ public final class NativeStructureOwnershipRecovery {
         if (plan.replacesPlatformStart()) {
             return false;
         }
-        NativeStructureGenerationStatus sourceStatus = NativeStructureGenerationPolicy.resolve(
-                engine, structureKey,
-                NativeStructureVegetationClearer.isUndergroundStep(structure.step())).status();
-        if (sourceStatus == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+        if (NativeStructureGenerationPolicy.resolve(engine, structureKey)
+                == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
             return false;
         }
         for (StructurePlacement placement : state.getPlacementsForStructure(holder)) {
@@ -181,6 +184,12 @@ public final class NativeStructureOwnershipRecovery {
             }
         }
         return false;
+    }
+
+    private static List<NativeStructureReach> reachesOf(Engine engine, String structureKey, Structure structure,
+                                                        NativeStartMemo memo) {
+        return NativeStructureLayouts.reaches(engine, structureKey,
+                NativeStructureVegetationClearer.isUndergroundStep(structure.step()), memo);
     }
 
     private static String normalize(String structureKey) {

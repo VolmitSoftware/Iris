@@ -1,8 +1,5 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import org.junit.Test;
 
 import java.util.Map;
@@ -49,9 +46,9 @@ public class NativeStructureOwnershipStoreTest {
         Engine engine = engine();
         TestStorage storage = new TestStorage();
         NativeStructureOwnershipRecord stale = record("test:replacement", 2, 3, 11L,
-                new IrisStructureTerrain().setHorizontalPadding(2), 8);
+                terrain(2), 8);
         NativeStructureOwnershipRecord current = record("test:replacement", 2, 3, 11L,
-                new IrisStructureTerrain().setHorizontalPadding(9), 8);
+                terrain(9), 8);
         long origin = NativeStructureOwnershipStore.pack(2, 3);
         long target = NativeStructureOwnershipStore.pack(3, 4);
         storage.write(origin, current);
@@ -63,7 +60,7 @@ public class NativeStructureOwnershipStoreTest {
                 3, 4, current.structureKey(), 2, 3);
 
         assertEquals(current, resolved);
-        assertEquals(9, resolved.restoredDecision().terrain().getHorizontalPadding());
+        assertEquals(terrain(9), resolved.restoredMemo().terrain());
         assertEquals(stale.contentFingerprint(), resolved.contentFingerprint());
         assertEquals(stale, storage.find(target, stale));
     }
@@ -409,18 +406,18 @@ public class NativeStructureOwnershipStoreTest {
 
     private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
                                                           long placementIdentity) {
-        return record(key, originX, originZ, placementIdentity, new IrisStructureTerrain(), 8);
+        return record(key, originX, originZ, placementIdentity, "{}", 8);
     }
 
     private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
                                                           long placementIdentity,
                                                           int referenceRadius) {
-        return record(key, originX, originZ, placementIdentity, new IrisStructureTerrain(), referenceRadius);
+        return record(key, originX, originZ, placementIdentity, "{}", referenceRadius);
     }
 
     private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
                                                           long placementIdentity,
-                                                          IrisStructureTerrain terrain,
+                                                          String terrain,
                                                           int referenceRadius) {
         return new NativeStructureOwnershipRecord(
                 NativeStructureOwnershipRecord.CURRENT_SCHEMA,
@@ -441,16 +438,12 @@ public class NativeStructureOwnershipStoreTest {
                 originZ - referenceRadius,
                 originZ + referenceRadius,
                 FINGERPRINT,
-                NativeStructureOwnershipRecord.DecisionSnapshot.capture(
-                        new IrisNativeStructureDecision(
-                                NativeStructureGenerationStatus.GENERATE_NATIVE,
-                                0,
-                                null,
-                                false,
-                                null,
-                                terrain
-                        ))
+                new NativeStructureOwnershipRecord.MemoSnapshot("null", terrain)
         );
+    }
+
+    private static String terrain(int horizontalPadding) {
+        return "{\"horizontalPadding\":" + horizontalPadding + "}";
     }
 
     private static class TestStorage implements NativeStructureOwnershipStore.Storage {

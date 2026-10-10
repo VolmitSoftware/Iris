@@ -2,11 +2,13 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureLayouts;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
+import art.arcane.iris.engine.framework.NativeStructureReach;
 import art.arcane.iris.engine.framework.NativeStructureStarts;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
 import art.arcane.iris.spi.IrisLogging;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -27,6 +29,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -67,10 +70,8 @@ public final class NativeStructureStartInjector {
                     section, structure, chunk);
             boolean replacement = plan.replacesPlatformStart();
             if (!replacement && existing != null && existing.isValid()) {
-                NativeStructureGenerationStatus sourceStatus = NativeStructureGenerationPolicy.resolve(
-                        context.engine(), identifier.toString(),
-                        NativeStructureVegetationClearer.isUndergroundStep(structure.step())).status();
-                replacement = sourceStatus == NativeStructureGenerationStatus.REPLACED_BY_IRIS;
+                replacement = NativeStructureGenerationPolicy.resolve(context.engine(), identifier.toString())
+                        == NativeStructureGenerationStatus.REPLACED_BY_IRIS;
             }
             if (!replacement && existing != null && existing.isValid()) {
                 continue;
@@ -91,8 +92,10 @@ public final class NativeStructureStartInjector {
                             (x, z) -> context.engine().getHeight(x, z, true)
                                     + context.engine().getMinHeight()
                     );
+            List<NativeStructureReach> reaches = NativeStructureLayouts.reaches(context.engine(), identifier.toString(),
+                    NativeStructureVegetationClearer.isUndergroundStep(structure.step()), plan.memo());
             StructureStart generated = NativeStructureFactory.generate(
-                    generationContext, holder, plan, references);
+                    generationContext, holder, plan, references, reaches);
             if (!isUsableGeneratedStart(generated)) {
                 if (replacement) {
                     context.structureManager().setStartForStructure(
@@ -104,7 +107,7 @@ public final class NativeStructureStartInjector {
                 continue;
             }
             BoundingBox referenceBounds = NativeStructureReferenceEnvelope.referenceBounds(
-                    generated, structure, plan.terrain(), identifier.toString());
+                    generated, structure, reaches, identifier.toString());
             NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
                     identifier.toString(), generated, plan, referenceBounds);
             NativeStructureOwnershipStore.record(context.engine(), ownership);

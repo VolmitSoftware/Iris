@@ -23,8 +23,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.util.common.director.DirectorParameterHandler;
@@ -116,27 +115,27 @@ public class StructureHandler implements DirectorParameterHandler<String> {
 
     private static boolean isEligibleRegisteredKey(Engine engine, String key, String normalizedKey,
                                                    Set<String> reachableKeys, boolean nativeGenerationEnabled) {
-        IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, key, false);
+        NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
         boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
         boolean locatableNativePlacement = nativePlacement
                 && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
         boolean locatableEditableReplacement = !nativePlacement
-                && decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS
+                && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                 && ModuleServices.canLocateStructure(engine, key);
         return isEligibleRegisteredKey(
-                decision, nativePlacement, locatableNativePlacement, locatableEditableReplacement,
+                status, nativePlacement, locatableNativePlacement, locatableEditableReplacement,
                 reachableKeys.contains(normalizedKey), nativeGenerationEnabled);
     }
 
-    static boolean isEligibleRegisteredKey(IrisNativeStructureDecision decision, boolean nativePlacement,
+    static boolean isEligibleRegisteredKey(NativeStructureGenerationStatus status, boolean nativePlacement,
                                            boolean locatableNativePlacement,
                                            boolean locatableEditableReplacement,
                                            boolean reachable, boolean nativeGenerationEnabled) {
-        if (decision.status() == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
+        if (status == NativeStructureGenerationStatus.REPLACED_BY_IRIS) {
             return locatableEditableReplacement
                     || nativeGenerationEnabled && nativePlacement && locatableNativePlacement;
         }
-        return nativeGenerationEnabled && decision.generate()
+        return nativeGenerationEnabled && status == NativeStructureGenerationStatus.GENERATE_NATIVE
                 && (reachable || (nativePlacement && locatableNativePlacement));
     }
 

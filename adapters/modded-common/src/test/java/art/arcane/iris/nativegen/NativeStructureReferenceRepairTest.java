@@ -9,10 +9,8 @@ import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipStore;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructureTerrainMode;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureReach;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import com.github.benmanes.caffeine.cache.Cache;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
@@ -56,7 +54,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -81,9 +78,7 @@ public class NativeStructureReferenceRepairTest {
         StructureStart generated = monumentStart(structure, origin, seed);
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(24);
+        List<NativeStructureReach> terrain = List.of(new NativeStructureReach(false, 24));
         StructureStart wrapped = NativeStructureReferenceEnvelope.wrap(
                 generated,
                 structure,
@@ -108,19 +103,9 @@ public class NativeStructureReferenceRepairTest {
 
     @Test
     public void deniedNaturalStartsCannotEnterCollisionArbitration() {
-        IrisNativeStructureDecision enabled = new IrisNativeStructureDecision(
-                NativeStructureGenerationStatus.GENERATE_NATIVE,
-                0, null, false, null, new IrisStructureTerrain());
-        IrisNativeStructureDecision disabled = new IrisNativeStructureDecision(
-                NativeStructureGenerationStatus.DISABLED_BY_PACK,
-                0, null, false, null, new IrisStructureTerrain());
-        IrisNativeStructureDecision replaced = new IrisNativeStructureDecision(
-                NativeStructureGenerationStatus.REPLACED_BY_IRIS,
-                0, null, false, null, new IrisStructureTerrain());
-
-        assertTrue(NativeStructureReferenceRepair.naturalDecisionAllows(enabled));
-        assertFalse(NativeStructureReferenceRepair.naturalDecisionAllows(disabled));
-        assertFalse(NativeStructureReferenceRepair.naturalDecisionAllows(replaced));
+        assertTrue(NativeStructureReferenceRepair.naturalStatusAllows(NativeStructureGenerationStatus.GENERATE_NATIVE));
+        assertFalse(NativeStructureReferenceRepair.naturalStatusAllows(NativeStructureGenerationStatus.DISABLED_BY_PACK));
+        assertFalse(NativeStructureReferenceRepair.naturalStatusAllows(NativeStructureGenerationStatus.REPLACED_BY_IRIS));
     }
 
     @Test
@@ -134,9 +119,7 @@ public class NativeStructureReferenceRepairTest {
         StructureStart generated = monumentStart(structure, origin, seed);
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 generated, 0, 80, -64, 320);
-        IrisStructureTerrain terrain = new IrisStructureTerrain()
-                .setMode(IrisStructureTerrainMode.FORCE_CARVE)
-                .setHorizontalPadding(24);
+        List<NativeStructureReach> terrain = List.of(new NativeStructureReach(false, 24));
         StructureStart start = NativeStructureReferenceEnvelope.wrap(
                 generated, structure, 0, terrain);
         NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
@@ -145,10 +128,9 @@ public class NativeStructureReferenceRepairTest {
                 plan(origin, NativeStructureReferenceEnvelope.contentBounds(start).minY()),
                 NativeStructureReferenceEnvelope.referenceBounds(start, structure, terrain));
         Engine engine = engine(new IrisDimension(), packWithoutModules());
-        IrisNativeStructureDecision currentDecision = new IrisNativeStructureDecision(
-                NativeStructureGenerationStatus.DISABLED_BY_PACK, 0, null, false, null, null);
+        NativeStructureGenerationStatus currentStatus = NativeStructureGenerationStatus.DISABLED_BY_PACK;
 
-        assertFalse(NativeStructureReferenceRepair.naturalDecisionAllows(currentDecision));
+        assertFalse(NativeStructureReferenceRepair.naturalStatusAllows(currentStatus));
 
         ProtoChunk originChunk = emptyChunk(origin);
         originChunk.setStartForStructure(structure, start);
@@ -164,8 +146,8 @@ public class NativeStructureReferenceRepairTest {
 
         installOwnership(engine, ownership);
         try (MockedStatic<NativeStructureGenerationPolicy> policy = mockStatic(NativeStructureGenerationPolicy.class)) {
-            policy.when(() -> NativeStructureGenerationPolicy.resolve(any(), eq(structureKey), anyBoolean()))
-                    .thenReturn(currentDecision);
+            policy.when(() -> NativeStructureGenerationPolicy.resolve(any(), eq(structureKey)))
+                    .thenReturn(currentStatus);
             WorldGenLevel level = worldGenLevel(
                     registry, serverLevel, originChunk, emptyScannedChunk);
             ProtoChunk coveredChunk = emptyChunk(coveredTarget);
@@ -210,7 +192,7 @@ public class NativeStructureReferenceRepairTest {
 
     private static NativeStructureStartPlan plan(ChunkPos origin, int baseY) {
         return new NativeStructureStartPlan("minecraft:monument", origin.x(), origin.z(), baseY, false, false,
-                MONUMENT_PLACEMENT_IDENTITY, null, null, new IrisStructureTerrain());
+                MONUMENT_PLACEMENT_IDENTITY, null, null);
     }
 
     private static ChunkPos outsideLiveBounds(NativeStructureOwnershipRecord ownership,

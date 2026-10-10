@@ -36,10 +36,9 @@ import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructureDecision;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureGenerationStatus;
+import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.iris.util.common.format.C;
@@ -173,13 +172,13 @@ public class CommandStructure implements DirectorExecutor {
     private void runVerification(Engine engine, KList<String> structureKeys, int centerX, int centerZ,
                                  int searchRadius, VolmitSender commandSender, Player target) {
         KList<String> messages = new KList<>();
-        Map<String, IrisNativeStructureDecision> decisions = new HashMap<>(structureKeys.size());
+        Map<String, NativeStructureGenerationStatus> statuses = new HashMap<>(structureKeys.size());
         boolean requiresNativeReachability = false;
         for (String keyName : structureKeys) {
-            IrisNativeStructureDecision decision = NativeStructureGenerationPolicy.resolve(engine, keyName, false);
-            decisions.put(keyName, decision);
+            NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, keyName);
+            statuses.put(keyName, status);
             requiresNativeReachability |= !IrisStructureLocator.isPlaced(engine, keyName)
-                    && decision.generate();
+                    && status == NativeStructureGenerationStatus.GENERATE_NATIVE;
         }
         Set<String> reachable = Set.of();
         if (requiresNativeReachability) {
@@ -199,7 +198,7 @@ public class CommandStructure implements DirectorExecutor {
         int searchLimited = 0;
         int errors = 0;
         for (String keyName : structureKeys) {
-            IrisNativeStructureDecision decision = decisions.get(keyName);
+            NativeStructureGenerationStatus status = statuses.get(keyName);
             if (IrisStructureLocator.isPlaced(engine, keyName)) {
                 try {
                     IrisStructureLocator.LocateResult result =
@@ -225,7 +224,7 @@ public class CommandStructure implements DirectorExecutor {
                 }
                 continue;
             }
-            if (!decision.generate()) {
+            if (status != NativeStructureGenerationStatus.GENERATE_NATIVE) {
                 disabled++;
                 messages.add(C.GRAY + "[disabled] " + C.WHITE + keyName);
                 continue;

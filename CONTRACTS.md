@@ -28,7 +28,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`), `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
-| Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
+| Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
 | Pack-scoped resolution | `ResourceId`, `ResourceKey<T>`, `PackResources` (`find`, `ids`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
@@ -233,6 +233,10 @@ running Iris is the pack publisher's responsibility.
   structure, let a start take the chunk from a platform start only when it says so or the structure is `REPLACE`d,
   apply its jigsaw overrides, keep its memo, record its identity with every start the host publishes, and ask again (same
   answer) when locating or verifying a start found in the world.
+- Send the platform's locate of a structure some provider lists in `startedStructures` to that provider's
+  `locateStart` (module id order, the first that lists it in `locatableStarts`), convert the start's Y to the platform's,
+  check the start the platform made there before reporting it, and search again refusing that chunk when the check fails.
+  Route the host's own structure commands by `startedStructures` the same way.
 - Ask `setup` per dimension before its worlds build their structure state and when installing data packs; multiply
   frequencies per structure set (0.01 to 16), protect the platform's definitions in every installed data pack once
   any dimension of any loaded pack asks for it.

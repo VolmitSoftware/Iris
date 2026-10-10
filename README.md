@@ -329,14 +329,14 @@ final class RuinsObjects implements ObjectsAt {
 | Service | Providers | What the host asks |
 | --- | --- | --- |
 | `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it, and the biomes and regions of the layout that place a given object (`PlacedBy`), so the host can narrow an object search to the areas it can appear in. |
-| `StructureLocator` | `FIRST` | Every structure key the module knows (the structure index), the ones a world places (commands complete them), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Keys match without regard to case. |
+| `StructureLocator` | `FIRST` | Every structure key the module knows (the structure index), the ones a world places and can locate (commands complete them), every key under which it finds what a world places (`placed`: its own structures and the platform structures it starts or stands in for), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Keys match without regard to case. |
 | `SaplingGrowth` | `ALL` | The tree a growing sapling becomes, as a `Growth` of placed blocks (the first module with one wins; none leaves the growth to the platform), and the objects the module places as trees (`TreeObjects`). The host passes `Surroundings` to read the world around the sapling and places the blocks itself. |
 | `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, and the `ItemDrop`s one table gives there. The host puts them together, tells listeners, creates the stacks and shuffles the container. |
 | `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
 | `EntitySpawns` | `ALL` | A `Plan` of entities to spawn in a chunk or at a marker, each `Attempt` an `EntitySpec` with the block, light range and surface it needs; how many appeared (`spawned`); what a marker means (`MarkerRule`); one entity of the pack on request. The host checks light, surface and free space, spawns, and applies the spec. |
 | `CaveBiomes` | `ONE` | The pack biome a module puts at a position whatever the regions say (a band of the deep dark), and how far below the surface a biome's caves begin. The host places the cave biome of a position itself and asks this where a module overrides it. |
 | `AmbientEffects` | `ALL` | The effects due for a player standing at a position: a `Sound`, `Particles`, `Command`s and a `Potion` per `Effect`, every random choice already made (offsets, scatter, duration). The host asks now and then, carries out the parts the platform has, and keeps a stronger potion effect the player already has. |
-| `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, and fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over (see Vanilla structures). |
+| `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over, and finding the starts a module makes of them (see Vanilla structures). |
 | `VanillaFeatures` | `ALL` | Whether the platform runs its own placed features (ores, trees, plants, springs) over a world's terrain, and which decoration steps (`DecorationStep`) and features it skips there. Off unless a module turns it on; any module may refuse a step or a feature. Asked once per world, step and feature. |
 
 ```
@@ -605,6 +605,11 @@ Every method has a default that changes nothing, so a provider implements only w
 - `setup(context)`: before any world of the dimension exists, how often each structure set starts (`withFrequency`,
   multipliers of several modules multiply) and whether the data packs the host installs must leave the platform's own
   structure definitions alone (`protectingVanillaDefinitions`, for every pack once any dimension asks for it).
+- `startedStructures(world)`, `locatableStarts(world)` and `locateStart(world, structure, fromX, fromZ, maxRings,
+  accepts)`: the platform structures the module starts itself, the ones of them it can find, and the nearest start of one,
+  searched ring by ring through the module's own placement grids. The host sends the platform's `/locate` and its own
+  structure commands for those structures here, then checks the start it got in the world; `accepts` lets it skip chunks
+  it already refused.
 
 ```java
 @Override

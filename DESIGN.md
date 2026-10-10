@@ -1020,7 +1020,8 @@ from a sapling, which drops a block has. A module answers such questions through
   state) and every random value they carry, the host only plays them.
 - **Services now.** `ObjectsAt` (`ALL`): pack object keys a module would place in a chunk, predicted without
   generating it, and the biomes and regions whose settings place a given object (`PlacedBy`, named by pack keys; the
-  host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
+  host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places (`locatable`; `placed` adds the
+  platform structures the module starts or stands in for, and keys it places but cannot search for), and the
   nearest start of one as a `LocateResult` (`Found`, `NotFound`, `SearchLimitReached`; a sealed interface, so callers
   switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
   `CaveBiomes` (`ONE`): the pack biome a module puts at a position whatever the regions say (a band of the deep dark,

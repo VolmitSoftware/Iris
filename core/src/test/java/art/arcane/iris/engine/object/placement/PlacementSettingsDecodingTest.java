@@ -19,6 +19,9 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.blocks.ObjectReplace;
+import art.arcane.iris.builtin.loot.ObjectLoot;
+import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
+import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.stilt.StiltSettings;
@@ -90,6 +93,14 @@ public class PlacementSettingsDecodingTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    private static final String LOOT_AND_MARKERS = """
+            {"place": ["huts/camp"], "overrideGlobalLoot": true,
+             "loot": [{"name": "camp/chest", "weight": 3, "exact": true, "filter": [{"block": "chest", "data": {"facing": "north"}}]},
+                      {"name": "camp/barrel"}],
+             "vanillaLoot": [{"name": "chests/simple_dungeon", "weight": 2, "filter": [{"block": "minecraft:barrel"}]}],
+             "markers": [{"marker": "camp", "maximumMarkers": 4, "exact": true, "mark": [{"block": "campfire", "data": {"lit": true}}]}]}
+            """;
 
     private Gson gson;
 
@@ -234,5 +245,36 @@ public class PlacementSettingsDecodingTest {
         assertTrue(defaults.enabled());
         assertEquals(90, defaults.interval(), 0);
         assertFalse(placement("{}").getRotation().getXAxis().enabled());
+    }
+
+    @Test
+    public void lootAndMarkersReadTheFieldsTheyAlwaysHad() {
+        IrisObjectPlacement placement = placement(LOOT_AND_MARKERS);
+
+        assertTrue(placement.isOverrideGlobalLoot());
+        ObjectLoot chest = placement.getLoot().get(0);
+        assertEquals("camp/chest", chest.name());
+        assertEquals(3, chest.weight());
+        assertTrue(chest.exact());
+        assertEquals("chest", chest.filter().getFirst().block());
+        assertEquals("north", chest.filter().getFirst().data().get("facing"));
+        ObjectLoot barrel = placement.getLoot().get(1);
+        assertEquals(1, barrel.weight());
+        assertFalse(barrel.exact());
+        assertTrue(barrel.filter().isEmpty());
+
+        ObjectVanillaLoot dungeon = placement.getVanillaLoot().getFirst();
+        assertEquals("chests/simple_dungeon", dungeon.name());
+        assertEquals(2, dungeon.weight());
+        assertEquals("minecraft:barrel", dungeon.filter().getFirst().block());
+
+        PlacementMarker marker = placement.getMarkers().getFirst();
+        assertEquals("camp", marker.marker());
+        assertEquals(4, marker.maximumMarkers());
+        assertTrue(marker.exact());
+        assertEquals("true", marker.mark().getFirst().data().get("lit"));
+
+        assertTrue(placement("{}").getLoot().isEmpty());
+        assertEquals(8, new PlacementMarker().maximumMarkers());
     }
 }

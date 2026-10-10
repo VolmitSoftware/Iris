@@ -39,13 +39,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -164,6 +168,33 @@ public class EngineCaveBiomeTest {
         ModuleResourceFixture.serveModules(data);
 
         assertSame(cave, engine.getCaveBiome(10, SURFACE_Y - 1, 20));
+    }
+
+    @Test
+    public void theWorldAsksTheProviderForABiomesDepthOnceAndLoadsAnOverridingBiomeOnce() {
+        AtomicInteger depthQuestions = new AtomicInteger();
+        CaveBiomes counting = caves(null, 10);
+        serve(new CaveBiomes() {
+            @Override
+            public Optional<String> overriddenBiome(PackWorld world, int x, int y, int z) {
+                return y > SURFACE_Y ? Optional.of("band/deep") : Optional.empty();
+            }
+
+            @Override
+            public int minDepthBelowSurface(PackWorld world, String biomeKey) {
+                depthQuestions.incrementAndGet();
+                return counting.minDepthBelowSurface(world, biomeKey);
+            }
+        });
+
+        for (int y = 0; y < SURFACE_Y; y++) {
+            engine.getCaveBiome(10, y, 20);
+        }
+        assertSame(band, engine.getCaveBiome(10, SURFACE_Y + 5, 20));
+        assertSame(band, engine.getCaveBiome(10, SURFACE_Y + 6, 20));
+
+        assertEquals(1, depthQuestions.get());
+        verify(data.getBiomeLoader(), times(1)).load("band/deep");
     }
 
     @Test

@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.object.prefab;
 
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

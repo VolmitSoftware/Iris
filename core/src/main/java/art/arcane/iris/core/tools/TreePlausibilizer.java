@@ -21,8 +21,8 @@ package art.arcane.iris.core.tools;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.VectorMap;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.data.VectorMap;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.ArrayDeque;

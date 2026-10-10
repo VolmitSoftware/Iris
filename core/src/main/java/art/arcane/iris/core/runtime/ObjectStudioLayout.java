@@ -23,7 +23,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 
 import java.io.File;
 import java.nio.file.Files;

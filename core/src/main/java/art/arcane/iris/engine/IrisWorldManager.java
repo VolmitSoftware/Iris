@@ -20,7 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedWorldManager;
 import art.arcane.iris.spi.IrisLogging;
@@ -217,7 +217,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         int cX = e.getX(), cZ = e.getZ();
-        Long key = Cache.key(cX, cZ);
+        Long key = CacheKey.key(cX, cZ);
         long delay = Math.max(IrisSettings.get().getPerformance().mantleCleanupDelay * 50L, 0);
         final Future<?>[] self = new Future<?>[1];
         Runnable forget = () -> cleanup.remove(key, self[0]);
@@ -242,7 +242,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onChunkUnload(Chunk e) {
-        final var future = cleanup.remove(Cache.key(e.getX(), e.getZ()));
+        final var future = cleanup.remove(CacheKey.key(e.getX(), e.getZ()));
         if (future != null) {
             future.cancel(false);
         }

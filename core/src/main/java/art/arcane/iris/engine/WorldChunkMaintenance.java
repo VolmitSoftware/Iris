@@ -19,7 +19,7 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.core.IrisSettings;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
@@ -129,7 +129,7 @@ final class WorldChunkMaintenance {
             return;
         }
 
-        long key = Cache.key(chunkX, chunkZ);
+        long key = CacheKey.key(chunkX, chunkZ);
         if (!discoveredFlagQueue.add(key)) {
             return;
         }
@@ -242,7 +242,7 @@ final class WorldChunkMaintenance {
     }
 
     private void scheduleChunkUpdate(World world, int chunkX, int chunkZ) {
-        long key = Cache.key(chunkX, chunkZ);
+        long key = CacheKey.key(chunkX, chunkZ);
         if (!chunkUpdateQueue.add(key)) {
             return;
         }
@@ -317,7 +317,7 @@ final class WorldChunkMaintenance {
             return;
         }
 
-        long key = Cache.key(chunkX, chunkZ);
+        long key = CacheKey.key(chunkX, chunkZ);
         if (!markerFlagQueue.add(key)) {
             return;
         }
@@ -350,7 +350,7 @@ final class WorldChunkMaintenance {
     }
 
     void warmupMantleChunkAsync(int chunkX, int chunkZ) {
-        long key = Cache.key(chunkX, chunkZ);
+        long key = CacheKey.key(chunkX, chunkZ);
         if (!mantleWarmupQueue.add(key)) {
             return;
         }

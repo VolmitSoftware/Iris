@@ -13,7 +13,7 @@ import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import org.junit.Test;
 
 import java.util.ArrayList;

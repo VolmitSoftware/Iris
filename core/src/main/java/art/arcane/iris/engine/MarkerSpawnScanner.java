@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine;
 
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.spi.IrisLogging;
@@ -120,7 +120,7 @@ final class MarkerSpawnScanner {
         int chunkX = c.getX();
         int chunkZ = c.getZ();
         World world = c.getWorld();
-        long key = Cache.key(chunkX, chunkZ);
+        long key = CacheKey.key(chunkX, chunkZ);
         if (!markerScanQueue.add(key)) {
             return;
         }

@@ -24,7 +24,7 @@ import art.arcane.iris.core.modules.GenerationLayers;
 import art.arcane.iris.core.modules.ModuleMantleComponent;
 import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.core.tools.WorldMaintenance;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.mantle.MantleComponent;

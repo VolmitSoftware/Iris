@@ -21,7 +21,7 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.commands.CommandIris;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.util.common.director.DirectorContext;
 import art.arcane.iris.util.common.director.DirectorContextHandler;
 import art.arcane.iris.util.common.director.DirectorSystem;

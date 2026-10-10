@@ -9,7 +9,7 @@ import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
 import art.arcane.iris.engine.framework.structure.StructureResourceBundleGraphCompiler;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

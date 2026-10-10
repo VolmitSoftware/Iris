@@ -25,7 +25,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;

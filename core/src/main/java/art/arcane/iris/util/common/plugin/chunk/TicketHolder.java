@@ -1,7 +1,7 @@
 package art.arcane.iris.util.common.plugin.chunk;
 
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.NonNull;
 import org.bukkit.Chunk;
@@ -21,7 +21,7 @@ public class TicketHolder {
     }
 
     public void addTicket(int x, int z) {
-        tickets.compute(Cache.key(x, z), ($, ref) -> {
+        tickets.compute(CacheKey.key(x, z), ($, ref) -> {
             if (ref == null) {
                 world.addPluginChunkTicket(x, z, BukkitPlatform.plugin());
                 return 1L;
@@ -36,7 +36,7 @@ public class TicketHolder {
     }
 
     public boolean removeTicket(int x, int z) {
-        return tickets.compute(Cache.key(x, z), ($, ref) -> {
+        return tickets.compute(CacheKey.key(x, z), ($, ref) -> {
             if (ref == null) return null;
             if (--ref <= 0) {
                 world.removePluginChunkTicket(x, z, BukkitPlatform.plugin());
@@ -48,8 +48,8 @@ public class TicketHolder {
 
     public void releaseAll() {
         tickets.forEach((key, refs) -> {
-            int x = Cache.keyX(key);
-            int z = Cache.keyZ(key);
+            int x = CacheKey.keyX(key);
+            int z = CacheKey.keyZ(key);
             try {
                 world.removePluginChunkTicket(x, z, BukkitPlatform.plugin());
             } catch (Throwable ignored) {

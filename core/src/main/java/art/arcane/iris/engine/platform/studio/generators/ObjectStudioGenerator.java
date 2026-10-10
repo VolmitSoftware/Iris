@@ -34,11 +34,11 @@ import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.VectorMap;
-import art.arcane.iris.util.common.math.Vector3i;
+import art.arcane.volmlib.util.data.VectorMap;
+import art.arcane.volmlib.util.math.Vector3i;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.iris.util.project.context.IrisContext;
 
 import java.io.File;

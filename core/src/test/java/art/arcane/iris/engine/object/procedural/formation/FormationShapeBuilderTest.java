@@ -4,7 +4,7 @@ import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.engine.object.procedural.formation.FormationCanvas;
 import art.arcane.iris.engine.object.procedural.formation.FormationShapeBuilder;
-import art.arcane.iris.util.common.math.Vector3i;
+import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 

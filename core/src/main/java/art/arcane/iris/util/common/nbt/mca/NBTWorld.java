@@ -22,7 +22,7 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.core.nms.INMS;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.nbt.mca.MCAWorldStoreSupport;
 import art.arcane.volmlib.util.nbt.mca.MCAWorldRuntimeSupport;
@@ -64,7 +64,7 @@ public class NBTWorld {
 
     public NBTWorld(File worldFolder) {
         this.regionStore = new MCAWorldStoreSupport<>(new MCAWorldStoreSupport.Config<>(
-                NBTWorldSupport.keyCodec(Cache::key, Cache::keyX, Cache::keyZ),
+                NBTWorldSupport.keyCodec(CacheKey::key, CacheKey::keyX, CacheKey::keyZ),
                 new MCAWorldStoreSupport.GridLock() {
                     @Override
                     public <T> T withResult(int x, int z, java.util.function.Supplier<T> supplier) {

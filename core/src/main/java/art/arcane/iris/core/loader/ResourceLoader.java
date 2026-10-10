@@ -25,7 +25,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.project.SchemaBuilder;
 import art.arcane.iris.engine.framework.PreservationRegistry;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.MeteredCache;
 import art.arcane.volmlib.util.collection.KList;

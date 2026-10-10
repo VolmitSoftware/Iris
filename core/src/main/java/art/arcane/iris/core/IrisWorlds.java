@@ -4,7 +4,7 @@ import art.arcane.iris.core.lifecycle.MissingWorldStorageLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.PackDownloader;
 import art.arcane.iris.core.service.StudioSVC;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;

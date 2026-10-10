@@ -20,7 +20,7 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.InferredType;

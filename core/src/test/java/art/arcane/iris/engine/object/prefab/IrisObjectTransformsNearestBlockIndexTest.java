@@ -3,8 +3,8 @@ package art.arcane.iris.engine.object.prefab;
 import art.arcane.iris.engine.object.prefab.IrisObjectTransforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.common.data.VectorMap;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.data.VectorMap;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import org.junit.Test;
 
 import java.util.ArrayList;

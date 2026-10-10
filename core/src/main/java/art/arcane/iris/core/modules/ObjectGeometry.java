@@ -21,7 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;

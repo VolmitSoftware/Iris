@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.platform.studio.generators;
 
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
@@ -80,7 +80,7 @@ public class BiomeBuffetGenerator extends EnginedStudioGenerator {
     }
 
     private IrisBiome biomeAt(int x, int z) {
-        int id = Cache.to1D(x / biomeSize, 0, z / biomeSize, width, 1);
+        int id = CacheKey.to1D(x / biomeSize, 0, z / biomeSize, width, 1);
         return id < 0 || id >= biomes.length ? null : biomes[id];
     }
 }

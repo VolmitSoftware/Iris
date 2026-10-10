@@ -6,7 +6,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
 import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

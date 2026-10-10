@@ -21,7 +21,7 @@ package art.arcane.iris.modded.service;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.link.Identifier;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
@@ -276,7 +276,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         if (active == null) {
             return;
         }
-        long key = Cache.key(chunkX, chunkZ);
+        long key = CacheKey.key(chunkX, chunkZ);
         if (!warmupQueue.add(key)) {
             return;
         }

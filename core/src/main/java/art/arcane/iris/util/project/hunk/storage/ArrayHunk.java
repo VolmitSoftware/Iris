@@ -18,7 +18,7 @@
 
 package art.arcane.iris.util.project.hunk.storage;
 
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.util.project.hunk.Hunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -48,7 +48,7 @@ public class ArrayHunk<T> extends StorageHunk<T> implements Hunk<T> {
     }
 
     private int index(int x, int y, int z) {
-        return Cache.to1D(x, y, z, getWidth(), getHeight());
+        return CacheKey.to1D(x, y, z, getWidth(), getHeight());
     }
 
     @Override

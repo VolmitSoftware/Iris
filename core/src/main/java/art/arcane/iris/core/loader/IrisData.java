@@ -35,7 +35,7 @@ import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.ObjectPlacementSettingsReader;
 import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.core.structure.authoring.StructureRecoveryResult;
 import art.arcane.iris.core.structure.authoring.StructureTransactionWriter;

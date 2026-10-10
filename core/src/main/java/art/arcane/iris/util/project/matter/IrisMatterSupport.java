@@ -31,7 +31,7 @@ import art.arcane.iris.util.project.matter.slices.TreeBlockMaterialMatter;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.block.data.BlockData;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 
 import java.io.File;
 

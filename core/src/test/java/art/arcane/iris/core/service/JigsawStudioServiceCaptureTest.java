@@ -39,7 +39,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.common.math.IrisBlockVector;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.iris.util.common.plugin.VolmitPlugin;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;

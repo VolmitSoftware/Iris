@@ -1,7 +1,7 @@
 package art.arcane.iris.util.common.data.registry;
 
 import art.arcane.iris.core.nms.container.Pair;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.NonNull;

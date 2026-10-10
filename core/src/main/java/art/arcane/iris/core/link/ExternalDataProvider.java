@@ -4,7 +4,7 @@ import art.arcane.iris.core.link.data.DataType;
 import art.arcane.iris.core.nms.container.BiomeColor;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.nms.container.Pair;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.common.data.IrisCustomData;
@@ -133,7 +133,7 @@ public abstract class ExternalDataProvider {
         float yaw = 0;
         BlockFace face = BlockFace.NORTH;
 
-        long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
+        long seed = engine.getSeedManager().getSeed() + CacheKey.key(block.getX(), block.getZ()) + block.getY();
         RNG rng = new RNG(seed);
         if ("true".equals(state.get("randomYaw"))) {
             yaw = rng.f(0, 360);

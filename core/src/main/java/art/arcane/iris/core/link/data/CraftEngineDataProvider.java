@@ -6,7 +6,7 @@ import art.arcane.iris.core.link.ExternalDataProvider;
 import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.service.ExternalDataSVC;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.volmlib.util.collection.KMap;
@@ -137,7 +137,7 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
 
     private static Location parseYawAndPitch(@NotNull Engine engine, @NotNull Block block, @NotNull Map<String, String> state) {
         Location location = block.getLocation();
-        long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
+        long seed = engine.getSeedManager().getSeed() + CacheKey.key(block.getX(), block.getZ()) + block.getY();
         RNG rng = new RNG(seed);
 
         if ("true".equals(state.get("randomYaw"))) {

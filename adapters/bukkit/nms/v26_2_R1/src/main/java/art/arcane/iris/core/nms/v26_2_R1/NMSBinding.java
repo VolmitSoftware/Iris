@@ -15,7 +15,7 @@ import art.arcane.iris.core.nms.container.BiomeColor;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.nms.datapack.DataVersion;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;

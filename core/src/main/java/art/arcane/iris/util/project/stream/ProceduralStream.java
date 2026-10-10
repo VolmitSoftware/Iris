@@ -19,7 +19,7 @@
 package art.arcane.iris.util.project.stream;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.Cache;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
@@ -590,7 +590,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
 
         for (int i = 0; i < 16; i++) {
             for (int j = 0; j < 16; j++) {
-                c[Cache.to1D(i, j, 0, 16, 16)] = get(i + xs, j + zs);
+                c[CacheKey.to1D(i, j, 0, 16, 16)] = get(i + xs, j + zs);
             }
         }
     }

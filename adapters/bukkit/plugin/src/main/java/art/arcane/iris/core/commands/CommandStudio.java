@@ -872,7 +872,7 @@ public class CommandStudio implements DirectorExecutor {
                     }
 
                     File ff = g.getData().getObjectLoader().findFile(i);
-                    art.arcane.iris.util.common.math.IrisBlockVector sz = IrisObject.sampleSize(ff);
+                    art.arcane.volmlib.util.math.IrisBlockVector sz = IrisObject.sampleSize(ff);
                     nn3 = i + ": size=[" + sz.getBlockX() + "," + sz.getBlockY() + "," + sz.getBlockZ() + "] location=[" + ff.getPath() + "]";
                     stop.add(i);
                 } catch (Throwable e) {

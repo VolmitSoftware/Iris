@@ -1,7 +1,7 @@
 package art.arcane.iris.core.link;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.engine.data.cache.AtomicCache;
+import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.data.Cuboid;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import org.bukkit.Bukkit;

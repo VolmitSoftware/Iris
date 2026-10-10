@@ -1,5 +1,6 @@
 package com.volmit.vanilla;
 
+import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
@@ -13,11 +14,16 @@ import java.util.function.Supplier;
 /** The starts the platform places in one chunk while it decorates it, and the chunk's blocks, for modules that fit
  * those starts into the terrain ({@link com.volmit.service.VanillaStructures#beforePieces},
  * {@link com.volmit.service.VanillaStructures#afterPieces}). Heights are above the dimension's bottom (0 = bottom) unless
- * a method says otherwise. One fit is handed to every provider for the chunk; it is valid only while they run, on one
- * thread.
+ * a method says otherwise. Each provider gets its own fit of the chunk, over the same blocks and scoped to its module, which
+ * is valid only while the providers run, on one thread.
  */
 public interface StructureFit {
     PackWorld world();
+
+    /** The log of the module this fit was handed to; the same as {@code world().log()}, which a host overrides where a fit has no world. */
+    default ModuleLog log() {
+        return world().log();
+    }
 
     /** The seed of the platform's world, which the platform's own structure randomness derives from. */
     long seed();

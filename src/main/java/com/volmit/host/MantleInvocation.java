@@ -62,7 +62,7 @@ final class MantleInvocation implements MantleStageContext {
 
     @Override
     public PackWorld world() {
-        return inputs.world();
+        return stages.world(inputs.world());
     }
 
     @Override

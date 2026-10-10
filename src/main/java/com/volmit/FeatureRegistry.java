@@ -15,6 +15,11 @@ import com.volmit.validation.Validator;
  * registers are its module id or start with it and {@code /}, such as {@code iris:snow} or {@code iris:snow/depth}.
  */
 public interface FeatureRegistry {
+    /** The registering module's own log. A module that wants to log from its hooks keeps the one it gets here; a call
+     * outside {@link IrisModule#register} throws IllegalStateException.
+     */
+    ModuleLog log();
+
     /** Registers a layer before pack loading. Null arguments throw NullPointerException;
      * duplicate IDs and negative codec versions throw IllegalArgumentException.
      * Only the owner registers a shared layer; consumers refer to its key. The host must

@@ -225,7 +225,8 @@ final class GraphResolver {
                             .toArray(Stage<?>[]::new),
                     readable[index].stream().toArray(),
                     settingsSlot(declaration, settingsTypes),
-                    StageStreams.idHash(declaration.stage().id()));
+                    StageStreams.idHash(declaration.stage().id()),
+                    declaration.log());
             stages.add(new ResolvedStage(declaration.stage(), declaration.module(), declaration.settings(),
                     incomingEdges(node, position), absentSoftTargets.get(node), declaration.reach()));
         }

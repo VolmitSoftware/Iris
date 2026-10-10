@@ -4,6 +4,7 @@ import com.volmit.IrisFeature;
 import com.volmit.random.WorldRandom;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
+import com.volmit.world.PackWorld;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -25,6 +26,7 @@ final class StageInvocation {
     private final Object[] outputs;
     private final long invocationSeed;
     private final WorldRandom[] streams;
+    private final PackWorld[] scopedWorlds;
     private int current = NO_STAGE;
 
     StageInvocation(ResolvedGraph graph, long invocationSeed, ConfiguredSettings settings) {
@@ -35,6 +37,7 @@ final class StageInvocation {
         Arrays.fill(outputs, PENDING);
         this.invocationSeed = invocationSeed;
         streams = new WorldRandom[graph.size()];
+        scopedWorlds = new PackWorld[graph.size()];
     }
 
     boolean isActive(int position) {
@@ -105,6 +108,17 @@ final class StageInvocation {
             streams[current] = StageStreams.stream(invocationSeed, graph.executable(current).idHash());
         }
         return streams[current];
+    }
+
+    /** {@code world} as the running stage's module sees it, whose log is the module's own. Between stages it is {@code world}. */
+    PackWorld world(PackWorld world) {
+        if (current == NO_STAGE) {
+            return world;
+        }
+        if (scopedWorlds[current] == null) {
+            scopedWorlds[current] = world.withLog(graph.executable(current).log());
+        }
+        return scopedWorlds[current];
     }
 
     private ExecutableStage currentStage() {

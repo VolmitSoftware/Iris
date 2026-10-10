@@ -6,6 +6,7 @@ art/arcane/iris/engine/mantle/components/**
 art/arcane/iris/engine/object/**
 art/arcane/iris/engine/image/**
 art/arcane/iris/engine/framework/structure/**
+art/arcane/iris/engine/framework/vanillafeatures/**
 art/arcane/iris/engine/framework/StructureAssembler.java
 art/arcane/iris/engine/framework/IrisStructureLocator.java
 art/arcane/iris/engine/framework/StructureCaveAnchorResolver.java

@@ -18,3 +18,5 @@ module art.arcane.iris.engine.modifier.PostModule
 include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
 module art.arcane.iris.engine.modifier.PerfectionModule
 module art.arcane.iris.engine.modifier.MatterModule
+module art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule
+include art/arcane/iris/engine/framework/vanillafeatures/**

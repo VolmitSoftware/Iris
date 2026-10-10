@@ -41,7 +41,11 @@ which ones its placements replace or the dimension's `importedStructures` disabl
 placements make, the shift and band of the platform's starts, and the whole terrain fit of every start (SOURCE,
 PRESERVE, VACUUM, ENCASE, BORE, FORCE_CARVE, stilts) in `engine/framework/structure/fit`, written against IrisApi's
 `StructureFit` and `BlockAccess` only. A start carries its fit as a memo (its terrain and stilts JSON), so every
-chunk it reaches and every restart fits it the same way. Object place modes are data (`PlaceMode`: height sampling,
+chunk it reaches and every restart fits it the same way. `iris:vanilla-features` (`VanillaFeaturesModule`, no stages)
+reads the dimension's `importedFeatures` (`ImportedFeaturesSettings`) and provides `VanillaFeatures` (`ImportedFeatures`):
+whether the platform's own placed features run over the terrain and which decoration steps and features they leave out;
+the family patterns of `disabled` and of `importedStructures` share one rule (`art.arcane.iris.builtin.RegistryKeyFamily`).
+Object place modes are data (`PlaceMode`: height sampling,
 stilt, `VacuumProfile`, `PlaceTrait`s) that the placement stages ask; the pack JSON keeps the mode names.
 `iris:objects` also provides `SaplingGrowth` (`TreeGrowing`: the tree a sapling grows into, as placed blocks, and which
 objects are trees) and says which biomes and regions place an object (`ObjectLocating`, for the object search).
@@ -137,7 +141,7 @@ naming the class and what it uses. A VolmLib class that Iris's Bukkit jar strips
 `core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on that classpath but missing on a
 server, so the check treats it as missing and fails the task naming it. `check` runs the task.
 
-The jar holds `iris:post`, `iris:perfection` and `iris:matter`. They are written against IrisApi and
+The jar holds `iris:post`, `iris:perfection`, `iris:matter` and `iris:vanilla-features`. They are written against IrisApi and
 `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and `canPlaceOn`, the terrain
 sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks.
 Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting

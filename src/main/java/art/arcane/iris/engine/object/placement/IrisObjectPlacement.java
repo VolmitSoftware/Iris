@@ -46,7 +46,7 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
-import art.arcane.iris.engine.data.cache.LazyBoundedCache;
+import art.arcane.volmlib.util.cache.LazyBoundedCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.annotations.ArrayType;

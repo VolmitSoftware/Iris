@@ -43,7 +43,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.data.cache.AtomicCache;
-import art.arcane.iris.engine.data.cache.LazyBoundedCache;
+import art.arcane.volmlib.util.cache.LazyBoundedCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.DependsOn;

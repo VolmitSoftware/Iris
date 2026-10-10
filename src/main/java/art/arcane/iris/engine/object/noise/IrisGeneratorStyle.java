@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object.noise;
 import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.data.cache.LazyBoundedCache;
+import art.arcane.volmlib.util.cache.LazyBoundedCache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;

@@ -89,6 +89,14 @@ public final class FeatureCatalog {
                 .toList();
     }
 
+    /** Every provider of {@code service} with the module that registered it, in the order of {@link #services}, so the host
+     * can name the module whose provider failed.
+     */
+    public List<ServiceRegistration> registrations(Class<?> service) {
+        requireService(service);
+        return services.stream().filter(registration -> registration.service() == service).toList();
+    }
+
     /** The one provider of {@code service}, a service whose providers are {@link Providers#ONE}, if a module provides it. */
     public <S> Optional<S> service(Class<S> service) {
         if (requireService(service).value() != Providers.ONE) {

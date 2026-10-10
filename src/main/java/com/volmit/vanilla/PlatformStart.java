@@ -26,6 +26,9 @@ public interface PlatformStart {
      */
     boolean aligned();
 
+    /** The world height of the dimension's bottom, for rules written in world heights, such as a band of world Y. */
+    int bottomY();
+
     /** The height of the terrain's surface at a column, above the dimension's bottom: the highest block of the terrain
      * the host generated there, fluids ignored.
      */

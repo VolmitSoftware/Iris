@@ -34,7 +34,9 @@ public interface BlockAccess {
      * {@link BlockTrait#SOLID} for what the platform counts as solid, {@link BlockTrait#FLUID} for a state holding any
      * fluid (a source, a flowing fluid, a waterlogged block), {@link BlockTrait#LOG} for logs, wood, stems and hyphae and
      * {@link BlockTrait#LEAVES} for leaves, by the platform's tags or names. These can differ in corner cases from
-     * {@link com.volmit.block.BlockRegistry#hasTrait}, which describes blocks the way generation picks them.
+     * {@link com.volmit.block.BlockRegistry#hasTrait}, which describes blocks the way generation picks them. Other
+     * traits are not answered: the platform's world has no native question for them, so asking throws
+     * {@link UnsupportedOperationException}.
      */
     boolean is(BlockState state, BlockTrait trait);
 

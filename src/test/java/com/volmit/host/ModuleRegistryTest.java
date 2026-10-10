@@ -436,6 +436,9 @@ class ModuleRegistryTest {
         registerAs(registry, "test:alpha", services -> services.registerService(VanillaStructures.class, first));
 
         assertEquals(List.of(first, other), registry.freeze().services(VanillaStructures.class));
+        var registrations = registry.freeze().registrations(VanillaStructures.class);
+        assertEquals(List.of(first, other), registrations.stream().map(ServiceRegistration::provider).toList());
+        assertEquals("test:alpha", registrations.getFirst().module().info().id().toString());
     }
 
     private static MantleCodec<String> codec(int version) {

@@ -133,7 +133,9 @@ for further classes. The classes come from Iris core's compiled output, which th
 Before the jar lands in `build/libs`, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it,
 with the packages Iris exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's
 `com.google.gson`, all three on the check's classpath); a listed class that uses Iris internals fails the task
-naming the class and what it uses. `check` runs the task.
+naming the class and what it uses. A VolmLib class that Iris's Bukkit jar strips (the list is Iris's
+`core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on that classpath but missing on a
+server, so the check treats it as missing and fails the task naming it. `check` runs the task.
 
 The jar holds `iris:post`, `iris:perfection` and `iris:matter`. They are written against IrisApi and
 `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and `canPlaceOn`, the terrain

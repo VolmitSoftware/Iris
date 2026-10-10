@@ -70,6 +70,8 @@ val builtinModuleEntryFile = "com.volmit.IrisModule"
  */
 val exposedHostPackages = listOf("art.arcane.iris.builtin", "art.arcane.volmlib", "com.google.gson")
 val irisClasses = irisRoot.resolve("core/build/classes/java/main")
+/** The VolmLib classes Iris's Bukkit jar strips; Iris's shadowJar reads the same file. A module may not use them. */
+val volmLibLeftOutFile = irisRoot.resolve("core/volmlib-left-out-of-bukkit-jar.txt")
 val builtinModulesBuild = layout.buildDirectory.dir("builtin-modules")
 val checkedJarsDirectory = layout.buildDirectory.dir("libs")
 
@@ -131,7 +133,10 @@ val checkBuiltinModulesJar = tasks.register<JavaExec>("checkBuiltinModulesJar") 
     classpath = irisApiForChecks + files(irisClasses)
     mainClass.set("com.volmit.host.ModuleJarCheck")
     javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
-    argumentProviders.add(CommandLineArgumentProvider { listOf(packaged.get().asFile.absolutePath) + exposedHostPackages })
+    inputs.file(volmLibLeftOutFile)
+    argumentProviders.add(CommandLineArgumentProvider {
+        listOf(packaged.get().asFile.absolutePath, "--left-out=${volmLibLeftOutFile.absolutePath}") + exposedHostPackages
+    })
     isIgnoreExitValue = true
     val problems = ByteArrayOutputStream()
     errorOutput = problems

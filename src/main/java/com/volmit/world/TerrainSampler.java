@@ -1,6 +1,8 @@
 package com.volmit.world;
 
 import com.volmit.mantle.BlockBox;
+import com.volmit.resource.ResourceId;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /** Read-only host sampling for the same pack snapshot as the invocation.
@@ -19,6 +21,14 @@ public interface TerrainSampler {
         return column(worldX, worldZ).surfaceY();
     }
     BiomeSample biome(int worldX, int y, int worldZ);
+
+    /** The {@link BiomeSample#caveBiome()} alone, for a module that asks it block by block and needs neither the region
+     * nor the surface biome: the host may answer it without working out the rest of {@link #biome}. Outside the bounds it
+     * throws like {@link #biome}.
+     */
+    default Optional<ResourceId> caveBiome(int worldX, int y, int worldZ) {
+        return biome(worldX, y, worldZ).caveBiome();
+    }
 
     /** The height up to which the host fills the world with fluid wherever the terrain lies lower, the sea level of the
      * dimension: a column's {@link TerrainSample#fluidY()} is this height when its surface is below it.

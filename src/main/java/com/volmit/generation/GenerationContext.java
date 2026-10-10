@@ -13,6 +13,9 @@ public interface GenerationContext extends InvocationContext {
     int originX();
     int originZ();
 
+    /** The terrain of the chunk and of the 16 blocks around it on every side, at full height: a chunk stage writes only
+     * its own chunk, but may look at its neighbors' terrain, such as their heights.
+     */
     TerrainSampler terrain();
     FeatureSettings settings();
 

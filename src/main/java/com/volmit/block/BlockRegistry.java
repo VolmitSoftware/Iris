@@ -38,4 +38,9 @@ public interface BlockRegistry {
     boolean inTag(BlockState state, ResourceId tag);
     /** Whether state can attach to the specified face of support, ignoring other neighbors. */
     boolean canAttach(BlockState state, BlockState support, BlockFace face);
+
+    /** Whether {@code state} can stand on {@code below}: the support rule the host checks before it writes a
+     * decoration, such as a flower on grass but not on stone. Only the kinds of block count, not their properties.
+     */
+    boolean canPlaceOn(BlockState state, BlockState below);
 }

@@ -156,6 +156,47 @@ class ChunkPipelineTest {
     }
 
     @Test
+    void chunkStagesCopyTheBlocksPlacementsPlannedButCannotPlanAny() {
+        var mantle = new MemoryMantle();
+        var stone = new BlockState("minecraft:stone");
+        mantle.plan(3, 2, 5, stone);
+        mantle.plan(4, 2, 5, AIR);
+        var chunkArea = new BlockBox(0, BOTTOM, 0, CHUNK, TOP, CHUNK);
+        var copy = Stage.chunk("test:copy/insert");
+        IrisModule module = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:copy", "Copy", "1"); }
+            public void install(StageGraph graph) {
+                graph.define(copy).run(context -> {
+                    var blocks = context.hunk(BlockState.class);
+                    context.mantle().blocks().visit(chunkArea, (x, y, z, block) -> blocks.set(x, y, z, block));
+                });
+            }
+        };
+        var builder = new StageGraphBuilder();
+        builder.install(DiscoveredModule.builtIn(module));
+        var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, GRASS);
+
+        new ChunkRunner(builder.resolve(Pipeline.CHUNK)).generate(
+                TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED);
+
+        assertEquals(stone, blocks.get(3, 2, 5));
+        assertEquals(AIR, blocks.get(4, 2, 5), "air a placement planned replaces what the chunk had");
+        assertEquals(GRASS, blocks.get(5, 2, 5));
+        assertThrows(UnsupportedOperationException.class, () -> mantle.within(chunkArea).blocks().set(0, 0, 0, stone));
+    }
+
+    @Test
+    void theRunnerReportsHowLongEachStageThatRanTook() {
+        var timed = new ArrayList<String>();
+        var blocks = new ArrayHunk<>(BlockState.class, SIZE, HEIGHT, SIZE, AIR);
+
+        runner().generate(TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, null), TestContexts.SEED,
+                (stage, nanos) -> timed.add(stage.stage().id() + (nanos >= 0 ? "" : " ran backwards")));
+
+        assertEquals(List.of("iris:terrain/surface"), timed, "grass has no settings here, so it does not run and is not reported");
+    }
+
+    @Test
     void chunkStagesReadTheMantleButCannotWriteIt() {
         var stage = Stage.chunk("test:writer/work");
         var mantle = new MemoryMantle();

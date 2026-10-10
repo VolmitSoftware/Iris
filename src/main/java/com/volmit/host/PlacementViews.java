@@ -105,6 +105,12 @@ final class PlacementViews {
             bounds();
             return new RestrictedMantleLayer<>(this, parent.layer(key));
         }
+
+        @Override
+        public MantleLayer<BlockState> blocks() {
+            bounds();
+            return new RestrictedMantleLayer<>(this, parent.blocks());
+        }
     }
 
     private static final class RestrictedMantleLayer<T> implements MantleLayer<T> {

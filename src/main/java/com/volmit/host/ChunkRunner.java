@@ -24,13 +24,30 @@ public final class ChunkRunner {
      * stage draws from its own stream of that seed ({@link StageStreams}).
      */
     public void generate(GenerationContext inputs, long invocationSeed) {
+        generate(inputs, invocationSeed, StageTimings.NONE);
+    }
+
+    /** Runs one chunk like {@link #generate(GenerationContext, long)} and reports to {@code timings} how long each
+     * stage that ran took.
+     */
+    public void generate(GenerationContext inputs, long invocationSeed, StageTimings timings) {
+        Objects.requireNonNull(timings, "timings");
         if (graph.size() == 0) {
             return;
         }
         var settings = ChunkSettings.collect(graph.settingsTypes(), inputs::settings, inputs.originX(), inputs.originZ());
         var chunk = new ChunkInvocation(new StageInvocation(graph, invocationSeed, settings), inputs);
         for (int position = 0; position < graph.size(); position++) {
-            chunk.stages().runInvocationStage(position, chunk);
+            runTimed(chunk, position, timings);
         }
+    }
+
+    private void runTimed(ChunkInvocation chunk, int position, StageTimings timings) {
+        if (!chunk.stages().isActive(position)) {
+            return;
+        }
+        long started = System.nanoTime();
+        chunk.stages().runInvocationStage(position, chunk);
+        timings.record(graph.stages().get(position), System.nanoTime() - started);
     }
 }

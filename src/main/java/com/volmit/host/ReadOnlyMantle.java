@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
@@ -28,6 +29,11 @@ final class ReadOnlyMantle implements Mantle {
     @Override
     public <T> MantleLayer<T> layer(MantleKey<T> key) {
         return new ReadOnlyLayer<>(mantle.layer(key));
+    }
+
+    @Override
+    public MantleLayer<BlockState> blocks() {
+        return new ReadOnlyLayer<>(mantle.blocks());
     }
 
     @Override

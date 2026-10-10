@@ -1,5 +1,6 @@
 package com.volmit.support;
 
+import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
@@ -17,15 +18,24 @@ public final class MemoryMantle {
     private static final Comparator<BlockPosition> VISIT_ORDER = Comparator.comparingInt(BlockPosition::x)
             .thenComparingInt(BlockPosition::y).thenComparingInt(BlockPosition::z);
 
+    /** Where the planned blocks are kept; the host owns them, so no module registers this layer. */
+    private static final MantleKey<BlockState> PLANNED_BLOCKS = new MantleKey<>("host:planned-blocks", BlockState.class);
+
     private final Map<String, TreeMap<BlockPosition, Object>> layers = new HashMap<>();
 
     /** A view that accepts reads and writes inside {@code bounds} only. */
     public Mantle within(BlockBox bounds) {
         return new Mantle() {
             public BlockBox bounds() { return bounds; }
-            public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds); }
+            public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds, true); }
+            public MantleLayer<BlockState> blocks() { return new Layer<>(PLANNED_BLOCKS, bounds, false); }
             public MantleEdit edit() { throw new UnsupportedOperationException("Edits are not used in these tests"); }
         };
+    }
+
+    /** Puts a planned block into the mantle, as a placement would; stages only read them. */
+    public void plan(int x, int y, int z, BlockState block) {
+        values(PLANNED_BLOCKS).put(new BlockPosition(x, y, z), block);
     }
 
     public <T> T get(MantleKey<T> key, int x, int y, int z) {
@@ -39,10 +49,12 @@ public final class MemoryMantle {
     private final class Layer<T> implements MantleLayer<T> {
         private final MantleKey<T> key;
         private final BlockBox bounds;
+        private final boolean writable;
 
-        Layer(MantleKey<T> key, BlockBox bounds) {
+        Layer(MantleKey<T> key, BlockBox bounds, boolean writable) {
             this.key = key;
             this.bounds = bounds;
+            this.writable = writable;
         }
 
         public T get(int x, int y, int z) {
@@ -51,11 +63,13 @@ public final class MemoryMantle {
         }
 
         public void set(int x, int y, int z, T value) {
+            requireWritable();
             requireInside(x, y, z);
             values(key).put(new BlockPosition(x, y, z), key.type().cast(value));
         }
 
         public void remove(int x, int y, int z) {
+            requireWritable();
             requireInside(x, y, z);
             values(key).remove(new BlockPosition(x, y, z));
         }
@@ -70,8 +84,13 @@ public final class MemoryMantle {
         }
 
         public void clear(BlockBox area) {
+            requireWritable();
             if (!bounds.contains(area)) throw new IndexOutOfBoundsException("Outside the mantle view: " + area);
             values(key).keySet().removeIf(position -> area.contains(position.x(), position.y(), position.z()));
+        }
+
+        private void requireWritable() {
+            if (!writable) throw new UnsupportedOperationException("Planned blocks are read-only to stages");
         }
 
         private void requireInside(int x, int y, int z) {

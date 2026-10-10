@@ -998,7 +998,7 @@ from a sapling, which drops a block has. A module answers such questions through
   switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
   `CaveBiomes` (`ONE`): the pack biome a module puts at a position whatever the regions say (a band of the deep dark,
   `overriddenBiome`, the height counted above the dimension's bottom) and how deep below the surface a biome's caves begin
-  (`minDepthBelowSurface`). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
+  (`minDepthBelowSurface`, asked once per biome and kept while the world runs). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
   and asks this only where a module decides; one provider, since two modules could not both decide the biome of one cave.
 - **Settings that name biomes.** The host owns the biome tree (a region's biomes and their children) and the set of
   biomes a dimension reaches, and both must include biomes that module settings name: a cave band's biome, the target of a

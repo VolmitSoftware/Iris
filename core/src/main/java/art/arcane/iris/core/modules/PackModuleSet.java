@@ -43,7 +43,8 @@ public final class PackModuleSet implements AutoCloseable {
     private final File packFolder;
     private final Supplier<Gson> irisGson;
     private State state = State.NOT_LOADED;
-    private LoadedPack pack;
+    /** Set only while loaded; volatile so {@link #pack()}, asked on the generation hot path, needs no lock then. */
+    private volatile LoadedPack pack;
     private ModuleSettingsDecoder settings;
     private PackModulesException failure;
     private List<String> loadedJars = List.of();
@@ -55,7 +56,15 @@ public final class PackModuleSet implements AutoCloseable {
     }
 
     /** The loaded pack, its built-in modules included. */
-    public synchronized LoadedPack pack() {
+    public LoadedPack pack() {
+        LoadedPack loaded = pack;
+        if (loaded != null) {
+            return loaded;
+        }
+        return loadedPack();
+    }
+
+    private synchronized LoadedPack loadedPack() {
         requireLoaded();
         return pack;
     }
@@ -110,8 +119,8 @@ public final class PackModuleSet implements AutoCloseable {
         loadedJars = jarFingerprint();
         try {
             LoadedPack loaded = LoadedPack.load(packFolder.toPath(), IrisModuleHost.get());
-            pack = loaded;
             settings = new ModuleSettingsDecoder(loaded.catalog(), packFolder.toPath(), irisGson);
+            pack = loaded;
             state = State.LOADED;
         } catch (RuntimeException loadFailure) {
             failure = new PackModulesException(packFolder, loadFailure);

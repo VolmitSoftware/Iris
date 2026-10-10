@@ -19,6 +19,9 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.project.ModuleResourceSchemas;
+import art.arcane.iris.core.project.SchemaTestPlatform;
+import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
@@ -35,6 +38,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /** Spawners, entities and markers are resource kinds of module {@code iris:spawn}, read from the folders packs have always had. */
 public class SpawnResourcesTest {
@@ -79,6 +83,25 @@ public class SpawnResourcesTest {
             write(pack, "entities/zombie.json", "{\"type\":\"minecraft:husk\"}");
             data.dump();
             assertEquals("minecraft:husk", SpawnResources.entity(data, "zombie").type());
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void studioDescribesSpawnersEntitiesAndMarkers() throws Exception {
+        Path pack = spawnPack("studio");
+        IrisData data = IrisData.openValidation(pack.toFile());
+        try (SchemaTestPlatform ignored = SchemaTestPlatform.bind(temporaryFolder.getRoot())) {
+            List<JSONObject> entries = ModuleResourceSchemas.entries(data, true);
+
+            for (String schema : List.of("spawners", "entities", "markers")) {
+                assertTrue(schema, entries.stream().anyMatch(entry -> entry.getString("url").equals("./.iris/schema/" + schema + "-schema.json")));
+                assertTrue(schema, Files.exists(pack.resolve(".iris/schema/" + schema + "-schema.json")));
+            }
+            JSONObject entity = new JSONObject(Files.readString(pack.resolve(".iris/schema/entities-schema.json")));
+            assertTrue(entity.toString().contains("passengers"));
+            assertTrue(entity.toString().contains("tables"));
         } finally {
             data.close();
         }

@@ -138,6 +138,7 @@ public class DecorantSettingsDecodingTest {
 
         assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, byId, "biome meadow"));
         assertTrue(decoder.keys(Target.BIOME).containsAll(Set.of("decorators", "deposits")));
+        assertFalse(decoder.keys(Target.BIOME).contains("iris:decorant"));
     }
 
     @Test

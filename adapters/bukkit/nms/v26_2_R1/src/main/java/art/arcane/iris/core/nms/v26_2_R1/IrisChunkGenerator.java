@@ -12,7 +12,6 @@ import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.IrisEngine;
 import art.arcane.iris.engine.platform.BukkitChunkGenerator;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.nativegen.NativeStructureFitBridge;
 import art.arcane.iris.nativegen.NativeStructureGenerationException;
 import art.arcane.iris.nativegen.NativeStructureStartInjector;
@@ -634,10 +633,9 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
              GenerationSessionLease lease = requireGenerationLease("bukkit_nms_create_biomes");
              IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             customBiomeSource.prepareVisibleBiomeBatch();
-            IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
             ichunkaccess.fillBiomesFromNoise(
                     (x, y, z, sampler) -> customBiomeSource.getVisibleNoiseBiomeWithActiveGenerationLease(
-                            x, y, z, sampler, resolverState),
+                            x, y, z, sampler),
                     randomstate.sampler());
             return CompletableFuture.completedFuture(ichunkaccess);
         }

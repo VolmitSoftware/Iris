@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
@@ -9,7 +10,6 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -29,7 +29,7 @@ public class FloatingIslandsTest {
     public void columnsWithoutFloatingChildBiomesAreLeftAlone() {
         FloatingIslands islands = new FloatingIslands(engine());
         IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getFloatingChildBiomes()).thenReturn(new KList<>());
+        when(biome.getModuleSettings()).thenReturn(ModuleSettings.NONE);
         FloatingIslandBoundarySampler sampler = mock(FloatingIslandBoundarySampler.class);
         when(sampler.parent(anyInt(), anyInt())).thenReturn(biome);
         ChunkContext context = mock(ChunkContext.class);

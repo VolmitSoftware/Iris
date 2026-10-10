@@ -28,6 +28,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
@@ -35,8 +36,6 @@ import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.value.IrisColor;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
@@ -72,6 +71,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -274,20 +274,11 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z) {
-        return getCaveBiome(x, y, z, null);
-    }
-
-    @BlockCoordinates
-    default IrisBiome getCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
         IrisBiome surfaceBiome = getSurfaceBiome(x, z);
-        int worldY = y + getWorld().minHeight();
-        IrisDimensionCarvingEntry rootCarvingEntry = IrisDimensionCarvingResolver.resolveRootEntry(this, worldY, state);
-        if (rootCarvingEntry != null) {
-            IrisDimensionCarvingEntry resolvedCarvingEntry = IrisDimensionCarvingResolver.resolveFromRoot(this, rootCarvingEntry, x, z, state);
-            IrisBiome resolvedCarvingBiome = IrisDimensionCarvingResolver.resolveEntryBiome(this, resolvedCarvingEntry, state);
-            if (resolvedCarvingBiome != null) {
-                return resolvedCarvingBiome;
-            }
+        Optional<String> overriddenKey = ModuleServices.overriddenCaveBiome(this, x, y, z);
+        IrisBiome overriddenBiome = overriddenKey.map(key -> getData().getBiomeLoader().load(key)).orElse(null);
+        if (overriddenBiome != null) {
+            return overriddenBiome;
         }
 
         IrisBiome caveBiome = getCaveBiome(x, z);
@@ -301,7 +292,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return surfaceBiome;
         }
 
-        int minDepth = Math.max(0, caveBiome.getCaveMinDepthBelowSurface());
+        int minDepth = Math.max(0, ModuleServices.caveMinDepthBelowSurface(this, caveBiome.getLoadKey()));
         if (depthBelowSurface < minDepth) {
             return surfaceBiome;
         }

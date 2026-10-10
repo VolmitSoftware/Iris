@@ -7,7 +7,6 @@ import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -25,7 +24,6 @@ import java.util.Map;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -54,7 +52,7 @@ public class CaveApplyingBoundarySupportTest {
 
         Engine engine = mock(Engine.class);
         doReturn(data).when(engine).getData();
-        doReturn(resolvedCeiling).when(engine).getCaveBiome(anyInt(), eq(42), anyInt(), any(IrisDimensionCarvingResolver.State.class));
+        doReturn(resolvedCeiling).when(engine).getCaveBiome(anyInt(), eq(42), anyInt());
 
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
         DecoratorTestEngines.withGeneration(engine);
@@ -78,12 +76,11 @@ public class CaveApplyingBoundarySupportTest {
 
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>();
         Map<String, IrisBiome> customBiomeCache = new HashMap<>();
-        IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
 
         IrisBiome floor = modifier.resolveCaveBoundaryBiome(
-                mantleChunk, 1, 6, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
+                mantleChunk, 1, 6, 2, 40, 44, caveBiomeCache, customBiomeCache);
         IrisBiome ceiling = modifier.resolveCaveBoundaryBiome(
-                mantleChunk, 1, 42, 2, 40, 44, resolverState, caveBiomeCache, customBiomeCache);
+                mantleChunk, 1, 42, 2, 40, 44, caveBiomeCache, customBiomeCache);
 
         assertSame(customFloor, floor);
         assertSame(resolvedCeiling, ceiling);

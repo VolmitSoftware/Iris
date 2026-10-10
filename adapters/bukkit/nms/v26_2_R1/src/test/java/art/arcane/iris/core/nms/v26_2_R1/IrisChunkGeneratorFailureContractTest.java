@@ -1,6 +1,5 @@
 package art.arcane.iris.core.nms.v26_2_R1;
 
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -257,8 +256,7 @@ public class IrisChunkGeneratorFailureContractTest {
 
         assertTrue(createBiomes.contains("requireGenerationStage(\"bukkit_nms_create_biomes\")"));
         assertTrue(createBiomes.contains("customBiomeSource.prepareVisibleBiomeBatch()"));
-        assertTrue(createBiomes.contains("new IrisDimensionCarvingResolver.State()"));
-        assertTrue(createBiomes.contains("sampler, resolverState"));
+        assertTrue(createBiomes.contains("getVisibleNoiseBiomeWithActiveGenerationLease("));
         assertTrue(buildSurface.contains("delegate.buildSurface("));
         assertTrue(carvers.contains("delegate.applyCarvers("));
         assertTrue(noise.contains("requireNoiseGenerationStage("));

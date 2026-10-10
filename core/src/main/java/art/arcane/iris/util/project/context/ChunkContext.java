@@ -6,7 +6,6 @@ import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 
 import java.util.ArrayList;
@@ -22,8 +21,6 @@ public class ChunkContext {
     private final int[] roundedHeight;
     private final ChunkedDataCache<IrisBiome> biome;
     private final ChunkedDataCache<IrisBiome> cave;
-    private final ChunkedDataCache<PlatformBlockState> rock;
-    private final ChunkedDataCache<PlatformBlockState> fluid;
     private final ChunkedDataCache<IrisRegion> region;
     private final FloatingIslandBoundarySampler floatingIslandBoundarySampler;
 
@@ -52,8 +49,6 @@ public class ChunkContext {
         this.roundedHeight = new int[cache ? 256 : 0];
         this.biome = new ChunkedDataCache<>(complex.getTrueBiomeStream(), x, z, cache);
         this.cave = new ChunkedDataCache<>(complex.getCaveBiomeStream(), x, z, cache);
-        this.rock = new ChunkedDataCache<>(complex.getRockStream(), x, z, cache);
-        this.fluid = new ChunkedDataCache<>(complex.getFluidStream(), x, z, cache);
         this.region = new ChunkedDataCache<>(complex.getRegionStream(), x, z, cache);
         this.floatingIslandBoundarySampler = new FloatingIslandBoundarySampler((wx, wz) -> complex.getTrueBiomeStream().get(wx, wz));
 
@@ -61,18 +56,12 @@ public class ChunkContext {
             PrefillPlan resolvedPlan = prefillPlan == null ? PrefillPlan.NO_CAVE : prefillPlan;
             boolean capturePrefillMetric = metrics != null;
             long totalStartNanos = capturePrefillMetric ? System.nanoTime() : 0L;
-            List<Runnable> fillTasks = new ArrayList<>(6);
+            List<Runnable> fillTasks = new ArrayList<>(4);
             if (resolvedPlan.height) {
                 fillTasks.add(() -> height.fillRounded(roundedHeight));
             }
             if (resolvedPlan.biome) {
                 fillTasks.add(new PrefillFillTask(biome));
-            }
-            if (resolvedPlan.rock) {
-                fillTasks.add(new PrefillFillTask(rock));
-            }
-            if (resolvedPlan.fluid) {
-                fillTasks.add(new PrefillFillTask(fluid));
             }
             if (resolvedPlan.region) {
                 fillTasks.add(new PrefillFillTask(region));
@@ -148,36 +137,24 @@ public class ChunkContext {
         return cave;
     }
 
-    public ChunkedDataCache<PlatformBlockState> getRock() {
-        return rock;
-    }
-
-    public ChunkedDataCache<PlatformBlockState> getFluid() {
-        return fluid;
-    }
-
     public ChunkedDataCache<IrisRegion> getRegion() {
         return region;
     }
 
     public enum PrefillPlan {
-        ALL(true, true, true, true, true, true),
-        NO_CAVE(true, true, false, true, true, true),
-        NONE(false, false, false, false, false, false);
+        ALL(true, true, true, true),
+        NO_CAVE(true, true, false, true),
+        NONE(false, false, false, false);
 
         private final boolean height;
         private final boolean biome;
         private final boolean cave;
-        private final boolean rock;
-        private final boolean fluid;
         private final boolean region;
 
-        PrefillPlan(boolean height, boolean biome, boolean cave, boolean rock, boolean fluid, boolean region) {
+        PrefillPlan(boolean height, boolean biome, boolean cave, boolean region) {
             this.height = height;
             this.biome = biome;
             this.cave = cave;
-            this.rock = rock;
-            this.fluid = fluid;
             this.region = region;
         }
     }

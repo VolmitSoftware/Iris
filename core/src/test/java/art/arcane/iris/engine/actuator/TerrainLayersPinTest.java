@@ -8,11 +8,13 @@ import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.engine.terrain.BiomeLayers;
+import art.arcane.iris.engine.terrain.ResolvedLayer;
+import art.arcane.iris.engine.terrain.TerrainTestSettings;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import com.google.gson.Gson;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,12 +31,13 @@ import static org.mockito.Mockito.when;
  * Pins what biome layers, sea layers, cave ceiling layers, locked layers, slabs and walls pick for a spread of columns
  * with a fixed terrain RNG, so they can move out of {@code IrisBiome} and into the terrain module without changing what
  * a world generates. The transcript hash was taken from {@code IrisBiome.generateLayers} and friends and from
- * {@code IrisBiomePaletteLayer.get} before they moved.
+ * {@code IrisBiomePaletteLayer.get} before they moved; block keys list their properties in name order, because
+ * the old classes listed them in the order of a hash map and the platform does not tell the two apart.
  */
 public class TerrainLayersPinTest {
     private static final long TERRAIN_SEED = 1337L;
     private static final int TRANSCRIPT_LENGTH = 143080;
-    private static final int TRANSCRIPT_HASH = -1399100638;
+    private static final int TRANSCRIPT_HASH = 1726319394;
     private static final int COLUMN_STEP_X = 61;
     private static final int COLUMN_STEP_Z = 67;
     private static final int COLUMN_RANGE = 400;
@@ -109,7 +112,6 @@ public class TerrainLayersPinTest {
             }
         }
 
-        try { java.nio.file.Files.writeString(java.nio.file.Path.of("/tmp/iris-wt/3t/transcript.txt"), transcript.toString().replace("|", "\n")); } catch (java.io.IOException e) { throw new RuntimeException(e); }
         for (String picked : List.of("terracotta", "prismarine", "moss_block", "cobblestone_slab", "andesite", "barrier")) {
             assertTrue(picked + " is picked: " + transcript.length(), transcript.indexOf(picked) >= 0);
         }
@@ -122,23 +124,27 @@ public class TerrainLayersPinTest {
         dimension.setExplodeBiomePalettes(exploded);
         dimension.setExplodeBiomePaletteSize(2);
         RNG rng = new RNG(TERRAIN_SEED);
-        IrisBiome biome = new Gson().fromJson(biomeJson, IrisBiome.class);
+        IrisBiome biome = new IrisBiome();
+        biome.setModuleSettings(TerrainTestSettings.of(biomeJson));
+        BiomeLayers layers = new BiomeLayers();
         for (int x = -COLUMN_RANGE; x < COLUMN_RANGE; x += COLUMN_STEP_X) {
             for (int z = -COLUMN_RANGE; z < COLUMN_RANGE; z += COLUMN_STEP_Z) {
-                transcript.append('|').append(keys(biome.generateLayers(dimension, x, z, rng, 14, 70 + Math.floorMod(x + z, 9), data, complex)));
-                transcript.append('|').append(keys(biome.generateCeilingLayers(dimension, x, z, rng, 12, 40, data, complex)));
-                transcript.append('|').append(keys(biome.generateSeaLayers(x, z, rng, 7, data)));
-                transcript.append('|').append(smoothing(biome, rng, x, z));
+                transcript.append('|').append(keys(layers.generateLayers(biome, dimension, x, z, rng, 14, 70 + Math.floorMod(x + z, 9), data, complex)));
+                transcript.append('|').append(keys(layers.generateCeilingLayers(biome, dimension, x, z, rng, 12, 40, data, complex)));
+                transcript.append('|').append(keys(layers.generateSeaLayers(biome, x, z, rng, 7, data)));
+                transcript.append('|').append(smoothing(layers, biome, rng, x, z));
             }
         }
     }
 
     /** The block a slab and a wall place in post processing at the column, as the smoothing stage asks the biome. */
-    private String smoothing(IrisBiome biome, RNG rng, int x, int z) {
+    private String smoothing(BiomeLayers layers, IrisBiome biome, RNG rng, int x, int z) {
         int height = 60 + Math.floorMod(x - z, 7);
         double slope = complex.getSlopeStream().get(x, z);
-        String slab = biome.getSlab().getSlopeCondition().isValid(slope) ? key(biome.getSlab().get(rng, x, height, z, data)) : "-";
-        String wall = biome.getWall().getPalette().isEmpty() ? "-" : key(biome.getWall().get(rng, x + height, height + height, z + height, data));
+        ResolvedLayer slabLayer = layers.slab(biome, data);
+        ResolvedLayer wallLayer = layers.wall(biome, data);
+        String slab = slabLayer.slopeCondition().isValid(slope) ? key(slabLayer.get(rng, x, height, z)) : "-";
+        String wall = !wallLayer.hasPalette() ? "-" : key(wallLayer.get(rng, x + height, height + height, z + height));
         return slab + "," + wall;
     }
 
@@ -150,7 +156,18 @@ public class TerrainLayersPinTest {
         return keys.toString();
     }
 
+    /** The block's key without its namespace and with its properties in name order, which is how the platform identifies a state whatever order a pack lists them in. */
     private static String key(PlatformBlockState state) {
-        return state == null ? "null" : state.key().replace("minecraft:", "");
+        if (state == null) {
+            return "null";
+        }
+        String key = state.key().replace("minecraft:", "");
+        int properties = key.indexOf('[');
+        if (properties < 0) {
+            return key;
+        }
+        String[] sorted = key.substring(properties + 1, key.length() - 1).split(",");
+        java.util.Arrays.sort(sorted);
+        return key.substring(0, properties) + "[" + String.join(",", sorted) + "]";
     }
 }

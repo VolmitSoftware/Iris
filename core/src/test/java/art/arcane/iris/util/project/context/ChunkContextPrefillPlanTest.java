@@ -4,7 +4,6 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.stream.ProceduralStream;
-import org.bukkit.block.data.BlockData;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,23 +21,17 @@ public class ChunkContextPrefillPlanTest {
         AtomicInteger caveCalls = new AtomicInteger();
         AtomicInteger heightCalls = new AtomicInteger();
         AtomicInteger biomeCalls = new AtomicInteger();
-        AtomicInteger rockCalls = new AtomicInteger();
-        AtomicInteger fluidCalls = new AtomicInteger();
         AtomicInteger regionCalls = new AtomicInteger();
         ChunkContext context = createContext(
                 ChunkContext.PrefillPlan.NO_CAVE,
                 caveCalls,
                 heightCalls,
                 biomeCalls,
-                rockCalls,
-                fluidCalls,
                 regionCalls
         );
 
         assertEquals(256, heightCalls.get());
         assertEquals(256, biomeCalls.get());
-        assertEquals(256, rockCalls.get());
-        assertEquals(256, fluidCalls.get());
         assertEquals(256, regionCalls.get());
         assertEquals(0, caveCalls.get());
 
@@ -53,23 +46,17 @@ public class ChunkContextPrefillPlanTest {
         AtomicInteger caveCalls = new AtomicInteger();
         AtomicInteger heightCalls = new AtomicInteger();
         AtomicInteger biomeCalls = new AtomicInteger();
-        AtomicInteger rockCalls = new AtomicInteger();
-        AtomicInteger fluidCalls = new AtomicInteger();
         AtomicInteger regionCalls = new AtomicInteger();
         ChunkContext context = createContext(
                 ChunkContext.PrefillPlan.ALL,
                 caveCalls,
                 heightCalls,
                 biomeCalls,
-                rockCalls,
-                fluidCalls,
                 regionCalls
         );
 
         assertEquals(256, heightCalls.get());
         assertEquals(256, biomeCalls.get());
-        assertEquals(256, rockCalls.get());
-        assertEquals(256, fluidCalls.get());
         assertEquals(256, regionCalls.get());
         assertEquals(256, caveCalls.get());
 
@@ -88,8 +75,6 @@ public class ChunkContextPrefillPlanTest {
             AtomicInteger caveCalls,
             AtomicInteger heightCalls,
             AtomicInteger biomeCalls,
-            AtomicInteger rockCalls,
-            AtomicInteger fluidCalls,
             AtomicInteger regionCalls
     ) {
         IrisComplex complex = mock(IrisComplex.class);
@@ -120,24 +105,6 @@ public class ChunkContextPrefillPlanTest {
         }).when(caveStream).get(anyDouble(), anyDouble());
 
         @SuppressWarnings("unchecked")
-        ProceduralStream<BlockData> rockStream = mock(ProceduralStream.class);
-        BlockData rock = mock(BlockData.class);
-        doReturn("minecraft:stone").when(rock).getAsString();
-        doAnswer(invocation -> {
-            rockCalls.incrementAndGet();
-            return rock;
-        }).when(rockStream).get(anyDouble(), anyDouble());
-
-        @SuppressWarnings("unchecked")
-        ProceduralStream<BlockData> fluidStream = mock(ProceduralStream.class);
-        BlockData fluid = mock(BlockData.class);
-        doReturn("minecraft:water").when(fluid).getAsString();
-        doAnswer(invocation -> {
-            fluidCalls.incrementAndGet();
-            return fluid;
-        }).when(fluidStream).get(anyDouble(), anyDouble());
-
-        @SuppressWarnings("unchecked")
         ProceduralStream<IrisRegion> regionStream = mock(ProceduralStream.class);
         IrisRegion region = mock(IrisRegion.class);
         doAnswer(invocation -> {
@@ -148,8 +115,6 @@ public class ChunkContextPrefillPlanTest {
         doReturn(heightStream).when(complex).getHeightStream();
         doReturn(biomeStream).when(complex).getTrueBiomeStream();
         doReturn(caveStream).when(complex).getCaveBiomeStream();
-        doReturn(rockStream).when(complex).getRockStream();
-        doReturn(fluidStream).when(complex).getFluidStream();
         doReturn(regionStream).when(complex).getRegionStream();
 
         return new ChunkContext(32, 48, complex, true, prefillPlan, null);

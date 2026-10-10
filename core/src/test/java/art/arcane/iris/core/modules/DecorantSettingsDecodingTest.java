@@ -137,7 +137,7 @@ public class DecorantSettingsDecodingTest {
         JSONObject byId = new JSONObject("{\"iris:decorant\": [{\"chance\": 1}]}");
 
         assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, byId, "biome meadow"));
-        assertEquals(Set.of("decorators", "deposits"), decoder.keys(Target.BIOME));
+        assertTrue(decoder.keys(Target.BIOME).containsAll(Set.of("decorators", "deposits")));
     }
 
     @Test

@@ -1,6 +1,11 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
+import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.UsableBlockPlatform;
+import art.arcane.iris.engine.decorator.DecoratorTestEngines;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -21,7 +26,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Smoothing the surface removes a nib that floats above columns two blocks lower and leaves a flat surface alone. */
+/** Smoothing the surface (here without slabs and walls, which post processing switches off per dimension) removes a nib that floats above columns two blocks lower and leaves a flat surface alone. */
 public class SurfaceSmoothingTest {
     private static final int NIB_X = 5;
     private static final int NIB_Z = 5;
@@ -68,12 +73,16 @@ public class SurfaceSmoothingTest {
         when(mantle.trueHeight(anyInt(), anyInt())).thenAnswer(invocation ->
                 (int) invocation.getArgument(0) == nibX && (int) invocation.getArgument(1) == nibZ ? nibHeight : NEIGHBOUR_HEIGHT);
         IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(
+                TestSettings.of(PostProcessingWallsSettings.class, "{\"enabled\": false}"),
+                TestSettings.of(PostProcessingSlabsSettings.class, "{\"enabled\": false}")));
         SeedManager seeds = mock(SeedManager.class);
         Engine engine = mock(Engine.class);
         when(engine.getMantle()).thenReturn(mantle);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getSeedManager()).thenReturn(seeds);
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
+        DecoratorTestEngines.withGeneration(engine);
         return engine;
     }
 

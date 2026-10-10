@@ -1,6 +1,8 @@
 package com.volmit.world;
 
+import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /** Read-only host sampling for the same pack snapshot as the invocation.
@@ -30,4 +32,26 @@ public interface TerrainSampler {
      * Empty when nothing sits above. Outside the bounds it throws like {@link #column}.
      */
     OptionalInt upperDimensionY(int worldX, int worldZ);
+
+    /** What the surface biome of the column was generated as. A cave biome ({@link BiomeSample#caveBiome()}) is always
+     * {@link BiomeKind#CAVE}, so the answer is about the surface biome only. Outside the bounds it throws like {@link #column}.
+     */
+    BiomeKind surfaceKind(int worldX, int worldZ);
+
+    /** The block an image map of the dimension gives the column's ground, replacing what its biome would put there; empty
+     * where no map does. Outside the bounds it throws like {@link #column}.
+     */
+    default Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+        return Optional.empty();
+    }
+
+    /** The Y in the world of the dimension's bottom block, such as {@code -64}: what to add to a height above the bottom
+     * to get the Y a pack's settings name when they speak of world heights.
+     */
+    int minWorldY();
+
+    /** The dimension stacked above this one, whose ground starts at {@link #upperDimensionY}; empty when nothing sits above. */
+    default Optional<UpperDimension> upperDimension() {
+        return Optional.empty();
+    }
 }

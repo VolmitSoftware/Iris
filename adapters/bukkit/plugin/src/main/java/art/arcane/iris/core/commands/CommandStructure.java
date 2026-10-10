@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.Iris;
@@ -360,8 +359,7 @@ public class CommandStructure implements DirectorExecutor {
         Engine targetEngine = targetGenerator == null ? null : targetGenerator.getEngine();
         IObjectPlacer placer = CommandObject.createPlacer(targetWorld, future, targetEngine);
         for (PlacedStructurePiece p : pieces) {
-            IrisObjectPlacement config = new IrisObjectPlacement();
-            config.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+            IrisObjectPlacement config = IrisObjectPlacement.stampingStructurePieces();
             config.setRotation(p.getRotation());
             config.getPlace().add(p.getObject().getLoadKey());
             if (!s.getEdit().isEmpty()) {

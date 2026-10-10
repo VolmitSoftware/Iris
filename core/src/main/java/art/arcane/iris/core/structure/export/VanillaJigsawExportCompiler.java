@@ -1,6 +1,5 @@
 package art.arcane.iris.core.structure.export;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.CompiledStructureGraph;
 import art.arcane.iris.engine.framework.structure.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
@@ -177,7 +176,7 @@ final class VanillaJigsawExportCompiler {
                     structureKey(structure),
                     "Strict export requires compatibility VANILLA_PORTABLE.");
         }
-        if (structure.getPlaceMode() != ObjectPlaceMode.STRUCTURE_PIECE) {
+        if (!structure.stampsPiecesWhereAssembled()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.UNSUPPORTED_PLACE_MODE,
                     structureKey(structure),

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
@@ -202,8 +201,7 @@ public final class ModdedStructureCommands {
         UUID owner = player.getUUID();
         try {
             for (PlacedStructurePiece piece : pieces) {
-                IrisObjectPlacement config = new IrisObjectPlacement();
-                config.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+                IrisObjectPlacement config = IrisObjectPlacement.stampingStructurePieces();
                 config.setRotation(piece.getRotation());
                 config.getPlace().add(piece.getObject().getLoadKey());
                 if (!structure.getEdit().isEmpty()) {

@@ -101,36 +101,36 @@ public class IrisObjectVacuumTest {
 
     @Test
     public void resolveRadiusMatchesModesAndHonorsSettingsOverride() {
-        assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM, null));
-        assertEquals(20, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_HIGH, null));
-        assertEquals(8, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_FAST, null));
-        assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_ORGANIC, null));
-        assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_WAVY, null));
+        assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM.placeMode().vacuum(), null));
+        assertEquals(20, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_HIGH.placeMode().vacuum(), null));
+        assertEquals(8, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_FAST.placeMode().vacuum(), null));
+        assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_ORGANIC.placeMode().vacuum(), null));
+        assertEquals(12, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_WAVY.placeMode().vacuum(), null));
 
         VacuumSettings settings = TestSettings.of(VacuumSettings.class, "{\"radius\":30}");
-        assertEquals(30, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_FAST, settings));
+        assertEquals(30, IrisObjectVacuum.resolveRadius(ObjectPlaceMode.VACUUM_FAST.placeMode().vacuum(), settings));
     }
 
     @Test
     public void resolveStepIsCoarseOnlyForFast() {
-        assertEquals(1, IrisObjectVacuum.resolveStep(ObjectPlaceMode.VACUUM));
-        assertEquals(1, IrisObjectVacuum.resolveStep(ObjectPlaceMode.VACUUM_HIGH));
-        assertEquals(2, IrisObjectVacuum.resolveStep(ObjectPlaceMode.VACUUM_FAST));
-        assertEquals(1, IrisObjectVacuum.resolveStep(ObjectPlaceMode.VACUUM_ORGANIC));
-        assertEquals(1, IrisObjectVacuum.resolveStep(ObjectPlaceMode.VACUUM_WAVY));
+        assertEquals(1, ObjectPlaceMode.VACUUM.placeMode().vacuum().columnStepBlocks());
+        assertEquals(1, ObjectPlaceMode.VACUUM_HIGH.placeMode().vacuum().columnStepBlocks());
+        assertEquals(2, ObjectPlaceMode.VACUUM_FAST.placeMode().vacuum().columnStepBlocks());
+        assertEquals(1, ObjectPlaceMode.VACUUM_ORGANIC.placeMode().vacuum().columnStepBlocks());
+        assertEquals(1, ObjectPlaceMode.VACUUM_WAVY.placeMode().vacuum().columnStepBlocks());
     }
 
     @Test
     public void isVacuumModeOnlyTrueForVacuumModes() {
-        assertTrue(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.VACUUM));
-        assertTrue(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.VACUUM_HIGH));
-        assertTrue(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.VACUUM_FAST));
-        assertTrue(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.VACUUM_ORGANIC));
-        assertTrue(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.VACUUM_WAVY));
-        assertFalse(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.CENTER_HEIGHT));
-        assertFalse(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.STILT));
-        assertFalse(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.PAINT));
-        assertFalse(IrisObjectVacuum.isVacuumMode(ObjectPlaceMode.FLOATING));
+        assertTrue(ObjectPlaceMode.VACUUM.placeMode().bendsTerrain());
+        assertTrue(ObjectPlaceMode.VACUUM_HIGH.placeMode().bendsTerrain());
+        assertTrue(ObjectPlaceMode.VACUUM_FAST.placeMode().bendsTerrain());
+        assertTrue(ObjectPlaceMode.VACUUM_ORGANIC.placeMode().bendsTerrain());
+        assertTrue(ObjectPlaceMode.VACUUM_WAVY.placeMode().bendsTerrain());
+        assertFalse(ObjectPlaceMode.CENTER_HEIGHT.placeMode().bendsTerrain());
+        assertFalse(ObjectPlaceMode.STILT.placeMode().bendsTerrain());
+        assertFalse(ObjectPlaceMode.PAINT.placeMode().bendsTerrain());
+        assertFalse(ObjectPlaceMode.FLOATING.placeMode().bendsTerrain());
     }
 
     @Test

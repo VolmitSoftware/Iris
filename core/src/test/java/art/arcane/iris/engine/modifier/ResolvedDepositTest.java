@@ -1,6 +1,8 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositGenerator;
+import art.arcane.iris.builtin.deposit.OreFrequencySettings;
+import art.arcane.iris.builtin.deposit.OreSizeSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.PackResourceFixture;
@@ -91,10 +93,8 @@ public class ResolvedDepositTest {
 
     @Test
     public void biomeOreTuningDefaultsPreserveExistingGeneration() {
-        IrisBiome biome = new IrisBiome();
-
-        assertEquals(1D, biome.getOreDepositFrequencyMultiplier(), 0D);
-        assertEquals(1D, biome.getOreDepositSizeMultiplier(), 0D);
+        assertEquals(1D, new OreFrequencySettings().multiplier(), 0D);
+        assertEquals(1D, new OreSizeSettings().multiplier(), 0D);
     }
 
     @Test

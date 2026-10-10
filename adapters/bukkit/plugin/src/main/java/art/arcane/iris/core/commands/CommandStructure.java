@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.Iris;
@@ -305,7 +306,7 @@ public class CommandStructure implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK, MessageArgument.untrusted("structure", structure)));
             return;
         }
-        StructureAssembler assembler = StructureAssembler.forData(
+        StructureAssembler assembler = StructureAssemblies.forData(
                 data, s, new IrisPosition(0, 64, 0));
         StructureAssemblyResult assembly = assembler.assemble(new RNG(1234));
         List<PlacedStructurePiece> pieces = assembly.pieces();
@@ -344,7 +345,7 @@ public class CommandStructure implements DirectorExecutor {
             return;
         }
         Location loc = player().getLocation();
-        StructureAssembler assembler = StructureAssembler.forData(
+        StructureAssembler assembler = StructureAssemblies.forData(
                 data, s, new IrisPosition(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
         RNG rng = new RNG((long) loc.getBlockX() * 341873128712L + loc.getBlockZ());
         StructureAssemblyResult assembly = assembler.assemble(rng);

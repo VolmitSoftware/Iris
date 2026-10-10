@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.actuator.BiomeModule;
 import art.arcane.iris.engine.actuator.DecorantModule;
 import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.loot.LootModule;
@@ -27,12 +26,12 @@ import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.spawn.SpawnModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.modifier.CarveModule;
-import art.arcane.iris.engine.modifier.CustomModule;
 import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.FloatingModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
+import com.volmit.ModuleLog;
 import com.volmit.host.ModuleHost;
 import com.volmit.host.PackModules;
 
@@ -59,6 +58,12 @@ public final class IrisModuleHost {
     public static final List<String> SHARED_LIBRARY_PACKAGES = List.of("art.arcane.volmlib", "com.google.gson");
     /** Every package pack modules may use besides the IrisApi. {@code exposedHostPackages} in IrisModule's build lists the same. */
     public static final List<String> EXPOSED_PACKAGES = Stream.concat(Stream.of(BUILT_IN_API_PACKAGE), SHARED_LIBRARY_PACKAGES.stream()).toList();
+    /**
+     * The ids of the built-in modules that ship in the built-ins jar ({@code iris-builtins.jar}, listed in
+     * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. A pack loads them from its {@code modules}
+     * folder, and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the jar's list.
+     */
+    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter");
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -71,14 +76,24 @@ public final class IrisModuleHost {
         return Holder.HOST;
     }
 
-    /** The modules every pack loads before its own: Iris's built-in features, placement and the chunk generation every world runs. */
+    /** The modules every pack loads before its own: Iris's own, placement and the chunk generation every world runs. */
     public static List<IrisModule> builtInModules() {
-        return Stream.concat(PlacementModules.all().stream(), generationModules().stream()).toList();
+        return Stream.of(hostModules(), PlacementModules.all(), generationModules()).flatMap(List::stream).toList();
+    }
+
+    /** Modules that are Iris itself, not features: they write the layout's platform biomes and record the platform's custom blocks. A pack never replaces them and the built-ins jar does not hold them. */
+    private static List<IrisModule> hostModules() {
+        return List.of(new BiomeModule(), new CustomModule());
     }
 
     private static List<IrisModule> generationModules() {
-        return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
-                new FloatingModule(), new DepositModule(), new DecorantModule(), new CustomModule(), new LootModule(), new SpawnModule());
+        return List.of(new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
+                new FloatingModule(), new DepositModule(), new DecorantModule(), new LootModule(), new SpawnModule());
+    }
+
+    /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */
+    public static ModuleLog hostLog() {
+        return IrisApiLogger.hostLog();
     }
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */

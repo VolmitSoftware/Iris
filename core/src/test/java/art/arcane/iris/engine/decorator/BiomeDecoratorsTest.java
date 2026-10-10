@@ -15,6 +15,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
+import com.volmit.host.ModuleLogs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class BiomeDecoratorsTest {
         bare = mock(IrisBiome.class);
         when(bare.getLoadKey()).thenReturn("bare");
         when(bare.getModuleSettings()).thenReturn(ModuleSettings.NONE);
-        decorators = new BiomeDecorators(engine);
+        decorators = new BiomeDecorators(engine, ModuleLogs.discarding());
     }
 
     @After
@@ -104,7 +105,7 @@ public class BiomeDecoratorsTest {
         assertEquals("biome meadow, index 2", DECORATOR_SEED + "meadow".hashCode() * 0x9E3779B97F4A7C15L + 2 * 0xC2B2AE3D27D4EB4FL, second);
         assertNotEquals(first, second);
         assertEquals("another build of the same world draws the same seeds", first,
-                seedOf(new BiomeDecorators(engine).decorators(meadow, DecorationPart.NONE)[0]));
+                seedOf(new BiomeDecorators(engine, ModuleLogs.discarding()).decorators(meadow, DecorationPart.NONE)[0]));
     }
 
     @Test

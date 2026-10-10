@@ -36,6 +36,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.collection.KList;
+import com.volmit.host.ModuleLogs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -114,6 +115,6 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
         when(engine.getData()).thenReturn(data);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
 
-        assertEquals(33, new FloatingObjectPlacing(engine).reach());
+        assertEquals(33, new FloatingObjectPlacing(engine, ModuleLogs.discarding()).reach());
     }
 }

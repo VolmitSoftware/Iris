@@ -13,6 +13,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.host.ModuleLogs;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.After;
 import org.junit.Before;
@@ -56,7 +57,7 @@ public class CaveApplyingBoundarySupportTest {
 
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
         DecoratorTestEngines.withGeneration(engine);
-        CaveApplying modifier = new CaveApplying(engine);
+        CaveApplying modifier = new CaveApplying(engine, ModuleLogs.discarding());
 
         MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
         Matter floorMatter = mock(Matter.class);

@@ -20,6 +20,7 @@ import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import com.google.gson.Gson;
+import com.volmit.host.ModuleLogs;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -68,7 +69,7 @@ public class CaveApplyingInferenceIsolationTest {
         doReturn(IrisWorld.builder().minHeight(-256).maxHeight(512).build()).when(engine).getWorld();
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
         DecoratorTestEngines.withGeneration(engine);
-        CaveApplying modifier = new CaveApplying(engine);
+        CaveApplying modifier = new CaveApplying(engine, ModuleLogs.discarding());
 
         Map<String, IrisBiome> customBiomes = new HashMap<>();
         customBiomes.put("shared", biome);

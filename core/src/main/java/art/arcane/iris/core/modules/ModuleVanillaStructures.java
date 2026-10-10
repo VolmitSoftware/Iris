@@ -88,11 +88,11 @@ public final class ModuleVanillaStructures {
      * as the host's plans: world heights, the platform's jigsaw changes and the modules' memos.
      */
     public static List<NativeStructureStartPlan> startsAt(Engine engine, int chunkX, int chunkZ) {
-        StartContext context = new StartContext(engine.getGeneration().world(),
-                new IrisTerrainSampler(engine, new PackResourceIds(engine.getData().getDataFolder()),
-                        chunkX << 4, chunkZ << 4, START_TERRAIN_REACH_BLOCKS));
+        TerrainSampler terrain = new IrisTerrainSampler(engine, new PackResourceIds(engine.getData().getDataFolder()),
+                chunkX << 4, chunkZ << 4, START_TERRAIN_REACH_BLOCKS);
         List<NativeStructureStartPlan> plans = new ArrayList<>();
         for (ServiceRegistration registration : providersOf(engine.getData())) {
+            StartContext context = new StartContext(registration.scope(engine.getGeneration().world()), terrain);
             for (VanillaStructureStart start : ask(registration, "placing starts in chunk " + chunkX + "," + chunkZ,
                     provider -> provider.starts(chunkX, chunkZ, context))) {
                 plans.add(plan(registration.module(), start, chunkX, chunkZ, engine.getMinHeight()));

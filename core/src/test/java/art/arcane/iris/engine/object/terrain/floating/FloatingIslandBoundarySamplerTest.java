@@ -33,6 +33,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutorService;
@@ -583,9 +584,9 @@ public class FloatingIslandBoundarySamplerTest {
         int[] expectedBottom = {159, 158, 156, 153, 150, 147, 144, 142, 141, 140};
         int[] expectedTop = {161, 162, 164, 166, 169, 172, 174, 176, 177, 178};
 
-        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 31L, data, engine, sampler));
+        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 31L, data, engine, sampler, ModuleLogs.discarding()));
         for (int i = 0; i < expectedBottom.length; i++) {
-            FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, i + 1, 0, 320, 31L, data, engine, sampler);
+            FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, i + 1, 0, 320, 31L, data, engine, sampler, ModuleLogs.discarding());
             assertNotNull("distance " + (i + 2) + " rejected with code " + FloatingIslandSample.getLastReject(), sample);
             assertEquals(expectedBottom[i], sample.bottomY());
             assertEquals(expectedTop[i], sample.topY());
@@ -652,8 +653,8 @@ public class FloatingIslandBoundarySamplerTest {
         when(engine.getWorld()).thenReturn(world);
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
 
-        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 35L, data, engine, sampler));
-        FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, 1, 0, 320, 35L, data, engine, sampler);
+        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 35L, data, engine, sampler, ModuleLogs.discarding()));
+        FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, 1, 0, 320, 35L, data, engine, sampler, ModuleLogs.discarding());
 
         assertNotNull(sample);
         assertTrue(sample.hasMergedEntries());

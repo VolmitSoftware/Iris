@@ -19,7 +19,9 @@
 package art.arcane.iris.engine.terrain;
 
 import art.arcane.iris.builtin.terrain.LayerBlocks;
+import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
+import com.volmit.host.ModuleLogs;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
@@ -56,6 +58,16 @@ public final class TestLayerBlocks {
         @Override
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
             return type.cast(states.computeIfAbsent(type, ignored -> create.apply(this)));
+        }
+
+        @Override
+        public ModuleLog log() {
+            return ModuleLogs.discarding();
+        }
+
+        @Override
+        public PackWorld withLog(ModuleLog log) {
+            return this;
         }
     }
 }

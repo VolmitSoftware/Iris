@@ -27,6 +27,7 @@ import art.arcane.iris.engine.object.loot.IObjectLoot;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import com.volmit.service.Loot;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -69,7 +70,7 @@ public class PlacementLootTest {
         for (String key : List.of("everywhere", "chests", "this-chest", "other")) {
             fixture.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, "{\"name\": \"" + key + "\"}"));
         }
-        placement = new PlacementLoot(data, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED);
+        placement = new PlacementLoot(data, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED, ModuleLogs.discarding());
     }
 
     @Test

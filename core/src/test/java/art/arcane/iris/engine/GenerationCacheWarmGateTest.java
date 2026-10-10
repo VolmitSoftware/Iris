@@ -106,6 +106,10 @@ public class GenerationCacheWarmGateTest {
         return new EngineGeneration(engine);
     }
 
+    /** Worlds the modules are handed are views of the generation's world, so they are told apart by what they share. */
+    private static final class WorldMarker {
+    }
+
     @Test
     public void generationWaitsForAModulesSlowWarmUp() throws Exception {
         GenerationCacheWarmGate gate = new GenerationCacheWarmGate();
@@ -126,7 +130,9 @@ public class GenerationCacheWarmGateTest {
             warmUp.get(WAIT_SECONDS, TimeUnit.SECONDS);
             generating.get(WAIT_SECONDS, TimeUnit.SECONDS);
             assertFalse(gate.isPending());
-            assertSame("the module warmed the world it started", generation.world(), module.warmed);
+            assertSame("the module warmed the world it started",
+                    generation.world().state(WorldMarker.class, ignored -> new WorldMarker()),
+                    module.warmed.state(WorldMarker.class, ignored -> new WorldMarker()));
         } finally {
             module.release.countDown();
             background.shutdownNow();

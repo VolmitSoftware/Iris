@@ -2,6 +2,7 @@ package art.arcane.iris.core.service;
 
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.runtime.InPlaceChunkRegenerator;
 import art.arcane.iris.core.runtime.jigsaw.JigsawPlanarArchetype;
@@ -2476,7 +2477,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 if (structure == null) {
                     throw new IOException("The active structure resource no longer exists");
                 }
-                StructureAssembler assembler = StructureAssembler.forData(
+                StructureAssembler assembler = StructureAssemblies.forData(
                         request.source(), structure, origin);
                 StructureAssemblyResult assembly = assembler.assemble(new RNG(seed));
                 if (!assembly.hasOutput()) {

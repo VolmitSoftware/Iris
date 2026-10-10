@@ -1,4 +1,4 @@
-package art.arcane.iris.engine.modifier;
+package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.link.Identifier;

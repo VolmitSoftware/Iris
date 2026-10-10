@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
@@ -145,7 +146,7 @@ public final class ModdedStructureCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STRUCTURE_COMMANDS_NO_IRIS_STRUCTURE_THIS_PACK, MessageArgument.untrusted("key", key)));
             return 0;
         }
-        StructureAssembler assembler = StructureAssembler.forData(
+        StructureAssembler assembler = StructureAssemblies.forData(
                 data, structure, new IrisPosition(0, 64, 0));
         StructureAssemblyResult assembly = assembler.assemble(new RNG(1234));
         List<PlacedStructurePiece> pieces = assembly.pieces();
@@ -188,7 +189,7 @@ public final class ModdedStructureCommands {
         int originX = player.blockPosition().getX();
         int originY = player.blockPosition().getY();
         int originZ = player.blockPosition().getZ();
-        StructureAssembler assembler = StructureAssembler.forData(
+        StructureAssembler assembler = StructureAssemblies.forData(
                 data, structure, new IrisPosition(originX, originY, originZ));
         RNG rng = new RNG((long) originX * 341873128712L + originZ);
         StructureAssemblyResult assembly = assembler.assemble(rng);

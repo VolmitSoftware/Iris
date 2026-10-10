@@ -32,6 +32,7 @@ import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import com.volmit.host.ModuleLogs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -128,7 +129,7 @@ public class ObjectPlacingBoundaryRadiusTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getData()).thenReturn(data);
 
-        assertEquals(53, new ObjectPlacing(engine).reach());
+        assertEquals(53, new ObjectPlacing(engine, ModuleLogs.discarding()).reach());
     }
 
     @Test
@@ -159,7 +160,7 @@ public class ObjectPlacingBoundaryRadiusTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getData()).thenReturn(data);
 
-        int reach = new ObjectPlacing(engine).reach();
+        int reach = new ObjectPlacing(engine, ModuleLogs.discarding()).reach();
         assertEquals(33, reach);
         int chunkRadius = Math.ceilDiv(reach, 16);
         assertEquals(3, chunkRadius);

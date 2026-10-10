@@ -32,6 +32,7 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLog;
 import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
@@ -45,6 +46,7 @@ import com.volmit.generation.GenerationContext;
 import com.volmit.host.ArrayHunk;
 import com.volmit.host.ChunkRunner;
 import com.volmit.host.DiscoveredModule;
+import com.volmit.host.ModuleLogs;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.StageGraphBuilder;
 import com.volmit.hunk.Hunk;
@@ -407,6 +409,16 @@ public final class ApiChunk implements GenerationContext {
                 states.put(type, known);
             }
             return type.cast(known);
+        }
+
+        @Override
+        public ModuleLog log() {
+            return ModuleLogs.discarding();
+        }
+
+        @Override
+        public PackWorld withLog(ModuleLog log) {
+            return this;
         }
 
         @Override

@@ -18,6 +18,7 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -131,7 +132,7 @@ public class TerrainLayersPinTest {
         RNG rng = new RNG(TERRAIN_SEED);
         IrisBiome biome = new IrisBiome();
         biome.setModuleSettings(TerrainTestSettings.of(biomeJson));
-        BiomeLayers layers = new BiomeLayers(TestLayerBlocks.of(data.getPackResources()));
+        BiomeLayers layers = new BiomeLayers(TestLayerBlocks.of(data.getPackResources()), ModuleLogs.discarding());
         for (int x = -COLUMN_RANGE; x < COLUMN_RANGE; x += COLUMN_STEP_X) {
             for (int z = -COLUMN_RANGE; z < COLUMN_RANGE; z += COLUMN_STEP_Z) {
                 transcript.append('|').append(keys(layers.generateLayers(biome, dimension, x, z, rng, 14, 70 + Math.floorMod(x + z, 9), data, complex)));

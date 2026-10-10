@@ -253,168 +253,30 @@ if (runningOnlyTestTasks) {
     }
 }
 
-// VolmLib packages that Iris forked into art.arcane.iris.util.project.* or replaced outright. Every
-// class in each of these packages is unreachable from every other class shipped in the Bukkit jar,
-// and none of them is a reflective target: Matter.read() resolves only matter/slices, JarScanner
-// only walks Iris' own packages, and the remaining VolmLib Class.forName calls name Bukkit/NMS or
-// runtime-downloaded types. Package granularity is deliberate - a partially used package stays whole.
-// verifyBukkitArtifact re-derives the reference graph over the shipped jar and fails on any dangling
-// reference, so an exclude that stops being dead is a build failure rather than a runtime crash.
-List<String> supersededVolmLibPackages = [
-    'art/arcane/volmlib/util/noise/**',
-    'art/arcane/volmlib/util/stream/ProceduralStream.class',
-    'art/arcane/volmlib/util/stream/BasicStream.class',
-    'art/arcane/volmlib/util/stream/arithmetic/**',
-    'art/arcane/volmlib/util/stream/convert/**',
-    'art/arcane/volmlib/util/stream/interpolation/**',
-    'art/arcane/volmlib/util/stream/sources/**',
-    'art/arcane/volmlib/util/stream/utility/**',
-    'art/arcane/volmlib/util/uniques/**',
-    'art/arcane/volmlib/util/bukkit/json/**',
-    'art/arcane/volmlib/util/bukkit/registry/**',
-    'art/arcane/volmlib/util/director/visual/**',
-    'art/arcane/volmlib/util/value/**',
-    'art/arcane/volmlib/util/api/**',
-    'art/arcane/volmlib/util/entity/**',
-    'art/arcane/volmlib/util/config/**',
-    'art/arcane/volmlib/util/reflect/**',
-    'art/arcane/volmlib/util/documentation/**',
+// Iris's own packages and classes the Bukkit jar leaves out: nothing shipped in the jar reaches them (the list's
+// package-granularity reasoning is in the header of volmlib-left-out-of-bukkit-jar.txt). verifyBukkitArtifact re-derives
+// the reference graph over the shipped jar and fails on any dangling reference, so an exclude that stops being dead is a
+// build failure rather than a runtime crash.
+List<String> irisPackagesLeftOut = [
     'art/arcane/iris/core/report/**',
     'art/arcane/iris/util/common/inventorygui/**',
-    'art/arcane/iris/util/common/board/**',
-    'art/arcane/volmlib/integration/VaultEconomy*.class'
+    'art/arcane/iris/util/common/board/**'
 ]
 
-List<String> unusedVolmLibClasses = [
-    'art/arcane/volmlib/util/nbt/io/ParseException',
-    'art/arcane/volmlib/util/nbt/io/SNBTDeserializer',
-    'art/arcane/volmlib/util/nbt/io/SNBTParser',
-    'art/arcane/volmlib/util/nbt/io/SNBTSerializer',
-    'art/arcane/volmlib/util/nbt/io/SNBTUtil',
-    'art/arcane/volmlib/util/nbt/io/SNBTWriter',
-    'art/arcane/volmlib/util/nbt/io/StringPointer',
-    'art/arcane/volmlib/util/io/StringDeserializer',
-    'art/arcane/volmlib/util/io/StringSerializer',
-    'art/arcane/volmlib/util/json/EnumType',
-    'art/arcane/volmlib/util/json/HTTP',
-    'art/arcane/volmlib/util/json/HTTPTokener',
-    'art/arcane/volmlib/util/json/JSONML',
-    'art/arcane/volmlib/util/json/JSONStringer',
-    'art/arcane/volmlib/util/json/JSONWriter',
-    'art/arcane/volmlib/util/json/XML',
-    'art/arcane/volmlib/util/json/XMLTokener',
-    'art/arcane/volmlib/util/hud/HudBid',
-    'art/arcane/volmlib/util/hud/HudBidder',
-    'art/arcane/volmlib/util/hud/HudLocalLedger',
-    'art/arcane/volmlib/util/hud/HudTitleClaim',
-    'art/arcane/volmlib/util/hud/HudTitleService',
-    'art/arcane/volmlib/util/scheduling/GroupedExecutor',
-    'art/arcane/volmlib/util/scheduling/SchedulerRuntime',
-    'art/arcane/volmlib/util/scheduling/SchedulerUtils',
-    'art/arcane/volmlib/util/scheduling/TaskExecutor',
-    'art/arcane/volmlib/util/parallel/StreamUtilsSupport',
-    'art/arcane/volmlib/util/parallel/SyncExecutorSupport',
-    'art/arcane/volmlib/util/cache/ByteBitCache',
-    'art/arcane/volmlib/util/cache/DataBitCache',
-    'art/arcane/volmlib/util/cache/FloatBitCache',
-    'art/arcane/volmlib/util/cache/IntBitCache',
-    'art/arcane/volmlib/util/cache/ShortBitCache',
-    'art/arcane/volmlib/util/cache/UByteBitCache',
-    'art/arcane/volmlib/util/data/ChunkCache',
-    'art/arcane/volmlib/util/data/ComplexCache',
-    'art/arcane/volmlib/util/data/IrisBiomeStorage',
-    'art/arcane/volmlib/util/data/NibbleArray',
-    'art/arcane/volmlib/util/data/NibbleDataPalette',
-    'art/arcane/volmlib/util/data/Recycler',
-    'art/arcane/volmlib/util/data/VanillaBiomeMap',
-    'art/arcane/volmlib/util/data/Writable',
-    'art/arcane/volmlib/util/data/base/ComplexCacheBase',
-    'art/arcane/volmlib/util/director/DirectorNodeBase',
-    'art/arcane/volmlib/util/director/DirectorParameterBase',
-    'art/arcane/volmlib/util/director/theme/DirectorThemes',
-    'art/arcane/volmlib/util/interpolation/InterpolationMethod',
-    'art/arcane/volmlib/util/interpolation/IrisInterpolation',
-    'art/arcane/volmlib/util/math/INode',
-    'art/arcane/volmlib/util/math/IrisMathHelper',
-    'art/arcane/volmlib/util/math/KochanekBartelsInterpolation',
-    'art/arcane/volmlib/util/math/PathInterpolation',
-    'art/arcane/volmlib/util/math/Spiral',
-    'art/arcane/volmlib/util/board/BoardManager',
-    'art/arcane/volmlib/util/board/BoardUpdateTask',
-    'art/arcane/volmlib/util/bukkit/Placeholders',
-    'art/arcane/volmlib/util/hunk/HunkFactory',
-    'art/arcane/volmlib/util/hunk/storage/ArrayHunk',
-    'art/arcane/volmlib/util/hunk/storage/AtomicDoubleHunk',
-    'art/arcane/volmlib/util/hunk/storage/AtomicIntegerHunk',
-    'art/arcane/volmlib/util/hunk/storage/AtomicLongHunk',
-    'art/arcane/volmlib/util/hunk/storage/SynchronizedArrayHunk',
-    'art/arcane/volmlib/util/hunk/view/BiomeForceBridge',
-    'art/arcane/volmlib/util/hunk/view/BiomeGridForceSupport',
-    'art/arcane/volmlib/util/hunk/view/BiomeGridHunkHolder',
-    'art/arcane/volmlib/util/hunk/view/BiomeGridHunkView',
-    'art/arcane/volmlib/util/hunk/view/ChunkDataHunkHolder',
-    'art/arcane/volmlib/util/hunk/view/RotatedXHunkView',
-    'art/arcane/volmlib/util/hunk/view/RotatedYHunkView',
-    'art/arcane/volmlib/util/hunk/view/RotatedZHunkView',
-    'art/arcane/volmlib/util/exceptions/MissingDimensionException',
-    'art/arcane/volmlib/util/function/Supplier2',
-    'art/arcane/volmlib/util/function/Supplier3',
-    'art/arcane/volmlib/util/hud/HudPriority',
-    'art/arcane/volmlib/util/interpolation/InterpolationMethod3D',
-    'art/arcane/volmlib/util/interpolation/InterpolationType',
-    'art/arcane/volmlib/util/inventorygui/UIRainbowDecorator',
-    'art/arcane/volmlib/util/io/Converter',
-    'art/arcane/volmlib/util/matter/MatterPlacer',
-    'art/arcane/volmlib/util/plugin/SplashScreenSupport',
-    'art/arcane/volmlib/util/scheduling/Contained',
-    'art/arcane/volmlib/util/scheduling/IrisLock',
-    'art/arcane/volmlib/util/scheduling/QueueExecutor',
-    'art/arcane/volmlib/util/scheduling/S',
-    'art/arcane/volmlib/util/scheduling/SBase',
-    'art/arcane/volmlib/util/scheduling/SlidingWindowRateLimiter',
-    'art/arcane/volmlib/util/scheduling/Switch',
-    'art/arcane/volmlib/util/scheduling/ThreadMonitor',
-    'art/arcane/volmlib/util/cache/ByteCache',
-    'art/arcane/volmlib/util/cache/ChunkCache2DSimple',
-    'art/arcane/volmlib/util/cache/IntCache',
-    'art/arcane/volmlib/util/cache/ShortCache',
-    'art/arcane/volmlib/util/cache/UByteCache',
-    'art/arcane/volmlib/util/cache/WorldCache2DSimple',
-    'art/arcane/volmlib/util/data/CuboidException',
-    'art/arcane/volmlib/util/data/DUTF',
-    'art/arcane/volmlib/util/data/Heafty',
-    'art/arcane/volmlib/util/data/InvertedBiomeGrid',
-    'art/arcane/volmlib/util/data/Shrinkwrap',
-    'art/arcane/volmlib/util/data/WeightMap',
-    'art/arcane/volmlib/util/data/WeightedRandom',
-    'art/arcane/volmlib/util/director/compat/BukkitDirectorContext',
-    'art/arcane/volmlib/util/director/handlers/base/DummyHandlerBase',
-    'art/arcane/volmlib/util/director/handlers/base/OptionalWorldHandlerBase',
-    'art/arcane/volmlib/util/parallel/BurstedHunk',
-    'art/arcane/volmlib/util/parallel/GridLockSupport',
-    'art/arcane/volmlib/util/parallel/NoopGridLockSupport',
-    'art/arcane/volmlib/util/bukkit/ChunkPositionSet',
-    'art/arcane/volmlib/util/bukkit/Events',
-    'art/arcane/volmlib/util/json/SingleCollectionTypeFactory',
-    'art/arcane/volmlib/util/collection/StateList',
-    'art/arcane/iris/core/pack/IrisPack',
-    'art/arcane/iris/core/pack/IrisPackRepository',
-    'art/arcane/iris/core/jobs/DownloadJob',
-    'art/arcane/iris/core/jobs/JobCollection',
-    'art/arcane/iris/core/jobs/ParallelQueueJob',
-    'art/arcane/iris/core/jobs/QueueJob',
-    'art/arcane/iris/engine/framework/placer/WorldObjectPlacer',
-    'art/arcane/iris/engine/object/placement/IPostBlockAccess',
-    'art/arcane/iris/engine/object/entity/IrisPotionEffect',
-    'art/arcane/iris/engine/platform/DummyChunkGenerator',
-    'art/arcane/iris/util/common/math/VectorMath',
-    'art/arcane/iris/util/common/parallel/GridLock',
-    'art/arcane/iris/util/common/reflect/W',
-    'art/arcane/iris/util/slimjar/BuildConstants',
-    'art/arcane/iris/util/slimjar/relocation/meta/AttributeMetaMediator',
-    'art/arcane/iris/util/slimjar/relocation/meta/AttributeMetaMediatorFactory'
+List<String> irisClassesLeftOut = [
+
 ]
-List<String> unusedVolmLibClassEntries = unusedVolmLibClasses.collectMany { String classPath ->
+
+// The VolmLib classes the jar leaves out are listed in a file the built-in modules jar check reads too (IrisModule), so a
+// module cannot use a VolmLib class that is stripped from here. Format: see the file's header.
+File volmLibLeftOutFile = file('volmlib-left-out-of-bukkit-jar.txt')
+List<String> volmLibLeftOutEntries = volmLibLeftOutFile.readLines()
+    .collect { String line -> line.contains('#') ? line.substring(0, line.indexOf('#')).trim() : line.trim() }
+    .findAll { String line -> !line.isEmpty() }
+    .collectMany { String entry ->
+        entry.endsWith('.class') || entry.contains('*') ? [entry] : [entry + '.class', entry + '$*.class']
+    }
+List<String> irisClassesLeftOutEntries = irisClassesLeftOut.collectMany { String classPath ->
     [classPath + '.class', classPath + '$*.class']
 }
 
@@ -444,8 +306,9 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     relocate('com.dfsek.paralithic', "${lib}.paralithic")
     relocate('io.github.slimjar', "${lib}.slimjar")
     exclude('modules/loader-agent.isolated-jar')
-    exclude(supersededVolmLibPackages)
-    exclude(unusedVolmLibClassEntries)
+    exclude(irisPackagesLeftOut)
+    exclude(irisClassesLeftOutEntries)
+    exclude(volmLibLeftOutEntries)
     exclude(annotationOnlyArtifacts)
     exclude(dependencyBuildMetadata)
     from(embeddedAgentJar.map { it.archiveFile }) {

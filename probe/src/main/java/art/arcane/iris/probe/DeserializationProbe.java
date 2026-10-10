@@ -129,7 +129,7 @@ public final class DeserializationProbe {
     }
 
     private static void assertEntity(IrisData data) {
-        EntityDefinition entity = SpawnResources.entity(data, ENTITY_KEY);
+        EntityDefinition entity = SpawnResources.entity(data.getPackResources(), ENTITY_KEY);
         require(entity != null, "entity deserialized");
         require("minecraft:panda".equals(entity.type()), "type round-trips as authored namespaced string");
         require("COMMAND".equals(entity.reason()), "reason retained as string");
@@ -158,7 +158,7 @@ public final class DeserializationProbe {
     }
 
     private static void assertSpawner(IrisData data) {
-        Spawner spawner = SpawnResources.spawner(data, SPAWNER_KEY);
+        Spawner spawner = SpawnResources.spawner(data.getPackResources(), SPAWNER_KEY);
         require(spawner != null, "spawner deserialized");
         List<EntitySpawn> spawns = spawner.spawns();
         require(spawns.size() == 1, "single entity spawn deserialized");
@@ -168,7 +168,7 @@ public final class DeserializationProbe {
     }
 
     private static void assertLoot(IrisData data) {
-        LootTable table = LootResources.table(data, LOOT_KEY);
+        LootTable table = LootResources.table(data.getPackResources(), LOOT_KEY);
         require(table != null, "loot table deserialized");
         require(LOOT_KEY.equals(table.name()), "loot table name retained");
         require(table.rarity() == 4, "loot table rarity retained");

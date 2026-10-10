@@ -41,6 +41,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1213,7 +1214,7 @@ public class StructureAssemblerTest {
         }
 
         private StructureAssembler assembler(IrisStructure structure, int x, int y, int z) {
-            return StructureAssembler.forData(data, structure, new IrisPosition(x, y, z));
+            return StructureAssembler.forData(data, structure, new IrisPosition(x, y, z), ModuleLogs.discarding());
         }
     }
 }

@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
@@ -155,6 +157,9 @@ public class DiagnosticSeverityPolicyTest {
         assertLoggedWith("core/pregenerator/IrisPregenerator.java", "Pregen finished: ", "notice");
     }
 
+    /** The last logging call before a message: Iris's static front door, or a module's own log. */
+    private static final Pattern LOGGING_CALL = Pattern.compile("(?:IrisLogging\\.|\\blog\\.|\\blog\\(\\)\\.)(\\w+)");
+
     private static void assertLoggedWith(String relativePath, String fragment, String expectedMethod) {
         String source;
         try {
@@ -173,14 +178,13 @@ public class DiagnosticSeverityPolicyTest {
     }
 
     private static String loggingMethodBefore(String source, int at, String relativePath, String fragment) {
-        int call = source.lastIndexOf("IrisLogging.", at);
-        assertTrue(relativePath + " @ \"" + fragment + "\" is not logged through IrisLogging", call >= 0);
-        int start = call + "IrisLogging.".length();
-        int end = start;
-        while (end < source.length() && Character.isJavaIdentifierPart(source.charAt(end))) {
-            end++;
+        String method = null;
+        Matcher calls = LOGGING_CALL.matcher(source.substring(0, at));
+        while (calls.find()) {
+            method = calls.group(1);
         }
-        return source.substring(start, end);
+        assertTrue(relativePath + " @ \"" + fragment + "\" is not logged through IrisLogging or a ModuleLog", method != null);
+        return method;
     }
 
     private static String read(String relativePath) throws IOException {

@@ -21,6 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.host.FeatureCatalog;
+import com.volmit.host.ServiceRegistration;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.AmbientEffects;
@@ -50,36 +51,60 @@ public final class ModuleServices {
     private ModuleServices() {
     }
 
+    /** One provider of a service and the world as its module sees it, whose log is the module's own. */
+    private record Provider<S>(S service, PackWorld world) {
+    }
+
+    /** Every provider of {@code service}, in the catalog's order, each with {@code world} scoped to its module. */
+    private static <S> List<Provider<S>> providers(IrisData data, Class<S> service, PackWorld world) {
+        List<Provider<S>> providers = new ArrayList<>();
+        for (ServiceRegistration registration : catalog(data).registrations(service)) {
+            providers.add(new Provider<>(service.cast(registration.provider()), registration.scope(world)));
+        }
+        return providers;
+    }
+
+    private static <S> List<Provider<S>> providers(Engine engine, Class<S> service) {
+        return providers(engine.getData(), service, engine.getGeneration().world());
+    }
+
+    private static <S> Optional<Provider<S>> firstProvider(Engine engine, Class<S> service) {
+        List<ServiceRegistration> registrations = catalog(engine.getData()).registrations(service);
+        if (registrations.isEmpty()) {
+            return Optional.empty();
+        }
+        ServiceRegistration first = registrations.get(0);
+        return Optional.of(new Provider<>(service.cast(first.provider()), first.scope(engine.getGeneration().world())));
+    }
+
     /** The pack biome key the module that decides cave biomes puts at the position, whatever the regions say; empty where it overrides nothing. {@code y} is the height above the dimension's bottom. */
     public static Optional<String> overriddenCaveBiome(Engine engine, int x, int y, int z) {
-        return catalog(engine.getData()).service(CaveBiomes.class)
-                .flatMap(provider -> provider.overriddenBiome(engine.getGeneration().world(), x, y, z));
+        return firstProvider(engine, CaveBiomes.class)
+                .flatMap(provider -> provider.service().overriddenBiome(provider.world(), x, y, z));
     }
 
     /** How many blocks below the surface the caves of the pack biome {@code biomeKey} begin; 0 where nothing limits them. */
     public static int caveMinDepthBelowSurface(Engine engine, String biomeKey) {
-        return catalog(engine.getData()).service(CaveBiomes.class)
-                .map(provider -> provider.minDepthBelowSurface(engine.getGeneration().world(), biomeKey))
+        return firstProvider(engine, CaveBiomes.class)
+                .map(provider -> provider.service().minDepthBelowSurface(provider.world(), biomeKey))
                 .orElse(0);
     }
 
     /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */
     public static Set<String> objectsAt(Engine engine, int chunkX, int chunkZ) {
-        PackWorld world = engine.getGeneration().world();
         Set<String> keys = new LinkedHashSet<>();
-        for (ObjectsAt provider : catalog(engine.getData()).services(ObjectsAt.class)) {
-            keys.addAll(provider.objectsAt(world, chunkX, chunkZ));
+        for (Provider<ObjectsAt> provider : providers(engine, ObjectsAt.class)) {
+            keys.addAll(provider.service().objectsAt(provider.world(), chunkX, chunkZ));
         }
         return keys;
     }
 
     /** The biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */
     public static ObjectsAt.PlacedBy objectPlacers(Engine engine, String objectKey) {
-        PackWorld world = engine.getGeneration().world();
         Set<String> biomes = new LinkedHashSet<>();
         Set<String> regions = new LinkedHashSet<>();
-        for (ObjectsAt provider : catalog(engine.getData()).services(ObjectsAt.class)) {
-            ObjectsAt.PlacedBy placedBy = provider.placedBy(world, objectKey);
+        for (Provider<ObjectsAt> provider : providers(engine, ObjectsAt.class)) {
+            ObjectsAt.PlacedBy placedBy = provider.service().placedBy(provider.world(), objectKey);
             biomes.addAll(placedBy.biomes());
             regions.addAll(placedBy.regions());
         }
@@ -88,31 +113,28 @@ public final class ModuleServices {
 
     /** The loot tables the modules say the container at {@code site} draws from, in module order. */
     public static List<Loot.Source> lootTables(Engine engine, Loot.Site site) {
-        PackWorld world = engine.getGeneration().world();
         List<Loot.Source> tables = new ArrayList<>();
-        for (Loot provider : catalog(engine.getData()).services(Loot.class)) {
-            tables.addAll(provider.tables(world, site));
+        for (Provider<Loot> provider : providers(engine, Loot.class)) {
+            tables.addAll(provider.service().tables(provider.world(), site));
         }
         return tables;
     }
 
     /** The items loot table {@code key} gives at {@code site}, from the module that knows the table. */
     public static List<ItemDrop> lootItems(Engine engine, Loot.Site site, String key) {
-        PackWorld world = engine.getGeneration().world();
         List<ItemDrop> items = new ArrayList<>();
-        for (Loot provider : catalog(engine.getData()).services(Loot.class)) {
-            items.addAll(provider.items(world, site, key));
+        for (Provider<Loot> provider : providers(engine, Loot.class)) {
+            items.addAll(provider.service().items(provider.world(), site, key));
         }
         return items;
     }
 
     /** What the modules drop for the broken block, put together. */
     public static BlockDrops.Result blockDrops(Engine engine, BlockDrops.Broken broken) {
-        PackWorld world = engine.getGeneration().world();
         List<ItemDrop> drops = new ArrayList<>();
         boolean replacesVanillaDrops = false;
-        for (BlockDrops provider : catalog(engine.getData()).services(BlockDrops.class)) {
-            BlockDrops.Result result = provider.drops(world, broken);
+        for (Provider<BlockDrops> provider : providers(engine, BlockDrops.class)) {
+            BlockDrops.Result result = provider.service().drops(provider.world(), broken);
             drops.addAll(result.drops());
             replacesVanillaDrops |= result.replacesVanillaDrops();
         }
@@ -121,9 +143,8 @@ public final class ModuleServices {
 
     /** The tree grown by the first module that grows one for {@code sapling}; empty leaves the growth to the platform. */
     public static Optional<SaplingGrowth.Growth> growSapling(Engine engine, SaplingGrowth.Sapling sapling, SaplingGrowth.Surroundings surroundings) {
-        PackWorld world = engine.getGeneration().world();
-        for (SaplingGrowth provider : catalog(engine.getData()).services(SaplingGrowth.class)) {
-            Optional<SaplingGrowth.Growth> growth = provider.grow(world, sapling, surroundings);
+        for (Provider<SaplingGrowth> provider : providers(engine, SaplingGrowth.class)) {
+            Optional<SaplingGrowth.Growth> growth = provider.service().grow(provider.world(), sapling, surroundings);
             if (growth.isPresent()) {
                 return growth;
             }
@@ -133,11 +154,10 @@ public final class ModuleServices {
 
     /** The objects every module places as trees. */
     public static SaplingGrowth.TreeObjects treeObjects(Engine engine) {
-        PackWorld world = engine.getGeneration().world();
         Set<String> objects = new LinkedHashSet<>();
         Set<String> procedural = new LinkedHashSet<>();
-        for (SaplingGrowth provider : catalog(engine.getData()).services(SaplingGrowth.class)) {
-            SaplingGrowth.TreeObjects trees = provider.treeObjects(world);
+        for (Provider<SaplingGrowth> provider : providers(engine, SaplingGrowth.class)) {
+            SaplingGrowth.TreeObjects trees = provider.service().treeObjects(provider.world());
             objects.addAll(trees.objects());
             procedural.addAll(trees.procedural());
         }
@@ -146,11 +166,10 @@ public final class ModuleServices {
 
     /** What the first module with something to spawn at {@code site} plans; empty when none does. */
     public static Optional<PlannedSpawn> planSpawn(Engine engine, EntitySpawns.Site site) {
-        PackWorld world = engine.getGeneration().world();
-        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
-            Optional<EntitySpawns.Plan> plan = provider.plan(world, site);
+        for (Provider<EntitySpawns> provider : providers(engine, EntitySpawns.class)) {
+            Optional<EntitySpawns.Plan> plan = provider.service().plan(provider.world(), site);
             if (plan.isPresent()) {
-                return Optional.of(new PlannedSpawn(provider, world, plan.get()));
+                return Optional.of(new PlannedSpawn(provider.service(), provider.world(), plan.get()));
             }
         }
         return Optional.empty();
@@ -158,9 +177,8 @@ public final class ModuleServices {
 
     /** The entity {@code key} as the first module that knows it would spawn it. */
     public static Optional<EntitySpec> entity(Engine engine, String key) {
-        PackWorld world = engine.getGeneration().world();
-        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
-            Optional<EntitySpec> entity = provider.entity(world, key);
+        for (Provider<EntitySpawns> provider : providers(engine, EntitySpawns.class)) {
+            Optional<EntitySpec> entity = provider.service().entity(provider.world(), key);
             if (entity.isPresent()) {
                 return entity;
             }
@@ -170,9 +188,8 @@ public final class ModuleServices {
 
     /** What the first module that knows the marker {@code tag} says it does. */
     public static Optional<EntitySpawns.MarkerRule> markerRule(Engine engine, String tag) {
-        PackWorld world = engine.getGeneration().world();
-        for (EntitySpawns provider : catalog(engine.getData()).services(EntitySpawns.class)) {
-            Optional<EntitySpawns.MarkerRule> rule = provider.marker(world, tag);
+        for (Provider<EntitySpawns> provider : providers(engine, EntitySpawns.class)) {
+            Optional<EntitySpawns.MarkerRule> rule = provider.service().marker(provider.world(), tag);
             if (rule.isPresent()) {
                 return rule;
             }
@@ -182,10 +199,9 @@ public final class ModuleServices {
 
     /** The ambient effects every module says are due for a player standing at {@code at}, in module order. */
     public static List<AmbientEffects.Effect> ambientEffects(Engine engine, BlockPosition at) {
-        PackWorld world = engine.getGeneration().world();
         List<AmbientEffects.Effect> effects = new ArrayList<>();
-        for (AmbientEffects provider : catalog(engine.getData()).services(AmbientEffects.class)) {
-            effects.addAll(provider.due(world, at));
+        for (Provider<AmbientEffects> provider : providers(engine, AmbientEffects.class)) {
+            effects.addAll(provider.service().due(provider.world(), at));
         }
         return effects;
     }
@@ -208,10 +224,9 @@ public final class ModuleServices {
 
     /** The keys of the structures the world's modules place and can locate. */
     public static Set<String> locatableStructures(Engine engine) {
-        PackWorld world = engine.getGeneration().world();
         Set<String> keys = new LinkedHashSet<>();
-        for (StructureLocator provider : catalog(engine.getData()).services(StructureLocator.class)) {
-            keys.addAll(provider.locatable(world));
+        for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
+            keys.addAll(provider.service().locatable(provider.world()));
         }
         return keys;
     }
@@ -226,9 +241,8 @@ public final class ModuleServices {
      * can locate it, in the world's own coordinates; not found when none can.
      */
     public static StructureSearch locateStructure(Engine engine, String key, int fromX, int fromZ, int maxRadiusChunks) {
-        PackWorld world = engine.getGeneration().world();
         LocateResult result = structureLocatorOf(engine, key)
-                .map(provider -> provider.locate(world, key, fromX, fromZ, maxRadiusChunks))
+                .map(provider -> provider.service().locate(provider.world(), key, fromX, fromZ, maxRadiusChunks))
                 .orElse(LocateResult.NOT_FOUND);
         return StructureSearch.of(result, engine);
     }
@@ -256,14 +270,13 @@ public final class ModuleServices {
     }
 
     /** The first provider, in the catalog's order, whose locatable structures hold {@code key}. */
-    private static Optional<StructureLocator> structureLocatorOf(Engine engine, String key) {
+    private static Optional<Provider<StructureLocator>> structureLocatorOf(Engine engine, String key) {
         if (key == null || key.isBlank()) {
             return Optional.empty();
         }
-        PackWorld world = engine.getGeneration().world();
         String wanted = normalized(key);
-        for (StructureLocator provider : catalog(engine.getData()).services(StructureLocator.class)) {
-            if (provider.locatable(world).stream().map(ModuleServices::normalized).anyMatch(wanted::equals)) {
+        for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
+            if (provider.service().locatable(provider.world()).stream().map(ModuleServices::normalized).anyMatch(wanted::equals)) {
                 return Optional.of(provider);
             }
         }

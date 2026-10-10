@@ -21,9 +21,12 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.world.PackWorld;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -35,11 +38,21 @@ import java.util.function.Function;
 public final class IrisPackWorld implements PackWorld, IrisSeed.Source {
     private final Engine engine;
     private final IrisPackResources resources;
-    private final WorldStates states = new WorldStates();
+    private final WorldStates states;
+    private final ModuleLog log;
+    private final Map<ModuleLog, IrisPackWorld> viewsByLog;
 
     IrisPackWorld(Engine engine) {
+        this(engine, engine.getData().getPackResources(), new WorldStates(), IrisApiLogger.hostLog(), new ConcurrentHashMap<>());
+    }
+
+    private IrisPackWorld(Engine engine, IrisPackResources resources, WorldStates states, ModuleLog log,
+                          Map<ModuleLog, IrisPackWorld> viewsByLog) {
         this.engine = engine;
-        this.resources = engine.getData().getPackResources();
+        this.resources = resources;
+        this.states = states;
+        this.log = log;
+        this.viewsByLog = viewsByLog;
     }
 
     /** Iris's own view of {@code world}, which Iris hands to every stage, service and lifecycle hook. */
@@ -73,6 +86,17 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source {
     @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));
+    }
+
+    @Override
+    public ModuleLog log() {
+        return log;
+    }
+
+    /** One view per log, since the services ask for a module's view on every call. */
+    @Override
+    public IrisPackWorld withLog(ModuleLog log) {
+        return viewsByLog.computeIfAbsent(log, moduleLog -> new IrisPackWorld(engine, resources, states, moduleLog, viewsByLog));
     }
 
     @Override

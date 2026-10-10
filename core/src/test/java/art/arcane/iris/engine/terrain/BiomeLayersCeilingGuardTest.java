@@ -11,6 +11,7 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
+import com.volmit.host.ModuleLogs;
 import org.junit.Test;
 
 import java.io.File;
@@ -73,6 +74,6 @@ public class BiomeLayersCeilingGuardTest {
     }
 
     private static BiomeLayers layersOf(IrisData data) {
-        return new BiomeLayers(TestLayerBlocks.of(data.getPackResources()));
+        return new BiomeLayers(TestLayerBlocks.of(data.getPackResources()), ModuleLogs.discarding());
     }
 }

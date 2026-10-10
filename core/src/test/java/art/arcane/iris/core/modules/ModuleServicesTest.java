@@ -25,6 +25,7 @@ import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleLog;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.resource.PackResources;
@@ -60,6 +61,7 @@ public class ModuleServicesTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     private final List<String> searches = new ArrayList<>();
+    private final List<String> logOwners = new ArrayList<>();
     private LoadedPack pack;
     private IrisData data;
     private Engine engine;
@@ -87,9 +89,11 @@ public class ModuleServicesTest {
 
         @Override
         public void register(FeatureRegistry registry) {
+            ModuleLog registeredLog = registry.log();
             registry.registerService(ObjectsAt.class, new ObjectsAt() {
                 @Override
                 public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+                    logOwners.add(id + (world.log() == registeredLog ? " has its own log" : " has another module's log"));
                     return Set.of(object + "@" + chunkX + "," + chunkZ);
                 }
 
@@ -149,6 +153,13 @@ public class ModuleServicesTest {
     @Test
     public void objectsAtCombinesEveryModulesObjectsInModuleOrder() {
         assertEquals(List.of("tree@3,-4", "bush@3,-4", "rock@3,-4"), List.copyOf(ModuleServices.objectsAt(engine, 3, -4)));
+    }
+
+    @Test
+    public void everyModuleIsAskedWithAWorldCarryingItsOwnLog() {
+        ModuleServices.objectsAt(engine, 0, 0);
+
+        assertEquals(List.of("test:alpha has its own log", "test:beta has its own log", "test:zeta has its own log"), logOwners);
     }
 
     @Test

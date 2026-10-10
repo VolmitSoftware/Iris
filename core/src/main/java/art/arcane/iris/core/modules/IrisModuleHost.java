@@ -33,6 +33,7 @@ import art.arcane.iris.engine.modifier.FloatingModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
+import com.volmit.ModuleLog;
 import com.volmit.host.ModuleHost;
 import com.volmit.host.PackModules;
 
@@ -79,6 +80,11 @@ public final class IrisModuleHost {
     private static List<IrisModule> generationModules() {
         return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
                 new FloatingModule(), new DepositModule(), new DecorantModule(), new CustomModule(), new LootModule(), new SpawnModule());
+    }
+
+    /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */
+    public static ModuleLog hostLog() {
+        return IrisApiLogger.hostLog();
     }
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */

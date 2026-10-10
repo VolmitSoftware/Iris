@@ -4,6 +4,7 @@ import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import org.bukkit.block.BlockSupport;
 import org.bukkit.block.data.BlockData;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class DecoratorCoreTest {
 
     @Test
     public void pickDecorator_emptyBucket_returnsNull() {
-        ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[0], new RNG(2L), 0.0, 0.0);
+        ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[0], new RNG(2L), 0.0, 0.0, ModuleLogs.discarding());
         assertNull(result);
     }
 
@@ -70,7 +71,7 @@ public class DecoratorCoreTest {
         ResolvedDecorator d = mock(ResolvedDecorator.class);
         when(d.passesChanceGate(anyDouble(), anyDouble())).thenReturn(false);
 
-        ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[]{d}, new RNG(2L), 0.0, 0.0);
+        ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[]{d}, new RNG(2L), 0.0, 0.0, ModuleLogs.discarding());
         assertNull(result);
     }
 
@@ -80,7 +81,7 @@ public class DecoratorCoreTest {
         when(d.passesChanceGate(anyDouble(), anyDouble())).thenReturn(true);
 
         for (int t = 0; t < 50; t++) {
-            ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[]{d}, new RNG(t * 13L + 7), 0.0, 0.0);
+            ResolvedDecorator result = DecoratorCore.pickDecorator(new ResolvedDecorator[]{d}, new RNG(t * 13L + 7), 0.0, 0.0, ModuleLogs.discarding());
             assertSame(d, result);
         }
     }
@@ -99,7 +100,7 @@ public class DecoratorCoreTest {
         int trials = 2000;
 
         for (int t = 0; t < trials; t++) {
-            ResolvedDecorator picked = DecoratorCore.pickDecorator(decorators, new RNG(t * 31L + 3), 0.0, 0.0);
+            ResolvedDecorator picked = DecoratorCore.pickDecorator(decorators, new RNG(t * 31L + 3), 0.0, 0.0, ModuleLogs.discarding());
             assertNotNull(picked);
             for (int i = 0; i < n; i++) {
                 if (picked == decorators[i]) {
@@ -281,7 +282,7 @@ public class DecoratorCoreTest {
         output.set(0, 2, 0, occupied);
 
         DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null);
+                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
 
         assertSame(air, output.get(0, 1, 0));
         assertSame(occupied, output.get(0, 2, 0));
@@ -300,7 +301,7 @@ public class DecoratorCoreTest {
         output.set(0, 2, 0, occupied);
 
         DecoratorCore.placeFloatingSimple(
-                decorator, 0, 0, 0, 0, 0, 3, output);
+                decorator, 0, 0, 0, 0, 0, 3, output, ModuleLogs.discarding());
 
         assertSame(air, output.get(0, 1, 0));
         assertSame(occupied, output.get(0, 2, 0));
@@ -324,7 +325,7 @@ public class DecoratorCoreTest {
         output.set(0, 2, 0, upperAir);
 
         DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null);
+                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
 
         assertSame(lower, output.get(0, 1, 0));
         assertSame(upper, output.get(0, 2, 0));
@@ -344,7 +345,7 @@ public class DecoratorCoreTest {
         output.set(0, 1, 0, air);
 
         DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null);
+                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
 
         assertSame(air, output.get(0, 1, 0));
     }
@@ -365,7 +366,7 @@ public class DecoratorCoreTest {
         output.set(0, 1, 0, air);
 
         DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null);
+                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
 
         assertSame(farmland, output.get(0, 0, 0));
         assertSame(wheat, output.get(0, 1, 0));

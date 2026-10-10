@@ -18,7 +18,11 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.IrisPlatforms;
+import com.volmit.ModuleLog;
+import com.volmit.host.ModuleLogs;
 
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
@@ -29,10 +33,18 @@ import java.util.ResourceBundle;
  * looks up on the system class loader, where a plugin's classes are not.
  */
 final class IrisApiLogger implements System.Logger {
+    private static final String HOST_MODULE_LABEL = "iris";
+    private static final ModuleLog HOST_LOG = ModuleLogs.labelled(HOST_MODULE_LABEL, new IrisApiLogger(HOST_MODULE_LABEL));
+
     private final String name;
 
     IrisApiLogger(String name) {
         this.name = name;
+    }
+
+    /** The log of Iris itself, for the world code that is not any module's. */
+    static ModuleLog hostLog() {
+        return HOST_LOG;
     }
 
     @Override
@@ -40,9 +52,21 @@ final class IrisApiLogger implements System.Logger {
         return name;
     }
 
+    /** Modules' debug lines follow Iris's debug setting, as Iris's own debug lines do. */
     @Override
     public boolean isLoggable(Level level) {
-        return level != Level.OFF;
+        if (level == Level.OFF) {
+            return false;
+        }
+        if (level == Level.DEBUG || level == Level.TRACE) {
+            return isDebugEnabled();
+        }
+        return true;
+    }
+
+    private static boolean isDebugEnabled() {
+        boolean settingsAvailable = IrisSettings.settings != null || IrisPlatforms.isBound();
+        return settingsAvailable && IrisSettings.get().getGeneral().isDebug();
     }
 
     @Override

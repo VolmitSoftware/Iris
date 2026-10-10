@@ -43,6 +43,7 @@ import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppressio
 import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import org.junit.Test;
 
 import java.util.Set;
@@ -279,7 +280,7 @@ public class IrisStructureLocatorContractTest {
         ModuleResourceFixture.of(data).resource(StructureResources.PIECES, "test:target-piece", targetPiece);
         when(data.load(IrisObject.class, "test:start-object", false)).thenReturn(startObject);
         when(data.load(IrisObject.class, "test:target-object", false)).thenReturn(targetObject);
-        assertFalse(StructureGraphCatalog.compile(data, structure).isAssemblyViable());
+        assertFalse(StructureGraphCatalog.compile(data, structure, ModuleLogs.discarding()).isAssemblyViable());
 
         IrisStructurePlacement placement = new IrisStructurePlacement()
                 .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);

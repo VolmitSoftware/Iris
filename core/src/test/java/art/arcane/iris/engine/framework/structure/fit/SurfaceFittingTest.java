@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
+import com.volmit.host.ModuleLogs;
 import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TerrainAdaptation;
 import org.junit.Test;
@@ -229,7 +230,7 @@ public class SurfaceFittingTest {
         FitStart start = FitFixture.start(VACUUM, TerrainAdaptation.NONE, StructureStep.SURFACE_STRUCTURES,
                 FitFixture.Piece.rigid(new Box(0, 66, 0, 0, 70, 0), 1).cell(0, 66, 0, COBBLESTONE));
 
-        SurfaceFitting.prepareSurfaceStructures(world.fitBlocks(), area, List.of(start), (x, z) -> 60, 1);
+        SurfaceFitting.prepareSurfaceStructures(world.fitBlocks(), area, List.of(start), (x, z) -> 60, 1, ModuleLogs.discarding());
 
         assertEquals(before, world.snapshot());
     }
@@ -242,7 +243,7 @@ public class SurfaceFittingTest {
                 FitFixture.Piece.rigid(new Box(0, 65, 0, 0, 72, 0), 1).cell(0, 65, 0, COBBLESTONE));
 
         SurfaceFitting.VacuumFoundationPlan plan = SurfaceFitting.prepareSurfaceStructures(
-                world.fitBlocks(), area, List.of(start), (x, z) -> 60, SurfaceFitting.MAX_SURFACE_TEMPLATE_CELLS);
+                world.fitBlocks(), area, List.of(start), (x, z) -> 60, SurfaceFitting.MAX_SURFACE_TEMPLATE_CELLS, ModuleLogs.discarding());
         assertEquals(GRASS, world.at(0, 64, 0));
         for (int y = 61; y <= 64; y++) {
             world.put(0, y, 0, state("cave_air"));

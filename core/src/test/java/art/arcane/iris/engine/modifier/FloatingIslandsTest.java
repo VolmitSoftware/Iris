@@ -10,6 +10,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
+import com.volmit.host.ModuleLogs;
 import org.junit.Test;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +28,7 @@ public class FloatingIslandsTest {
     @Test
     @SuppressWarnings("unchecked")
     public void columnsWithoutFloatingChildBiomesAreLeftAlone() {
-        FloatingIslands islands = new FloatingIslands(engine());
+        FloatingIslands islands = new FloatingIslands(engine(), ModuleLogs.discarding());
         IrisBiome biome = mock(IrisBiome.class);
         when(biome.getModuleSettings()).thenReturn(ModuleSettings.NONE);
         FloatingIslandBoundarySampler sampler = mock(FloatingIslandBoundarySampler.class);

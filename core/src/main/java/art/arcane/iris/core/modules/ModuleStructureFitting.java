@@ -43,6 +43,7 @@ import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
+import com.volmit.ModuleLog;
 import com.volmit.world.BlockAccess;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -96,17 +97,21 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
 
     @Override
     public <S> Session beforePieces(NativeFitChunk<S> chunk) {
-        ChunkFit<S> fit = new ChunkFit<>(chunk, world);
-        for (ServiceRegistration registration : providers) {
-            ModuleVanillaStructures.ask(registration, "fitting structures into chunk " + fit.chunkName(), provider -> {
+        List<ChunkFit<S>> fits = providers.stream()
+                .<ChunkFit<S>>map(registration -> new ChunkFit<>(chunk, () -> registration.scope(world.get()), registration.module().log()))
+                .toList();
+        for (int index = 0; index < providers.size(); index++) {
+            ChunkFit<S> fit = fits.get(index);
+            ModuleVanillaStructures.ask(providers.get(index), "fitting structures into chunk " + fit.chunkName(), provider -> {
                 provider.beforePieces(fit);
                 return Boolean.TRUE;
             });
         }
         return startIndex -> {
-            StructureFit.Start placed = fit.starts().get(startIndex);
-            for (ServiceRegistration registration : providers) {
-                ModuleVanillaStructures.ask(registration, "fitting " + placed.structure() + " into chunk " + fit.chunkName(),
+            for (int index = 0; index < providers.size(); index++) {
+                ChunkFit<S> fit = fits.get(index);
+                StructureFit.Start placed = fit.starts().get(startIndex);
+                ModuleVanillaStructures.ask(providers.get(index), "fitting " + placed.structure() + " into chunk " + fit.chunkName(),
                         provider -> {
                             provider.afterPieces(fit, placed);
                             return Boolean.TRUE;
@@ -145,13 +150,15 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
     private static final class ChunkFit<S> implements StructureFit {
         private final NativeFitChunk<S> chunk;
         private final Supplier<PackWorld> world;
+        private final ModuleLog log;
         private final Access<S> blocks;
         private final List<StructureFit.Start> starts;
         private final Map<Class<?>, Object> states = new HashMap<>();
 
-        private ChunkFit(NativeFitChunk<S> chunk, Supplier<PackWorld> world) {
+        private ChunkFit(NativeFitChunk<S> chunk, Supplier<PackWorld> world, ModuleLog log) {
             this.chunk = chunk;
             this.world = world;
+            this.log = log;
             this.blocks = new Access<>(chunk);
             List<StructureFit.Start> converted = new ArrayList<>(chunk.starts().size());
             for (NativeFitStart<S> start : chunk.starts()) {
@@ -167,6 +174,11 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
         @Override
         public PackWorld world() {
             return world.get();
+        }
+
+        @Override
+        public ModuleLog log() {
+            return log;
         }
 
         @Override

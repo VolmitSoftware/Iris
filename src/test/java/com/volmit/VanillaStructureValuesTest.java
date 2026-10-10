@@ -135,6 +135,14 @@ class VanillaStructureValuesTest {
         assertTrue(silent.generatesFeature(null, ResourceId.parse("minecraft:ore_diamond")));
     }
 
+    @Test
+    void everyDecorationStepDescribesItselfForStudio() throws NoSuchFieldException {
+        assertNotNull(DecorationStep.class.getAnnotation(com.volmit.config.Desc.class));
+        for (DecorationStep step : DecorationStep.values()) {
+            assertNotNull(DecorationStep.class.getField(step.name()).getAnnotation(com.volmit.config.Desc.class), step.name());
+        }
+    }
+
     private static List<String> names(Class<?> type) {
         return OptionsMetadata.inspect(type).options().stream().map(OptionsMetadata.Option::name).toList();
     }

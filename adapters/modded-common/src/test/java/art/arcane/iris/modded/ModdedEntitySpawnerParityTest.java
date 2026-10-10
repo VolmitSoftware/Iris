@@ -1,6 +1,5 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.entity.IrisEffect;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -147,16 +146,6 @@ public class ModdedEntitySpawnerParityTest {
         assertEquals(EntitySpawnReason.NATURAL, ModdedEntitySpawner.reasonFor(null));
         assertEquals(EntitySpawnReason.NATURAL, ModdedEntitySpawner.reasonFor(""));
         assertEquals(EntitySpawnReason.NATURAL, ModdedEntitySpawner.reasonFor("not_a_spawn_reason"));
-    }
-
-    @Test
-    public void entityEffectExposesNeutralRegistryKeys() {
-        IrisEffect effect = new IrisEffect()
-                .setSound("minecraft:block.amethyst_block.chime")
-                .setParticleEffect("minecraft:flame");
-
-        assertEquals("minecraft:block.amethyst_block.chime", effect.getSoundKey());
-        assertEquals("minecraft:flame", effect.getParticleEffectKey());
     }
 
     private static long pack(int x, int z) {

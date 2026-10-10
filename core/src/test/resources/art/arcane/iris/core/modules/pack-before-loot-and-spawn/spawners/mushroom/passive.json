@@ -1,0 +1,32 @@
+{
+    "group": "NORMAL",
+    "maximumRate": {
+        "amount": 15,
+        "per": {"seconds": 30}
+    },
+    "timeBlock": {
+        "startHour": 6,
+        "endHour": 18
+    },
+    "maxEntitiesPerChunk": 2,
+    "weather": "NONE",
+    "spawns": [
+        {
+            "entity": "standard/passive/mooshroom",
+            "maxSpawns": 3,
+            "minSpawns": 1,
+            "rarity": 1
+        },
+        {
+            "entity": "standard/passive/cow",
+            "maxSpawns": 2,
+            "rarity": 3
+        },
+        {
+            "entity": "standard/passive/pig",
+            "maxSpawns": 2,
+            "minSpawns": 1,
+            "rarity": 2
+        }
+    ]
+}

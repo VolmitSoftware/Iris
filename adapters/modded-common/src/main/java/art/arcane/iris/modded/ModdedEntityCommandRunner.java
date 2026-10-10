@@ -1,16 +1,18 @@
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.marker.IrisCommand;
+import art.arcane.iris.core.content.ContentEntity;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+
+import java.util.List;
 
 final class ModdedEntityCommandRunner {
     private ModdedEntityCommandRunner() {
     }
 
-    static void run(KList<IrisCommand> commands, ServerLevel level, int blockX, int blockY, int blockZ) {
+    /** Schedules the commands, which a module already checked against the time and weather, at the block. */
+    static void run(List<ContentEntity.Command> commands, ServerLevel level, int blockX, int blockY, int blockZ) {
         if (commands.isEmpty()) {
             return;
         }
@@ -21,24 +23,20 @@ final class ModdedEntityCommandRunner {
             return;
         }
 
-        ModdedPlatformWorld world = new ModdedPlatformWorld(level);
-        for (IrisCommand command : commands) {
-            if (command == null || !command.isValid(world)) {
-                continue;
-            }
+        for (ContentEntity.Command command : commands) {
             schedule(command, server, scheduler, blockX, blockY, blockZ);
         }
     }
 
-    private static void schedule(IrisCommand command, MinecraftServer server, ModdedScheduler scheduler, int blockX, int blockY, int blockZ) {
-        int delay = clampDelay(command.getDelay(), 0);
-        int repeatDelay = clampDelay(command.getRepeatDelay(), 1);
-        for (String raw : command.getCommands()) {
+    private static void schedule(ContentEntity.Command command, MinecraftServer server, ModdedScheduler scheduler, int blockX, int blockY, int blockZ) {
+        int delay = clampDelay(command.delay(), 0);
+        int repeatDelay = clampDelay(command.repeatDelay(), 1);
+        for (String raw : command.commands()) {
             String prepared = prepareCommand(raw, blockX, blockY, blockZ);
             if (prepared == null) {
                 continue;
             }
-            if (command.isRepeat()) {
+            if (command.repeat()) {
                 scheduler.laterGlobal(() -> new RepeatingCommand(server, scheduler, prepared, repeatDelay).run(), delay);
             } else {
                 scheduler.laterGlobal(() -> ModdedServerCommands.dispatch(server, prepared), delay);

@@ -1,10 +1,8 @@
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
-import art.arcane.iris.engine.object.loot.IrisEnchantment;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootTable;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemRegistry;
@@ -37,10 +35,10 @@ public class LootItemsTest {
 
     @Test
     public void anEntryDrawsAmountEnchantmentsAttributesAndDamageFromOneStreamInThatOrder() {
-        IrisLoot entry = new IrisLoot().setType("diamond_sword").setMinAmount(1).setMaxAmount(3)
-                .setMinDurability(0.25).setMaxDurability(0.75)
-                .setEnchantments(new KList<>(new IrisEnchantment("sharpness", 1, 5, 1D)))
-                .setAttributes(new KList<>(new IrisAttributeModifier("max_health", "bonus", "ADD_NUMBER", 2, 6, 1D)));
+        LootEntry entry = entry("""
+                {"type": "diamond_sword", "minAmount": 1, "maxAmount": 3, "minDurability": 0.25, "maxDurability": 0.75,
+                 "enchantments": [{"enchantment": "sharpness", "minLevel": 1, "maxLevel": 5, "chance": 1}],
+                 "attributes": [{"attribute": "max_health", "name": "bonus", "operation": "ADD_NUMBER", "minAmount": 2, "maxAmount": 6, "chance": 1}]}""");
         RNG expected = new RNG(5L);
         int amount = (int) (1 + expected.nextLong(3));
         expected.nextDouble();
@@ -59,7 +57,7 @@ public class LootItemsTest {
 
     @Test
     public void anItemThatCannotBeDamagedDrawsNoDamageAndKeepsTheStreamAligned() {
-        IrisLoot entry = new IrisLoot().setType("diamond").setMinAmount(2).setMaxAmount(2);
+        LootEntry entry = entry("{\"type\": \"diamond\", \"minAmount\": 2, \"maxAmount\": 2}");
         RNG rng = new RNG(9L);
         RNG untouched = new RNG(9L);
 
@@ -75,32 +73,37 @@ public class LootItemsTest {
         RNG rng = new RNG(9L);
         RNG untouched = new RNG(9L);
 
-        assertNull(new LootItems(registry, false).give(new IrisLoot().setType("not_an_item"), rng));
-        assertNull(new LootItems(registry, false).give(new IrisLoot().setType("air"), rng));
+        assertNull(new LootItems(registry, false).give(entry("{\"type\": \"not_an_item\"}"), rng));
+        assertNull(new LootItems(registry, false).give(entry("{\"type\": \"air\"}"), rng));
         assertEquals(untouched.nextLong(), rng.nextLong());
     }
 
     @Test
     public void debugItemsSayWhereTheyCameFrom() {
-        IrisLootTable table = new IrisLootTable().setName("dungeon").setRarity(4);
-        table.setLoot(new KList<>(new IrisLoot().setType("diamond").setRarity(3)));
-        table.setMinPicked(1).setMaxPicked(1);
+        LootTable table = table("{\"name\": \"dungeon\", \"rarity\": 4, \"minPicked\": 1, \"maxPicked\": 1, \"loot\": [{\"type\": \"diamond\", \"rarity\": 3}]}");
 
-        List<ItemDrop> drops = new LootItems(registry, true).draw(table, LOOT_SEED, 0, 64, 0);
+        List<ItemDrop> drops = new LootItems(registry, true).draw("dungeon", table, LOOT_SEED, 0, 64, 0);
 
         for (ItemDrop drop : drops) {
             assertEquals(new ItemDrop.Source("dungeon", 4, 3), drop.source());
         }
-        assertTrue(new LootItems(registry, false).draw(table, LOOT_SEED, 0, 64, 0).stream().allMatch(drop -> drop.source() == null));
+        assertTrue(new LootItems(registry, false).draw("dungeon", table, LOOT_SEED, 0, 64, 0).stream().allMatch(drop -> drop.source() == null));
     }
 
     @Test
     public void aTableGivesTheSameItemsAtTheSameSpotAndSeed() {
-        IrisLootTable table = new IrisLootTable().setName("tools").setMinPicked(2).setMaxPicked(4);
-        table.setLoot(new KList<>(new IrisLoot().setType("diamond").setMaxAmount(5), new IrisLoot().setType("diamond_sword")));
+        LootTable table = table("{\"name\": \"tools\", \"minPicked\": 2, \"maxPicked\": 4, \"loot\": [{\"type\": \"diamond\", \"maxAmount\": 5}, {\"type\": \"diamond_sword\"}]}");
 
         LootItems items = new LootItems(registry, false);
 
-        assertEquals(items.draw(table, LOOT_SEED, 10, 64, -30), items.draw(table, LOOT_SEED, 10, 64, -30));
+        assertEquals(items.draw("tools", table, LOOT_SEED, 10, 64, -30), items.draw("tools", table, LOOT_SEED, 10, 64, -30));
+    }
+
+    private static LootEntry entry(String json) {
+        return TestSettings.of(LootEntry.class, json);
+    }
+
+    private static LootTable table(String json) {
+        return TestSettings.of(LootTable.class, json);
     }
 }

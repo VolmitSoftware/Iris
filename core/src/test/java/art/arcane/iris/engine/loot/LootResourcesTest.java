@@ -21,7 +21,7 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaTestPlatform;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.host.ValidatorRegistration;
 import org.junit.Rule;
@@ -53,7 +53,7 @@ public class LootResourcesTest {
             assertEquals(List.of("iris:loot/table"), catalog.resourceKinds().stream().map(registration -> registration.kind().id().toString())
                     .filter(id -> id.startsWith("iris:loot/")).toList());
             assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(LootValidator.class::isInstance));
-            assertFalse(data.getLoaders().containsKey(IrisLootTable.class));
+            assertFalse(data.getLoaders().containsKey(LootTable.class));
         } finally {
             data.close();
         }
@@ -64,19 +64,18 @@ public class LootResourcesTest {
         Path pack = lootPack("tables");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            IrisLootTable table = LootResources.table(data, "dungeon/chest");
+            LootTable table = LootResources.table(data, "dungeon/chest");
 
-            assertEquals("Chest", table.getName());
-            assertEquals("dungeon/chest", table.getLoadKey());
-            assertEquals(pack.resolve("loot/dungeon/chest.json").toFile(), table.getLoadFile());
+            assertEquals("Chest", table.name());
+            assertEquals(1, table.loot().size());
+            assertEquals("stick", table.loot().getFirst().type());
             assertEquals(List.of("dungeon/chest"), LootResources.tableKeys(data));
-            assertEquals(List.of(table), LootResources.tables(data, List.of("dungeon/chest", "missing")));
             assertNull(LootResources.table(data, "missing"));
             assertNull(LootResources.table(data, " "));
 
             write(pack, "loot/dungeon/chest.json", "{\"name\":\"Renamed\"}");
             data.dump();
-            assertEquals("Renamed", LootResources.table(data, "dungeon/chest").getName());
+            assertEquals("Renamed", LootResources.table(data, "dungeon/chest").name());
         } finally {
             data.close();
         }

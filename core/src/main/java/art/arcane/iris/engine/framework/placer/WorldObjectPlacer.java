@@ -5,6 +5,7 @@ import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.core.events.InventorySlotType;
 import art.arcane.iris.core.events.IrisLootEvent;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
@@ -86,7 +87,7 @@ public class WorldObjectPlacer implements IObjectPlacer {
         KList<Loot.Source> tables = EngineBukkitOps.getLootTables(engine, block);
 
         try {
-            Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, tables));
+            Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, InventorySlotType.STORAGE, tables));
             if (tables.isEmpty()) {
                 return;
             }

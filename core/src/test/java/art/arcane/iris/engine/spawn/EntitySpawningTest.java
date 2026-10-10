@@ -25,10 +25,10 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.IrisEntitySpawn;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.SpawnMarker;
+import art.arcane.iris.builtin.spawn.Spawner;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.collection.KList;
@@ -97,10 +97,9 @@ public class EntitySpawningTest {
 
     @Test
     public void aMarkerMeansItsSpawnersAndWhetherItGoesAwayWhenItsBlockChanges() {
-        IrisMarker marker = new IrisMarker();
-        marker.setSpawners(new KList<>("zombies", "missing")).setEmptyAbove(true).setRemoveOnChange(false);
+        SpawnMarker marker = TestSettings.of(SpawnMarker.class, "{\"spawners\": [\"zombies\", \"missing\"], \"emptyAbove\": true, \"removeOnChange\": false}");
         fixture.resource(SpawnResources.MARKERS, "camp", marker);
-        fixture.resource(SpawnResources.SPAWNERS, "zombies", new IrisSpawner());
+        fixture.resource(SpawnResources.SPAWNERS, "zombies", new Spawner());
 
         EntitySpawns.MarkerRule rule = new EntitySpawning().marker(world, "camp").orElseThrow();
 
@@ -117,16 +116,10 @@ public class EntitySpawningTest {
 
     @Test
     public void aMarkerSpawnPlansEntitiesOneBlockAboveTheMarkerWithoutSurfaceChecks() {
-        IrisSpawner spawner = new IrisSpawner();
-        spawner.setLoadKey("camp/zombies");
-        spawner.getSpawns().add(new IrisEntitySpawn().setEntity("zombie").setMinSpawns(2).setMaxSpawns(2));
+        Spawner spawner = TestSettings.of(Spawner.class, "{\"spawns\": [{\"entity\": \"zombie\", \"minSpawns\": 2, \"maxSpawns\": 2}]}");
         fixture.resource(SpawnResources.SPAWNERS, "camp/zombies", spawner);
-        IrisMarker marker = new IrisMarker();
-        marker.setExhaustionChance(2);
-        fixture.resource(SpawnResources.MARKERS, "camp", marker);
-        IrisEntity zombie = new IrisEntity();
-        zombie.setType("minecraft:zombie");
-        fixture.resource(SpawnResources.ENTITIES, "zombie", zombie);
+        fixture.resource(SpawnResources.MARKERS, "camp", TestSettings.of(SpawnMarker.class, "{\"exhaustionChance\": 2}"));
+        fixture.resource(SpawnResources.ENTITIES, "zombie", TestSettings.of(EntityDefinition.class, "{\"type\": \"minecraft:zombie\"}"));
         when(engine.getMinHeight()).thenReturn(-64);
 
         EntitySpawns.Plan plan = new EntitySpawning()
@@ -145,8 +138,7 @@ public class EntitySpawningTest {
 
     @Test
     public void aSpawnerThatCannotFireOrHasNoEntitiesPlansNothing() {
-        IrisSpawner empty = new IrisSpawner();
-        fixture.resource(SpawnResources.SPAWNERS, "empty", empty);
+        fixture.resource(SpawnResources.SPAWNERS, "empty", new Spawner());
 
         Optional<EntitySpawns.Plan> plan = new EntitySpawning().plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", "empty", false));
 
@@ -155,9 +147,8 @@ public class EntitySpawningTest {
 
     @Test
     public void anEntityOfThePackResolvesToTheSpecTheHostSpawns() {
-        IrisEntity entity = new IrisEntity();
-        entity.setType("minecraft:cow").setCustomName("&6Bessie").setBaby(true);
-        fixture.resource(SpawnResources.ENTITIES, "cow", entity);
+        fixture.resource(SpawnResources.ENTITIES, "cow", TestSettings.of(EntityDefinition.class,
+                "{\"type\": \"minecraft:cow\", \"customName\": \"&6Bessie\", \"baby\": true}"));
 
         EntitySpec spec = new EntitySpawning().entity(world, "cow").orElseThrow();
 

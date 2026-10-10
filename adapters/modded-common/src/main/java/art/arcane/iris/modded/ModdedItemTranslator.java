@@ -18,19 +18,11 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.loot.LootTables;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
-import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
-import art.arcane.iris.engine.object.loot.IrisEnchantment;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.core.content.ContentItem;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.volmlib.util.math.RNG;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -63,6 +55,7 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,42 +67,27 @@ public final class ModdedItemTranslator {
     private ModdedItemTranslator() {
     }
 
-    public static KList<ItemStack> loot(IrisLootTable table, long lootSeed, InventorySlotType slot, ServerLevel level, int x, int y, int z) {
-        KList<ItemStack> out = new KList<>();
-        KList<IrisLoot> entries = table.getLoot();
-        if (entries.isEmpty() || table.getMaxTries() <= 0) {
-            return out;
-        }
-
-        RNG rng = LootTables.rng(lootSeed, table, x, y, z);
-        int m = 0;
-        int c = 0;
-        int mx = Math.max(0, LootResolver.inclusive(rng, table.getMinPicked(), table.getMaxPicked()));
-
-        while (m < mx && c++ < table.getMaxTries()) {
-            int entryIndex = rng.nextInt(entries.size());
-            IrisLoot entry = entries.get(entryIndex);
-            if (entry == null || entry.getSlotTypes() != slot) {
-                continue;
-            }
-            ItemStack item = item(entry, table, rng, lootSeed, entryIndex, level, x, y, z);
-            if (item != null && !item.isEmpty()) {
-                out.add(item);
-                m++;
+    /** The stacks of {@code items}, without the ones the platform cannot make. */
+    public static KList<ItemStack> stacks(List<ContentItem> items, ServerLevel level) {
+        KList<ItemStack> stacks = new KList<>();
+        for (ContentItem item : items) {
+            ItemStack stack = stack(item, level);
+            if (stack != null && !stack.isEmpty()) {
+                stacks.add(stack);
             }
         }
-
-        return out;
+        return stacks;
     }
 
-    public static ItemStack stack(IrisLoot loot, RNG rng, ServerLevel level) {
+    /** The stack of {@code item}, or null when the platform has no such item. */
+    public static ItemStack stack(ContentItem item, ServerLevel level) {
         try {
-            ItemStack stack = baseStack(loot, rng);
+            ItemStack stack = baseStack(item);
             if (stack == null || stack.isEmpty()) {
                 return null;
             }
-            applyComponents(loot, stack, rng, level);
-            applyCustomNbt(stack, loot.getCustomNbt());
+            applyComponents(item, stack, level);
+            applyCustomNbt(stack, item.customNbt());
             return stack;
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -117,28 +95,8 @@ public final class ModdedItemTranslator {
         }
     }
 
-    public static ItemStack item(IrisLoot loot, IrisLootTable table, RNG rng, long lootSeed, int entryIndex, ServerLevel level, int x, int y, int z) {
-        long combinedRarity = LootResolver.combinedRarity(loot.getRarity(), table.getRarity());
-        if (!LootTables.spatialOneIn(lootSeed, table, entryIndex, x, y, z, combinedRarity)) {
-            return null;
-        }
-
-        try {
-            ItemStack stack = baseStack(loot, rng);
-            if (stack == null || stack.isEmpty()) {
-                return null;
-            }
-            applyComponents(loot, stack, rng, level);
-            applyCustomNbt(stack, loot.getCustomNbt());
-            return stack;
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
-            return null;
-        }
-    }
-
-    private static ItemStack baseStack(IrisLoot loot, RNG rng) {
-        String raw = loot.getTypeKey();
+    private static ItemStack baseStack(ContentItem item) {
+        String raw = item.item();
         if (raw == null || raw.isBlank()) {
             return null;
         }
@@ -150,55 +108,53 @@ public final class ModdedItemTranslator {
             return null;
         }
 
-        Item item = BuiltInRegistries.ITEM.getValue(id);
-        return new ItemStack(item, Math.max(1, LootResolver.inclusive(rng, loot.getMinAmount(), loot.getMaxAmount())));
+        return new ItemStack(BuiltInRegistries.ITEM.getValue(id), item.amount());
     }
 
-    private static void applyComponents(IrisLoot loot, ItemStack stack, RNG rng, ServerLevel level) {
-        applyEnchantments(loot, stack, rng, level);
-        applyAttributes(loot, stack, rng, level);
+    private static void applyComponents(ContentItem item, ItemStack stack, ServerLevel level) {
+        applyEnchantments(item, stack, level);
+        applyAttributes(item, stack, level);
 
-        if (loot.isUnbreakable()) {
+        if (item.unbreakable()) {
             stack.set(DataComponents.UNBREAKABLE, Unit.INSTANCE);
         }
 
-        if (loot.getItemFlags().isNotEmpty()) {
-            applyItemFlags(loot, stack);
+        if (!item.flags().isEmpty()) {
+            applyItemFlags(item, stack);
         }
 
-        if (loot.getCustomModel() != null) {
-            stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of(loot.getCustomModel().floatValue()), List.of(), List.of(), List.of()));
+        if (item.customModel() != null) {
+            stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of(item.customModel().floatValue()), List.of(), List.of(), List.of()));
         }
 
-        if (stack.getMaxDamage() > 0) {
+        if (stack.getMaxDamage() > 0 && item.damage() != null) {
             int max = stack.getMaxDamage();
-            int damage = (int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(loot.getMinDurability(), loot.getMaxDurability())) * max)));
+            int damage = (int) Math.round(Math.max(0, Math.min(max, item.damage() * max)));
             stack.set(DataComponents.DAMAGE, damage);
         }
 
-        if (loot.getLeatherColor() != null) {
+        if (item.leatherColor() != null) {
             try {
-                int rgb = Integer.decode(loot.getLeatherColor()) & 0xFFFFFF;
+                int rgb = Integer.decode(item.leatherColor()) & 0xFFFFFF;
                 stack.set(DataComponents.DYED_COLOR, new DyedItemColor(rgb));
             } catch (NumberFormatException e) {
-                warnOnce("leatherColor:" + loot.getLeatherColor(), "Iris loot: invalid leatherColor '" + loot.getLeatherColor() + "'");
+                warnOnce("leatherColor:" + item.leatherColor(), "Iris loot: invalid leatherColor '" + item.leatherColor() + "'");
             }
         }
 
-        String dye = loot.getDyeColorKey();
-        if (dye != null) {
-            applyDyeColor(stack, dye);
+        if (item.dyeColor() != null) {
+            applyDyeColor(stack, item.dyeColor());
         }
 
-        if (loot.getDisplayName() != null) {
-            stack.set(DataComponents.CUSTOM_NAME, Component.literal(colorize(loot.getDisplayName())));
+        if (item.displayName() != null) {
+            stack.set(DataComponents.CUSTOM_NAME, Component.literal(colorize(item.displayName())));
         }
 
-        applyLore(loot, stack);
+        applyLore(item, stack);
     }
 
-    private static void applyEnchantments(IrisLoot loot, ItemStack stack, RNG rng, ServerLevel level) {
-        if (loot.getEnchantments().isEmpty()) {
+    private static void applyEnchantments(ContentItem item, ItemStack stack, ServerLevel level) {
+        if (item.enchantments().isEmpty()) {
             return;
         }
 
@@ -207,8 +163,8 @@ public final class ModdedItemTranslator {
         ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(stack.getOrDefault(component, ItemEnchantments.EMPTY));
         boolean changed = false;
 
-        for (IrisEnchantment enchantment : loot.getEnchantments()) {
-            String name = enchantment.getEnchantment();
+        for (ContentItem.Enchantment enchantment : item.enchantments()) {
+            String name = enchantment.key();
             if (name == null || name.isBlank()) {
                 continue;
             }
@@ -221,10 +177,8 @@ public final class ModdedItemTranslator {
                 warnOnce("enchantment:" + key, "Iris loot: unknown enchantment '" + name + "'");
                 continue;
             }
-            if (rng.nextDouble() < enchantment.getChance()) {
-                mutable.set(holder.get(), enchantment.getLevel(rng));
-                changed = true;
-            }
+            mutable.set(holder.get(), enchantment.level());
+            changed = true;
         }
 
         if (changed) {
@@ -232,8 +186,8 @@ public final class ModdedItemTranslator {
         }
     }
 
-    private static void applyAttributes(IrisLoot loot, ItemStack stack, RNG rng, ServerLevel level) {
-        if (loot.getAttributes().isEmpty()) {
+    private static void applyAttributes(ContentItem item, ItemStack stack, ServerLevel level) {
+        if (item.attributes().isEmpty()) {
             return;
         }
 
@@ -241,21 +195,17 @@ public final class ModdedItemTranslator {
         ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.builder();
         boolean changed = false;
 
-        for (IrisAttributeModifier attribute : loot.getAttributes()) {
-            if (rng.nextDouble() >= attribute.getChance()) {
-                continue;
-            }
-            double amount = attribute.getAmount(rng);
-            Holder<Attribute> holder = resolveAttribute(registry, attribute.getAttribute());
+        for (ContentItem.Attribute attribute : item.attributes()) {
+            Holder<Attribute> holder = resolveAttribute(registry, attribute.attribute());
             if (holder == null) {
-                warnOnce("attribute:" + attribute.getAttribute(), "Iris loot: unknown attribute '" + attribute.getAttribute() + "'");
+                warnOnce("attribute:" + attribute.attribute(), "Iris loot: unknown attribute '" + attribute.attribute() + "'");
                 continue;
             }
-            Identifier modifierId = attributeModifierId(attribute.getName());
+            Identifier modifierId = attributeModifierId(attribute.name());
             if (modifierId == null) {
                 continue;
             }
-            AttributeModifier modifier = new AttributeModifier(modifierId, amount, operationFor(attribute.getOperation()));
+            AttributeModifier modifier = new AttributeModifier(modifierId, attribute.amount(), operationFor(attribute.operation()));
             builder.add(holder, modifier, EquipmentSlotGroup.ANY);
             changed = true;
         }
@@ -311,11 +261,11 @@ public final class ModdedItemTranslator {
         return Identifier.tryParse("iris:" + normalized);
     }
 
-    private static void applyItemFlags(IrisLoot loot, ItemStack stack) {
+    private static void applyItemFlags(ContentItem item, ItemStack stack) {
         TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
         boolean changed = false;
 
-        for (String flag : loot.getItemFlags()) {
+        for (String flag : item.flags()) {
             if (flag == null || flag.isBlank()) {
                 continue;
             }
@@ -356,13 +306,13 @@ public final class ModdedItemTranslator {
         stack.set(DataComponents.BASE_COLOR, color);
     }
 
-    private static void applyLore(IrisLoot loot, ItemStack stack) {
-        if (loot.getLore().isEmpty()) {
+    private static void applyLore(ContentItem item, ItemStack stack) {
+        if (item.lore().isEmpty()) {
             return;
         }
 
         List<Component> lines = new ArrayList<>();
-        for (String line : loot.getLore()) {
+        for (String line : item.lore()) {
             String colored = colorize(line);
             if (colored.length() > 24) {
                 for (String wrapped : Form.wrapWords(colored, 24).split("\\Q\n\\E")) {
@@ -375,7 +325,7 @@ public final class ModdedItemTranslator {
         stack.set(DataComponents.LORE, new ItemLore(lines));
     }
 
-    private static void applyCustomNbt(ItemStack stack, KMap<String, Object> customNbt) {
+    private static void applyCustomNbt(ItemStack stack, Map<String, Object> customNbt) {
         if (customNbt == null || customNbt.isEmpty()) {
             return;
         }

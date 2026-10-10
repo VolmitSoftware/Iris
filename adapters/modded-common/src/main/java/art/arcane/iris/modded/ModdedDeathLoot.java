@@ -18,10 +18,8 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.loot.LootResources;
+import art.arcane.iris.core.content.ContentServices;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
@@ -34,22 +32,23 @@ import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ModdedDeathLoot {
     private static final String TAG_PREFIX = "iris_loot|";
-    private static final Set<String> WARNED_TABLES = ConcurrentHashMap.newKeySet();
     private static final Set<String> WARNED_ENTITY_TYPES = ConcurrentHashMap.newKeySet();
 
     private ModdedDeathLoot() {
     }
 
-    public static void bind(Engine engine, Entity entity, KList<String> tableKeys, int spawnX, int spawnY, int spawnZ, RNG rng) {
+    /** Makes the loot of the pack's tables {@code tableKeys} the loot {@code entity} drops, or holds if it is a container; {@code shuffleSeed} seeds how a container's loot is shuffled. */
+    public static void bind(Engine engine, Entity entity, List<String> tableKeys, int spawnX, int spawnY, int spawnZ, long shuffleSeed) {
         if (engine == null || entity == null || tableKeys == null || tableKeys.isEmpty()) {
             return;
         }
-        LootBinding binding = new LootBinding(rng.getSeed(), spawnX, spawnY, spawnZ, new KList<>(tableKeys));
+        LootBinding binding = new LootBinding(shuffleSeed, spawnX, spawnY, spawnZ, new KList<>(tableKeys));
         if (entity instanceof Mob) {
             entity.addTag(encode(binding));
             return;
@@ -105,15 +104,8 @@ public final class ModdedDeathLoot {
     private static KList<ItemStack> resolve(Engine engine, ServerLevel level, LootBinding binding) {
         KList<ItemStack> drops = new KList<>();
         for (String key : binding.tableKeys()) {
-            IrisLootTable table = LootResources.table(engine.getData(), key);
-            if (table == null) {
-                if (WARNED_TABLES.add(key)) {
-                    IrisLogging.warn("Iris death loot: unknown loot table '" + key + "'");
-                }
-                continue;
-            }
-            drops.addAll(ModdedItemTranslator.loot(table, engine.getSeedManager().getLoot(), InventorySlotType.STORAGE, level,
-                    binding.spawnX(), binding.spawnY(), binding.spawnZ()));
+            drops.addAll(ModdedItemTranslator.stacks(
+                    ContentServices.tableItems(engine, binding.spawnX(), binding.spawnY(), binding.spawnZ(), key), level));
         }
         return drops;
     }

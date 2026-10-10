@@ -18,19 +18,11 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.loot.LootResources;
-import art.arcane.iris.engine.object.loot.IrisObjectLoot;
-import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.core.content.ContentLoot;
+import art.arcane.iris.core.content.ContentServices;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.loot.LootTables;
-import art.arcane.iris.engine.framework.PlacedObject;
-import art.arcane.iris.engine.object.loot.IObjectLoot;
-import art.arcane.iris.engine.object.loot.InventorySlotType;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
@@ -53,7 +45,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -65,10 +56,10 @@ public final class ModdedLootApplier {
         if (!isCanonicalContainer(pos, state)) {
             return;
         }
-        RNG rng = LootResolver.containerRng(engine.getSeedManager().getLoot(), pos.getX(), pos.getY(), pos.getZ());
         boolean nativeLootDefined = hasNativeLootTable(level, pos, state);
-        List<LootSource> sources = resolveSources(engine, level, rng, pos, state, mc, nativeLootDefined);
-        if (sources.isEmpty()) {
+        String containerKey = ModdedBlockResolution.isStorageChest(state) ? ModdedBlockState.serialize(state) : null;
+        List<ContentLoot.Part> parts = ContentServices.containerLoot(engine, pos.getX(), pos.getY(), pos.getZ(), containerKey, nativeLootDefined);
+        if (parts.isEmpty()) {
             return;
         }
 
@@ -80,97 +71,38 @@ public final class ModdedLootApplier {
 
         KList<ItemStack> items = new KList<>();
         LootParams nativeParams = null;
-        for (LootSource source : sources) {
-            if (source instanceof IrisLootSource irisSource) {
-                IrisLootTable table = irisSource.table();
-                if (table == null) {
-                    continue;
-                }
-                items.addAll(ModdedItemTranslator.loot(table, engine.getSeedManager().getLoot(), InventorySlotType.STORAGE, level, pos.getX(), pos.getY(), pos.getZ()));
+        for (ContentLoot.Part part : parts) {
+            if (part instanceof ContentLoot.Items drawn) {
+                items.addAll(ModdedItemTranslator.stacks(drawn.items(), level));
                 continue;
             }
-            if (source instanceof NativeLootSource nativeSource) {
+            if (part instanceof ContentLoot.PlatformTable platform) {
+                LootTable table = nativeTable(level, platform.key());
+                if (table == null) {
+                    IrisLogging.warn("Unknown vanilla loot table " + platform.key());
+                    continue;
+                }
                 if (nativeParams == null) {
                     nativeParams = new LootParams.Builder(level)
                             .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
                             .create(LootContextParamSets.CHEST);
                 }
-                items.addAll(nativeSource.table().getRandomItems(nativeParams, rng.nextLong()));
+                items.addAll(table.getRandomItems(nativeParams, platform.seed()));
             }
         }
 
-        fillContainer(container, items, rng);
+        fillContainer(container, items, LootResolver.containerRng(engine.getSeedManager().getLoot(), pos.getX(), pos.getY(), pos.getZ()));
     }
 
-    private static List<LootSource> resolveSources(Engine engine, ServerLevel level, RNG rng, BlockPos pos, BlockState state, MantleChunk<Matter> mc, boolean nativeLootDefined) {
-        int rx = pos.getX();
-        int rz = pos.getZ();
-        int ry = pos.getY() - engine.getWorld().minHeight();
-        List<LootSource> sources = new ArrayList<>();
-        boolean objectLootDefined = nativeLootDefined;
-
-        PlacedObject po = engine.getObjectPlacement(rx, ry, rz, mc);
-        if (po != null && po.getPlacement() != null && ModdedBlockResolution.isStorageChest(state)) {
-            objectLootDefined = objectLootDefined
-                    || po.getPlacement().getLoot().isNotEmpty()
-                    || po.getPlacement().getVanillaLoot().isNotEmpty();
-            Candidate picked = pickPlacementTable(engine, level, po.getPlacement(), state, rng);
-            if (picked != null) {
-                sources.add(picked.source());
-                if (po.getPlacement().isOverrideGlobalLoot()) {
-                    return sources;
-                }
-            }
+    private static LootTable nativeTable(ServerLevel level, String name) {
+        ResourceKey<LootTable> key = resolveNativeKey(name, candidate -> hasNativeTable(level, candidate));
+        if (key == null) {
+            return null;
         }
-
-        LootTables.resolveEnvironmentSources(
-                sources,
-                engine,
-                rng,
-                rx,
-                ry,
-                rz,
-                objectLootDefined,
-                IrisLootSource::new
-        );
-        return sources;
-    }
-
-    private static Candidate pickPlacementTable(Engine engine, ServerLevel level, IrisObjectPlacement placement, BlockState state, RNG rng) {
-        List<Candidate> exact = new ArrayList<>();
-        List<Candidate> basic = new ArrayList<>();
-        List<Candidate> global = new ArrayList<>();
-
-        for (IrisObjectLoot loot : placement.getLoot()) {
-            if (loot == null || loot.getWeight() <= 0) {
-                continue;
-            }
-            IrisLootTable table = LootResources.table(engine.getData(), loot.getName());
-            if (table == null) {
-                IrisLogging.warn("Couldn't find loot table " + loot.getName());
-                continue;
-            }
-            bucket(engine, loot, new Candidate(new IrisLootSource(table), loot.getWeight()), state, exact, basic, global);
-        }
-
-        for (IrisObjectVanillaLoot loot : placement.getVanillaLoot()) {
-            if (loot == null || loot.getWeight() <= 0) {
-                continue;
-            }
-            ResourceKey<LootTable> key = resolveNativeKey(loot.getName(), candidate -> hasNativeTable(level, candidate));
-            if (key == null) {
-                IrisLogging.warn("Couldn't find vanilla loot table " + loot.getName());
-                continue;
-            }
-            LootTable table = level.getServer().reloadableRegistries().lookup()
-                    .lookupOrThrow(Registries.LOOT_TABLE)
-                    .getOrThrow(key)
-                    .value();
-            bucket(engine, loot, new Candidate(new NativeLootSource(table), loot.getWeight()), state, exact, basic, global);
-        }
-
-        List<Candidate> pool = !exact.isEmpty() ? exact : !basic.isEmpty() ? basic : global;
-        return LootResolver.pickWeighted(pool, Candidate::weight, rng);
+        return level.getServer().reloadableRegistries().lookup()
+                .lookupOrThrow(Registries.LOOT_TABLE)
+                .getOrThrow(key)
+                .value();
     }
 
     static ResourceKey<LootTable> resolveNativeKey(String name, Predicate<ResourceKey<LootTable>> registryContains) {
@@ -195,21 +127,6 @@ public final class ModdedLootApplier {
                 .lookup(Registries.LOOT_TABLE)
                 .flatMap(registry -> registry.get(key))
                 .isPresent();
-    }
-
-    private static void bucket(Engine engine, IObjectLoot loot, Candidate candidate, BlockState state, List<Candidate> exact, List<Candidate> basic, List<Candidate> global) {
-        if (loot.getFilter().isEmpty()) {
-            global.add(candidate);
-            return;
-        }
-
-        for (PlatformBlockState filterState : loot.getFilter(engine.getData())) {
-            BlockState filter = (BlockState) filterState.nativeHandle();
-            if (loot.isExact() ? filter == state : filter.getBlock() == state.getBlock()) {
-                (loot.isExact() ? exact : basic).add(candidate);
-                return;
-            }
-        }
     }
 
     static boolean isCanonicalContainer(BlockPos pos, BlockState state) {
@@ -323,17 +240,5 @@ public final class ModdedLootApplier {
         for (int i = 0; i < size; i++) {
             container.setItem(i, items[i]);
         }
-    }
-
-    private interface LootSource {
-    }
-
-    private record IrisLootSource(IrisLootTable table) implements LootSource {
-    }
-
-    private record NativeLootSource(LootTable table) implements LootSource {
-    }
-
-    private record Candidate(LootSource source, int weight) {
     }
 }

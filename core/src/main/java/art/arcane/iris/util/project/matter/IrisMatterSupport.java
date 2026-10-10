@@ -26,7 +26,6 @@ import art.arcane.iris.util.project.matter.slices.IdentifierMatter;
 import art.arcane.iris.util.project.matter.slices.ModuleLayerMatter;
 import art.arcane.iris.util.project.matter.slices.NativeStructureOwnershipMatter;
 import art.arcane.iris.util.project.matter.slices.PlatformBlockMatter;
-import art.arcane.iris.util.project.matter.slices.SpawnerMatter;
 import art.arcane.iris.util.project.matter.slices.TileMatter;
 import art.arcane.iris.util.project.matter.slices.TreeBlockMaterialMatter;
 import art.arcane.volmlib.util.matter.IrisMatter;
@@ -52,7 +51,6 @@ public final class IrisMatterSupport {
         IrisMatter.registerSliceType(new ModuleLayerMatter());
         IrisMatter.registerSliceType(new NativeStructureOwnershipMatter());
         IrisMatter.registerSliceType(new PlatformBlockMatter());
-        IrisMatter.registerSliceType(new SpawnerMatter());
         IrisMatter.registerSliceType(new TileMatter());
         IrisMatter.registerSliceType(new TreeBlockMaterialMatter());
         registered = true;

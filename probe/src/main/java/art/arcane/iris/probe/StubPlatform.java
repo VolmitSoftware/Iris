@@ -247,6 +247,9 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean canPlaceOnto(PlatformBlockState onto) {
+            if (onto.isAir()) {
+                return false;
+            }
             return !isDecorant() || onto instanceof StubBlockState soil && StubPlants.holdsPlants(soil.blockKey());
         }
 

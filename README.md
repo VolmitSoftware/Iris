@@ -289,8 +289,8 @@ private static void decorate(ChunkStageContext context) {
 | `error(message, cause)` | A failure the module caught and cannot recover from. The host logs it and reports `cause` like its own failures. A null `cause` only logs. |
 
 - A message is plain text, never a format string.
-- `context.log()` (stage bodies, object generators), `world.log()` (services and lifecycle hooks, which get a world as
-  their argument) and `registry.log()` (while `register` runs) are the same module's log. Keep the registry's log in a
+- `context.log()` (stage bodies, object generators), `fit.log()` (vanilla structure fits), `world.log()` (services and
+  lifecycle hooks, which get a world as their argument) and `registry.log()` (while `register` runs) are the same module's log. Keep the registry's log in a
   field when `packLoaded`, which has no world, needs to log. `registry.log()` outside `register` throws.
 - Do not use `System.out`, `System.getLogger` or a logging library of your own: the host cannot label or report them.
 

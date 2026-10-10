@@ -974,6 +974,16 @@ from a sapling, which drops a block has. A module answers such questions through
   host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places, and the
   nearest start of one as a `LocateResult` (`Found`, `NotFound`, `SearchLimitReached`; a sealed interface, so callers
   switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
+  `CaveBiomes` (`ONE`): the pack biome a module puts at a position whatever the regions say (a band of the deep dark,
+  `overriddenBiome`, the height counted above the dimension's bottom) and how deep below the surface a biome's caves begin
+  (`minDepthBelowSurface`). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
+  and asks this only where a module decides; one provider, since two modules could not both decide the biome of one cave.
+- **Settings that name biomes.** The host owns the biome tree (a region's biomes and their children) and the set of
+  biomes a dimension reaches, and both must include biomes that module settings name: a cave band's biome, the target of a
+  floating island. Settings say so by implementing `LinkedBiomes` (`treeBiomes`, which join a region's tree and so its terrain
+  generators, and `usedBiomes`, which the dimension reaches without joining), instead of the host reading any module's
+  settings class. `usedBiomes` receives the dimension's own settings, since a name may stand for something the dimension
+  declares (a floating island's `carving` is a band id or a biome key).
 - **Why not per-world provider instances.** A factory per world (`world -> provider`) would let a provider hold its
   world, but every service method would then hide which world it answers for, and a host could not ask a pack-level
   question without a world. Passing the world keeps providers stateless like stage bodies and puts all per-world data

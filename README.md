@@ -295,6 +295,7 @@ final class RuinsObjects implements ObjectsAt {
 | `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, and the `ItemDrop`s one table gives there. The host puts them together, tells listeners, creates the stacks and shuffles the container. |
 | `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
 | `EntitySpawns` | `ALL` | A `Plan` of entities to spawn in a chunk or at a marker, each `Attempt` an `EntitySpec` with the block, light range and surface it needs; how many appeared (`spawned`); what a marker means (`MarkerRule`); one entity of the pack on request. The host checks light, surface and free space, spawns, and applies the spec. |
+| `CaveBiomes` | `ONE` | The pack biome a module puts at a position whatever the regions say (a band of the deep dark), and how far below the surface a biome's caves begin. The host places the cave biome of a position itself and asks this where a module overrides it. |
 | `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, and fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over (see Vanilla structures). |
 
 ```
@@ -429,6 +430,12 @@ public final class FloraSettings implements IrisFeature {
   (nothing could set another), or the load fails. There is no second form: the studio schema renders one shape and a
   wrong shape fails with a message naming the key and the file.
 - Options keep the order the class declares them in, a superclass's first.
+- Settings that bring other pack biomes into the pack's layout implement `LinkedBiomes`: `treeBiomes()` are biomes that join the
+  biome tree of every region the owner is in (the host registers their terrain generators with the region, as it does an
+  owner's children), and `usedBiomes(dimension)` are biomes the settings use besides, which the dimension reaches so their
+  objects, decorators and settings take part in generation. `dimension` is the settings the owner's dimension declares, for
+  settings that name something the dimension declares, such as a band of its caves. The host asks every dimension and biome
+  it reaches and ignores blank keys and keys naming no biome.
 - Built-in settings may hold classes the host describes itself, such as Iris's palettes, which the host
   names with `ModuleHost.describingHostTypesIn(...)`. They appear as `HostKind` and pack modules cannot
   use them.

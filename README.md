@@ -89,7 +89,9 @@ X and Z are world coordinates. Y is always the height above the dimension's bott
 of the dimension, whatever its minimum height is in the platform, so Y is never negative. This holds for
 every API value that carries a height: terrain and biome samples, `BlockBox` bounds of the terrain
 sampler, block views, placement edits and the mantle, hunks, block palettes and noise samplers. The host
-converts to and from the platform's own Y at its boundary; modules never see it.
+converts to and from the platform's own Y at its boundary. The one place a module meets the platform's Y is a
+setting that names an absolute world Y, as packs write them (a cave biome band between Y -64 and 320): it converts
+with `world.minHeight()`, the platform's Y of the dimension's bottom.
 
 ## Random streams
 

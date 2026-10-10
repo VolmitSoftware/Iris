@@ -798,6 +798,9 @@ Why these lines:
   the module's: noise lines up across chunks only when it comes from `worldSeed()`, not a stage's stream.
 - **`NoiseSampler` moved to `com.volmit.noise`** and gained a two-dimensional `sample(x, z)`: Iris's noise
   gives different fields in two and three dimensions, and most features sample columns.
+- **`PackWorld.minHeight()`**: all heights are above the dimension's bottom, but packs write some settings as absolute
+  world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with the
+  platform's Y of the bottom, a default method (0) so a fixture without negative Y needs nothing.
 - **`NoiseSampler.signed(...)`** is the sample mapped to -1..1 that a host may answer from a per-thread memo of the
   coordinates it was just asked: a carver adds several fields and tests the sum around zero, and reads the same points
   of one field again and again, so the memo is the difference between caves that cost what they always did and caves that

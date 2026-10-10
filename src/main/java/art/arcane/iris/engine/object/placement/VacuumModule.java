@@ -24,9 +24,9 @@ import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.terrain.TerrainPalettes;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.noise.SimplexNoise;
@@ -82,7 +82,7 @@ public final class VacuumModule implements IrisModule {
         private final IrisPlacement placement;
         private final PreparedPlacement prepared;
         private final PlacementWorld world;
-        private final IrisComplex complex;
+        private final TerrainPalettes palettes;
         private final int radius;
         private final int step;
         private final double falloff;
@@ -98,7 +98,7 @@ public final class VacuumModule implements IrisModule {
             this.placement = IrisPlacement.current();
             this.prepared = prepared;
             this.world = new PlacementWorld(context.access(), placement.states());
-            this.complex = engine.getComplex();
+            this.palettes = engine.getComplex() == null ? null : TerrainPalettes.of(engine);
             VacuumSettings settings = prepared.config().getVacuumSettings();
             this.radius = IrisObjectVacuum.resolveRadius(vacuum, settings);
             this.step = vacuum.columnStepBlocks();
@@ -161,7 +161,7 @@ public final class VacuumModule implements IrisModule {
         }
 
         private void raise(int x, int z, int fromY, int toY) {
-            PlatformBlockState fill = complex != null ? complex.getRockStream().get(x, z) : null;
+            PlatformBlockState fill = palettes != null ? palettes.rockAt(x, z) : null;
             if (B.isAir(fill)) {
                 fill = IrisObject.States.STONE;
             }

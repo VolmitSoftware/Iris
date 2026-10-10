@@ -18,8 +18,6 @@
 
 package art.arcane.iris.engine.object.annotations;
 
-import art.arcane.iris.core.loader.IrisRegistrant;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -31,5 +29,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target({PARAMETER, TYPE, FIELD})
 public @interface RegistryListResource {
-    Class<? extends IrisRegistrant> value();
+    /** The class pack resources of the kind are read into: an Iris resource or the class of a module resource kind. */
+    Class<?> value();
 }

@@ -28,7 +28,7 @@ import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.core.modules.BlockEntities;
 import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.object.marker.IrisMarker;
+import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.engine.object.marker.IrisObjectMarker;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
@@ -205,7 +205,7 @@ public final class BlocksModule implements IrisModule {
         RNG markerRandom = new RNG(context.random().nextLong());
         int salt = 0;
         for (IrisObjectMarker markerConfig : config.getMarkers()) {
-            IrisMarker marker = SpawnResources.marker(placement.object().getLoader(), markerConfig.getMarker());
+            SpawnMarker marker = SpawnResources.marker(placement.object().getLoader(), markerConfig.getMarker());
             int markerSalt = salt++;
             if (marker == null) {
                 continue;
@@ -216,7 +216,7 @@ public final class BlocksModule implements IrisModule {
                 if (remaining <= 0) {
                     break;
                 }
-                if (!marker.isEmptyAbove() || hasAirAbove(world, position)) {
+                if (!marker.emptyAbove() || hasAirAbove(world, position)) {
                     context.access().marker(ObjectMarkers.of(position, markerConfig.getMarker()));
                     remaining--;
                 }

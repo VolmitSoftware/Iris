@@ -18,18 +18,27 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.PendingSettings;
-import art.arcane.iris.builtin.PendingSettings.BiomeLayer;
+import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
+import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
+import art.arcane.iris.builtin.terrain.LayerBlocks;
+import art.arcane.iris.builtin.terrain.PaletteLayer;
+import art.arcane.iris.builtin.terrain.SlabSettings;
+import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.volmlib.util.math.RNG;
+import com.volmit.IrisFeature;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.hunk.Hunk;
+import com.volmit.config.FeatureSettings;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.TerrainSampler;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Smooths the carved surface of one chunk for {@link PostModule}: floating nibs, single-block bumps and potholes,
@@ -45,6 +54,11 @@ final class SurfaceSmoothing {
     private static final String SLAB_SUFFIX = "_slab";
     private static final String WATERLOGGED = "waterlogged";
     private static final String TRUE = "true";
+    private static final int CENTER = 7;
+    /** A biome without a wall or slab picks no block. */
+    private static final PaletteLayer NO_LAYER = PaletteLayer.withoutBlocks();
+    /** Walls and slabs are picked once per column: the first signature of a layer's noise. */
+    private static final int COLUMN_SIGNATURE = 0;
     /** The face properties of a connecting block, such as a vine's, each with the neighbour it faces. */
     private static final List<Face> FACES = List.of(new Face("north", 0, 0, -1), new Face("east", 1, 0, 0),
             new Face("south", 0, 0, 1), new Face("west", -1, 0, 0), new Face("up", 0, 1, 0), new Face("down", 0, -1, 0));
@@ -52,7 +66,9 @@ final class SurfaceSmoothing {
     private final Hunk<BlockState> blocks;
     private final BlockRegistry registry;
     private final TerrainSampler terrain;
-    private final PendingSettings settings;
+    private final FeatureSettings settings;
+    private final LayerBlocks layerBlocks;
+    private final RNG postRandom;
     private final int originX;
     private final int originZ;
     private final int planeWidth;
@@ -65,13 +81,15 @@ final class SurfaceSmoothing {
         this.blocks = context.hunk(BlockState.class);
         this.registry = context.resources().blocks();
         this.terrain = context.terrain();
-        this.settings = PendingSettings.of(context.world());
+        this.settings = context.settings();
+        this.layerBlocks = LayerBlocks.of(context.world());
+        this.postRandom = new RNG(IrisSeed.POST.of(context.world()));
         this.originX = context.originX();
         this.originZ = context.originZ();
         this.planeWidth = blocks.getWidth() + 2;
         this.heights = heightPlane();
-        this.walls = settings.postProcessingWalls();
-        this.slabs = settings.postProcessingSlabs();
+        this.walls = enabled(PostProcessingWallsSettings.class, PostProcessingWallsSettings::enabled, PostProcessingWallsSettings.DEFAULT_ENABLED);
+        this.slabs = enabled(PostProcessingSlabsSettings.class, PostProcessingSlabsSettings::enabled, PostProcessingSlabsSettings.DEFAULT_ENABLED);
         this.fluidHeight = terrain.fluidHeight();
     }
 
@@ -93,6 +111,24 @@ final class SurfaceSmoothing {
      * resolve the same height up to five times. Resolve the padded plane once instead. The four diagonal
      * corners are never read, so they are left unresolved.
      */
+    /** A switch of the dimension, which every column of the chunk shares. */
+    private <S extends IrisFeature> boolean enabled(Class<S> type, Function<S, Boolean> enabled, boolean byDefault) {
+        List<Entry<S>> entries = settings.at(type, originX + CENTER, originZ + CENTER);
+        return entries.isEmpty() ? byDefault : enabled.apply(entries.getFirst().value());
+    }
+
+    /** The biome layer of the column's surface biome that {@code type} holds, or none. */
+    private <S extends IrisFeature> PaletteLayer biomeLayer(Class<S> type, Function<S, PaletteLayer> layer, int x, int z) {
+        List<Entry<S>> entries = settings.at(type, x, z);
+        return entries.isEmpty() ? NO_LAYER : layer.apply(entries.getLast().value());
+    }
+
+    /** The layer's block at the position, picked with the world's post-processing random, or null when it has none. */
+    private BlockState pick(PaletteLayer layer, double x, double y, double z) {
+        int index = layerBlocks.pick(layer, postRandom, COLUMN_SIGNATURE, x, y, z);
+        return index == LayerBlocks.NONE ? null : layerBlocks.blocks(layer).get(index);
+    }
+
     private int[] heightPlane() {
         int width = blocks.getWidth();
         int depth = blocks.getDepth();
@@ -180,15 +216,15 @@ final class SurfaceSmoothing {
         if (ha >= h - 2 && hb >= h - 2 && hc >= h - 2 && hd >= h - 2) {
             return;
         }
-        Optional<BiomeLayer> wall = settings.wall(x, z);
-        if (wall.isEmpty()) {
+        PaletteLayer wall = biomeLayer(WallSettings.class, WallSettings::layer, x, z);
+        if (wall.palette().isEmpty()) {
             return;
         }
         boolean brokeGround = false;
         int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
         for (int i = h; i > h - max; i--) {
-            Optional<BlockState> block = wall.get().at(x + i, i + h, z + i);
-            if (block.isEmpty()) {
+            BlockState block = pick(wall, x + i, i + h, z + i);
+            if (block == null) {
                 continue;
             }
             if (isAirOrWater(x, i, z)) {
@@ -197,7 +233,7 @@ final class SurfaceSmoothing {
                 }
                 continue;
             }
-            set(x, i, z, block.get());
+            set(x, i, z, block);
             brokeGround = true;
         }
     }
@@ -210,15 +246,14 @@ final class SurfaceSmoothing {
         if (!step) {
             return h;
         }
-        BiomeLayer slab = settings.slab(x, z);
-        if (!slab.allowsSlope(terrain.column(x, z).slope())) {
+        PaletteLayer slab = biomeLayer(SlabSettings.class, SlabSettings::layer, x, z);
+        if (!slab.slopeCondition().isValid(terrain.column(x, z).slope())) {
             return h;
         }
-        Optional<BlockState> picked = slab.at(x, h, z);
-        if (picked.isEmpty()) {
+        BlockState block = pick(slab, x, h, z);
+        if (block == null) {
             return h;
         }
-        BlockState block = picked.get();
         boolean cancel = has(block, BlockTrait.AIR)
                 || block.material().equals(SNOW_ID) && h + 1 <= fluidHeight
                 || isSnowLayer(x, h, z);

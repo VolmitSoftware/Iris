@@ -39,8 +39,15 @@ objects are trees) and says which biomes and regions place an object (`ObjectLoc
 them (`LootValidator`), and provides `Loot` (`LootGiving`: which tables a container draws from and the `ItemDrop`s a
 table gives) and `BlockDrops` (`BlockDropping`). `iris:spawn` owns spawners, entities and markers (`SpawnResources`,
 folders `spawners`, `entities`, `markers`) and provides `EntitySpawns` (`EntitySpawning`: what to spawn in a chunk or at
-a marker, as `EntitySpec`s; `EntityResolution` makes the entity's random choices). Iris's Bukkit code creates the items
-and entities from those values (`BukkitItemStacks`, `BukkitEntitySpawner`).
+a marker, as `EntitySpec`s; `EntityResolution` makes the entity's random choices) and `AmbientEffects` (`AmbientEffecting`:
+the effects due around a player, with their random values). Iris's Bukkit code creates the items and entities from those
+values (`BukkitItemStacks`, `BukkitEntitySpawner`, `BukkitAmbientEffects`); the modded adapters, which cannot name IrisApi
+types, ask through the host-typed `ContentServices`.
+The settings of both modules are `builtin.loot` and `builtin.spawn` types of IrisApi annotations only: `iris:loot` declares
+`loot` (object, also the shape of an entity's `loot`) and `blockDrops` (list) for dimensions, regions and biomes;
+`iris:spawn` declares `entitySpawners` (list of spawner keys) for the same and `effects` (list, `iris:spawn/effects`) for
+regions and biomes. The loot tables, spawners, entities and markers are plain module types too (`LootTable`, `Spawner`,
+`EntityDefinition`, `SpawnMarker`). `PlacementLoot` picks the table an object placement gives one of its chests.
 `iris:decorant` keeps its per-world `Decorating` in the world's state store (`context.world().state(...)`); the other
 built-ins still reach the same store through `IrisChunk.state(...)` / `engine.getGeneration().state(...)`.
 
@@ -49,8 +56,8 @@ only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its en
 `art.arcane.iris.builtin.deposit`), and packs write `"deposits": [...]`, as they always have (`@Feature(key = "deposits", root = "generators")`: the key holds the one option's list). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`.
 
-Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition,
-a cave profile, a floating child biome or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
+Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition
+or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
 `.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). The module registers each with
 `registry.registerHeldType(...)` so studio describes it from the module's own annotations; packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
@@ -63,6 +70,27 @@ per biome and place. Other modules that decorate (`iris:cave`'s ceilings, floati
 seed is the world's decorator seed, its biome's key and its place in the biome's list. The module's `warmUp` builds
 them ahead of generation; `iris:terrain` and `iris:objects` warm their ore generators, placements and procedural
 objects the same way.
+
+`iris:terrain` and `iris:post` own the fields that shape a column's blocks. Per biome: `layers`, `seaLayers`, `caveCeilingLayers` (lists of
+`PaletteLayer`, the old biome palette layer, in `art.arcane.iris.builtin.terrain`), `slab` and `wall` (one `PaletteLayer` each), `lockLayers` (a
+boolean) and `lockLayersMax` (a number). Per dimension: `rockPalette` and `fluidPalette` (a `PaletteSpec` each) in `art.arcane.iris.builtin.terrain`, and
+`postProcessing`, `postProcessingSlabs`, `postProcessingWalls` (booleans) in `art.arcane.iris.builtin.post`. A key a pack leaves out has the
+default Iris always had (one grass layer, no slab or wall, stone and water, post processing on). `ResolvedLayer` resolves one layer's blocks and noise
+for a pack, `BiomeLayers`, the world's state, keeps them and stacks a biome's layers into the blocks of a column, and `TerrainPalettes` is the world's
+rock and fluid as a block for every column; the terrain, cave, floating and post stages ask them. The slope limit of a layer, a decorator and an
+object placement is the one `SlopeClip`.
+
+Caves, floating islands and ores are settings of their modules too, written under the keys they always had. `iris:carve` owns
+`caveProfile` (dimension, region, biome; an object, or a `snippet/cave-profile/...` reference), `carving` (dimension; a list of bands) and
+`carvingEnabled` (dimension; a boolean), `carvingBiome` (biome; a biome key) and `caveMinDepthBelowSurface` (biome; a number). `iris:floating`
+owns `floatingChildBiomes` (biome; a list) and `mergeFloatingChildBiomes` (biome; a boolean). `iris:terrain` owns `ores` (dimension, region,
+biome; a list of generators) and `hideOresForHiddenOre` (dimension; a boolean); `iris:deposit` owns `depositVariants` (dimension, region, biome; a list)
+and `oreDepositFrequencyMultiplier` and `oreDepositSizeMultiplier` (biome; numbers). Behaviour that needs Iris lives in the `Resolved*` classes beside the
+workers: `ResolvedOre`/`ResolvedOres` (blocks and chance noise per world, `TerrainOres` the world's state), `ResolvedDepositVariant`,
+`ResolvedCarvingEntry`/`CarvingBands`/`CarvingResolver` (the band for a position) and `ResolvedFloatingChild`. The settings that name biomes
+(`carvingBiome`, a band's biome, a floating child's target and carving) implement `LinkedBiomes`, which is how Iris's biome tree and the biomes a
+dimension reaches learn of them without reading the settings classes; and `iris:carve` provides the `CaveBiomes` service
+(`CaveBiomeBands`), which Iris asks for the dimension's carving band at a position and for a biome's minimum cave depth.
 
 Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
 (biome; a list) and `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest). The feature ids
@@ -104,7 +132,8 @@ Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pac
 `iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
 `iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads.
 
-`art.arcane.iris.builtin` also holds the few facades only Iris's own built-ins use, interfaces Iris's worlds implement:
-`IrisSeed` (Iris's per-feature world seeds, so existing worlds generate the same) and, until wave 3a's settings moves
-land, `PendingSettings` (the dimension's `hideOresForHiddenOre`, `postProcessingWalls`, `postProcessingSlabs` and a
-biome's `wall` and `slab`, which agents C and T are turning into module settings; it is deleted at that merge).
+`art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
+every other class: `IrisSeed` (Iris's per-feature world seeds, a facade Iris's worlds implement, so existing worlds generate the
+same) and `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
+layers, and a layer's noise is built once per world by whichever asks first). `iris:post` reads its switches
+(`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.

@@ -18,16 +18,21 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.spawn.EffectSettings;
+import art.arcane.iris.builtin.spawn.SpawnerSettings;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.service.AmbientEffects;
 import com.volmit.service.EntitySpawns;
 import com.volmit.stage.StageGraph;
 
 /**
- * Module {@code iris:spawn}: the spawners, entities and markers of the pack ({@link SpawnResources}), and the entities that appear in the world
- * over time because of them. It has no generation stage; Iris asks it through {@link EntitySpawns} when it looks for
- * something to spawn in a chunk or at a marker.
+ * Module {@code iris:spawn}: the spawners, entities and markers of the pack ({@link SpawnResources}), the
+ * {@link SpawnerSettings} that dimensions, regions and biomes list, the entities that appear in the world over time
+ * because of them, and the ambient effects ({@link EffectSettings}) that play around players. It has no generation
+ * stage; Iris asks it through {@link EntitySpawns} when it looks for something to spawn in a chunk or at a marker, and
+ * through {@link AmbientEffects} for the effects due around a player.
  */
 public final class SpawnModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -43,7 +48,10 @@ public final class SpawnModule implements IrisModule {
 
     @Override
     public void register(FeatureRegistry registry) {
+        registry.registerSettings(SpawnerSettings.class);
+        registry.registerSettings(EffectSettings.class);
         SpawnResources.kinds().forEach(registry::registerResourceKind);
         registry.registerService(EntitySpawns.class, new EntitySpawning());
+        registry.registerService(AmbientEffects.class, new AmbientEffecting());
     }
 }

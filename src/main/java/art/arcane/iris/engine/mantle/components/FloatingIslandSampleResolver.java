@@ -23,6 +23,7 @@ import art.arcane.iris.engine.data.cache.Cache;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.modifier.FloatingIslands;
+import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -56,7 +57,7 @@ final class FloatingIslandSampleResolver implements IslandObjectPlacer.SamplePro
             return sampleCache.get(key);
         }
         IrisBiome parent = parent(x, z);
-        if (parent == null || parent.getFloatingChildBiomes() == null || parent.getFloatingChildBiomes().isEmpty()) {
+        if (parent == null || FloatingChildren.declaredBy(parent).isEmpty()) {
             resolvedSamples.add(key);
             return null;
         }

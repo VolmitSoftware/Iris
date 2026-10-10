@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.loot;
 
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
@@ -50,7 +51,7 @@ public class IrisObjectLoot implements IObjectLoot {
     private boolean exact = false;
     @Desc("The loot table name")
     @Required
-    @RegistryListResource(IrisLootTable.class)
+    @RegistryListResource(LootTable.class)
     private String name;
     @Desc("The weight of this loot table being chosen")
     @MinNumber(1)

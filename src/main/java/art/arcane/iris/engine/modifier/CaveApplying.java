@@ -21,12 +21,13 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
+import art.arcane.iris.engine.terrain.BiomeLayers;
+import art.arcane.iris.engine.terrain.TerrainPalettes;
 import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingResolver;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
@@ -66,6 +67,8 @@ public class CaveApplying {
     private final PlatformBlockState AIR = B.getState("CAVE_AIR");
     private final PlatformBlockState LAVA = B.getState("LAVA");
     private final BiomeDecorators decorators;
+    private final BiomeLayers layers;
+    private final TerrainPalettes palettes;
     private final IrisSurfaceDecorator surfaceDecorator;
     private final IrisCeilingDecorator ceilingDecorator;
 
@@ -73,6 +76,8 @@ public class CaveApplying {
         this.engine = engine;
         rng = new RNG(engine.getSeedManager().getCarve());
         decorators = BiomeDecorators.of(engine);
+        layers = BiomeLayers.of(engine);
+        palettes = TerrainPalettes.of(engine);
         surfaceDecorator = new IrisSurfaceDecorator(engine);
         ceilingDecorator = new IrisCeilingDecorator(engine);
     }
@@ -82,7 +87,6 @@ public class CaveApplying {
     public void apply(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch caveStopwatch = PrecisionStopwatch.start();
         Mantle<Matter> mantle = engine.getMantle().getMantle();
-        IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
         IrisCarveScratch scratch = SCRATCH.get();
         scratch.reset();
@@ -151,7 +155,7 @@ public class CaveApplying {
                 if (explicitCarveIntent) {
                     // Only a fluid cavern consumes the fluid sample, and on the maintenance path that
                     // sample is a full procedural stream evaluation, so never take it per voxel.
-                    PlatformBlockState fluid = isFluidIntent(cavern) ? context.getFluid().get(rx, rz) : null;
+                    PlatformBlockState fluid = isFluidIntent(cavern) ? palettes.fluidAt(chunkBlockX + rx, chunkBlockZ + rz) : null;
                     output.setRaw(rx, yy, rz, resolveExplicitCarveState(cavern, fluid, LAVA, AIR));
                 } else if (usesDefaultLava(caveLavaHeight, yy)) {
                     output.setRaw(rx, yy, rz, LAVA);
@@ -174,11 +178,11 @@ public class CaveApplying {
                     int worldZ = rz + chunkBlockZ;
                     String customBiome = cavern.getCustomBiome();
                     IrisBiome biome = customBiome.isEmpty()
-                            ? resolveCaveBiome(caveBiomeCache, worldX, yy, worldZ, resolverState)
+                            ? resolveCaveBiome(caveBiomeCache, worldX, yy, worldZ)
                             : resolveCustomBiome(customBiomeCache, customBiome);
 
                     if (biome != null) {
-                        PlatformBlockState data = biome.getWall().get(rng, worldX, yy, worldZ, engine.getData());
+                        PlatformBlockState data = layers.wall(biome).get(rng, worldX, yy, worldZ);
                         int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
 
                         if (data != null && B.isSolid(output.getRaw(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
@@ -188,14 +192,14 @@ public class CaveApplying {
                 });
 
                 for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-                    processColumnFromMask(output, mantleChunk, mantle, columnMasks[columnIndex], columnIndex, x, z, resolverState, caveBiomeCache, customBiomeCache);
+                    processColumnFromMask(output, mantleChunk, mantle, columnMasks[columnIndex], columnIndex, x, z, caveBiomeCache, customBiomeCache);
                 }
 
                 for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
                     if (boundaryMasks[columnIndex].isEmpty() || !columnMasks[columnIndex].isEmpty()) {
                         continue;
                     }
-                    processBoundaryColumnFromMask(output, boundaryMasks[columnIndex], walls, columnIndex, x, z, resolverState, caveBiomeCache, customBiomeCache);
+                    processBoundaryColumnFromMask(output, boundaryMasks[columnIndex], walls, columnIndex, x, z, caveBiomeCache, customBiomeCache);
                 }
 
                 // Surface-break carving must not leave an ore cap suspended across the opening.
@@ -409,7 +413,6 @@ public class CaveApplying {
             int columnIndex,
             int chunkX,
             int chunkZ,
-            IrisDimensionCarvingResolver.State resolverState,
             Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache,
             Map<String, IrisBiome> customBiomeCache
     ) {
@@ -438,7 +441,7 @@ public class CaveApplying {
                     zone.ceiling = buf;
                 } else {
                     if (zone.isValid(engine)) {
-                        processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, resolverState, caveBiomeCache, customBiomeCache);
+                        processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, caveBiomeCache, customBiomeCache);
                     }
                     zone = new CaveZone();
                     zone.setFloor(y);
@@ -450,7 +453,7 @@ public class CaveApplying {
         }
 
         if (zone.isValid(engine)) {
-            processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, resolverState, caveBiomeCache, customBiomeCache);
+            processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, caveBiomeCache, customBiomeCache);
         }
     }
 
@@ -461,7 +464,6 @@ public class CaveApplying {
             int columnIndex,
             int chunkX,
             int chunkZ,
-            IrisDimensionCarvingResolver.State resolverState,
             Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache,
             Map<String, IrisBiome> customBiomeCache
     ) {
@@ -482,14 +484,14 @@ public class CaveApplying {
             if (y == zoneCeiling + 1) {
                 zoneCeiling = y;
             } else {
-                paintBoundaryZone(output, walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, resolverState, caveBiomeCache, customBiomeCache);
+                paintBoundaryZone(output, walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, caveBiomeCache, customBiomeCache);
                 zoneFloor = y;
                 zoneCeiling = y;
             }
             y = boundaryMask.nextSetBit(y + 1);
         }
 
-        paintBoundaryZone(output, walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, resolverState, caveBiomeCache, customBiomeCache);
+        paintBoundaryZone(output, walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, caveBiomeCache, customBiomeCache);
     }
 
     private void paintBoundaryZone(
@@ -501,22 +503,21 @@ public class CaveApplying {
             int worldZ,
             int zoneFloor,
             int zoneCeiling,
-            IrisDimensionCarvingResolver.State resolverState,
             Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache,
             Map<String, IrisBiome> customBiomeCache
     ) {
         IrisBiome floorBiome = resolveCaveBoundaryBiome(
                 walls.get(rx, zoneFloor, rz), worldX, zoneFloor, worldZ,
-                resolverState, caveBiomeCache, customBiomeCache);
+                caveBiomeCache, customBiomeCache);
         IrisBiome ceilingBiome = resolveCaveBoundaryBiome(
                 walls.get(rx, zoneCeiling, rz), worldX, zoneCeiling, worldZ,
-                resolverState, caveBiomeCache, customBiomeCache);
+                caveBiomeCache, customBiomeCache);
         if (floorBiome == null && ceilingBiome == null) {
             return;
         }
 
         if (floorBiome != null) {
-            KList<PlatformBlockState> floorLayers = floorBiome.generateLayers(
+            KList<PlatformBlockState> floorLayers = layers.generateLayers(floorBiome,
                     engine.getDimension(), worldX, worldZ, rng, 3, zoneFloor, engine.getData(), engine.getComplex());
             for (int i = 0; i < zoneFloor - 1; i++) {
                 if (!floorLayers.hasIndex(i)) {
@@ -541,7 +542,7 @@ public class CaveApplying {
 
         if (ceilingBiome != null) {
             int worldMaxY = engine.getWorld().maxHeight() - engine.getWorld().minHeight();
-            KList<PlatformBlockState> ceilingLayers = ceilingBiome.generateCeilingLayers(
+            KList<PlatformBlockState> ceilingLayers = layers.generateCeilingLayers(ceilingBiome,
                     engine.getDimension(), worldX, worldZ, rng, 3, zoneCeiling, engine.getData(), engine.getComplex());
             for (int i = 0; i < ceilingLayers.size(); i++) {
                 int ceilingY = zoneCeiling + i + 1;
@@ -574,7 +575,7 @@ public class CaveApplying {
         return (h & 15L) == 0L;
     }
 
-    private void processZone(Hunk<PlatformBlockState> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz, IrisDimensionCarvingResolver.State resolverState, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
+    private void processZone(Hunk<PlatformBlockState> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
         int maxY = output.getHeight();
 
         if (zone.ceiling + 1 < maxY && B.isDecorant(output.getRaw(rx, zone.ceiling + 1, rz))) {
@@ -596,14 +597,14 @@ public class CaveApplying {
             mantle.set(xx, zone.floor, zz, MarkerMatter.CAVE_FLOOR);
         }
 
-        IrisBiome floorBiome = resolveCaveBoundaryBiome(mc, rx, zone.floor, rz, xx, zz, resolverState, caveBiomeCache, customBiomeCache);
-        IrisBiome ceilingBiome = resolveCaveBoundaryBiome(mc, rx, zone.ceiling, rz, xx, zz, resolverState, caveBiomeCache, customBiomeCache);
+        IrisBiome floorBiome = resolveCaveBoundaryBiome(mc, rx, zone.floor, rz, xx, zz, caveBiomeCache, customBiomeCache);
+        IrisBiome ceilingBiome = resolveCaveBoundaryBiome(mc, rx, zone.ceiling, rz, xx, zz, caveBiomeCache, customBiomeCache);
         if (floorBiome == null && ceilingBiome == null) {
             return;
         }
 
         if (floorBiome != null) {
-            KList<PlatformBlockState> floorBlocks = floorBiome.generateLayers(engine.getDimension(), xx, zz, rng, 3, zone.floor, engine.getData(), engine.getComplex());
+            KList<PlatformBlockState> floorBlocks = layers.generateLayers(floorBiome, engine.getDimension(), xx, zz, rng, 3, zone.floor, engine.getData(), engine.getComplex());
             for (int i = 0; i < zone.floor - 1; i++) {
                 if (!floorBlocks.hasIndex(i)) {
                     break;
@@ -623,7 +624,7 @@ public class CaveApplying {
         }
 
         if (ceilingBiome != null) {
-            KList<PlatformBlockState> ceilingBlocks = ceilingBiome.generateCeilingLayers(engine.getDimension(), xx, zz, rng, 3, zone.ceiling, engine.getData(), engine.getComplex());
+            KList<PlatformBlockState> ceilingBlocks = layers.generateCeilingLayers(ceilingBiome, engine.getDimension(), xx, zz, rng, 3, zone.ceiling, engine.getData(), engine.getComplex());
             for (int i = 0; i < ceilingBlocks.size(); i++) {
                 int cy = zone.ceiling + i + 1;
                 if (cy >= maxY) {
@@ -651,10 +652,10 @@ public class CaveApplying {
         }
     }
 
-    IrisBiome resolveCaveBoundaryBiome(MantleChunk<Matter> mantleChunk, int x, int y, int z, int worldX, int worldZ, IrisDimensionCarvingResolver.State resolverState, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
+    IrisBiome resolveCaveBoundaryBiome(MantleChunk<Matter> mantleChunk, int x, int y, int z, int worldX, int worldZ, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
         MatterCavern cavern = dataIfPresent(mantleChunk, x, y, z, MatterCavern.class);
         return resolveCaveBoundaryBiome(
-                cavern, worldX, y, worldZ, resolverState, caveBiomeCache, customBiomeCache);
+                cavern, worldX, y, worldZ, caveBiomeCache, customBiomeCache);
     }
 
     private static <T> T dataIfPresent(MantleChunk<Matter> mantleChunk, int x, int y, int z, Class<T> type) {
@@ -669,11 +670,11 @@ public class CaveApplying {
         return matter.<T>getSlice(type).get(x & 15, y & 15, z & 15);
     }
 
-    IrisBiome resolveCaveBoundaryBiome(MatterCavern cavern, int worldX, int y, int worldZ, IrisDimensionCarvingResolver.State resolverState, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
+    IrisBiome resolveCaveBoundaryBiome(MatterCavern cavern, int worldX, int y, int worldZ, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
         if (cavern != null && !cavern.getCustomBiome().isEmpty()) {
             return resolveCustomBiome(customBiomeCache, cavern.getCustomBiome());
         }
-        return resolveCaveBiome(caveBiomeCache, worldX, y, worldZ, resolverState);
+        return resolveCaveBiome(caveBiomeCache, worldX, y, worldZ);
     }
 
     static boolean canReplaceCaveFloorLayer(Hunk<PlatformBlockState> output, int x, int y, int z, PlatformBlockState layer) {
@@ -695,16 +696,16 @@ public class CaveApplying {
         return state != null && state.hasGravity();
     }
 
-    private IrisBiome resolveCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z, IrisDimensionCarvingResolver.State resolverState) {
-        IrisBiome center = sampleCaveBiome(caveBiomeCache, x, y, z, resolverState);
+    private IrisBiome resolveCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z) {
+        IrisBiome center = sampleCaveBiome(caveBiomeCache, x, y, z);
         if (center == null) {
             return null;
         }
 
-        IrisBiome xPos = sampleCaveBiome(caveBiomeCache, x + CAVE_BIOME_BLEND_RADIUS, y, z, resolverState);
-        IrisBiome xNeg = sampleCaveBiome(caveBiomeCache, x - CAVE_BIOME_BLEND_RADIUS, y, z, resolverState);
-        IrisBiome zPos = sampleCaveBiome(caveBiomeCache, x, y, z + CAVE_BIOME_BLEND_RADIUS, resolverState);
-        IrisBiome zNeg = sampleCaveBiome(caveBiomeCache, x, y, z - CAVE_BIOME_BLEND_RADIUS, resolverState);
+        IrisBiome xPos = sampleCaveBiome(caveBiomeCache, x + CAVE_BIOME_BLEND_RADIUS, y, z);
+        IrisBiome xNeg = sampleCaveBiome(caveBiomeCache, x - CAVE_BIOME_BLEND_RADIUS, y, z);
+        IrisBiome zPos = sampleCaveBiome(caveBiomeCache, x, y, z + CAVE_BIOME_BLEND_RADIUS);
+        IrisBiome zNeg = sampleCaveBiome(caveBiomeCache, x, y, z - CAVE_BIOME_BLEND_RADIUS);
 
         if (xPos == center && xNeg == center && zPos == center && zNeg == center) {
             return center;
@@ -727,14 +728,14 @@ public class CaveApplying {
         return zNeg != null ? zNeg : center;
     }
 
-    private IrisBiome sampleCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z, IrisDimensionCarvingResolver.State resolverState) {
+    private IrisBiome sampleCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z) {
         long key = BlockPosition.toLong(x, y, z);
         IrisBiome cachedBiome = caveBiomeCache.get(key);
         if (cachedBiome != null) {
             return cachedBiome;
         }
 
-        IrisBiome resolvedBiome = engine.getCaveBiome(x, y, z, resolverState);
+        IrisBiome resolvedBiome = engine.getCaveBiome(x, y, z);
         if (resolvedBiome != null) {
             caveBiomeCache.put(key, resolvedBiome);
         }

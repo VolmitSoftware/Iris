@@ -18,26 +18,16 @@
 
 package art.arcane.iris.engine.object.world.dimension;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
 import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.image.IrisImageMapApplication;
 import art.arcane.iris.engine.object.image.IrisImageMapBinding;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.terrain.carving.IrisDimensionCarvingEntry;
-import art.arcane.iris.engine.object.terrain.deposit.IrisDepositVariant;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGeneratorBounds;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.world.IrisEnvironment;
 import art.arcane.iris.engine.object.world.IrisWorldBoundary;
@@ -48,7 +38,6 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.core.IrisDatapackCompiler.DimensionHeight;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.nms.datapack.DataVersion;
 import art.arcane.iris.core.nms.datapack.IDataFixer;
@@ -87,7 +76,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -113,11 +101,6 @@ public class IrisDimension extends IrisRegistrant {
     private final transient AtomicCache<Double> cosr = new AtomicCache<>();
     private final transient AtomicCache<Double> rad = new AtomicCache<>();
     private final transient AtomicCache<Boolean> featuresUsed = new AtomicCache<>();
-    private final transient AtomicCache<Map<String, IrisDimensionCarvingEntry>> carvingEntryIndex = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisOreGenerator>> surfaceOreCache = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisOreGenerator>> undergroundOreCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> surfaceOreBoundsCache = new AtomicCache<>();
-    private final transient AtomicCache<IrisOreGeneratorBounds> undergroundOreBoundsCache = new AtomicCache<>();
     @MinNumber(2)
     @Required
     @Desc("The human readable name of this dimension")
@@ -142,18 +125,9 @@ public class IrisDimension extends IrisRegistrant {
     private int debugCrossSectionsMod = 3;
     @Desc("Tree growth override settings")
     private IrisTreeSettings treeSettings = new IrisTreeSettings();
-    @Desc("Spawn Entities in this dimension over time. Iris will continually replenish these mobs just like vanilla does.")
-    @ArrayType(min = 1, type = String.class)
-    @RegistryListResource(IrisSpawner.class)
-    private KList<String> entitySpawners = new KList<>();
-    @Desc("Reference loot tables in this area")
-    private IrisLootReference loot = new IrisLootReference();
     @MinNumber(0)
     @Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
     private int version = 1;
-    @ArrayType(min = 1, type = IrisBlockDrops.class)
-    @Desc("Define custom block drops for this dimension")
-    private KList<IrisBlockDrops> blockDrops = new KList<>();
     @Desc("Should bedrock be generated or not.")
     private boolean bedrock = true;
     @MinNumber(0)
@@ -176,21 +150,6 @@ public class IrisDimension extends IrisRegistrant {
     private boolean debugSmartBore = false;
     @Desc("Generate decorations or not")
     private boolean decorate = true;
-    @Desc("When true, every ore block the generator would place (terrain ores, deposits, ores inside objects) is replaced with its base material such as stone, deepslate or netherrack, so drop-control plugins like HiddenOre can manage ore rewards themselves")
-    private boolean hideOresForHiddenOre = false;
-    @Desc("Use post processing or not")
-    private boolean postProcessing = true;
-    @Desc("Add slabs in post processing")
-    private boolean postProcessingSlabs = true;
-    @Desc("Add painted walls in post processing")
-    private boolean postProcessingWalls = true;
-    @Desc("Enable or disable all carving for this dimension")
-    private boolean carvingEnabled = true;
-    @ArrayType(type = IrisDimensionCarvingEntry.class, min = 1)
-    @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")
-    private KList<IrisDimensionCarvingEntry> carving = new KList<>();
-    @Desc("Profile-driven 3D cave configuration")
-    private CaveProfile caveProfile = new CaveProfile();
     @Desc("Refuse to place surface objects and trees over carved surface openings.")
     private boolean requireObjectSurfaceSupport = true;
     @MinNumber(0)
@@ -275,19 +234,9 @@ public class IrisDimension extends IrisRegistrant {
     private boolean useMantle = true;
     @Desc("Prevent Leaf decay as if placed in creative mode")
     private boolean preventLeafDecay = false;
-    @ArrayType(min = 1, type = IrisDepositVariant.class)
-    @Desc("Dimension-wide deposit ore remap rules. Each entry declares a vertical band and a source->replacement block id map. Applied after biome and region rules; first matching dimension rule wins.")
-    private KList<IrisDepositVariant> depositVariants = new KList<>();
     @ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
-    @Desc("The palette of blocks for 'stone'")
-    private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
-    @Desc("The dimension fluid block palette used for ocean columns and cave aquifers.")
-    private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
-    @Desc("Collection of ores to be generated")
-    @ArrayType(type = IrisOreGenerator.class, min = 1)
-    private KList<IrisOreGenerator> ores = new KList<>();
     @Desc("Dimension-wide Iris structure placements, independent of biome/region placements")
     @ArrayType(type = IrisStructurePlacement.class, min = 1)
     private KList<IrisStructurePlacement> structures = new KList<>();
@@ -311,122 +260,6 @@ public class IrisDimension extends IrisRegistrant {
 
     public int getMinHeight() {
         return (int) getDimensionHeight().getMin();
-    }
-
-    public Map<String, IrisDimensionCarvingEntry> getCarvingEntryIndex() {
-        return carvingEntryIndex.aquire(() -> {
-            Map<String, IrisDimensionCarvingEntry> index = new HashMap<>();
-            KList<IrisDimensionCarvingEntry> entries = getCarving();
-            if (entries == null || entries.isEmpty()) {
-                return index;
-            }
-
-            for (IrisDimensionCarvingEntry entry : entries) {
-                if (entry == null) {
-                    continue;
-                }
-
-                String entryId = entry.getId();
-                if (entryId == null || entryId.isBlank()) {
-                    continue;
-                }
-
-                index.put(entryId.trim(), entry);
-            }
-
-            return index;
-        });
-    }
-
-    public void setCarving(KList<IrisDimensionCarvingEntry> carving) {
-        this.carving = carving == null ? new KList<>() : carving;
-        carvingEntryIndex.reset();
-    }
-
-    public PlatformBlockState generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
-        KList<IrisOreGenerator> localOres = surface ? getSurfaceOres() : getUndergroundOres();
-        return generateOres(localOres, x, y, z, rng, data);
-    }
-
-    public PlatformBlockState generateSurfaceOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getSurfaceOres(), x, y, z, rng, data);
-    }
-
-    public PlatformBlockState generateUndergroundOres(int x, int y, int z, RNG rng, IrisData data) {
-        return generateOres(getUndergroundOres(), x, y, z, rng, data);
-    }
-
-    public boolean hasSurfaceOres() {
-        return !getSurfaceOres().isEmpty();
-    }
-
-    public boolean hasUndergroundOres() {
-        return !getUndergroundOres().isEmpty();
-    }
-
-    private PlatformBlockState generateOres(KList<IrisOreGenerator> localOres, int x, int y, int z, RNG rng, IrisData data) {
-        if (localOres.isEmpty()) {
-            return null;
-        }
-
-        int oreCount = localOres.size();
-        for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
-            IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-            PlatformBlockState ore = oreGenerator.generate(x, y, z, rng, data);
-            if (ore != null) {
-                return ore;
-            }
-        }
-        return null;
-    }
-
-    public void setOres(KList<IrisOreGenerator> ores) {
-        this.ores = ores == null ? new KList<>() : ores;
-        surfaceOreCache.reset();
-        undergroundOreCache.reset();
-        surfaceOreBoundsCache.reset();
-        undergroundOreBoundsCache.reset();
-    }
-
-    public KList<IrisOreGenerator> getSurfaceOreGenerators() {
-        return getOres(true);
-    }
-
-    public KList<IrisOreGenerator> getUndergroundOreGenerators() {
-        return getOres(false);
-    }
-
-    public IrisOreGeneratorBounds getSurfaceOreGeneratorBounds() {
-        return surfaceOreBoundsCache.aquire(() -> IrisOreGeneratorBounds.of(getSurfaceOres()));
-    }
-
-    public IrisOreGeneratorBounds getUndergroundOreGeneratorBounds() {
-        return undergroundOreBoundsCache.aquire(() -> IrisOreGeneratorBounds.of(getUndergroundOres()));
-    }
-
-    private KList<IrisOreGenerator> getSurfaceOres() {
-        return getOres(true);
-    }
-
-    private KList<IrisOreGenerator> getUndergroundOres() {
-        return getOres(false);
-    }
-
-    private KList<IrisOreGenerator> getOres(boolean surface) {
-        AtomicCache<KList<IrisOreGenerator>> oreCache = surface ? surfaceOreCache : undergroundOreCache;
-        return oreCache.aquire(() -> {
-            KList<IrisOreGenerator> filtered = new KList<>();
-            KList<IrisOreGenerator> localOres = ores;
-            int oreCount = localOres.size();
-            for (int oreIndex = 0; oreIndex < oreCount; oreIndex++) {
-                IrisOreGenerator oreGenerator = localOres.get(oreIndex);
-                if (oreGenerator.isGenerateSurface() == surface) {
-                    filtered.add(oreGenerator);
-                }
-            }
-
-            return filtered;
-        });
     }
 
     public int getFluidHeight() {
@@ -550,17 +383,9 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-        KList<IrisDimensionCarvingEntry> carvingEntries = getCarving();
-        if (carvingEntries != null) {
-            for (IrisDimensionCarvingEntry entry : carvingEntries) {
-                if (entry != null && entry.isEnabled()) {
-                    addReachableBiomeKey(pending, entry.getBiome());
-                }
-            }
-        }
+        addReachableBiomeKeys(pending, getModuleSettings().usedBiomes(getModuleSettings()));
 
         Set<String> visited = new HashSet<>();
-        Map<String, IrisDimensionCarvingEntry> carvingEntryIndex = getCarvingEntryIndex();
         while (!pending.isEmpty()) {
             String biomeKey = pending.removeFirst();
             if (!visited.add(biomeKey)) {
@@ -580,20 +405,8 @@ public class IrisDimension extends IrisRegistrant {
             visited.add(loadKey);
             biomes.put(loadKey, biome);
             addReachableBiomeKeys(pending, biome.getChildren());
-            addReachableBiomeKey(pending, biome.getCarvingBiome());
-            KList<FloatingChildBiome> floatingChildren = biome.getFloatingChildBiomes();
-            if (floatingChildren == null) {
-                continue;
-            }
-            for (FloatingChildBiome floatingChild : floatingChildren) {
-                if (floatingChild != null) {
-                    addReachableBiomeKey(pending, floatingChild.biome());
-                    String carvingReference = floatingChild.carving();
-                    IrisDimensionCarvingEntry carvingEntry = carvingEntryIndex.get(carvingReference);
-                    addReachableBiomeKey(pending,
-                            carvingEntry == null ? carvingReference : carvingEntry.getBiome());
-                }
-            }
+            addReachableBiomeKeys(pending, biome.getModuleSettings().treeBiomes());
+            addReachableBiomeKeys(pending, biome.getModuleSettings().usedBiomes(getModuleSettings()));
         }
 
         return biomes.v();

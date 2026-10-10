@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.marker;
 
+import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.data.cache.AtomicCache;
@@ -54,7 +55,7 @@ public class IrisObjectMarker {
     @Desc("If true, markers will only be placed if the block matches the mark list perfectly.")
     private boolean exact = false;
     @Required
-    @RegistryListResource(IrisMarker.class)
+    @RegistryListResource(SpawnMarker.class)
     @Desc("The marker to add")
     private String marker;
 

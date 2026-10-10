@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object.structure;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
+import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.engine.object.loot.IrisObjectLoot;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawBranchFailurePolicy;
@@ -102,7 +102,7 @@ public class IrisStructure extends IrisRegistrant {
     private KList<ObjectReplace> edit = new KList<>();
 
     @ArrayType(type = String.class, min = 1)
-    @RegistryListResource(IrisLootTable.class)
+    @RegistryListResource(LootTable.class)
     @Desc("Loot tables applied to containers placed by this structure's pieces.")
     private KList<String> loot = new KList<>();
 

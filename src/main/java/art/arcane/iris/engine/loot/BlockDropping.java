@@ -18,20 +18,25 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.loot.BlockDrop;
+import art.arcane.iris.builtin.loot.BlockDropSettings;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.loot.IrisBlockDrops;
+import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.BlockDrops;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * How {@code iris:loot} drops items for broken blocks: the block drops of the biome, the region and the dimension, the
@@ -44,23 +49,53 @@ public final class BlockDropping implements BlockDrops {
         int x = broken.position().x();
         int y = broken.position().y();
         int z = broken.position().z();
-        PlatformBlockState block = IrisPlatforms.get().registries().block(broken.block().key());
+        String brokenKey = IrisPlatforms.get().registries().block(broken.block().key()).key();
+        ResolvedDrops resolved = world.state(ResolvedDrops.class, ignored -> new ResolvedDrops());
 
         IrisBiome biome = engine.getBiome(x, y, z);
-        List<IrisBlockDrops> providers = dropsFor(biome.getBlockDrops(), block, engine);
-        if (providers.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
+        List<ResolvedBlockDrop> providers = dropsFor(biome, brokenKey, resolved, world);
+        if (providers.stream().noneMatch(provider -> provider.drop().skipParents())) {
             IrisRegion region = engine.getRegion(x, z);
-            providers.addAll(dropsFor(region.getBlockDrops(), block, engine));
-            providers.addAll(dropsFor(engine.getDimension().getBlockDrops(), block, engine));
+            providers.addAll(dropsFor(region, brokenKey, resolved, world));
+            providers.addAll(dropsFor(engine.getDimension(), brokenKey, resolved, world));
         }
 
         LootItems items = new LootItems(world.resources().items(), false);
         List<ItemDrop> drops = new ArrayList<>();
-        providers.forEach(provider -> provider.fillDrops(items, drops));
-        return new Result(drops, providers.stream().anyMatch(IrisBlockDrops::isReplaceVanillaDrops));
+        providers.forEach(provider -> fillDrops(provider.drop(), items, drops));
+        return new Result(drops, providers.stream().anyMatch(provider -> provider.drop().replaceVanillaDrops()));
     }
 
-    private static List<IrisBlockDrops> dropsFor(KList<IrisBlockDrops> candidates, PlatformBlockState block, Engine engine) {
-        return new KList<>(candidates.stream().filter(drops -> drops.shouldDropFor(block, engine.getData())).toList());
+    /** Adds the items of the drops that pass their rarity to {@code into}. */
+    private static void fillDrops(BlockDrop drop, LootItems items, List<ItemDrop> into) {
+        for (LootEntry entry : drop.drops()) {
+            if (!LootResolver.oneIn(RNG.r, entry.rarity())) {
+                continue;
+            }
+            ItemDrop given = items.give(entry, RNG.r);
+            if (given != null) {
+                into.add(given);
+            }
+        }
+    }
+
+    private static List<ResolvedBlockDrop> dropsFor(IrisRegistrant owner, String brokenKey, ResolvedDrops resolved, PackWorld world) {
+        List<ResolvedBlockDrop> matching = new ArrayList<>();
+        for (BlockDrop drop : owner.getModuleSettings().find(BlockDropSettings.class).map(BlockDropSettings::drops).orElse(List.of())) {
+            ResolvedBlockDrop candidate = resolved.of(drop, world);
+            if (candidate.dropsFor(brokenKey)) {
+                matching.add(candidate);
+            }
+        }
+        return matching;
+    }
+
+    /** The drops of the world with their blocks resolved, once per drop. */
+    private static final class ResolvedDrops {
+        private final ConcurrentMap<BlockDrop, ResolvedBlockDrop> byDrop = new ConcurrentHashMap<>();
+
+        private ResolvedBlockDrop of(BlockDrop drop, PackWorld world) {
+            return byDrop.computeIfAbsent(drop, key -> ResolvedBlockDrop.of(key, world.resources().blocks()));
+        }
     }
 }

@@ -18,14 +18,13 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.loot.LootMode;
+import art.arcane.iris.builtin.loot.LootSettings;
+import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.loot.IrisLootMode;
-import art.arcane.iris.engine.object.loot.IrisLootReference;
-import art.arcane.iris.engine.object.loot.IrisLootTable;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.List;
@@ -34,42 +33,46 @@ import java.util.function.Function;
 
 /**
  * Which loot tables a place in the world draws from, and the random streams that draw from them: the part of loot
- * that reads the pack's tables, loot references and layout. The streams themselves are
- * {@link LootResolver}'s; here a table is named by its {@linkplain #identity identity}.
+ * that reads the pack's tables, loot settings and layout. The streams themselves are {@link LootResolver}'s; here a
+ * table is named by its {@linkplain #identity identity}, the key the pack names it by.
  */
 public final class LootTables {
+    private static final String VANILLA_IDENTITY_PREFIX = "Vanilla ";
+
     private LootTables() {
     }
 
-    /** What names a table in the random streams: its key, else its name. */
-    public static String identity(IrisLootTable table) {
-        if (table == null) {
-            return "";
-        }
-        String loadKey = table.getLoadKey();
-        if (loadKey != null && !loadKey.isBlank()) {
-            return loadKey;
-        }
-        String name = table.getName();
-        return name == null ? "" : name;
+    /** What names a table in the random streams: the key a pack table is named by. */
+    public static String identity(String tableKey) {
+        return tableKey;
     }
 
-    public static RNG rng(long lootSeed, IrisLootTable table, int x, int y, int z) {
-        return LootResolver.tableRng(lootSeed, identity(table), x, y, z);
+    /** What names a table of the platform in the random streams. */
+    public static String platformIdentity(String platformKey) {
+        return VANILLA_IDENTITY_PREFIX + platformKey;
     }
 
-    public static long seed(long lootSeed, IrisLootTable table, int x, int y, int z) {
-        return LootResolver.tableSeed(lootSeed, identity(table), x, y, z);
+    public static RNG rng(long lootSeed, String identity, int x, int y, int z) {
+        return LootResolver.tableRng(lootSeed, identity, x, y, z);
     }
 
-    public static boolean spatialOneIn(long lootSeed, IrisLootTable table, int entryIndex, int x, int y, int z, long rarity) {
-        return LootResolver.spatialOneIn(lootSeed, identity(table), entryIndex, x, y, z, rarity);
+    public static long seed(long lootSeed, String identity, int x, int y, int z) {
+        return LootResolver.tableSeed(lootSeed, identity, x, y, z);
+    }
+
+    public static boolean spatialOneIn(long lootSeed, String identity, int entryIndex, int x, int y, int z, long rarity) {
+        return LootResolver.spatialOneIn(lootSeed, identity, entryIndex, x, y, z, rarity);
+    }
+
+    /** The loot settings a dimension, region or biome declares; the defaults, which add nothing, when it declares none. */
+    public static LootSettings settingsOf(IrisRegistrant owner) {
+        return owner.getModuleSettings().find(LootSettings.class).orElseGet(LootSettings::new);
     }
 
     /**
      * Adds the tables of the dimension, the region, the surface biome and (below the surface) the cave biome at a
-     * column to {@code sources}, as their loot references say, then scales their number by the areas' multipliers.
-     * {@code mapper} turns a table into the caller's own source; a null result skips it.
+     * column to {@code sources}, as their loot settings say, then scales their number by the areas' multipliers.
+     * {@code mapper} turns the key of a table into the caller's own source; a null result skips it.
      */
     public static <T> void resolveEnvironmentSources(
             List<T> sources,
@@ -79,7 +82,7 @@ public final class LootTables {
             int relativeY,
             int z,
             boolean objectLootDefined,
-            Function<IrisLootTable, T> mapper
+            Function<String, T> mapper
     ) {
         IrisRegion region = engine.getComplex().getRegionStream().get(x, z);
         IrisBiome surfaceBiome = engine.getComplex().getTrueBiomeStream().get(x, z);
@@ -91,20 +94,21 @@ public final class LootTables {
             contextualBiome = surfaceBiome;
         }
 
+        LootSettings dimensionLoot = settingsOf(engine.getDimension());
+        LootSettings regionLoot = settingsOf(region);
+        LootSettings surfaceLoot = settingsOf(surfaceBiome);
         boolean distinctContextualBiome = !sameBiome(surfaceBiome, contextualBiome);
-        double multiplier = engine.getDimension().getLoot().getMultiplier()
-                * region.getLoot().getMultiplier()
-                * surfaceBiome.getLoot().getMultiplier();
+        double multiplier = dimensionLoot.multiplier() * regionLoot.multiplier() * surfaceLoot.multiplier();
         if (distinctContextualBiome) {
-            multiplier *= contextualBiome.getLoot().getMultiplier();
+            multiplier *= settingsOf(contextualBiome).multiplier();
         }
 
         boolean fallback = !objectLootDefined;
-        injectReference(sources, engine.getDimension().getLoot(), engine, mapper, fallback);
-        injectReference(sources, region.getLoot(), engine, mapper, fallback);
-        injectReference(sources, surfaceBiome.getLoot(), engine, mapper, fallback);
+        injectReference(sources, dimensionLoot, engine, mapper, fallback);
+        injectReference(sources, regionLoot, engine, mapper, fallback);
+        injectReference(sources, surfaceLoot, engine, mapper, fallback);
         if (distinctContextualBiome) {
-            injectReference(sources, contextualBiome.getLoot(), engine, mapper, fallback);
+            injectReference(sources, settingsOf(contextualBiome), engine, mapper, fallback);
         }
         LootResolver.scaleSources(sources, multiplier, rng);
     }
@@ -113,17 +117,17 @@ public final class LootTables {
     public static <T> void injectSources(
             List<T> sources,
             List<? extends T> additions,
-            IrisLootMode mode,
+            LootMode mode,
             boolean fallback
     ) {
-        if (mode == IrisLootMode.FALLBACK && !fallback) {
+        if (mode == LootMode.FALLBACK && !fallback) {
             return;
         }
-        if (mode == IrisLootMode.CLEAR) {
+        if (mode == LootMode.CLEAR) {
             sources.clear();
             return;
         }
-        if (mode == IrisLootMode.REPLACE) {
+        if (mode == LootMode.REPLACE) {
             sources.clear();
         }
         sources.addAll(additions);
@@ -141,22 +145,16 @@ public final class LootTables {
 
     private static <T> void injectReference(
             List<T> sources,
-            IrisLootReference reference,
+            LootSettings loot,
             Engine engine,
-            Function<IrisLootTable, T> mapper,
+            Function<String, T> mapper,
             boolean fallback
     ) {
-        KList<IrisLootTable> tables = reference.getLootTables(engine.getComplex());
-        KList<T> additions = new KList<>();
-        for (IrisLootTable table : tables) {
-            if (table == null) {
-                continue;
-            }
-            T source = mapper.apply(table);
-            if (source != null) {
-                additions.add(source);
-            }
-        }
-        injectSources(sources, additions, reference.getMode(), fallback);
+        List<T> additions = loot.tables().stream()
+                .filter(key -> LootResources.table(engine.getData(), key) != null)
+                .map(mapper)
+                .filter(Objects::nonNull)
+                .toList();
+        injectSources(sources, additions, loot.mode(), fallback);
     }
 }

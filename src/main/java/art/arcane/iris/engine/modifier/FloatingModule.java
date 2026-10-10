@@ -18,7 +18,8 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.builtin.floating.FloatingChildSettings;
+import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
@@ -50,7 +51,8 @@ public final class FloatingModule implements IrisModule {
 
     @Override
     public void register(FeatureRegistry registry) {
-        registry.registerHeldType(FloatingChildBiome.class);
+        registry.registerSettings(FloatingChildSettings.class);
+        registry.registerSettings(MergeFloatingChildrenSettings.class);
     }
 
     @Override

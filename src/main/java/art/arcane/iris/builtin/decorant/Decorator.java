@@ -18,6 +18,7 @@
 
 package art.arcane.iris.builtin.decorant;
 
+import art.arcane.iris.builtin.prepare.SlopeClip;
 import com.volmit.block.BlockSpec;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
@@ -60,7 +61,7 @@ public final class Decorator {
     private List<BlockSpec> blacklist;
 
     @Desc("The slope at which this decorator can be placed. Range from 0 to 10 by default. Calculated from a 3-block radius from the center of the decorator placement.")
-    private DecoratorSlope slopeCondition = new DecoratorSlope();
+    private SlopeClip slopeCondition = new SlopeClip();
 
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;
@@ -143,8 +144,8 @@ public final class Decorator {
         return blacklist != null;
     }
 
-    public DecoratorSlope slopeCondition() {
-        return slopeCondition == null ? new DecoratorSlope() : slopeCondition;
+    public SlopeClip slopeCondition() {
+        return slopeCondition == null ? new SlopeClip() : slopeCondition;
     }
 
     public int absoluteMaxStack() {

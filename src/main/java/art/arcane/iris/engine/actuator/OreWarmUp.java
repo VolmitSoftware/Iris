@@ -19,55 +19,52 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.terrain.deposit.IrisOreGenerator;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.Comparator;
+import java.util.function.LongSupplier;
 
 /**
  * Builds the noise of every ore generator the world's biomes, regions and dimension declare before generation needs it.
- * A generator keeps the noise of the first random it is given, so each one is warmed with the random of its place in
+ * A generator keeps the noise of the first seed it is given, so each one is warmed with the seed of its place in
  * this order: the biomes by key, the regions by key, then the dimension. The order is part of what a world generates.
  */
 final class OreWarmUp {
     private static final long ROOT_SEED_SALT = 7777L;
 
     private final Engine engine;
+    private final TerrainOres ores;
     private final RNG root;
     private int warmed;
 
     OreWarmUp(Engine engine) {
+        this(engine, TerrainOres.of(engine));
+    }
+
+    OreWarmUp(Engine engine, TerrainOres ores) {
         this.engine = engine;
+        this.ores = ores;
         this.root = new RNG(engine.getSeedManager().getComponent() + ROOT_SEED_SALT);
     }
 
     void warm() {
+        LongSupplier seeds = () -> root.nextParallelRNG(warmed++).getSeed();
+
         KList<IrisBiome> biomes = engine.getAllBiomes();
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
         for (IrisBiome biome : biomes) {
-            warmAll(biome.getOres());
+            ores.of(biome).warm(seeds);
         }
 
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
         for (IrisRegion region : regions) {
-            warmAll(region.getOres());
+            ores.of(region).warm(seeds);
         }
 
-        warmAll(engine.getDimension().getOres());
-    }
-
-    private void warmAll(KList<IrisOreGenerator> ores) {
-        if (ores == null) {
-            return;
-        }
-        for (IrisOreGenerator ore : ores) {
-            if (ore != null) {
-                ore.warm(root.nextParallelRNG(warmed++), engine.getData());
-            }
-        }
+        ores.of(engine.getDimension()).warm(seeds);
     }
 }

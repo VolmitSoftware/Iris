@@ -18,15 +18,15 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.SpawnMarker;
+import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisPackResources;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawner;
-import art.arcane.iris.engine.object.marker.IrisMarker;
-import art.arcane.volmlib.util.collection.KList;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,13 +39,17 @@ import java.util.List;
  */
 public final class SpawnResources {
     /** Spawners, in {@code spawners/}. */
-    public static final ResourceKind<IrisSpawner> SPAWNERS = ResourceKind.of("iris:spawn/spawner", "spawners", IrisSpawner.class);
+    public static final ResourceKind<Spawner> SPAWNERS = ResourceKind.of("iris:spawn/spawner", "spawners", Spawner.class);
     /** Entities, in {@code entities/}. */
-    public static final ResourceKind<IrisEntity> ENTITIES = ResourceKind.of("iris:spawn/entity", "entities", IrisEntity.class);
+    public static final ResourceKind<EntityDefinition> ENTITIES = ResourceKind.of("iris:spawn/entity", "entities", EntityDefinition.class);
     /** Markers, in {@code markers/}. */
-    public static final ResourceKind<IrisMarker> MARKERS = ResourceKind.of("iris:spawn/marker", "markers", IrisMarker.class);
+    public static final ResourceKind<SpawnMarker> MARKERS = ResourceKind.of("iris:spawn/marker", "markers", SpawnMarker.class);
 
     private SpawnResources() {
+    }
+
+    /** A spawner and the key the pack names it by. */
+    public record KeyedSpawner(String key, Spawner spawner) {
     }
 
     /** Every resource kind of the spawn module. */
@@ -53,25 +57,25 @@ public final class SpawnResources {
         return List.of(SPAWNERS, ENTITIES, MARKERS);
     }
 
-    public static IrisSpawner spawner(IrisData data, String key) {
+    public static Spawner spawner(IrisData data, String key) {
         return find(data, SPAWNERS, key);
     }
 
-    public static IrisEntity entity(IrisData data, String key) {
+    public static EntityDefinition entity(IrisData data, String key) {
         return find(data, ENTITIES, key);
     }
 
-    public static IrisMarker marker(IrisData data, String key) {
+    public static SpawnMarker marker(IrisData data, String key) {
         return find(data, MARKERS, key);
     }
 
     /** The spawners of the pack named by {@code keys}, in order, without the ones the pack lacks. */
-    public static KList<IrisSpawner> spawners(IrisData data, List<String> keys) {
-        KList<IrisSpawner> spawners = new KList<>();
+    public static List<KeyedSpawner> spawners(IrisData data, List<String> keys) {
+        List<KeyedSpawner> spawners = new ArrayList<>();
         for (String key : keys) {
-            IrisSpawner spawner = spawner(data, key);
+            Spawner spawner = spawner(data, key);
             if (spawner != null) {
-                spawners.add(spawner);
+                spawners.add(new KeyedSpawner(key, spawner));
             }
         }
         return spawners;

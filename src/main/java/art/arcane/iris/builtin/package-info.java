@@ -27,9 +27,10 @@
  * subpackage per built-in module, named after the module path, such as {@code art.arcane.iris.builtin.deposit}
  * for {@code iris:deposit}.
  * <p>
- * Besides those, it holds narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement, for what
- * they need from Iris's internals and no pack module does: {@link art.arcane.iris.builtin.IrisSeed}, and the transitional
- * {@link art.arcane.iris.builtin.PendingSettings}. Keep them few: each is a promise.
+ * Besides those, it holds what the compiled-in built-ins and the built-ins jar must share, since each sees its own copy
+ * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
+ * ({@link art.arcane.iris.builtin.IrisSeed}), and per-world state several of them use
+ * ({@link art.arcane.iris.builtin.terrain.LayerBlocks}). Keep them few: each is a promise.
  * <p>
  * Some built-in stages produce Iris's own types, such as the placement settings of {@code iris:prepare}. A
  * pack module can require such a stage to run after it, but cannot read its output: the pack load rejects

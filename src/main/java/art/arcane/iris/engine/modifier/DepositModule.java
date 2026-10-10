@@ -21,7 +21,11 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
+import art.arcane.iris.builtin.deposit.DepositVariantSettings;
+import art.arcane.iris.builtin.deposit.OreFrequencySettings;
+import art.arcane.iris.builtin.deposit.OreSizeSettings;
 import art.arcane.iris.core.modules.IrisChunk;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.config.FeatureSettings;
@@ -46,6 +50,13 @@ public final class DepositModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:deposit", "Deposits", VERSION);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerSettings(DepositVariantSettings.class);
+        registry.registerSettings(OreFrequencySettings.class);
+        registry.registerSettings(OreSizeSettings.class);
     }
 
     @Override

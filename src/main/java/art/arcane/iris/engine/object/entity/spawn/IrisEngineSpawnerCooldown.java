@@ -18,8 +18,6 @@
 
 package art.arcane.iris.engine.object.entity.spawn;
 
-import art.arcane.iris.engine.object.value.IrisRate;
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.math.M;
 import lombok.Data;
 
@@ -28,11 +26,11 @@ public class IrisEngineSpawnerCooldown {
     private long lastSpawn = 0;
     private String spawner;
 
-    public void spawn(Engine engine) {
+    public void spawn() {
         lastSpawn = M.ms();
     }
 
-    public boolean canSpawn(IrisRate s) {
-        return M.ms() - lastSpawn > s.getInterval();
+    public boolean canSpawn(long intervalMilliseconds) {
+        return M.ms() - lastSpawn > intervalMilliseconds;
     }
 }

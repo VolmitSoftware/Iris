@@ -18,13 +18,13 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.loot.ItemAttributeModifier;
+import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.spawn.AmbientEffect;
+import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.SpawnCommand;
 import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
-import art.arcane.iris.engine.object.entity.IrisAttributeModifier;
-import art.arcane.iris.engine.object.entity.IrisEffect;
-import art.arcane.iris.engine.object.entity.IrisEntity;
-import art.arcane.iris.engine.object.loot.IrisLoot;
-import art.arcane.iris.engine.object.marker.IrisCommand;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.entity.EntitySpec;
@@ -44,83 +44,85 @@ final class EntityResolution {
 
     private final LootItems items;
     private final PlatformWorld world;
+    private final EffectTimers timers;
 
     /** @param world the world the entity appears in, whose time and weather decide which of its commands run */
-    EntityResolution(LootItems items, PlatformWorld world) {
+    EntityResolution(LootItems items, PlatformWorld world, EffectTimers timers) {
         this.items = items;
         this.world = world;
+        this.timers = timers;
     }
 
-    EntitySpec resolve(IrisEntity entity, RNG rng) {
+    EntitySpec resolve(EntityDefinition entity, RNG rng) {
         List<EntitySpec> passengers = new ArrayList<>();
         long passengerIndex = 0;
-        for (IrisEntity passenger : entity.getPassengers()) {
+        for (EntityDefinition passenger : entity.passengers()) {
             passengers.add(resolve(passenger, rng.nextParallelRNG(PASSENGER_STREAM_BASE + passengerIndex++)));
         }
 
         List<ItemAttribute> attributes = drawAttributes(entity, rng);
-        List<String> lootTables = List.copyOf(entity.getLoot().getTables());
+        List<String> lootTables = List.copyOf(entity.loot().tables());
         long lootShuffleSeed = lootTables.isEmpty() ? 0L : rng.nextLong();
-        EntitySpec leashHolder = entity.getLeashHolder() == null ? null : resolve(entity.getLeashHolder(), rng.nextParallelRNG(LEASH_HOLDER_STREAM));
+        EntitySpec leashHolder = entity.leashHolder() == null ? null : resolve(entity.leashHolder(), rng.nextParallelRNG(LEASH_HOLDER_STREAM));
         EntitySpec.Equipment equipment = new EntitySpec.Equipment(
-                equip(entity.getHelmet(), rng), equip(entity.getChestplate(), rng), equip(entity.getLeggings(), rng),
-                equip(entity.getBoots(), rng), equip(entity.getMainHand(), rng), equip(entity.getOffHand(), rng));
+                equip(entity.helmet(), rng), equip(entity.chestplate(), rng), equip(entity.leggings(), rng),
+                equip(entity.boots(), rng), equip(entity.mainHand(), rng), equip(entity.offHand(), rng));
 
         return new EntitySpec(
-                entity.getType() == null ? "" : entity.getType(),
-                entity.getSpecialType() == null ? "" : entity.getSpecialType(),
-                entity.getReason(),
-                entity.getCustomName() == null ? "" : entity.getCustomName(),
+                entity.type() == null ? "" : entity.type(),
+                entity.specialType() == null ? "" : entity.specialType(),
+                entity.reason(),
+                entity.customName() == null ? "" : entity.customName(),
                 flagsOf(entity), equipment, passengers, attributes, lootTables, lootShuffleSeed, leashHolder,
-                spawnEffectOf(entity), entity.isSpawnEffectRiseOutOfGround(), entity.getPandaMainGene(),
-                entity.getPandaHiddenGene(), entity.isApplySettingsToCustomMobAnyways(), commandsOf(entity));
+                spawnEffectOf(entity), entity.spawnEffectRiseOutOfGround(), entity.pandaMainGene(),
+                entity.pandaHiddenGene(), entity.applySettingsToCustomMobAnyways(), commandsOf(entity));
     }
 
-    private static EntitySpec.Flags flagsOf(IrisEntity entity) {
-        return new EntitySpec.Flags(entity.isCustomNameVisible(), entity.isAware(), entity.isAi(), entity.isGlowing(),
-                entity.isGravity(), entity.isInvulnerable(), entity.isSilent(), entity.isPickupItems(), entity.isRemovable(),
-                entity.isKeepEntity(), entity.isBaby());
+    private static EntitySpec.Flags flagsOf(EntityDefinition entity) {
+        return new EntitySpec.Flags(entity.customNameVisible(), entity.aware(), entity.ai(), entity.glowing(),
+                entity.gravity(), entity.invulnerable(), entity.silent(), entity.pickupItems(), entity.removable(),
+                entity.keepEntity(), entity.baby());
     }
 
-    private static List<ItemAttribute> drawAttributes(IrisEntity entity, RNG rng) {
+    private static List<ItemAttribute> drawAttributes(EntityDefinition entity, RNG rng) {
         List<ItemAttribute> attributes = new ArrayList<>();
-        for (IrisAttributeModifier modifier : entity.getAttributes()) {
-            if (rng.nextDouble() >= modifier.getChance()) {
+        for (ItemAttributeModifier modifier : entity.attributes()) {
+            if (rng.nextDouble() >= modifier.chance()) {
                 continue;
             }
-            String attribute = modifier.getAttribute();
+            String attribute = modifier.attribute();
             if (attribute == null || attribute.isBlank()) {
                 continue;
             }
-            attributes.add(new ItemAttribute(attribute, modifier.getName(), modifier.getOperation(), modifier.getAmount(rng)));
+            attributes.add(new ItemAttribute(attribute, modifier.name(), modifier.operation(), rng.d(modifier.minAmount(), modifier.maxAmount())));
         }
         return attributes;
     }
 
-    private ItemDrop equip(IrisLoot piece, RNG rng) {
-        if (piece == null || !LootResolver.oneIn(rng, piece.getRarity())) {
+    private ItemDrop equip(LootEntry piece, RNG rng) {
+        if (piece == null || !LootResolver.oneIn(rng, piece.rarity())) {
             return null;
         }
         return items.give(piece, rng);
     }
 
     /** The entity's spawn effect when it shows this time: an effect only shows now and then, as its interval and chance say. */
-    private static EntitySpec.SpawnEffect spawnEffectOf(IrisEntity entity) {
-        IrisEffect effect = entity.getSpawnEffect();
-        if (effect == null || !effect.shouldApplyNow()) {
+    private EntitySpec.SpawnEffect spawnEffectOf(EntityDefinition entity) {
+        AmbientEffect effect = entity.spawnEffect();
+        if (effect == null || !timers.shouldPlayNow(effect)) {
             return null;
         }
-        return new EntitySpec.SpawnEffect(effect.getSoundKey(), effect.getSoundDistance(), effect.getMinPitch(),
-                effect.getMaxPitch(), effect.getVolume(), effect.getParticleEffectKey(), effect.getParticleOffset(),
-                effect.getParticleCount(), effect.getParticleAltX(), effect.getParticleAltY(), effect.getParticleAltZ(),
-                effect.isRandomAltX(), effect.isRandomAltY(), effect.isRandomAltZ(), effect.getExtra());
+        return new EntitySpec.SpawnEffect(effect.sound(), effect.soundDistance(), effect.minPitch(),
+                effect.maxPitch(), effect.volume(), effect.particleEffect(), effect.particleOffset(),
+                effect.particleCount(), effect.particleAltX(), effect.particleAltY(), effect.particleAltZ(),
+                effect.randomAltX(), effect.randomAltY(), effect.randomAltZ(), effect.extra());
     }
 
-    private List<EntitySpec.Command> commandsOf(IrisEntity entity) {
+    private List<EntitySpec.Command> commandsOf(EntityDefinition entity) {
         List<EntitySpec.Command> commands = new ArrayList<>();
-        for (IrisCommand command : entity.getRawCommands()) {
-            if (command.isValid(world)) {
-                commands.add(new EntitySpec.Command(command.getCommands(), command.getDelay(), command.isRepeat(), command.getRepeatDelay()));
+        for (SpawnCommand command : entity.rawCommands()) {
+            if (SpawnConditions.allow(command.timeBlock(), command.weather(), world)) {
+                commands.add(new EntitySpec.Command(command.commands(), command.delay(), command.repeat(), command.repeatDelay()));
             }
         }
         return commands;

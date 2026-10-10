@@ -83,6 +83,8 @@ public class DimensionBottomTest {
     private static final int BOTTOM = 0;
     private static final int SURFACE_HEIGHT = 10;
     private static final BlockBox WHOLE_HEIGHT_OF_ONE_CHUNK = new BlockBox(0, BOTTOM, 0, 16, DIMENSION_HEIGHT, 16);
+    /** A chunk stage sees the terrain of its chunk and of the 16 blocks around it. */
+    private static final BlockBox WHOLE_HEIGHT_AROUND_ONE_CHUNK = new BlockBox(-16, BOTTOM, -16, 32, DIMENSION_HEIGHT, 32);
     private static final BlockState STONE = BlockState.parse("minecraft:stone");
     private static final MantleKey<String> MARKS = new MantleKey<>("test:bottom/mark", String.class);
     private static final MantleCodec<String> TEXT = new MantleCodec<>() {
@@ -176,7 +178,9 @@ public class DimensionBottomTest {
 
         assertEquals("minecraft:stone", blocks.get(0, BOTTOM, 0).key());
         assertEquals("the chunk's block hunk starts at the bottom, not at the world's minimum height", 1, countBlocks(blocks));
-        assertSamplesAndBoundsAgree();
+        assertEquals(List.of(WHOLE_HEIGHT_AROUND_ONE_CHUNK), terrainBounds);
+        assertEquals(List.of(WHOLE_HEIGHT_OF_ONE_CHUNK), viewBounds);
+        assertEquals("the terrain samples count from the same bottom", List.of(Double.valueOf(SURFACE_HEIGHT)), surfaces);
     }
 
     @Test

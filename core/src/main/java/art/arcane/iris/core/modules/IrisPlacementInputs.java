@@ -30,6 +30,8 @@ import com.volmit.world.TerrainSample;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
+import java.util.OptionalInt;
+
 /** The read-only IrisApi inputs of one Iris object placement. */
 final class IrisPlacementInputs implements PlacementContext {
     private final ObjectTransformer objects = new IrisObjectTransformer();
@@ -67,6 +69,16 @@ final class IrisPlacementInputs implements PlacementContext {
 
             @Override
             public BiomeSample biome(int worldX, int y, int worldZ) {
+                throw withoutEngine();
+            }
+
+            @Override
+            public int fluidHeight() {
+                throw withoutEngine();
+            }
+
+            @Override
+            public OptionalInt upperDimensionY(int worldX, int worldZ) {
                 throw withoutEngine();
             }
         };

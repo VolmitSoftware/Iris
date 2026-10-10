@@ -22,21 +22,20 @@ import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockState;
 import com.volmit.hunk.Hunk;
 
-import java.util.function.Function;
 
 /**
  * Iris's chunk block hunk seen as IrisApi block states. Iris leaves unset blocks null, which IrisApi
- * forbids, so they read as air. States are converted through their keys and remembered for the
- * invocation, since a chunk repeats few states many times.
+ * forbids, so they read as air. States convert as {@link PlatformBlockStates} says, shared with the chunk's planned
+ * blocks, so a stage that copies those into the chunk writes the very platform states the mantle held.
  */
 final class BlockStateHunk implements Hunk<BlockState> {
     private final art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks;
     private final PlatformBlockStates states;
 
-    /** {@code platformStates} turns a block state key into the platform's state, such as {@code B::getState}. */
-    BlockStateHunk(art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks, Function<String, PlatformBlockState> platformStates) {
+    /** {@code states} are the invocation's conversions, which the chunk's other views share. */
+    BlockStateHunk(art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks, PlatformBlockStates states) {
         this.blocks = blocks;
-        this.states = new PlatformBlockStates(platformStates);
+        this.states = states;
     }
 
     @Override

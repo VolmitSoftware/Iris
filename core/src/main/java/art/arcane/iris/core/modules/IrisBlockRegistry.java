@@ -57,6 +57,8 @@ final class IrisBlockRegistry implements BlockRegistry {
 
     private final IrisData data;
     private final Map<BlockSpec, IrisBlockData> specs = new ConcurrentHashMap<>();
+    /** Stages ask about every block of a chunk; the platform's state of each block is found once per snapshot. */
+    private final Map<BlockState, PlatformBlockState> platformStates = new ConcurrentHashMap<>();
     private final LazyBoundedCache<SeededPalette, PaletteSampler> palettes = new LazyBoundedCache<>(PALETTE_CACHE_SIZE);
 
     /** @param data the pack whose {@code blocks} folder custom blocks come from */
@@ -100,7 +102,7 @@ final class IrisBlockRegistry implements BlockRegistry {
 
     @Override
     public boolean hasTrait(BlockState state, BlockTrait trait) {
-        PlatformBlockState platform = platformState(state.key());
+        PlatformBlockState platform = platformState(state);
         return switch (trait) {
             case AIR -> platform.isAir();
             case SOLID -> platform.isSolid();
@@ -109,6 +111,7 @@ final class IrisBlockRegistry implements BlockRegistry {
             case WATER -> platform.isWater();
             case FOLIAGE -> platform.isFoliage();
             case DECORATION -> platform.isDecorant();
+            case VINE -> platform.isVineBlock();
             case ORE -> platform.isOre();
             case INVENTORY -> platform.isStorage();
             case BLOCK_ENTITY -> platform.hasTileEntity();
@@ -122,12 +125,21 @@ final class IrisBlockRegistry implements BlockRegistry {
 
     @Override
     public boolean inTag(BlockState state, ResourceId tag) {
-        return IrisPlatforms.get().registries().isInTag(platformState(state.key()), tag.toString());
+        return IrisPlatforms.get().registries().isInTag(platformState(state), tag.toString());
     }
 
     @Override
     public boolean canAttach(BlockState state, BlockState support, BlockFace face) {
-        return platformState(state.key()).canAttach(platformState(support.key()), PlatformFace.valueOf(face.name()));
+        return platformState(state).canAttach(platformState(support), PlatformFace.valueOf(face.name()));
+    }
+
+    @Override
+    public boolean canPlaceOn(BlockState state, BlockState below) {
+        return platformState(state).canPlaceOnto(platformState(below));
+    }
+
+    private PlatformBlockState platformState(BlockState state) {
+        return platformStates.computeIfAbsent(state, known -> platformState(known.key()));
     }
 
     private static PlatformBlockState platformState(String key) {

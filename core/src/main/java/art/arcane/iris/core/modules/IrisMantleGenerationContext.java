@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.util.common.data.B;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.MantleGenerationContext;
 import com.volmit.host.MantleRegistration;
@@ -57,7 +58,8 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
         this.settings = new ChunkModuleSettings(engine, ids);
         BlockBox reach = ApiHeights.columns(engine, originX - reachBlocks, originZ - reachBlocks,
                 originX + CHUNK_WIDTH + reachBlocks, originZ + CHUNK_WIDTH + reachBlocks);
-        this.mantle = new IrisModuleMantle(reach, chunks, layers);
+        PlannedBlocks plannedBlocks = PlannedBlocks.of(engine, reach, chunks, new PlatformBlockStates(B::getState));
+        this.mantle = new IrisModuleMantle(reach, chunks, layers, plannedBlocks);
     }
 
     @Override

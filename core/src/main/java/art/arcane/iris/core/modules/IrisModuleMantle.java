@@ -21,6 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.block.BlockState;
 import com.volmit.host.MantleRegistration;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
@@ -69,12 +70,14 @@ final class IrisModuleMantle implements Mantle {
     private final BlockBox bounds;
     private final Chunks chunks;
     private final Map<String, MantleRegistration<?>> registrations;
+    private final PlannedBlocks plannedBlocks;
     private BufferedEdit openEdit;
 
-    IrisModuleMantle(BlockBox bounds, Chunks chunks, Collection<MantleRegistration<?>> registrations) {
+    IrisModuleMantle(BlockBox bounds, Chunks chunks, Collection<MantleRegistration<?>> registrations, PlannedBlocks plannedBlocks) {
         this.bounds = bounds;
         this.chunks = chunks;
         this.registrations = registrations.stream().collect(Collectors.toMap(registration -> registration.key().id(), Function.identity()));
+        this.plannedBlocks = plannedBlocks;
     }
 
     @Override
@@ -85,6 +88,11 @@ final class IrisModuleMantle implements Mantle {
     @Override
     public <T> MantleLayer<T> layer(MantleKey<T> key) {
         return new Layer<>(key, codecOf(key));
+    }
+
+    @Override
+    public MantleLayer<BlockState> blocks() {
+        return plannedBlocks;
     }
 
     @Override
@@ -224,6 +232,12 @@ final class IrisModuleMantle implements Mantle {
         public <T> MantleLayer<T> layer(MantleKey<T> key) {
             requireOpen();
             return new EditLayer<>(new Layer<>(key, codecOf(key)));
+        }
+
+        @Override
+        public MantleLayer<BlockState> blocks() {
+            requireOpen();
+            return plannedBlocks;
         }
 
         @Override

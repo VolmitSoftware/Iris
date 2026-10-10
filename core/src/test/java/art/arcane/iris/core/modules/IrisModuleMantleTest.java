@@ -111,7 +111,7 @@ public class IrisModuleMantleTest {
     }
 
     private IrisModuleMantle mantle(BlockBox bounds) {
-        return new IrisModuleMantle(bounds, this::chunk, LAYERS);
+        return new IrisModuleMantle(bounds, this::chunk, LAYERS, PlannedBlocks.none(bounds));
     }
 
     @Test
@@ -224,8 +224,9 @@ public class IrisModuleMantleTest {
 
     @Test
     public void aCommitThatCannotReachEveryChunkPublishesNothing() {
-        IrisModuleMantle mantle = new IrisModuleMantle(new BlockBox(0, 0, 0, 32, HEIGHT, 16),
-                (chunkX, chunkZ) -> chunkX == 0 ? chunk(chunkX, chunkZ) : null, LAYERS);
+        BlockBox bounds = new BlockBox(0, 0, 0, 32, HEIGHT, 16);
+        IrisModuleMantle mantle = new IrisModuleMantle(bounds, (chunkX, chunkZ) -> chunkX == 0 ? chunk(chunkX, chunkZ) : null, LAYERS,
+                PlannedBlocks.none(bounds));
         MantleEdit edit = mantle.edit();
         edit.layer(MARKS).set(1, 4, 1, "first");
         edit.layer(MARKS).set(20, 4, 1, "unprepared");
@@ -287,7 +288,8 @@ public class IrisModuleMantleTest {
                 ModuleHost.of(List.of(veins)).copyingJarsTo(folder.newFolder("copies").toPath()))) {
             ModuleMantleComponent.forPack(engine, pack, Set.of()).getFirst().generate(0, 0, this::chunk);
 
-            IrisModuleMantle neighbor = new IrisModuleMantle(new BlockBox(16, 0, 0, 32, HEIGHT, 16), this::chunk, pack.catalog().mantle());
+            BlockBox neighborBounds = new BlockBox(16, 0, 0, 32, HEIGHT, 16);
+            IrisModuleMantle neighbor = new IrisModuleMantle(neighborBounds, this::chunk, pack.catalog().mantle(), PlannedBlocks.none(neighborBounds));
             assertEquals("vein", neighbor.layer(planned).get(20, 34, 3));
         }
         assertTrue(chunks.containsKey(1L << 32));

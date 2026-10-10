@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import com.volmit.mantle.BlockBox;
@@ -78,6 +79,23 @@ final class IrisTerrainSampler implements TerrainSampler {
                 ids.of(engine.getRegion(worldX, worldZ).getLoadKey()),
                 ids.of(surface.getLoadKey()),
                 cave.map(biome -> ids.of(biome.getLoadKey())));
+    }
+
+    @Override
+    public int fluidHeight() {
+        return engine.getDimension().getFluidHeight();
+    }
+
+    /** The upper dimension's surface, but never closer above the terrain than the dimension's gap. */
+    @Override
+    public OptionalInt upperDimensionY(int worldX, int worldZ) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        UpperDimensionContext upper = engine.getUpperContext();
+        if (upper == null) {
+            return OptionalInt.empty();
+        }
+        int surfaceY = (int) Math.round(engine.getComplex().getHeightStream().get((double) worldX, (double) worldZ));
+        return OptionalInt.of(Math.max(upper.getUpperSurfaceY(worldX, worldZ), surfaceY + engine.getDimension().getUpperDimensionGap()));
     }
 
     private void requireInside(int worldX, int y, int worldZ) {

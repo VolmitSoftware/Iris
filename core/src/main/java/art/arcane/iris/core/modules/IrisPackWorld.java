@@ -18,10 +18,12 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.PendingSettings;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.world.PackWorld;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -30,14 +32,16 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld {
+public final class IrisPackWorld implements PackWorld, PendingSettings {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states = new WorldStates();
+    private final IrisPendingSettings pendingSettings;
 
     IrisPackWorld(Engine engine) {
         this.engine = engine;
         this.resources = engine.getData().getPackResources();
+        this.pendingSettings = new IrisPendingSettings(engine);
     }
 
     /** Iris's own view of {@code world}, which Iris hands to every stage, service and lifecycle hook. */
@@ -71,6 +75,31 @@ public final class IrisPackWorld implements PackWorld {
     @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));
+    }
+
+    @Override
+    public boolean hidesOres() {
+        return pendingSettings.hidesOres();
+    }
+
+    @Override
+    public boolean postProcessingWalls() {
+        return pendingSettings.postProcessingWalls();
+    }
+
+    @Override
+    public boolean postProcessingSlabs() {
+        return pendingSettings.postProcessingSlabs();
+    }
+
+    @Override
+    public Optional<BiomeLayer> wall(int x, int z) {
+        return pendingSettings.wall(x, z);
+    }
+
+    @Override
+    public BiomeLayer slab(int x, int z) {
+        return pendingSettings.slab(x, z);
     }
 
     /** Whether the pack's resources were reloaded since this world was made, so it generates with an old snapshot. */

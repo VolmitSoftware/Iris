@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -116,5 +117,28 @@ public class IrisBlockRegistryTest {
             assertEquals(face.name(), face == BlockFace.NORTH, blocks.canAttach(torch, support, face));
             verify(stone).canAttach(sand, PlatformFace.valueOf(face.name()));
         }
+    }
+
+    @Test
+    public void vinesAndStandingOnABlockAreThePlatformsAnswers() {
+        when(sand.isVineBlock()).thenReturn(true);
+        when(stone.canPlaceOnto(sand)).thenReturn(true);
+        BlockState stoneState = BlockState.parse("minecraft:stone");
+        BlockState sandState = BlockState.parse("minecraft:sand");
+
+        assertTrue(blocks.hasTrait(sandState, BlockTrait.VINE));
+        assertFalse(blocks.hasTrait(stoneState, BlockTrait.VINE));
+        assertTrue(blocks.canPlaceOn(stoneState, sandState));
+        assertFalse(blocks.canPlaceOn(sandState, stoneState));
+    }
+
+    @Test
+    public void eachStateIsLookedUpOnceAndAskedAgainFromMemory() {
+        BlockState stoneState = BlockState.parse("minecraft:stone");
+
+        blocks.hasTrait(stoneState, BlockTrait.SOLID);
+        blocks.hasTrait(BlockState.parse("minecraft:stone"), BlockTrait.AIR);
+
+        verify(registries, times(1)).blockOrNull(eq("minecraft:stone"), anyBoolean());
     }
 }

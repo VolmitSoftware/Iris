@@ -22,12 +22,19 @@ import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockState;
 
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 /**
  * Converts between IrisApi block states and the platform's through their keys, remembering each
  * conversion. Meant for one invocation, which repeats few states many times; not thread-safe.
+ * <p>
+ * A state read from the platform and written back as the same instance keeps its platform identity. IrisApi's
+ * {@link BlockState} is only a key, and some platform states share a key with another, such as a content plugin's
+ * custom block and the base block it is drawn as; a stage that copies such a block (planned mantle blocks into the
+ * chunk) must write the custom block back, not its base. Every distinct platform state therefore reads as its own
+ * instance, and writing that instance gives the platform state back; any other instance converts by its key.
  */
 public final class PlatformBlockStates {
     public static final BlockState AIR = BlockState.parse("minecraft:air");
@@ -38,6 +45,7 @@ public final class PlatformBlockStates {
     private final Function<String, PlatformBlockState> platformStates;
     private final Map<PlatformBlockState, BlockState> read = new HashMap<>();
     private final Map<BlockState, PlatformBlockState> written = new HashMap<>();
+    private final Map<BlockState, PlatformBlockState> origins = new IdentityHashMap<>();
 
     /** {@code platformStates} turns a block state key into the platform's state, such as {@code B::getState}. */
     public PlatformBlockStates(Function<String, PlatformBlockState> platformStates) {
@@ -52,10 +60,21 @@ public final class PlatformBlockStates {
         if (state == null) {
             return AIR;
         }
-        return read.computeIfAbsent(state, platform -> BlockState.parse(namespaced(platform.key())));
+        BlockState known = read.get(state);
+        if (known != null) {
+            return known;
+        }
+        BlockState api = BlockState.parse(namespaced(state.key()));
+        read.put(state, api);
+        origins.put(api, state);
+        return api;
     }
 
     public PlatformBlockState toPlatform(BlockState state) {
+        PlatformBlockState origin = origins.get(state);
+        if (origin != null) {
+            return origin;
+        }
         return written.computeIfAbsent(state, api -> platformStates.apply(api.key()));
     }
 

@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.GenerationContext;
@@ -37,8 +38,8 @@ import java.util.Collection;
  * Pack resources are the pack snapshot's, shared by every invocation of it.
  */
 final class IrisGenerationContext implements GenerationContext {
-    /** Chunk stages write only their own chunk. */
-    private static final int CHUNK_STAGE_REACH = 0;
+    /** Chunk stages write only their own chunk, but see the terrain this far around it (IrisApi's promise). */
+    private static final int TERRAIN_MARGIN_BLOCKS = 16;
     private static final int CHUNK_WIDTH = 16;
 
     private final Engine engine;
@@ -50,17 +51,18 @@ final class IrisGenerationContext implements GenerationContext {
     private final IrisModuleMantle mantle;
     private PackWorld world;
 
-    IrisGenerationContext(Engine engine, int originX, int originZ, BlockStateHunk blocks, IrisModuleMantle.Chunks mantleChunks,
-                          Collection<MantleRegistration<?>> mantleLayers) {
+    /** {@code states} convert the chunk's blocks, in the hunk and in the planned blocks of its mantle alike. */
+    IrisGenerationContext(Engine engine, int originX, int originZ, art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks,
+                          PlatformBlockStates states, IrisModuleMantle.Chunks mantleChunks, Collection<MantleRegistration<?>> mantleLayers) {
         PackResourceIds ids = new PackResourceIds(engine.getData().getDataFolder());
         this.engine = engine;
         this.originX = originX;
         this.originZ = originZ;
-        this.blocks = blocks;
-        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, CHUNK_STAGE_REACH);
+        this.blocks = new BlockStateHunk(blocks, states);
+        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, TERRAIN_MARGIN_BLOCKS);
         this.settings = new ChunkModuleSettings(engine, ids);
         BlockBox chunk = ApiHeights.columns(engine, originX, originZ, originX + CHUNK_WIDTH, originZ + CHUNK_WIDTH);
-        this.mantle = new IrisModuleMantle(chunk, mantleChunks, mantleLayers);
+        this.mantle = new IrisModuleMantle(chunk, mantleChunks, mantleLayers, PlannedBlocks.of(engine, chunk, mantleChunks, states));
     }
 
     @Override

@@ -163,6 +163,10 @@ class ApiValuesTest {
         assertThrows(UnsupportedOperationException.class, () -> desert.children().clear());
         assertThrows(IllegalArgumentException.class,
                 () -> new PackBiome(desert.id(), "Desert", desert.platformBiome(), 0, List.of()));
+        assertEquals(desert.platformBiome(), desert.vanillaBiome(), "vanilla sees the platform biome unless a pack says otherwise");
+        var mesa = new PackBiome(ResourceId.parse("pack:mesa"), "Mesa", ResourceId.parse("minecraft:desert"),
+                ResourceId.parse("minecraft:badlands"), 1, List.of());
+        assertEquals(ResourceId.parse("minecraft:badlands"), mesa.vanillaBiome());
 
         var land = List.of(desert.id());
         var arid = new PackRegion(ResourceId.parse("pack:arid"), "Arid", 1, land, List.of(), List.of(), List.of());

@@ -13,4 +13,8 @@
 # that with IrisApi's pack class checks and fails naming the class and what it uses.
 #
 # Moving a module here means removing it from IrisModuleHost.generationModules() or PlacementModules.all() in Iris.
-# Nothing is ported yet.
+
+module art.arcane.iris.engine.modifier.PostModule
+include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
+module art.arcane.iris.engine.modifier.PerfectionModule
+module art.arcane.iris.engine.modifier.MatterModule

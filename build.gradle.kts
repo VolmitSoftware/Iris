@@ -64,19 +64,31 @@ val builtinModuleList = readBuiltinModuleList(builtinModulesFile)
 val builtinModulesJarName = "iris-builtins.jar"
 val builtinModuleEntryFile = "com.volmit.IrisModule"
 
-/** Host packages pack modules may use besides the IrisApi. Keep in step with IrisModuleHost.BUILT_IN_API_PACKAGE in Iris. */
-val exposedHostPackages = listOf("art.arcane.iris.builtin")
+/**
+ * Host packages pack modules may use besides the IrisApi: the built-in module API, VolmLib and Gson. Keep in step with
+ * IrisModuleHost.EXPOSED_PACKAGES in Iris.
+ */
+val exposedHostPackages = listOf("art.arcane.iris.builtin", "art.arcane.volmlib", "com.google.gson")
 val irisClasses = irisRoot.resolve("core/build/classes/java/main")
 val builtinModulesBuild = layout.buildDirectory.dir("builtin-modules")
 val checkedJarsDirectory = layout.buildDirectory.dir("libs")
 
+repositories {
+    mavenCentral()
+}
+
+/** What the jar check sees besides Iris's classes: the IrisApi and the libraries Iris shares with pack modules. */
 val irisApiForChecks by configurations.creating {
     isCanBeConsumed = false
+    isTransitive = false
     attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
 }
 
 dependencies {
     irisApiForChecks("com.volmit:IrisApi")
+    irisApiForChecks("com.github.VolmitSoftware:VolmLib")
+    // The Gson Iris compiles against (Iris/gradle/libs.versions.toml); at runtime modules get the platform's copy.
+    irisApiForChecks("com.google.code.gson:gson:2.14.0")
 }
 
 val compileBuiltins = tasks.register<Exec>("compileBuiltins") {

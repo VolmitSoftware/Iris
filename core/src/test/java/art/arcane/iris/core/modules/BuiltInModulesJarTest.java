@@ -67,6 +67,17 @@ public class BuiltInModulesJarTest {
     }
 
     @Test
+    public void theIdsIrisLooksForAreTheOnesTheJarProvides() throws IOException {
+        Path pack = BuiltInPack.newPackFolder(folder);
+        BuiltInModulesJar.writeInto(pack);
+
+        try (LoadedPack loaded = loadWithStandIns(pack)) {
+            List<String> provided = loaded.packModules().stream().map(module -> module.info().id().toString()).toList();
+            assertEquals(provided, IrisModuleHost.JAR_MODULE_IDS);
+        }
+    }
+
+    @Test
     public void theJarsModulesGenerateWhatTheirCompiledInCopiesGenerate() throws IOException {
         Path pack = BuiltInPack.newPackFolder(folder);
         BuiltInModulesJar.writeInto(pack);

@@ -37,8 +37,9 @@ import java.util.function.Supplier;
 public final class PackModuleSet implements AutoCloseable {
     private enum State { NOT_LOADED, LOADED, FAILED, CLOSED }
 
-    private static final String MODULES_FOLDER = "modules";
+    static final String MODULES_FOLDER = "modules";
     private static final String JAR_EXTENSION = ".jar";
+    private static final String MISSING_BUILT_INS_KEY = "missing-built-in-modules:";
 
     private final File packFolder;
     private final Supplier<Gson> irisGson;
@@ -113,12 +114,18 @@ public final class PackModuleSet implements AutoCloseable {
             pack = loaded;
             settings = new ModuleSettingsDecoder(loaded.catalog(), packFolder.toPath(), irisGson);
             state = State.LOADED;
+            warnWhenBuiltInModulesAreMissing(loaded);
         } catch (RuntimeException loadFailure) {
             failure = new PackModulesException(packFolder, loadFailure);
             state = State.FAILED;
             IrisLogging.error(failure.getMessage());
             throw failure;
         }
+    }
+
+    private void warnWhenBuiltInModulesAreMissing(LoadedPack loaded) {
+        MissingBuiltInModules.warning(packFolder, loaded.packModules())
+                .ifPresent(warning -> IrisLogging.warnOnce(MISSING_BUILT_INS_KEY + packFolder.getAbsolutePath(), "%s", warning));
     }
 
     /** Each module jar's name, size and modification time, in name order. */

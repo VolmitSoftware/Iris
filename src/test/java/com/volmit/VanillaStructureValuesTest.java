@@ -3,6 +3,7 @@ package com.volmit;
 import com.volmit.block.BlockState;
 import com.volmit.config.OptionsMetadata;
 import com.volmit.resource.ResourceId;
+import com.volmit.service.VanillaFeatures;
 import com.volmit.service.VanillaStructures;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.JigsawOverrides;
@@ -122,6 +123,16 @@ class VanillaStructureValuesTest {
         assertEquals(StartReach.PLATFORM, provider.reach(CITY, true, Optional.empty(), null));
         assertEquals(VanillaStructureSetup.UNCHANGED, provider.setup(null));
         assertEquals(VanillaStructureRule.GENERATE, new VanillaStructures() { }.rule(CITY, null));
+    }
+
+    @Test
+    void aFeatureProviderThatSaysNothingLeavesThePlatformsFeaturesOff() {
+        VanillaFeatures silent = new VanillaFeatures() { };
+
+        assertFalse(silent.generates(null));
+        assertTrue(silent.generatesStep(null, Optional.of(DecorationStep.UNDERGROUND_ORES)));
+        assertTrue(silent.generatesStep(null, Optional.empty()));
+        assertTrue(silent.generatesFeature(null, ResourceId.parse("minecraft:ore_diamond")));
     }
 
     private static List<String> names(Class<?> type) {

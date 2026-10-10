@@ -1027,6 +1027,10 @@ from a sapling, which drops a block has. A module answers such questions through
   `overriddenBiome`, the height counted above the dimension's bottom) and how deep below the surface a biome's caves begin
   (`minDepthBelowSurface`, asked once per biome and kept while the world runs). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
   and asks this only where a module decides; one provider, since two modules could not both decide the biome of one cave.
+  `VanillaFeatures` (`ALL`): whether the platform's own placed features run over a world's terrain (`generates`, off unless a
+  module turns it on) and which decoration steps and features they skip (`generatesStep`, `generatesFeature`; any module may
+  refuse one). The host asks once per world, step and feature and keeps the answers; the platform's feature pass itself, its
+  biome tables, seeds and order, stays the host's.
 - **Settings that name biomes.** The host owns the biome tree (a region's biomes and their children) and the set of
   biomes a dimension reaches, and both must include biomes that module settings name: a cave band's biome, the target of a
   floating island. Settings say so by implementing `LinkedBiomes` (`treeBiomes`, which join a region's tree and so its terrain
@@ -1086,6 +1090,7 @@ This is an inventory of where each existing family should land, not a claim that
 | Floating islands and child biomes | Terrain/biome sampling + chunk and placement stages |
 | Structures, jigsaw pools and foundations | Structure assembly producing placement requests |
 | Imported/native structures and ownership | `VanillaStructures` service (rule, starts, shift, reach, beforePieces, afterPieces, setup); host native-generation bridge per platform |
+| Imported/native placed features | `VanillaFeatures` service (generates, generatesStep, generatesFeature); host feature pass per platform |
 | Terrain layers, fluids, bedrock, interpolation | Terrain providers + chunk stages |
 | Region/biome selection | Biome providers + platform biome writer |
 | Image maps, noise expressions, pack injection | Compiled immutable pack resources |

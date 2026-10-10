@@ -34,7 +34,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
-| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`; values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
+| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.hunk`, reference `ArrayHunk<T>` |
 | Sparse geometry and transforms | `ObjectGenerator`, `GeneratedObject`, `ObjectTransform`, `ObjectTransformer` |
@@ -236,6 +236,10 @@ running Iris is the pack publisher's responsibility.
 - Ask `setup` per dimension before its worlds build their structure state and when installing data packs; multiply
   frequencies per structure set (0.01 to 16), protect the platform's definitions in every installed data pack once
   any dimension of any loaded pack asks for it.
+- Run the platform's own placed features over a world only when some `VanillaFeatures` provider's `generates` says so;
+  then skip a decoration step any provider refuses (`generatesStep`, empty for a step the API does not name) and a
+  feature any provider refuses (`generatesFeature`). Ask once per world, step and feature, and keep the answers while
+  the world runs. Keep the platform's own pass otherwise unchanged: its biome tables, order and seeds.
 
 ## Open
 

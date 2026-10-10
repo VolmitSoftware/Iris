@@ -1,88 +1,132 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineMetrics;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.project.context.ChunkedDataCache;
-import art.arcane.iris.util.project.hunk.Hunk;
-import org.junit.After;
+import com.volmit.block.BlockState;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static art.arcane.iris.engine.modifier.ApiChunk.AIR;
+import static art.arcane.iris.engine.modifier.ApiChunk.block;
+import static org.junit.Assert.assertEquals;
 
-/** Smoothing the surface removes a nib that floats above columns two blocks lower and leaves a flat surface alone. */
+/**
+ * iris:post through IrisApi alone: a nib floating above its neighbours goes, a flat surface stays, a step gets a slab,
+ * a steep face gets its wall, a stair under water is waterlogged and a plant that lost its ground goes.
+ */
 public class SurfaceSmoothingTest {
-    private static final int NIB_X = 5;
-    private static final int NIB_Z = 5;
-    private static final int NIB_HEIGHT = 10;
-    private static final int NEIGHBOUR_HEIGHT = 4;
-
-    private final PlatformBlockState stone = UsableBlockPlatform.block("minecraft:stone");
-
-    @After
-    public void unbindPlatform() {
-        UsableBlockPlatform.unbind();
-    }
+    private static final int X = 5;
+    private static final int Z = 5;
+    private static final int GROUND = 4;
+    private static final int HEIGHT = 32;
+    private static final BlockState STONE = block("minecraft:stone");
 
     @Test
     public void aNibFloatingAboveItsFourNeighboursIsRemoved() {
-        UsableBlockPlatform.bind();
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 32, 16);
-        blocks.set(NIB_X, NIB_HEIGHT, NIB_Z, stone);
+        int nib = 10;
+        ApiChunk chunk = ground((x, z) -> GROUND).surface(column(nib)).set(X, nib, Z, STONE);
 
-        new SurfaceSmoothing(engine(NIB_X, NIB_Z)).smooth(0, 0, blocks, false, context());
+        chunk.generate(new PostModule());
 
-        assertNotNull(blocks.get(NIB_X, NIB_HEIGHT, NIB_Z));
-        assertNotSame("the nib is replaced by air", stone, blocks.get(NIB_X, NIB_HEIGHT, NIB_Z));
+        assertEquals(AIR, chunk.get(X, nib, Z));
     }
 
     @Test
     public void aFlatSurfaceIsLeftAlone() {
-        UsableBlockPlatform.bind();
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 32, 16);
-        blocks.set(NIB_X, NEIGHBOUR_HEIGHT, NIB_Z, stone);
+        ApiChunk chunk = ground((x, z) -> GROUND);
 
-        new SurfaceSmoothing(engine(NIB_X, NIB_Z, NEIGHBOUR_HEIGHT)).smooth(0, 0, blocks, false, context());
+        chunk.generate(new PostModule());
 
-        assertSame(stone, blocks.get(NIB_X, NEIGHBOUR_HEIGHT, NIB_Z));
+        assertEquals(STONE, chunk.get(X, GROUND, Z));
+        assertEquals(AIR, chunk.get(X, GROUND + 1, Z));
     }
 
-    /** The surface is {@code NEIGHBOUR_HEIGHT} everywhere except at {@code nibHeight} at the nib column. */
-    private Engine engine(int nibX, int nibZ) {
-        return engine(nibX, nibZ, NIB_HEIGHT);
+    @Test
+    public void aStepUpGetsASlabWhereTheSlopeAllowsIt() {
+        BlockState slab = block("minecraft:stone_slab[type=bottom]");
+        ApiChunk chunk = ground((x, z) -> x > X ? GROUND + 1 : GROUND);
+        chunk.pending().slabs(slab, 1);
+
+        chunk.generate(new PostModule());
+
+        assertEquals(slab, chunk.get(X, GROUND + 1, Z));
     }
 
-    private Engine engine(int nibX, int nibZ, int nibHeight) {
-        EngineMantle mantle = mock(EngineMantle.class);
-        when(mantle.trueHeight(anyInt(), anyInt())).thenAnswer(invocation ->
-                (int) invocation.getArgument(0) == nibX && (int) invocation.getArgument(1) == nibZ ? nibHeight : NEIGHBOUR_HEIGHT);
-        IrisDimension dimension = mock(IrisDimension.class);
-        SeedManager seeds = mock(SeedManager.class);
-        Engine engine = mock(Engine.class);
-        when(engine.getMantle()).thenReturn(mantle);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
-        return engine;
+    @Test
+    public void slabsWaitForASlopeTheirLayerAllows() {
+        ApiChunk chunk = ground((x, z) -> x > X ? GROUND + 1 : GROUND).slope(2);
+        chunk.pending().slabs(block("minecraft:stone_slab[type=bottom]"), 1);
+
+        chunk.generate(new PostModule());
+
+        assertEquals(AIR, chunk.get(X, GROUND + 1, Z));
     }
 
-    @SuppressWarnings("unchecked")
-    private ChunkContext context() {
-        ChunkedDataCache<IrisBiome> biomes = mock(ChunkedDataCache.class);
-        when(biomes.get(anyInt(), anyInt())).thenReturn(mock(IrisBiome.class));
-        ChunkContext context = mock(ChunkContext.class);
-        when(context.getBiome()).thenReturn(biomes);
-        return context;
+    @Test
+    public void aSteepFaceIsPaintedWithItsWall() {
+        BlockState wall = block("minecraft:cobblestone");
+        int cliff = GROUND + 4;
+        ApiChunk chunk = ground((x, z) -> x <= X ? cliff : GROUND);
+        chunk.pending().walls(wall);
+
+        chunk.generate(new PostModule());
+
+        assertEquals(wall, chunk.get(X, cliff, Z));
+        assertEquals(wall, chunk.get(X, cliff - 1, Z));
+    }
+
+    @Test
+    public void aStairUnderTheFluidHeightNextToWaterIsWaterlogged() {
+        BlockState stair = block("minecraft:oak_stairs[facing=east,waterlogged=false]");
+        ApiChunk chunk = ground((x, z) -> GROUND).fluidHeight(GROUND + 1)
+                .set(X, GROUND, Z, stair).set(X + 1, GROUND, Z, block("minecraft:water"));
+
+        chunk.generate(new PostModule());
+
+        assertEquals(stair.withProperty("waterlogged", "true"), chunk.get(X, GROUND, Z));
+    }
+
+    @Test
+    public void foliageThatLostItsGroundGoesButDecorationsStay() {
+        BlockState poppy = block("minecraft:poppy");
+        ApiChunk chunk = ground((x, z) -> GROUND).set(X, GROUND + 1, Z, block("minecraft:fern")).set(X + 2, GROUND + 1, Z, poppy);
+
+        chunk.generate(new PostModule());
+
+        assertEquals("stone holds no fern", AIR, chunk.get(X, GROUND + 1, Z));
+        assertEquals("perfection, not post, removes decorations", poppy, chunk.get(X + 2, GROUND + 1, Z));
+    }
+
+    /** A chunk of stone up to {@code heights}, the terrain's surface. */
+    private static ApiChunk ground(java.util.function.IntBinaryOperator heights) {
+        ApiChunk chunk = new ApiChunk(0, 0, HEIGHT).surface(heights);
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                for (int y = 0; y <= heights.applyAsInt(x, z); y++) {
+                    chunk.set(x, y, z, STONE);
+                }
+            }
+        }
+        return chunk;
+    }
+
+    /** The terrain's height: the ground everywhere but the nib column, which the terrain says stands {@code nib} high. */
+    private static java.util.function.IntBinaryOperator column(int nib) {
+        return (x, z) -> x == X && z == Z ? nib : GROUND;
     }
 }

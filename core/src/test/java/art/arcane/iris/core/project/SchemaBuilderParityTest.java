@@ -66,6 +66,7 @@ import art.arcane.iris.core.modules.ModuleResourceFixture;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.FeatureRegistry;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.IrisModuleHost;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -813,10 +814,10 @@ public class SchemaBuilderParityTest {
     /** What the pack tells studio when Iris's built-in modules and {@code extra} are loaded: Iris's classes hold built-in types. */
     private static PackSchema schemaOfBuiltInsWith(IrisModule... extra) throws IOException {
         Path root = Files.createTempDirectory("schema-pack");
-        List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), Stream.of(extra)).toList();
+        List<IrisModule> modules = Stream.concat(BuiltInPack.allBuiltIns().stream(), Stream.of(extra)).toList();
         try (LoadedPack pack = LoadedPack.load(Files.createDirectory(root.resolve("pack")),
                 ModuleHost.of(modules)
-                        .exposing(IrisModuleHost.BUILT_IN_API_PACKAGE)
+                        .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
                         .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
                         .copyingJarsTo(Files.createDirectory(root.resolve("copies"))))) {
             return pack.schema();

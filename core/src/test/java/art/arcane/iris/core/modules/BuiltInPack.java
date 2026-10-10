@@ -21,6 +21,9 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.modifier.MatterModule;
+import art.arcane.iris.engine.modifier.PerfectionModule;
+import art.arcane.iris.engine.modifier.PostModule;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.host.LoadedPack;
@@ -42,25 +45,43 @@ public final class BuiltInPack {
     private BuiltInPack() {
     }
 
+    /**
+     * Compiled-in copies of the built-in modules that ship in the built-ins jar ({@code IrisModule/builtin-modules.txt}), so tests
+     * that need Iris's whole generation graph get it without building the jar. Until the cut-over the classes are compiled
+     * with Iris; {@code BuiltInModulesJarTest} loads the same modules from the jar instead.
+     */
+    public static List<IrisModule> jarModules() {
+        return List.of(new PostModule(), new PerfectionModule(), new MatterModule());
+    }
+
+    /** Every built-in module: Iris's own and the compiled-in copies of the jar's ({@link #jarModules()}). */
+    public static List<IrisModule> allBuiltIns() {
+        return Stream.concat(IrisModuleHost.builtInModules().stream(), jarModules().stream()).toList();
+    }
+
     /** A new empty pack folder, to put module jars into (see {@link PackModuleJar}) before {@link #serve(IrisData, TemporaryFolder, Path, List)}. */
     public static Path newPackFolder(TemporaryFolder folder) throws IOException {
         return folder.newFolder().toPath();
     }
 
-    /** Loads the pack and lets the mocked {@code data} serve it, as a pack's data serves its modules. Close it after the test. */
+    /**
+     * Loads every built-in ({@link #allBuiltIns()}) and {@code packModules} and lets the mocked {@code data} serve the pack, as a
+     * pack's data serves its modules. Close it after the test.
+     */
     public static LoadedPack serve(IrisData data, TemporaryFolder folder, List<IrisModule> packModules) throws IOException {
-        return serve(data, folder, newPackFolder(folder), packModules);
+        return serve(data, folder, newPackFolder(folder), Stream.concat(jarModules().stream(), packModules.stream()).toList());
     }
 
     /**
      * Like {@link #serve(IrisData, TemporaryFolder, List)} for a pack folder whose {@code modules} folder may hold module jars:
-     * they load through the pack loader after the compiled-in built-ins and {@code packModules}, as in a real pack. The jars see the
-     * same packages a real pack's modules see.
+     * they load through the pack loader after Iris's compiled-in built-ins and {@code packModules}, as in a real pack. The jars see
+     * the same packages a real pack's modules see. The jar's built-ins are not added here: put them into {@code packModules}
+     * ({@link #jarModules()}) or the built-ins jar into the pack.
      */
     public static LoadedPack serve(IrisData data, TemporaryFolder folder, Path packFolder, List<IrisModule> packModules) throws IOException {
         List<IrisModule> modules = Stream.concat(IrisModuleHost.builtInModules().stream(), packModules.stream()).toList();
         LoadedPack pack = LoadedPack.load(packFolder, ModuleHost.of(modules)
-                .exposing(IrisModuleHost.BUILT_IN_API_PACKAGE)
+                .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
                 .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE)
                 .copyingJarsTo(folder.newFolder().toPath()));

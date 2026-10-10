@@ -67,7 +67,7 @@ public class PackBeforeThePortDecodingTest {
     @Before
     public void loadBuiltIns() throws IOException, URISyntaxException {
         packFolder = Path.of(PackBeforeThePortDecodingTest.class.getResource(PACK).toURI());
-        pack = LoadedPack.load(packFolder, ModuleHost.of(IrisModuleHost.builtInModules())
+        pack = LoadedPack.load(packFolder, ModuleHost.of(BuiltInPack.allBuiltIns())
                 .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));
         decoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);

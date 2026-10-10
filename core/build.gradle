@@ -125,6 +125,7 @@ tasks.named('test').configure {
     systemProperty('iris.irisToolbeltSource', file('src/main/java/art/arcane/iris/core/tools/IrisToolbelt.java').absolutePath)
     systemProperty('iris.irisCreatorSource', file('src/main/java/art/arcane/iris/core/tools/IrisCreator.java').absolutePath)
     systemProperty('iris.bukkitChunkGeneratorSource', file('src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java').absolutePath)
+    systemProperty('iris.builtinModulesList', rootProject.file('../IrisModule/builtin-modules.txt').absolutePath)
 }
 
 java {

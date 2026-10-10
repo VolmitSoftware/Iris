@@ -30,9 +30,6 @@ import art.arcane.iris.engine.modifier.CarveModule;
 import art.arcane.iris.engine.modifier.CustomModule;
 import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.FloatingModule;
-import art.arcane.iris.engine.modifier.MatterModule;
-import art.arcane.iris.engine.modifier.PerfectionModule;
-import art.arcane.iris.engine.modifier.PostModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
@@ -44,14 +41,24 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * The one {@link ModuleHost} every pack load uses: Iris's built-in modules, the built-in module API
- * package exposed to packs, Iris's own JSON fields, Iris's pack object
+ * The one {@link ModuleHost} every pack load uses: Iris's built-in modules, the packages exposed to packs (the
+ * built-in module API and the libraries Iris shares), Iris's own JSON fields, Iris's pack object
  * model as host types, the pack folders Iris reads itself, a jar copy directory under the plugin's cache, and
  * Iris's log.
+ * <p>
+ * The built-in modules that are already ported ship in the built-ins jar ({@code IrisModule/builtin-modules.txt}), which a
+ * pack puts into its {@code modules} folder like any pack module; they are not listed here.
  */
 public final class IrisModuleHost {
     /** Exposed to pack modules, with its subpackages; see its package documentation. */
     public static final String BUILT_IN_API_PACKAGE = "art.arcane.iris.builtin";
+    /**
+     * Libraries pack modules may call besides the IrisApi, each with its subpackages: VolmLib, which Iris shades unrelocated,
+     * and Gson, which every platform Iris runs on provides.
+     */
+    public static final List<String> SHARED_LIBRARY_PACKAGES = List.of("art.arcane.volmlib", "com.google.gson");
+    /** Every package pack modules may use besides the IrisApi. {@code exposedHostPackages} in IrisModule's build lists the same. */
+    public static final List<String> EXPOSED_PACKAGES = Stream.concat(Stream.of(BUILT_IN_API_PACKAGE), SHARED_LIBRARY_PACKAGES.stream()).toList();
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -71,8 +78,7 @@ public final class IrisModuleHost {
 
     private static List<IrisModule> generationModules() {
         return List.of(new BiomeModule(), new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
-                new PostModule(), new FloatingModule(), new DepositModule(), new MatterModule(), new DecorantModule(),
-                new PerfectionModule(), new CustomModule(), new LootModule(), new SpawnModule());
+                new FloatingModule(), new DepositModule(), new DecorantModule(), new CustomModule(), new LootModule(), new SpawnModule());
     }
 
     /** Whether {@code type} is one of Iris's own classes that built-in settings may hold. */
@@ -82,7 +88,7 @@ public final class IrisModuleHost {
 
     private static ModuleHost build() {
         return ModuleHost.of(builtInModules())
-                .exposing(BUILT_IN_API_PACKAGE)
+                .exposing(EXPOSED_PACKAGES.toArray(String[]::new))
                 .reservingFields(ModuleTargets.reservedFields())
                 .describingHostTypesIn(HOST_TYPE_PACKAGE)
                 .reservingFolders(IrisData.ownFolderNames().toArray(String[]::new))

@@ -23,6 +23,7 @@ import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -72,8 +73,8 @@ public class LootEnvironmentPinTest {
         surface = biome("surface");
         cave = biome("cave");
         when(engine.getDimension()).thenReturn(dimension);
-        when(complex.getRegionStream().get(X, Z)).thenReturn(region);
-        when(complex.getTrueBiomeStream().get(X, Z)).thenReturn(surface);
+        when(engine.getRegion(X, Z)).thenReturn(region);
+        when(engine.getSurfaceBiome(X, Z)).thenReturn(surface);
         when(complex.getHeightStream().get(X, Z)).thenReturn(64D);
         when(engine.getCaveBiome(X, CAVE_Y, Z)).thenReturn(cave);
         when(engine.getCaveBiome(X, SURFACE_Y, Z)).thenReturn(surface);
@@ -112,7 +113,7 @@ public class LootEnvironmentPinTest {
 
     private List<String> identities(boolean objectLootDefined, int y) {
         List<String> sources = new ArrayList<>();
-        LootTables.resolveEnvironmentSources(sources, engine, new RNG(19L), X, y, Z, objectLootDefined, key -> key);
+        LootTables.resolveEnvironmentSources(sources, new EngineGeneration(engine).world(), new RNG(19L), X, y, Z, objectLootDefined, key -> key);
         return sources;
     }
 

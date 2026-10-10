@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.builtin.loot.LootResolver;
 
 import art.arcane.iris.engine.IrisComplex;
@@ -18,6 +19,7 @@ import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemRegistry;
+import com.volmit.world.PackWorld;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -107,7 +109,7 @@ public class LootResolverTest {
 
         LootTables.resolveEnvironmentSources(
                 sources,
-                fixture.engine,
+                fixture.world,
                 new RNG(19L),
                 10,
                 70,
@@ -126,7 +128,7 @@ public class LootResolverTest {
 
         LootTables.resolveEnvironmentSources(
                 sources,
-                fixture.engine,
+                fixture.world,
                 new RNG(19L),
                 10,
                 70,
@@ -264,6 +266,7 @@ public class LootResolverTest {
 
     private static final class ResolutionFixture {
         private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        private final PackWorld world;
 
         private ResolutionFixture() {
             IrisDimension dimension = mock(IrisDimension.class);
@@ -282,10 +285,11 @@ public class LootResolverTest {
             when(region.getModuleSettings()).thenReturn(fallbackTo("region"));
             when(surface.getModuleSettings()).thenReturn(fallbackTo("surface"));
             when(surface.getLoadKey()).thenReturn("surface");
-            when(complex.getRegionStream().get(10, 20)).thenReturn(region);
-            when(complex.getTrueBiomeStream().get(10, 20)).thenReturn(surface);
+            when(engine.getRegion(10, 20)).thenReturn(region);
+            when(engine.getSurfaceBiome(10, 20)).thenReturn(surface);
             when(complex.getHeightStream().get(10, 20)).thenReturn(64D);
             when(engine.getCaveBiome(10, 70, 20)).thenReturn(surface);
+            world = new EngineGeneration(engine).world();
         }
 
         private static ModuleSettings fallbackTo(String table) {

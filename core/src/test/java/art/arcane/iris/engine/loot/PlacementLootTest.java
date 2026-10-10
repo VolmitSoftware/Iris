@@ -21,24 +21,27 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
-import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.engine.object.loot.IObjectLoot;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.loot.ObjectLoot;
+import art.arcane.iris.builtin.loot.ObjectLootEntry;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.host.ModuleLogs;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
+import com.volmit.resource.PackResources;
 import com.volmit.service.Loot;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -53,16 +56,6 @@ public class PlacementLootTest {
 
     private PlacementLoot placement;
 
-    @BeforeClass
-    public static void bindPlatform() {
-        UsableBlockPlatform.bind();
-    }
-
-    @AfterClass
-    public static void unbindPlatform() {
-        UsableBlockPlatform.unbind();
-    }
-
     @Before
     public void servePackTables() {
         IrisData data = mock(IrisData.class);
@@ -70,12 +63,17 @@ public class PlacementLootTest {
         for (String key : List.of("everywhere", "chests", "this-chest", "other")) {
             fixture.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, "{\"name\": \"" + key + "\"}"));
         }
-        placement = new PlacementLoot(data, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED, ModuleLogs.discarding());
+        PackResources resources = data.getPackResources();
+        BlockRegistry blocks = mock(BlockRegistry.class);
+        when(resources.blocks()).thenReturn(blocks);
+        when(blocks.resolve(any(BlockState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(blocks.resolve(any(BlockSpec.class))).thenAnswer(invocation -> BlockState.parse(invocation.<BlockSpec>getArgument(0).block()));
+        placement = new PlacementLoot(resources, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED, ModuleLogs.discarding());
     }
 
     @Test
     public void aTableThatNamesTheExactStateBeatsOneThatNamesTheKindOfBlock() {
-        List<IObjectLoot> pack = List.of(entry("everywhere", 1, false), entry("chests", 1, false, CHEST), entry("this-chest", 1, true, CHEST));
+        List<ObjectLootEntry> pack = List.of(entry("everywhere", 1, false), entry("chests", 1, false, CHEST), entry("this-chest", 1, true, CHEST));
 
         assertEquals(new Loot.Table("this-chest"), pick(List.of(), pack, CHEST));
         assertEquals(new Loot.Table("chests"), pick(List.of(), pack, EAST_CHEST));
@@ -83,26 +81,26 @@ public class PlacementLootTest {
 
     @Test
     public void aTableThatNamesNoBlockServesChestsNothingElseNames() {
-        List<IObjectLoot> pack = List.of(entry("everywhere", 1, false), entry("other", 1, false, "minecraft:barrel"));
+        List<ObjectLootEntry> pack = List.of(entry("everywhere", 1, false), entry("other", 1, false, "minecraft:barrel"));
 
         assertEquals(new Loot.Table("everywhere"), pick(List.of(), pack, CHEST));
     }
 
     @Test
     public void exactEntriesDoNotApplyToOtherStatesAndNothingMatchingGivesNothing() {
-        List<IObjectLoot> pack = List.of(entry("this-chest", 1, true, CHEST), entry("other", 1, false, "minecraft:barrel"));
+        List<ObjectLootEntry> pack = List.of(entry("this-chest", 1, true, CHEST), entry("other", 1, false, "minecraft:barrel"));
 
         assertNull(pick(List.of(), pack, EAST_CHEST));
     }
 
     @Test
     public void weightsPickAmongEqualsAndZeroWeightsAreIgnored() {
-        List<IObjectLoot> pack = List.of(entry("everywhere", 3, false), entry("chests", 1, false), entry("other", 0, false));
+        List<ObjectLootEntry> pack = List.of(entry("everywhere", 3, false), entry("chests", 1, false), entry("other", 0, false));
         int everywhere = 0;
         RNG rng = new RNG(5L);
 
         for (int i = 0; i < 4000; i++) {
-            Loot.Source picked = placement.pick(List.of(), pack, block(CHEST), rng, 0, 64, 0);
+            Loot.Source picked = placement.pick(List.of(), pack, BlockState.parse(CHEST), rng, 0, 64, 0);
             if (picked.equals(new Loot.Table("everywhere"))) {
                 everywhere++;
             } else {
@@ -115,7 +113,7 @@ public class PlacementLootTest {
 
     @Test
     public void aPlatformTableWithAnythingThePlatformHasIsASourceWithTheSeedOfItsIdentity() {
-        List<IObjectLoot> platform = List.of(entry("chests/simple_dungeon", 1, false), entry("chests/missing", 1, false));
+        List<ObjectLootEntry> platform = List.of(entry("chests/simple_dungeon", 1, false), entry("chests/missing", 1, false));
 
         Loot.Source picked = pick(platform, List.of(), CHEST);
 
@@ -128,24 +126,13 @@ public class PlacementLootTest {
         assertNull(pick(List.of(entry("chests/missing", 1, false)), List.of(entry("not-a-table", 1, false)), CHEST));
     }
 
-    private Loot.Source pick(List<IObjectLoot> platform, List<IObjectLoot> pack, String container) {
-        return placement.pick(platform, pack, block(container), new RNG(1L), 0, 64, 0);
+    private Loot.Source pick(List<ObjectLootEntry> platform, List<ObjectLootEntry> pack, String container) {
+        return placement.pick(platform, pack, BlockState.parse(container), new RNG(1L), 0, 64, 0);
     }
 
-    private static PlatformBlockState block(String key) {
-        return UsableBlockPlatform.block(key);
-    }
-
-    private static IObjectLoot entry(String name, int weight, boolean exact, String... filter) {
-        IObjectLoot loot = mock(IObjectLoot.class);
-        when(loot.getName()).thenReturn(name);
-        when(loot.getWeight()).thenReturn(weight);
-        when(loot.isExact()).thenReturn(exact);
-        KList<PlatformBlockState> filterStates = new KList<>();
-        for (String key : filter) {
-            filterStates.add(block(key));
-        }
-        when(loot.getFilter(org.mockito.ArgumentMatchers.any())).thenReturn(filterStates);
-        return loot;
+    private static ObjectLootEntry entry(String name, int weight, boolean exact, String... filter) {
+        String blocks = Arrays.stream(filter).map(key -> "{\"block\": \"" + key + "\"}").collect(Collectors.joining(", "));
+        return TestSettings.of(ObjectLoot.class, "{\"name\": \"" + name + "\", \"weight\": " + weight + ", \"exact\": " + exact
+                + ", \"filter\": [" + blocks + "]}");
     }
 }

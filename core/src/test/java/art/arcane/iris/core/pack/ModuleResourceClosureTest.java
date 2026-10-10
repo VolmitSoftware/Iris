@@ -23,6 +23,7 @@ import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInModulesJar;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -123,6 +124,7 @@ public class ModuleResourceClosureTest {
         write(pack, "entities/beta/sentinel.json", "{\"type\":\"minecraft:skeleton\"}");
         write(pack, "entities/cow.json", "{\"type\":\"minecraft:cow\"}");
         write(pack, "markers/camp.json", "{\"spawners\":[\"marker/spawner\"]}");
+        BuiltInModulesJar.writeInto(pack.toPath());
         return pack.toPath();
     }
 

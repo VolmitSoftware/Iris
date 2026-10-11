@@ -148,6 +148,10 @@ public class DataFixerV1217 extends DataFixerV1213 {
         //json.put("has_fixed_time", json.remove("fixed_time") != null); //TODO investigate
         json.put("attributes", attributes);
 
+        // Required from 26.1 on and ignored before it. Writing it here keeps the data pack loadable when the server
+        // is upgraded, because 26.1 reads the data pack before Iris can rewrite it.
+        json.put("has_ender_dragon_fight", dimension == Dimension.END);
+
         json.remove("effects");
         var defaults = new JSONObject(DIMENSIONS.get(dimension));
         merge(json, defaults);

@@ -358,6 +358,15 @@ public class B {
         return true;
     }
 
+    public static BlockData merge(BlockData base, BlockData overlay) {
+        // Paper 26.1 caches block data that names every state without the parsed states merge needs. Merging it would
+        // replace every state of the base anyway.
+        if (overlay.getAsString(true).equals(overlay.getAsString())) {
+            return overlay;
+        }
+        return base.merge(overlay);
+    }
+
     public static boolean isFoliagePlantable(BlockData d) {
         return d.getMaterial().equals(Material.GRASS_BLOCK)
                 || d.getMaterial().equals(Material.MOSS_BLOCK)

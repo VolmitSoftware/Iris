@@ -966,7 +966,7 @@ public class IrisObject extends IrisRegistrant {
                                 BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
                                 if (newData.getMaterial() == data.getMaterial() && !(newData instanceof IrisCustomData || data instanceof IrisCustomData))
-                                    data = data.merge(newData);
+                                    data = B.merge(data, newData);
                                 else
                                     data = newData;
 

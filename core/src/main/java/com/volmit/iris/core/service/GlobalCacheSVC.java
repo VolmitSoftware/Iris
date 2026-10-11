@@ -3,6 +3,7 @@ package com.volmit.iris.core.service;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.cache.PregenCache;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.Looper;
@@ -131,6 +132,6 @@ public class GlobalCacheSVC implements IrisService {
 
     private static PregenCache createDefault0(String worldName) {
         if (disabled) return PregenCache.EMPTY;
-        return PregenCache.create(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pregen"))).sync();
+        return PregenCache.create(new File(WorldStorage.get().worldFolder(worldName), "iris/pregen")).sync();
     }
 }

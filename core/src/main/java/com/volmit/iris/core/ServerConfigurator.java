@@ -23,6 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.datapack.IDataFixer;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -97,10 +98,7 @@ public class ServerConfigurator {
         if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
             return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
         }
-        KList<File> worlds = new KList<>();
-        Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
-        if (worlds.isEmpty()) worlds.add(new File(Bukkit.getWorldContainer(), ServerProperties.LEVEL_NAME + "/datapacks"));
-        return worlds;
+        return WorldStorage.get().datapackFolders();
     }
 
     public static boolean installDataPacks(boolean fullInstall) {
@@ -198,7 +196,7 @@ public class ServerConfigurator {
                 }
             }
         }
-        String key = getWorld(dimension.getLoader());
+        String key = worldFolderNameOf(dimension.getLoader());
         if (key == null) key = dimension.getLoadKey();
         else key += "/" + dimension.getLoadKey();
 
@@ -247,14 +245,13 @@ public class ServerConfigurator {
     }
 
     @Nullable
-    public static String getWorld(@NonNull IrisData data) {
-        String worldContainer = Bukkit.getWorldContainer().getAbsolutePath();
-        if (!worldContainer.endsWith(File.separator)) worldContainer += File.separator;
-        
-        String path = data.getDataFolder().getAbsolutePath();
-        if (!path.startsWith(worldContainer)) return null;
-        int l = path.endsWith(File.separator) ? 11 : 10;
-        return path.substring(worldContainer.length(), path.length() - l);
+    private static String worldFolderNameOf(IrisData data) {
+        File pack = data.getDataFolder();
+        File iris = pack.getParentFile();
+        if (iris == null || iris.getParentFile() == null || !pack.getName().equals("pack") || !iris.getName().equals("iris")) {
+            return null;
+        }
+        return iris.getParentFile().getName();
     }
 
     @SneakyThrows

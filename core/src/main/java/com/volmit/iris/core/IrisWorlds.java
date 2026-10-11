@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KMap;
@@ -17,7 +18,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class IrisWorlds {
@@ -34,24 +37,32 @@ public class IrisWorlds {
     }
 
     public static IrisWorlds get() {
-        return cache.aquire(() -> {
-            File file = Iris.instance.getDataFile("worlds.json");
-            if (!file.exists()) {
-                return new IrisWorlds(new KMap<>());
-            }
+        return cache.aquire(() -> new IrisWorlds(readWorldsFile()));
+    }
 
-            try {
-                String json = IO.readAll(file);
-                KMap<String, String> worlds = GSON.fromJson(json, TYPE);
-                return new IrisWorlds(Objects.requireNonNullElseGet(worlds, KMap::new));
-            } catch (Throwable e) {
-                Iris.error("Failed to load worlds.json!");
-                e.printStackTrace();
-                Iris.reportError(e);
-            }
+    public static Set<String> readKnownWorldNames() {
+        Set<String> names = new HashSet<>(readWorldsFile().keySet());
+        names.addAll(readBukkitWorlds().keySet());
+        return names;
+    }
 
-            return new IrisWorlds(new KMap<>());
-        });
+    private static KMap<String, String> readWorldsFile() {
+        File file = Iris.instance.getDataFile("worlds.json");
+        if (!file.exists()) {
+            return new KMap<>();
+        }
+
+        try {
+            String json = IO.readAll(file);
+            KMap<String, String> worlds = GSON.fromJson(json, TYPE);
+            return Objects.requireNonNullElseGet(worlds, KMap::new);
+        } catch (Throwable e) {
+            Iris.error("Failed to load worlds.json!");
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+        return new KMap<>();
     }
 
     public void put(String name, String type) {
@@ -85,7 +96,7 @@ public class IrisWorlds {
     }
 
     public void clean() {
-        dirty = worlds.entrySet().removeIf(entry -> !new File(Bukkit.getWorldContainer(), entry.getKey() + "/iris/pack/dimensions/" + entry.getValue() + ".json").exists());
+        dirty = worlds.entrySet().removeIf(entry -> !new File(WorldStorage.get().worldFolder(entry.getKey()), "iris/pack/dimensions/" + entry.getValue() + ".json").exists());
     }
 
     public synchronized void save() {

@@ -25,6 +25,7 @@ import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -124,7 +125,7 @@ public class IrisCreator {
             sender = Iris.getSender();
 
         if (!studio() || benchmark) {
-            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
+            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), WorldStorage.get().worldFolder(name()));
         }
 
         AtomicDouble pp = new AtomicDouble(0);

@@ -221,7 +221,7 @@ public class DeepSearchPregenerator extends Thread implements Listener {
     public void shutdownInstance(World world) throws IOException {
         Iris.info("DeepSearch: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
         DeepSearchJob job = jobs.get(world.getName());
-        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File worldDirectory = world.getWorldFolder();
         File deepFile = new File(worldDirectory, "DeepSearch.json");
 
         if (job == null) {

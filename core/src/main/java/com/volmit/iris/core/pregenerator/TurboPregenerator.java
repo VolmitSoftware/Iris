@@ -287,7 +287,7 @@ public class TurboPregenerator extends Thread implements Listener {
     public void shutdownInstance(World world) throws IOException {
         Iris.info("turboGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
         TurboPregenJob job = jobs.get(world.getName());
-        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File worldDirectory = world.getWorldFolder();
         File turboFile = new File(worldDirectory, "turbogen.json");
 
         if (job == null) {

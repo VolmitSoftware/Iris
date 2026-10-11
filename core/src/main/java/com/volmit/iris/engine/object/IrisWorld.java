@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.util.collection.KList;
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -108,7 +109,7 @@ public class IrisWorld {
 
     public void bind(WorldInfo worldInfo) {
         name(worldInfo.getName())
-                .worldFolder(new File(Bukkit.getWorldContainer(), worldInfo.getName()))
+                .worldFolder(WorldStorage.get().worldFolder(worldInfo.getName()))
                 .minHeight(worldInfo.getMinHeight())
                 .maxHeight(worldInfo.getMaxHeight())
                 .environment(worldInfo.getEnvironment());

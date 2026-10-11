@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
@@ -93,7 +94,7 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        if (new File(Bukkit.getWorldContainer(), name).exists()) {
+        if (WorldStorage.get().worldFolder(name).exists()) {
             sender().sendMessage(C.RED + "That folder already exists!");
             return;
         }
@@ -470,6 +471,7 @@ public class CommandIris implements DecreeExecutor {
             String world
     ) {
         World worldloaded = Bukkit.getWorld(world);
+        WorldStorage.get().adoptLegacyData(world);
         worldNameToCheck = world;
         boolean worldExists = doesWorldExist(worldNameToCheck);
         WorldEngine = world;
@@ -479,8 +481,7 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        String pathtodim = world + File.separator +"iris"+File.separator +"pack"+File.separator +"dimensions"+File.separator;
-        File directory = new File(Bukkit.getWorldContainer(), pathtodim);
+        File directory = new File(WorldStorage.get().worldFolder(world), "iris/pack/dimensions");
 
         String dimension = null;
         if (directory.exists() && directory.isDirectory()) {
@@ -533,8 +534,7 @@ public class CommandIris implements DecreeExecutor {
     }
 
     boolean doesWorldExist(String worldName) {
-        File worldContainer = Bukkit.getWorldContainer();
-        File worldDirectory = new File(worldContainer, worldName);
+        File worldDirectory = WorldStorage.get().worldFolder(worldName);
         return worldDirectory.exists() && worldDirectory.isDirectory();
     }
 }

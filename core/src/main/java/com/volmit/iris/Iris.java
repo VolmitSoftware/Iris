@@ -31,6 +31,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -438,6 +439,7 @@ public class Iris extends VolmitPlugin implements Listener {
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         IO.delete(new File("iris"));
         compat = IrisCompat.configured(getDataFile("compat.json"));
+        adoptLegacyWorldData();
         ServerConfigurator.configure();
         IrisSafeguard.execute();
         getSender().setTag(getTag());
@@ -462,6 +464,19 @@ public class Iris extends VolmitPlugin implements Listener {
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
+    }
+
+    private void adoptLegacyWorldData() {
+        WorldStorage storage = WorldStorage.get();
+        for (String worldName : IrisWorlds.readKnownWorldNames()) {
+            try {
+                storage.adoptLegacyData(worldName);
+            } catch (Throwable e) {
+                Iris.error("Failed to move the Iris data of " + worldName + " to its new world folder!");
+                Iris.reportError(e);
+                e.printStackTrace();
+            }
+        }
     }
 
     public void addShutdownHook() {
@@ -652,7 +667,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 .name(worldName)
                 .seed(1337)
                 .environment(dim.getEnvironment())
-                .worldFolder(new File(Bukkit.getWorldContainer(), worldName))
+                .worldFolder(WorldStorage.get().worldFolder(worldName))
                 .minHeight(dim.getMinHeight())
                 .maxHeight(dim.getMaxHeight())
                 .build();
@@ -674,7 +689,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Nullable
     public static IrisDimension loadDimension(@NonNull String worldName, @NonNull String id) {
-        File pack = new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack"));
+        File pack = new File(WorldStorage.get().worldFolder(worldName), "iris/pack");
         var dimension = pack.isDirectory() ? IrisData.get(pack).getDimensionLoader().load(id) : null;
         if (dimension == null) dimension = IrisData.loadAnyDimension(id, null);
         if (dimension == null) {

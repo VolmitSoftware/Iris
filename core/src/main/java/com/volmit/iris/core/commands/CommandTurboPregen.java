@@ -47,7 +47,7 @@ public class CommandTurboPregen implements DecreeExecutor {
             ) {
 
         worldName = world.getName();
-        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File worldDirectory = world.getWorldFolder();
         File TurboFile = new File(worldDirectory, "turbogen.json");
         if (TurboFile.exists()) {
             if (TurboPregenerator.getInstance() != null) {
@@ -93,7 +93,7 @@ public class CommandTurboPregen implements DecreeExecutor {
     @Decree(description = "Stop the active pregeneration task", aliases = "x")
     public void stop(@Param(aliases = "world", description = "The world to pause") World world) throws IOException {
         TurboPregenerator turboPregenInstance = TurboPregenerator.getInstance();
-        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File worldDirectory = world.getWorldFolder();
         File turboFile = new File(worldDirectory, "turbogen.json");
 
         if (turboPregenInstance != null) {
@@ -117,7 +117,7 @@ public class CommandTurboPregen implements DecreeExecutor {
             TurboPregenerator.setPausedTurbo(world);
             sender().sendMessage(C.GREEN + "Paused/unpaused Turbo Pregen, now: " + (TurboPregenerator.isPausedTurbo(world) ? "Paused" : "Running") + ".");
         } else {
-            File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+            File worldDirectory = world.getWorldFolder();
             File TurboFile = new File(worldDirectory, "turbogen.json");
             if (TurboFile.exists()){
                 TurboPregenerator.loadTurboGenerator(world.getName());

@@ -23,6 +23,8 @@ import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.container.StructurePlacement;
 import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.core.world.LegacyWorldStorage;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
@@ -120,6 +122,10 @@ public interface INMSBinding {
     Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 
     Color getBiomeColor(Location location, BiomeColor type);
+
+    default WorldStorage getWorldStorage() {
+        return LegacyWorldStorage.INSTANCE;
+    }
 
     default DataVersion getDataVersion() {
         return DataVersion.V1_19_2;

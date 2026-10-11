@@ -19,6 +19,7 @@
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import org.bukkit.Bukkit;
@@ -71,7 +72,7 @@ public class IrisWorldCreator {
                 .minHeight(dim.getMinHeight())
                 .maxHeight(dim.getMaxHeight())
                 .seed(seed)
-                .worldFolder(new File(Bukkit.getWorldContainer(), name))
+                .worldFolder(WorldStorage.get().worldFolder(name))
                 .environment(findEnvironment())
                 .build();
         ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio

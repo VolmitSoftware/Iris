@@ -54,7 +54,7 @@ public class CommandLazyPregen implements DecreeExecutor {
             ) {
 
         worldName = world.getName();
-        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File worldDirectory = world.getWorldFolder();
         File lazyFile = new File(worldDirectory, "lazygen.json");
         if (lazyFile.exists()) {
             sender().sendMessage(C.BLUE + "Lazy pregen is already in progress");

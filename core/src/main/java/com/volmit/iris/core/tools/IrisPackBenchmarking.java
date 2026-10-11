@@ -3,6 +3,7 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.world.WorldStorage;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
@@ -45,7 +46,7 @@ public class IrisPackBenchmarking {
                 .name("PackBenchmarking")
                 .start(() -> {
                     Iris.info("Setting up benchmark environment ");
-                    IO.delete(new File(Bukkit.getWorldContainer(), "benchmark"));
+                    IO.delete(WorldStorage.get().worldFolder("benchmark"));
                     createBenchmark();
                     while (!IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
                         J.sleep(1000);

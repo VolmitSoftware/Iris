@@ -215,7 +215,7 @@ public class LazyPregenerator extends Thread implements Listener {
     public void shutdownInstance(World world) throws IOException {
         Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
         LazyPregenJob job = jobs.get(world.getName());
-        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File worldDirectory = world.getWorldFolder();
         File lazyFile = new File(worldDirectory, "lazygen.json");
 
         if (job == null) {

@@ -24,6 +24,7 @@ import com.volmit.iris.util.collection.KSet;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -84,6 +85,10 @@ public class JarScanner {
     }
 
     public void scanAll() throws IOException {
+        scanAll(c -> true);
+    }
+
+    public void scanAll(Predicate<String> classFilter) throws IOException {
         classes.clear();
         FileInputStream fin = new FileInputStream(jar);
         ZipInputStream zip = new ZipInputStream(fin);
@@ -91,7 +96,7 @@ public class JarScanner {
             if (!entry.isDirectory() && entry.getName().endsWith(".class")) {
                 String c = entry.getName().replaceAll("/", ".").replace(".class", "");
 
-                if (c.startsWith(superPackage)) {
+                if (c.startsWith(superPackage) && classFilter.test(c)) {
                     try {
                         Class<?> clazz = Class.forName(c);
                         classes.add(clazz);

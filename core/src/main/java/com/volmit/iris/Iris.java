@@ -94,6 +94,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static VolmitSender sender;
     private static Thread shutdownHook;
     private static final String STUDIO_WORLDS_FOLDER = "iris";
+    private static final String NMS_BINDINGS_PACKAGE = "com.volmit.iris.core.nms.v";
 
     static {
         try {
@@ -569,7 +570,15 @@ public class Iris extends VolmitPlugin implements Listener {
         postShutdown.forEach(Runnable::run);
         super.onDisable();
 
-        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scanAll);
+        J.attempt(() -> new JarScanner(instance.getJarFile(), "", false).scanAll(Iris::isForRunningServer));
+    }
+
+    private static boolean isForRunningServer(String className) {
+        // Older servers log errors for the bindings compiled for a newer Java version.
+        if (!className.startsWith(NMS_BINDINGS_PACKAGE)) {
+            return true;
+        }
+        return className.startsWith(INMS.get().getClass().getPackageName() + ".");
     }
 
     private static boolean isPaperServer() {

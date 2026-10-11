@@ -14,7 +14,7 @@ import java.util.*;
 public class Gradle {
     private static final boolean WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
     private static final String[] ENVIRONMENT = createEnvironment();
-    private static final String VERSION = "8.14.2";
+    private static final String VERSION = "9.5.1";
     private static final String DISTRIBUTION_URL = "https://services.gradle.org/distributions/gradle-" + VERSION + "-bin.zip";
     private static final String HASH = IO.hash(DISTRIBUTION_URL);
 

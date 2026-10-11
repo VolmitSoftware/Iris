@@ -42,6 +42,7 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.Set;
@@ -225,7 +226,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendTitle(String title, String subtitle, int i, int s, int o) {
-        Iris.audiences.player(player()).showTitle(Title.title(
+        player().showTitle(Title.title(
                 createComponent(title),
                 createComponent(subtitle),
                 Title.Times.times(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
@@ -247,15 +248,15 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendAction(String action) {
-        Iris.audiences.player(player()).sendActionBar(createNoPrefixComponent(action));
+        player().sendActionBar(createNoPrefixComponent(action));
     }
 
     public void sendActionNoProcessing(String action) {
-        Iris.audiences.player(player()).sendActionBar(createNoPrefixComponentNoProcessing(action));
+        player().sendActionBar(createNoPrefixComponentNoProcessing(action));
     }
 
     public void sendTitle(String subtitle, int i, int s, int o) {
-        Iris.audiences.player(player()).showTitle(Title.title(
+        player().showTitle(Title.title(
                 createNoPrefixComponent(" "),
                 createNoPrefixComponent(subtitle),
                 Title.Times.times(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
@@ -338,7 +339,7 @@ public class VolmitSender implements CommandSender {
         }
 
         try {
-            Iris.audiences.sender(s).sendMessage(createComponent(message));
+            s.sendMessage(createComponent(message));
         } catch (Throwable e) {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
             String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
@@ -368,7 +369,7 @@ public class VolmitSender implements CommandSender {
         }
 
         try {
-            Iris.audiences.sender(s).sendMessage(createComponentRaw(message));
+            s.sendMessage(createComponentRaw(message));
         } catch (Throwable e) {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
             String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
@@ -402,6 +403,11 @@ public class VolmitSender implements CommandSender {
     @Override
     public String getName() {
         return s.getName();
+    }
+
+    @Override
+    public @NotNull Component name() {
+        return s.name();
     }
 
     @Override

@@ -44,7 +44,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
@@ -525,7 +524,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     }
 
                     futures.add(MultiBurst.burst.completeValue(()
-                            -> PaperLib.getChunkAtAsync(to.getWorld(),
+                            -> to.getWorld().getChunkAtAsync(
                             (to.getBlockX() >> 4) + finalI,
                             (to.getBlockZ() >> 4) + finalJ,
                             true, IrisSettings.get().getWorld().getAsyncTeleport().isUrgent()).get()));

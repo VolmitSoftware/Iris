@@ -65,7 +65,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
-import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -545,8 +544,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
             return;
 
-        if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
-            PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
+        if (getWorld().hasRealWorld()) {
+            getWorld().realWorld().getChunkAtAsync(x >> 4, z >> 4).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {
                         inv.addItem(i);

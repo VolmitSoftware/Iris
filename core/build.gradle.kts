@@ -52,7 +52,7 @@ val lib = "com.volmit.iris.util"
  */
 dependencies {
     // Provided or Classpath
-    compileOnly(libs.spigot)
+    compileOnly(libs.paper)
     compileOnly(libs.log4j.api)
     compileOnly(libs.log4j.core)
 
@@ -78,10 +78,6 @@ dependencies {
 
     // Dynamically Loaded
     slim(libs.paralithic)
-    slim(libs.paperlib)
-    slim(libs.adventure.api)
-    slim(libs.adventure.minimessage)
-    slim(libs.adventure.platform)
     slim(libs.bstats)
     slim(libs.sentry)
 
@@ -146,8 +142,6 @@ slimJar {
     ))
 
     relocate("com.dfsek.paralithic", "$lib.paralithic")
-    relocate("io.papermc.lib", "$lib.paper")
-    relocate("net.kyori", "$lib.kyori")
     relocate("org.bstats", "$lib.metrics")
     relocate("io.sentry", "$lib.sentry")
     relocate("org.apache.maven", "$lib.maven")

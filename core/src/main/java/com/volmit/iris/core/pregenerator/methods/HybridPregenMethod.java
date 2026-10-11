@@ -29,7 +29,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
 
     public HybridPregenMethod(World world, int threads) {
         this.world = world;
-        inWorld = new AsyncOrMedievalPregenMethod(world, threads);
+        inWorld = new AsyncPregenMethod(world, threads);
     }
 
     @Override

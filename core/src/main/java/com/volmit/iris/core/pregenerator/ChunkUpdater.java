@@ -13,7 +13,6 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.plugin.chunk.TicketHolder;
 import com.volmit.iris.util.profile.LoadBalancer;
 import com.volmit.iris.util.scheduling.J;
-import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -216,7 +215,7 @@ public class ChunkUpdater {
 
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                if (!PaperLib.isChunkGenerated(world, x + dx, z + dz)) {
+                if (!world.isChunkGenerated(x + dx, z + dz)) {
                     return false;
                 }
             }
@@ -228,7 +227,7 @@ public class ChunkUpdater {
             for (int dz = -1; dz <= 1; dz++) {
                 int xx = x + dx;
                 int zz = z + dz;
-                PaperLib.getChunkAtAsync(world, xx, zz, false, true)
+                world.getChunkAtAsync(xx, zz, false, true)
                         .thenAccept(chunk -> {
                             if (chunk == null || !chunk.isGenerated()) {
                                 latch.countDown();

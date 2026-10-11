@@ -50,9 +50,7 @@ private val software by task {
     val supported = setOf(
         "purpur",
         "pufferfish",
-        "paper",
-        "spigot",
-        "bukkit"
+        "paper"
     )
 
     if (supported.any { server.name.contains(it, true) }) STABLE.withDiagnostics()

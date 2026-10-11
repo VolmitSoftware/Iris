@@ -86,7 +86,6 @@ public class Iris extends VolmitPlugin implements Listener {
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 
     public static Iris instance;
-    public static Bindings.Adventure audiences;
     public static MultiverseCoreLink linkMultiverseCore;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
@@ -435,7 +434,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private void enable() {
         services = new KMap<>();
-        setupAudience();
         Bindings.setupSentry();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         IO.delete(new File("iris"));
@@ -532,29 +530,23 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    private void setupAudience() {
-        try {
-            audiences = new Bindings.Adventure(this);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            IrisSettings.get().getGeneral().setUseConsoleCustomColors(false);
-            IrisSettings.get().getGeneral().setUseCustomColorsIngame(false);
-            Iris.error("Failed to setup Adventure API... No custom colors :(");
-        }
-    }
-
     public void postShutdown(Runnable r) {
         postShutdown.add(r);
     }
 
     public void onEnable() {
+        if (!isPaperServer()) {
+            getLogger().severe("Iris requires Paper or a Paper fork (Purpur, Pufferfish, ...). Spigot and CraftBukkit are not supported.");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
     }
 
     public void onDisable() {
-        if (IrisSafeguard.isForceShutdown()) return;
+        if (services == null || IrisSafeguard.isForceShutdown()) return;
         services.values().forEach(IrisService::onDisable);
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
@@ -562,6 +554,15 @@ public class Iris extends VolmitPlugin implements Listener {
         super.onDisable();
 
         J.attempt(new JarScanner(instance.getJarFile(), "", false)::scanAll);
+    }
+
+    private static boolean isPaperServer() {
+        try {
+            World.class.getMethod("getChunkAtAsync", int.class, int.class, boolean.class, boolean.class);
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 
     private void setupPapi() {

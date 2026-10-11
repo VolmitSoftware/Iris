@@ -93,6 +93,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static ChunkTickets tickets;
     private static VolmitSender sender;
     private static Thread shutdownHook;
+    private static final String STUDIO_WORLDS_FOLDER = "iris";
 
     static {
         try {
@@ -437,7 +438,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services = new KMap<>();
         Bindings.setupSentry();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        IO.delete(new File("iris"));
+        IO.delete(WorldStorage.get().worldFolder(STUDIO_WORLDS_FOLDER));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         adoptLegacyWorldData();
         ServerConfigurator.configure();

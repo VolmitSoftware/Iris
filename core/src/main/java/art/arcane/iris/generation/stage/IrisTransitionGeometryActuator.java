@@ -3,6 +3,7 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedComponent;
 import art.arcane.iris.generation.runtime.EngineStage;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.BoundaryGeometryInfluence;
 import art.arcane.iris.world.history.SavedTerrainChunk;
@@ -85,6 +86,17 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                     blocks.setRaw(localX, offset, localZ, replacement);
                 }
                 context.setTerrainHeight(localX, localZ, floor);
+                int fluidHeight = floor;
+                while (fluidHeight + 1 < voxels.size()
+                        && voxels.get(fluidHeight + 1).phase() == BoundaryColumnGeometry.Phase.FLUID) {
+                    fluidHeight++;
+                }
+                if (fluidHeight == floor) {
+                    fluidHeight = -1;
+                }
+                context.setTransitionTerrain(localX, localZ, Terrain3DColumn.fromOccupancy(
+                        floor, voxels.size(), offset -> voxels.get(offset).phase() == BoundaryColumnGeometry.Phase.SOLID),
+                        fluidHeight);
             }
         }
     }

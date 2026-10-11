@@ -18,6 +18,7 @@
 
 package art.arcane.iris.configuration;
 
+import art.arcane.iris.world.pregen.MantleHeapPressure;
 import art.arcane.iris.world.IrisPaperLikeBackendMode;
 import art.arcane.iris.world.IrisRuntimeSchedulerMode;
 
@@ -275,7 +276,7 @@ public class IrisSettings {
         }
 
         public int getEffectiveResidentTectonicPlates(int worldHeight) {
-            return effectiveResidentTectonicPlates(worldHeight, Runtime.getRuntime().maxMemory());
+            return effectiveResidentTectonicPlates(worldHeight, MantleHeapPressure.memoryBudgetBytes());
         }
 
         int effectiveResidentTectonicPlates(int worldHeight, long maximumHeapBytes) {
@@ -398,6 +399,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsStudio {
         public boolean openVSCode = true;
+        public boolean blendChanges = true;
         public boolean disableTimeAndWeather = true;
         public boolean entitySpawning = true;
         public boolean autoStartDefaultStudio = false;

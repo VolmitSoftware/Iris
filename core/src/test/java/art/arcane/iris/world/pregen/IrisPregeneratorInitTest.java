@@ -206,7 +206,7 @@ public class IrisPregeneratorInitTest {
                 pressure.verify(MantleHeapPressure::requestPanicReclaim);
                 if (failReclaim) {
                     logging.verify(() -> IrisLogging.reportError(
-                            "Pregen could not reclaim completed server chunks under heap pressure.", failure));
+                            "Pregen could not reclaim completed server chunks under memory pressure.", failure));
                 }
             }
         }

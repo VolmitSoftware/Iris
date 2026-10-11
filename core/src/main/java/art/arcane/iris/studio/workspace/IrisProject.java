@@ -20,12 +20,10 @@ package art.arcane.iris.studio.workspace;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.studio.object.StudioOpenCoordinator;
-import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.exceptions.IrisException;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
-import art.arcane.iris.world.task.J;
 import lombok.Data;
 import org.bukkit.World;
 
@@ -136,8 +134,6 @@ public class IrisProject {
         );
         StudioOpenProgressReporter.startStudioOpenReporter(sender, stage, progress, complete, failed);
         future.whenComplete((result, throwable) -> {
-            World maintenanceWorld = null;
-            boolean maintenanceActive = false;
             try {
                 if (throwable != null) {
                     failed.set(true);
@@ -148,17 +144,7 @@ public class IrisProject {
                     sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.IRIS_PROJECT_STUDIO_OPEN_FAILED, MessageArgument.untrusted("error", String.valueOf(error.getMessage()))));
                     return;
                 }
-
-                maintenanceWorld = result.world();
-                if (maintenanceWorld != null) {
-                    IrisToolbelt.beginWorldMaintenance(maintenanceWorld, "studio-open");
-                    maintenanceActive = true;
-                }
             } finally {
-                if (maintenanceActive && maintenanceWorld != null) {
-                    World worldToRelease = maintenanceWorld;
-                    J.a(() -> IrisToolbelt.endWorldMaintenance(worldToRelease, "studio-open"), 300);
-                }
                 complete.set(true);
             }
         });

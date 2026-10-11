@@ -11,6 +11,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -25,6 +26,7 @@ public class ChunkContext {
     private Hunk<NativeBiome> terrainBiomes;
     private FloatingBiomeOverlay floatingBiomes;
     private CaveTerrainSnapshot caveTerrain;
+    private TransitionTerrainColumn[] transitionTerrain;
     private final int x;
     private final int z;
     private final IrisComplex complex;
@@ -167,6 +169,17 @@ public class ChunkContext {
         this.caveTerrain = caveTerrain;
     }
 
+    public void setTransitionTerrain(int localX, int localZ, Terrain3DColumn solids, int fluidHeight) {
+        if (transitionTerrain == null) {
+            transitionTerrain = new TransitionTerrainColumn[256];
+        }
+        transitionTerrain[(localZ << 4) | localX] = new TransitionTerrainColumn(solids, fluidHeight);
+    }
+
+    public TransitionTerrainColumn getTransitionTerrain(int localX, int localZ) {
+        return transitionTerrain == null ? null : transitionTerrain[(localZ << 4) | localX];
+    }
+
     public void setNaturalBiome(int localX, int y, int localZ, NativeBiome biome) {
         if (terrainBiomes != null) {
             terrainBiomes.setRaw(localX, y, localZ, biome);
@@ -278,6 +291,9 @@ public class ChunkContext {
             this.fluid = fluid;
             this.region = region;
         }
+    }
+
+    public record TransitionTerrainColumn(Terrain3DColumn solids, int fluidHeight) {
     }
 
     private static final class PrefillFillTask implements Runnable {

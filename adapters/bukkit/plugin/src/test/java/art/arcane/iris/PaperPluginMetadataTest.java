@@ -20,33 +20,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class PaperPluginMetadataTest {
-    private static final List<String> OPTIONAL_PLUGIN_IDS = List.of(
+    private static final List<String> JOINED_PLUGIN_IDS = List.of(
             "PlaceholderAPI",
             "CraftEngine",
             "Nexo",
             "Oraxen",
             "ItemsAdder",
             "SCore",
-            "ExecutableItems",
-            "MythicLib",
             "MMOItems",
             "eco",
-            "EcoItems",
             "MythicMobs",
             "MythicCrucible",
             "KGenerators",
-            "Multiverse-Core",
             "WorldEdit"
     );
-    private static final List<String> JOINED_PLUGIN_IDS = OPTIONAL_PLUGIN_IDS.stream()
-            .filter(pluginId -> !"ExecutableItems".equals(pluginId) && !"Multiverse-Core".equals(pluginId))
-            .toList();
-    private static final List<String> UNORDERED_PLUGIN_IDS = List.of(
-            "MythicLib", "MMOItems", "MythicMobs", "MythicCrucible");
-    private static final List<String> BUKKIT_SOFT_DEPEND_IDS = OPTIONAL_PLUGIN_IDS.stream()
-            .filter(pluginId -> !"Multiverse-Core".equals(pluginId))
-            .filter(pluginId -> !UNORDERED_PLUGIN_IDS.contains(pluginId))
-            .toList();
 
     @Test
     public void paperMetadataDeclaresBootstrapAndFoliaSupport() throws Exception {
@@ -75,10 +62,13 @@ public class PaperPluginMetadataTest {
                 + "    description: Allows survival players to fell Iris-managed trees with an axe.\n"
                 + "    default: op"));
         for (String pluginId : JOINED_PLUGIN_IDS) {
-            String loadOrder = UNORDERED_PLUGIN_IDS.contains(pluginId) ? "OMIT" : "BEFORE";
-            assertTrue(metadata.contains(optionalDependencyBlock(pluginId, loadOrder, true)));
+            assertTrue(metadata.contains(optionalDependencyBlock(pluginId, "OMIT", true)));
         }
-        assertTrue(metadata.contains(optionalDependencyBlock("ExecutableItems", "BEFORE", false)));
+        assertFalse(metadata.contains("    ExecutableItems:"));
+        assertFalse(metadata.contains("    EcoItems:"));
+        assertFalse(metadata.contains("    MythicLib:"));
+        assertEquals(1, metadata.lines().filter(line -> line.equals("      load: AFTER")).count());
+        assertEquals(0, metadata.lines().filter(line -> line.equals("      load: BEFORE")).count());
         assertTrue(metadata.contains(optionalDependencyBlock("Multiverse-Core", "AFTER", true)));
     }
 
@@ -95,7 +85,7 @@ public class PaperPluginMetadataTest {
         Map<String, Map<String, Object>> commands = metadata.getCommands();
         assertTrue(commands.containsKey("iris"));
         assertEquals(List.of("ir", "irs"), commands.get("iris").get("aliases"));
-        assertEquals(BUKKIT_SOFT_DEPEND_IDS, metadata.getSoftDepend());
+        assertTrue(metadata.getSoftDepend().isEmpty());
         assertEquals(List.of("Multiverse-Core"), metadata.getLoadBeforePlugins());
         Permission all = metadata.getPermissions().stream()
                 .filter(permission -> "iris.all".equals(permission.getName()))

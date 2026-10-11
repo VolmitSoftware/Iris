@@ -174,8 +174,9 @@ public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockStat
                 if (isFallingWaterfallThroat(hydrology)) {
                     continue;
                 }
-                int surfaceFluidHeight = (int) Math.round(
-                        getComplex().getRiverWaterSurfaceStream().get(realX, realZ));
+                ChunkContext.TransitionTerrainColumn transitionTerrain = context.getTransitionTerrain(i, j);
+                int surfaceFluidHeight = transitionTerrain == null ? (int) Math.round(
+                        getComplex().getRiverWaterSurfaceStream().get(realX, realZ)) : transitionTerrain.fluidHeight();
 
                 if (biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
                     continue;
@@ -231,7 +232,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockStat
 
                 Terrain3DColumn terrainColumn = getComplex().terrainColumn(realX, realZ, hydrology);
                 if (terrainColumn != null) {
-                    decorateTerrainLedges(output, terrainColumn, biome, i, j, realX, realZ);
+                    decorateTerrainLedges(output, terrainColumn, transitionTerrain, biome, i, j, realX, realZ);
                 }
 
 
@@ -263,10 +264,15 @@ public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockStat
     }
 
     private void decorateTerrainLedges(Hunk<NativeBlockState> output, Terrain3DColumn column,
+                                       ChunkContext.TransitionTerrainColumn transition,
                                        IrisBiome biome, int localX, int localZ, int worldX, int worldZ) {
-        for (int span = 0; span + 1 < column.spanCount(); span++) {
-            int floorY = column.floor(span);
-            int ceilingY = column.ceiling(span + 1);
+        Terrain3DColumn ledges = transition == null ? column : transition.solids();
+        for (int span = 0; span + 1 < ledges.spanCount(); span++) {
+            int floorY = ledges.floor(span);
+            int ceilingY = ledges.ceiling(span + 1);
+            if (transition != null && resolveTerrainLedge(column, span, transition) == null) {
+                continue;
+            }
             int headroom = ceilingY - floorY - 1;
             if (headroom < 1 || !PREDICATE_SOLID.test(output.getRaw(localX, floorY, localZ))) {
                 continue;
@@ -278,6 +284,37 @@ public class IrisDecorantActuator extends EngineAssignedActuator<NativeBlockStat
                         output, biome, ceilingY - 1, headroom);
             }
         }
+    }
+
+    static TerrainLedge resolveTerrainLedge(Terrain3DColumn natural, int span,
+                                            ChunkContext.TransitionTerrainColumn transition) {
+        if (transition == null) {
+            return new TerrainLedge(natural.floor(span), natural.ceiling(span + 1));
+        }
+        Terrain3DColumn blended = transition.solids();
+        int blendedFloor = blended.floor(span);
+        int blendedCeiling = blended.ceiling(span + 1);
+        for (int candidate = 0; candidate + 1 < natural.spanCount(); candidate++) {
+            if (Math.max(natural.floor(candidate), blendedFloor) + 1
+                    < Math.min(natural.ceiling(candidate + 1), blendedCeiling)) {
+                return new TerrainLedge(blendedFloor, blendedCeiling);
+            }
+        }
+        return null;
+    }
+
+    static boolean isTransitionTerrainOpening(Terrain3DColumn natural,
+                                               ChunkContext.TransitionTerrainColumn transition, int y) {
+        Terrain3DColumn blended = transition.solids();
+        for (int span = 0; span + 1 < blended.spanCount(); span++) {
+            if (y > blended.floor(span) && y < blended.ceiling(span + 1)) {
+                return resolveTerrainLedge(natural, span, transition) != null;
+            }
+        }
+        return false;
+    }
+
+    record TerrainLedge(int floorY, int ceilingY) {
     }
 
     enum ShorelineDecorationMode {

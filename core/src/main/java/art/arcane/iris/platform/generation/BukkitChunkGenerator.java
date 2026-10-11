@@ -149,6 +149,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final AtomicReference<CompletableFuture<Void>> watcherHotload = new AtomicReference<>();
     private volatile Engine engine;
     private volatile Looper hotloader;
+    private volatile boolean studioUpdatesPaused;
     private volatile StudioMode lastMode;
     private volatile UUID lastJigsawStudioRequestId;
     private volatile boolean jigsawStudioActive;
@@ -979,6 +980,18 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
+    public CompletableFuture<Void> quiesceStudioUpdatesAsync() {
+        studioUpdatesPaused = true;
+        cancelWatcherHotload();
+        Looper activeHotloader = hotloader;
+        hotloader = null;
+        if (activeHotloader != null) {
+            activeHotloader.interrupt();
+        }
+        return withExclusiveControlFuture(() -> { });
+    }
+
+    @Override
     public void quiesceForServerShutdown() {
         cancelWatcherHotload();
         Looper activeHotloader = hotloader;
@@ -1071,26 +1084,33 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        if (initialEntryPending || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+        if (initialEntryPending || studioUpdatesPaused || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
             return;
         }
 
-        withExclusiveControl(() -> getEngine().hotload());
+        withExclusiveControl(() -> {
+            if (!studioUpdatesPaused && !closing) {
+                getEngine().hotload();
+            }
+        });
     }
 
     private void hotloadFromWatcher() {
-        if (initialEntryPending || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+        if (initialEntryPending || studioUpdatesPaused || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
             return;
         }
         CompletableFuture<Void> pending = new CompletableFuture<>();
+        long queuedAt = System.nanoTime();
         watcherHotload.set(pending);
         try {
-            if (initialEntryPending || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)
+            if (initialEntryPending || studioUpdatesPaused || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)
                     || Thread.currentThread().isInterrupted()) {
                 pending.cancel(true);
             } else {
                 J.a(() -> completeExclusiveControlFuture(loadLock, () -> {
-                    if (!initialEntryPending && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+                    if (!initialEntryPending && !studioUpdatesPaused && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
+                        IrisLogging.debug("Studio update admission: world=%s wait=%dms",
+                                getTarget().getWorld().name(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - queuedAt));
                         getEngine().hotload();
                     }
                 }, pending));

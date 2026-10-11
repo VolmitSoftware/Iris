@@ -14,6 +14,8 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.OptionalInt;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -24,12 +26,167 @@ import java.util.zip.CRC32;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class TerrainBoundarySignatureStoreTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void preparesOnlyDistinctSampledChunksInImmutableBoundedWindows() throws Exception {
+        TerrainBoundarySignatureStore store = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("prepared-cells").toPath());
+        List<GenerationBoundary.ChunkCoordinate> coordinates = List.of(
+                new GenerationBoundary.ChunkCoordinate(-2, -2),
+                new GenerationBoundary.ChunkCoordinate(-1, -1),
+                new GenerationBoundary.ChunkCoordinate(-2, 2),
+                new GenerationBoundary.ChunkCoordinate(0, 0),
+                new GenerationBoundary.ChunkCoordinate(0, 1),
+                new GenerationBoundary.ChunkCoordinate(1, 0),
+                new GenerationBoundary.ChunkCoordinate(1, 1));
+        GenerationBoundary boundary = GenerationBoundary.freeze("a".repeat(64), coordinates);
+        List<List<GenerationBoundary.ChunkCoordinate>> batches = new ArrayList<>();
+        Set<GenerationBoundary.ChunkCoordinate> sampled = new HashSet<>();
+        TerrainBoundarySignatureStore.SignatureSampler sampler = new TerrainBoundarySignatureStore.SignatureSampler() {
+            private List<GenerationBoundary.ChunkCoordinate> prepared = List.of();
+
+            @Override
+            public void prepareChunks(List<GenerationBoundary.ChunkCoordinate> chunks) {
+                assertTrue(chunks.size() <= 32);
+                assertEquals(chunks.size(), new HashSet<>(chunks).size());
+                assertThrows(UnsupportedOperationException.class,
+                        () -> chunks.add(new GenerationBoundary.ChunkCoordinate(100, 100)));
+                batches.add(chunks);
+                prepared = chunks;
+            }
+
+            @Override
+            public TerrainBoundarySignature sample(int blockX, int blockZ) {
+                GenerationBoundary.ChunkCoordinate chunk = new GenerationBoundary.ChunkCoordinate(
+                        Math.floorDiv(blockX, 16), Math.floorDiv(blockZ, 16));
+                assertTrue(prepared.contains(chunk));
+                sampled.add(chunk);
+                return simpleSignature(blockX, blockZ, 70);
+            }
+        };
+
+        store.publish(1L, boundary, sampler);
+
+        assertEquals(List.of(List.of(
+                new GenerationBoundary.ChunkCoordinate(-2, -2), new GenerationBoundary.ChunkCoordinate(-1, -1),
+                new GenerationBoundary.ChunkCoordinate(-2, 2), new GenerationBoundary.ChunkCoordinate(0, 0),
+                new GenerationBoundary.ChunkCoordinate(0, 1), new GenerationBoundary.ChunkCoordinate(1, 0),
+                new GenerationBoundary.ChunkCoordinate(1, 1))), batches);
+        assertEquals(new HashSet<>(coordinates), sampled);
+    }
+
+    @Test
+    public void preparesAtMostEightCellsBeforeSamplingTheNextWindow() throws Exception {
+        TerrainBoundarySignatureStore store = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("bounded-windows").toPath());
+        List<GenerationBoundary.ChunkCoordinate> coordinates = new ArrayList<>();
+        for (int cell = 0; cell < 9; cell++) {
+            int minimumX = cell * 4 - 16;
+            for (int localX = 0; localX < 2; localX++) {
+                for (int chunkZ = -2; chunkZ < 0; chunkZ++) {
+                    coordinates.add(new GenerationBoundary.ChunkCoordinate(minimumX + localX, chunkZ));
+                }
+            }
+        }
+        GenerationBoundary boundary = GenerationBoundary.freeze("d".repeat(64), coordinates);
+        List<List<GenerationBoundary.ChunkCoordinate>> batches = new ArrayList<>();
+        Set<GenerationBoundary.ChunkCoordinate> sampled = new HashSet<>();
+        TerrainBoundarySignatureStore.SignatureSampler sampler = new TerrainBoundarySignatureStore.SignatureSampler() {
+            private List<GenerationBoundary.ChunkCoordinate> prepared = List.of();
+
+            @Override
+            public void prepareChunks(List<GenerationBoundary.ChunkCoordinate> chunks) {
+                assertEquals(batches.size() * 32, sampled.size());
+                assertTrue(chunks.size() <= 32);
+                assertEquals(chunks.size(), new HashSet<>(chunks).size());
+                batches.add(chunks);
+                prepared = chunks;
+            }
+
+            @Override
+            public TerrainBoundarySignature sample(int blockX, int blockZ) {
+                GenerationBoundary.ChunkCoordinate chunk = new GenerationBoundary.ChunkCoordinate(
+                        Math.floorDiv(blockX, 16), Math.floorDiv(blockZ, 16));
+                assertTrue(prepared.contains(chunk));
+                sampled.add(chunk);
+                return simpleSignature(blockX, blockZ, 70);
+            }
+        };
+
+        TerrainBoundarySignatureStore.Snapshot actual = store.publish(3L, boundary, sampler);
+        TerrainBoundarySignatureStore sequentialStore = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("bounded-windows-sequential").toPath());
+        TerrainBoundarySignatureStore.Snapshot expected = sequentialStore.publish(3L, boundary,
+                (blockX, blockZ) -> simpleSignature(blockX, blockZ, 70));
+
+        assertEquals(List.of(List.copyOf(coordinates.subList(0, 32)), List.copyOf(coordinates.subList(32, 36))), batches);
+        assertEquals(new HashSet<>(coordinates), sampled);
+        assertEquals(expected.identity(), actual.identity());
+        assertArrayEquals(Files.readAllBytes(sequentialStore.snapshotPath(3L)), Files.readAllBytes(store.snapshotPath(3L)));
+    }
+
+    @Test
+    public void preparingChunksPreservesExactSnapshotBytesAndSignatures() throws Exception {
+        TerrainBoundarySignatureStore preparedStore = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("prepared-snapshot").toPath());
+        TerrainBoundarySignatureStore sequentialStore = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("sequential-snapshot").toPath());
+        GenerationBoundary boundary = GenerationBoundary.freeze("b".repeat(64), List.of(
+                new GenerationBoundary.ChunkCoordinate(-2, -1), new GenerationBoundary.ChunkCoordinate(-1, -1),
+                new GenerationBoundary.ChunkCoordinate(0, 0), new GenerationBoundary.ChunkCoordinate(1, 0)));
+        List<GenerationBoundary.ChunkCoordinate> prepared = new ArrayList<>();
+        TerrainBoundarySignatureStore.SignatureSampler sampler = new TerrainBoundarySignatureStore.SignatureSampler() {
+            @Override
+            public void prepareChunks(List<GenerationBoundary.ChunkCoordinate> chunks) {
+                prepared.addAll(chunks);
+            }
+
+            @Override
+            public TerrainBoundarySignature sample(int blockX, int blockZ) {
+                return simpleSignature(blockX, blockZ, 70);
+            }
+        };
+        TerrainBoundarySignatureStore.Snapshot actual = preparedStore.publish(7L, boundary, sampler);
+        TerrainBoundarySignatureStore.Snapshot expected = sequentialStore.publish(7L, boundary,
+                (blockX, blockZ) -> simpleSignature(blockX, blockZ, 70));
+
+        assertEquals(4, prepared.size());
+        assertEquals(expected.identity(), actual.identity());
+        assertArrayEquals(Files.readAllBytes(sequentialStore.snapshotPath(7L)),
+                Files.readAllBytes(preparedStore.snapshotPath(7L)));
+        boundary.forEachExposedBlockColumn((blockX, blockZ) -> assertSignatureEquals(
+                expected.signatureAt(blockX, blockZ).orElseThrow(), actual.signatureAt(blockX, blockZ).orElseThrow()));
+    }
+
+    @Test
+    public void preparationFailurePreventsSamplingAndCatalogPublication() throws Exception {
+        TerrainBoundarySignatureStore store = new TerrainBoundarySignatureStore(
+                temporaryFolder.newFolder("failed-preparation").toPath());
+        GenerationBoundary boundary = GenerationBoundary.freeze("c".repeat(64),
+                List.of(new GenerationBoundary.ChunkCoordinate(0, 0)));
+        IOException failure = new IOException("chunk preparation failed");
+        TerrainBoundarySignatureStore.SignatureSampler sampler = new TerrainBoundarySignatureStore.SignatureSampler() {
+            @Override
+            public void prepareChunks(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+                throw failure;
+            }
+
+            @Override
+            public TerrainBoundarySignature sample(int blockX, int blockZ) {
+                throw new AssertionError("Sampling continued after preparation failed");
+            }
+        };
+
+        assertSame(failure, assertThrows(IOException.class, () -> store.publish(1L, boundary, sampler)));
+        assertFalse(Files.exists(store.snapshotPath(1L)));
+    }
 
     @Test
     public void loadsOnlyRequestedShardsAndValidatesTheirBytesBeforeUse() throws Exception {

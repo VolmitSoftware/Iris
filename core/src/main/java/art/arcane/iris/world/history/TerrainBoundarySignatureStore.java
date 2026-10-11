@@ -66,6 +66,7 @@ public final class TerrainBoundarySignatureStore {
     private static final int SHARD_FIXED_BODY_BYTES = 12;
     private static final int CHECKSUM_BYTES = Integer.BYTES;
     private static final int CELL_SIZE = 32;
+    private static final int PREPARED_CELL_WINDOW = 8;
     private static final int SUPER_CELL_SIZE = 32;
     private static final int MAXIMUM_CACHED_SHARDS = 64;
     private static final int MAX_CELL_ENTRIES = CELL_SIZE * CELL_SIZE;
@@ -148,29 +149,60 @@ public final class TerrainBoundarySignatureStore {
             LongArrays.quickSort(cellKeys, TerrainBoundarySignatureStore::compareCoordinates);
             Long2ObjectOpenHashMap<CellReference> cells = new Long2ObjectOpenHashMap<>(cellKeys.length);
             int count = 0;
-            for (long cellKey : cellKeys) {
-                BitSet mask = columns.remove(cellKey);
-                List<TerrainBoundarySignature> signatures = new ArrayList<>(mask.cardinality());
-                for (int index = mask.nextSetBit(0); index >= 0; index = mask.nextSetBit(index + 1)) {
-                    int blockX = Math.addExact(Math.multiplyExact(cellX(cellKey), CELL_SIZE), index / CELL_SIZE);
-                    int blockZ = Math.addExact(Math.multiplyExact(cellZ(cellKey), CELL_SIZE), index % CELL_SIZE);
-                    TerrainBoundarySignature signature = Objects.requireNonNull(
-                            sampler.sample(blockX, blockZ), "boundary signature"
-                    );
-                    if (signature.blockX() != blockX || signature.blockZ() != blockZ) {
-                        throw new IOException("Boundary signature coordinates changed while sampling "
-                                + blockX + "," + blockZ + ".");
-                    }
-                    signatures.add(canonicalizeSignature(signature));
+            for (int offset = 0; offset < cellKeys.length; offset += PREPARED_CELL_WINDOW) {
+                int end = Math.min(cellKeys.length, offset + PREPARED_CELL_WINDOW);
+                List<GenerationBoundary.ChunkCoordinate> chunks = new ArrayList<>((end - offset) * 4);
+                for (int index = offset; index < end; index++) {
+                    long cellKey = cellKeys[index];
+                    addSampledChunks(cellKey, columns.get(cellKey), chunks);
                 }
-                String hash = CellShard.publish(directory, signatures, cellX(cellKey), cellZ(cellKey));
-                cells.put(cellKey, new CellReference(hash, signatures.size()));
-                count = Math.addExact(count, signatures.size());
+                sampler.prepareChunks(List.copyOf(chunks));
+                for (int cellIndex = offset; cellIndex < end; cellIndex++) {
+                    long cellKey = cellKeys[cellIndex];
+                    BitSet mask = columns.remove(cellKey);
+                    List<TerrainBoundarySignature> signatures = new ArrayList<>(mask.cardinality());
+                    for (int index = mask.nextSetBit(0); index >= 0; index = mask.nextSetBit(index + 1)) {
+                        int blockX = Math.addExact(Math.multiplyExact(cellX(cellKey), CELL_SIZE), index / CELL_SIZE);
+                        int blockZ = Math.addExact(Math.multiplyExact(cellZ(cellKey), CELL_SIZE), index % CELL_SIZE);
+                        TerrainBoundarySignature signature = Objects.requireNonNull(
+                                sampler.sample(blockX, blockZ), "boundary signature"
+                        );
+                        if (signature.blockX() != blockX || signature.blockZ() != blockZ) {
+                            throw new IOException("Boundary signature coordinates changed while sampling "
+                                    + blockX + "," + blockZ + ".");
+                        }
+                        signatures.add(canonicalizeSignature(signature));
+                    }
+                    String hash = CellShard.publish(directory, signatures, cellX(cellKey), cellZ(cellKey));
+                    cells.put(cellKey, new CellReference(hash, signatures.size()));
+                    count = Math.addExact(count, signatures.size());
+                }
             }
             byte[] identity = computeIdentity(activationId, count, cellKeys, cells);
             return publishCatalog(activationId, new PublishedCatalog(
                     toHex(identity), encodeCatalog(activationId, count, cellKeys, cells, identity)
             ));
+        }
+    }
+
+    private static void addSampledChunks(long cellKey, BitSet columns,
+                                         List<GenerationBoundary.ChunkCoordinate> chunks) {
+        int minimumX = Math.multiplyExact(cellX(cellKey), CELL_SIZE);
+        int minimumZ = Math.multiplyExact(cellZ(cellKey), CELL_SIZE);
+        int chunksPerSide = CELL_SIZE / GenerationBoundary.CHUNK_SIZE;
+        int prepared = 0;
+        for (int index = columns.nextSetBit(0); index >= 0; index = columns.nextSetBit(index + 1)) {
+            int localX = index / CELL_SIZE;
+            int localZ = index % CELL_SIZE;
+            int chunkIndex = localX / GenerationBoundary.CHUNK_SIZE * chunksPerSide
+                    + localZ / GenerationBoundary.CHUNK_SIZE;
+            int chunkBit = 1 << chunkIndex;
+            if ((prepared & chunkBit) == 0) {
+                prepared |= chunkBit;
+                chunks.add(new GenerationBoundary.ChunkCoordinate(
+                        Math.floorDiv(Math.addExact(minimumX, localX), GenerationBoundary.CHUNK_SIZE),
+                        Math.floorDiv(Math.addExact(minimumZ, localZ), GenerationBoundary.CHUNK_SIZE)));
+            }
         }
     }
 
@@ -677,6 +709,9 @@ public final class TerrainBoundarySignatureStore {
     @FunctionalInterface
     public interface SignatureSampler extends AutoCloseable {
         TerrainBoundarySignature sample(int blockX, int blockZ) throws IOException;
+
+        default void prepareChunks(List<GenerationBoundary.ChunkCoordinate> chunks) throws IOException {
+        }
 
         @Override
         default void close() throws IOException {

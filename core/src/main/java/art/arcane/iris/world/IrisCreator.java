@@ -365,13 +365,12 @@ public class IrisCreator {
                         worldKey,
                         IrisWorldStorage.levelRoot().getName()
                 );
-                BukkitWorldConfiguration.register(
+                bukkitRegistered = BukkitWorldConfiguration.register(
                         BUKKIT_YML,
                         registrationName,
                         dimension,
                         seed
-                );
-                bukkitRegistered = true;
+                ) == BukkitWorldConfiguration.Registration.CREATED;
                 World createdWorld = world;
                 CompletableFuture<Void> multiverseRegistration = J.sfut(
                         () -> IrisServices.get(MultiverseCoreLink.class)

@@ -22,8 +22,8 @@ public record GenerationTransition(
         if (algorithmVersion < 1) {
             throw new IllegalArgumentException("Transition algorithm version must be positive.");
         }
-        if (widthBlocks < MINIMUM_WIDTH_BLOCKS || widthBlocks > MAXIMUM_WIDTH_BLOCKS) {
-            throw new IllegalArgumentException("Transition width must be between "
+        if (widthBlocks != 0 && (widthBlocks < MINIMUM_WIDTH_BLOCKS || widthBlocks > MAXIMUM_WIDTH_BLOCKS)) {
+            throw new IllegalArgumentException("Transition width must be zero or between "
                     + MINIMUM_WIDTH_BLOCKS + " and " + MAXIMUM_WIDTH_BLOCKS + " blocks.");
         }
         if ((boundaryIdentity == null) != (terrainSignatureIdentity == null)) {

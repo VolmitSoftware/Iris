@@ -4,7 +4,11 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -47,43 +51,69 @@ public final class IrisBoundarySignatureSampler implements GenerationBoundarySig
 
     private static final class LiveCapture implements TerrainBoundarySignatureStore.SignatureSampler {
         private final IrisEngine engine;
-        private final LinkedHashMap<Long, SavedTerrainChunk> chunks = new LinkedHashMap<>(32, 0.75F, true);
+        private final LinkedHashMap<Long, CompletableFuture<SavedTerrainChunk>> chunks = new LinkedHashMap<>(32, 0.75F, true);
 
         private LiveCapture(IrisEngine engine) {
             this.engine = engine;
         }
 
         @Override
+        public void prepareChunks(List<GenerationBoundary.ChunkCoordinate> coordinates) {
+            if (coordinates.size() > MAXIMUM_CACHED_CHUNKS) {
+                throw new IllegalArgumentException("Terrain capture batches cannot exceed 32 chunks.");
+            }
+            try {
+                for (GenerationBoundary.ChunkCoordinate coordinate : coordinates) {
+                    captureChunk(coordinate.chunkX(), coordinate.chunkZ());
+                }
+            } catch (RuntimeException | Error failure) {
+                cancelPendingCaptures();
+                throw failure;
+            }
+        }
+
+        @Override
         public TerrainBoundarySignature sample(int blockX, int blockZ) throws IOException {
             int chunkX = Math.floorDiv(blockX, 16);
             int chunkZ = Math.floorDiv(blockZ, 16);
-            long key = ChunkGenerationOwnership.packChunk(chunkX, chunkZ);
-            SavedTerrainChunk terrain = chunks.get(key);
-            if (terrain == null) {
-                terrain = captureChunk(chunkX, chunkZ);
-                chunks.put(key, terrain);
-                if (chunks.size() > MAXIMUM_CACHED_CHUNKS) {
-                    Map.Entry<Long, SavedTerrainChunk> oldest = chunks.firstEntry();
-                    chunks.remove(oldest.getKey());
-                }
-            }
-            return terrain.column(blockX, blockZ);
-        }
-
-        private SavedTerrainChunk captureChunk(int chunkX, int chunkZ) throws IOException {
             try {
-                return engine.getPlatformHooks().captureSavedTerrainChunk(engine, chunkX, chunkZ)
-                        .get(30, TimeUnit.SECONDS);
+                return captureChunk(chunkX, chunkZ).get(30, TimeUnit.SECONDS).column(blockX, blockZ);
             } catch (InterruptedException failure) {
+                cancelPendingCaptures();
                 Thread.currentThread().interrupt();
                 throw new IOException("Interrupted while capturing terrain at " + chunkX + "," + chunkZ, failure);
-            } catch (ExecutionException | TimeoutException failure) {
+            } catch (ExecutionException | TimeoutException | CancellationException failure) {
+                cancelPendingCaptures();
                 throw new IOException("Unable to capture terrain at " + chunkX + "," + chunkZ, failure);
+            }
+        }
+
+        private CompletableFuture<SavedTerrainChunk> captureChunk(int chunkX, int chunkZ) {
+            long key = ChunkGenerationOwnership.packChunk(chunkX, chunkZ);
+            CompletableFuture<SavedTerrainChunk> terrain = chunks.get(key);
+            if (terrain != null) {
+                return terrain;
+            }
+            terrain = Objects.requireNonNull(engine.getPlatformHooks().captureSavedTerrainChunk(engine, chunkX, chunkZ),
+                    "Terrain capture future");
+            chunks.put(key, terrain);
+            if (chunks.size() > MAXIMUM_CACHED_CHUNKS) {
+                Map.Entry<Long, CompletableFuture<SavedTerrainChunk>> oldest = chunks.firstEntry();
+                chunks.remove(oldest.getKey());
+                oldest.getValue().cancel(false);
+            }
+            return terrain;
+        }
+
+        private void cancelPendingCaptures() {
+            for (CompletableFuture<SavedTerrainChunk> capture : chunks.values()) {
+                capture.cancel(false);
             }
         }
 
         @Override
         public void close() throws IOException {
+            cancelPendingCaptures();
             try {
                 checkpoint(engine);
             } finally {

@@ -78,6 +78,32 @@ public class TransitionGenerationPlanTest {
     }
 
     @Test
+    public void zeroWidthKeepsCutoffsAndHistoricalOwnershipWithoutSamplingOldTerrain() throws Exception {
+        GenerationBoundary boundary = GenerationBoundary.freeze("cutoff", List.of(
+                new GenerationBoundary.ChunkCoordinate(0, 0)));
+        TerrainBoundarySignatureStore.Snapshot snapshot = snapshot(2L, boundary);
+        TransitionGenerationPlan plan = new TransitionGenerationPlan(
+                specification(2L, "old", "new", 0, "cutoff", snapshot.identity()), boundary, snapshot);
+        TransitionDisplacementField field = new TransitionDisplacementField(plan,
+                new TransitionDisplacementField.Sources((x, z) -> 104D, 128));
+
+        assertEquals(0D, plan.newEpochWeightAt(15, 8), 0D);
+        assertEquals(1D, plan.newEpochWeightAt(16, 8), 0D);
+        assertEquals(1D, plan.hydrologyWeightAt(16, 8), 0D);
+        assertFalse(plan.terrainSampleAt(16, 8).hasHistoricalSignature());
+        assertFalse(plan.hasTransitionAtChunk(1, 0));
+        assertEquals(BoundaryGeometryInfluence.none(), plan.geometryAt(16, 8));
+        assertTrue(plan.historicalPhysicalBiomeKeyAt(16, 64, 8).isEmpty());
+        assertFalse(plan.allowsNewFootprint(15, 8, 16, 8));
+        assertTrue(plan.allowsNewFootprint(16, 8, 17, 8));
+        assertEquals(104D, field.height(16, 8, 104D), 0D);
+        assertEquals(48D, field.fluidHeight(16, 8, 48D), 0D);
+        assertEquals(0L, plan.terrainCatalogProbeCount());
+        assertEquals(0L, plan.terrainShardLoadCount());
+        assertEquals(0L, plan.terrainCandidateBuildCount());
+    }
+
+    @Test
     public void computesTransitionForEnclosedNewTerritory() throws Exception {
         GenerationBoundary boundary = GenerationBoundary.freeze("ring", List.of(
                 new GenerationBoundary.ChunkCoordinate(-1, 0),
@@ -336,7 +362,7 @@ public class TransitionGenerationPlanTest {
         assertThrows(IllegalArgumentException.class,
                 () -> specification(1L, "same", "same", 16, "actual", snapshot.identity()));
         assertThrows(IllegalArgumentException.class,
-                () -> specification(1L, "old", "new", 0, "actual", snapshot.identity()));
+                () -> specification(1L, "old", "new", -1, "actual", snapshot.identity()));
         assertThrows(IllegalArgumentException.class,
                 () -> new TransitionGenerationPlan(
                         specification(1L, "old", "new", 16, "different", snapshot.identity()),

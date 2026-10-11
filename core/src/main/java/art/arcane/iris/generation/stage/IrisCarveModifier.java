@@ -995,7 +995,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                             zone.setCeiling(y - 1);
                             if (zone.isValid(resolver.height)
                                     && (subterrainCell(worldX, floor, worldZ).occupied()
-                                    || !isNaturalTerrainOpening(getComplex(), worldX, floor, worldZ))) {
+                                    || !isNaturalTerrainOpening(getComplex(), worldX, floor, worldZ, context))) {
                                 if (markerRoll(worldX, zone.ceiling, worldZ, 0x9E3779B97F4A7C15L)) {
                                     mantle.set(worldX, zone.ceiling, worldZ, MarkerMatter.CAVE_CEILING);
                                 }
@@ -1109,6 +1109,17 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         }
         Terrain3DColumn column = complex.terrainColumn(x, z, complex.sampleHydrologyColumn(x, z));
         return column != null && y >= column.minY() && y < column.topY() && !column.isSolid(y)
+                && !getEngine().isAdditionalTerrainOwned(x, y, z);
+    }
+
+    private boolean isNaturalTerrainOpening(IrisComplex complex, int x, int y, int z, ChunkContext context) {
+        ChunkContext.TransitionTerrainColumn transition = context == null ? null
+                : context.getTransitionTerrain(x & 15, z & 15);
+        if (transition == null) {
+            return isNaturalTerrainOpening(complex, x, y, z);
+        }
+        Terrain3DColumn natural = complex.terrainColumn(x, z, complex.sampleHydrologyColumn(x, z));
+        return natural != null && IrisDecorantActuator.isTransitionTerrainOpening(natural, transition, y)
                 && !getEngine().isAdditionalTerrainOwned(x, y, z);
     }
 

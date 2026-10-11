@@ -70,6 +70,17 @@ public class GenerationTransitionTest {
     }
 
     @Test
+    public void zeroWidthCutoffSurvivesActivationRoundTrip() {
+        GenerationActivation activation = GenerationActivation.next(2L, BOUNDARY, 1L, 99L, 0)
+                .completeTransition(BOUNDARY, TERRAIN);
+
+        GenerationActivation restored = GenerationActivation.fromJson(activation.toJson());
+
+        assertEquals(activation, restored);
+        assertEquals(0, restored.transition().widthBlocks());
+    }
+
+    @Test
     public void activationRoundTripRetainsItsTransition() {
         GenerationActivation activation = GenerationActivation.next(2L, BOUNDARY, 1L, 99L, 256)
                 .completeTransition(BOUNDARY, TERRAIN);

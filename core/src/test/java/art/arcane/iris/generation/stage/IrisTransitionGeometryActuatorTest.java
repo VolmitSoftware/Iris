@@ -2,6 +2,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.BoundaryGeometryInfluence;
 import art.arcane.iris.world.history.NativeTerrainReceipt;
@@ -106,6 +107,8 @@ public class IrisTransitionGeometryActuatorTest {
         assertSame(stone, blocks.getRaw(0, 3, 0));
         assertSame(air, blocks.getRaw(0, 4, 0));
         verify(context).setTerrainHeight(0, 0, 3);
+        verify(context).setTransitionTerrain(0, 0,
+                Terrain3DColumn.fromOccupancy(3, 16, y -> y == 0 || y == 3), -1);
     }
 
     @Test
@@ -121,12 +124,40 @@ public class IrisTransitionGeometryActuatorTest {
         assertSame(air, blocks.getRaw(0, 2, 0));
     }
 
+    @Test
+    public void preservesTheActualBlendedSurfaceWaterHeight() {
+        NativeBlockState water = state("minecraft:water[level=0]", false);
+        when(water.isSolid()).thenReturn(false);
+        when(water.isFluid()).thenReturn(true);
+        when(registries.blockOrNull(water.key())).thenReturn(water);
+        ChunkContext context = context("minecraft:stone", 6);
+        Hunk<NativeBlockState> blocks = filled();
+        for (int y = 4; y <= 6; y++) {
+            blocks.setRaw(0, y, 0, water);
+        }
+
+        new IrisTransitionGeometryActuator(mock(Engine.class)).generate(16, 0, blocks,
+                Hunk.newArrayHunk(16, 16, 16), false, context);
+
+        assertSame(water, blocks.getRaw(0, 4, 0));
+        assertSame(water, blocks.getRaw(0, 6, 0));
+        assertSame(air, blocks.getRaw(0, 7, 0));
+        verify(context).setTransitionTerrain(0, 0,
+                Terrain3DColumn.fromOccupancy(3, 16, y -> y == 0 || y == 3), 6);
+    }
+
     private ChunkContext context(String material) {
+        return context(material, 3);
+    }
+
+    private ChunkContext context(String material, int fluidHeight) {
         ArrayList<BoundaryColumnGeometry.Voxel> voxels = new ArrayList<>(16);
         for (int y = 0; y < 16; y++) {
             boolean solid = y == 0 || y == 3;
-            voxels.add(new BoundaryColumnGeometry.Voxel(solid ? material : "minecraft:air",
-                    solid ? BoundaryColumnGeometry.Phase.SOLID : BoundaryColumnGeometry.Phase.AIR, "", false));
+            boolean fluid = y > 3 && y <= fluidHeight;
+            voxels.add(new BoundaryColumnGeometry.Voxel(solid ? material : fluid ? "minecraft:water[level=0]" : "minecraft:air",
+                    solid ? BoundaryColumnGeometry.Phase.SOLID : fluid ? BoundaryColumnGeometry.Phase.FLUID : BoundaryColumnGeometry.Phase.AIR,
+                    fluid ? "minecraft:water[level=0]" : "", false));
         }
         BoundaryGeometryInfluence influence = new BoundaryGeometryInfluence(0D, 0D,
                 List.of(new BoundaryGeometryInfluence.Contribution(BoundaryColumnGeometry.fromVoxels(0, voxels), 1D)));

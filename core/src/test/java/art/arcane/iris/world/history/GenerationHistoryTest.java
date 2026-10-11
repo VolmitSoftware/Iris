@@ -18,6 +18,32 @@ import static org.mockito.Mockito.mockStatic;
 
 public class GenerationHistoryTest extends GenerationHistorySupport {
     @Test
+    public void cutoffActivationKeepsItsRecipeAcrossReloadAndLaterBlendedUpdates() throws Exception {
+        Path world = temporaryFolder.newFolder("cutoff-update-world").toPath();
+        Path packA = createPack("cutoff-update-a", "alpha");
+        Path packB = createPack("cutoff-update-b", "beta");
+        GenerationHistory history = createHistory(world, packA);
+        int[][] chunks = {{0, 0}};
+        writeRegion(Files.createDirectories(world.resolve("region")).resolve("r.0.0.mca"), chunks);
+        history.stageUpdate(packB, fingerprint(packB), contract(), GenerationRegistryContract.empty(), 0);
+        history.promotePending(signaturesForChunks(chunks));
+
+        GenerationHistory restarted = GenerationHistory.open(world);
+        TransitionGenerationPlan cutoff = restarted.transitionPlan(2L);
+
+        assertEquals(0, restarted.activeActivation().transition().widthBlocks());
+        assertEquals(1D, cutoff.newEpochWeightAt(16, 8), 0D);
+        assertFalse(cutoff.hasTransitionAtChunk(1, 0));
+        assertEquals(1L, restarted.resolveActivation(0, 0).activationId());
+        restarted.stageUpdate(packA, fingerprint(packA), contract(), GenerationRegistryContract.empty(), 32);
+        restarted.promotePending(signaturesForChunks(chunks));
+
+        assertEquals(0, restarted.transitionPlan(2L).widthBlocks());
+        assertEquals(32, restarted.transitionPlan(3L).widthBlocks());
+        assertTrue(restarted.transitionPlan(3L).newEpochWeightAt(16, 8) < 1D);
+    }
+
+    @Test
     public void freshPublicationReusesOnlyItsInternalVerification() throws Exception {
         Path world = temporaryFolder.newFolder("verified-publication-world").toPath();
         Path pack = createPack("verified-publication-pack", "alpha");

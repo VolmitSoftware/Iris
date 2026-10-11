@@ -22,6 +22,7 @@ import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime;
 import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime.ChunkLoad;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.world.pregen.MantleHeapPressure;
 import art.arcane.iris.world.pregen.PregenListener;
 import art.arcane.iris.world.pregen.PregenMantleBackpressure;
 import art.arcane.iris.world.pregen.PregeneratorMethod;
@@ -74,8 +75,8 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         sync = configuration.sync();
         pauseGuard = new PauseWhenEmptyGuard(runtime);
         IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
-        this.maxInFlight = Math.max(8, pregen.getModdedPregenInFlight());
-        this.minInFlight = Math.max(4, Math.min(16, maxInFlight / 4));
+        this.maxInFlight = memoryLimitedConcurrency(pregen.getModdedPregenInFlight(), MantleHeapPressure.memoryBudgetBytes());
+        this.minInFlight = Math.min(maxInFlight, Math.max(4, Math.min(16, maxInFlight / 4)));
         this.semaphore = new Semaphore(maxInFlight, true);
         this.adaptiveLimit = new AtomicInteger(sync ? 1 : maxInFlight);
         this.timeoutSeconds = Math.max(120, pregen.getChunkLoadTimeoutSeconds());
@@ -86,7 +87,13 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 pregen.getMantleBackpressureTimeoutMs(),
                 () -> {
                 },
-                () -> "dim=" + runtime.worldIdentity());
+                () -> "dim=" + runtime.worldIdentity(),
+                this::admissionCancelled);
+    }
+
+    static int memoryLimitedConcurrency(int configuredLimit, long memoryBudgetBytes) {
+        long memoryLimit = Math.max(1L, memoryBudgetBytes / (256L * 1024L * 1024L));
+        return (int) Math.min(Math.max(1, configuredLimit), memoryLimit);
     }
 
     @Override
@@ -359,12 +366,26 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         }
         listener.onChunkGenerating(x, z);
         try {
-            synchronized (permitMonitor) {
-                while (inFlight.get() >= adaptiveLimit.get()) {
-                    permitMonitor.wait(500L);
+            while (true) {
+                synchronized (permitMonitor) {
+                    while (inFlight.get() >= adaptiveLimit.get()) {
+                        if (admissionCancelled()) {
+                            return;
+                        }
+                        permitMonitor.wait(500L);
+                    }
                 }
+                semaphore.acquire();
+                if (admissionCancelled()) {
+                    semaphore.release();
+                    return;
+                }
+                if (!MantleHeapPressure.overHighWater()) {
+                    break;
+                }
+                semaphore.release();
+                backpressure.awaitHeapHeadroom();
             }
-            semaphore.acquire();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return;
@@ -398,6 +419,10 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 semaphore.release();
             }
         });
+    }
+
+    private boolean admissionCancelled() {
+        return Thread.currentThread().isInterrupted() || !runtime.isRunning();
     }
 
     private void markSubmitted() {

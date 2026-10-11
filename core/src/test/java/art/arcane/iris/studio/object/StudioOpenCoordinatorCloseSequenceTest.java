@@ -19,18 +19,65 @@ import static org.mockito.Mockito.mockStatic;
 
 public class StudioOpenCoordinatorCloseSequenceTest {
     @Test
-    public void unloadCompletesBeforeGeneratorCloseAndFolderDeletion() {
+    public void updatesDrainBeforeUnloadAndGeneratorClose() {
         ArrayList<String> phases = new ArrayList<>();
 
         StudioOpenCoordinator.sequenceStudioClose(
                 () -> phase(phases, "evacuate"),
                 () -> phases.add("maintenance"),
+                () -> phase(phases, "quiesce-updates"),
                 () -> phase(phases, "unload"),
                 () -> phase(phases, "close-generator"),
                 () -> phase(phases, "delete-folders")
         ).join();
 
-        assertEquals(List.of("evacuate", "maintenance", "unload", "close-generator", "delete-folders"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "quiesce-updates", "unload", "close-generator", "delete-folders"), phases);
+    }
+
+    @Test
+    public void activeUpdateKeepsWorldLoadedUntilTerrainCaptureFinishes() {
+        ArrayList<String> phases = new ArrayList<>();
+        CompletableFuture<Void> update = new CompletableFuture<>();
+        CompletableFuture<Void> closed = StudioOpenCoordinator.sequenceStudioClose(
+                () -> phase(phases, "evacuate"),
+                () -> phases.add("maintenance"),
+                () -> {
+                    phases.add("quiesce-updates");
+                    return update;
+                },
+                () -> phase(phases, "unload"),
+                () -> phase(phases, "close-generator"),
+                () -> phase(phases, "delete-folders"));
+
+        assertFalse(closed.isDone());
+        assertEquals(List.of("evacuate", "maintenance", "quiesce-updates"), phases);
+
+        update.complete(null);
+        closed.join();
+
+        assertEquals(List.of("evacuate", "maintenance", "quiesce-updates", "unload",
+                "close-generator", "delete-folders"), phases);
+    }
+
+    @Test
+    public void failedUpdateDrainKeepsWorldAndGeneratorAvailable() {
+        ArrayList<String> phases = new ArrayList<>();
+        IllegalStateException failure = new IllegalStateException("update remains active");
+        CompletableFuture<Void> closed = StudioOpenCoordinator.sequenceStudioClose(
+                () -> phase(phases, "evacuate"),
+                () -> phases.add("maintenance"),
+                () -> CompletableFuture.failedFuture(failure),
+                () -> phase(phases, "unload"),
+                () -> phase(phases, "close-generator"),
+                () -> phase(phases, "delete-folders"));
+
+        try {
+            closed.join();
+            fail("Expected update drain failure");
+        } catch (CompletionException exception) {
+            assertSame(failure, exception.getCause());
+        }
+        assertEquals(List.of("evacuate", "maintenance"), phases);
     }
 
     @Test
@@ -42,6 +89,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             StudioOpenCoordinator.sequenceStudioClose(
                     () -> phase(phases, "evacuate"),
                     () -> phases.add("maintenance"),
+                    () -> phase(phases, "quiesce-updates"),
                     () -> {
                         phases.add("unload");
                         return CompletableFuture.failedFuture(failure);
@@ -54,7 +102,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             assertSame(failure, exception.getCause());
         }
 
-        assertEquals(List.of("evacuate", "maintenance", "unload"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "quiesce-updates", "unload"), phases);
     }
 
     @Test
@@ -69,6 +117,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
                         return CompletableFuture.failedFuture(failure);
                     },
                     () -> phases.add("maintenance"),
+                    () -> phase(phases, "quiesce-updates"),
                     () -> phase(phases, "unload"),
                     () -> phase(phases, "close-generator"),
                     () -> phase(phases, "delete-folders")
@@ -90,6 +139,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             StudioOpenCoordinator.sequenceStudioClose(
                     () -> phase(phases, "evacuate"),
                     () -> phases.add("maintenance"),
+                    () -> phase(phases, "quiesce-updates"),
                     () -> phase(phases, "unload"),
                     () -> {
                         phases.add("close-generator");
@@ -102,7 +152,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             assertSame(failure, exception.getCause());
         }
 
-        assertEquals(List.of("evacuate", "maintenance", "unload", "close-generator"), phases);
+        assertEquals(List.of("evacuate", "maintenance", "quiesce-updates", "unload", "close-generator"), phases);
     }
 
     @Test
@@ -115,6 +165,7 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             CompletableFuture<Void> close = StudioOpenCoordinator.sequenceStudioClose(
                     () -> phase(phases, "evacuate"),
                     () -> phases.add("maintenance"),
+                    () -> phase(phases, "quiesce-updates"),
                     () -> {
                         phases.add("unload");
                         return unload;
@@ -126,13 +177,13 @@ public class StudioOpenCoordinatorCloseSequenceTest {
             warning.get().run();
             assertFalse(close.isDone());
             assertFalse(unload.isDone());
-            assertEquals(List.of("evacuate", "maintenance", "unload"), phases);
+            assertEquals(List.of("evacuate", "maintenance", "quiesce-updates", "unload"), phases);
             configurator.verifyNoInteractions();
 
             unload.complete(null);
             close.join();
 
-            assertEquals(List.of("evacuate", "maintenance", "unload", "close-generator", "delete-folders"), phases);
+            assertEquals(List.of("evacuate", "maintenance", "quiesce-updates", "unload", "close-generator", "delete-folders"), phases);
             configurator.verifyNoInteractions();
         }
     }

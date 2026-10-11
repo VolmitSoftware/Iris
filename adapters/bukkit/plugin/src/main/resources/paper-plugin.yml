@@ -28,34 +28,26 @@ permissions:
 dependencies:
   server:
     PlaceholderAPI:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     CraftEngine:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     Nexo:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     Oraxen:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     ItemsAdder:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     SCore:
-      load: BEFORE
-      required: false
-      join-classpath: true
-    ExecutableItems:
-      load: BEFORE
-      required: false
-      join-classpath: false
-    MythicLib:
       load: OMIT
       required: false
       join-classpath: true
@@ -64,11 +56,7 @@ dependencies:
       required: false
       join-classpath: true
     eco:
-      load: BEFORE
-      required: false
-      join-classpath: true
-    EcoItems:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     MythicMobs:
@@ -80,7 +68,7 @@ dependencies:
       required: false
       join-classpath: true
     KGenerators:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true
     Multiverse-Core:
@@ -88,6 +76,6 @@ dependencies:
       required: false
       join-classpath: true
     WorldEdit:
-      load: BEFORE
+      load: OMIT
       required: false
       join-classpath: true

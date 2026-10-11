@@ -483,6 +483,7 @@ public final class StudioOpenCoordinator {
                         IrisToolbelt.beginWorldMaintenance(world, "studio-close", true);
                     }
                 },
+                () -> provider == null ? CompletableFuture.completedFuture(null) : provider.quiesceStudioUpdatesAsync(),
                 () -> unloadWorldFamily(worldName, world).thenRun(() -> unloadConfirmed.set(true)),
                 () -> provider == null ? CompletableFuture.completedFuture(null) : provider.closeAsync(),
                 () -> deleteFolder
@@ -516,6 +517,7 @@ public final class StudioOpenCoordinator {
     static CompletableFuture<Void> sequenceStudioClose(
             Supplier<CompletableFuture<Void>> evacuate,
             Runnable enterMaintenance,
+            Supplier<CompletableFuture<Void>> quiesceUpdates,
             Supplier<CompletableFuture<Void>> unload,
             Supplier<CompletableFuture<Void>> closeGenerator,
             Supplier<CompletableFuture<Void>> deleteFolders
@@ -523,8 +525,9 @@ public final class StudioOpenCoordinator {
         return invokePhase(evacuate)
                 .thenCompose(ignored -> {
                     enterMaintenance.run();
-                    return invokePhase(unload);
+                    return invokePhase(quiesceUpdates);
                 })
+                .thenCompose(ignored -> invokePhase(unload))
                 .thenCompose(ignored -> invokePhase(closeGenerator))
                 .thenCompose(ignored -> invokePhase(deleteFolders));
     }

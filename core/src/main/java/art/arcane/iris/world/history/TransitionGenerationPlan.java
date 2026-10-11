@@ -32,11 +32,11 @@ public final class TransitionGenerationPlan {
             throw new IllegalArgumentException("Unsupported generation transition algorithm version "
                     + specification.algorithmVersion());
         }
-        terrainSampler = new TransitionBoundarySampler(
+        terrainSampler = specification.widthBlocks() == 0 ? null : new TransitionBoundarySampler(
                 specification.widthBlocks(),
                 terrainSignatures
         );
-        terrainBand = new TransitionBandIndex(boundary, terrainSampler);
+        terrainBand = terrainSampler == null ? null : new TransitionBandIndex(boundary, terrainSampler);
         newTerrain = TerrainSample.newTerrain(specification.widthBlocks());
     }
 
@@ -97,11 +97,11 @@ public final class TransitionGenerationPlan {
     }
 
     public boolean hasTransitionAtChunk(int chunkX, int chunkZ) {
-        return terrainBand.contains(chunkX, chunkZ);
+        return terrainBand != null && terrainBand.contains(chunkX, chunkZ);
     }
 
     public BoundaryGeometryInfluence geometryAt(int blockX, int blockZ) {
-        if (!terrainBand.contains(blockX >> 4, blockZ >> 4)) {
+        if (!hasTransitionAtChunk(blockX >> 4, blockZ >> 4)) {
             return BoundaryGeometryInfluence.none();
         }
         return terrainSampler.geometryAt(blockX, blockZ);
@@ -111,7 +111,7 @@ public final class TransitionGenerationPlan {
         if (boundary.isHistoricalBlock(blockX, blockZ)) {
             return TerrainSample.historicalTerrain();
         }
-        return terrainBand.contains(blockX >> 4, blockZ >> 4) ? terrainSampler.sample(blockX, blockZ) : newTerrain;
+        return hasTransitionAtChunk(blockX >> 4, blockZ >> 4) ? terrainSampler.sample(blockX, blockZ) : newTerrain;
     }
 
     public Optional<String> historicalPhysicalBiomeKeyAt(int blockX, int blockY, int blockZ) {
@@ -137,15 +137,15 @@ public final class TransitionGenerationPlan {
     }
 
     long terrainCatalogProbeCount() {
-        return terrainSampler.catalogProbeCount();
+        return terrainSampler == null ? 0L : terrainSampler.catalogProbeCount();
     }
 
     long terrainShardLoadCount() {
-        return terrainSampler.shardLoadCount();
+        return terrainSampler == null ? 0L : terrainSampler.shardLoadCount();
     }
 
     long terrainCandidateBuildCount() {
-        return terrainSampler.candidateBuildCount();
+        return terrainSampler == null ? 0L : terrainSampler.candidateBuildCount();
     }
 
     public record Specification(
@@ -171,8 +171,8 @@ public final class TransitionGenerationPlan {
             if (oldEpochId.equals(newEpochId)) {
                 throw new IllegalArgumentException("Transition epoch IDs must differ");
             }
-            if (widthBlocks <= 0) {
-                throw new IllegalArgumentException("Transition width must be positive");
+            if (widthBlocks < 0) {
+                throw new IllegalArgumentException("Transition width cannot be negative");
             }
             if (algorithmVersion < 1) {
                 throw new IllegalArgumentException("Transition algorithm version must be positive");

@@ -215,16 +215,16 @@ public final class PregenMantleBackpressure {
             if (elapsed >= nextWarningElapsed) {
                 nextWarningElapsed = elapsed + warningInterval;
                 lastLog = logNow;
-                IrisLogging.warn("Pregen heap pressure is still blocking new chunk submissions after " + elapsed + "ms at "
-                        + Math.round(MantleHeapPressure.usedFraction() * 100.0D) + "% heap; waiting for headroom. "
+                IrisLogging.warn("Pregen memory pressure is still blocking new chunk submissions after " + elapsed + "ms at "
+                        + MantleHeapPressure.describe() + "; waiting for headroom. "
                         + diagnostics.get());
                 onBudgetTimeout.run();
             }
 
             if (logNow - lastLog >= LOG_INTERVAL_MS) {
                 lastLog = logNow;
-                IrisLogging.info("Pregen heap pressure: pausing generation at "
-                        + Math.round(MantleHeapPressure.usedFraction() * 100.0D) + "% heap; evicting tectonic plates and waiting for headroom"
+                IrisLogging.info("Pregen memory pressure: pausing generation at "
+                        + MantleHeapPressure.describe() + "; evicting tectonic plates and waiting for headroom"
                         + (mantle != null ? " (" + mantle.getLoadedRegionCount() + " plates resident)" : "") + ".");
             }
 

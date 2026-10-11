@@ -131,6 +131,32 @@ public class BukkitChunkGeneratorCloseTest {
     }
 
     @Test
+    public void studioQuiesceCancelsWatcherAndDrainsExclusiveControlWithoutClosingEngine() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        CompletableFuture<Void> pending = new CompletableFuture<>();
+        fixture.watcherHotload.set(pending);
+        Looper watcher = mock(Looper.class);
+        setField(fixture.generator, "hotloader", watcher);
+        CompletableFuture<Void> drained = fixture.queueOperation();
+
+        CompletableFuture<Void> quiesced = fixture.generator.quiesceStudioUpdatesAsync();
+
+        assertTrue(pending.isCancelled());
+        assertNull(fixture.watcherHotload.get());
+        assertFalse(quiesced.isDone());
+        assertFalse(fixture.generator.isClosing());
+        verify(watcher).interrupt();
+        fixture.generator.hotload();
+        verify(fixture.engine, times(0)).hotload();
+        verify(fixture.engine, times(0)).close();
+
+        fixture.operation.get().run();
+        drained.complete(null);
+        quiesced.join();
+        verify(fixture.engine, times(0)).close();
+    }
+
+    @Test
     public void shutdownQuiesceCancelsPendingWatcherWithoutClosingGeneration() throws Exception {
         CloseFixture fixture = new CloseFixture();
         CompletableFuture<Void> pending = new CompletableFuture<>();

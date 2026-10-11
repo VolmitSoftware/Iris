@@ -5,9 +5,12 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -29,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class IrisDecoratorCaveContextTest {
     @ClassRule
@@ -103,6 +107,48 @@ public class IrisDecoratorCaveContextTest {
     public void nullInferenceRemainsSafeForNormalSurfaceContext() {
         assertTrue(IrisSurfaceDecorator.isUnderwater(null, 10, 63));
         assertFalse(IrisSurfaceDecorator.skipsFluid(null));
+    }
+
+    @Test
+    public void dryBlendedSurfaceRunsBiomeDecoratorDespiteHigherModeledWater() {
+        Engine engine = mock(Engine.class);
+        doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
+        doReturn(mock(IrisData.class)).when(engine).getData();
+        doReturn(7L).when(engine).getGenerationSessionId();
+        IrisDimension dimension = mock(IrisDimension.class);
+        doReturn(dimension).when(engine).getDimension();
+        EngineMantle mantle = mock(EngineMantle.class);
+        doReturn(mantle).when(engine).getMantle();
+        doReturn(63).when(mantle).getFluidHeight(anyInt(), anyInt());
+
+        IrisDecorator decorator = mock(IrisDecorator.class);
+        doReturn(true).when(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        doReturn(true).when(decorator).isStacking();
+        doReturn(true).when(decorator).isForcePlace();
+        doReturn(1).when(decorator).getHeight(any(), anyDouble(), anyDouble(), any());
+        IrisBiome biome = mock(IrisBiome.class);
+        doReturn(InferredType.LAND).when(biome).getInferredType();
+        doReturn(new IrisDecorator[]{decorator}).when(biome).getDecoratorBucket(IrisDecorationPart.NONE);
+        ChunkContext chunk = mock(ChunkContext.class);
+        doReturn(7L).when(chunk).getGenerationSessionId();
+        doReturn(new ChunkContext.TransitionTerrainColumn(Terrain3DColumn.unshaped(40, 128), -1))
+                .when(chunk).getTransitionTerrain(0, 0);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 128, 16);
+        output.fill(IrisPlatforms.get().registries().air());
+        IrisSurfaceDecorator surface = new IrisSurfaceDecorator(engine);
+
+        try (IrisContext.Scope scope = IrisContext.open(engine, 7L, chunk)) {
+            surface.decorate(0, 0, 0, 0, 0, 0, 0, 0, output, biome, 40, 88);
+            assertEquals(-1, surface.surfaceFluidHeight(0, 0));
+            assertEquals(63, surface.surfaceFluidHeight(16, 0));
+        }
+
+        verify(decorator).passesChanceGate(any(), anyDouble(), anyDouble(), any());
+        assertFalse(DecoratorCore.SCRATCH_OPTS.get().underwater);
+        assertEquals(63, surface.surfaceFluidHeight(0, 0));
+        try (IrisContext.Scope scope = IrisContext.open(engine, 8L, chunk)) {
+            assertEquals(63, surface.surfaceFluidHeight(0, 0));
+        }
     }
 
     @Test

@@ -289,6 +289,9 @@ public class J {
             runnable.run();
             return true;
         }
+        if (!canSchedule()) {
+            return false;
+        }
 
         if (runRegionImmediate(world, chunkX, chunkZ, runnable)) {
             return true;
@@ -382,6 +385,9 @@ public class J {
 
         if (delayTicks <= 0) {
             return runRegion(world, chunkX, chunkZ, runnable);
+        }
+        if (!canSchedule()) {
+            return false;
         }
 
         if (runRegionDelayed(world, chunkX, chunkZ, runnable, delayTicks)) {

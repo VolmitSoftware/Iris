@@ -3,18 +3,6 @@ version: ${version}
 main: ${main}
 folia-supported: true
 load: STARTUP
-softdepend:
-  - PlaceholderAPI
-  - CraftEngine
-  - Nexo
-  - Oraxen
-  - ItemsAdder
-  - SCore
-  - ExecutableItems
-  - eco
-  - EcoItems
-  - KGenerators
-  - WorldEdit
 loadbefore: [ Multiverse-Core ]
 authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: VolmitSoftware.com

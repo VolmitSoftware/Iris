@@ -20,6 +20,8 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -60,7 +62,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
                          Hunk<NativeBlockState> data, IrisBiome biome, InferredType inferredType, int height, int max) {
-        int fluidHeight = getEngine().getMantle().getFluidHeight(realX, realZ);
+        int fluidHeight = surfaceFluidHeight(realX, realZ);
         if (inferredType == InferredType.SHORE && height < fluidHeight) {
             return;
         }
@@ -98,6 +100,21 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
 
     static boolean isUnderwater(InferredType inferredType, int height, int fluidHeight) {
         return height < fluidHeight && inferredType != InferredType.CAVE;
+    }
+
+    int surfaceFluidHeight(int worldX, int worldZ) {
+        IrisContext current = IrisContext.get();
+        ChunkContext chunk = current == null ? null : current.getChunkContext();
+        if (chunk != null && current.getEngine() == getEngine()
+                && current.getGenerationSessionId() == getEngine().getGenerationSessionId()
+                && current.getGenerationSessionId() == chunk.getGenerationSessionId()
+                && worldX >> 4 == chunk.getX() >> 4 && worldZ >> 4 == chunk.getZ() >> 4) {
+            ChunkContext.TransitionTerrainColumn transition = chunk.getTransitionTerrain(worldX & 15, worldZ & 15);
+            if (transition != null) {
+                return transition.fluidHeight();
+            }
+        }
+        return getEngine().getMantle().getFluidHeight(worldX, worldZ);
     }
 
     static boolean skipsFluid(InferredType inferredType) {

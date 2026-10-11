@@ -133,8 +133,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.IllegalPluginAccessException;
@@ -206,6 +209,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private volatile PlaceholderRegistration papiRegistration;
     private volatile IrisPapiListener papiListener;
     private volatile IrisPapiState papiState;
+    private volatile boolean papiLifecycleActive;
     private KMap<Class<? extends IrisService>, IrisService> services;
     // Copy-on-write: mutated on the main thread during enable() and iterated by the JVM
     // shutdown-hook thread during teardown; a plain list would CME and abort the teardown.
@@ -867,7 +871,14 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
      */
     private CompletableFuture<ManagedWorldLoader.ManagedWorldLoad> loadManagedWorld(String configuredWorldName) {
         return worldReconciler.loadWorld(ServerProperties.BUKKIT_YML, configuredWorldName)
-                .thenApply(result -> new ManagedWorldLoader.ManagedWorldLoad(result.succeeded(), result.message()));
+                .thenApply(this::managedWorldLoadResult);
+    }
+
+    private ManagedWorldLoader.ManagedWorldLoad managedWorldLoadResult(BukkitWorldReconciler.LoadResult result) {
+        if (!result.succeeded() && result.failure() != null) {
+            reportError("Could not explicitly load Iris world " + result.worldKey() + ": " + result.message(), result.failure());
+        }
+        return new ManagedWorldLoader.ManagedWorldLoad(result.succeeded(), result.message());
     }
 
     public PendingWorldReplacementManager pendingWorldReplacements() {
@@ -931,6 +942,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             ServerConfigurator.restartAtStartupBoundary(restartReason);
             return;
         }
+        papiLifecycleActive = true;
+        setupPapi();
         reportLockedRuntime();
     }
 
@@ -977,6 +990,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onDisable() {
+        papiLifecycleActive = false;
         if (updateNotifier != null) {
             updateNotifier.close();
             updateNotifier = null;
@@ -1020,6 +1034,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     @Override
     public CompletionStage<Void> commitReload(ReloadAware.PreUnloadReason reason) {
+        papiLifecycleActive = false;
         teardownPapi();
         if (IrisToolbelt.isServerStopping()) {
             quiesceRuntimeForServerShutdown("pre-unload:" + reason);
@@ -1322,8 +1337,23 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
     }
 
-    private void setupPapi() {
-        if (!PlaceholderRegistration.isPlaceholderApiEnabled()) {
+    @EventHandler
+    public void onPlaceholderApiEnable(PluginEnableEvent event) {
+        if ("PlaceholderAPI".equals(event.getPlugin().getName())) {
+            setupPapi();
+        }
+    }
+
+    @EventHandler
+    public void onPlaceholderApiDisable(PluginDisableEvent event) {
+        if ("PlaceholderAPI".equals(event.getPlugin().getName())) {
+            teardownPapi();
+        }
+    }
+
+    private synchronized void setupPapi() {
+        if (!papiLifecycleActive || papiRegistration != null
+                || !PlaceholderRegistration.isPlaceholderApiEnabled()) {
             return;
         }
 
@@ -1350,7 +1380,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         papiRegistration = registration;
     }
 
-    private void teardownPapi() {
+    private synchronized void teardownPapi() {
         IrisPapiListener listener = papiListener;
         papiListener = null;
 

@@ -144,7 +144,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.chunkAccessMode = chunkAsyncMethodSelection.mode();
         int detectedWorkerPoolThreads = resolveWorkerPoolThreads();
         int detectedCpuThreads = Math.max(1, Runtime.getRuntime().availableProcessors());
-        this.pregenWorkerThreads = pregenWorkerThreadTarget(detectedCpuThreads, Runtime.getRuntime().maxMemory(),
+        this.pregenWorkerThreads = pregenWorkerThreadTarget(detectedCpuThreads, MantleHeapPressure.memoryBudgetBytes(),
                 !foliaRuntime && !strictSerial && detectedWorkerPoolThreads > 0);
         int workerThreadsForCap = foliaRuntime
                 ? resolveFoliaConcurrencyWorkerThreads(detectedWorkerPoolThreads, detectedCpuThreads, pregenWorkerThreads)
@@ -166,7 +166,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         int configuredThreads = foliaRuntime
                 ? computeFoliaRecommendedCap(workerThreadsForCap)
                 : computePaperLikeRecommendedCap(workerThreadsForCap);
-        configuredThreads = heapLimitedConcurrency(configuredThreads, Runtime.getRuntime().maxMemory());
+        configuredThreads = heapLimitedConcurrency(configuredThreads, MantleHeapPressure.memoryBudgetBytes());
         this.threads = selectConcurrencyCap(configuredThreads, strictSerial);
         this.workerPoolThreads = detectedWorkerPoolThreads;
         this.runtimeCpuThreads = detectedCpuThreads;
@@ -304,7 +304,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     binding.releaseChunk(world, chunkX, chunkZ);
                 }
             };
-            return new PregenChunkRetention(tickets, radius, retentionCapacity(Runtime.getRuntime().maxMemory()),
+            return new PregenChunkRetention(tickets, radius, retentionCapacity(MantleHeapPressure.memoryBudgetBytes()),
                     minRegionX, minRegionZ, maxRegionX, maxRegionZ);
         } catch (Throwable e) {
             PregenDiagnostics.probeFailed("pregen chunk retention for world " + world.getName(), e);
@@ -996,7 +996,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
         PregenAdmissionGate.Wait waited;
         try {
-            waited = admission.admit(() -> inFlight.get() >= adaptiveInFlightLimit.get(), this::isCancelled);
+            while (true) {
+                waited = admission.admit(() -> inFlight.get() >= adaptiveInFlightLimit.get(), this::isCancelled);
+                if (waited == null || !MantleHeapPressure.overHighWater()) {
+                    break;
+                }
+                admission.release();
+                backpressure.awaitHeapHeadroom(MantleHeapPressure::overHighWater, this::reclaimHeapPressure);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return;

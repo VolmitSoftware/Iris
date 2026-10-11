@@ -35,6 +35,8 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.generation.context.IrisContext;
 
+import java.util.concurrent.TimeUnit;
+
 import static art.arcane.iris.generation.runtime.EngineShutdownSequence.runCleanup;
 
 /**
@@ -224,12 +226,14 @@ final class EngineHotloader {
             StudioGenerationUpdate update = null;
             boolean backgroundAdmissionClosed = false;
             try {
+                long startedAt = System.nanoTime();
                 engine.requireRunning("hotload the Studio pack");
                 GenerationHistory history = router.history();
                 update = StudioGenerationUpdate.prepare(engine, history);
                 if (update == null) {
                     return;
                 }
+                long preparedAt = System.nanoTime();
                 engine.awaitNativeStructureBootstrap("Studio generation cutover");
                 engine.backgroundTasks.closeBackgroundTaskAdmission();
                 backgroundAdmissionClosed = true;
@@ -243,15 +247,27 @@ final class EngineHotloader {
                     engine.lifecycleState = LifecycleState.HOTLOADING;
                 }
                 engine.sealForTransition("Studio generation cutover", false);
+                long drainedAt = System.nanoTime();
                 IrisBoundarySignatureSampler.checkpoint(engine);
+                long checkpointedAt = System.nanoTime();
                 synchronized (engine.lifecycleLock) {
                     if (engine.lifecycleState != LifecycleState.HOTLOADING || engine.runtime != previous) {
                         throw new IllegalStateException("Studio engine changed while its generation cutover was draining.");
                     }
                     engine.prepareRuntimeHotload();
+                    IrisSettings settings = IrisSettings.get();
+                    int transitionWidth = settings.getStudio().isBlendChanges()
+                            ? settings.getGenerator().getGenerationTransitionWidthBlocks() : 0;
                     history.stageUpdate(update.source(), update.fingerprint(), update.dimensionContract(),
-                            update.registryContract(), IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-                    cutover.promotePending();
+                            update.registryContract(), transitionWidth);
+                }
+                long stagedAt = System.nanoTime();
+                cutover.promotePending();
+                long promotedAt = System.nanoTime();
+                synchronized (engine.lifecycleLock) {
+                    if (engine.lifecycleState != LifecycleState.HOTLOADING) {
+                        throw new IllegalStateException("Studio engine changed while its generation cutover was publishing.");
+                    }
                     IrisStructureLocator.invalidate(engine);
                     StructureReachability.invalidate(engine);
                     engine.runtimeBuilder.refreshStudioRuntimeServices();
@@ -259,19 +275,27 @@ final class EngineHotloader {
                     engine.getEngineData().getStatistics().hotloaded();
                     engine.getPlatformHooks().applyWorldBoundary(engine);
                 }
+                long completedAt = System.nanoTime();
+                IrisLogging.debug("Studio update timing: world=%s total=%dms prepare=%dms drain=%dms checkpoint=%dms stage=%dms activation=%dms refresh=%dms",
+                        engine.getWorld().name(), elapsedMillis(startedAt, completedAt),
+                        elapsedMillis(startedAt, preparedAt), elapsedMillis(preparedAt, drainedAt),
+                        elapsedMillis(drainedAt, checkpointedAt), elapsedMillis(checkpointedAt, stagedAt),
+                        elapsedMillis(stagedAt, promotedAt), elapsedMillis(promotedAt, completedAt));
                 broadcastStudioHotload(false, "");
             } catch (Throwable failure) {
                 if (previous != null) {
                     synchronized (engine.lifecycleLock) {
                         if (engine.lifecycleState == LifecycleState.HOTLOADING
                                 || engine.lifecycleState == LifecycleState.RUNNING) {
-                            boolean unchanged = false;
+                            boolean activeGenerationUnchanged = false;
                             try {
-                                unchanged = router.history().manifest() == previousManifest;
+                                GenerationManifest currentManifest = router.history().manifest();
+                                activeGenerationUnchanged = currentManifest.activeActivation().activationId()
+                                        == previousManifest.activeActivation().activationId();
                             } catch (Throwable historyFailure) {
                                 failure.addSuppressed(historyFailure);
                             }
-                            if (unchanged) {
+                            if (activeGenerationUnchanged) {
                                 engine.runtimeBuilder.restoreRuntimeAfterFailedTransition(previous);
                             } else {
                                 engine.lifecycleState = LifecycleState.FAILED;
@@ -303,6 +327,10 @@ final class EngineHotloader {
                 }
             }
         }
+    }
+
+    private static long elapsedMillis(long startedAt, long completedAt) {
+        return TimeUnit.NANOSECONDS.toMillis(completedAt - startedAt);
     }
 
     private void requireMutableGenerationRuntime(String operation) {

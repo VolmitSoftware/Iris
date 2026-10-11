@@ -19,6 +19,7 @@
 package art.arcane.iris.world.pregen;
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.util.diagnostics.ContainerMemory;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -31,6 +32,8 @@ import java.util.function.LongSupplier;
 public final class MantleHeapPressure {
     private static final double HIGH_WATER = 0.92D;
     private static final double LOW_WATER = 0.82D;
+    private static final double CONTAINER_HIGH_WATER = 0.90D;
+    private static final double CONTAINER_LOW_WATER = 0.80D;
     private static final long MAXIMUM_HYSTERESIS_MS = 60_000L;
     private static final ObjectName DIAGNOSTIC_COMMAND = diagnosticCommandName();
     private static final PanicGcReclaimer PANIC_RECLAIMER = new PanicGcReclaimer(
@@ -42,7 +45,7 @@ public final class MantleHeapPressure {
                     // An escalation step in the reclaim policy, rate limited by that policy rather than by
                     // anything the operator did. What is actionable is the wait budget being exceeded.
                     (double fraction) -> IrisLogging.info(
-                            "Iris heap remained at %.1f%% after normal panic reclaim; invoking the current JVM's diagnostic full GC to keep generation live.",
+                            "Iris memory pressure remained at %.1f%% of its safety budget after normal panic reclaim; invoking the current JVM's diagnostic full GC to keep generation live.",
                             fraction * 100.0D),
                     (String context, Throwable failure) -> IrisLogging.reportError(context, failure)));
     private static final HeapPressureGate PRESSURE_GATE = new HeapPressureGate(
@@ -51,11 +54,47 @@ public final class MantleHeapPressure {
             MAXIMUM_HYSTERESIS_MS,
             System::currentTimeMillis,
             PANIC_RECLAIMER::resetEpisode);
+    private static final HeapPressureGate CONTAINER_PRESSURE_GATE = new HeapPressureGate(
+            CONTAINER_HIGH_WATER,
+            CONTAINER_LOW_WATER,
+            Long.MAX_VALUE,
+            System::currentTimeMillis,
+            PANIC_RECLAIMER::resetEpisode);
 
     private MantleHeapPressure() {
     }
 
     public static double usedFraction() {
+        return pressureFraction(heapUsedFraction(), ContainerMemory.snapshot().pressureFraction());
+    }
+
+    public static long memoryBudgetBytes() {
+        return memoryBudgetBytes(Runtime.getRuntime().maxMemory(), ContainerMemory.snapshot().limitBytes());
+    }
+
+    static long memoryBudgetBytes(long heapBytes, long containerBytes) {
+        return Math.min(heapBytes, containerBytes - containerBytes / 4L);
+    }
+
+    static double pressureFraction(double heapFraction, double containerFraction) {
+        if (containerFraction >= CONTAINER_HIGH_WATER) {
+            return Math.max(heapFraction, HIGH_WATER + (containerFraction - CONTAINER_HIGH_WATER));
+        }
+        double containerPressure = containerFraction <= 0D ? 0D
+                : LOW_WATER + (containerFraction - CONTAINER_LOW_WATER)
+                * (HIGH_WATER - LOW_WATER) / (CONTAINER_HIGH_WATER - CONTAINER_LOW_WATER);
+        return Math.max(heapFraction, containerPressure);
+    }
+
+    public static String describe() {
+        ContainerMemory.Snapshot container = ContainerMemory.snapshot();
+        String heap = Math.round(heapUsedFraction() * 100D) + "% heap";
+        return container.supported()
+                ? heap + ", " + Math.round(container.pressureFraction() * 100D) + "% container working memory"
+                : heap;
+    }
+
+    private static double heapUsedFraction() {
         MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
         long max = heap.getMax();
         if (max <= 0L) {
@@ -71,7 +110,9 @@ public final class MantleHeapPressure {
     }
 
     public static boolean overHighWater() {
-        return PRESSURE_GATE.update(usedFraction());
+        boolean heapPressure = PRESSURE_GATE.update(heapUsedFraction());
+        boolean containerPressure = CONTAINER_PRESSURE_GATE.update(ContainerMemory.snapshot().pressureFraction());
+        return heapPressure || containerPressure;
     }
 
     public static double reclaimUrgency(double fraction) {
@@ -86,7 +127,7 @@ public final class MantleHeapPressure {
 
     public static void requestPanicReclaim() {
         double fraction = usedFraction();
-        PANIC_RECLAIMER.request(fraction, PRESSURE_GATE.update(fraction));
+        PANIC_RECLAIMER.request(fraction, overHighWater());
     }
 
     static void invokeHotSpotDiagnosticGc(MBeanServer server) throws Exception {

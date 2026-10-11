@@ -66,6 +66,8 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
         }
     }
 
+    CompletableFuture<Void> quiesceStudioUpdatesAsync();
+
     default void quiesceForServerShutdown() {
     }
 

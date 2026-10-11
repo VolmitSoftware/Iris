@@ -110,10 +110,10 @@ private val diskSpace by task {
 private val java by task {
     val version = Iris.getJavaVersion()
     val jdk = runCatching { ToolProvider.getSystemJavaCompiler() }.getOrNull() != null
-    if (version in setOf(21) && jdk) STABLE.withDiagnostics()
+    if (version in setOf(21, 25) && jdk) STABLE.withDiagnostics()
     else WARNING.withDiagnostics(
         WARN.create("Unsupported Java version"),
-        WARN.create("- Please consider using JDK 21 Instead of ${if(jdk) "JDK" else "JRE"} $version")
+        WARN.create("- Please consider using JDK 21 (Minecraft 1.21 and older) or JDK 25 (Minecraft 26.1 and newer) Instead of ${if(jdk) "JDK" else "JRE"} $version")
     )
 }
 

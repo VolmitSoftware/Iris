@@ -50,18 +50,7 @@ class NMSBinding : Plugin<Project> {
                 it.version.set(config.version)
             }
 
-            configurations.register(REOBF_CONFIG) { conf ->
-                conf.isCanBeConsumed = true
-                conf.isCanBeResolved = false
-                conf.attributes {
-                    it.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
-                    it.attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
-                    it.attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
-                    it.attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
-                    it.attribute(Obfuscation.OBFUSCATION_ATTRIBUTE, objects.named(Obfuscation.OBFUSCATED))
-                }
-                conf.outgoing.artifact(tasks.named("remap"))
-            }
+            registerReobfConfiguration("remap")
         }
 
         val (major, minor) = config.version.parseVersion()
@@ -69,6 +58,20 @@ class NMSBinding : Plugin<Project> {
         tasks.register("convert", ConversionTask::class.java, type)
         tasks.named("compileJava") { it.dependsOn("convert") }
         rootProject.tasks.named("prepareKotlinBuildScriptModel") { it.dependsOn("$path:convert") }
+    }
+
+    private fun Project.registerReobfConfiguration(artifactTask: String) {
+        val conf = configurations.create(REOBF_CONFIG)
+        conf.isCanBeConsumed = true
+        conf.isCanBeResolved = false
+        conf.attributes {
+            it.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+            it.attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+            it.attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+            it.attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+            it.attribute(Obfuscation.OBFUSCATION_ATTRIBUTE, objects.named(Obfuscation.OBFUSCATED))
+        }
+        conf.outgoing.artifact(tasks.named(artifactTask))
     }
 
     @DisableCachingByDefault
@@ -163,8 +166,10 @@ class NMSBinding : Plugin<Project> {
 
 private val NEW_LINE = System.lineSeparator()
 private val NEW_LINE_BYTES = NEW_LINE.encodeToByteArray()
+// "1.21.11-R0.1-SNAPSHOT" -> (21, 11), "26.1.2.build.74-stable" -> (26, 1)
 private fun String.parseVersion() = substringBefore('-').split(".").let {
-    it[1].toInt() to it[2].toInt()
+    if (it[0] == "1") it[1].toInt() to it[2].toInt()
+    else it[0].toInt() to it[1].toInt()
 }
 
 class Config(

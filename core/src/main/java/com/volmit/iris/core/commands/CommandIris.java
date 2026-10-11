@@ -33,11 +33,8 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import lombok.SneakyThrows;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -46,7 +43,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.*;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.volmit.iris.core.service.EditSVC.deletingWorld;
@@ -109,9 +105,10 @@ public class CommandIris implements DecreeExecutor {
                     .studio(false)
                     .create();
             if (main) {
+                WorldStorage storage = WorldStorage.get();
                 Runtime.getRuntime().addShutdownHook(mainWorld.updateAndGet(old -> {
                     if (old != null) Runtime.getRuntime().removeShutdownHook(old);
-                    return new Thread(() -> updateMainWorld(name));
+                    return new Thread(() -> makeMainWorld(storage, name));
                 }));
             }
         } catch (Throwable e) {
@@ -126,20 +123,12 @@ public class CommandIris implements DecreeExecutor {
         if (main) sender().sendMessage(C.GREEN + "Your world will automatically be set as the main world when the server restarts.");
     }
 
-    @SneakyThrows
-    private void updateMainWorld(String newName) {
-        File worlds = Bukkit.getWorldContainer();
-        var data = ServerProperties.DATA;
-        try (var in = new FileInputStream(ServerProperties.SERVER_PROPERTIES)) {
-            data.load(in);
-        }
-        for (String sub : List.of("datapacks", "playerdata", "advancements", "stats")) {
-            IO.copyDirectory(new File(worlds, ServerProperties.LEVEL_NAME + "/" + sub).toPath(), new File(worlds, newName + "/" + sub).toPath());
-        }
-
-        data.setProperty("level-name", newName);
-        try (var out = new FileOutputStream(ServerProperties.SERVER_PROPERTIES)) {
-            data.store(out, null);
+    private static void makeMainWorld(WorldStorage storage, String worldName) {
+        try {
+            storage.makeMainWorld(worldName);
+        } catch (Throwable e) {
+            Iris.error("Failed to make " + worldName + " the main world!");
+            e.printStackTrace();
         }
     }
 

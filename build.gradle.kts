@@ -34,7 +34,7 @@ plugins {
 }
 
 group = "com.volmit"
-version = "3.9.2-1.20.1-1.21.11"
+version = "3.9.2-1.20.1-26.2"
 
 apply<ApiGenerator>()
 
@@ -64,6 +64,7 @@ val color = "truecolor"
 val errorReporting = "true" == findProperty("errorReporting")
 
 val nmsBindings = mapOf(
+    "v26_1_R1" to "26.1.2.build.74-stable",
     "v1_21_R7" to "1.21.11-R0.1-SNAPSHOT",
     "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
     "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
@@ -76,7 +77,9 @@ val nmsBindings = mapOf(
     "v1_20_R2" to "1.20.2-R0.1-SNAPSHOT",
     "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
-val jvmVersion = mapOf<String, Int>()
+val jvmVersion = mapOf("v26_1_R1" to 25)
+// From 26.1 on the server is not obfuscated, so these bindings compile against Paper's dev bundle as-is.
+val userDevBindings = setOf("v26_1_R1")
 nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()
@@ -84,7 +87,7 @@ nmsBindings.forEach { (key, value) ->
         nmsBinding {
             jvm = jvmVersion.getOrDefault(key, 21)
             version = value
-            type = NMSBinding.Type.DIRECT
+            type = if (key in userDevBindings) NMSBinding.Type.USER_DEV else NMSBinding.Type.DIRECT
         }
 
         dependencies {
@@ -96,7 +99,7 @@ nmsBindings.forEach { (key, value) ->
 
     tasks.register<RunServer>("runServer-$key") {
         group = "servers"
-        minecraftVersion(value.split("-")[0])
+        minecraftVersion(value.substringBefore("-").substringBefore(".build"))
         minHeapSize = serverMinHeap
         maxHeapSize = serverMaxHeap
         pluginJars(tasks.jar.flatMap { it.archiveFile })
@@ -115,7 +118,7 @@ val included: Configuration by configurations.creating
 val jarJar: Configuration by configurations.creating
 dependencies {
     for (key in nmsBindings.keys) {
-        included(project(":nms:$key", "reobf"))
+        included(project(":nms:$key", if (key in userDevBindings) "runtimeElements" else "reobf"))
     }
     included(project(":core", "shadow"))
     jarJar(project(":core:agent"))
@@ -190,7 +193,7 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+            languageVersion.set(JavaLanguageVersion.of(jvmVersion.getOrDefault(name, 21)))
         }
     }
 

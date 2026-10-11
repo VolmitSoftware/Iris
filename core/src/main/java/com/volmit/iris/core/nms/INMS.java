@@ -28,9 +28,10 @@ import java.util.List;
 public class INMS {
     private static final Version CURRENT = Boolean.getBoolean("iris.no-version-limit") ?
             new Version(Integer.MAX_VALUE, Integer.MAX_VALUE, null) :
-            new Version(21, 11, null);
+            new Version(26, 2, null);
 
     private static final List<Version> REVISION = List.of(
+            new Version(26, 1, "v26_1_R1"),
             new Version(21, 11, "v1_21_R7"),
             new Version(21, 9, "v1_21_R6"),
             new Version(21, 6, "v1_21_R5"),
@@ -103,27 +104,34 @@ public class INMS {
     }
 
     private static String getTag(List<Version> versions, String def) {
-        var version = Bukkit.getServer().getBukkitVersion().split("-")[0].split("\\.", 3);
-        int major = 0;
-        int minor = 0;
-
-        if (version.length > 2) {
-            major = Integer.parseInt(version[1]);
-            minor = Integer.parseInt(version[2]);
-        } else if (version.length == 2) {
-            major = Integer.parseInt(version[1]);
-        }
-        if (CURRENT.major < major || CURRENT.minor < minor) {
+        Version server = serverVersion();
+        if (server.isNewerThan(CURRENT)) {
             return versions.getFirst().tag;
         }
 
         for (var p : versions) {
-            if (p.major > major || p.minor > minor)
+            if (p.isNewerThan(server))
                 continue;
             return p.tag;
         }
         return def;
     }
 
-    private record Version(int major, int minor, String tag) {}
+    // "1.21.11" -> (21, 11) and "26.1.2" -> (26, 1), so both numbering schemes compare in release order.
+    private static Version serverVersion() {
+        String[] parts = Bukkit.getServer().getBukkitVersion().split("-")[0].split("\\.");
+        int first = Integer.parseInt(parts[0]);
+        int second = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
+        if (first > 1) {
+            return new Version(first, second, null);
+        }
+        int third = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+        return new Version(second, third, null);
+    }
+
+    private record Version(int major, int minor, String tag) {
+        boolean isNewerThan(Version other) {
+            return major != other.major ? major > other.major : minor > other.minor;
+        }
+    }
 }

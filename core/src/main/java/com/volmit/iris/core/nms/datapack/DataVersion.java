@@ -5,6 +5,7 @@ import com.volmit.iris.core.nms.datapack.v1192.DataFixerV1192;
 import com.volmit.iris.core.nms.datapack.v1206.DataFixerV1206;
 import com.volmit.iris.core.nms.datapack.v1213.DataFixerV1213;
 import com.volmit.iris.core.nms.datapack.v1217.DataFixerV1217;
+import com.volmit.iris.core.nms.datapack.v2601.DataFixerV2601;
 import com.volmit.iris.util.collection.KMap;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,17 +19,28 @@ public enum DataVersion {
     V1_19_2("1.19.2", 10, DataFixerV1192::new),
     V1_20_5("1.20.6", 41, DataFixerV1206::new),
     V1_21_3("1.21.3", 57, DataFixerV1213::new),
-    V1_21_11("1.21.11", 75, DataFixerV1217::new);
+    V1_21_11("1.21.11", 75, DataFixerV1217::new),
+    V26_1_2("26.1.2", 101, DataFixerV2601::new),
+    V26_2("26.2", 107, DataFixerV2601::new);
     private static final KMap<DataVersion, IDataFixer> cache = new KMap<>();
     @Getter(AccessLevel.NONE)
     private final Supplier<IDataFixer> constructor;
     private final String version;
+    private static final int FIRST_RANGED_PACK_FORMAT = 82;
+
     private final int packFormat;
 
     DataVersion(String version, int packFormat, Supplier<IDataFixer> constructor) {
         this.constructor = constructor;
         this.packFormat = packFormat;
         this.version = version;
+    }
+
+    public String packMetaFormat() {
+        if (packFormat < FIRST_RANGED_PACK_FORMAT) {
+            return "\"pack_format\": " + packFormat;
+        }
+        return "\"min_format\": " + packFormat + ", \"max_format\": " + packFormat;
     }
 
     public IDataFixer get() {

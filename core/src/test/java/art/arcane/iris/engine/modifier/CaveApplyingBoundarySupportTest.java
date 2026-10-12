@@ -1,64 +1,47 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.decorator.DecoratorTestEngines;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.builtin.MatterMantle;
+import art.arcane.iris.core.modules.CarveTestWorld;
+import art.arcane.iris.engine.mantle.components.CarveWorld;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
-import com.volmit.host.ModuleLogs;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import org.junit.After;
-import org.junit.Before;
+import com.volmit.block.BlockState;
+import com.volmit.host.ArrayHunk;
+import com.volmit.hunk.Hunk;
+import com.volmit.mantle.BlockBox;
+import com.volmit.resource.ResourceId;
+import com.volmit.world.BiomeSample;
+import com.volmit.world.TerrainSample;
+import com.volmit.world.TerrainSampler;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class CaveApplyingBoundarySupportTest {
-    @Before
-    public void bindPlatform() {
-        UsableBlockPlatform.bind();
-    }
+    private static final int CEILING_Y = 42;
+    private static final BlockState AIR = new BlockState("minecraft:cave_air");
+    private static final BlockState STONE = new BlockState("minecraft:stone");
+    private static final BlockState SAND = new BlockState("minecraft:sand");
 
-    @After
-    public void unbindPlatform() {
-        UsableBlockPlatform.unbind();
-    }
+    private final CarveTestWorld world = new CarveTestWorld().biome("custom/floor", 1).dressing(new RecordingCaveDressing());
+    private final CaveBlockClasses classes = new CaveBlockClasses(new CarveTestWorld.Blocks());
 
     @Test
     @SuppressWarnings("unchecked")
     public void boundaryBiomeUsesCustomMatterAtItsOwnY() {
-        IrisBiome customFloor = mock(IrisBiome.class);
-        IrisBiome resolvedCeiling = mock(IrisBiome.class);
-        IrisData data = mock(IrisData.class);
-        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
-        doReturn(biomeLoader).when(data).getBiomeLoader();
-        doReturn(customFloor).when(biomeLoader).load("custom/floor");
-
-        Engine engine = mock(Engine.class);
-        doReturn(data).when(engine).getData();
-        doReturn(resolvedCeiling).when(engine).getCaveBiome(anyInt(), eq(42), anyInt());
-
-        doReturn(mock(SeedManager.class)).when(engine).getSeedManager();
-        DecoratorTestEngines.withGeneration(engine);
-        CaveApplying modifier = new CaveApplying(engine, ModuleLogs.discarding());
-
+        ResourceId resolvedCeiling = CarveTestWorld.id("cave/ceiling");
+        CaveApplying modifier = new CaveApplying(world, new CarveWorld(world.resources().noise(), 1L, 384, 127, 8, CarveTestWorld.MIN_HEIGHT), false);
         MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
         Matter floorMatter = mock(Matter.class);
         Matter ceilingMatter = mock(Matter.class);
@@ -73,58 +56,86 @@ public class CaveApplyingBoundarySupportTest {
         doReturn(floorSlice).when(floorMatter).getSlice(MatterCavern.class);
         doReturn(ceilingSlice).when(ceilingMatter).getSlice(MatterCavern.class);
         doReturn(new MatterCavern(true, "custom/floor", (byte) 0)).when(floorSlice).get(1, 6, 2);
-        doReturn(null).when(ceilingSlice).get(1, 10, 2);
+        doReturn(null).when(ceilingSlice).get(1, CEILING_Y & 15, 2);
+        TerrainSampler terrain = new CaveBiomeTerrain((x, y, z) -> y == CEILING_Y ? Optional.of(resolvedCeiling) : Optional.empty());
+        CaveApplying.Application application = modifier.new Application(chunkOnly(mantleChunk), mantleChunk, terrain, 2, 2, new ArrayHunk<>(BlockState.class, 16, 64, 16, AIR));
+        Map<String, ResourceId> customBiomeCache = new HashMap<>();
 
-        Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>();
-        Map<String, IrisBiome> customBiomeCache = new HashMap<>();
+        ResourceId floor = application.resolveCaveBoundaryBiome(1, 6, 2, 40, 44, customBiomeCache);
+        ResourceId ceiling = application.resolveCaveBoundaryBiome(1, CEILING_Y, 2, 40, 44, customBiomeCache);
 
-        IrisBiome floor = modifier.resolveCaveBoundaryBiome(
-                mantleChunk, 1, 6, 2, 40, 44, caveBiomeCache, customBiomeCache);
-        IrisBiome ceiling = modifier.resolveCaveBoundaryBiome(
-                mantleChunk, 1, 42, 2, 40, 44, caveBiomeCache, customBiomeCache);
-
-        assertSame(customFloor, floor);
-        assertSame(resolvedCeiling, ceiling);
+        assertEquals(CarveTestWorld.id("custom/floor"), floor);
+        assertEquals(resolvedCeiling, ceiling);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void gravityFloorLayerRequiresSolidSupportBelowItsTarget() {
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        PlatformBlockState air = state("minecraft:cave_air", false);
-        PlatformBlockState solid = state("minecraft:stone", true);
-        PlatformBlockState sand = state("minecraft:sand", true);
-        PlatformBlockState stone = state("minecraft:stone", true);
-
-        doReturn(air).when(output).getRaw(0, 4, 0);
-        assertFalse(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
-        assertTrue(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, stone));
-
-        doReturn(solid).when(output).getRaw(0, 4, 0);
-        assertTrue(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, sand));
+        Hunk<BlockState> output = new ArrayHunk<>(BlockState.class, 1, 8, 1, AIR);
+        output.set(0, 4, 0, AIR);
+        assertFalse(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, SAND, classes));
+        assertTrue(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, STONE, classes));
+        output.set(0, 4, 0, STONE);
+        assertTrue(CaveApplying.canReplaceCaveFloorLayer(output, 0, 5, 0, SAND, classes));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void gravityFloorDoesNotReceiveDecoratorsOverLowerCaveAir() {
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        PlatformBlockState air = state("minecraft:cave_air", false);
-        PlatformBlockState sand = state("minecraft:sand", true);
-        PlatformBlockState stone = state("minecraft:stone", true);
-
-        doReturn(sand).when(output).getRaw(0, 5, 0);
-        doReturn(air).when(output).getRaw(0, 4, 0);
-        assertFalse(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0));
-
-        doReturn(stone).when(output).getRaw(0, 4, 0);
-        assertTrue(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0));
+        Hunk<BlockState> output = new ArrayHunk<>(BlockState.class, 1, 8, 1, AIR);
+        output.set(0, 5, 0, SAND);
+        output.set(0, 4, 0, AIR);
+        assertFalse(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0, classes));
+        output.set(0, 4, 0, STONE);
+        assertTrue(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0, classes));
     }
 
-    private PlatformBlockState state(String key, boolean solid) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
-        doReturn(key).when(state).key();
-        doReturn(solid).when(state).isSolid();
-        doReturn(key.equals("minecraft:sand")).when(state).hasGravity();
-        return state;
+    private static MatterMantle chunkOnly(MantleChunk<Matter> chunk) {
+        return new MatterMantle() {
+            @Override
+            public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
+                return chunk;
+            }
+
+            @Override
+            public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
+                return null;
+            }
+        };
+    }
+
+    /** Terrain that knows cave biomes only. */
+    private record CaveBiomeTerrain(CaveBiomeAt biomes) implements TerrainSampler {
+        interface CaveBiomeAt {
+            Optional<ResourceId> at(int x, int y, int z);
+        }
+
+        @Override
+        public Optional<ResourceId> caveBiome(int worldX, int y, int worldZ) {
+            return biomes.at(worldX, y, worldZ);
+        }
+
+        @Override
+        public BlockBox bounds() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public TerrainSample column(int worldX, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BiomeSample biome(int worldX, int y, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int fluidHeight() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public OptionalInt upperDimensionY(int worldX, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

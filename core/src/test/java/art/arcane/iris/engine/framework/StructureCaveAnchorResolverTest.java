@@ -1,5 +1,7 @@
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
+import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
@@ -164,7 +166,7 @@ public class StructureCaveAnchorResolverTest {
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(surfaceHeight);
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getFluidHeight()).thenReturn(127);
-        when(dimension.getCaveLavaHeight()).thenReturn(8);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(new CaveLavaHeightSettings(8)));
         when(engine.getMantle().getMantle().get(
                 anyInt(), anyInt(), anyInt(), eq(MatterCavern.class)))
                 .thenAnswer(invocation -> {

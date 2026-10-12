@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -34,6 +35,7 @@ import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.FeatureRegistry;
+import com.volmit.block.BlockState;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.host.LoadedPack;
@@ -112,6 +114,16 @@ public class IrisModuleMantleTest {
 
     private IrisModuleMantle mantle(BlockBox bounds) {
         return new IrisModuleMantle(bounds, this::chunk, LAYERS, PlannedBlocks.none(bounds));
+    }
+
+    @Test
+    public void theMatterSideGivesTheMantleChunksTheInvocationReachesAndNoOthers() {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
+        MatterMantle matter = MatterMantle.of(mantle);
+
+        org.junit.Assert.assertSame(chunk(3, 4), matter.chunk(3, 4));
+        org.junit.Assert.assertNull("nothing is loaded that the host did not say is", matter.loadedChunk(3, 4));
+        org.junit.Assert.assertThrows(IllegalArgumentException.class, () -> MatterMantle.of(new InMemoryOnly()));
     }
 
     @Test
@@ -334,5 +346,28 @@ public class IrisModuleMantleTest {
 
     private static DataInputStream input(byte[] bytes) {
         return new DataInputStream(new ByteArrayInputStream(bytes));
+    }
+
+    /** A mantle that is none of Iris's. */
+    private static final class InMemoryOnly implements com.volmit.mantle.Mantle {
+        @Override
+        public BlockBox bounds() {
+            return new BlockBox(0, 0, 0, 0, 0, 0);
+        }
+
+        @Override
+        public <T> MantleLayer<T> layer(MantleKey<T> key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public MantleLayer<BlockState> blocks() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public MantleEdit edit() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

@@ -152,20 +152,20 @@ public class CaveProfileDecodingTest {
     }
 
     @Test
-    public void carversReadTheProfileAsIrisStylesAndRanges() {
-        ResolvedCaveProfile resolved = ResolvedCaveProfile.of(gson.fromJson(OVERWORLD_CAVE_PROFILE, CaveProfile.class));
+    public void carversReadTheProfileThroughItsApiValues() {
+        CaveProfile profile = gson.fromJson(OVERWORLD_CAVE_PROFILE, CaveProfile.class);
 
-        assertEquals(6, resolved.verticalRange().getMin(), 0);
-        assertEquals(700, resolved.verticalRange().getMax(), 0);
-        assertEquals("PERLIN_IRIS", resolved.baseDensityStyle().getStyle().name());
-        assertEquals(0.72, resolved.baseDensityStyle().getZoom(), 0);
-        assertEquals("FRACTAL_WATER", resolved.warpStyle().getStyle().name());
-        assertEquals(0.88, resolved.surfaceBreakStyle().getZoom(), 0);
-        assertEquals(-0.06, resolved.densityThreshold().getMax(), 0);
-        assertEquals("SIMPLEX", resolved.densityThreshold().getStyle().getStyle().name());
-        assertEquals(2, resolved.modules().size());
-        assertEquals(0.08, resolved.modules().get(0).weight(), 0);
-        assertEquals(24, resolved.modules().get(0).verticalRange().getMin(), 0);
-        assertTrue(resolved.modules().get(1).invert());
+        assertEquals(6, profile.verticalRange().min(), 0);
+        assertEquals(700, profile.verticalRange().max(), 0);
+        assertEquals("PERLIN_IRIS", profile.baseDensityStyle().style());
+        assertEquals(0.72, profile.baseDensityStyle().zoom(), 0);
+        assertEquals("FRACTAL_WATER", profile.warpStyle().style());
+        assertEquals(0.88, profile.surfaceBreakStyle().zoom(), 0);
+        assertEquals(-0.06, profile.densityThreshold().max(), 0);
+        assertEquals("SIMPLEX", profile.densityThreshold().style().style());
+        assertEquals(2, profile.modules().size());
+        assertEquals(0.08, profile.modules().get(0).weight(), 0);
+        assertEquals(24, profile.modules().get(0).verticalRange().min(), 0);
+        assertTrue(profile.modules().get(1).invert());
     }
 }

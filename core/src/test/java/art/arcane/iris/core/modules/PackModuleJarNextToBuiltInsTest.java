@@ -19,7 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.modifier.CarveModule;
+import art.arcane.iris.engine.actuator.TerrainModule;
 import com.volmit.host.LoadedPack;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,7 +79,7 @@ public class PackModuleJarNextToBuiltInsTest {
 
     @Test
     public void aJarModuleWithTheIdOfACompiledInBuiltInFailsAsADuplicate() throws IOException {
-        String builtInId = new CarveModule().info().id().toString();
+        String builtInId = new TerrainModule().info().id().toString();
         Path packFolder = BuiltInPack.newPackFolder(folder);
         PackModuleJar.write(packFolder, "carve.jar", "pack.ported.Ported",
                 Map.of("pack.ported.Ported", module("ported", "Ported", builtInId)));
@@ -88,7 +88,7 @@ public class PackModuleJarNextToBuiltInsTest {
                 () -> BuiltInPack.serve(mock(IrisData.class), folder, packFolder, List.of()));
 
         assertEquals("Duplicate module " + builtInId + " from " + Path.of("modules", "carve.jar") + " (pack.ported.Ported); already loaded from host classpath ("
-                + CarveModule.class.getName() + ")", failure.getMessage());
+                + TerrainModule.class.getName() + ")", failure.getMessage());
     }
 
     private static String module(String packageName, String className, String moduleId) {

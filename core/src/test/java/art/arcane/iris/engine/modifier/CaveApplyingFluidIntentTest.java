@@ -1,15 +1,13 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import com.volmit.block.BlockState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class CaveApplyingFluidIntentTest {
     @Test
@@ -18,18 +16,17 @@ public class CaveApplyingFluidIntentTest {
         MatterCavern fluidIntent = new MatterCavern(true, "", (byte) 1);
         MatterCavern lavaIntent = new MatterCavern(true, "", (byte) 2);
         MatterCavern forcedAirIntent = new MatterCavern(true, "", (byte) 3);
-        PlatformBlockState existingFluid = mock(PlatformBlockState.class);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        PlatformBlockState lava = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        when(existingFluid.isFluid()).thenReturn(true);
+        BlockState fluid = new BlockState("minecraft:water");
+        BlockState lava = new BlockState("minecraft:lava");
+        BlockState air = new BlockState("minecraft:cave_air");
 
         assertFalse(CaveApplying.hasExplicitCarveIntent(null));
-        assertTrue(CaveApplying.shouldPreserveExistingFluid(airIntent, existingFluid));
+        assertTrue(CaveApplying.shouldPreserveExistingFluid(airIntent, true));
         assertTrue(CaveApplying.isFluidIntent(fluidIntent));
-        assertFalse(CaveApplying.shouldPreserveExistingFluid(fluidIntent, existingFluid));
-        assertFalse(CaveApplying.shouldPreserveExistingFluid(lavaIntent, existingFluid));
-        assertFalse(CaveApplying.shouldPreserveExistingFluid(forcedAirIntent, existingFluid));
+        assertFalse(CaveApplying.shouldPreserveExistingFluid(fluidIntent, true));
+        assertFalse(CaveApplying.shouldPreserveExistingFluid(lavaIntent, true));
+        assertFalse(CaveApplying.shouldPreserveExistingFluid(forcedAirIntent, true));
+        assertFalse("nothing to preserve where there is no fluid", CaveApplying.shouldPreserveExistingFluid(airIntent, false));
         assertNull(CaveApplying.resolveExplicitCarveState(null, fluid, lava, air));
         assertSame(fluid, CaveApplying.resolveExplicitCarveState(fluidIntent, fluid, lava, air));
         assertSame(lava, CaveApplying.resolveExplicitCarveState(lavaIntent, fluid, lava, air));
@@ -46,17 +43,8 @@ public class CaveApplyingFluidIntentTest {
 
     @Test
     public void unsupportedSurfaceOreIsRemovedOnlyOverCarvedAir() {
-        PlatformBlockState ore = mock(PlatformBlockState.class);
-        PlatformBlockState ordinarySurface = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        when(ore.isOre()).thenReturn(true);
-        when(ordinarySurface.isOre()).thenReturn(false);
-        when(air.isSolid()).thenReturn(false);
-        when(solid.isSolid()).thenReturn(true);
-
-        assertTrue(CaveApplying.isUnsupportedSurfaceOre(ore, air));
-        assertFalse(CaveApplying.isUnsupportedSurfaceOre(ore, solid));
-        assertFalse(CaveApplying.isUnsupportedSurfaceOre(ordinarySurface, air));
+        assertTrue(CaveApplying.isUnsupportedSurfaceOre(true, false));
+        assertFalse(CaveApplying.isUnsupportedSurfaceOre(true, true));
+        assertFalse(CaveApplying.isUnsupportedSurfaceOre(false, false));
     }
 }

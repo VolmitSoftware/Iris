@@ -27,7 +27,6 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.modifier.CaveBiomeBands;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
@@ -195,16 +194,5 @@ public class EngineCaveBiomeTest {
 
         assertEquals(1, depthQuestions.get());
         verify(data.getBiomeLoader(), times(1)).load("band/deep");
-    }
-
-    @Test
-    public void theCarveModulesProviderReadsTheDepthFromTheBiomesSettings() {
-        IrisBiome deep = mock(IrisBiome.class);
-        when(deep.getModuleSettings()).thenReturn(BuiltInPack.settings(new CaveDepthSettings(25)));
-        IrisBiome plain = mock(IrisBiome.class);
-        when(plain.getModuleSettings()).thenReturn(BuiltInPack.settings());
-
-        org.junit.Assert.assertEquals(25, CaveBiomeBands.minDepthBelowSurface(deep));
-        org.junit.Assert.assertEquals(0, CaveBiomeBands.minDepthBelowSurface(plain));
     }
 }

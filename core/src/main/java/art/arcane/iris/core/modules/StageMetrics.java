@@ -35,7 +35,8 @@ final class StageMetrics implements StageTimings {
     private static final double NANOS_PER_MILLISECOND = 1_000_000D;
     private static final Map<String, Function<EngineMetrics, AtomicRollingSequence>> NAMED = Map.of(
             "iris:post/smooth", EngineMetrics::getPost,
-            "iris:perfection/surface", EngineMetrics::getPerfection);
+            "iris:perfection/surface", EngineMetrics::getPerfection,
+            "iris:carve/apply", EngineMetrics::getCave);
 
     private final EngineMetrics metrics;
 

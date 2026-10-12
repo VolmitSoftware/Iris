@@ -28,6 +28,7 @@ import com.volmit.noise.NoiseStyle;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * Builds the noise of IrisApi noise styles with Iris's own generators: each style becomes the
@@ -36,6 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * built generators.
  */
 final class IrisNoiseFactory implements NoiseFactory {
+    private static final double NO_EXTRA_SCALE = 1D;
+
     private final IrisData data;
     private final Map<NoiseStyle, IrisGeneratorStyle> styles = new ConcurrentHashMap<>();
 
@@ -47,14 +50,17 @@ final class IrisNoiseFactory implements NoiseFactory {
     public NoiseSampler sampler(NoiseStyle style, long seed) {
         IrisGeneratorStyle iris = styles.computeIfAbsent(style, IrisValues::generatorStyle);
         try {
-            return new CngSampler(iris.create(new RNG(seed), data));
+            return new CngSampler(iris.create(new RNG(seed), data), () -> iris.createNoCache(new RNG(seed), data), NO_EXTRA_SCALE);
         } catch (RuntimeException failure) {
             throw new IllegalArgumentException("Cannot build the noise of " + style + ": " + failure.getMessage(), failure);
         }
     }
 
-    /** Iris's noise as an IrisApi sampler; CNG is safe for the concurrent reads generation makes. */
-    private record CngSampler(CNG noise) implements NoiseSampler {
+    /**
+     * Iris's noise as an IrisApi sampler; CNG is safe for the concurrent reads generation makes. {@code fresh} builds the same
+     * generator again, unshared, for {@link #scaled}: scaling a generator changes it, and this one is shared.
+     */
+    private record CngSampler(CNG noise, Supplier<CNG> fresh, double extraScale) implements NoiseSampler {
         @Override
         public double sample(double worldX, double worldZ) {
             return noise.noise(worldX, worldZ);
@@ -63,6 +69,24 @@ final class IrisNoiseFactory implements NoiseFactory {
         @Override
         public double sample(double worldX, double y, double worldZ) {
             return noise.noise(worldX, y, worldZ);
+        }
+
+        /** CNG's own signed read, which answers a repeated read of the same coordinates from a per-thread memo. */
+        @Override
+        public double signed(double worldX, double worldZ) {
+            return noise.noiseFastSigned2D(worldX, worldZ);
+        }
+
+        @Override
+        public double signed(double worldX, double y, double worldZ) {
+            return noise.noiseFastSigned3D(worldX, y, worldZ);
+        }
+
+        /** The generator with {@code factor} baked into its scale, as {@code create(...).bake().scale(factor).bake()} always gave. */
+        @Override
+        public NoiseSampler scaled(double factor) {
+            double total = extraScale * factor;
+            return new CngSampler(fresh.get().bake().scale(total).bake(), fresh, total);
         }
     }
 }

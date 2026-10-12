@@ -19,7 +19,9 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
 import art.arcane.volmlib.util.matter.Matter;
 
 /**
@@ -27,6 +29,10 @@ import art.arcane.volmlib.util.matter.Matter;
  * released once the chunk's stages are done.
  */
 final class PinnedMantleChunk implements IrisModuleMantle.Chunks, AutoCloseable {
+    /** A tectonic plate holds 32 by 32 chunks. */
+    private static final int PLATE_SHIFT = 5;
+    private static final int PLATE_MASK = (1 << PLATE_SHIFT) - 1;
+
     private final Engine engine;
     private final int chunkX;
     private final int chunkZ;
@@ -47,6 +53,16 @@ final class PinnedMantleChunk implements IrisModuleMantle.Chunks, AutoCloseable 
             pinned = engine.getMantle().getMantle().getChunk(chunkX, chunkZ).use();
         }
         return pinned;
+    }
+
+    @Override
+    public MantleChunk<Matter> loadedChunk(int x, int z) {
+        Mantle<Matter> mantle = engine.getMantle().getMantle();
+        TectonicPlate<Matter> plate = mantle.getLoadedRegions().get(Mantle.key(x >> PLATE_SHIFT, z >> PLATE_SHIFT));
+        if (plate == null || plate.isClosed()) {
+            return null;
+        }
+        return plate.get(x & PLATE_MASK, z & PLATE_MASK);
     }
 
     @Override

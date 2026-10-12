@@ -39,6 +39,8 @@ import java.util.Collection;
 final class IrisMantleGenerationContext implements MantleGenerationContext {
     private static final int CHUNK_SHIFT = 4;
     private static final int CHUNK_WIDTH = 16;
+    /** Mantle stages see the terrain at least this far around their chunk, as chunk stages do (IrisApi's promise). */
+    private static final int TERRAIN_MARGIN_BLOCKS = 16;
 
     private final Engine engine;
     private final int originX;
@@ -54,7 +56,7 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
         this.engine = engine;
         this.originX = chunkX << CHUNK_SHIFT;
         this.originZ = chunkZ << CHUNK_SHIFT;
-        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, reachBlocks);
+        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, Math.max(reachBlocks, TERRAIN_MARGIN_BLOCKS));
         this.settings = new ChunkModuleSettings(engine, ids);
         BlockBox reach = ApiHeights.columns(engine, originX - reachBlocks, originZ - reachBlocks,
                 originX + CHUNK_WIDTH + reachBlocks, originZ + CHUNK_WIDTH + reachBlocks);

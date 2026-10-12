@@ -145,7 +145,14 @@ public final class IrisPackResources implements PackResources {
         return kindOf(type).ids();
     }
 
+    /** The biome of the pack with this id as Iris's own class, for the built-ins that decorate with it; null when the pack has none. */
+    public IrisBiome irisBiome(ResourceId id) {
+        String key = kindOf(PackBiome.class).keyOf(id);
+        return key == null ? null : data.getBiomeLoader().load(key);
+    }
+
     /** The id of the resource the pack names by {@code packKey}, such as {@code overworld:castle/keep} for {@code castle/keep}. */
+    @Override
     public ResourceId idOf(String packKey) {
         return ids.of(packKey);
     }
@@ -244,6 +251,11 @@ public final class IrisPackResources implements PackResources {
             }
             T raced = built.putIfAbsent(id, made);
             return Optional.of(raced != null ? raced : made);
+        }
+
+        /** The key of the resource with this id; null when the pack has none. */
+        String keyOf(ResourceId id) {
+            return keysById().get(id);
         }
 
         List<ResourceId> ids() {

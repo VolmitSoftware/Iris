@@ -18,7 +18,6 @@
 
 package art.arcane.iris.probe;
 
-import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
@@ -63,7 +62,6 @@ public final class StubPlatform implements IrisPlatform {
         BlockDataMergeSupport.bindPlatformMerger(StubPlatform::mergeStates);
         TileData.bindPlatformReader(StubTileData::read);
         TileData.bindPlatformFactory(StubTileData::fromProperties);
-        DecoratorPlatformHooks.bind((state, hunk, rX, rZ, x, y, z, mantle) -> state, PlatformBlockState::isSolid);
     }
 
     static PlatformBlockState rotateForTest(IrisObjectRotation rotation, PlatformBlockState state) {

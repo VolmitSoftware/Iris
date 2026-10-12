@@ -539,9 +539,20 @@ public class IrisEngine implements Engine {
         if (saved.isPresent()) {
             return saved.get();
         }
-        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
-                     openGenerationHistoryReadScope(x, z, "resolve a biome environment")) {
-            return Engine.super.getBiomeEnvironment(x, y, z);
+        return resolveUnsavedBiomeEnvironment(x, y, z);
+    }
+
+    public CompletableFuture<BiomeEnvironment> getBiomeEnvironmentAsync(int x, int y, int z) {
+        try {
+            if (!usesSavedBiomeEnvironment()) {
+                return CompletableFuture.completedFuture(getBiomeEnvironment(x, y, z));
+            }
+            int worldY = y + getWorld().minHeight();
+            return generationHistoryRuntimeRouter.biomes().readChunkAsync(Math.floorDiv(x, 16), Math.floorDiv(z, 16))
+                    .thenApply(session -> session.resolve(x, worldY, z, false)
+                            .orElseGet(() -> resolveUnsavedBiomeEnvironment(x, y, z)));
+        } catch (RuntimeException | Error failure) {
+            return CompletableFuture.failedFuture(failure);
         }
     }
 
@@ -575,6 +586,13 @@ public class IrisEngine implements Engine {
                 Objects.requireNonNull(environment, "environment"), threadState.environment());
         threadState.setEnvironment(binding);
         return binding;
+    }
+
+    private BiomeEnvironment resolveUnsavedBiomeEnvironment(int x, int y, int z) {
+        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored =
+                     openGenerationHistoryReadScope(x, z, "resolve a biome environment")) {
+            return Engine.super.getBiomeEnvironment(x, y, z);
+        }
     }
 
     private Optional<BiomeEnvironment> resolveSavedBiomeEnvironment(int x, int y, int z, boolean surface) {

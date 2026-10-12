@@ -20,13 +20,8 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.tree.BlockDropRouter;
-import art.arcane.iris.world.history.SavedBiomeUnavailableException;
-import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
-import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.world.loot.IrisBlockDrops;
 import art.arcane.iris.world.entity.IrisMarker;
-import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.IrisLogging;
@@ -35,81 +30,140 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Item;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
- * Biome, region and dimension block drops for a Bukkit Iris world. The drop list is resolved on the
- * event thread, the marker cleanup runs asynchronously and the drops themselves are handed to the
- * event's own router when it offers one so a deferred break keeps its inventory destination.
+ * Biome, region and dimension block drops for a Bukkit Iris world. Native loot is retained while
+ * saved biome definitions load, then finalized on the block's owning thread after the break.
  */
 final class WorldBlockDropRouter {
     private final IrisWorldManager manager;
+    private final Set<DeferredDrops> pending = ConcurrentHashMap.newKeySet();
+    private boolean closed;
 
     WorldBlockDropRouter(IrisWorldManager manager) {
         this.manager = manager;
     }
 
-    void onBlockBreak(BlockBreakEvent e) {
-        if (e.isCancelled()) {
+    void onBlockBreak(BlockBreakEvent event) {
+        if (event.isCancelled() || !isManagedWorld(event.getBlock().getWorld())) {
             return;
         }
-        if (e.getBlock().getWorld().equals(BukkitWorldBinding.world(manager.getTarget().getWorld()))) {
-            int blockX = e.getBlock().getX();
-            int mantleY = toMantleY(e.getBlock().getY(), manager.getEngine().getWorld().minHeight());
-            int blockZ = e.getBlock().getZ();
-
-            List<IrisBlockDrops> dropProviders;
-            try {
-                dropProviders = resolveDropProviders(e);
-            } catch (SavedBiomeUnavailableException unavailable) {
-                e.setCancelled(true);
-                if (!unavailable.isLoading() || unavailable.getSuppressed().length != 0) {
-                    throw unavailable;
-                }
+        Location location = event.getBlock().getLocation();
+        int mantleY = toMantleY(location.getBlockY(), manager.getEngine().getWorld().minHeight());
+        Runnable finalizedBreak = manager.managedTask("bukkit_world_manager_block_break_finalize", () -> {
+            if (event.isCancelled()) {
                 return;
             }
-
-            KList<ItemStack> d = new KList<>();
-            dropProviders.forEach(provider -> provider.fillDrops(false, d));
-
-            if (dropProviders.stream().anyMatch(IrisBlockDrops::isReplaceVanillaDrops)) {
-                e.setDropItems(false);
-            }
-
-            World w = e.getBlock().getWorld();
-            Location blockLocation = e.getBlock().getLocation();
-            Location dropLocation = blockLocation.clone().add(.5, .5, .5);
-            BlockDropRouter dropRouter = e instanceof BlockDropRouter router ? router : null;
-            Runnable finalizedBreak = manager.managedTask("bukkit_world_manager_block_break_finalize", () -> {
-                if (e.isCancelled()) {
+            J.a(manager.managedTask("bukkit_world_manager_block_break_marker", () -> {
+                MatterMarker marker = manager.getMantle().get(location.getBlockX(), mantleY, location.getBlockZ(), MatterMarker.class);
+                if (marker == null || marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling")) {
                     return;
                 }
-                J.a(manager.managedTask("bukkit_world_manager_block_break_marker", () -> {
-                    MatterMarker marker = manager.getMantle().get(blockX, mantleY, blockZ, MatterMarker.class);
-                    if (marker == null || marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling")) {
-                        return;
-                    }
-
-                    IrisMarker mark = manager.getData().getMarkerLoader().load(marker.getTag());
-                    if (mark == null || mark.isRemoveOnChange()) {
-                        manager.getMantle().remove(blockX, mantleY, blockZ, MatterMarker.class);
-                    }
-                }));
-                routeDrops(d, dropRouter, item -> w.dropItemNaturally(dropLocation, item));
-            });
-            if (!J.runAt(blockLocation, finalizedBreak, 1) && !J.isFolia()) {
-                J.s(finalizedBreak, 1);
+                IrisMarker mark = manager.getData().getMarkerLoader().load(marker.getTag());
+                if (mark == null || mark.isRemoveOnChange()) {
+                    manager.getMantle().remove(location.getBlockX(), mantleY, location.getBlockZ(), MatterMarker.class);
+                }
+            }));
+        });
+        schedule(location, finalizedBreak);
+        if (!(event instanceof BlockDropRouter router) || !event.isDropItems()) {
+            return;
+        }
+        synchronized (pending) {
+            if (closed) {
+                return;
+            }
+            BlockData state = event.getBlock().getBlockData().clone();
+            if (!mayHaveBlockDropRules(state)) {
+                return;
+            }
+            Location dropLocation = location.clone().add(.5, .5, .5);
+            List<NativeDrop> originals = new ArrayList<>();
+            for (Object nativeDrop : router.captureNativeDrops()) {
+                if (nativeDrop instanceof ItemStack stack) {
+                    originals.add(new NativeDrop(dropLocation, stack.clone()));
+                }
+            }
+            CompletableFuture<BiomeEnvironment> environment = environment(location);
+            if (defer(new DeferredDrops(location, state, router, () -> !event.isCancelled(), originals, environment, new AtomicBoolean()))) {
+                event.setDropItems(false);
             }
         }
     }
 
-    void onBlockPlace(BlockPlaceEvent e) {
+    void onBlockDropItems(BlockDropItemEvent event) {
+        if (event.isCancelled() || !isManagedWorld(event.getBlock().getWorld())) {
+            return;
+        }
+        synchronized (pending) {
+            if (closed) {
+                return;
+            }
+            BlockData state = event.getBlockState().getBlockData().clone();
+            if (!mayHaveBlockDropRules(state)) {
+                return;
+            }
+            Location location = event.getBlockState().getLocation();
+            CompletableFuture<BiomeEnvironment> environment = environment(location);
+            List<NativeDrop> originals = new ArrayList<>(event.getItems().size());
+            for (Item item : event.getItems()) {
+                originals.add(new NativeDrop(location.clone().add(.5, .5, .5), item.getItemStack().clone()));
+            }
+            if (defer(new DeferredDrops(location, state, null, () -> !event.isCancelled(), originals, environment, new AtomicBoolean()))) {
+                event.getItems().clear();
+            }
+        }
+    }
 
+    void onBlockPlace(BlockPlaceEvent event) {
+
+    }
+
+    CompletableFuture<Void> flushAsync() {
+        List<DeferredDrops> outstanding;
+        synchronized (pending) {
+            outstanding = List.copyOf(pending);
+        }
+        List<CompletableFuture<Void>> restores = new ArrayList<>(outstanding.size());
+        for (DeferredDrops drops : outstanding) {
+            Location location = drops.location;
+            restores.add(J.runRegionFuture(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4,
+                    () -> finish(drops, null, null)));
+        }
+        return CompletableFuture.allOf(restores.toArray(CompletableFuture<?>[]::new));
+    }
+
+    void close() {
+        synchronized (pending) {
+            closed = true;
+        }
+        try {
+            flushAsync().get(5L, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while preserving pending Iris block loot.", interrupted);
+        } catch (ExecutionException | TimeoutException failure) {
+            throw new IllegalStateException("Unable to preserve pending Iris block loot before world shutdown.", failure);
+        }
     }
 
     static int toMantleY(int worldY, int minHeight) {
@@ -136,32 +190,137 @@ final class WorldBlockDropRouter {
         return mantleY + minHeight;
     }
 
-    private List<IrisBlockDrops> filterDrops(KList<IrisBlockDrops> drops, BlockBreakEvent e, IrisData data) {
-        return new KList<>(drops.stream().filter(d -> d.shouldDropFor(e.getBlock().getBlockData(), data)).toList());
+    private boolean isManagedWorld(World world) {
+        return world.equals(BukkitWorldBinding.world(manager.getTarget().getWorld()));
     }
 
-    private List<IrisBlockDrops> resolveDropProviders(BlockBreakEvent event) {
-        if (!mayHaveBlockDropRules(BukkitBlockState.of(event.getBlock().getBlockData()).materialKey())) {
-            return List.of();
+    private CompletableFuture<BiomeEnvironment> environment(Location location) {
+        Engine engine = manager.getEngine();
+        int relativeY = toMantleY(location.getBlockY(), engine.getWorld().minHeight());
+        if (engine instanceof IrisEngine iris) {
+            return iris.getBiomeEnvironmentAsync(location.getBlockX(), relativeY, location.getBlockZ());
         }
-        IrisBiome biome = EngineBukkitOps.getBiome(manager.getEngine(), event.getBlock().getLocation());
-        List<IrisBlockDrops> providers = filterDrops(biome.getBlockDrops(), event, manager.getData());
+        try {
+            return CompletableFuture.completedFuture(engine.getBiomeEnvironment(location.getBlockX(), relativeY, location.getBlockZ()));
+        } catch (RuntimeException failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    private boolean defer(DeferredDrops drops) {
+        pending.add(drops);
+        if (J.runAt(drops.location, () -> drops.environment.orTimeout(5L, TimeUnit.SECONDS).whenComplete((environment, failure) -> {
+            if (drops.finished.get()) {
+                return;
+            }
+            J.runRegionFuture(drops.location.getWorld(), drops.location.getBlockX() >> 4, drops.location.getBlockZ() >> 4,
+                    () -> finish(drops, environment, failure)).whenComplete((ignored, schedulingFailure) -> {
+                if (schedulingFailure != null) {
+                    IrisLogging.reportError("Unable to finalize pending Iris block loot on its owning thread.", schedulingFailure);
+                }
+            });
+        }), 1)) {
+            return true;
+        }
+        pending.remove(drops);
+        IrisLogging.reportError("Unable to schedule Iris block loot. Preserving normal block loot.",
+                new IllegalStateException("The owning region did not accept the block-drop task."));
+        return false;
+    }
+
+    private void schedule(Location location, Runnable task) {
+        if (!J.runAt(location, task, 1) && !J.isFolia()) {
+            J.s(task, 1);
+        }
+    }
+
+    private void finish(DeferredDrops drops, BiomeEnvironment environment, Throwable failure) {
+        if (!drops.finished.compareAndSet(false, true)) {
+            return;
+        }
+        pending.remove(drops);
+        if (!drops.allowed.getAsBoolean()) {
+            return;
+        }
+        KList<ItemStack> custom = new KList<>();
+        boolean replaceVanilla = false;
+        if (failure == null && environment != null) {
+            try {
+                DropResult result = EngineLifecycleTasks.call(manager.getEngine(), "bukkit_world_manager_block_drop_roll",
+                        () -> rollDrops(drops.state, environment), null);
+                if (result != null) {
+                    custom = result.items();
+                    replaceVanilla = result.replaceVanilla();
+                }
+            } catch (Throwable error) {
+                failure = error;
+            }
+        }
+        if (failure != null) {
+            Throwable cause = failure instanceof CompletionException && failure.getCause() != null ? failure.getCause() : failure;
+            String context = "Unable to resolve Iris block drops at " + drops.location + ". Preserving normal block loot.";
+            if (IrisLogging.warnOnce("block-drops:" + drops.location.getWorld().getUID() + ":" + cause.getMessage(), context)) {
+                IrisLogging.reportError(context, cause);
+            }
+        }
+        if (!replaceVanilla) {
+            for (NativeDrop original : drops.originals) {
+                routeDrops(List.of(original.stack()), drops.router, stack -> original.location().getWorld().dropItemNaturally(original.location(), stack));
+            }
+        }
+        Location location = drops.location.clone().add(.5, .5, .5);
+        routeDrops(custom, drops.router, stack -> location.getWorld().dropItemNaturally(location, stack));
+    }
+
+    private DropResult rollDrops(BlockData state, BiomeEnvironment environment) {
+        try (BiomeEnvironment.Scope ignored = manager.getEngine().openBiomeEnvironmentScope(environment)) {
+            KList<ItemStack> items = new KList<>();
+            boolean replaceVanilla = false;
+            for (IrisBlockDrops provider : resolveDropProviders(state, environment)) {
+                provider.fillDrops(false, items);
+                replaceVanilla |= provider.isReplaceVanillaDrops();
+            }
+            return new DropResult(items, replaceVanilla);
+        }
+    }
+
+    private List<IrisBlockDrops> resolveDropProviders(BlockData state, BiomeEnvironment environment) {
+        List<IrisBlockDrops> providers = new ArrayList<>();
+        addMatching(providers, environment.biome().getBlockDrops(), state, environment.data());
         if (providers.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
-            IrisRegion region = EngineBukkitOps.getRegion(manager.getEngine(), event.getBlock().getLocation());
-            providers.addAll(filterDrops(region.getBlockDrops(), event, manager.getData()));
-            providers.addAll(filterDrops(manager.getEngine().getDimension().getBlockDrops(), event, manager.getData()));
+            addMatching(providers, environment.region().getBlockDrops(), state, environment.data());
+            addMatching(providers, environment.dimension().getBlockDrops(), state, environment.data());
         }
         return providers;
     }
 
-    private boolean mayHaveBlockDropRules(String material) {
+    private void addMatching(List<IrisBlockDrops> providers, KList<IrisBlockDrops> candidates, BlockData state, IrisData data) {
+        for (IrisBlockDrops candidate : candidates) {
+            if (candidate.shouldDropFor(state, data)) {
+                providers.add(candidate);
+            }
+        }
+    }
+
+    private boolean mayHaveBlockDropRules(BlockData state) {
+        String material = BukkitBlockState.of(state).materialKey();
         if (manager.getData().hasBlockDropRules(material)) {
             return true;
         }
         if (manager.getEngine() instanceof IrisEngine engine) {
-            GenerationHistoryRuntimeRouter router = engine.getGenerationHistoryRuntimeRouter().orElse(null);
-            return router != null && router.biomes().mayHaveBlockDropRules(material);
+            return engine.getGenerationHistoryRuntimeRouter().map(router -> router.biomes().mayHaveBlockDropRules(material)).orElse(false);
         }
         return false;
+    }
+
+    private record DropResult(KList<ItemStack> items, boolean replaceVanilla) {
+    }
+
+    private record NativeDrop(Location location, ItemStack stack) {
+    }
+
+    private record DeferredDrops(Location location, BlockData state, BlockDropRouter router, BooleanSupplier allowed,
+                                 List<NativeDrop> originals, CompletableFuture<BiomeEnvironment> environment,
+                                 AtomicBoolean finished) {
     }
 }

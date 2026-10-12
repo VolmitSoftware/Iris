@@ -44,14 +44,15 @@ import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
+import art.arcane.volmlib.util.io.AtomicFileIO;
 import art.arcane.iris.platform.bootstrap.ServerProperties;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Server;
 import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -99,11 +100,17 @@ public class ServerConfigurator {
         }
         IrisSettings.IrisSettingsAutoconfiguration s = IrisSettings.get().getAutoConfiguration();
         if (s.isConfigureSpigotTimeoutTime()) {
-            J.attempt(ServerConfigurator::increaseKeepAliveSpigot);
+            Throwable failure = J.attemptCatch(ServerConfigurator::increaseKeepAliveSpigot);
+            if (failure != null) {
+                IrisLogging.reportError("Unable to persist the Spigot timeout setting.", failure);
+            }
         }
 
-        if (s.isConfigurePaperWatchdogDelay()) {
-            J.attempt(ServerConfigurator::increasePaperWatchdog);
+        if (s.isConfigurePaperWatchdogDelay() && BukkitPlatform.isPaperServer()) {
+            Throwable failure = J.attemptCatch(ServerConfigurator::increasePaperWatchdog);
+            if (failure != null) {
+                IrisLogging.reportError("Unable to persist the Paper watchdog setting.", failure);
+            }
         }
 
         if (DefaultPackBootstrapProvisioner.wasProvisionedThisStartup()) {
@@ -230,35 +237,61 @@ public class ServerConfigurator {
         }
     }
 
-    private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("spigot.yml");
-        FileConfiguration f = new YamlConfiguration();
-        f.load(spigotConfig);
-        long tt = f.getLong("settings.timeout-time");
+    private static void increaseKeepAliveSpigot() throws IOException, ReflectiveOperationException {
+        increaseKeepAliveSpigot(serverConfigurationOption("spigot-settings"), Bukkit.spigot().getConfig());
+    }
 
-        long spigotTimeout = TimeUnit.MINUTES.toSeconds(5);
+    static void increaseKeepAliveSpigot(Path file, YamlConfiguration configuration) throws IOException {
+        long previous = configuration.getLong("settings.timeout-time");
+        long minimum = TimeUnit.MINUTES.toSeconds(5);
+        if (previous >= minimum) {
+            return;
+        }
+        persistTimeout(file, configuration, "settings.timeout-time", minimum);
+        IrisLogging.warn("Updated " + file + " settings.timeout-time: " + previous + " -> " + minimum
+                + " seconds. Takes effect after a server restart.");
+        IrisLogging.warn("Disable autoConfiguration.configureSpigotTimeoutTime in iris.json to manage this setting yourself.");
+    }
 
-        if (tt < spigotTimeout) {
-            IrisLogging.warn("Updating spigot.yml timeout-time: " + tt + " -> " + spigotTimeout + " (5 minutes)");
-            IrisLogging.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("settings.timeout-time", spigotTimeout);
-            f.save(spigotConfig);
+    private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException, ReflectiveOperationException {
+        increasePaperWatchdog(serverConfigurationOption("paper-settings-directory").resolve("paper-global.yml"));
+    }
+
+    static void increasePaperWatchdog(Path file) throws IOException, InvalidConfigurationException {
+        YamlConfiguration configuration = new YamlConfiguration();
+        configuration.load(file.toFile());
+        long previous = configuration.getLong("watchdog.early-warning-delay");
+        long minimum = TimeUnit.MINUTES.toMillis(3);
+        if (previous >= minimum) {
+            return;
+        }
+        persistTimeout(file, configuration, "watchdog.early-warning-delay", minimum);
+        IrisLogging.warn("Updated " + file + " watchdog.early-warning-delay: " + previous + " -> " + minimum
+                + " milliseconds. Takes effect after a server restart.");
+        IrisLogging.warn("Disable autoConfiguration.configurePaperWatchdogDelay in iris.json to manage this setting yourself.");
+    }
+
+    private static void persistTimeout(Path file, YamlConfiguration configuration, String key, long minimum) throws IOException {
+        Path target = file.toRealPath();
+        Object previous = configuration.isSet(key) ? configuration.get(key) : null;
+        configuration.set(key, minimum);
+        try {
+            AtomicFileIO.writeString(target, configuration.saveToString());
+        } catch (IOException | RuntimeException failure) {
+            configuration.set(key, previous);
+            throw failure;
         }
     }
 
-    private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("config/paper-global.yml");
-        FileConfiguration f = new YamlConfiguration();
-        f.load(spigotConfig);
-        long tt = f.getLong("watchdog.early-warning-delay");
-
-        long watchdog = TimeUnit.MINUTES.toMillis(3);
-        if (tt < watchdog) {
-            IrisLogging.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + watchdog + " (3 minutes)");
-            IrisLogging.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("watchdog.early-warning-delay", watchdog);
-            f.save(spigotConfig);
+    static Path serverConfigurationOption(String name) throws ReflectiveOperationException, IOException {
+        Server server = Bukkit.getServer();
+        Object console = server.getClass().getMethod("getServer").invoke(server);
+        Object options = console.getClass().getField("options").get(console);
+        Object value = options.getClass().getMethod("valueOf", String.class).invoke(options, name);
+        if (!(value instanceof File file)) {
+            throw new IOException("Server option " + name + " did not provide a configuration path.");
         }
+        return file.toPath().toAbsolutePath().normalize();
     }
 
     public static KList<File> getDatapacksFolder() {

@@ -387,7 +387,8 @@ final class TreeFellingRunner {
             return;
         }
 
-        BlockBreakEvent probe = new RoutedBlockBreakEvent(block, run.candidate.player(), run, service);
+        BlockBreakEvent probe = new RoutedBlockBreakEvent(new RoutedBlockBreakEvent.Options(
+                block, run.candidate.player(), run, service, reservation.toolForDrops()));
         service.managedEvents.add(probe);
         try {
             Bukkit.getPluginManager().callEvent(probe);

@@ -990,6 +990,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onDisable() {
+        preservePendingBlockDrops();
         papiLifecycleActive = false;
         if (updateNotifier != null) {
             updateNotifier.close();
@@ -1034,6 +1035,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     @Override
     public CompletionStage<Void> commitReload(ReloadAware.PreUnloadReason reason) {
+        preservePendingBlockDrops();
         papiLifecycleActive = false;
         teardownPapi();
         if (IrisToolbelt.isServerStopping()) {
@@ -1281,6 +1283,20 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         return services != null
                 && services.get(PreservationSVC.class) instanceof PreservationSVC preservation
                 && preservation.hasActiveResources();
+    }
+
+    private void preservePendingBlockDrops() {
+        for (World world : Bukkit.getWorlds()) {
+            PlatformChunkGenerator generator = IrisToolbelt.access(world);
+            if (generator != null && generator.getEngine() != null
+                    && generator.getEngine().getWorldManager() instanceof IrisWorldManager manager) {
+                manager.flushPendingBlockDropsAsync().whenComplete((ignored, failure) -> {
+                    if (failure != null) {
+                        Iris.reportError("Failed to preserve pending block loot before Iris teardown.", failure);
+                    }
+                });
+            }
+        }
     }
 
     private void drainWorldGenerators(String reason, long timeoutSeconds) {

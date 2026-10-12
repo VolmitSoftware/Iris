@@ -2,6 +2,7 @@ package art.arcane.iris.platform.generation;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.IrisWorldManager;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.ReactiveFolder;
@@ -25,11 +26,60 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BukkitChunkGeneratorCloseTest {
+    @Test
+    public void nativeDropFlushCompletesBeforeExclusiveCloseIsDispatched() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        IrisWorldManager manager = mock(IrisWorldManager.class);
+        CompletableFuture<Void> flushed = new CompletableFuture<>();
+        when(fixture.engine.getWorldManager()).thenReturn(manager);
+        when(manager.flushPendingBlockDropsAsync()).thenReturn(flushed);
+        CompletableFuture<Void> operation = fixture.queueOperation();
+
+        CompletableFuture<Void> closed = fixture.generator.closeAsync();
+
+        assertFalse(closed.isDone());
+        verify(fixture.generator, never()).withExclusiveControlFuture(any(Runnable.class));
+        verify(fixture.engine, never()).close();
+        flushed.complete(null);
+        verify(fixture.generator).withExclusiveControlFuture(any(Runnable.class));
+        verify(fixture.engine, never()).close();
+        fixture.operation.get().run();
+        operation.complete(null);
+        closed.join();
+        verify(fixture.engine).close();
+    }
+
+    @Test
+    public void failedNativeDropFlushLeavesTheInitialCloseRetryable() throws Exception {
+        CloseFixture fixture = new CloseFixture();
+        IrisWorldManager manager = mock(IrisWorldManager.class);
+        when(fixture.engine.getWorldManager()).thenReturn(manager);
+        when(manager.flushPendingBlockDropsAsync()).thenReturn(
+                CompletableFuture.failedFuture(new IllegalStateException("Drop scheduling unavailable")),
+                CompletableFuture.completedFuture(null));
+
+        CompletableFuture<Void> failed = fixture.generator.closeAsync();
+
+        assertTrue(failed.isCompletedExceptionally());
+        assertFalse(fixture.generator.isClosing());
+        verify(fixture.generator, never()).withExclusiveControlFuture(any(Runnable.class));
+        verify(fixture.engine, never()).close();
+        CompletableFuture<Void> operation = fixture.queueOperation();
+        CompletableFuture<Void> retried = fixture.generator.closeAsync();
+        assertNotSame(failed, retried);
+        fixture.operation.get().run();
+        operation.complete(null);
+        retried.join();
+        assertTrue(fixture.generator.isClosing());
+        verify(fixture.engine).close();
+    }
+
     @Test
     public void failedCloseReleasesInitialEntryDeferral() throws Exception {
         CloseFixture fixture = new CloseFixture();

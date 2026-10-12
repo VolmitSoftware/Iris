@@ -38,11 +38,15 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Chunk;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -267,9 +271,18 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         blockDropRouter.onBlockBreak(e);
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockDropItems(BlockDropItemEvent event) {
+        runManagerTask("bukkit_world_manager_block_drops", () -> blockDropRouter.onBlockDropItems(event));
+    }
+
     @Override
     public void onBlockPlace(BlockPlaceEvent e) {
         blockDropRouter.onBlockPlace(e);
+    }
+
+    public CompletableFuture<Void> flushPendingBlockDropsAsync() {
+        return blockDropRouter.flushAsync();
     }
 
     @Override
@@ -278,10 +291,15 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         try {
             chunkMaintenance.close();
         } catch (Throwable e) {
-            failure = e;
+            failure = appendCloseFailure(failure, e);
         }
         try {
             super.close();
+        } catch (Throwable e) {
+            failure = appendCloseFailure(failure, e);
+        }
+        try {
+            blockDropRouter.close();
         } catch (Throwable e) {
             failure = appendCloseFailure(failure, e);
         }

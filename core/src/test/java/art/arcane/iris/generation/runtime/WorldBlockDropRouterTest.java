@@ -2,36 +2,45 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.iris.world.tree.BlockDropRouter;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.world.loot.IrisBlockDrops;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.world.IrisWorld;
-import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.collection.KList;
 import org.bukkit.Location;
-import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -43,191 +52,241 @@ import static org.mockito.Mockito.when;
 
 public class WorldBlockDropRouterTest {
     @Test
-    public void packWithoutDropRulesAllowsTheFirstCreativeAndSurvivalBreakWhileBiomesAreCold() {
-        for (GameMode mode : new GameMode[] {GameMode.CREATIVE, GameMode.SURVIVAL}) {
-            try (Fixture fixture = new Fixture()) {
-                when(fixture.data.hasBlockDropRules("minecraft:stone")).thenReturn(false);
-                when(fixture.data.hasBlockDropRules("minecraft:grass_block")).thenReturn(true);
-                when(fixture.player.getGameMode()).thenReturn(mode);
-                fixture.queries.when(() -> EngineBukkitOps.getBiome(fixture.engine, fixture.location))
-                        .thenThrow(new SavedBiomeUnavailableException("Biome loading", true));
-                BlockBreakEvent event = fixture.event();
-
-                fixture.router.onBlockBreak(event);
-
-                assertFalse(mode.name(), event.isCancelled());
-                assertTrue(event.isDropItems());
-                fixture.queries.verifyNoInteractions();
-                verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
-                assertEquals(1, fixture.delayed.size());
-                fixture.delayed.remove().run();
-                assertEquals(1, fixture.markers.size());
-            }
-        }
-    }
-
-    @Test
-    public void coldBiomeCancelsBeforeChangingDropsOrSchedulingWork() {
+    public void coldGrassBreakNeverCancelsOrChangesNativeDropHandling() {
         try (Fixture fixture = new Fixture()) {
-            fixture.queries.when(() -> EngineBukkitOps.getBiome(fixture.engine, fixture.location))
-                    .thenThrow(new SavedBiomeUnavailableException("Biome loading", true));
-            BlockBreakEvent event = fixture.event();
-
+            fixture.environment = new CompletableFuture<>();
+            BlockBreakEvent event = new BlockBreakEvent(fixture.block, fixture.player);
             fixture.router.onBlockBreak(event);
-
-            assertTrue(event.isCancelled());
-            assertTrue(event.isDropItems());
-            fixture.assertNoSideEffects();
-            fixture.queries.verify(() -> EngineBukkitOps.getRegion(fixture.engine, fixture.location), never());
-        }
-    }
-
-    @Test
-    public void coldRegionCancelsBeforeFillingAlreadyMatchedBiomeDrops() {
-        try (Fixture fixture = new Fixture()) {
-            fixture.queries.when(() -> EngineBukkitOps.getRegion(fixture.engine, fixture.location))
-                    .thenThrow(new SavedBiomeUnavailableException("Region loading", true));
-            BlockBreakEvent event = fixture.event();
-
-            fixture.router.onBlockBreak(event);
-
-            verify(fixture.drops).shouldDropFor(fixture.blockData, fixture.data);
-            assertTrue(event.isCancelled());
-            assertTrue(event.isDropItems());
-            fixture.assertNoSideEffects();
-        }
-    }
-
-    @Test
-    public void alreadyCancelledBreakSkipsSavedLookups() {
-        try (Fixture fixture = new Fixture()) {
-            BlockBreakEvent event = fixture.event();
-            event.setCancelled(true);
-
-            fixture.router.onBlockBreak(event);
-
-            assertTrue(event.isCancelled());
-            fixture.queries.verifyNoInteractions();
-            fixture.assertNoSideEffects();
-        }
-    }
-
-    @Test
-    public void otherWorldBreakSkipsSavedLookups() {
-        try (Fixture fixture = new Fixture()) {
-            when(fixture.block.getWorld()).thenReturn(mock(World.class));
-            BlockBreakEvent event = fixture.event();
-
-            fixture.router.onBlockBreak(event);
-
             assertFalse(event.isCancelled());
-            fixture.queries.verifyNoInteractions();
-            fixture.assertNoSideEffects();
+            assertTrue(event.isDropItems());
+            verify(fixture.engine, never()).getBiomeEnvironmentAsync(anyInt(), anyInt(), anyInt());
         }
     }
 
     @Test
-    public void freshAttemptAfterLoadingProducesDropsOnceWithoutReplayingTheCancelledEvent() {
+    public void firstColdBreakReplacesNativeDropsOnceAfterSavedEnvironmentArrives() {
         try (Fixture fixture = new Fixture()) {
-            fixture.queries.when(() -> EngineBukkitOps.getBiome(fixture.engine, fixture.location))
-                    .thenThrow(new SavedBiomeUnavailableException("Biome loading", true))
-                    .thenReturn(fixture.biome);
-            BlockBreakEvent cold = fixture.event();
-            fixture.router.onBlockBreak(cold);
-            fixture.assertNoSideEffects();
-
-            BlockBreakEvent retry = fixture.event();
-            fixture.router.onBlockBreak(retry);
-
-            assertTrue(cold.isCancelled());
-            assertTrue(cold.isDropItems());
-            assertFalse(retry.isCancelled());
-            assertFalse(retry.isDropItems());
-            assertEquals(1, fixture.delayed.size());
+            fixture.environment = new CompletableFuture<>();
+            BlockDropItemEvent event = fixture.event();
+            fixture.router.onBlockDropItems(event);
+            assertFalse(event.isCancelled());
+            assertTrue(event.getItems().isEmpty());
+            fixture.flush();
+            verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+            fixture.environment.complete(fixture.biomeEnvironment);
+            fixture.flush();
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.custom);
+            verify(fixture.world, never()).dropItemNaturally(any(Location.class), eq(fixture.nativeStack));
             verify(fixture.drops).fillDrops(eq(false), any());
-            fixture.delayed.remove().run();
+            fixture.router.close();
+            fixture.flush();
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.custom);
+        }
+    }
 
-            verify(fixture.world).dropItemNaturally(fixture.location.clone().add(.5, .5, .5), fixture.item);
-            assertEquals(1, fixture.markers.size());
+    @Test
+    public void additiveRulesPreserveServerCalculatedLootIncludingQuantityAndEnchantments() {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.drops.isReplaceVanillaDrops()).thenReturn(false);
+            fixture.router.onBlockDropItems(fixture.event());
+            fixture.flush();
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.nativeStack);
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.custom);
+        }
+    }
+
+    @Test
+    public void rejectedSchedulerLeavesNativeLootInItsOriginalEvent() {
+        try (Fixture fixture = new Fixture()) {
+            fixture.scheduling.when(() -> J.runAt(eq(fixture.location), any(Runnable.class), eq(1))).thenReturn(false);
+            BlockDropItemEvent event = fixture.event();
+            fixture.router.onBlockDropItems(event);
+            assertFalse(event.isCancelled());
+            assertEquals(1, event.getItems().size());
+            verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+            verify(fixture.world, never()).dropItemNaturally(any(Location.class), any(ItemStack.class));
+        }
+    }
+
+    @Test
+    public void noNativeItemsStillProducesMatchingCustomDrops() {
+        try (Fixture fixture = new Fixture()) {
+            BlockDropItemEvent event = fixture.event();
+            event.getItems().clear();
+            fixture.router.onBlockDropItems(event);
+            fixture.flush();
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.custom);
+        }
+    }
+
+    @Test
+    public void noMatchingRulesLeaveNativeEventUntouchedWithoutSavedLookups() {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.data.hasBlockDropRules(anyString())).thenReturn(false);
+            BlockDropItemEvent event = fixture.event();
+            fixture.router.onBlockDropItems(event);
+            assertEquals(1, event.getItems().size());
+            verify(fixture.engine, never()).getBiomeEnvironmentAsync(anyInt(), anyInt(), anyInt());
             assertTrue(fixture.delayed.isEmpty());
         }
     }
 
     @Test
-    public void permanentSavedBiomeFailureCancelsAndPropagates() {
-        verifyReportedFailure(new SavedBiomeUnavailableException("Saved biome missing", false));
-    }
-
-    @Test
-    public void loadingWithSuppressedFailureCancelsAndPropagates() {
-        SavedBiomeUnavailableException failure = new SavedBiomeUnavailableException("Biome loading", true);
-        failure.addSuppressed(new IllegalStateException("Saved storage cleanup failed"));
-        verifyReportedFailure(failure);
-    }
-
-    @Test
-    public void protectionProbeCancelledAfterDispatchProducesNoFinalDropsOrMarkerCleanup() {
+    public void cancelledDropEventRemainsCancelledAndDoesNotRollOrEmitLoot() {
         try (Fixture fixture = new Fixture()) {
-            BlockBreakEvent probe = new ProtectionProbe(fixture.block, fixture.player);
-            probe.setDropItems(false);
-
-            fixture.router.onBlockBreak(probe);
-            assertFalse(probe.isCancelled());
-            assertFalse(probe.isDropItems());
-            assertEquals(1, fixture.delayed.size());
-            probe.setCancelled(true);
-            fixture.delayed.remove().run();
-
-            verify(fixture.world, never()).dropItemNaturally(any(Location.class), any(ItemStack.class));
-            assertTrue(fixture.markers.isEmpty());
-            verify(fixture.manager, never()).getMantle();
-        }
-    }
-
-    private void verifyReportedFailure(SavedBiomeUnavailableException failure) {
-        try (Fixture fixture = new Fixture()) {
-            fixture.queries.when(() -> EngineBukkitOps.getBiome(fixture.engine, fixture.location)).thenThrow(failure);
-            BlockBreakEvent event = fixture.event();
-
-            assertSame(failure, assertThrows(SavedBiomeUnavailableException.class,
-                    () -> fixture.router.onBlockBreak(event)));
-
+            fixture.environment = new CompletableFuture<>();
+            BlockDropItemEvent event = fixture.event();
+            fixture.router.onBlockDropItems(event);
+            event.setCancelled(true);
+            fixture.environment.complete(fixture.biomeEnvironment);
+            fixture.flush();
             assertTrue(event.isCancelled());
-            assertTrue(event.isDropItems());
-            fixture.assertNoSideEffects();
+            verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+            verify(fixture.world, never()).dropItemNaturally(any(Location.class), any(ItemStack.class));
         }
     }
 
-    private static final class ProtectionProbe extends BlockBreakEvent {
-        private ProtectionProbe(Block block, Player player) {
+    @Test
+    public void permanentFailurePreservesNormalLootWithoutBlockingOrDiscardingIt() {
+        try (Fixture fixture = new Fixture()) {
+            fixture.environment = CompletableFuture.failedFuture(new SavedBiomeUnavailableException("Saved biome missing", false));
+            BlockDropItemEvent event = fixture.event();
+            fixture.router.onBlockDropItems(event);
+            fixture.flush();
+            assertFalse(event.isCancelled());
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.nativeStack);
+            verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+            fixture.logging.verify(() -> IrisLogging.reportError(anyString(), any(Throwable.class)));
+        }
+    }
+
+    @Test
+    public void managerCloseRestoresPendingNativeLootOnlyOnce() {
+        try (Fixture fixture = new Fixture()) {
+            fixture.environment = new CompletableFuture<>();
+            fixture.router.onBlockDropItems(fixture.event());
+            fixture.router.close();
+            fixture.environment.complete(fixture.biomeEnvironment);
+            fixture.flush();
+            verify(fixture.world).dropItemNaturally(fixture.center, fixture.nativeStack);
+            verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+        }
+    }
+
+    @Test
+    public void historicalContextOwnsMatchingAndAllParentRules() {
+        try (Fixture fixture = new Fixture()) {
+            IrisData historicData = mock(IrisData.class);
+            IrisRegion historicRegion = mock(IrisRegion.class);
+            IrisDimension historicDimension = mock(IrisDimension.class);
+            IrisBlockDrops regionDrops = mock(IrisBlockDrops.class);
+            IrisBlockDrops dimensionDrops = mock(IrisBlockDrops.class);
+            when(historicRegion.getBlockDrops()).thenReturn(new KList<>(regionDrops));
+            when(historicDimension.getBlockDrops()).thenReturn(new KList<>(dimensionDrops));
+            when(fixture.drops.shouldDropFor(fixture.state, historicData)).thenReturn(true);
+            when(regionDrops.shouldDropFor(fixture.state, historicData)).thenReturn(true);
+            when(dimensionDrops.shouldDropFor(fixture.state, historicData)).thenReturn(true);
+            BiomeEnvironment historic = new BiomeEnvironment(2L, fixture.biome, historicRegion, historicDimension, historicData);
+            fixture.environment = CompletableFuture.completedFuture(historic);
+            fixture.router.onBlockDropItems(fixture.event());
+            fixture.flush();
+            verify(fixture.engine).openBiomeEnvironmentScope(historic);
+            verify(regionDrops).fillDrops(eq(false), any());
+            verify(dimensionDrops).fillDrops(eq(false), any());
+            verify(fixture.engine, never()).getDimension();
+            verify(fixture.drops, never()).shouldDropFor(fixture.state, fixture.data);
+        }
+    }
+
+    @Test
+    public void skipParentsStillPreventsRegionAndDimensionLoot() {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.drops.isSkipParents()).thenReturn(true);
+            fixture.router.onBlockDropItems(fixture.event());
+            fixture.flush();
+            verify(fixture.region, never()).getBlockDrops();
+            verify(fixture.dimension, never()).getBlockDrops();
+        }
+    }
+
+    @Test
+    public void routedTreeBreakPreservesInventoryDestinationWithColdMetadata() {
+        try (Fixture fixture = new Fixture()) {
+            fixture.environment = new CompletableFuture<>();
+            RoutedBreak event = new RoutedBreak(fixture.block, fixture.player);
+            fixture.router.onBlockBreak(event);
+            assertFalse(event.isCancelled());
+            assertFalse(event.isDropItems());
+            fixture.environment.complete(fixture.biomeEnvironment);
+            fixture.flush();
+            assertEquals(List.of(fixture.custom), event.routed);
+            verify(fixture.world, never()).dropItemNaturally(any(Location.class), any(ItemStack.class));
+        }
+    }
+
+    @Test
+    public void cancelledRoutedProbeNeverEmitsDeferredLoot() {
+        try (Fixture fixture = new Fixture()) {
+            fixture.environment = new CompletableFuture<>();
+            RoutedBreak event = new RoutedBreak(fixture.block, fixture.player);
+            fixture.router.onBlockBreak(event);
+            event.setCancelled(true);
+            fixture.environment.complete(fixture.biomeEnvironment);
+            fixture.flush();
+            assertTrue(event.routed.isEmpty());
+            verify(fixture.drops, never()).fillDrops(anyBoolean(), any());
+            assertTrue(fixture.markers.isEmpty());
+        }
+    }
+
+    private static final class RoutedBreak extends BlockBreakEvent implements BlockDropRouter {
+        private final List<Object> routed = new ArrayList<>();
+
+        private RoutedBreak(Block block, Player player) {
             super(block, player);
+        }
+
+        @Override
+        public Collection<ItemStack> captureNativeDrops() {
+            return List.of();
+        }
+
+        @Override
+        public boolean routeDrop(Object drop) {
+            return routed.add(drop);
         }
     }
 
     private static final class Fixture implements AutoCloseable {
         private final IrisWorldManager manager = mock(IrisWorldManager.class);
-        private final Engine engine = mock(Engine.class);
+        private final IrisEngine engine = mock(IrisEngine.class);
         private final IrisData data = mock(IrisData.class);
         private final World world = mock(World.class);
         private final Block block = mock(Block.class);
-        private final BlockData blockData = mock(BlockData.class);
+        private final BlockState blockState = mock(BlockState.class);
+        private final BlockData state = mock(BlockData.class);
         private final Player player = mock(Player.class);
         private final Location location = new Location(world, 16, 72, 32);
+        private final Location center = location.clone().add(.5, .5, .5);
+        private final Location nativeLocation = location.clone().add(.2, .3, .4);
         private final IrisBiome biome = mock(IrisBiome.class);
+        private final IrisRegion region = mock(IrisRegion.class);
+        private final IrisDimension dimension = mock(IrisDimension.class);
         private final IrisBlockDrops drops = mock(IrisBlockDrops.class);
-        private final ItemStack item = mock(ItemStack.class);
+        private final ItemStack custom = mock(ItemStack.class);
+        private final ItemStack nativeStack = mock(ItemStack.class);
+        private final BiomeEnvironment biomeEnvironment = new BiomeEnvironment(1L, biome, region, dimension, data);
+        private CompletableFuture<BiomeEnvironment> environment = CompletableFuture.completedFuture(biomeEnvironment);
         private final WorldBlockDropRouter router = new WorldBlockDropRouter(manager);
         private final Queue<Runnable> delayed = new ArrayDeque<>();
         private final Queue<Runnable> markers = new ArrayDeque<>();
         private final MockedStatic<BukkitWorldBinding> binding = mockStatic(BukkitWorldBinding.class);
-        private final MockedStatic<EngineBukkitOps> queries = mockStatic(EngineBukkitOps.class);
         private final MockedStatic<J> scheduling = mockStatic(J.class);
+        private final MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class);
 
         private Fixture() {
             IrisWorld irisWorld = mock(IrisWorld.class);
             EngineTarget target = mock(EngineTarget.class);
-            IrisRegion region = mock(IrisRegion.class);
-            IrisDimension dimension = mock(IrisDimension.class);
             when(manager.getEngine()).thenReturn(engine);
             when(manager.getTarget()).thenReturn(target);
             when(manager.getData()).thenReturn(data);
@@ -235,56 +294,67 @@ public class WorldBlockDropRouterTest {
             when(target.getWorld()).thenReturn(irisWorld);
             when(engine.getWorld()).thenReturn(irisWorld);
             when(irisWorld.minHeight()).thenReturn(-64);
-            when(engine.getDimension()).thenReturn(dimension);
+            when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
+            when(engine.getBiomeEnvironmentAsync(16, 136, 32)).thenAnswer(invocation -> environment);
+            when(engine.openBiomeEnvironmentScope(any(BiomeEnvironment.class))).thenReturn(() -> {});
             binding.when(() -> BukkitWorldBinding.world(irisWorld)).thenReturn(world);
+            when(world.getUID()).thenReturn(new UUID(0L, 1L));
             when(block.getWorld()).thenReturn(world);
-            when(block.getX()).thenReturn(16);
-            when(block.getY()).thenReturn(72);
-            when(block.getZ()).thenReturn(32);
             when(block.getLocation()).thenReturn(location);
-            when(block.getBlockData()).thenReturn(blockData);
-            when(blockData.getAsString()).thenReturn("minecraft:stone");
+            when(block.getBlockData()).thenReturn(state);
+            when(state.clone()).thenReturn(state);
+            when(state.getAsString()).thenReturn("minecraft:grass_block");
+            when(blockState.getBlockData()).thenReturn(state);
+            when(blockState.getLocation()).thenReturn(location);
+            when(nativeStack.clone()).thenReturn(nativeStack);
             when(biome.getBlockDrops()).thenReturn(new KList<>(drops));
             when(region.getBlockDrops()).thenReturn(new KList<>());
             when(dimension.getBlockDrops()).thenReturn(new KList<>());
-            when(drops.shouldDropFor(blockData, data)).thenReturn(true);
+            when(drops.shouldDropFor(state, data)).thenReturn(true);
             when(drops.isReplaceVanillaDrops()).thenReturn(true);
+            PlayerInventory inventory = mock(PlayerInventory.class);
+            when(player.getInventory()).thenReturn(inventory);
+            when(block.getDrops(inventory.getItemInMainHand(), player)).thenReturn(List.of(nativeStack));
             doAnswer(invocation -> {
                 KList<ItemStack> results = invocation.getArgument(1);
-                results.add(item);
+                results.add(custom);
                 return null;
             }).when(drops).fillDrops(eq(false), any());
-            queries.when(() -> EngineBukkitOps.getBiome(engine, location)).thenReturn(biome);
-            queries.when(() -> EngineBukkitOps.getRegion(engine, location)).thenReturn(region);
-            when(manager.managedTask(anyString(), any(Runnable.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(1));
+            when(manager.managedTask(anyString(), any(Runnable.class))).thenAnswer(invocation -> invocation.getArgument(1));
             scheduling.when(() -> J.runAt(eq(location), any(Runnable.class), eq(1))).thenAnswer(invocation -> {
                 delayed.add(invocation.getArgument(1));
                 return true;
+            });
+            scheduling.when(() -> J.isOwnedByCurrentRegion(world, 1, 2)).thenReturn(true);
+            scheduling.when(() -> J.runRegionFuture(eq(world), eq(1), eq(2), any(Runnable.class))).thenAnswer(invocation -> {
+                Runnable task = invocation.getArgument(3);
+                task.run();
+                return CompletableFuture.completedFuture(null);
             });
             scheduling.when(() -> J.a(any(Runnable.class))).thenAnswer(invocation -> {
                 markers.add(invocation.getArgument(0));
                 return null;
             });
+            logging.when(() -> IrisLogging.warnOnce(anyString(), anyString())).thenReturn(true);
         }
 
-        private BlockBreakEvent event() {
-            return new BlockBreakEvent(block, player);
+        private BlockDropItemEvent event() {
+            Item item = mock(Item.class);
+            when(item.getItemStack()).thenReturn(nativeStack);
+            when(item.getLocation()).thenReturn(nativeLocation);
+            return new BlockDropItemEvent(block, blockState, player, new ArrayList<>(List.of(item)));
         }
 
-        private void assertNoSideEffects() {
-            verify(drops, never()).fillDrops(anyBoolean(), any());
-            verify(world, never()).dropItemNaturally(any(Location.class), any(ItemStack.class));
-            verify(manager, never()).getMantle();
-            scheduling.verifyNoInteractions();
-            assertTrue(delayed.isEmpty());
-            assertTrue(markers.isEmpty());
+        private void flush() {
+            while (!delayed.isEmpty()) {
+                delayed.remove().run();
+            }
         }
 
         @Override
         public void close() {
             scheduling.close();
-            queries.close();
+            logging.close();
             binding.close();
         }
     }

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.world.tree.BlockDropRouter;
 import org.junit.Test;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
@@ -74,16 +75,12 @@ public class IrisWorldManagerMarkerTest {
     public void deferredDropsUseTheRouteAndFallbackOnlyWhenDeclined() {
         List<String> routed = new ArrayList<>();
         List<String> fallback = new ArrayList<>();
+        BlockDropRouter router = mock(BlockDropRouter.class);
+        when(router.routeDrop("routed")).thenAnswer(invocation -> routed.add(invocation.getArgument(0)));
 
         WorldBlockDropRouter.routeDrops(
                 List.of("routed", "fallback"),
-                drop -> {
-                    if (drop.equals("routed")) {
-                        routed.add((String) drop);
-                        return true;
-                    }
-                    return false;
-                },
+                router,
                 fallback::add
         );
 

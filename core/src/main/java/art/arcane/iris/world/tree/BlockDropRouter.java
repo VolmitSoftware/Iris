@@ -1,6 +1,9 @@
 package art.arcane.iris.world.tree;
 
-@FunctionalInterface
+import java.util.Collection;
+
 public interface BlockDropRouter {
+    Collection<?> captureNativeDrops();
+
     boolean routeDrop(Object drop);
 }

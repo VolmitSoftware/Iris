@@ -42,6 +42,7 @@ import art.arcane.iris.studio.StudioSVC;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.IrisWorldManager;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.chunk.TerrainChunk;
 import art.arcane.iris.generation.runtime.Engine;
@@ -928,29 +929,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         boolean alreadyClosing = closing;
         closing = true;
         cancelWatcherHotload();
+        AtomicBoolean dispatchAccepted = new AtomicBoolean();
         CompletableFuture<Void> operation;
         try {
-            operation = withExclusiveControlFuture(() -> {
-                Looper activeHotloader = hotloader;
-                hotloader = null;
-                if (isStudio() && activeHotloader != null) {
-                    activeHotloader.interrupt();
-                    try {
-                        activeHotloader.join(1000L);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        IrisLogging.reportError(e);
+            CompletableFuture<Void> preservedDrops = engine != null && engine.getWorldManager() instanceof IrisWorldManager manager
+                    ? manager.flushPendingBlockDropsAsync() : CompletableFuture.completedFuture(null);
+            operation = preservedDrops.thenCompose(ignored -> {
+                CompletableFuture<Void> dispatched = withExclusiveControlFuture(() -> {
+                    Looper activeHotloader = hotloader;
+                    hotloader = null;
+                    if (isStudio() && activeHotloader != null) {
+                        activeHotloader.interrupt();
+                        try {
+                            activeHotloader.join(1000L);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            IrisLogging.reportError(e);
+                        }
                     }
-                }
 
-                Engine currentEngine = engine;
-                if (currentEngine != null && !currentEngine.isClosed()) {
-                    currentEngine.close();
-                }
-                folder.clear();
-                populators.clear();
-                closeStartupTarget();
-                startupReady.completeExceptionally(new IllegalStateException("Iris generator closed during startup."));
+                    Engine currentEngine = engine;
+                    if (currentEngine != null && !currentEngine.isClosed()) {
+                        currentEngine.close();
+                    }
+                    folder.clear();
+                    populators.clear();
+                    closeStartupTarget();
+                    startupReady.completeExceptionally(new IllegalStateException("Iris generator closed during startup."));
+                });
+                dispatchAccepted.set(true);
+                return dispatched;
             });
         } catch (Throwable throwable) {
             if (!alreadyClosing) {
@@ -969,9 +977,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (throwable == null) {
                 future.complete(null);
             } else {
-                // The close body already ran and tore the engine down; unlike the pre-dispatch
-                // failure above, resetting the gate here would advertise a healthy generator
-                // over a CLOSED or FAILED engine. Stay latched and surface the failure.
+                // An accepted close may have torn the engine down. Reset the gate only when
+                // exclusive cleanup was never dispatched, or a CLOSED or FAILED engine would
+                // be advertised as a healthy generator.
+                if (!alreadyClosing && !dispatchAccepted.get()) {
+                    closing = false;
+                }
                 closeFuture.compareAndSet(future, null);
                 future.completeExceptionally(throwable);
             }

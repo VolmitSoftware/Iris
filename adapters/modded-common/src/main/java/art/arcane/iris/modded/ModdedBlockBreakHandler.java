@@ -31,6 +31,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockDropHooks;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.structure.placement.LootResolver;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -181,26 +182,30 @@ public final class ModdedBlockBreakHandler {
             NativeBlockState brokenState,
             Engine engine
     ) {
-        KList<IrisBlockDrops> providers = providers(engine, position, brokenState);
-        if (providers.isEmpty()) {
-            return Result.empty();
-        }
+        BiomeEnvironment environment = engine.getBiomeEnvironment(position.x(),
+                position.y() - engine.getMinHeight(), position.z());
+        try (BiomeEnvironment.Scope ignored = engine.openBiomeEnvironmentScope(environment)) {
+            KList<IrisBlockDrops> providers = providers(environment, brokenState);
+            if (providers.isEmpty()) {
+                return Result.empty();
+            }
 
-        KList<NativeItemStack> drops = new KList<>();
-        boolean replaceVanillaDrops = false;
-        for (IrisBlockDrops provider : providers) {
-            replaceVanillaDrops |= provider.isReplaceVanillaDrops();
-            for (IrisLoot loot : provider.getDrops()) {
-                if (!LootResolver.oneIn(RNG.r, loot.getRarity())) {
-                    continue;
-                }
-                NativeItemStack stack = ModdedItemTranslator.stack(loot, RNG.r, ModdedItemTranslator.context(level));
-                if (stack != null && !stack.isEmpty()) {
-                    drops.add(stack);
+            KList<NativeItemStack> drops = new KList<>();
+            boolean replaceVanillaDrops = false;
+            for (IrisBlockDrops provider : providers) {
+                replaceVanillaDrops |= provider.isReplaceVanillaDrops();
+                for (IrisLoot loot : provider.getDrops()) {
+                    if (!LootResolver.oneIn(RNG.r, loot.getRarity())) {
+                        continue;
+                    }
+                    NativeItemStack stack = ModdedItemTranslator.stack(loot, RNG.r, ModdedItemTranslator.context(level));
+                    if (stack != null && !stack.isEmpty()) {
+                        drops.add(stack);
+                    }
                 }
             }
+            return new Result(drops, replaceVanillaDrops, null);
         }
-        return new Result(drops, replaceVanillaDrops, null);
     }
 
     private static void removeMarker(Engine engine, NativeBlockPoint position) {
@@ -225,22 +230,17 @@ public final class ModdedBlockBreakHandler {
         engine.getMantle().getMantle().remove(position.x(), mantleY, position.z(), TreeBlockMaterial.class);
     }
 
-    private static KList<IrisBlockDrops> providers(Engine engine, NativeBlockPoint position, NativeBlockState brokenState) {
+    private static KList<IrisBlockDrops> providers(BiomeEnvironment environment, NativeBlockState brokenState) {
         KList<IrisBlockDrops> providers = new KList<>();
-        IrisData data = engine.getData();
-        int relativeY = position.y() - engine.getMinHeight();
-        IrisBiome biome = engine.getBiome(position.x(), relativeY, position.z());
-        if (biome != null) {
-            addMatching(providers, biome.getBlockDrops(), brokenState, data);
-        }
+        IrisData data = environment.data();
+        IrisBiome biome = environment.biome();
+        addMatching(providers, biome.getBlockDrops(), brokenState, data);
         if (skipsParents(providers)) {
             return providers;
         }
-        IrisRegion region = engine.getRegion(position.x(), relativeY, position.z());
-        if (region != null) {
-            addMatching(providers, region.getBlockDrops(), brokenState, data);
-        }
-        addMatching(providers, engine.getDimension().getBlockDrops(), brokenState, data);
+        IrisRegion region = environment.region();
+        addMatching(providers, region.getBlockDrops(), brokenState, data);
+        addMatching(providers, environment.dimension().getBlockDrops(), brokenState, data);
         return providers;
     }
 

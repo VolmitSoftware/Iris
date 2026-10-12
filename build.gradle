@@ -12,6 +12,7 @@ import org.gradle.api.file.DeleteSpec
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.FileTree
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.initialization.IncludedBuild
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
@@ -78,6 +79,9 @@ String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse('26.3-6
 String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse('26.3.0.33-beta')
 String volmLibShared = 'com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT'
 File localVolmLibCheckout = (File) gradle.extensions.extraProperties.get('volmLibDirectory')
+IncludedBuild localVolmLibBuild = localVolmLibCheckout == null ? null : gradle.includedBuilds.find { IncludedBuild includedBuild ->
+    includedBuild.projectDir.canonicalFile == localVolmLibCheckout.canonicalFile
+}
 Map<String, String> volmLibStamp = (Map<String, String>) gradle.extensions.extraProperties.get('volmLibStamp')
 Closure<String> loaderDisplayVersion = { String loaderVersion ->
     String coordinatePrefix = "${minecraftVersion}-"
@@ -136,6 +140,14 @@ nmsBindings.each { String key ->
     project(":adapters:bukkit:nms:${key}") {
         apply plugin: JavaPlugin
         apply plugin: PaperweightUser
+        if (localVolmLibBuild != null) {
+            tasks.named('paperweightUserdevSetup').configure {
+                dependsOn(localVolmLibBuild.task(":native:${key}:paperweightUserdevSetup"))
+                if (key == 'v26_2_R1') {
+                    dependsOn(localVolmLibBuild.task(':native-common:paperweightUserdevSetup'))
+                }
+            }
+        }
         NativeDevelopmentTargets.Target nativeTarget = NativeDevelopmentTargets.require(key)
         dependencies.extensions.getByType(PaperweightUserDependenciesExtension)
             .paperDevBundle(nativeTarget.paperBundle())

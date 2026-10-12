@@ -313,6 +313,8 @@ tasks.named('shadowJar', ShadowJar).configure {
     // The Bukkit platform binding cannot load without org.bukkit on the classpath, which no mod
     // loader has. Shipping it only adds dead classes that reference a missing package.
     exclude('art/arcane/iris/platform/bukkit/**')
+    exclude('art/arcane/iris/platform/bootstrap/SlimJar*.class')
+    exclude('art/arcane/iris/platform/bootstrap/NativeRuntimeLibraries*.class')
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     filesMatching('META-INF/services/**') { FileCopyDetails entry ->
         entry.duplicatesStrategy = DuplicatesStrategy.INCLUDE

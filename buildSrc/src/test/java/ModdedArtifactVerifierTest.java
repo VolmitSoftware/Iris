@@ -4,6 +4,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -42,6 +44,91 @@ public class ModdedArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES);
+    }
+
+    @Test
+    public void rejectsBukkitDependencyBootstrapClassesAndNestedClasses() throws Exception {
+        for (String internalName : List.of("art/arcane/iris/platform/bootstrap/SlimJar",
+                "art/arcane/iris/platform/bootstrap/SlimJar$BootstrapLogger",
+                "art/arcane/iris/platform/bootstrap/NativeRuntimeLibraries",
+                "art/arcane/iris/platform/bootstrap/NativeRuntimeLibraries$Provider")) {
+            Map<String, byte[]> entries = validEntries();
+            entries.put(internalName + ".class", classExtending(internalName, "java/lang/Object"));
+            GradleException failure = assertThrows(GradleException.class,
+                    () -> ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES));
+            assertTrue(failure.getMessage().contains("Bukkit dependency bootstrap code"));
+            assertTrue(failure.getMessage().contains(internalName));
+        }
+    }
+
+    @Test
+    public void rejectsDanglingBukkitDependencyBootstrapReferences() throws Exception {
+        for (String internalName : List.of("art/arcane/iris/platform/bootstrap/SlimJar",
+                "art/arcane/iris/platform/bootstrap/NativeRuntimeLibraries")) {
+            Map<String, byte[]> entries = validEntries();
+            String caller = "art/arcane/iris/modded/BootstrapCaller";
+            ClassWriter writer = new ClassWriter(0);
+            writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, caller, null, "java/lang/Object", null);
+            MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+                    "dependencyType", "()Ljava/lang/Class;", null, null);
+            method.visitCode();
+            method.visitLdcInsn(Type.getObjectType(internalName));
+            method.visitInsn(Opcodes.ARETURN);
+            method.visitMaxs(1, 0);
+            method.visitEnd();
+            writer.visitEnd();
+            entries.put(caller + ".class", writer.toByteArray());
+            GradleException failure = assertThrows(GradleException.class,
+                    () -> ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES));
+            assertTrue(failure.getMessage().contains(caller));
+            assertTrue(failure.getMessage().contains(internalName));
+        }
+    }
+
+    @Test
+    public void rejectsBukkitDependencyBootstrapInsideJarJar() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        String internalName = "art/arcane/iris/platform/bootstrap/SlimJar";
+        entries.put("META-INF/jarjar/dependency-support.jar", createNestedArtifact(Map.of(
+                internalName + ".class", classExtending(internalName, "java/lang/Object"))));
+        GradleException failure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES));
+        assertTrue(failure.getMessage().contains("Bukkit dependency bootstrap code"));
+        assertTrue(failure.getMessage().contains("dependency-support.jar!/" + internalName));
+    }
+
+    @Test
+    public void rejectsExecutableEntriesRegardlessOfCase() throws Exception {
+        for (String executable : List.of("bin/installer.exe", "native/windows/helper.EXE")) {
+            Map<String, byte[]> entries = validEntries();
+            entries.put(executable, new byte[]{1});
+            GradleException failure = assertThrows(GradleException.class,
+                    () -> ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES));
+            assertTrue(failure.getMessage().contains("executable .exe entries"));
+            assertTrue(failure.getMessage().contains(executable));
+        }
+    }
+
+    @Test
+    public void rejectsExecutableInsideJarJar() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("META-INF/jarjar/native-support.jar", createNestedArtifact(Map.of(
+                "native/helper.exe", new byte[]{1})));
+        GradleException failure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES));
+        assertTrue(failure.getMessage().contains("executable .exe entries"));
+        assertTrue(failure.getMessage().contains("native-support.jar!/native/helper.exe"));
+    }
+
+    @Test
+    public void acceptsBundledCompressionLibraries() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("native/windows-x86_64/jlibdeflate.dll", new byte[]{1});
+        entries.put("native/linux-x86_64/libjlibdeflate.so", new byte[]{1});
+        entries.put("native/osx-aarch64/libjlibdeflate.dylib", new byte[]{1});
+        entries.put("com/fulcrumgenomics/jlibdeflate/NativeLoader.class",
+                classExtending("com/fulcrumgenomics/jlibdeflate/NativeLoader", "java/lang/Object"));
+        ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES);
     }
 
     @Test

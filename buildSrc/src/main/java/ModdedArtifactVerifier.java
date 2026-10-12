@@ -24,6 +24,10 @@ public final class ModdedArtifactVerifier {
             "net/jpountz/lz4/LZ4BlockOutputStream"
     );
     private static final String INTERNAL_OSHI_REFERENCE = "oshi/SystemInfo";
+    private static final List<String> BUKKIT_DEPENDENCY_BOOTSTRAP_CLASSES = List.of(
+            "art/arcane/iris/platform/bootstrap/SlimJar",
+            "art/arcane/iris/platform/bootstrap/NativeRuntimeLibraries"
+    );
     private static final List<String> BUNDLED_RUNTIME_PREFIXES = List.of(
             "net/jpountz/",
             "oshi/",
@@ -97,6 +101,8 @@ public final class ModdedArtifactVerifier {
             Set<String> asmEntries = new LinkedHashSet<>();
             Set<String> shippedNestedJars = new LinkedHashSet<>();
             Set<String> bukkitSupertypeClasses = new LinkedHashSet<>();
+            Set<String> dependencyBootstrapViolations = new LinkedHashSet<>();
+            Set<String> executableEntries = new LinkedHashSet<>();
             boolean oshiReference = false;
             Enumeration<JarEntry> entries = jar.entries();
             while (entries.hasMoreElements()) {
@@ -106,6 +112,9 @@ public final class ModdedArtifactVerifier {
                 }
 
                 String name = entry.getName();
+                if (name.toLowerCase(Locale.ROOT).endsWith(".exe")) {
+                    executableEntries.add(name);
+                }
                 if (startsWithAny(name, BUNDLED_RUNTIME_PREFIXES)) {
                     bundledRuntimeEntries.add(name);
                 }
@@ -116,7 +125,7 @@ public final class ModdedArtifactVerifier {
                     shippedNestedJars.add(name);
                 }
                 if (isNestedJar(name)) {
-                    inspectNestedJar(jar, entry, bundledRuntimeEntries, privateReferenceClasses);
+                    inspectNestedJar(jar, entry, bundledRuntimeEntries, privateReferenceClasses, dependencyBootstrapViolations, executableEntries);
                 }
                 if (!name.endsWith(".class")) {
                     continue;
@@ -124,6 +133,7 @@ public final class ModdedArtifactVerifier {
 
                 byte[] classFile = readEntryBytes(jar, entry);
                 String bytecode = new String(classFile, StandardCharsets.ISO_8859_1);
+                inspectDependencyBootstrap(name, name, bytecode, dependencyBootstrapViolations);
                 if (containsAny(bytecode, PRIVATE_REFERENCE_PREFIXES)) {
                     privateReferenceClasses.add(name);
                 }
@@ -145,6 +155,13 @@ public final class ModdedArtifactVerifier {
                 }
             }
 
+            if (!executableEntries.isEmpty()) {
+                throw new GradleException(artifact.getName() + " contains executable .exe entries: " + preview(executableEntries));
+            }
+            if (!dependencyBootstrapViolations.isEmpty()) {
+                throw new GradleException(artifact.getName() + " contains Bukkit dependency bootstrap code: "
+                        + preview(dependencyBootstrapViolations));
+            }
             if (!bundledRuntimeEntries.isEmpty()) {
                 throw new GradleException(artifact.getName() + " duplicates Minecraft runtime libraries: "
                         + preview(bundledRuntimeEntries));
@@ -364,7 +381,9 @@ public final class ModdedArtifactVerifier {
 
     private static void inspectNestedJar(JarFile jar, JarEntry nestedEntry,
                                          Set<String> bundledRuntimeEntries,
-                                         Set<String> privateReferenceClasses) throws IOException {
+                                         Set<String> privateReferenceClasses,
+                                         Set<String> dependencyBootstrapViolations,
+                                         Set<String> executableEntries) throws IOException {
         String nestedName = nestedEntry.getName();
         if (isNamedRuntimeLibrary(nestedName)) {
             bundledRuntimeEntries.add(nestedName);
@@ -380,15 +399,28 @@ public final class ModdedArtifactVerifier {
 
                 String name = entry.getName();
                 String path = nestedName + "!/" + name;
+                if (name.toLowerCase(Locale.ROOT).endsWith(".exe")) {
+                    executableEntries.add(path);
+                }
                 if (startsWithAny(name, BUNDLED_RUNTIME_PREFIXES)) {
                     bundledRuntimeEntries.add(path);
                 }
                 if (name.endsWith(".class")) {
                     String bytecode = new String(nestedJar.readAllBytes(), StandardCharsets.ISO_8859_1);
+                    inspectDependencyBootstrap(name, path, bytecode, dependencyBootstrapViolations);
                     if (containsAny(bytecode, PRIVATE_REFERENCE_PREFIXES)) {
                         privateReferenceClasses.add(path);
                     }
                 }
+            }
+        }
+    }
+
+    private static void inspectDependencyBootstrap(String entry, String path, String bytecode, Set<String> violations) {
+        String topLevel = topLevelClass(entry);
+        for (String forbidden : BUKKIT_DEPENDENCY_BOOTSTRAP_CLASSES) {
+            if (topLevel.equals(forbidden) || bytecode.contains(forbidden)) {
+                violations.add(path + " -> " + forbidden);
             }
         }
     }

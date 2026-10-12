@@ -85,7 +85,7 @@ public final class CarveModule implements IrisModule {
         }
         ModuleLog log = context.log();
         chunk.state(CaveApplying.class, generating -> new CaveApplying(generating, log)).apply(chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT,
-                chunk.blocks(), chunk.multicore(), chunk.context());
+                chunk.blocks(), chunk.multicore(), chunk.context(), context);
     }
 
     /**

@@ -21,22 +21,20 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.PackResources;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 
 /**
- * One {@link Decorator} made ready for one world: its palettes resolved to the platform's blocks, and the noise that
+ * One {@link Decorator} made ready for one world: its palettes resolved to blocks, and the noise that
  * decides where it places, which block of the palette it picks and how tall it stacks, built when first asked for. What
  * the decorator describes stays in the settings; everything that needs the platform, the pack or the world seed is here.
  *
@@ -47,17 +45,18 @@ final class ResolvedDecorator {
     private final Decorator settings;
     private final long seed;
     private final NoiseFactory noise;
-    private final List<PlatformBlockState> blocks;
-    private final List<PlatformBlockState> topBlocks;
-    private final PlatformBlockState[] blockArray;
-    private final PlatformBlockState[] topBlockArray;
-    private final PlatformBlockState forceBlock;
-    private final PlatformBlockState[] whitelist;
-    private final PlatformBlockState[] blacklist;
+    private final List<BlockState> blocks;
+    private final List<BlockState> topBlocks;
+    private final BlockState[] blockArray;
+    private final BlockState[] topBlockArray;
+    private final BlockState forceBlock;
+    private final BlockState[] whitelist;
+    private final BlockState[] blacklist;
     private final AtomicCache<NoiseSampler> chanceNoise = new AtomicCache<>();
     private final AtomicCache<NoiseSampler> varianceNoise = new AtomicCache<>();
     private final AtomicCache<NoiseSampler> heightNoise = new AtomicCache<>();
     private final ModuleLog log;
+    private final String biomeKey;
 
     /**
      * @param blocks the palette as the platform's blocks, each repeated by its weight
@@ -66,43 +65,38 @@ final class ResolvedDecorator {
      * @param whitelist the blocks it may only be placed onto; ignored unless the decorator has a whitelist
      * @param blacklist the blocks it is never placed onto; ignored unless the decorator has a blacklist
      * @param log the log of the module that decorates
+     * @param biomeKey the key of the biome that declares the decorator, which names it in the log
      */
-    ResolvedDecorator(Decorator settings, long seed, NoiseFactory noise, List<PlatformBlockState> blocks, List<PlatformBlockState> topBlocks,
-                      PlatformBlockState forceBlock, List<PlatformBlockState> whitelist, List<PlatformBlockState> blacklist,
-                      ModuleLog log) {
+    ResolvedDecorator(Decorator settings, long seed, NoiseFactory noise, List<BlockState> blocks, List<BlockState> topBlocks,
+                      BlockState forceBlock, List<BlockState> whitelist, List<BlockState> blacklist,
+                      ModuleLog log, String biomeKey) {
         this.settings = settings;
         this.seed = seed;
         this.noise = noise;
         this.blocks = List.copyOf(blocks);
         this.topBlocks = List.copyOf(topBlocks);
-        this.blockArray = blocks.toArray(new PlatformBlockState[0]);
-        this.topBlockArray = topBlocks.toArray(new PlatformBlockState[0]);
+        this.blockArray = blocks.toArray(new BlockState[0]);
+        this.topBlockArray = topBlocks.toArray(new BlockState[0]);
         this.forceBlock = forceBlock;
-        this.whitelist = whitelist.toArray(new PlatformBlockState[0]);
-        this.blacklist = blacklist.toArray(new PlatformBlockState[0]);
+        this.whitelist = whitelist.toArray(new BlockState[0]);
+        this.blacklist = blacklist.toArray(new BlockState[0]);
         this.log = log;
+        this.biomeKey = biomeKey;
     }
 
-    /** {@code settings} ready for {@code engine}: its blocks resolved through the pack, its noise seeded from {@code seed}. */
-    static ResolvedDecorator of(Decorator settings, Engine engine, long seed, ModuleLog log) {
-        var resources = engine.getData().getPackResources();
+    /** {@code settings} ready for a world with {@code resources}: its blocks resolved through the pack, its noise seeded from {@code seed}. */
+    static ResolvedDecorator of(Decorator settings, PackResources resources, long seed, ModuleLog log, String biomeKey) {
         BlockRegistry registry = resources.blocks();
-        PlatformBlockState forced = settings.forceBlock().map(spec -> platformState(registry, spec)).orElse(null);
+        BlockState forced = settings.forceBlock().map(registry::resolve).orElse(null);
         return new ResolvedDecorator(settings, seed, resources.noise(), weighted(registry, settings.palette()),
-                weighted(registry, settings.topPalette()), forced, each(registry, settings.whitelist()), each(registry, settings.blacklist()), log);
+                weighted(registry, settings.topPalette()), forced, each(registry, settings.whitelist()), each(registry, settings.blacklist()), log,
+                biomeKey);
     }
 
-    private static PlatformBlockState platformState(BlockRegistry registry, BlockSpec spec) {
-        return B.getState(registry.resolve(spec).key());
-    }
-
-    private static List<PlatformBlockState> weighted(BlockRegistry registry, List<BlockSpec> palette) {
-        List<PlatformBlockState> weighted = new ArrayList<>();
+    private static List<BlockState> weighted(BlockRegistry registry, List<BlockSpec> palette) {
+        List<BlockState> weighted = new ArrayList<>();
         for (BlockSpec spec : palette) {
-            PlatformBlockState state = platformState(registry, spec);
-            if (state == null) {
-                continue;
-            }
+            BlockState state = registry.resolve(spec);
             for (int n = 0; n < spec.weight(); n++) {
                 weighted.add(state);
             }
@@ -110,8 +104,8 @@ final class ResolvedDecorator {
         return weighted;
     }
 
-    private static List<PlatformBlockState> each(BlockRegistry registry, List<BlockSpec> palette) {
-        return palette.stream().map(spec -> platformState(registry, spec)).toList();
+    private static List<BlockState> each(BlockRegistry registry, List<BlockSpec> palette) {
+        return palette.stream().map(registry::resolve).toList();
     }
 
     Decorator settings() {
@@ -148,7 +142,7 @@ final class ResolvedDecorator {
     }
 
     /** The block it forces onto the surface instead of the one found there, or null. */
-    PlatformBlockState forceBlock() {
+    BlockState forceBlock() {
         return forceBlock;
     }
 
@@ -161,15 +155,15 @@ final class ResolvedDecorator {
     }
 
     /** Whether the white and black lists keep the decorator off {@code surface}. */
-    boolean rejectsSurface(PlatformBlockState surface) {
+    boolean rejectsSurface(BlockState surface) {
         if (settings.hasWhitelist() && !matches(whitelist, surface)) {
             return true;
         }
         return settings.hasBlacklist() && matches(blacklist, surface);
     }
 
-    private static boolean matches(PlatformBlockState[] palette, PlatformBlockState surface) {
-        for (PlatformBlockState state : palette) {
+    private static boolean matches(BlockState[] palette, BlockState surface) {
+        for (BlockState state : palette) {
             if (state.equals(surface)) {
                 return true;
             }
@@ -197,9 +191,9 @@ final class ResolvedDecorator {
     }
 
     /** The block of the palette at the position, for decorations that fill a column block by block; null when the palette has no block. */
-    PlatformBlockState blockAt(IrisBiome biome, double x, double y, double z) {
+    BlockState blockAt(double x, double y, double z) {
         if (blocks.isEmpty()) {
-            log.warnOnce("decorator-empty:" + biome.getName(), "Empty Block Data for " + biome.getName());
+            log.warnOnce("decorator-empty:" + biomeKey, "Empty Block Data for " + biomeKey);
             return null;
         }
 
@@ -211,9 +205,9 @@ final class ResolvedDecorator {
     }
 
     /** The top palette's block at the position, or the palette's when there is no top palette; null where the chance noise declines. */
-    PlatformBlockState topBlockAt(IrisBiome biome, double x, double y, double z) {
+    BlockState topBlockAt(double x, double y, double z) {
         if (topBlocks.isEmpty()) {
-            return blockAt(biome, x, y, z);
+            return blockAt(x, y, z);
         }
 
         double zoom = settings.style().zoom();
@@ -229,19 +223,19 @@ final class ResolvedDecorator {
     }
 
     /** The palette's block for the column, or null when the palette has no block. */
-    PlatformBlockState pickBlock(double x, double z) {
+    BlockState pickBlock(double x, double z) {
         return pick(blockArray, x, z);
     }
 
     /** The top palette's block for the column; the palette's when there is no top palette. */
-    PlatformBlockState pickTopBlock(double x, double z) {
+    BlockState pickTopBlock(double x, double z) {
         if (topBlockArray.length == 0) {
             return pickBlock(x, z);
         }
         return pick(topBlockArray, x, z);
     }
 
-    private PlatformBlockState pick(PlatformBlockState[] palette, double x, double z) {
+    private BlockState pick(BlockState[] palette, double x, double z) {
         if (palette.length == 0) {
             return null;
         }

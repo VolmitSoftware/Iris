@@ -27,10 +27,10 @@ import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.engine.decorator.FloatingDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineDecorator;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -51,6 +51,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 
 import com.volmit.ModuleLog;
+import com.volmit.world.BiomeKind;
 import java.util.IdentityHashMap;
 
 import static art.arcane.iris.engine.mantle.EngineMantle.AIR;
@@ -66,7 +67,6 @@ public class FloatingIslands {
     };
     private final Engine engine;
     private final RNG rng;
-    private final EngineDecorator seaSurfaceDecorator;
     private final BiomeLayers biomeLayers;
     private final ModuleLog log;
 
@@ -212,7 +212,6 @@ public class FloatingIslands {
         this.engine = engine;
         this.log = log;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
-        seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
         biomeLayers = BiomeLayers.of(engine, log);
     }
 
@@ -305,7 +304,7 @@ public class FloatingIslands {
     }
 
     /** Decorates the tops of the islands in the chunk whose first block is {@code x}, {@code z}. */
-    public void decorateColumns(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void decorateColumns(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context, DecorationScene scene) {
         int chunkHeight = output.getHeight();
         IrisData data = engine.getData();
         IrisComplex complex = engine.getComplex();
@@ -338,7 +337,7 @@ public class FloatingIslands {
                     if (above == null || above.isAir()) {
                         try {
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
-                            FloatingDecorator.decorateColumn(engine, target, DecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
+                            FloatingDecorator.decorateColumn(scene, IrisDecoratedBiomes.of(target, BiomeKind.LAND), DecorationPart.NONE, xf, zf, wx, wz, topY, max, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
                             log.error("Failed to decorate the top of a floating island", e);
                         }
@@ -370,7 +369,7 @@ public class FloatingIslands {
                     }
                     if (fluidTopY > 0 && fluidTopY + 1 < chunkHeight && B.isAir(output.get(xf, fluidTopY + 1, zf))) {
                         try {
-                            seaSurfaceDecorator.decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, output, target, fluidTopY, chunkHeight);
+                            new IrisSeaSurfaceDecorator(scene).decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, IrisDecoratedBiomes.of(target, BiomeKind.LAND), fluidTopY, chunkHeight);
                         } catch (Throwable e) {
                             log.error("Failed to decorate the sea surface of a floating island", e);
                         }

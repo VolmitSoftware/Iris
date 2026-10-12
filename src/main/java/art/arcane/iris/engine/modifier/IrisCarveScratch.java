@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
@@ -34,6 +35,8 @@ final class IrisCarveScratch {
     final Map<String, IrisBiome> customBiomeCache = new HashMap<>();
     int[] upperSurfaceHeights;
     boolean customCaveBiomePresent;
+    /** The chunk being carved, for the cave decorators; set by each apply. */
+    DecorationScene decoration;
 
     IrisCarveScratch() {
         for (int index = 0; index < columnMasks.length; index++) {

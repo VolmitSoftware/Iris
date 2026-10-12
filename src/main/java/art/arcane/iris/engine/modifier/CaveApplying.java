@@ -20,13 +20,13 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.engine.decorator.BiomeDecorators;
+import art.arcane.iris.engine.decorator.DecoratedBiome;
+import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.engine.terrain.BiomeLayers;
 import art.arcane.iris.engine.terrain.TerrainPalettes;
 import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.common.data.B;
@@ -45,6 +45,8 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import com.volmit.ModuleLog;
+import com.volmit.stage.ChunkStageContext;
+import com.volmit.world.BiomeKind;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.Data;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -67,30 +69,25 @@ public class CaveApplying {
     private final RNG rng;
     private final PlatformBlockState AIR = B.getState("CAVE_AIR");
     private final PlatformBlockState LAVA = B.getState("LAVA");
-    private final BiomeDecorators decorators;
     private final BiomeLayers layers;
     private final TerrainPalettes palettes;
-    private final IrisSurfaceDecorator surfaceDecorator;
-    private final IrisCeilingDecorator ceilingDecorator;
 
     public CaveApplying(Engine engine, ModuleLog log) {
         this.engine = engine;
         rng = new RNG(engine.getSeedManager().getCarve());
-        decorators = BiomeDecorators.of(engine);
         layers = BiomeLayers.of(engine, log);
         palettes = TerrainPalettes.of(engine);
-        surfaceDecorator = new IrisSurfaceDecorator(engine);
-        ceilingDecorator = new IrisCeilingDecorator(engine);
     }
 
     /** Applies the caves to the chunk at chunk coordinates {@code x}, {@code z}. */
     @ChunkCoordinates
-    public void apply(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void apply(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context, ChunkStageContext chunk) {
         PrecisionStopwatch caveStopwatch = PrecisionStopwatch.start();
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
         IrisCarveScratch scratch = SCRATCH.get();
         scratch.reset();
+        scratch.decoration = DecorationScene.of(chunk);
         CarveWallBuffer walls = scratch.walls;
         CarveColumnMask[] columnMasks = scratch.columnMasks;
         CarveColumnMask[] boundaryMasks = scratch.boundaryMasks;
@@ -644,12 +641,19 @@ public class CaveApplying {
             }
         }
 
-        if (floorBiome != null && decorators.hasDecorators(floorBiome, DecorationPart.NONE) && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz)) {
-            surfaceDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, floorBiome, InferredType.CAVE, zone.getFloor() - 1, zone.airThickness());
+        DecorationScene scene = SCRATCH.get().decoration;
+        if (floorBiome != null) {
+            DecoratedBiome floor = IrisDecoratedBiomes.of(floorBiome, BiomeKind.CAVE);
+            if (scene.decorators().hasDecorators(floor, DecorationPart.NONE) && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz)) {
+                new IrisSurfaceDecorator(scene).decorate(rx, rz, xx, xx, xx, zz, zz, zz, floor, zone.getFloor() - 1, zone.airThickness());
+            }
         }
 
-        if (ceilingBiome != null && decorators.hasDecorators(ceilingBiome, DecorationPart.CEILING) && zone.getCeiling() + 1 < maxY && B.isSolid(output.getRaw(rx, zone.getCeiling() + 1, rz))) {
-            ceilingDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, ceilingBiome, InferredType.CAVE, zone.getCeiling(), zone.airThickness());
+        if (ceilingBiome != null) {
+            DecoratedBiome ceiling = IrisDecoratedBiomes.of(ceilingBiome, BiomeKind.CAVE);
+            if (scene.decorators().hasDecorators(ceiling, DecorationPart.CEILING) && zone.getCeiling() + 1 < maxY && B.isSolid(output.getRaw(rx, zone.getCeiling() + 1, rz))) {
+                new IrisCeilingDecorator(scene).decorate(rx, rz, xx, xx, xx, zz, zz, zz, ceiling, zone.getCeiling(), zone.airThickness());
+            }
         }
     }
 

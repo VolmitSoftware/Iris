@@ -148,8 +148,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
     @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
     private boolean debugSmartBore = false;
-    @Desc("Generate decorations or not")
-    private boolean decorate = true;
     @Desc("Refuse to place surface objects and trees over carved surface openings.")
     private boolean requireObjectSurfaceSupport = true;
     @MinNumber(0)

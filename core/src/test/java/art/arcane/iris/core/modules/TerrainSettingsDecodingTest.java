@@ -21,7 +21,11 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.post.PostProcessingSettings;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
 import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
+import art.arcane.iris.builtin.decorant.DecorateSettings;
+import art.arcane.iris.builtin.terrain.BedrockSettings;
 import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
+import art.arcane.iris.builtin.terrain.ExplodeBiomePaletteSizeSettings;
+import art.arcane.iris.builtin.terrain.ExplodeBiomePalettesSettings;
 import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.builtin.terrain.LockLayersMaxSettings;
@@ -219,6 +223,21 @@ public class TerrainSettingsDecodingTest {
     }
 
     @Test
+    public void theDimensionReadsItsBedrockDecoratingAndExplodedPaletteKeysAsPacksWriteThem() {
+        ModuleSettings settings = decoder.decode(Target.DIMENSION, new JSONObject(
+                "{\"bedrock\": false, \"decorate\": false, \"explodeBiomePalettes\": true, \"explodeBiomePaletteSize\": 5}"), "dimension flat");
+
+        assertFalse(settings.find(BedrockSettings.class).orElseThrow().bedrock());
+        assertFalse(settings.find(DecorateSettings.class).orElseThrow().decorate());
+        assertTrue(settings.find(ExplodeBiomePalettesSettings.class).orElseThrow().explode());
+        assertEquals(5, settings.find(ExplodeBiomePaletteSizeSettings.class).orElseThrow().size());
+        for (String key : Set.of("bedrock", "decorate", "explodeBiomePalettes", "explodeBiomePaletteSize")) {
+            assertTrue(key, decoder.keys(Target.DIMENSION).contains(key));
+            assertFalse(key + " is no field of Iris any more", ModuleTargets.reservedFields().get(Target.DIMENSION).contains(key));
+        }
+    }
+
+    @Test
     public void aDimensionThatWritesNothingIsStoneAndWaterWithPostProcessingOn() {
         ModuleSettings settings = decoder.decode(Target.DIMENSION, new JSONObject("{}"), "dimension overworld");
 
@@ -228,6 +247,8 @@ public class TerrainSettingsDecodingTest {
         assertTrue(new PostProcessingSettings().enabled());
         assertTrue(new PostProcessingSlabsSettings().enabled());
         assertTrue(new PostProcessingWallsSettings().enabled());
+        assertTrue("bedrock and decorating are on, and the palettes unexploded, unless written", new BedrockSettings().bedrock()
+                && new DecorateSettings().decorate() && !new ExplodeBiomePalettesSettings().explode());
     }
 
     @Test

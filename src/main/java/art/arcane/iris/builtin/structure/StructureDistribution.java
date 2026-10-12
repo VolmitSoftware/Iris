@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.structure;
+package art.arcane.iris.builtin.structure;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
+/** How a structure placement scatters its starts. The placement identity hashes the order. */
 @Desc("Controls how structure start positions are scattered across the world.")
 public enum StructureDistribution {
     @Desc("Vanilla-style spacing/separation grid. One placement attempt per grid cell, randomly offset within it by the separation. Use spacing, separation and salt.")

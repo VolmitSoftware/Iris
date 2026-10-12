@@ -25,8 +25,8 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.framework.structure.fit.StartLayouts;
 import art.arcane.iris.engine.framework.structure.fit.StructureFitting;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.LocateResult;
 import com.volmit.service.VanillaStructures;
@@ -148,21 +148,18 @@ public final class StructureVanillaStructures implements VanillaStructures {
 
     /** {@code plan} as the start the platform generates: heights above the bottom, the placement's identity and fit. */
     static VanillaStructureStart start(NativeStartPlanner.Plan plan, int minHeight) {
-        IrisStructurePlacement placement = plan.placement();
-        NativeStructureFit fit = new NativeStructureFit(0, null, false, placement.getStilt(), placement.resolvedTerrain());
-        VanillaStructureStart start = VanillaStructureStart.at(ResourceId.parse(plan.source().getStructure()),
+        StructurePlacement placement = plan.placement();
+        NativeStructureFit fit = new NativeStructureFit(0, null, false, placement.stilt().orElse(null), placement.resolvedTerrain());
+        VanillaStructureStart start = VanillaStructureStart.at(ResourceId.parse(plan.source().structure()),
                         plan.chunkX(), plan.chunkZ(), plan.baseY() - minHeight)
                 .withIdentity(StructurePlacementGrid.placementIdentity(placement))
                 .withMemo(fit.memo());
-        if (placement.isUnderground()) {
+        if (placement.underground()) {
             start = start.underground();
         }
-        if (placement.getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
+        if (placement.nativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
             start = start.replacingPlatformStart();
         }
-        if (plan.source().getJigsaw() != null) {
-            start = start.withJigsaw(plan.source().getJigsaw());
-        }
-        return start;
+        return plan.source().jigsaw().map(start::withJigsaw).orElse(start);
     }
 }

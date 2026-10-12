@@ -21,10 +21,9 @@ package art.arcane.iris.engine.framework.structure;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.LinkedHashMap;
@@ -46,17 +45,17 @@ public final class NativeStartPlanner {
     }
 
     /** One start a {@code nativeStructures} placement makes: the placement, its chosen source and world base Y. */
-    public record Plan(IrisStructurePlacement placement, IrisNativeStructure source, int chunkX, int chunkZ, int baseY) {
+    public record Plan(StructurePlacement placement, NativeStructureSource source, int chunkX, int chunkZ, int baseY) {
     }
 
     public static List<Plan> plansAt(Engine engine, int chunkX, int chunkZ) {
         Map<String, Plan> plansByStructure = new LinkedHashMap<>();
-        for (IrisStructurePlacement placement : StructurePlacementScope.placementsAt(engine, chunkX, chunkZ)) {
+        for (StructurePlacement placement : StructurePlacementScope.placementsAt(engine, chunkX, chunkZ)) {
             Plan plan = planAt(engine, placement, chunkX, chunkZ);
             if (plan == null) {
                 continue;
             }
-            String structureKey = normalize(plan.source().getStructure());
+            String structureKey = normalize(plan.source().structure());
             Plan current = plansByStructure.get(structureKey);
             if (current == null || comparePlacementPriority(plan.placement(), current.placement()) < 0) {
                 plansByStructure.put(structureKey, plan);
@@ -65,7 +64,7 @@ public final class NativeStartPlanner {
         return List.copyOf(plansByStructure.values());
     }
 
-    public static Plan planAt(Engine engine, IrisStructurePlacement placement, int chunkX, int chunkZ) {
+    public static Plan planAt(Engine engine, StructurePlacement placement, int chunkX, int chunkZ) {
         validateBackend(placement);
         if (!placement.hasNativeStructures()) {
             return null;
@@ -80,7 +79,7 @@ public final class NativeStartPlanner {
         }
         RNG placementRng = StructurePlacementGrid.placementRng(
                 placement, chunkX, chunkZ, mantleSeed).nextParallelRNG(NATIVE_SELECTION_DOMAIN);
-        IrisNativeStructure source = selectSource(placement.getNativeStructures(), placementRng);
+        NativeStructureSource source = selectSource(placement.nativeStructures(), placementRng);
         Integer baseY = resolveBaseY(activeEngine, placement, chunkX, chunkZ, placementRng);
         if (baseY == null) {
             return null;
@@ -88,7 +87,7 @@ public final class NativeStartPlanner {
         return new Plan(placement, source, chunkX, chunkZ, baseY);
     }
 
-    public static void validateBackend(IrisStructurePlacement placement) {
+    public static void validateBackend(StructurePlacement placement) {
         if (placement == null) {
             throw new IllegalStateException("Structure placement must not be null");
         }
@@ -98,8 +97,7 @@ public final class NativeStartPlanner {
             throw new IllegalStateException("Structure placement must declare exactly one backend: "
                     + "structures or nativeStructures");
         }
-        if (nativeStructure && placement.getAnchor() != null
-                && placement.getAnchor() != IrisStructureAnchorMode.LEGACY) {
+        if (nativeStructure && placement.anchor() != StructureAnchorMode.LEGACY) {
             throw new IllegalStateException("Native structure placements do not support the Iris anchor field");
         }
     }
@@ -108,26 +106,26 @@ public final class NativeStartPlanner {
         return engine.getHeight(blockX, blockZ, true) < engine.getDimension().getFluidHeight();
     }
 
-    static IrisNativeStructure selectSource(KList<IrisNativeStructure> sources, RNG rng) {
+    static NativeStructureSource selectSource(List<NativeStructureSource> sources, RNG rng) {
         Objects.requireNonNull(sources, "Native structure sources must not be null");
         Objects.requireNonNull(rng, "Native structure selection requires an RNG");
         long totalWeight = 0L;
-        for (IrisNativeStructure source : sources) {
-            if (source == null || source.getStructure() == null || source.getStructure().isBlank()) {
+        for (NativeStructureSource source : sources) {
+            if (source == null || source.structure() == null || source.structure().isBlank()) {
                 throw new IllegalStateException("Native structure placement contains a blank source");
             }
-            if (source.getWeight() < 1) {
-                throw new IllegalStateException("Native structure source '" + source.getStructure()
-                        + "' has invalid weight " + source.getWeight());
+            if (source.weight() < 1) {
+                throw new IllegalStateException("Native structure source '" + source.structure()
+                        + "' has invalid weight " + source.weight());
             }
-            totalWeight = Math.addExact(totalWeight, source.getWeight());
+            totalWeight = Math.addExact(totalWeight, source.weight());
         }
         if (totalWeight > Integer.MAX_VALUE) {
             throw new IllegalStateException("Native structure source weights exceed " + Integer.MAX_VALUE);
         }
         int roll = rng.nextInt((int) totalWeight);
-        for (IrisNativeStructure source : sources) {
-            roll -= source.getWeight();
+        for (NativeStructureSource source : sources) {
+            roll -= source.weight();
             if (roll < 0) {
                 return source;
             }
@@ -135,7 +133,7 @@ public final class NativeStartPlanner {
         throw new IllegalStateException("Native structure source selection produced no result");
     }
 
-    private static Integer resolveBaseY(Engine engine, IrisStructurePlacement placement,
+    private static Integer resolveBaseY(Engine engine, StructurePlacement placement,
                                         int chunkX, int chunkZ, RNG rng) {
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
@@ -144,25 +142,25 @@ public final class NativeStartPlanner {
         }
         int blockX = (chunkX << 4) + 8;
         int blockZ = (chunkZ << 4) + 8;
-        if (!placement.isUnderwater() && isSubmerged(engine, blockX, blockZ)) {
+        if (!placement.underwater() && isSubmerged(engine, blockX, blockZ)) {
             return null;
         }
-        if (!placement.isUnderground()) {
+        if (!placement.underground()) {
             int surfaceY = engine.getHeight(blockX, blockZ, true) + engine.getMinHeight();
-            if (surfaceY < placement.getMinHeight() || surfaceY > placement.getMaxHeight()) {
+            if (surfaceY < placement.minHeight() || surfaceY > placement.maxHeight()) {
                 return null;
             }
             return surfaceY;
         }
-        int bandMin = Math.max(worldMin, Math.min(placement.getMinHeight(), placement.getMaxHeight()));
-        int bandMax = Math.min(worldMax, Math.max(placement.getMinHeight(), placement.getMaxHeight()));
+        int bandMin = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
+        int bandMax = Math.min(worldMax, Math.max(placement.minHeight(), placement.maxHeight()));
         if (bandMin > bandMax) {
             return null;
         }
         return bandMin == bandMax ? bandMin : bandMin + rng.nextInt((bandMax - bandMin) + 1);
     }
 
-    private static int comparePlacementPriority(IrisStructurePlacement left, IrisStructurePlacement right) {
+    private static int comparePlacementPriority(StructurePlacement left, StructurePlacement right) {
         long leftIdentity = StructurePlacementGrid.placementIdentity(left);
         long rightIdentity = StructurePlacementGrid.placementIdentity(right);
         return Long.compareUnsigned(leftIdentity, rightIdentity);

@@ -34,11 +34,12 @@ replacement) wherever Iris validates a pack; Iris core has no loader or validato
 Built-in modules answer Iris through IrisApi services instead of Iris reading their features: `iris:objects`
 provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure`
 provides `StructureLocator` (`StructureLocating`: the pack's structure keys for Iris's structure index, the ones a
-world places, and their nearest start for the find commands). `iris:structure` also has a lifecycle hook that drops a
-world's structure index when the world stops, which includes every reload of the pack's structure files.
+world places, and their nearest start for the find commands). A world's structure index lives in the world's state
+(`engine.getGeneration().state(...)`), so every reload of the pack's structure files, which starts a new world, builds
+it again.
 `iris:structure` also provides `VanillaStructures` (`StructureVanillaStructures`) for the platform's own structures:
 which ones its placements replace or the dimension's `importedStructures` disables, the starts its `nativeStructures`
-placements make, the shift and band of the platform's starts, and the whole terrain fit of every start (SOURCE,
+placements make (`startedStructures`, `locatableStarts`, `locateStart`), the shift and band of the platform's starts, and the whole terrain fit of every start (SOURCE,
 PRESERVE, VACUUM, ENCASE, BORE, FORCE_CARVE, stilts) in `engine/framework/structure/fit`, written against IrisApi's
 `StructureFit` and `BlockAccess` only. A start carries its fit as a memo (its terrain and stilts JSON), so every
 chunk it reaches and every restart fits it the same way. `iris:vanilla-features` (`VanillaFeaturesModule`, no stages)
@@ -107,7 +108,8 @@ dimension reaches learn of them without reading the settings classes; and `iris:
 (`CaveBiomeBands`), which Iris asks for the dimension's carving band at a position and for a biome's minimum cave depth.
 
 Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
-(biome; a list) and `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest). The feature ids
+(biome; a list), `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest) and `structures`
+(dimension, region, biome; a list of `StructurePlacement`s, `StructurePlacementSettings`). The feature ids
 (`iris:deposit`, `iris:decorant`, `iris:structure`) stay the modules' identity in the stage graph and logs. A key is unique
 per target across all modules and Iris's own fields, so a new built-in or pack module picks a key no field of the target uses.
 

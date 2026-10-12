@@ -19,9 +19,8 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.structure.StructurePlacementSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import art.arcane.iris.builtin.structure.StructureStilts;
-import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.engine.framework.Engine;
@@ -38,7 +37,6 @@ import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
-import com.volmit.vanilla.JigsawOverrides;
 
 /**
  * Module {@code iris:structure}: Iris structures, written into the mantle after objects, whose trees they clear
@@ -54,8 +52,8 @@ import com.volmit.vanilla.JigsawOverrides;
  * It decides over the platform's own structures through its {@link VanillaStructures} provider
  * ({@link StructureVanillaStructures}): the dimension's {@code importedStructures} settings disable, move, fit and set
  * them up, and the pack's structure placements replace them, place them alongside, start them where their
- * {@code nativeStructures} grids say and fit them into the terrain. It describes the fit settings Iris's structure
- * placements hold.
+ * {@code nativeStructures} grids say and fit them into the terrain. The pack's structure placements are its
+ * {@code "structures"} settings ({@link StructurePlacementSettings}) of the dimension, its regions and biomes.
  */
 public final class StructureModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -77,13 +75,11 @@ public final class StructureModule implements IrisModule {
     public void register(FeatureRegistry registry) {
         log = registry.log();
         registry.registerSettings(StructureSettings.class);
+        registry.registerSettings(StructurePlacementSettings.class);
         StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
-        registry.registerHeldType(StructureTerrain.class);
-        registry.registerHeldType(StructureStilts.class);
-        registry.registerHeldType(JigsawOverrides.class);
     }
 
     private static void place(MantleStageContext context) {

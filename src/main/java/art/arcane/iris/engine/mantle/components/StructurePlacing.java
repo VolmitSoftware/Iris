@@ -37,7 +37,7 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.builtin.structure.StructureCarveShape;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.StructureStilts;
 import com.volmit.ModuleLog;
 import com.volmit.block.PaletteSampler;
@@ -61,6 +61,7 @@ import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -82,7 +83,7 @@ public class StructurePlacing {
     /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
     @ChunkCoordinates
     public void place(MantleWriter writer, int x, int z, ChunkContext context) {
-        for (IrisStructurePlacement placement : StructurePlacementScope.placementsAt(
+        for (StructurePlacement placement : StructurePlacementScope.placementsAt(
                 engine, x, z)) {
             if (!placement.hasIrisStructures()) {
                 continue;
@@ -92,7 +93,7 @@ public class StructurePlacing {
     }
 
     @ChunkCoordinates
-    private void placeFromPlacement(MantleWriter writer, IrisStructurePlacement placement, int cx, int cz) {
+    private void placeFromPlacement(MantleWriter writer, StructurePlacement placement, int cx, int cz) {
         IrisStructureLocator.ResolvedPlacement resolved = IrisStructureLocator.resolvePlacement(
                 engine, placement, cx, cz);
         if (resolved == null) {
@@ -101,8 +102,8 @@ public class StructurePlacing {
 
         boolean trace = IrisSettings.get().getGeneral().isDebug();
         if (trace) {
-            log.debug("[StructTrace] ORIGIN chunk=" + cx + "," + cz + " structures=" + placement.getStructures()
-                    + " anchor=" + placement.resolvedAnchor() + " band=" + placement.getMinHeight() + ".." + placement.getMaxHeight());
+            log.debug("[StructTrace] ORIGIN chunk=" + cx + "," + cz + " structures=" + placement.structures()
+                    + " anchor=" + placement.resolvedAnchor() + " band=" + placement.minHeight() + ".." + placement.maxHeight());
         }
 
         String key = resolved.structureKey();
@@ -135,7 +136,7 @@ public class StructurePlacing {
 
         ObjectPlaceMode mode = structure.getPlaceMode();
         int failedPieces = 0;
-        StructureStilts stilt = placement.getStilt();
+        StructureStilts stilt = placement.stilt().orElse(null);
         Long2IntOpenHashMap foundationColumns = stilt == null
                 ? null : new Long2IntOpenHashMap();
         boolean supportNonOccluding = stilt != null && stilt.supportNonOccluding();
@@ -590,19 +591,19 @@ public class StructurePlacing {
         int maxBlocks = 0;
 
         for (IrisRegion region : dimension.getAllRegions(engine)) {
-            maxBlocks = Math.max(maxBlocks, maxBlocksFrom(region.getStructures()));
+            maxBlocks = Math.max(maxBlocks, maxBlocksFrom(StructurePlacementScope.placementsOf(region)));
         }
         for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
-            maxBlocks = Math.max(maxBlocks, maxBlocksFrom(biome.getStructures()));
+            maxBlocks = Math.max(maxBlocks, maxBlocksFrom(StructurePlacementScope.placementsOf(biome)));
         }
-        maxBlocks = Math.max(maxBlocks, maxBlocksFrom(dimension.getStructures()));
+        maxBlocks = Math.max(maxBlocks, maxBlocksFrom(StructurePlacementScope.placementsOf(dimension)));
 
         return maxBlocks;
     }
 
-    private int maxBlocksFrom(KList<IrisStructurePlacement> placements) {
+    private int maxBlocksFrom(List<StructurePlacement> placements) {
         int max = 0;
-        for (IrisStructurePlacement placement : placements) {
+        for (StructurePlacement placement : placements) {
             if (!placement.hasIrisStructures()) {
                 continue;
             }
@@ -610,7 +611,7 @@ public class StructurePlacing {
             int carvePadding = terrain.resolvedMode() == StructureTerrainMode.FORCE_CARVE
                     || terrain.resolvedMode() == StructureTerrainMode.BORE
                     ? Math.max(0, terrain.horizontalPadding()) : 0;
-            for (String key : placement.getStructures()) {
+            for (String key : placement.structures()) {
                 IrisStructure structure = StructureResources.structure(engine.getData(), key);
                 if (structure != null) {
                     max = Math.max(max, Math.max(1, structure.getMaxSizeChunks()) * 16 + carvePadding);

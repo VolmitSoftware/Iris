@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
 
@@ -23,26 +23,26 @@ public final class StructureCaveAnchorResolver {
     private StructureCaveAnchorResolver() {
     }
 
-    public static Anchor resolve(Engine engine, IrisStructurePlacement placement, int chunkX, int chunkZ, RNG rng) {
+    public static Anchor resolve(Engine engine, StructurePlacement placement, int chunkX, int chunkZ, RNG rng) {
         Objects.requireNonNull(engine, "Cave structure anchor requires an engine");
         Objects.requireNonNull(placement, "Cave structure anchor requires a placement");
         Objects.requireNonNull(rng, "Cave structure anchor requires a random source");
-        IrisStructureAnchorMode mode = placement.resolvedAnchor();
+        StructureAnchorMode mode = placement.resolvedAnchor();
         if (!mode.isCave() || engine.getMantle() == null || engine.getMantle().getMantle() == null) {
             return null;
         }
 
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 2;
-        int minimumY = Math.max(worldMin, Math.min(placement.getMinHeight(), placement.getMaxHeight()));
-        int maximumY = Math.min(worldMax, Math.max(placement.getMinHeight(), placement.getMaxHeight()));
+        int minimumY = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
+        int maximumY = Math.min(worldMax, Math.max(placement.minHeight(), placement.maxHeight()));
         if (minimumY > maximumY) {
             return null;
         }
 
-        int attempts = Math.min(MAX_ATTEMPTS, Math.max(1, placement.getCaveAnchorAttempts()));
-        int scanStep = Math.min(MAX_SCAN_STEP, Math.max(1, placement.getCaveAnchorScanStep()));
-        int clearance = Math.min(MAX_CLEARANCE, Math.max(1, placement.getCaveMinimumClearance()));
+        int attempts = Math.min(MAX_ATTEMPTS, Math.max(1, placement.caveAnchorAttempts()));
+        int scanStep = Math.min(MAX_SCAN_STEP, Math.max(1, placement.caveAnchorScanStep()));
+        int clearance = Math.min(MAX_CLEARANCE, Math.max(1, placement.caveMinimumClearance()));
         int chunkMinX = chunkX << 4;
         int chunkMinZ = chunkZ << 4;
         int[] candidateColumns = candidateColumnIndices(rng, attempts);
@@ -73,8 +73,8 @@ public final class StructureCaveAnchorResolver {
 
     static List<Integer> anchorsInColumn(
             Engine engine,
-            IrisStructurePlacement placement,
-            IrisStructureAnchorMode mode,
+            StructurePlacement placement,
+            StructureAnchorMode mode,
             int blockX,
             int blockZ,
             int minimumY,
@@ -82,7 +82,7 @@ public final class StructureCaveAnchorResolver {
             int scanStep,
             int clearance
     ) {
-        if (mode == IrisStructureAnchorMode.CAVE_CENTER) {
+        if (mode == StructureAnchorMode.CAVE_CENTER) {
             return centerAnchorsInColumn(
                     engine, placement, blockX, blockZ,
                     minimumY, maximumY, scanStep, clearance);
@@ -107,7 +107,7 @@ public final class StructureCaveAnchorResolver {
 
     private static List<Integer> centerAnchorsInColumn(
             Engine engine,
-            IrisStructurePlacement placement,
+            StructurePlacement placement,
             int blockX,
             int blockZ,
             int minimumY,
@@ -153,7 +153,7 @@ public final class StructureCaveAnchorResolver {
     private static void addCenterAnchor(
             List<Integer> anchors,
             Engine engine,
-            IrisStructurePlacement placement,
+            StructurePlacement placement,
             int blockX,
             int blockZ,
             int worldY,
@@ -172,14 +172,14 @@ public final class StructureCaveAnchorResolver {
 
     static boolean matchesGeometry(
             Engine engine,
-            IrisStructureAnchorMode mode,
+            StructureAnchorMode mode,
             int blockX,
             int mantleY,
             int blockZ,
             int clearance
     ) {
         IntPredicate carved = y -> isCarved(engine, blockX, y, blockZ);
-        if (mode == IrisStructureAnchorMode.CAVE_CENTER) {
+        if (mode == StructureAnchorMode.CAVE_CENTER) {
             return matchesCenterGeometry(
                     carved, mantleY, Math.max(1, clearance), 0, engine.getHeight() - 1);
         }
@@ -188,7 +188,7 @@ public final class StructureCaveAnchorResolver {
 
     static boolean matchesGeometry(
             IntPredicate carved,
-            IrisStructureAnchorMode mode,
+            StructureAnchorMode mode,
             int mantleY,
             int clearance
     ) {
@@ -281,14 +281,14 @@ public final class StructureCaveAnchorResolver {
 
     private static boolean matchesAnchorFluid(
             Engine engine,
-            IrisStructurePlacement placement,
+            StructurePlacement placement,
             int blockX,
             int mantleY,
             int blockZ
     ) {
         MatterCavern cavern = cavernAt(engine, blockX, mantleY, blockZ);
         return acceptsAnchorFluid(
-                placement.isUnderwater(),
+                placement.underwater(),
                 cavern,
                 mantleY,
                 engine.getDimension().getCaveLavaHeight());
@@ -322,12 +322,12 @@ public final class StructureCaveAnchorResolver {
 
     private static boolean matchesBiome(
             Engine engine,
-            IrisStructurePlacement placement,
+            StructurePlacement placement,
             int blockX,
             int mantleY,
             int blockZ
     ) {
-        if (placement.getCaveBiomes() == null || placement.getCaveBiomes().isEmpty()) {
+        if (placement.caveBiomes().isEmpty()) {
             return true;
         }
         IrisBiome biome = engine.getCaveOrMantleBiome(blockX, mantleY, blockZ);
@@ -335,7 +335,7 @@ public final class StructureCaveAnchorResolver {
             return false;
         }
         String actual = biome.getLoadKey().toLowerCase(Locale.ROOT);
-        for (String allowed : placement.getCaveBiomes()) {
+        for (String allowed : placement.caveBiomes()) {
             if (matchesBiomeKey(actual, allowed)) {
                 return true;
             }

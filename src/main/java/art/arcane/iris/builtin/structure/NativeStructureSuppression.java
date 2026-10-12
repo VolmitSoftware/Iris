@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,18 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.annotations;
+package art.arcane.iris.builtin.structure;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import com.volmit.config.Desc;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+/** Whether a structure placement replaces the platform structure its structures stand in for. */
+@Desc("Controls whether an Iris structure placement suppresses its imported native source.")
+public enum NativeStructureSuppression {
+    @Desc("Leaves native generation enabled alongside this Iris structure placement.")
+    NONE,
 
-@Retention(RUNTIME)
-@Target({PARAMETER, TYPE, FIELD})
-public @interface RegistryListStructure {
-
+    @Desc("Suppresses the structure's vanillaSource when used by a validated dimension-level replacement placement.")
+    REPLACE_SOURCE
 }

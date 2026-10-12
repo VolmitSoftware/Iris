@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,39 +16,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.structure;
+package art.arcane.iris.builtin.structure;
 
-import art.arcane.iris.builtin.structure.StructureStilts;
-import art.arcane.iris.builtin.structure.StructureTerrain;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListResource;
-import art.arcane.iris.engine.object.annotations.RegistryListStructure;
-import art.arcane.volmlib.util.collection.KList;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import art.arcane.iris.engine.object.structure.IrisStructure;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinItems;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
+import com.volmit.config.ResourceRef;
 
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Where and how often the structures of a dimension, region or biome start, written as one entry of its
+ * {@code "structures": [...]}: the pack's own structures to assemble or the platform's to start natively, the
+ * distribution of the starts, the height they anchor at, and how they meet the terrain. IrisApi types only, besides
+ * the structure resource kind the {@code structures} keys name.
+ */
 @Desc("Attaches structures to a biome, region or dimension and controls where and how often they generate. This is independent of a structure's own native generation, so you can add custom placements in tandem with native generation or instead of it.")
-@Data
-public class IrisStructurePlacement {
-    @ArrayType(type = String.class, min = 1)
-    @RegistryListStructure
+public final class StructurePlacement {
+    @MinItems(1)
+    @ResourceRef(IrisStructure.class)
     @Desc("Editable Iris assembly resources offered by this placement. Leave empty when nativeStructures supplies the source.")
-    private KList<String> structures = new KList<>();
+    private List<String> structures = List.of();
 
-    @ArrayType(type = IrisNativeStructure.class, min = 1)
+    @MinItems(1)
     @Desc("Live registered vanilla, datapack, and modded structures offered by this placement. Minecraft runs their native generator directly, independent of normal biome or dimension eligibility.")
-    private KList<IrisNativeStructure> nativeStructures = new KList<>();
+    private List<NativeStructureSource> nativeStructures = List.of();
 
     @Desc("Stable authored identity for this placement. Set this when multiple placements use the same structure and settings. When empty, Iris derives identity from the placement content so list reordering does not move generated structures.")
     private String placementId = "";
@@ -98,12 +96,12 @@ public class IrisStructurePlacement {
     private boolean underground = false;
 
     @Desc("Vertical anchor policy. LEGACY preserves the underground boolean. Cave modes search existing carved-space data and implicitly behave as underground placements.")
-    private IrisStructureAnchorMode anchor = IrisStructureAnchorMode.LEGACY;
+    private StructureAnchorMode anchor = StructureAnchorMode.LEGACY;
 
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(type = String.class, min = 1)
+    @MinItems(1)
+    @Ref(Reference.PACK_BIOME)
     @Desc("Optional cave-biome allowlist for cave anchor modes. Empty accepts the cave biome resolved at the selected anchor. Entries match by load key, including prefix matches.")
-    private KList<String> caveBiomes = new KList<>();
+    private List<String> caveBiomes = List.of();
 
     @MinNumber(1)
     @MaxNumber(64)
@@ -129,27 +127,129 @@ public class IrisStructurePlacement {
     @Desc("If false, the placement is skipped when its selected surface or cave column is submerged.")
     private boolean underwater = false;
 
+    public StructurePlacement() {
+    }
+
+    /** Keys of the pack's structures the placement assembles, one picked per start. */
+    public List<String> structures() {
+        return listOrEmpty(structures);
+    }
+
+    /** The platform structures the placement starts natively, one picked per start by weight. */
+    public List<NativeStructureSource> nativeStructures() {
+        return listOrEmpty(nativeStructures);
+    }
+
+    public String placementId() {
+        return placementId;
+    }
+
+    public NativeStructureSuppression nativeSuppression() {
+        return nativeSuppression == null ? NativeStructureSuppression.NONE : nativeSuppression;
+    }
+
+    public StructureDistribution distribution() {
+        return distribution == null ? StructureDistribution.RANDOM_SPREAD : distribution;
+    }
+
+    public int spacing() {
+        return spacing;
+    }
+
+    public int separation() {
+        return separation;
+    }
+
+    public int salt() {
+        return salt;
+    }
+
+    public double density() {
+        return density;
+    }
+
+    public int ringCount() {
+        return ringCount;
+    }
+
+    public int ringDistance() {
+        return ringDistance;
+    }
+
+    public int ringSpread() {
+        return ringSpread;
+    }
+
+    public int minHeight() {
+        return minHeight;
+    }
+
+    public int maxHeight() {
+        return maxHeight;
+    }
+
+    public boolean underground() {
+        return underground;
+    }
+
+    /** The anchor as written; {@link #resolvedAnchor} says what {@code LEGACY} means for this placement. */
+    public StructureAnchorMode anchor() {
+        return anchor == null ? StructureAnchorMode.LEGACY : anchor;
+    }
+
+    /** Cave biome keys or key prefixes a cave anchor accepts; empty for any. */
+    public List<String> caveBiomes() {
+        return listOrEmpty(caveBiomes);
+    }
+
+    public int caveAnchorAttempts() {
+        return caveAnchorAttempts;
+    }
+
+    public int caveAnchorScanStep() {
+        return caveAnchorScanStep;
+    }
+
+    public int caveMinimumClearance() {
+        return caveMinimumClearance;
+    }
+
+    /** How the placement's structures meet the terrain; the defaults when the pack wrote none. */
     public StructureTerrain resolvedTerrain() {
         return terrain == null ? new StructureTerrain() : terrain;
     }
 
+    /** The foundation columns under the structures; empty for none. */
+    public Optional<StructureStilts> stilt() {
+        return Optional.ofNullable(stilt);
+    }
+
+    public boolean underwater() {
+        return underwater;
+    }
+
     public boolean hasIrisStructures() {
-        return structures != null && !structures.isEmpty();
+        return !structures().isEmpty();
     }
 
     public boolean hasNativeStructures() {
-        return nativeStructures != null && !nativeStructures.isEmpty();
+        return !nativeStructures().isEmpty();
     }
 
-    public IrisStructureAnchorMode resolvedAnchor() {
-        if (anchor == null || anchor == IrisStructureAnchorMode.LEGACY) {
-            return underground ? IrisStructureAnchorMode.HEIGHT_BAND : IrisStructureAnchorMode.SURFACE;
+    /** The anchor this placement uses: {@code LEGACY} is the band when {@link #underground}, else the surface. */
+    public StructureAnchorMode resolvedAnchor() {
+        if (anchor() == StructureAnchorMode.LEGACY) {
+            return underground ? StructureAnchorMode.HEIGHT_BAND : StructureAnchorMode.SURFACE;
         }
-        return anchor;
+        return anchor();
     }
 
     public boolean isAnchoredUnderground() {
-        IrisStructureAnchorMode activeAnchor = resolvedAnchor();
-        return activeAnchor == IrisStructureAnchorMode.HEIGHT_BAND || activeAnchor.isCave();
+        StructureAnchorMode activeAnchor = resolvedAnchor();
+        return activeAnchor == StructureAnchorMode.HEIGHT_BAND || activeAnchor.isCave();
+    }
+
+    private static <T> List<T> listOrEmpty(List<T> list) {
+        return list == null ? List.of() : Collections.unmodifiableList(list);
     }
 }

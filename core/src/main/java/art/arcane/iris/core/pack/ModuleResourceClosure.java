@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * The resources of the pack's module resource kinds that a pack export has to carry: what the settings of the
@@ -59,12 +60,23 @@ public final class ModuleResourceClosure {
     private final Map<Class<?>, ResourceKind<?>> kindsByType = new HashMap<>();
     private final Map<ResourceKind<?>, Map<String, Object>> found = new LinkedHashMap<>();
     private final Set<Object> visited = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<Class<?>, Set<String>> exportedElsewhere = new HashMap<>();
 
     public ModuleResourceClosure(IrisData data) {
         this.data = data;
         for (ResourceKindRegistration registration : data.getModules().pack().catalog().resourceKinds()) {
             kindsByType.put(registration.kind().type(), registration.kind());
         }
+    }
+
+    /**
+     * Leaves the resources that read into {@code type} to another exporter, such as Iris's structure closure that
+     * copies structures with their pools, pieces and loot: {@link #keysOf} names the ones referenced, but they are
+     * not loaded, followed or written. Call before following anything.
+     */
+    public ModuleResourceClosure exportingElsewhere(Class<?> type) {
+        exportedElsewhere.putIfAbsent(type, new TreeSet<>());
+        return this;
     }
 
     /** Adds the resources that the module settings of {@code owner} reference, and those they reference. */
@@ -108,6 +120,9 @@ public final class ModuleResourceClosure {
 
     /** The keys of the resources found of the kind that reads into {@code type}, in key order. */
     public List<String> keysOf(Class<?> type) {
+        if (exportedElsewhere.containsKey(type)) {
+            return new ArrayList<>(exportedElsewhere.get(type));
+        }
         ResourceKind<?> kind = kindsByType.get(type);
         return kind == null || !found.containsKey(kind) ? List.of() : new ArrayList<>(new TreeMap<>(found.get(kind)).keySet());
     }
@@ -173,6 +188,11 @@ public final class ModuleResourceClosure {
     private void add(Class<?> type, String key) {
         ResourceKind<?> kind = kindsByType.get(type);
         if (kind == null || key == null || key.isBlank()) {
+            return;
+        }
+        Set<String> elsewhere = exportedElsewhere.get(type);
+        if (elsewhere != null) {
+            elsewhere.add(key);
             return;
         }
         Map<String, Object> ofKind = found.computeIfAbsent(kind, ignored -> new LinkedHashMap<>());

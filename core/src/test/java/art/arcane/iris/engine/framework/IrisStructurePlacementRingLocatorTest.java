@@ -2,14 +2,18 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placement;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.nativeSource;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.declaring;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -23,11 +27,11 @@ public class IrisStructurePlacementRingLocatorTest {
 
     @Test
     public void zeroVanillaRingSearchesTheOriginPlacementCell() {
-        IrisStructurePlacement placement = randomPlacement("origin-cell", 24, 6);
+        StructurePlacement placement = randomPlacement("origin-cell", 24, 6);
         Engine engine = engine(placement);
         long seed = engine.getSeedManager().getMantle();
         int[] expected = StructurePlacementGrid.randomSpreadCellChunk(
-                0, 0, placement.getSpacing(), placement.getSeparation(),
+                0, 0, placement.spacing(), placement.separation(),
                 StructurePlacementGrid.placementSalt(placement), seed);
         assertTrue(expected[0] != 0 || expected[1] != 0);
 
@@ -45,8 +49,8 @@ public class IrisStructurePlacementRingLocatorTest {
 
     @Test
     public void mixedSpacingPlacementsShareTheSameVanillaRingIndex() {
-        IrisStructurePlacement small = randomPlacement("small-grid", 8, 2);
-        IrisStructurePlacement large = randomPlacement("large-grid", 40, 10);
+        StructurePlacement small = randomPlacement("small-grid", 8, 2);
+        StructurePlacement large = randomPlacement("large-grid", 40, 10);
         Engine engine = engine(small, large);
         long seed = engine.getSeedManager().getMantle();
         int[] smallRingZero = candidate(small, seed, 0, 0);
@@ -74,14 +78,9 @@ public class IrisStructurePlacementRingLocatorTest {
 
     @Test
     public void concentricPlacementsIgnoreTheRandomSpreadRingRadius() {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId("concentric")
-                .setDistribution(StructureDistribution.CONCENTRIC_RINGS)
-                .setRingCount(1)
-                .setRingDistance(32)
-                .setRingSpread(1);
-        placement.getNativeStructures().add(
-                new IrisNativeStructure().setStructure(STRUCTURE_KEY));
+        StructurePlacement placement = placement("placementId", "concentric", "distribution", StructureDistribution.CONCENTRIC_RINGS, "ringCount", 1, "ringDistance", 32, "ringSpread", 1);
+        withAdded(placement, "nativeStructures", 
+                nativeSource(STRUCTURE_KEY));
         Engine engine = engine(placement);
 
         IrisStructureLocator.LocateResult result =
@@ -96,12 +95,9 @@ public class IrisStructurePlacementRingLocatorTest {
 
     @Test
     public void sparseDensityPlacementRingSearchStopsAtTheCandidateBudget() {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId("density")
-                .setDistribution(StructureDistribution.DENSITY)
-                .setDensity(1.0);
-        placement.getNativeStructures().add(
-                new IrisNativeStructure().setStructure(STRUCTURE_KEY));
+        StructurePlacement placement = placement("placementId", "density", "distribution", StructureDistribution.DENSITY, "density", 1.0);
+        withAdded(placement, "nativeStructures", 
+                nativeSource(STRUCTURE_KEY));
         Engine engine = engine(placement);
 
         IrisStructureLocator.LocateResult result =
@@ -114,14 +110,9 @@ public class IrisStructurePlacementRingLocatorTest {
 
     @Test
     public void concentricPlacementRingSearchStopsAtTheSharedCandidateBudget() {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId("unbounded-concentric-rings")
-                .setDistribution(StructureDistribution.CONCENTRIC_RINGS)
-                .setRingCount(Integer.MAX_VALUE)
-                .setRingDistance(32)
-                .setRingSpread(1);
-        placement.getNativeStructures().add(
-                new IrisNativeStructure().setStructure(STRUCTURE_KEY));
+        StructurePlacement placement = placement("placementId", "unbounded-concentric-rings", "distribution", StructureDistribution.CONCENTRIC_RINGS, "ringCount", Integer.MAX_VALUE, "ringDistance", 32, "ringSpread", 1);
+        withAdded(placement, "nativeStructures", 
+                nativeSource(STRUCTURE_KEY));
         Engine engine = engine(placement);
 
         IrisStructureLocator.LocateResult result = IrisStructureLocator.locateInPlacementRings(
@@ -132,14 +123,9 @@ public class IrisStructurePlacementRingLocatorTest {
 
     @Test
     public void concentricChunkRadiusSearchStopsAtTheSharedCandidateBudget() {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId("unbounded-concentric-chunks")
-                .setDistribution(StructureDistribution.CONCENTRIC_RINGS)
-                .setRingCount(Integer.MAX_VALUE)
-                .setRingDistance(32)
-                .setRingSpread(1);
-        placement.getNativeStructures().add(
-                new IrisNativeStructure().setStructure(STRUCTURE_KEY));
+        StructurePlacement placement = placement("placementId", "unbounded-concentric-chunks", "distribution", StructureDistribution.CONCENTRIC_RINGS, "ringCount", Integer.MAX_VALUE, "ringDistance", 32, "ringSpread", 1);
+        withAdded(placement, "nativeStructures", 
+                nativeSource(STRUCTURE_KEY));
         Engine engine = engine(placement);
 
         IrisStructureLocator.LocateResult result = IrisStructureLocator.locate(
@@ -149,31 +135,27 @@ public class IrisStructurePlacementRingLocatorTest {
     }
 
     private static int[] candidate(
-            IrisStructurePlacement placement, long seed, int cellX, int cellZ) {
+            StructurePlacement placement, long seed, int cellX, int cellZ) {
         return StructurePlacementGrid.randomSpreadCellChunk(
-                cellX, cellZ, placement.getSpacing(), placement.getSeparation(),
+                cellX, cellZ, placement.spacing(), placement.separation(),
                 StructurePlacementGrid.placementSalt(placement), seed);
     }
 
-    private static IrisStructurePlacement randomPlacement(
+    private static StructurePlacement randomPlacement(
             String placementId, int spacing, int separation) {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setPlacementId(placementId)
-                .setDistribution(StructureDistribution.RANDOM_SPREAD)
-                .setSpacing(spacing)
-                .setSeparation(separation);
-        placement.getNativeStructures().add(
-                new IrisNativeStructure().setStructure(STRUCTURE_KEY));
+        StructurePlacement placement = placement("placementId", placementId, "distribution", StructureDistribution.RANDOM_SPREAD, "spacing", spacing, "separation", separation);
+        withAdded(placement, "nativeStructures", 
+                nativeSource(STRUCTURE_KEY));
         return placement;
     }
 
-    private static Engine engine(IrisStructurePlacement... placements) {
+    private static Engine engine(StructurePlacement... placements) {
         IrisData data = mock(IrisData.class);
         IrisDimension dimension = mock(IrisDimension.class);
         Engine engine = mock(Engine.class);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
-        KList<IrisStructurePlacement> configured = new KList<>();
-        for (IrisStructurePlacement placement : placements) {
+        KList<StructurePlacement> configured = new KList<>();
+        for (StructurePlacement placement : placements) {
             configured.add(placement);
         }
         when(engine.getData()).thenReturn(data);
@@ -184,7 +166,7 @@ public class IrisStructurePlacementRingLocatorTest {
         when(engine.getHeight()).thenReturn(384);
         when(engine.getHeight(anyInt(), anyInt(), anyBoolean())).thenReturn(128);
         when(dimension.getFluidHeight()).thenReturn(63);
-        when(dimension.getStructures()).thenReturn(configured);
+        when(dimension.getModuleSettings()).thenReturn(declaring(configured));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

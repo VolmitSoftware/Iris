@@ -63,7 +63,6 @@ public class NativeStructureVolumeSuppressionTest {
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
-        when(dimension.getStructures()).thenReturn(new KList<>());
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

@@ -32,22 +32,27 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSuppression;
+import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.host.ModuleLogs;
 import org.junit.Test;
 
 import java.util.Set;
+import art.arcane.iris.engine.object.TestSettings;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placement;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.nativeSource;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.declaring;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -100,11 +105,11 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void locatablePlacementsExcludeEveryDistributionOutsideWorldHeight() {
         Engine randomSpread = densityEngine(1.0, false, -64, 384, 400, 500);
-        randomSpread.getDimension().getStructures().get(0)
-                .setDistribution(StructureDistribution.RANDOM_SPREAD);
+        TestSettings.with(StructurePlacementScope.placementsOf(randomSpread.getDimension()).get(0),
+                "distribution", StructureDistribution.RANDOM_SPREAD);
         Engine concentricRings = densityEngine(1.0, false, -64, 384, 400, 500);
-        concentricRings.getDimension().getStructures().get(0)
-                .setDistribution(StructureDistribution.CONCENTRIC_RINGS);
+        TestSettings.with(StructurePlacementScope.placementsOf(concentricRings.getDimension()).get(0),
+                "distribution", StructureDistribution.CONCENTRIC_RINGS);
 
         assertFalse(IrisStructureLocator.hasLocatablePlacement(randomSpread, "test:density"));
         assertFalse(IrisStructureLocator.hasLocatablePlacement(concentricRings, "test:density"));
@@ -118,13 +123,12 @@ public class IrisStructureLocatorContractTest {
         structure.setVanillaSource("source:city");
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city_definition", structure);
 
-        IrisStructurePlacement editable = new IrisStructurePlacement();
-        editable.getStructures().add("test:city_definition");
-        IrisStructurePlacement nativePlacement = new IrisStructurePlacement();
-        nativePlacement.getNativeStructures().add(new IrisNativeStructure()
-                .setStructure("source:native_city"));
+        StructurePlacement editable = new StructurePlacement();
+        withAdded(editable, "structures", "test:city_definition");
+        StructurePlacement nativePlacement = new StructurePlacement();
+        withAdded(nativePlacement, "nativeStructures", nativeSource("source:native_city"));
         IrisDimension dimension = mock(IrisDimension.class);
-        KList<IrisStructurePlacement> placements = new KList<>();
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(editable);
         placements.add(nativePlacement);
         Engine engine = mock(Engine.class);
@@ -133,7 +137,7 @@ public class IrisStructureLocatorContractTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(declaring(placements));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
 
@@ -159,15 +163,13 @@ public class IrisStructureLocatorContractTest {
         Engine engine = mock(Engine.class);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
-        placement.getNativeStructures().add(new IrisNativeStructure()
-                .setStructure("minecraft:ancient_city"));
-        KList<IrisStructurePlacement> placements = new KList<>();
+        StructurePlacement placement = placement("nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
+        withAdded(placement, "nativeStructures", nativeSource("minecraft:ancient_city"));
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(placement);
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(declaring(placements));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
 
@@ -193,12 +195,12 @@ public class IrisStructureLocatorContractTest {
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
 
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add("test:city");
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", "test:city");
         IrisDimension dimension = mock(IrisDimension.class);
-        KList<IrisStructurePlacement> placements = new KList<>();
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(placement);
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(declaring(placements));
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
 
@@ -210,7 +212,7 @@ public class IrisStructureLocatorContractTest {
 
         assertTrue(IrisStructureLocator.isPlaced(engine, "minecraft:ancient_city"));
         assertFalse(IrisStructureLocator.suppressesVanilla(engine, "minecraft:ancient_city"));
-        placement.setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
+        TestSettings.with(placement, "nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         assertTrue(IrisStructureLocator.suppressesVanilla(engine, "minecraft:ancient_city"));
     }
@@ -224,13 +226,13 @@ public class IrisStructureLocatorContractTest {
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
 
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add("test:city");
-        placement.setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", "test:city");
+        TestSettings.with(placement, "nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
         IrisRegion region = mock(IrisRegion.class);
-        when(region.getStructures()).thenReturn(new KList<IrisStructurePlacement>().qadd(placement));
+        when(region.getModuleSettings()).thenReturn(declaring(new KList<StructurePlacement>().qadd(placement)));
         IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getStructures()).thenReturn(new KList<>());
+        when(dimension.getModuleSettings()).thenReturn(declaring(new KList<>()));
         when(dimension.getAllRegions(any())).thenReturn(new KList<IrisRegion>().qadd(region));
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
 
@@ -291,11 +293,10 @@ public class IrisStructureLocatorContractTest {
         when(data.load(IrisObject.class, "test:target-object", false)).thenReturn(targetObject);
         assertFalse(StructureGraphCatalog.compile(data, structure, ModuleLogs.discarding()).isAssemblyViable());
 
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
-        placement.getStructures().add("test:city");
+        StructurePlacement placement = placement("nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
+        withAdded(placement, "structures", "test:city");
         IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getStructures()).thenReturn(new KList<IrisStructurePlacement>().qadd(placement));
+        when(dimension.getModuleSettings()).thenReturn(declaring(new KList<StructurePlacement>().qadd(placement)));
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
@@ -315,11 +316,10 @@ public class IrisStructureLocatorContractTest {
         structure.setLoadKey("test:city");
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:city", structure);
         registerSinglePieceGraph(data, structure, "test:city");
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
-        placement.getStructures().add("test:city");
+        StructurePlacement placement = placement("nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
+        withAdded(placement, "structures", "test:city");
         IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getStructures()).thenReturn(new KList<IrisStructurePlacement>().qadd(placement));
+        when(dimension.getModuleSettings()).thenReturn(declaring(new KList<StructurePlacement>().qadd(placement)));
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
@@ -336,10 +336,10 @@ public class IrisStructureLocatorContractTest {
     public void missingNonReplacementStructureFailsInsteadOfBeingSkipped() {
         IrisData data = mock(IrisData.class);
         ModuleResourceFixture.serve(data);
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add("test:missing");
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", "test:missing");
         IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getStructures()).thenReturn(new KList<IrisStructurePlacement>().qadd(placement));
+        when(dimension.getModuleSettings()).thenReturn(declaring(new KList<StructurePlacement>().qadd(placement)));
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
@@ -355,15 +355,14 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void placementResolutionRejectsAnUnboundEngine() {
         assertReplacementFailure(
-                () -> IrisStructureLocator.resolvePlacement(null, new IrisStructurePlacement(), 0, 0),
+                () -> IrisStructureLocator.resolvePlacement(null, new StructurePlacement(), 0, 0),
                 "fully bound engine");
     }
 
     @Test
     public void replacementOutputFailureIncludesStructureAndChunkContext() {
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
-        placement.getStructures().add("test:city");
+        StructurePlacement placement = placement("nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
+        withAdded(placement, "structures", "test:city");
 
         assertReplacementFailure(
                 () -> IrisStructureLocator.requirePlacementOutput(
@@ -373,8 +372,8 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void nonReplacementOutputAbsenceRemainsSkippable() {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add("test:city");
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", "test:city");
 
         assertFalse(IrisStructureLocator.requirePlacementOutput(
                 placement, "test:city", 12, -7, false, "runtime assembly produced no pieces"));
@@ -466,7 +465,7 @@ public class IrisStructureLocatorContractTest {
         Engine engine = densityEngine(1.0, false, -64, 384, -2032, 2032);
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(128);
         when(engine.getDimension().getFluidHeight()).thenReturn(63);
-        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        StructurePlacement placement = StructurePlacementScope.placementsOf(engine.getDimension()).get(0);
         NearestScenario scenario = nearestEqualChunkDistanceScenario(engine, placement);
         assertNotNull(scenario);
 
@@ -494,19 +493,19 @@ public class IrisStructureLocatorContractTest {
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.setDistribution(StructureDistribution.DENSITY);
-        placement.setMinHeight(-32);
-        placement.setMaxHeight(128);
+        StructurePlacement placement = new StructurePlacement();
+        TestSettings.with(placement, "distribution", StructureDistribution.DENSITY);
+        TestSettings.with(placement, "minHeight", -32);
+        TestSettings.with(placement, "maxHeight", 128);
 
-        placement.setDensity(Double.NaN);
+        TestSettings.with(placement, "density", Double.NaN);
         assertFalse(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
-        placement.setDensity(0.0);
+        TestSettings.with(placement, "density", 0.0);
         assertFalse(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
-        placement.setDensity(0.01);
+        TestSettings.with(placement, "density", 0.01);
         assertTrue(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
-        placement.setMinHeight(400);
-        placement.setMaxHeight(500);
+        TestSettings.with(placement, "minHeight", 400);
+        TestSettings.with(placement, "maxHeight", 500);
         assertFalse(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
     }
 
@@ -545,9 +544,9 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void selectedStructureKeyDoesNotMatchUnselectedPlacementMember() {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add("test:first");
-        placement.getStructures().add("test:second");
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", "test:first");
+        withAdded(placement, "structures", "test:second");
         RNG selectsLast = new RNG(1L) {
             @Override
             public int nextInt(int bound) {
@@ -569,10 +568,10 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void undergroundAssemblyIsShiftedToFitOrRejectedWhole() {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.setUnderground(true);
-        placement.setMinHeight(-10);
-        placement.setMaxHeight(10);
+        StructurePlacement placement = new StructurePlacement();
+        TestSettings.with(placement, "underground", true);
+        TestSettings.with(placement, "minHeight", -10);
+        TestSettings.with(placement, "maxHeight", 10);
 
         KList<PlacedStructurePiece> movable = new KList<>();
         movable.add(piece(-4, -10, -4, 4, 5, 4));
@@ -582,7 +581,7 @@ public class IrisStructureLocatorContractTest {
         tooTall.add(piece(-4, -100, -4, 4, 400, 4));
         assertNull(IrisStructureLocator.resolveVerticalShift(tooTall, placement, 0, 0, 319));
 
-        placement.setUnderground(false);
+        TestSettings.with(placement, "underground", false);
         KList<PlacedStructurePiece> clippedSurface = new KList<>();
         clippedSurface.add(piece(-4, 300, -4, 4, 330, 4));
         assertNull(IrisStructureLocator.resolveVerticalShift(clippedSurface, placement, 300, -64, 319));
@@ -592,19 +591,19 @@ public class IrisStructureLocatorContractTest {
     public void caveAssemblyBoundsAlignToTheRequestedAnchorFace() {
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(-2, 10, -2, 2, 14, 2));
-        IrisStructurePlacement placement = new IrisStructurePlacement();
+        StructurePlacement placement = new StructurePlacement();
 
-        placement.setAnchor(IrisStructureAnchorMode.CAVE_FLOOR);
+        TestSettings.with(placement, "anchor", StructureAnchorMode.CAVE_FLOOR);
         KList<PlacedStructurePiece> floor = IrisStructureLocator.alignCavePieces(pieces, placement, 40);
         assertEquals(40, floor.getFirst().getMinY());
         assertEquals(44, floor.getFirst().getMaxY());
 
-        placement.setAnchor(IrisStructureAnchorMode.CAVE_CEILING);
+        TestSettings.with(placement, "anchor", StructureAnchorMode.CAVE_CEILING);
         KList<PlacedStructurePiece> ceiling = IrisStructureLocator.alignCavePieces(pieces, placement, 40);
         assertEquals(36, ceiling.getFirst().getMinY());
         assertEquals(40, ceiling.getFirst().getMaxY());
 
-        placement.setAnchor(IrisStructureAnchorMode.CAVE_CENTER);
+        TestSettings.with(placement, "anchor", StructureAnchorMode.CAVE_CENTER);
         KList<PlacedStructurePiece> center = IrisStructureLocator.alignCavePieces(pieces, placement, 40);
         assertEquals(38, center.getFirst().getMinY());
         assertEquals(42, center.getFirst().getMaxY());
@@ -616,19 +615,14 @@ public class IrisStructureLocatorContractTest {
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setDistribution(StructureDistribution.DENSITY)
-                .setDensity(1D)
-                .setAnchor(IrisStructureAnchorMode.CAVE_FLOOR)
-                .setMinHeight(319)
-                .setMaxHeight(319);
+        StructurePlacement placement = placement("distribution", StructureDistribution.DENSITY, "density", 1D, "anchor", StructureAnchorMode.CAVE_FLOOR, "minHeight", 319, "maxHeight", 319);
 
         assertFalse(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
-        placement.setMinHeight(318).setMaxHeight(318);
+        TestSettings.with(placement, "minHeight", 318, "maxHeight", 318);
         assertTrue(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
 
         when(engine.getHeight()).thenReturn(2);
-        placement.setMinHeight(-2032).setMaxHeight(2032);
+        TestSettings.with(placement, "minHeight", -2032, "maxHeight", 2032);
         assertFalse(IrisStructureLocator.isSearchableDensityPlacement(engine, placement));
     }
 
@@ -639,18 +633,18 @@ public class IrisStructureLocatorContractTest {
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight(anyInt(), anyInt(), eq(true)))
                 .thenAnswer(invocation -> invocation.<Integer>getArgument(0) == 1 ? 140 : 164);
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.setUnderground(true);
-        placement.setMinHeight(-64);
-        placement.setMaxHeight(100);
+        StructurePlacement placement = new StructurePlacement();
+        TestSettings.with(placement, "underground", true);
+        TestSettings.with(placement, "minHeight", -64);
+        TestSettings.with(placement, "maxHeight", 100);
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(0, 60, 0, 1, 80, 0));
 
         assertEquals(Integer.valueOf(-5), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        placement.setMinHeight(60);
-        placement.setMaxHeight(60);
+        TestSettings.with(placement, "minHeight", 60);
+        TestSettings.with(placement, "maxHeight", 60);
         assertNull(IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
     }
@@ -661,26 +655,26 @@ public class IrisStructureLocatorContractTest {
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(164);
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.setUnderground(true);
-        placement.setMinHeight(-64);
-        placement.setMaxHeight(100);
-        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ERODED\""));
+        StructurePlacement placement = new StructurePlacement();
+        TestSettings.with(placement, "underground", true);
+        TestSettings.with(placement, "minHeight", -64);
+        TestSettings.with(placement, "maxHeight", 100);
+        TestSettings.with(placement, "terrain", forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ERODED\""));
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(0, 60, 0, 1, 80, 1));
 
         assertEquals(Integer.valueOf(-14), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ERODED\",\"erosionStrength\":0"));
+        TestSettings.with(placement, "terrain", forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ERODED\",\"erosionStrength\":0"));
         assertEquals(Integer.valueOf(-1), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ROUNDED\",\"erosionStrength\":0"));
+        TestSettings.with(placement, "terrain", forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":20,\"shape\":\"ROUNDED\",\"erosionStrength\":0"));
         assertEquals(Integer.valueOf(-1), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
 
-        placement.setTerrain(forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":0,\"shape\":\"ROUNDED\",\"erosionStrength\":0"));
+        TestSettings.with(placement, "terrain", forceCarve("\"horizontalPadding\":2,\"ceilingPadding\":0,\"shape\":\"ROUNDED\",\"erosionStrength\":0"));
         assertEquals(Integer.valueOf(0), IrisStructureLocator.resolveUndergroundBurialShift(
                 engine, pieces, placement, 60, -63, 319));
     }
@@ -691,11 +685,7 @@ public class IrisStructureLocatorContractTest {
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(164);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setUnderground(true)
-                .setMinHeight(-64)
-                .setMaxHeight(100)
-                .setTerrain(forceCarve("\"shape\":\"ROUNDED\",\"horizontalPadding\":0,\"ceilingPadding\":0"));
+        StructurePlacement placement = placement("underground", true, "minHeight", -64, "maxHeight", 100, "terrain", forceCarve("\"shape\":\"ROUNDED\",\"horizontalPadding\":0,\"ceilingPadding\":0"));
         KList<PlacedStructurePiece> pieces = new KList<>();
         pieces.add(piece(4, 60, 7, 4, 80, 7));
 
@@ -706,7 +696,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void exactYOnlyCoversPlacementPathsWithResolvedAbsoluteAnchors() {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
+        StructurePlacement placement = new StructurePlacement();
         IrisStructure structure = new IrisStructure();
         structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
         KList<PlacedStructurePiece> onePiece = new KList<>();
@@ -717,10 +707,10 @@ public class IrisStructureLocatorContractTest {
         assertTrue(IrisStructureLocator.hasExactY(placement, structure, onePiece));
 
         structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setUnderground(true);
+        TestSettings.with(placement, "underground", true);
         assertTrue(IrisStructureLocator.hasExactY(placement, structure, onePiece));
 
-        placement.setUnderground(false);
+        TestSettings.with(placement, "underground", false);
         KList<PlacedStructurePiece> multiplePieces = new KList<>(onePiece);
         multiplePieces.add(piece(5, 1, -4, 12, 20, 4));
         assertTrue(IrisStructureLocator.hasExactY(placement, structure, multiplePieces));
@@ -743,7 +733,7 @@ public class IrisStructureLocatorContractTest {
     }
 
     private NearestScenario nearestEqualChunkDistanceScenario(
-            Engine engine, IrisStructurePlacement placement) {
+            Engine engine, StructurePlacement placement) {
         int[][] chunks = {
                 {-1, -1}, {-1, 0}, {-1, 1}, {0, -1},
                 {0, 1}, {1, -1}, {1, 0}, {1, 1}
@@ -798,7 +788,7 @@ public class IrisStructureLocatorContractTest {
         IrisDimension dimension = mock(IrisDimension.class);
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getStructures()).thenReturn(new KList<>());
+        when(dimension.getModuleSettings()).thenReturn(declaring(new KList<>()));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;
@@ -812,26 +802,26 @@ public class IrisStructureLocatorContractTest {
         ModuleResourceFixture.of(data).resource(StructureResources.STRUCTURES, "test:density", structure);
         registerSinglePieceGraph(data, structure, "test:density");
 
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add("test:density");
-        placement.setDistribution(StructureDistribution.DENSITY);
-        placement.setDensity(density);
-        placement.setUnderground(underground);
-        placement.setMinHeight(placementMin);
-        placement.setMaxHeight(placementMax);
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", "test:density");
+        TestSettings.with(placement, "distribution", StructureDistribution.DENSITY);
+        TestSettings.with(placement, "density", density);
+        TestSettings.with(placement, "underground", underground);
+        TestSettings.with(placement, "minHeight", placementMin);
+        TestSettings.with(placement, "maxHeight", placementMax);
 
         Engine engine = mock(Engine.class);
 
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
-        KList<IrisStructurePlacement> placements = new KList<>();
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(placement);
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getSeedManager()).thenReturn(new SeedManager(77L));
         when(engine.getMinHeight()).thenReturn(worldMin);
         when(engine.getHeight()).thenReturn(worldHeight);
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(declaring(placements));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

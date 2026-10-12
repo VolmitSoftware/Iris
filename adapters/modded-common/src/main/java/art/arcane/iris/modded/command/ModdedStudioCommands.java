@@ -38,7 +38,7 @@ import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.core.pack.ModuleResourceClosure;
 import art.arcane.iris.core.pack.PackExportClosure;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
@@ -881,9 +881,8 @@ public final class ModdedStudioCommands {
         LinkedHashSet<String> regionKeys = new LinkedHashSet<>();
         LinkedHashSet<String> biomeKeys = new LinkedHashSet<>();
         LinkedHashSet<String> generatorKeys = new LinkedHashSet<>();
-        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm);
+        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm).exportingElsewhere(IrisStructure.class);
         LinkedHashSet<String> objectKeys = new LinkedHashSet<>();
-        LinkedHashSet<String> structureKeys = new LinkedHashSet<>();
 
         dimension.getAllRegions(() -> dm).forEach((IrisRegion region) -> {
             if (region != null && region.getLoadKey() != null) {
@@ -896,7 +895,6 @@ public final class ModdedStudioCommands {
             }
         });
         moduleResources.followSettingsOf(dimension);
-        collectStructureKeys(structureKeys, dimension.getStructures());
 
         for (String regionKey : regionKeys) {
             IrisRegion region = dm.getRegionLoader().load(regionKey);
@@ -910,7 +908,6 @@ public final class ModdedStudioCommands {
             });
             moduleResources.followSettingsOf(region);
             moduleResources.follow(region.getObjects());
-            collectStructureKeys(structureKeys, region.getStructures());
             objectKeys.addAll(PackExportClosure.collectObjectKeys(region.getObjects()));
         }
         for (String biomeKey : biomeKeys) {
@@ -921,11 +918,11 @@ public final class ModdedStudioCommands {
             biome.getGenerators().forEach((IrisBiomeGeneratorLink link) -> generatorKeys.add(link.getGenerator()));
             moduleResources.followSettingsOf(biome);
             moduleResources.follow(biome.getObjects());
-            collectStructureKeys(structureKeys, biome.getStructures());
             objectKeys.addAll(PackExportClosure.collectObjectKeys(biome.getObjects()));
         }
 
         StringBuilder hashes = new StringBuilder();
+        List<String> structureKeys = moduleResources.keysOf(IrisStructure.class);
         StructurePackageClosure structureClosure = StructurePackageClosure.collect(packFolder, structureKeys);
         if (!structureClosure.isValid()) {
             throw new IOException("Structure package closure is invalid: " + String.join("; ", structureClosure.errors()));
@@ -967,20 +964,6 @@ public final class ModdedStudioCommands {
         ZipUtil.pack(folder, output, 9);
         IO.delete(folder);
         return output;
-    }
-
-    private static void collectStructureKeys(LinkedHashSet<String> keys, List<IrisStructurePlacement> placements) {
-        if (placements == null) {
-            return;
-        }
-        for (IrisStructurePlacement placement : placements) {
-            if (placement == null || placement.getStructures() == null) {
-                continue;
-            }
-            for (String structureKey : placement.getStructures()) {
-                keys.add(structureKey);
-            }
-        }
     }
 
     private static String copyJson(File folder, String category, String key, File file) {

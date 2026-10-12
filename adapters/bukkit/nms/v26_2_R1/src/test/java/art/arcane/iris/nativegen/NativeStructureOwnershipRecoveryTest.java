@@ -5,7 +5,9 @@ import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.framework.NativeStartMemo;
 import art.arcane.iris.engine.framework.NativeStructureReach;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderSet;
@@ -295,7 +297,7 @@ public class NativeStructureOwnershipRecoveryTest {
                         monumentStart(structure(), origin, 1L)).minY(),
                 false,
                 false,
-                StructurePlacementGrid.placementIdentity(new IrisStructurePlacement().setPlacementId(placementId)),
+                StructurePlacementGrid.placementIdentity(placementWithId(placementId)),
                 null,
                 new NativeStartMemo(terrain, "null")
         );
@@ -321,5 +323,12 @@ public class NativeStructureOwnershipRecoveryTest {
             }
         }
         return false;
+    }
+
+    /** A structure placement as a pack writing only its {@code placementId} has it. */
+    private static StructurePlacement placementWithId(String placementId) {
+        JsonObject json = new JsonObject();
+        json.addProperty("placementId", placementId);
+        return new Gson().fromJson(json, StructurePlacement.class);
     }
 }

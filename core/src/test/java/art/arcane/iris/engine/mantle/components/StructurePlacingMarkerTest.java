@@ -3,13 +3,15 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placement;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -95,8 +97,8 @@ public class StructurePlacingMarkerTest {
             NativeStructureSuppression suppression,
             KList<PlacedStructurePiece> pieces
     ) {
-        IrisStructurePlacement placement = new IrisStructurePlacement().setNativeSuppression(suppression);
-        placement.getStructures().add("test:city");
+        StructurePlacement placement = placement("nativeSuppression", suppression);
+        withAdded(placement, "structures", "test:city");
         IrisStructure structure = new IrisStructure();
         structure.setLoadKey("test:city");
         return new IrisStructureLocator.ResolvedPlacement(

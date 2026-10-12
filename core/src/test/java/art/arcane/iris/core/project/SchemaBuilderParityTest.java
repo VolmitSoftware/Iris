@@ -29,7 +29,6 @@ import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.MaxNumber;
@@ -44,7 +43,6 @@ import art.arcane.iris.engine.object.annotations.RegistryListSpecialEntity;
 import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructure;
 import art.arcane.iris.engine.object.annotations.functions.LootTableKeyFunction;
 import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.spi.PlatformBiome;
@@ -171,8 +169,10 @@ public class SchemaBuilderParityTest {
 
     @Test
     public void structurePlacementSchemaIncludesFoundationSettingsAndOmitsUnsupportedTransforms() {
-        JSONObject schema = new SchemaBuilder(IrisStructurePlacement.class, structureSchemaData()).construct();
-        JSONObject properties = schema.getJSONObject("properties");
+        JSONObject schema = new SchemaBuilder(IrisBiome.class, structureSchemaData()).construct();
+        JSONObject structures = rootProperties(schema).getJSONObject("structures");
+        JSONObject properties = schema.getJSONObject("definitions")
+                .getJSONObject(definitionKey(structures.getJSONObject("items"))).getJSONObject("properties");
         JSONObject stilt = properties.getJSONObject("stilt");
         JSONObject stiltDefinition = schema.getJSONObject("definitions")
                 .getJSONObject(stilt.getString("$ref").substring("#/definitions/".length()));
@@ -206,7 +206,7 @@ public class SchemaBuilderParityTest {
         assertEquals(1D, lobeFrequency.getDouble("maximum"), 0D);
         assertEquals(0D, lobeStrength.getDouble("minimum"), 0D);
         assertEquals(1D, lobeStrength.getDouble("maximum"), 0D);
-        assertEquals("object", stilt.getString("type"));
+        assertEquals("module-art-arcane-iris-builtin-structure-structurestilts", definitionKey(stilt));
         assertTrue(stiltProperties.has("palette"));
         assertTrue(stiltProperties.has("supportNonOccluding"));
         assertEquals(1, maxDepth.getInt("minimum"));
@@ -268,9 +268,13 @@ public class SchemaBuilderParityTest {
         IrisPlatforms.unbind();
         IrisPlatforms.bind(new FakePlatform(hooks));
 
-        JSONObject schema = new SchemaBuilder(IrisNativeStructure.class, structureSchemaData()).construct();
+        JSONObject schema = new SchemaBuilder(IrisDimension.class, structureSchemaData()).construct();
         JSONObject definitions = schema.getJSONObject("definitions");
-        JSONObject jigsaw = definitions.getJSONObject(definitionKey(schema.getJSONObject("properties").getJSONObject("jigsaw")))
+        JSONObject placement = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("structures")
+                .getJSONObject("items"))).getJSONObject("properties");
+        JSONObject source = definitions.getJSONObject(definitionKey(placement.getJSONObject("nativeStructures")
+                .getJSONObject("items"))).getJSONObject("properties");
+        JSONObject jigsaw = definitions.getJSONObject(definitionKey(source.getJSONObject("jigsaw")))
                 .getJSONObject("properties");
 
         assertEquals("enum-native-jigsaw-pool", definitionKey(jigsaw.getJSONObject("startPool")));

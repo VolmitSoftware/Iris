@@ -10,12 +10,12 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
+import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformStructureHooks;
@@ -30,7 +30,11 @@ import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import art.arcane.iris.engine.object.TestSettings;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.nativeSource;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placementSettings;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -89,7 +93,7 @@ public class StructureHandlerTest {
         StructureSettings settings = new StructureSettings(List.of("pack:disabled", "pack:replacement", "pack:dormant_replacement"),
                 List.of(), 0, true, List.of(), List.of());
 
-        KList<IrisStructurePlacement> placements = new KList<>();
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(nativePlacement("pack:replacement", StructureDistribution.RANDOM_SPREAD, 1.0));
         placements.add(nativePlacement("pack:dormant_replacement", StructureDistribution.DENSITY, 0.0));
         placements.add(nativePlacement("pack:explicit", StructureDistribution.RANDOM_SPREAD, 1.0));
@@ -114,8 +118,7 @@ public class StructureHandlerTest {
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
         when(world.platformWorld()).thenReturn(platformWorld);
-        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings, placementSettings(placements)));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         when(platform.structureHooks()).thenReturn(hooks);
@@ -169,7 +172,7 @@ public class StructureHandlerTest {
         IrisStructure replacement = new IrisStructure();
         replacement.setLoadKey("iris:replacement");
         replacement.setVanillaSource("minecraft:replacement");
-        KList<IrisStructurePlacement> placements = new KList<>();
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(editablePlacement("iris:editable_definition"));
         placements.add(editablePlacement("iris:replacement_definition"));
         placements.add(nativePlacement("minecraft:explicit", StructureDistribution.RANDOM_SPREAD, 1.0));
@@ -185,8 +188,7 @@ public class StructureHandlerTest {
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
         when(world.platformWorld()).thenReturn(platformWorld);
-        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings, placementSettings(placements)));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         when(platform.structureHooks()).thenReturn(hooks);
@@ -252,18 +254,18 @@ public class StructureHandlerTest {
     }
 
 
-    private static IrisStructurePlacement nativePlacement(String key, StructureDistribution distribution,
+    private static StructurePlacement nativePlacement(String key, StructureDistribution distribution,
                                                           double density) {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getNativeStructures().add(new IrisNativeStructure().setStructure(key));
-        placement.setDistribution(distribution);
-        placement.setDensity(density);
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "nativeStructures", nativeSource(key));
+        TestSettings.with(placement, "distribution", distribution);
+        TestSettings.with(placement, "density", density);
         return placement;
     }
 
-    private static IrisStructurePlacement editablePlacement(String key) {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getStructures().add(key);
+    private static StructurePlacement editablePlacement(String key) {
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "structures", key);
         return placement;
     }
 

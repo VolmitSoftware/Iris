@@ -4,13 +4,12 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.structure.StructureAdjustment;
 import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.modules.BuiltInPack;
-import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
@@ -38,6 +37,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.nativeSource;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placementSettings;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.declaring;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -106,9 +109,9 @@ public class NativeStructureGenerationPolicyTest {
     /** Suppression comes from the iris:structure module's rule. */
     @Test
     public void aStructureAnIrisPlacementReplacesIsBlockedByTheStructureModule() throws IOException {
-        IrisStructurePlacement replacement = new IrisStructurePlacement().setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
-        replacement.getNativeStructures().add(new IrisNativeStructure().setStructure("minecraft:village_plains"));
-        KList<IrisStructurePlacement> dimensionPlacements = new KList<>();
+        StructurePlacement replacement = StructurePlacementFixtures.placement("nativeSuppression", NativeStructureSuppression.REPLACE_SOURCE);
+        withAdded(replacement, "nativeStructures", nativeSource("minecraft:village_plains"));
+        KList<StructurePlacement> dimensionPlacements = new KList<>();
         dimensionPlacements.add(replacement);
         Engine engine = engine(allowingEverything(), new KList<>(), dimensionPlacements, List.of());
 
@@ -223,32 +226,30 @@ public class NativeStructureGenerationPolicyTest {
         return new StructureSettings();
     }
 
-    private static KList<IrisStructurePlacement> regionPlacement(String placedKey) {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.getNativeStructures().add(new IrisNativeStructure().setStructure(placedKey));
-        KList<IrisStructurePlacement> placements = new KList<>();
+    private static KList<StructurePlacement> regionPlacement(String placedKey) {
+        StructurePlacement placement = new StructurePlacement();
+        withAdded(placement, "nativeStructures", nativeSource(placedKey));
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(placement);
         return placements;
     }
 
     /** An engine whose pack serves Iris's built-in modules and {@code packModules}, with the given structure placements. */
-    private Engine engine(StructureSettings settings, KList<IrisStructurePlacement> regionPlacements,
-                          KList<IrisStructurePlacement> dimensionPlacements, List<IrisModule> packModules) throws IOException {
+    private Engine engine(StructureSettings settings, KList<StructurePlacement> regionPlacements,
+                          KList<StructurePlacement> dimensionPlacements, List<IrisModule> packModules) throws IOException {
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
         IrisRegion region = mock(IrisRegion.class);
-        when(region.getStructures()).thenReturn(regionPlacements);
-        when(region.getModuleSettings()).thenReturn(ModuleSettings.NONE);
+        when(region.getModuleSettings()).thenReturn(declaring(regionPlacements));
         KList<IrisRegion> regions = new KList<>();
         regions.add(region);
 
         packs.add(BuiltInPack.serveWithResources(data, folder, packModules));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
-        when(dimension.getStructures()).thenReturn(dimensionPlacements);
+        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings, placementSettings(dimensionPlacements)));
         when(dimension.getAllRegions(engine)).thenReturn(regions);
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

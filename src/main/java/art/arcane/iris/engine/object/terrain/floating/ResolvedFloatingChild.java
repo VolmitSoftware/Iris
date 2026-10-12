@@ -29,9 +29,8 @@ import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;
-import art.arcane.iris.engine.object.terrain.carving.CarvingBands;
 import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfileSampler;
+import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.project.noise.CNG;
@@ -62,7 +61,7 @@ public final class ResolvedFloatingChild implements IRare {
     private final AtomicCache<CNG> bottomCache = new AtomicCache<>();
     private final AtomicCache<CNG> wallWarpCache = new AtomicCache<>();
     private final AtomicCache<CNG> carveCache = new AtomicCache<>();
-    private final AtomicCache<IrisCaveProfileSampler> carvingProfileSamplerCache = new AtomicCache<>(true);
+    private final AtomicCache<CaveProfileSampler> carvingProfileSamplerCache = new AtomicCache<>(true);
     private final AtomicCache<IrisObjectScale> shrinkScaleCache = new AtomicCache<>();
 
     public ResolvedFloatingChild(FloatingChildBiome settings) {
@@ -132,7 +131,7 @@ public final class ResolvedFloatingChild implements IRare {
         return carveCache.aquire(() -> carveStyle.create(new RNG(baseSeed ^ 0xCA5EC1EE5EL), data));
     }
 
-    public IrisCaveProfileSampler getCarvingProfileSampler(Engine engine, IrisData data) {
+    public CaveProfileSampler getCarvingProfileSampler(Engine engine, IrisData data) {
         if (!hasCarvingReference()) {
             return null;
         }
@@ -144,7 +143,7 @@ public final class ResolvedFloatingChild implements IRare {
                 return null;
             }
 
-            return new IrisCaveProfileSampler(engine, profile);
+            return new CaveProfileSampler(data.getPackResources().noise(), engine.getSeedManager().getCarve(), profile);
         });
     }
 
@@ -158,9 +157,10 @@ public final class ResolvedFloatingChild implements IRare {
             return null;
         }
 
-        ResolvedCarvingEntry entry = CarvingBands.of(engine).index().get(carving);
+        CarvingResolver resolver = CarvingResolver.of(engine.getGeneration().world());
+        ResolvedCarvingEntry entry = resolver.index().get(carving);
         if (entry != null) {
-            return CarvingResolver.resolveEntryBiome(engine, entry);
+            return resolver.entryBiome(entry) == null || data.getBiomeLoader() == null ? null : data.getBiomeLoader().load(entry.biomeKey().trim());
         }
 
         if (data.getBiomeLoader() == null) {

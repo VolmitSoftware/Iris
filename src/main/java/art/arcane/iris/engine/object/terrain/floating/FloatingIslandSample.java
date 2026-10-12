@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.engine.object.terrain.carving.IrisCaveProfileSampler;
+import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -415,7 +415,7 @@ public final class FloatingIslandSample {
         CNG wallWarp = entry.getWallWarpCng(baseSeed, data);
         double warpAmp = Math.max(0, entry.settings().wallWarpAmplitude());
         double effectiveWarpAmp = effectiveWallWarpAmplitude(warpAmp, edgeFade);
-        IrisCaveProfileSampler carvingProfileSampler = entry.getCarvingProfileSampler(engine, data);
+        CaveProfileSampler carvingProfileSampler = entry.getCarvingProfileSampler(engine, data);
         CNG carve = carvingProfileSampler == null && !entry.hasCarvingReference() ? entry.getCarveCng(baseSeed, data) : null;
         double carveThreshold = entry.settings().carveThreshold();
         boolean useWarp = wallWarp != null && effectiveWarpAmp > 0;
@@ -484,7 +484,7 @@ public final class FloatingIslandSample {
         return amplitude * fade;
     }
 
-    static boolean directCarveEnabled(ResolvedFloatingChild entry, IrisCaveProfileSampler carvingProfileSampler, CNG carve, double carveThreshold) {
+    static boolean directCarveEnabled(ResolvedFloatingChild entry, CaveProfileSampler carvingProfileSampler, CNG carve, double carveThreshold) {
         return carvingProfileSampler == null && (entry == null || !entry.hasCarvingReference()) && carve != null && carveThreshold < 1.0;
     }
 
@@ -500,7 +500,7 @@ public final class FloatingIslandSample {
         });
     }
 
-    static int carveSolidInterior(boolean[] solidMask, boolean[] lateralCarveMask, int botY, int wx, int wz, IrisCaveProfileSampler carve, double carveThreshold) {
+    static int carveSolidInterior(boolean[] solidMask, boolean[] lateralCarveMask, int botY, int wx, int wz, CaveProfileSampler carve, double carveThreshold) {
         return carveSolidInterior(solidMask, lateralCarveMask, botY, wx, wz, (x, y, z) -> carve.shouldCarve(x, y, z, carveThreshold));
     }
 

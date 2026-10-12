@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,107 +18,178 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.engine.UpperDimensionContext;
+import art.arcane.iris.builtin.CaveDressing;
+import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.engine.decorator.BiomeDecorators;
-import art.arcane.iris.engine.terrain.BiomeLayers;
-import art.arcane.iris.engine.terrain.TerrainPalettes;
-import art.arcane.iris.engine.decorator.IrisCeilingDecorator;
-import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.InferredType;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.documentation.ChunkCoordinates;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.mantle.runtime.TectonicPlate;
 import art.arcane.volmlib.util.math.BlockPosition;
-import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
-import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import com.volmit.ModuleLog;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import art.arcane.iris.engine.mantle.components.CarveWorld;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.hunk.Hunk;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKey;
+import com.volmit.world.PackBiome;
+import com.volmit.world.PackWorld;
+import com.volmit.world.TerrainSampler;
 import lombok.Data;
-import art.arcane.iris.spi.PlatformBlockState;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Applies the caves the mantle planned to a chunk's blocks for {@link CarveModule}: carves each cave zone, paints
  * its floor and ceiling with the cave biomes' layers, fills fluids and lava and decorates the cave surfaces.
- * One per engine runtime, holding the carve stream's random.
+ * One per world, holding the carve stream's random.
  */
 public class CaveApplying {
     private static final byte LIQUID_FLUID = 1;
+    private static final byte LIQUID_FORCED_AIR = 3;
     private static final ThreadLocal<IrisCarveScratch> SCRATCH = ThreadLocal.withInitial(IrisCarveScratch::new);
     private static final int CAVE_BIOME_BLEND_RADIUS = 3;
     private static final int CAVE_BIOME_BLEND_CENTER_WEIGHT = 4;
     private static final int CAVE_BIOME_BLEND_TOTAL_WEIGHT = 8;
+    private static final int CAVE_BIOME_CACHE_SIZE = 2048;
+    private static final int CHUNK_AREA = 256;
+    private static final int LAYER_DEPTH = 3;
+    private static final long CEILING_MARKER_SALT = 0x9E3779B97F4A7C15L;
+    private static final long FLOOR_MARKER_SALT = 0xC2B2AE3D27D4EB4FL;
     private static final MatterCavern BASIC_CAVERN = new MatterCavern(true, "", (byte) 0);
-    private final Engine engine;
-    private final RNG rng;
-    private final PlatformBlockState AIR = B.getState("CAVE_AIR");
-    private final PlatformBlockState LAVA = B.getState("LAVA");
-    private final BiomeDecorators decorators;
-    private final BiomeLayers layers;
-    private final TerrainPalettes palettes;
-    private final IrisSurfaceDecorator surfaceDecorator;
-    private final IrisCeilingDecorator ceilingDecorator;
 
-    public CaveApplying(Engine engine, ModuleLog log) {
-        this.engine = engine;
-        rng = new RNG(engine.getSeedManager().getCarve());
-        decorators = BiomeDecorators.of(engine);
-        layers = BiomeLayers.of(engine, log);
-        palettes = TerrainPalettes.of(engine);
-        surfaceDecorator = new IrisSurfaceDecorator(engine);
-        ceilingDecorator = new IrisCeilingDecorator(engine);
+    private final CarveWorld world;
+    private final PackResources resources;
+    private final BlockRegistry blocks;
+    private final CaveDressing dressing;
+    private final boolean upperDimensionCarving;
+    private final RNG rng;
+    private final BlockState caveAir;
+    private final BlockState plainAir;
+    private final BlockState lava;
+
+    public CaveApplying(PackWorld packWorld, CarveWorld world, boolean upperDimensionCarving) {
+        this.world = world;
+        this.resources = packWorld.resources();
+        this.blocks = resources.blocks();
+        this.dressing = CaveDressing.of(packWorld);
+        this.upperDimensionCarving = upperDimensionCarving;
+        this.rng = new RNG(world.carveSeed());
+        this.caveAir = blocks.resolve("minecraft:cave_air");
+        this.plainAir = blocks.resolve("minecraft:air");
+        this.lava = blocks.resolve("minecraft:lava");
     }
 
-    /** Applies the caves to the chunk at chunk coordinates {@code x}, {@code z}. */
-    @ChunkCoordinates
-    public void apply(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
-        PrecisionStopwatch caveStopwatch = PrecisionStopwatch.start();
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
-        Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
-        IrisCarveScratch scratch = SCRATCH.get();
-        scratch.reset();
-        CarveWallBuffer walls = scratch.walls;
-        CarveColumnMask[] columnMasks = scratch.columnMasks;
-        CarveColumnMask[] boundaryMasks = scratch.boundaryMasks;
-        int[] surfaceHeights = scratch.surfaceHeights;
-        Map<String, IrisBiome> customBiomeCache = scratch.customBiomeCache;
-        UpperDimensionContext upperCtx = engine.getUpperContext();
-        boolean protectUpper = upperCtx != null && !engine.getDimension().isUpperDimensionCarving();
-        int[] upperSurfaceHeights = protectUpper ? scratch.getOrCreateUpperSurfaceHeights() : null;
-        int chunkBlockX = PowerOfTwoCoordinates.chunkToBlock(x);
-        int chunkBlockZ = PowerOfTwoCoordinates.chunkToBlock(z);
-        for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-            int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
-            int localZ = columnIndex & 15;
-            surfaceHeights[columnIndex] = context.getRoundedHeight(localX, localZ);
-            if (protectUpper) {
-                int worldX = localX + chunkBlockX;
-                int worldZ = localZ + chunkBlockZ;
-                int rawUpper = upperCtx.getUpperSurfaceY(worldX, worldZ);
-                int gap = engine.getDimension().getUpperDimensionGap();
-                upperSurfaceHeights[columnIndex] = Math.max(rawUpper, surfaceHeights[columnIndex] + gap);
-            }
+    /**
+     * Applies the caves to the chunk at chunk coordinates {@code x}, {@code z}, whose blocks are {@code output}; the caves are in
+     * {@code mantle}, and {@code terrain} gives the heights and cave biomes around the chunk.
+     */
+    public void apply(MatterMantle mantle, TerrainSampler terrain, int x, int z, Hunk<BlockState> output) {
+        MantleChunk<Matter> mantleChunk = mantle.chunk(x, z);
+        if (mantleChunk == null) {
+            return;
+        }
+        new Application(mantle, mantleChunk, terrain, x, z, output).run();
+    }
+
+    static boolean hasExplicitCarveIntent(MatterCavern cavern) {
+        return cavern != null && (isFluidIntent(cavern) || cavern.isLava() || cavern.getLiquid() == LIQUID_FORCED_AIR);
+    }
+
+    static boolean isFluidIntent(MatterCavern cavern) {
+        return cavern != null && cavern.getLiquid() == LIQUID_FLUID;
+    }
+
+    static boolean shouldPreserveExistingFluid(MatterCavern cavern, boolean existingIsFluid) {
+        return existingIsFluid && !hasExplicitCarveIntent(cavern);
+    }
+
+    static boolean usesDefaultLava(int caveLavaHeight, int y) {
+        return y <= caveLavaHeight;
+    }
+
+    static boolean isUnsupportedSurfaceOre(boolean surfaceIsOre, boolean belowIsSolid) {
+        return surfaceIsOre && !belowIsSolid;
+    }
+
+    static BlockState resolveExplicitCarveState(MatterCavern cavern, BlockState fluid, BlockState lava, BlockState air) {
+        if (cavern == null) {
+            return null;
+        }
+        if (isFluidIntent(cavern)) {
+            return fluid;
+        }
+        if (cavern.isLava()) {
+            return lava;
+        }
+        return cavern.getLiquid() == LIQUID_FORCED_AIR ? air : null;
+    }
+
+    static boolean canReplaceCaveFloorLayer(Hunk<BlockState> output, int x, int y, int z, BlockState layer, CaveBlockClasses classes) {
+        return !classes.hasGravity(layer) || y > 0 && classes.isSolid(output.get(x, y - 1, z));
+    }
+
+    static boolean hasStableCaveFloorSupport(Hunk<BlockState> output, int x, int floorY, int z, CaveBlockClasses classes) {
+        if (floorY <= 0) {
+            return false;
+        }
+        BlockState support = output.get(x, floorY - 1, z);
+        if (!classes.isSolid(support)) {
+            return false;
+        }
+        return !classes.hasGravity(support) || floorY > 1 && classes.isSolid(output.get(x, floorY - 2, z));
+    }
+
+    /** One chunk's application: the chunk's blocks, mantle and the caches its passes share. */
+    final class Application {
+        private final MatterMantle mantle;
+        private final MantleChunk<Matter> mantleChunk;
+        private final TerrainSampler terrain;
+        private final int chunkX;
+        private final int chunkZ;
+        private final Hunk<BlockState> output;
+        private final CaveBlockClasses classes = new CaveBlockClasses(blocks);
+        private final CaveBiomeCache caveBiomeCache = new CaveBiomeCache(CAVE_BIOME_CACHE_SIZE);
+        private final IrisCarveScratch scratch = SCRATCH.get();
+
+        Application(MatterMantle mantle, MantleChunk<Matter> mantleChunk, TerrainSampler terrain, int chunkX, int chunkZ, Hunk<BlockState> output) {
+            this.mantle = mantle;
+            this.mantleChunk = mantleChunk;
+            this.terrain = terrain;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.output = output;
         }
 
-        MantleChunk<Matter> mantleChunk = mantle.getChunk(x, z).use();
-        try {
-            PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
-            int worldHeightSpan = engine.getWorld().maxHeight() - engine.getWorld().minHeight();
-            int caveLavaHeight = engine.getDimension().getCaveLavaHeight();
+        void run() {
+            scratch.reset();
+            CarveWallBuffer walls = scratch.walls;
+            CarveColumnMask[] columnMasks = scratch.columnMasks;
+            CarveColumnMask[] boundaryMasks = scratch.boundaryMasks;
+            int[] surfaceHeights = scratch.surfaceHeights;
+            Map<String, ResourceId> customBiomeCache = scratch.customBiomeCache;
+            int chunkBlockX = PowerOfTwoCoordinates.chunkToBlock(chunkX);
+            int chunkBlockZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ);
+            boolean protectUpper = !upperDimensionCarving && terrain.upperDimensionY(chunkBlockX, chunkBlockZ).isPresent();
+            int[] upperSurfaceHeights = protectUpper ? scratch.getOrCreateUpperSurfaceHeights() : null;
+            for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
+                int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
+                int localZ = columnIndex & 15;
+                int worldX = localX + chunkBlockX;
+                int worldZ = localZ + chunkBlockZ;
+                surfaceHeights[columnIndex] = (int) Math.round(terrain.surfaceY(worldX, worldZ));
+                if (protectUpper) {
+                    upperSurfaceHeights[columnIndex] = terrain.upperDimensionY(worldX, worldZ).getAsInt();
+                }
+            }
+
+            int worldHeightSpan = world.height();
+            int caveLavaHeight = world.lavaHeight();
             mantleChunk.iterate(MatterCavern.class, (xx, yy, zz, cavern) -> {
                 if (cavern == null) {
                     return;
@@ -136,10 +207,10 @@ public class CaveApplying {
                     return;
                 }
 
-                PlatformBlockState current = output.getRaw(rx, yy, rz);
+                BlockState current = output.get(rx, yy, rz);
                 boolean explicitCarveIntent = hasExplicitCarveIntent(cavern);
 
-                if (shouldPreserveExistingFluid(cavern, current)) {
+                if (shouldPreserveExistingFluid(cavern, classes.isFluid(current))) {
                     return;
                 }
 
@@ -149,608 +220,466 @@ public class CaveApplying {
                     scratch.customCaveBiomePresent = true;
                 }
 
-                if (current.isAir() && !explicitCarveIntent) {
+                if (classes.isAir(current) && !explicitCarveIntent) {
                     return;
                 }
 
                 if (explicitCarveIntent) {
-                    // Only a fluid cavern consumes the fluid sample, and on the maintenance path that
-                    // sample is a full procedural stream evaluation, so never take it per voxel.
-                    PlatformBlockState fluid = isFluidIntent(cavern) ? palettes.fluidAt(chunkBlockX + rx, chunkBlockZ + rz) : null;
-                    output.setRaw(rx, yy, rz, resolveExplicitCarveState(cavern, fluid, LAVA, AIR));
+                    // Only a fluid cavern consumes the fluid sample, so never take it per voxel.
+                    BlockState fluid = isFluidIntent(cavern) ? dressing.fluidAt(output, chunkBlockX + rx, chunkBlockZ + rz) : null;
+                    BlockState carved = resolveExplicitCarveState(cavern, fluid, lava, caveAir);
+                    output.set(rx, yy, rz, carved == null ? plainAir : carved);
                 } else if (usesDefaultLava(caveLavaHeight, yy)) {
-                    output.setRaw(rx, yy, rz, LAVA);
+                    output.set(rx, yy, rz, lava);
                 } else {
-                    output.setRaw(rx, yy, rz, AIR);
+                    output.set(rx, yy, rz, caveAir);
                 }
             });
             if (scratch.customCaveBiomePresent) {
-                addInternalWallsFromMantle(mantleChunk, walls, columnMasks);
+                addInternalWallsFromMantle(walls, columnMasks);
             } else {
                 addInternalWallsFromMasks(walls, columnMasks);
             }
-            addCrossChunkBoundaryWalls(mantle, mantleChunk, walls, boundaryMasks, x, z, surfaceHeights);
-            engine.getMetrics().getCarveResolve().put(resolveStopwatch.getMilliseconds());
+            addCrossChunkBoundaryWalls(walls, boundaryMasks, surfaceHeights);
 
-            PrecisionStopwatch applyStopwatch = PrecisionStopwatch.start();
-            try {
-                walls.forEach((rx, yy, rz, cavern) -> {
-                    int worldX = rx + chunkBlockX;
-                    int worldZ = rz + chunkBlockZ;
-                    String customBiome = cavern.getCustomBiome();
-                    IrisBiome biome = customBiome.isEmpty()
-                            ? resolveCaveBiome(caveBiomeCache, worldX, yy, worldZ)
-                            : resolveCustomBiome(customBiomeCache, customBiome);
+            walls.forEach((rx, yy, rz, cavern) -> {
+                int worldX = rx + chunkBlockX;
+                int worldZ = rz + chunkBlockZ;
+                String customBiome = cavern.getCustomBiome();
+                ResourceId biome = customBiome.isEmpty()
+                        ? resolveCaveBiome(worldX, yy, worldZ)
+                        : resolveCustomBiome(customBiomeCache, customBiome);
 
-                    if (biome != null) {
-                        PlatformBlockState data = layers.wall(biome).get(rng, worldX, yy, worldZ);
-                        int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
+                if (biome != null) {
+                    BlockState data = dressing.wall(output, biome, rng, worldX, yy, worldZ);
+                    int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
 
-                        if (data != null && B.isSolid(output.getRaw(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
-                            output.setRaw(rx, yy, rz, data);
+                    if (data != null && classes.isSolid(output.get(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
+                        output.set(rx, yy, rz, data);
+                    }
+                }
+            });
+
+            for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
+                processColumnFromMask(columnMasks[columnIndex], columnIndex, customBiomeCache);
+            }
+
+            for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
+                if (boundaryMasks[columnIndex].isEmpty() || !columnMasks[columnIndex].isEmpty()) {
+                    continue;
+                }
+                processBoundaryColumnFromMask(boundaryMasks[columnIndex], walls, columnIndex, customBiomeCache);
+            }
+
+            // Surface-break carving must not leave an ore cap suspended across the opening.
+            for (int columnIndex = 0; columnIndex < surfaceHeights.length; columnIndex++) {
+                int surfaceY = surfaceHeights[columnIndex];
+                if (surfaceY <= 0 || surfaceY >= output.getHeight()) {
+                    continue;
+                }
+
+                int belowY = surfaceY - 1;
+                if (!columnMasks[columnIndex].contains(belowY) && !boundaryMasks[columnIndex].contains(belowY)) {
+                    continue;
+                }
+
+                int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
+                int localZ = columnIndex & 15;
+                BlockState surface = output.get(localX, surfaceY, localZ);
+                BlockState below = output.get(localX, belowY, localZ);
+                if (isUnsupportedSurfaceOre(classes.isOre(surface), classes.isSolid(below))) {
+                    output.set(localX, surfaceY, localZ, caveAir);
+                }
+            }
+        }
+
+        private void addInternalWallsFromMasks(CarveWallBuffer walls, CarveColumnMask[] columnMasks) {
+            for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
+                CarveColumnMask columnMask = columnMasks[columnIndex];
+                if (columnMask.isEmpty()) {
+                    continue;
+                }
+
+                int rx = columnIndex >> 4;
+                int rz = columnIndex & 15;
+                int yy = columnMask.nextSetBit(0);
+                while (yy >= 0) {
+                    if (rz < 15 && !columnMasks[columnIndex + 1].contains(yy)) {
+                        walls.put(rx, yy, rz + 1, BASIC_CAVERN);
+                    }
+                    if (rx < 15 && !columnMasks[columnIndex + 16].contains(yy)) {
+                        walls.put(rx + 1, yy, rz, BASIC_CAVERN);
+                    }
+                    if (rz > 0 && !columnMasks[columnIndex - 1].contains(yy)) {
+                        walls.put(rx, yy, rz - 1, BASIC_CAVERN);
+                    }
+                    if (rx > 0 && !columnMasks[columnIndex - 16].contains(yy)) {
+                        walls.put(rx - 1, yy, rz, BASIC_CAVERN);
+                    }
+                    yy = columnMask.nextSetBit(yy + 1);
+                }
+            }
+        }
+
+        private void addInternalWallsFromMantle(CarveWallBuffer walls, CarveColumnMask[] columnMasks) {
+            for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
+                CarveColumnMask columnMask = columnMasks[columnIndex];
+                if (columnMask.isEmpty()) {
+                    continue;
+                }
+
+                int rx = columnIndex >> 4;
+                int rz = columnIndex & 15;
+                int yy = columnMask.nextSetBit(0);
+                while (yy >= 0) {
+                    MatterCavern cavern = mantleChunk.get(rx, yy, rz, MatterCavern.class);
+                    if (cavern != null) {
+                        if (rz < 15 && mantleChunk.get(rx, yy, rz + 1, MatterCavern.class) == null) {
+                            walls.put(rx, yy, rz + 1, cavern);
+                        }
+                        if (rx < 15 && mantleChunk.get(rx + 1, yy, rz, MatterCavern.class) == null) {
+                            walls.put(rx + 1, yy, rz, cavern);
+                        }
+                        if (rz > 0 && mantleChunk.get(rx, yy, rz - 1, MatterCavern.class) == null) {
+                            walls.put(rx, yy, rz - 1, cavern);
+                        }
+                        if (rx > 0 && mantleChunk.get(rx - 1, yy, rz, MatterCavern.class) == null) {
+                            walls.put(rx - 1, yy, rz, cavern);
                         }
                     }
-                });
-
-                for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-                    processColumnFromMask(output, mantleChunk, mantle, columnMasks[columnIndex], columnIndex, x, z, caveBiomeCache, customBiomeCache);
+                    yy = columnMask.nextSetBit(yy + 1);
                 }
-
-                for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-                    if (boundaryMasks[columnIndex].isEmpty() || !columnMasks[columnIndex].isEmpty()) {
-                        continue;
-                    }
-                    processBoundaryColumnFromMask(output, boundaryMasks[columnIndex], walls, columnIndex, x, z, caveBiomeCache, customBiomeCache);
-                }
-
-                // Surface-break carving must not leave an ore cap suspended across the opening.
-                for (int columnIndex = 0; columnIndex < surfaceHeights.length; columnIndex++) {
-                    int surfaceY = surfaceHeights[columnIndex];
-                    if (surfaceY <= 0 || surfaceY >= output.getHeight()) {
-                        continue;
-                    }
-
-                    int belowY = surfaceY - 1;
-                    if (!columnMasks[columnIndex].contains(belowY) && !boundaryMasks[columnIndex].contains(belowY)) {
-                        continue;
-                    }
-
-                    int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
-                    int localZ = columnIndex & 15;
-                    PlatformBlockState surface = output.getRaw(localX, surfaceY, localZ);
-                    PlatformBlockState below = output.getRaw(localX, belowY, localZ);
-                    if (isUnsupportedSurfaceOre(surface, below)) {
-                        output.setRaw(localX, surfaceY, localZ, AIR);
-                    }
-                }
-            } finally {
-                engine.getMetrics().getCarveApply().put(applyStopwatch.getMilliseconds());
             }
-        } finally {
-            engine.getMetrics().getCave().put(caveStopwatch.getMilliseconds());
-            mantleChunk.release();
         }
-    }
 
-    static boolean hasExplicitCarveIntent(MatterCavern cavern) {
-        return cavern != null && (isFluidIntent(cavern) || cavern.isLava() || cavern.getLiquid() == 3);
-    }
-
-    static boolean isFluidIntent(MatterCavern cavern) {
-        return cavern != null && cavern.getLiquid() == LIQUID_FLUID;
-    }
-
-    static boolean shouldPreserveExistingFluid(MatterCavern cavern, PlatformBlockState current) {
-        return B.isFluid(current) && !hasExplicitCarveIntent(cavern);
-    }
-
-    static boolean usesDefaultLava(int caveLavaHeight, int y) {
-        return y <= caveLavaHeight;
-    }
-
-    static boolean isUnsupportedSurfaceOre(PlatformBlockState surface, PlatformBlockState below) {
-        return B.isOre(surface) && !B.isSolid(below);
-    }
-
-    static PlatformBlockState resolveExplicitCarveState(MatterCavern cavern, PlatformBlockState fluid,
-                                                        PlatformBlockState lava, PlatformBlockState air) {
-        if (cavern == null) {
-            return null;
-        }
-        if (isFluidIntent(cavern)) {
-            return fluid;
-        }
-        if (cavern.isLava()) {
-            return lava;
-        }
-        return cavern.getLiquid() == 3 ? air : null;
-    }
-
-    private void addInternalWallsFromMasks(CarveWallBuffer walls, CarveColumnMask[] columnMasks) {
-        for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-            CarveColumnMask columnMask = columnMasks[columnIndex];
-            if (columnMask.isEmpty()) {
-                continue;
+        private void addCrossChunkBoundaryWalls(CarveWallBuffer walls, CarveColumnMask[] boundaryMasks, int[] surfaceHeights) {
+            int maxSurfaceY = 0;
+            for (int index = 0; index < surfaceHeights.length; index++) {
+                if (surfaceHeights[index] > maxSurfaceY) {
+                    maxSurfaceY = surfaceHeights[index];
+                }
+            }
+            int maxY = Math.min(world.height() - 1, maxSurfaceY + 1);
+            if (maxY < 1) {
+                return;
             }
 
-            int rx = columnIndex >> 4;
+            MantleChunk<Matter> west = mantle.loadedChunk(chunkX - 1, chunkZ);
+            MantleChunk<Matter> east = mantle.loadedChunk(chunkX + 1, chunkZ);
+            MantleChunk<Matter> north = mantle.loadedChunk(chunkX, chunkZ - 1);
+            MantleChunk<Matter> south = mantle.loadedChunk(chunkX, chunkZ + 1);
+            if (west == null && east == null && north == null && south == null) {
+                return;
+            }
+
+            for (int yy = 1; yy <= maxY; yy++) {
+                for (int offset = 0; offset < 16; offset++) {
+                    if (west != null) {
+                        tryAddBoundaryWall(west, walls, boundaryMasks, 0, yy, offset, 15, offset);
+                    }
+                    if (east != null) {
+                        tryAddBoundaryWall(east, walls, boundaryMasks, 15, yy, offset, 0, offset);
+                    }
+                    if (north != null) {
+                        tryAddBoundaryWall(north, walls, boundaryMasks, offset, yy, 0, offset, 15);
+                    }
+                    if (south != null) {
+                        tryAddBoundaryWall(south, walls, boundaryMasks, offset, yy, 15, offset, 0);
+                    }
+                }
+            }
+        }
+
+        private void tryAddBoundaryWall(MantleChunk<Matter> neighborChunk, CarveWallBuffer walls, CarveColumnMask[] boundaryMasks,
+                                        int localX, int yy, int localZ, int neighborX, int neighborZ) {
+            if (mantleChunk.get(localX, yy, localZ, MatterCavern.class) != null) {
+                return;
+            }
+
+            MatterCavern neighbor = neighborChunk.get(neighborX, yy, neighborZ, MatterCavern.class);
+            if (neighbor == null) {
+                return;
+            }
+
+            walls.put(localX, yy, localZ, neighbor);
+            int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
+            boundaryMasks[columnIndex].add(yy);
+        }
+
+        private void processColumnFromMask(CarveColumnMask columnMask, int columnIndex, Map<String, ResourceId> customBiomeCache) {
+            if (columnMask == null || columnMask.isEmpty()) {
+                return;
+            }
+
+            int firstHeight = columnMask.nextSetBit(0);
+            if (firstHeight < 0) {
+                return;
+            }
+
+            int rx = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
             int rz = columnIndex & 15;
-            int yy = columnMask.nextSetBit(0);
-            while (yy >= 0) {
-                if (rz < 15 && !columnMasks[columnIndex + 1].contains(yy)) {
-                    walls.put(rx, yy, rz + 1, BASIC_CAVERN);
+            int worldX = rx + PowerOfTwoCoordinates.chunkToBlock(chunkX);
+            int worldZ = rz + PowerOfTwoCoordinates.chunkToBlock(chunkZ);
+            CaveZone zone = new CaveZone();
+            zone.setFloor(firstHeight);
+            int buf = firstHeight - 1;
+            int y = firstHeight;
+
+            while (y >= 0) {
+                if (y <= world.height()) {
+                    if (y == buf + 1) {
+                        buf = y;
+                        zone.ceiling = buf;
+                    } else {
+                        if (zone.isValid(world.height())) {
+                            processZone(zone, rx, rz, worldX, worldZ, customBiomeCache);
+                        }
+                        zone = new CaveZone();
+                        zone.setFloor(y);
+                        buf = y;
+                    }
                 }
-                if (rx < 15 && !columnMasks[columnIndex + 16].contains(yy)) {
-                    walls.put(rx + 1, yy, rz, BASIC_CAVERN);
-                }
-                if (rz > 0 && !columnMasks[columnIndex - 1].contains(yy)) {
-                    walls.put(rx, yy, rz - 1, BASIC_CAVERN);
-                }
-                if (rx > 0 && !columnMasks[columnIndex - 16].contains(yy)) {
-                    walls.put(rx - 1, yy, rz, BASIC_CAVERN);
-                }
-                yy = columnMask.nextSetBit(yy + 1);
+
+                y = columnMask.nextSetBit(y + 1);
+            }
+
+            if (zone.isValid(world.height())) {
+                processZone(zone, rx, rz, worldX, worldZ, customBiomeCache);
             }
         }
-    }
 
-    private void addInternalWallsFromMantle(MantleChunk<Matter> mc, CarveWallBuffer walls, CarveColumnMask[] columnMasks) {
-        for (int columnIndex = 0; columnIndex < 256; columnIndex++) {
-            CarveColumnMask columnMask = columnMasks[columnIndex];
-            if (columnMask.isEmpty()) {
-                continue;
+        private void processBoundaryColumnFromMask(CarveColumnMask boundaryMask, CarveWallBuffer walls, int columnIndex,
+                                                   Map<String, ResourceId> customBiomeCache) {
+            int firstHeight = boundaryMask.nextSetBit(0);
+            if (firstHeight < 0) {
+                return;
             }
 
-            int rx = columnIndex >> 4;
+            int rx = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
             int rz = columnIndex & 15;
-            int yy = columnMask.nextSetBit(0);
-            while (yy >= 0) {
-                MatterCavern cavern = mc.get(rx, yy, rz, MatterCavern.class);
-                if (cavern != null) {
-                    if (rz < 15 && mc.get(rx, yy, rz + 1, MatterCavern.class) == null) {
-                        walls.put(rx, yy, rz + 1, cavern);
-                    }
-                    if (rx < 15 && mc.get(rx + 1, yy, rz, MatterCavern.class) == null) {
-                        walls.put(rx + 1, yy, rz, cavern);
-                    }
-                    if (rz > 0 && mc.get(rx, yy, rz - 1, MatterCavern.class) == null) {
-                        walls.put(rx, yy, rz - 1, cavern);
-                    }
-                    if (rx > 0 && mc.get(rx - 1, yy, rz, MatterCavern.class) == null) {
-                        walls.put(rx - 1, yy, rz, cavern);
-                    }
-                }
-                yy = columnMask.nextSetBit(yy + 1);
-            }
-        }
-    }
+            int worldX = rx + PowerOfTwoCoordinates.chunkToBlock(chunkX);
+            int worldZ = rz + PowerOfTwoCoordinates.chunkToBlock(chunkZ);
+            int zoneFloor = firstHeight;
+            int zoneCeiling = firstHeight;
+            int y = boundaryMask.nextSetBit(firstHeight + 1);
 
-    private void addCrossChunkBoundaryWalls(
-            Mantle<Matter> mantle,
-            MantleChunk<Matter> mc,
-            CarveWallBuffer walls,
-            CarveColumnMask[] boundaryMasks,
-            int chunkX,
-            int chunkZ,
-            int[] surfaceHeights
-    ) {
-        int baseX = PowerOfTwoCoordinates.chunkToBlock(chunkX);
-        int baseZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ);
-        int maxSurfaceY = 0;
-        for (int index = 0; index < surfaceHeights.length; index++) {
-            if (surfaceHeights[index] > maxSurfaceY) {
-                maxSurfaceY = surfaceHeights[index];
-            }
-        }
-        int maxY = Math.min(engine.getWorld().maxHeight() - engine.getWorld().minHeight() - 1, maxSurfaceY + 1);
-        if (maxY < 1) {
-            return;
-        }
-
-        MantleChunk<Matter> west = existingMantleChunk(mantle, chunkX - 1, chunkZ);
-        MantleChunk<Matter> east = existingMantleChunk(mantle, chunkX + 1, chunkZ);
-        MantleChunk<Matter> north = existingMantleChunk(mantle, chunkX, chunkZ - 1);
-        MantleChunk<Matter> south = existingMantleChunk(mantle, chunkX, chunkZ + 1);
-        if (west == null && east == null && north == null && south == null) {
-            return;
-        }
-
-        for (int yy = 1; yy <= maxY; yy++) {
-            for (int offset = 0; offset < 16; offset++) {
-                if (west != null) {
-                    tryAddBoundaryWall(mc, west, walls, boundaryMasks, 0, yy, offset, 15, offset);
-                }
-                if (east != null) {
-                    tryAddBoundaryWall(mc, east, walls, boundaryMasks, 15, yy, offset, 0, offset);
-                }
-                if (north != null) {
-                    tryAddBoundaryWall(mc, north, walls, boundaryMasks, offset, yy, 0, offset, 15);
-                }
-                if (south != null) {
-                    tryAddBoundaryWall(mc, south, walls, boundaryMasks, offset, yy, 15, offset, 0);
-                }
-            }
-        }
-    }
-
-    private void tryAddBoundaryWall(
-            MantleChunk<Matter> mc,
-            MantleChunk<Matter> neighborChunk,
-            CarveWallBuffer walls,
-            CarveColumnMask[] boundaryMasks,
-            int localX,
-            int yy,
-            int localZ,
-            int neighborX,
-            int neighborZ
-    ) {
-        if (mc.get(localX, yy, localZ, MatterCavern.class) != null) {
-            return;
-        }
-
-        MatterCavern neighbor = neighborChunk.get(neighborX, yy, neighborZ, MatterCavern.class);
-        if (neighbor == null) {
-            return;
-        }
-
-        walls.put(localX, yy, localZ, neighbor);
-        int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
-        boundaryMasks[columnIndex].add(yy);
-    }
-
-    private MantleChunk<Matter> existingMantleChunk(Mantle<Matter> mantle, int chunkX, int chunkZ) {
-        TectonicPlate<Matter> plate = mantle.getLoadedRegions().get(Mantle.key(chunkX >> 5, chunkZ >> 5));
-        if (plate == null || plate.isClosed()) {
-            return null;
-        }
-        return plate.get(chunkX & 31, chunkZ & 31);
-    }
-
-    private void processColumnFromMask(
-            Hunk<PlatformBlockState> output,
-            MantleChunk<Matter> mc,
-            Mantle<Matter> mantle,
-            CarveColumnMask columnMask,
-            int columnIndex,
-            int chunkX,
-            int chunkZ,
-            Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache,
-            Map<String, IrisBiome> customBiomeCache
-    ) {
-        if (columnMask == null || columnMask.isEmpty()) {
-            return;
-        }
-
-        int firstHeight = columnMask.nextSetBit(0);
-        if (firstHeight < 0) {
-            return;
-        }
-
-        int rx = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
-        int rz = columnIndex & 15;
-        int worldX = rx + PowerOfTwoCoordinates.chunkToBlock(chunkX);
-        int worldZ = rz + PowerOfTwoCoordinates.chunkToBlock(chunkZ);
-        CaveZone zone = new CaveZone();
-        zone.setFloor(firstHeight);
-        int buf = firstHeight - 1;
-        int y = firstHeight;
-
-        while (y >= 0) {
-            if (y <= engine.getHeight()) {
-                if (y == buf + 1) {
-                    buf = y;
-                    zone.ceiling = buf;
+            while (y >= 0) {
+                if (y == zoneCeiling + 1) {
+                    zoneCeiling = y;
                 } else {
-                    if (zone.isValid(engine)) {
-                        processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, caveBiomeCache, customBiomeCache);
-                    }
-                    zone = new CaveZone();
-                    zone.setFloor(y);
-                    buf = y;
+                    paintBoundaryZone(walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, customBiomeCache);
+                    zoneFloor = y;
+                    zoneCeiling = y;
                 }
+                y = boundaryMask.nextSetBit(y + 1);
             }
 
-            y = columnMask.nextSetBit(y + 1);
+            paintBoundaryZone(walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, customBiomeCache);
         }
 
-        if (zone.isValid(engine)) {
-            processZone(output, mc, mantle, zone, rx, rz, worldX, worldZ, caveBiomeCache, customBiomeCache);
-        }
-    }
-
-    private void processBoundaryColumnFromMask(
-            Hunk<PlatformBlockState> output,
-            CarveColumnMask boundaryMask,
-            CarveWallBuffer walls,
-            int columnIndex,
-            int chunkX,
-            int chunkZ,
-            Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache,
-            Map<String, IrisBiome> customBiomeCache
-    ) {
-        int firstHeight = boundaryMask.nextSetBit(0);
-        if (firstHeight < 0) {
-            return;
-        }
-
-        int rx = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
-        int rz = columnIndex & 15;
-        int worldX = rx + PowerOfTwoCoordinates.chunkToBlock(chunkX);
-        int worldZ = rz + PowerOfTwoCoordinates.chunkToBlock(chunkZ);
-        int zoneFloor = firstHeight;
-        int zoneCeiling = firstHeight;
-        int y = boundaryMask.nextSetBit(firstHeight + 1);
-
-        while (y >= 0) {
-            if (y == zoneCeiling + 1) {
-                zoneCeiling = y;
-            } else {
-                paintBoundaryZone(output, walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, caveBiomeCache, customBiomeCache);
-                zoneFloor = y;
-                zoneCeiling = y;
+        private void paintBoundaryZone(CarveWallBuffer walls, int rx, int rz, int worldX, int worldZ, int zoneFloor, int zoneCeiling,
+                                       Map<String, ResourceId> customBiomeCache) {
+            ResourceId floorBiome = resolveCaveBoundaryBiome(walls.get(rx, zoneFloor, rz), worldX, zoneFloor, worldZ, customBiomeCache);
+            ResourceId ceilingBiome = resolveCaveBoundaryBiome(walls.get(rx, zoneCeiling, rz), worldX, zoneCeiling, worldZ, customBiomeCache);
+            if (floorBiome == null && ceilingBiome == null) {
+                return;
             }
-            y = boundaryMask.nextSetBit(y + 1);
+
+            if (floorBiome != null) {
+                paintFloorLayers(floorBiome, rx, rz, worldX, worldZ, zoneFloor);
+            }
+
+            if (ceilingBiome != null) {
+                paintCeilingLayers(ceilingBiome, rx, rz, worldX, worldZ, zoneCeiling, world.height());
+            }
         }
 
-        paintBoundaryZone(output, walls, rx, rz, worldX, worldZ, zoneFloor, zoneCeiling, caveBiomeCache, customBiomeCache);
-    }
-
-    private void paintBoundaryZone(
-            Hunk<PlatformBlockState> output,
-            CarveWallBuffer walls,
-            int rx,
-            int rz,
-            int worldX,
-            int worldZ,
-            int zoneFloor,
-            int zoneCeiling,
-            Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache,
-            Map<String, IrisBiome> customBiomeCache
-    ) {
-        IrisBiome floorBiome = resolveCaveBoundaryBiome(
-                walls.get(rx, zoneFloor, rz), worldX, zoneFloor, worldZ,
-                caveBiomeCache, customBiomeCache);
-        IrisBiome ceilingBiome = resolveCaveBoundaryBiome(
-                walls.get(rx, zoneCeiling, rz), worldX, zoneCeiling, worldZ,
-                caveBiomeCache, customBiomeCache);
-        if (floorBiome == null && ceilingBiome == null) {
-            return;
-        }
-
-        if (floorBiome != null) {
-            KList<PlatformBlockState> floorLayers = layers.generateLayers(floorBiome,
-                    engine.getDimension(), worldX, worldZ, rng, 3, zoneFloor, engine.getData(), engine.getComplex());
-            for (int i = 0; i < zoneFloor - 1; i++) {
-                if (!floorLayers.hasIndex(i)) {
+        /** Replaces the solid blocks under {@code floorY} with the layers of {@code floorBiome}. */
+        private void paintFloorLayers(ResourceId floorBiome, int rx, int rz, int worldX, int worldZ, int floorY) {
+            List<BlockState> floorLayers = dressing.floorLayers(output, floorBiome, worldX, worldZ, rng, LAYER_DEPTH, floorY);
+            for (int i = 0; i < floorY - 1; i++) {
+                if (i >= floorLayers.size()) {
                     break;
                 }
-                int floorY = zoneFloor - i - 1;
-                if (floorY < 0) {
-                    break;
-                }
-                PlatformBlockState existing = output.getRaw(rx, floorY, rz);
-                PlatformBlockState layer = floorLayers.get(i);
-                if (!B.isSolid(existing) || !canReplaceCaveFloorLayer(output, rx, floorY, rz, layer)) {
+                int y = floorY - i - 1;
+                BlockState layer = floorLayers.get(i);
+                BlockState existing = output.get(rx, y, rz);
+                if (layer == null || !classes.isSolid(existing) || !canReplaceCaveFloorLayer(output, rx, y, rz, layer, classes)) {
                     continue;
                 }
-                if (B.isOre(existing)) {
-                    output.setRaw(rx, floorY, rz, B.toDeepSlateOre(existing, layer));
-                    continue;
-                }
-                output.setRaw(rx, floorY, rz, layer);
+                output.set(rx, y, rz, classes.isOre(existing) ? dressing.deepSlateOre(output, existing, layer) : layer);
             }
         }
 
-        if (ceilingBiome != null) {
-            int worldMaxY = engine.getWorld().maxHeight() - engine.getWorld().minHeight();
-            KList<PlatformBlockState> ceilingLayers = layers.generateCeilingLayers(ceilingBiome,
-                    engine.getDimension(), worldX, worldZ, rng, 3, zoneCeiling, engine.getData(), engine.getComplex());
+        /** Replaces the solid blocks over {@code ceilingY} with the cave ceiling layers of {@code ceilingBiome}, below {@code maxY}. */
+        private void paintCeilingLayers(ResourceId ceilingBiome, int rx, int rz, int worldX, int worldZ, int ceilingY, int maxY) {
+            List<BlockState> ceilingLayers = dressing.ceilingLayers(output, ceilingBiome, worldX, worldZ, rng, LAYER_DEPTH, ceilingY);
             for (int i = 0; i < ceilingLayers.size(); i++) {
-                int ceilingY = zoneCeiling + i + 1;
-                if (ceilingY >= worldMaxY) {
+                int y = ceilingY + i + 1;
+                if (y >= maxY) {
                     break;
                 }
-                PlatformBlockState existing = output.getRaw(rx, ceilingY, rz);
-                if (!B.isSolid(existing)) {
+                BlockState layer = ceilingLayers.get(i);
+                BlockState existing = output.get(rx, y, rz);
+                if (layer == null || !classes.isSolid(existing)) {
                     continue;
                 }
-                PlatformBlockState layer = ceilingLayers.get(i);
-                if (B.isOre(existing)) {
-                    output.setRaw(rx, ceilingY, rz, B.toDeepSlateOre(existing, layer));
-                    continue;
-                }
-                output.setRaw(rx, ceilingY, rz, layer);
-            }
-        }
-    }
-
-    /**
-     * 1-in-16 marker roll from a SplitMix64 finalizer over (carve seed, block position, salt).
-     * Deterministic per seed and position, thread-order independent, allocation free.
-     */
-    private boolean markerRoll(int x, int y, int z, long salt) {
-        long h = (engine.getSeedManager().getCarve() + salt) ^ BlockPosition.toLong(x, y, z);
-        h = (h ^ (h >>> 30)) * 0xBF58476D1CE4E5B9L;
-        h = (h ^ (h >>> 27)) * 0x94D049BB133111EBL;
-        h ^= h >>> 31;
-        return (h & 15L) == 0L;
-    }
-
-    private void processZone(Hunk<PlatformBlockState> output, MantleChunk<Matter> mc, Mantle<Matter> mantle, CaveZone zone, int rx, int rz, int xx, int zz, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
-        int maxY = output.getHeight();
-
-        if (zone.ceiling + 1 < maxY && B.isDecorant(output.getRaw(rx, zone.ceiling + 1, rz))) {
-            output.setRaw(rx, zone.ceiling + 1, rz, AIR);
-        }
-
-        if (B.isDecorant(output.getRaw(rx, zone.ceiling, rz))) {
-            output.setRaw(rx, zone.ceiling, rz, AIR);
-        }
-
-        // Seed-derived and position-keyed, never Math.random(): these markers persist into the
-        // mantle and drive cave spawning, so the same seed must stamp the same markers on
-        // every run and every platform. Inline mix, no allocation on this hot path.
-        if (markerRoll(xx, zone.ceiling, zz, 0x9E3779B97F4A7C15L)) {
-            mantle.set(xx, zone.ceiling, zz, MarkerMatter.CAVE_CEILING);
-        }
-
-        if (markerRoll(xx, zone.floor, zz, 0xC2B2AE3D27D4EB4FL)) {
-            mantle.set(xx, zone.floor, zz, MarkerMatter.CAVE_FLOOR);
-        }
-
-        IrisBiome floorBiome = resolveCaveBoundaryBiome(mc, rx, zone.floor, rz, xx, zz, caveBiomeCache, customBiomeCache);
-        IrisBiome ceilingBiome = resolveCaveBoundaryBiome(mc, rx, zone.ceiling, rz, xx, zz, caveBiomeCache, customBiomeCache);
-        if (floorBiome == null && ceilingBiome == null) {
-            return;
-        }
-
-        if (floorBiome != null) {
-            KList<PlatformBlockState> floorBlocks = layers.generateLayers(floorBiome, engine.getDimension(), xx, zz, rng, 3, zone.floor, engine.getData(), engine.getComplex());
-            for (int i = 0; i < zone.floor - 1; i++) {
-                if (!floorBlocks.hasIndex(i)) {
-                    break;
-                }
-                int y = zone.floor - i - 1;
-                PlatformBlockState block = floorBlocks.get(i);
-                PlatformBlockState existing = output.getRaw(rx, y, rz);
-                if (!B.isSolid(existing) || !canReplaceCaveFloorLayer(output, rx, y, rz, block)) {
-                    continue;
-                }
-                if (B.isOre(existing)) {
-                    output.setRaw(rx, y, rz, B.toDeepSlateOre(existing, block));
-                    continue;
-                }
-                output.setRaw(rx, y, rz, block);
+                output.set(rx, y, rz, classes.isOre(existing) ? dressing.deepSlateOre(output, existing, layer) : layer);
             }
         }
 
-        if (ceilingBiome != null) {
-            KList<PlatformBlockState> ceilingBlocks = layers.generateCeilingLayers(ceilingBiome, engine.getDimension(), xx, zz, rng, 3, zone.ceiling, engine.getData(), engine.getComplex());
-            for (int i = 0; i < ceilingBlocks.size(); i++) {
-                int cy = zone.ceiling + i + 1;
-                if (cy >= maxY) {
-                    break;
-                }
-                PlatformBlockState block = ceilingBlocks.get(i);
-                PlatformBlockState existing = output.getRaw(rx, cy, rz);
-                if (!B.isSolid(existing)) {
-                    continue;
-                }
-                if (B.isOre(existing)) {
-                    output.setRaw(rx, cy, rz, B.toDeepSlateOre(existing, block));
-                    continue;
-                }
-                output.setRaw(rx, cy, rz, block);
+        /**
+         * 1-in-16 marker roll from a SplitMix64 finalizer over (carve seed, block position, salt).
+         * Deterministic per seed and position, thread-order independent, allocation free.
+         */
+        private boolean markerRoll(int x, int y, int z, long salt) {
+            long h = (world.carveSeed() + salt) ^ BlockPosition.toLong(x, y, z);
+            h = (h ^ (h >>> 30)) * 0xBF58476D1CE4E5B9L;
+            h = (h ^ (h >>> 27)) * 0x94D049BB133111EBL;
+            h ^= h >>> 31;
+            return (h & 15L) == 0L;
+        }
+
+        private void processZone(CaveZone zone, int rx, int rz, int xx, int zz, Map<String, ResourceId> customBiomeCache) {
+            int maxY = output.getHeight();
+
+            if (zone.ceiling + 1 < maxY && classes.isDecorant(output.get(rx, zone.ceiling + 1, rz))) {
+                output.set(rx, zone.ceiling + 1, rz, caveAir);
+            }
+
+            if (classes.isDecorant(output.get(rx, zone.ceiling, rz))) {
+                output.set(rx, zone.ceiling, rz, caveAir);
+            }
+
+            // Seed-derived and position-keyed, never Math.random(): these markers persist into the
+            // mantle and drive cave spawning, so the same seed must stamp the same markers on
+            // every run and every platform. Inline mix, no allocation on this hot path.
+            if (markerRoll(xx, zone.ceiling, zz, CEILING_MARKER_SALT)) {
+                setMarker(rx, zone.ceiling, rz, MarkerMatter.CAVE_CEILING);
+            }
+
+            if (markerRoll(xx, zone.floor, zz, FLOOR_MARKER_SALT)) {
+                setMarker(rx, zone.floor, rz, MarkerMatter.CAVE_FLOOR);
+            }
+
+            ResourceId floorBiome = resolveCaveBoundaryBiome(rx, zone.floor, rz, xx, zz, customBiomeCache);
+            ResourceId ceilingBiome = resolveCaveBoundaryBiome(rx, zone.ceiling, rz, xx, zz, customBiomeCache);
+            if (floorBiome == null && ceilingBiome == null) {
+                return;
+            }
+
+            if (floorBiome != null) {
+                paintFloorLayers(floorBiome, rx, rz, xx, zz, zone.floor);
+            }
+
+            if (ceilingBiome != null) {
+                paintCeilingLayers(ceilingBiome, rx, rz, xx, zz, zone.ceiling, maxY);
+            }
+
+            if (floorBiome != null && dressing.hasDecorators(floorBiome, DecorationPart.NONE)
+                    && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz, classes)) {
+                dressing.decorateFloor(output, rx, rz, xx, zz, floorBiome, zone.getFloor() - 1, zone.airThickness());
+            }
+
+            if (ceilingBiome != null && dressing.hasDecorators(ceilingBiome, DecorationPart.CEILING) && zone.getCeiling() + 1 < maxY
+                    && classes.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
+                dressing.decorateCeiling(output, rx, rz, xx, zz, ceilingBiome, zone.getCeiling(), zone.airThickness());
             }
         }
 
-        if (floorBiome != null && decorators.hasDecorators(floorBiome, DecorationPart.NONE) && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz)) {
-            surfaceDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, floorBiome, InferredType.CAVE, zone.getFloor() - 1, zone.airThickness());
+        private void setMarker(int localX, int y, int localZ, MatterMarker marker) {
+            Matter section = mantleChunk.getOrCreate(y >> 4);
+            section.<MatterMarker>slice(MatterMarker.class).set(localX, y & 15, localZ, marker);
         }
 
-        if (ceilingBiome != null && decorators.hasDecorators(ceilingBiome, DecorationPart.CEILING) && zone.getCeiling() + 1 < maxY && B.isSolid(output.getRaw(rx, zone.getCeiling() + 1, rz))) {
-            ceilingDecorator.decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, ceilingBiome, InferredType.CAVE, zone.getCeiling(), zone.airThickness());
-        }
-    }
-
-    IrisBiome resolveCaveBoundaryBiome(MantleChunk<Matter> mantleChunk, int x, int y, int z, int worldX, int worldZ, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
-        MatterCavern cavern = dataIfPresent(mantleChunk, x, y, z, MatterCavern.class);
-        return resolveCaveBoundaryBiome(
-                cavern, worldX, y, worldZ, caveBiomeCache, customBiomeCache);
-    }
-
-    private static <T> T dataIfPresent(MantleChunk<Matter> mantleChunk, int x, int y, int z, Class<T> type) {
-        int section = y >> 4;
-        if (y < 0 || !mantleChunk.exists(section)) {
-            return null;
-        }
-        Matter matter = mantleChunk.get(section);
-        if (matter == null || !matter.hasSlice(type)) {
-            return null;
-        }
-        return matter.<T>getSlice(type).get(x & 15, y & 15, z & 15);
-    }
-
-    IrisBiome resolveCaveBoundaryBiome(MatterCavern cavern, int worldX, int y, int worldZ, Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, Map<String, IrisBiome> customBiomeCache) {
-        if (cavern != null && !cavern.getCustomBiome().isEmpty()) {
-            return resolveCustomBiome(customBiomeCache, cavern.getCustomBiome());
-        }
-        return resolveCaveBiome(caveBiomeCache, worldX, y, worldZ);
-    }
-
-    static boolean canReplaceCaveFloorLayer(Hunk<PlatformBlockState> output, int x, int y, int z, PlatformBlockState layer) {
-        return !isGravityAffected(layer) || y > 0 && B.isSolid(output.getRaw(x, y - 1, z));
-    }
-
-    static boolean hasStableCaveFloorSupport(Hunk<PlatformBlockState> output, int x, int floorY, int z) {
-        if (floorY <= 0) {
-            return false;
-        }
-        PlatformBlockState support = output.getRaw(x, floorY - 1, z);
-        if (!B.isSolid(support)) {
-            return false;
-        }
-        return !isGravityAffected(support) || floorY > 1 && B.isSolid(output.getRaw(x, floorY - 2, z));
-    }
-
-    static boolean isGravityAffected(PlatformBlockState state) {
-        return state != null && state.hasGravity();
-    }
-
-    private IrisBiome resolveCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z) {
-        IrisBiome center = sampleCaveBiome(caveBiomeCache, x, y, z);
-        if (center == null) {
-            return null;
+        ResourceId resolveCaveBoundaryBiome(int x, int y, int z, int worldX, int worldZ, Map<String, ResourceId> customBiomeCache) {
+            return resolveCaveBoundaryBiome(cavernIfPresent(x, y, z), worldX, y, worldZ, customBiomeCache);
         }
 
-        IrisBiome xPos = sampleCaveBiome(caveBiomeCache, x + CAVE_BIOME_BLEND_RADIUS, y, z);
-        IrisBiome xNeg = sampleCaveBiome(caveBiomeCache, x - CAVE_BIOME_BLEND_RADIUS, y, z);
-        IrisBiome zPos = sampleCaveBiome(caveBiomeCache, x, y, z + CAVE_BIOME_BLEND_RADIUS);
-        IrisBiome zNeg = sampleCaveBiome(caveBiomeCache, x, y, z - CAVE_BIOME_BLEND_RADIUS);
-
-        if (xPos == center && xNeg == center && zPos == center && zNeg == center) {
-            return center;
+        private MatterCavern cavernIfPresent(int x, int y, int z) {
+            int section = y >> 4;
+            if (y < 0 || !mantleChunk.exists(section)) {
+                return null;
+            }
+            Matter matter = mantleChunk.get(section);
+            if (matter == null || !matter.hasSlice(MatterCavern.class)) {
+                return null;
+            }
+            return matter.<MatterCavern>getSlice(MatterCavern.class).get(x & 15, y & 15, z & 15);
         }
 
-        int roll = Math.floorMod(rng.nextParallelRNG(BlockPosition.toLong(x, y, z)).nextInt(), CAVE_BIOME_BLEND_TOTAL_WEIGHT);
-        if (roll < CAVE_BIOME_BLEND_CENTER_WEIGHT) {
-            return center;
-        }
-        roll -= CAVE_BIOME_BLEND_CENTER_WEIGHT;
-        if (roll == 0) {
-            return xPos != null ? xPos : center;
-        }
-        if (roll == 1) {
-            return xNeg != null ? xNeg : center;
-        }
-        if (roll == 2) {
-            return zPos != null ? zPos : center;
-        }
-        return zNeg != null ? zNeg : center;
-    }
-
-    private IrisBiome sampleCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z) {
-        long key = BlockPosition.toLong(x, y, z);
-        IrisBiome cachedBiome = caveBiomeCache.get(key);
-        if (cachedBiome != null) {
-            return cachedBiome;
+        ResourceId resolveCaveBoundaryBiome(MatterCavern cavern, int worldX, int y, int worldZ, Map<String, ResourceId> customBiomeCache) {
+            if (cavern != null && !cavern.getCustomBiome().isEmpty()) {
+                return resolveCustomBiome(customBiomeCache, cavern.getCustomBiome());
+            }
+            return resolveCaveBiome(worldX, y, worldZ);
         }
 
-        IrisBiome resolvedBiome = engine.getCaveBiome(x, y, z);
-        if (resolvedBiome != null) {
-            caveBiomeCache.put(key, resolvedBiome);
-        }
-        return resolvedBiome;
-    }
+        private ResourceId resolveCaveBiome(int x, int y, int z) {
+            ResourceId center = sampleCaveBiome(x, y, z);
+            if (center == null) {
+                return null;
+            }
 
-    private IrisBiome resolveCustomBiome(Map<String, IrisBiome> customBiomeCache, String customBiome) {
-        if (customBiomeCache.containsKey(customBiome)) {
-            return customBiomeCache.get(customBiome);
+            ResourceId xPos = sampleCaveBiome(x + CAVE_BIOME_BLEND_RADIUS, y, z);
+            ResourceId xNeg = sampleCaveBiome(x - CAVE_BIOME_BLEND_RADIUS, y, z);
+            ResourceId zPos = sampleCaveBiome(x, y, z + CAVE_BIOME_BLEND_RADIUS);
+            ResourceId zNeg = sampleCaveBiome(x, y, z - CAVE_BIOME_BLEND_RADIUS);
+
+            if (xPos == center && xNeg == center && zPos == center && zNeg == center) {
+                return center;
+            }
+
+            int roll = Math.floorMod(rng.nextParallelRNG(BlockPosition.toLong(x, y, z)).nextInt(), CAVE_BIOME_BLEND_TOTAL_WEIGHT);
+            if (roll < CAVE_BIOME_BLEND_CENTER_WEIGHT) {
+                return center;
+            }
+            roll -= CAVE_BIOME_BLEND_CENTER_WEIGHT;
+            if (roll == 0) {
+                return xPos != null ? xPos : center;
+            }
+            if (roll == 1) {
+                return xNeg != null ? xNeg : center;
+            }
+            if (roll == 2) {
+                return zPos != null ? zPos : center;
+            }
+            return zNeg != null ? zNeg : center;
         }
 
-        IrisBiome loaded = engine.getData().getBiomeLoader().load(customBiome);
-        customBiomeCache.put(customBiome, loaded);
-        return loaded;
+        private ResourceId sampleCaveBiome(int x, int y, int z) {
+            long key = BlockPosition.toLong(x, y, z);
+            ResourceId cachedBiome = caveBiomeCache.get(key);
+            if (cachedBiome != null) {
+                return cachedBiome;
+            }
+
+            ResourceId resolvedBiome = terrain.caveBiome(x, y, z).orElse(null);
+            if (resolvedBiome != null) {
+                caveBiomeCache.put(key, resolvedBiome);
+            }
+            return resolvedBiome;
+        }
+
+        /** The id of the pack's biome with this key; null when the pack has none or it cannot be loaded. */
+        private ResourceId existingBiomeId(String key) {
+            ResourceId id = resources.idOf(key);
+            try {
+                return resources.find(new ResourceKey<>(id, PackBiome.class)).isPresent() ? id : null;
+            } catch (IllegalStateException unreadable) {
+                return null;
+            }
+        }
+
+        private ResourceId resolveCustomBiome(Map<String, ResourceId> customBiomeCache, String customBiome) {
+            if (customBiomeCache.containsKey(customBiome)) {
+                return customBiomeCache.get(customBiome);
+            }
+
+            ResourceId id = existingBiomeId(customBiome);
+            customBiomeCache.put(customBiome, id);
+            return id;
+        }
     }
 
     @Data
@@ -762,8 +691,8 @@ public class CaveApplying {
             return (ceiling - floor) - 1;
         }
 
-        public boolean isValid(Engine engine) {
-            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= engine.getHeight() && airThickness() > 0;
+        public boolean isValid(int height) {
+            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= height && airThickness() > 0;
         }
 
         public String toString() {

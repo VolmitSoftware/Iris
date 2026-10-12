@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 
+import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
@@ -585,7 +586,7 @@ public class ObjectPlacing {
                             underwater,
                             writer.getDataIfPresent(candidateX, candidateY, candidateZ, MatterCavern.class),
                             candidateY,
-                            engine.getDimension().getCaveLavaHeight())) {
+                            engine.getDimension().getModuleSettings().find(CaveLavaHeightSettings.class).map(CaveLavaHeightSettings::height).orElse(CaveLavaHeightSettings.DEFAULT_HEIGHT))) {
                 continue;
             }
             return new CavePlacementAnchor(candidateX, candidateY, candidateZ);

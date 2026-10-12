@@ -19,21 +19,20 @@
 package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.math.RNG;
+import com.volmit.ModuleLog;
 import com.volmit.config.Range;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceKey;
+import com.volmit.world.PackBiome;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * One {@link CarvingEntry} made ready for one world: the biome it names, loaded from the pack when first asked for, and the
+ * One {@link CarvingEntry} made ready for one world: the biome it names, found in the pack when first asked for, and the
  * noise that splits it into child entries, built once per seed. What the entry describes stays in the settings.
  */
 public final class ResolvedCarvingEntry {
@@ -42,13 +41,11 @@ public final class ResolvedCarvingEntry {
     private static final double MIN_CHILD_SCALE = 0.0001D;
 
     private final CarvingEntry settings;
-    private final IrisGeneratorStyle childStyle;
-    private final AtomicCache<IrisBiome> realBiome = new AtomicCache<>(true);
-    private final Map<Long, CNG> childGenerators = new ConcurrentHashMap<>();
+    private final AtomicCache<PackBiome> realBiome = new AtomicCache<>(true);
+    private final Map<Long, NoiseSampler> childGenerators = new ConcurrentHashMap<>();
 
     ResolvedCarvingEntry(CarvingEntry settings) {
         this.settings = settings;
-        this.childStyle = IrisValues.generatorStyle(settings.childStyle());
     }
 
     public String id() {
@@ -77,25 +74,29 @@ public final class ResolvedCarvingEntry {
     }
 
     /** The pack biome the entry names; null when it names none or the pack has no such biome. */
-    public IrisBiome realBiome(IrisData data) {
+    public PackBiome realBiome(PackResources resources, ModuleLog log) {
         return realBiome.aquire(() -> {
             String biomeKey = settings.biome();
             if (biomeKey.isBlank()) {
                 return null;
             }
 
-            return data.getBiomeLoader().load(biomeKey.trim());
+            try {
+                return resources.find(new ResourceKey<>(resources.idOf(biomeKey.trim()), PackBiome.class)).orElse(null);
+            } catch (IllegalStateException unreadable) {
+                log.warnOnce("carving-biome:" + biomeKey, "The biome " + biomeKey + " of a carving entry cannot be loaded: " + unreadable.getMessage());
+                return null;
+            }
         });
     }
 
     /** The noise that picks between the entry and its children, seeded by {@code seed} and the entry's id. */
-    public CNG childrenGenerator(long seed, IrisData data) {
+    public NoiseSampler childrenGenerator(long seed, PackResources resources) {
         long idHash = settings.id().trim().hashCode();
         long generatorSeed = seed ^ (idHash << 32) ^ CHILD_GENERATOR_SALT;
         return childGenerators.computeIfAbsent(generatorSeed, key -> {
             double scale = Math.max(MIN_CHILD_SCALE, settings.childShrinkFactor());
-            RNG random = new RNG(key);
-            return childStyle.create(random.nextParallelRNG(CHILD_GENERATOR_SIGNATURE), data).bake().scale(scale).bake();
+            return resources.noise().sampler(settings.childStyle(), key + CHILD_GENERATOR_SIGNATURE).scaled(scale);
         });
     }
 }

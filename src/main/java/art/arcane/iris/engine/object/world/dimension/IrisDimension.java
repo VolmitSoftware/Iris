@@ -186,8 +186,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(256)
     @Desc("Minimum air gap in blocks between the lower terrain surface and the upper terrain surface.")
     private int upperDimensionGap = 32;
-    @Desc("When true, cave carving will cut through the upper dimension terrain. When false, the upper terrain is a solid untouched mass.")
-    private boolean upperDimensionCarving = false;
     @Desc("When true, objects from the mantle (structures, trees, etc.) can be placed in the upper dimension terrain zone. When false, the upper terrain is protected from object placement.")
     private boolean upperDimensionObjects = false;
     @Desc("When true, upper-dimension objects force-place regardless of placement restrictions (slope, underwater, clamp, collisions, carving). Normal dimension objects always place first; upper objects place second and may clip or occlude lower-dimension placements when this is enabled.")
@@ -245,10 +243,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(type = String.class, min = 1)
     @Desc("External datapack sources owned by this dimension. Bukkit registers their resources server-wide, but Iris excludes their structure sets and definitions from generation and locate state in vanilla worlds and Iris dimensions that do not declare the same source. Editable auto-import is limited to resources supplied by the URLs declared by each Iris pack. Any registered datapack structure can be placed directly through nativeStructures without conversion. Replacing native generation requires a dimension-level structure placement with nativeSuppression set to REPLACE_SOURCE; provenance alone never disables native structures.")
     private KList<String> datapackImports = new KList<>();
-    @MinNumber(0)
-    @MaxNumber(318)
-    @Desc("The subterranean fluid (cave lava) layer height, in engine-local Y where 0 is the bottom of the dimension, not world Y. With the default -64..320 height, 8 means world Y -56.")
-    private int caveLavaHeight = 8;
     @RegistryListFunction(ComponentFlagFunction.class)
     @ArrayType(type = String.class)
     @Desc("Mantle passes to skip in this dimension: CARVED (caves), OBJECT (objects), FLOATING_OBJECT (objects on floating islands) or JIGSAW (structures), or the id of a pack module's mantle stage, such as example:moss/veins. A name that matches nothing is warned about and ignored.")

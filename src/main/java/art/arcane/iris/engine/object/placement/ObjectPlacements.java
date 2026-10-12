@@ -65,7 +65,12 @@ public final class ObjectPlacements {
     /** The procedural objects {@code owner} declares; none when it declares none. */
     public static ResolvedProceduralObjects procedural(IrisRegistrant owner) {
         Optional<ProceduralObjectSettings> settings = owner.getModuleSettings().find(ProceduralObjectSettings.class);
-        return PROCEDURAL.computeIfAbsent(settings.orElse(NO_PROCEDURAL_OBJECTS), ResolvedProceduralObjects::new);
+        return procedural(settings.orElse(NO_PROCEDURAL_OBJECTS));
+    }
+
+    /** The procedural objects {@code settings} declare. */
+    public static ResolvedProceduralObjects procedural(ProceduralObjectSettings settings) {
+        return PROCEDURAL.computeIfAbsent(settings, ResolvedProceduralObjects::new);
     }
 
     /** Whether {@code dimension} places its objects in the terrain stacked above it too. */

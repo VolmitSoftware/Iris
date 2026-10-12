@@ -25,7 +25,7 @@ import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.ModuleLog;
 
-final class GoldenDebugObjectPlacer implements IObjectPlacer {
+public final class GoldenDebugObjectPlacer implements IObjectPlacer {
     private static final int[] GOLDEN_DEBUG_TARGET = parseGoldenDebugTarget(resolveGoldenDebugSpec());
     private static final boolean GOLDEN_DEBUG = GOLDEN_DEBUG_TARGET != null;
 
@@ -33,7 +33,7 @@ final class GoldenDebugObjectPlacer implements IObjectPlacer {
     private final String tag;
     private final ModuleLog log;
 
-    GoldenDebugObjectPlacer(IObjectPlacer delegate, String tag, ModuleLog log) {
+    public GoldenDebugObjectPlacer(IObjectPlacer delegate, String tag, ModuleLog log) {
         this.delegate = delegate;
         this.tag = tag;
         this.log = log;
@@ -70,7 +70,7 @@ final class GoldenDebugObjectPlacer implements IObjectPlacer {
         }
     }
 
-    static boolean isGoldenDebugChunk(int x, int z) {
+    public static boolean isGoldenDebugChunk(int x, int z) {
         return GOLDEN_DEBUG
                 && Math.abs(GOLDEN_DEBUG_TARGET[0] - x) <= GOLDEN_DEBUG_TARGET[2]
                 && Math.abs(GOLDEN_DEBUG_TARGET[1] - z) <= GOLDEN_DEBUG_TARGET[2];

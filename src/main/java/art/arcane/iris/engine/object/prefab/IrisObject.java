@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.prefab;
 
+import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -71,7 +72,7 @@ import java.util.function.BiConsumer;
  */
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-public class IrisObject extends IrisRegistrant {
+public class IrisObject extends IrisRegistrant implements PlaceableObject {
     protected static final IrisVector HALF = new IrisVector(0.5, 0.5, 0.5);
     public static final class States {
         public static final PlatformBlockState AIR = B.getState("CAVE_AIR");
@@ -370,6 +371,26 @@ public class IrisObject extends IrisRegistrant {
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public String key() {
+        return getLoadKey();
+    }
+
+    @Override
+    public int width() {
+        return w;
+    }
+
+    @Override
+    public int height() {
+        return h;
+    }
+
+    @Override
+    public int depth() {
+        return d;
     }
 
     public int volume() {

@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
@@ -26,10 +27,6 @@ import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
-import art.arcane.iris.core.modules.IrisMantleChunk;
-import art.arcane.iris.core.modules.IrisPackSettings;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -82,20 +79,14 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void warmUp(PackWorld world) {
-        new ObjectWarmUp(IrisPackWorld.of(world).engine()).warm();
+        new ObjectWarmUp(world).warm();
     }
 
     private static void place(MantleStageContext context) {
-        IrisMantleChunk chunk = IrisMantleChunk.current();
-        placing(chunk.engine(), context.log()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
+        ObjectPlacing.of(context.world()).place(context);
     }
 
     private int reach(PackSettings settings) {
-        return placing(IrisPackSettings.of(settings).engine(), log).reach();
-    }
-
-    /** The engine runtime's object placing, which the module's {@link ObjectsAt} also asks; {@code log} is the module's. */
-    public static ObjectPlacing placing(Engine engine, ModuleLog log) {
-        return engine.getGeneration().state(ObjectPlacing.class, generating -> new ObjectPlacing(generating, log));
+        return new PlacementReach(ObjectHost.of(settings), log).ofPack(settings);
     }
 }

@@ -44,16 +44,8 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
         this.settings = settings;
     }
 
-    /** The key a variant is loaded under, which placement markers and the sapling tree list name. */
-    public static String variantLoadKey(String name, int index) {
-        if (index < 0) {
-            throw new IllegalArgumentException("index must not be negative");
-        }
-        return "procedural/tree/" + name + "#" + index;
-    }
-
     public String getVariantLoadKey(int index) {
-        return variantLoadKey(settings.name(), index);
+        return Tree.variantLoadKey(settings.name(), index);
     }
 
     public Tree settings() {

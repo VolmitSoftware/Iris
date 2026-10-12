@@ -18,27 +18,22 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.core.modules.PlatformBlockStates;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
-import art.arcane.iris.builtin.objects.tree.Tree;
-import art.arcane.iris.engine.object.procedural.tree.ResolvedTree;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.ObjectSink;
+import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.TreeMode;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.block.BlockState;
 import com.volmit.placement.PlacedBlock;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -60,80 +55,83 @@ public final class TreeGrowing implements SaplingGrowth {
 
     @Override
     public Optional<Growth> grow(PackWorld world, Sapling sapling, Surroundings surroundings) {
-        Engine engine = IrisPackWorld.of(world).engine();
-        if (!ObjectPlacements.treeGrowth(engine.getDimension()).enabled()) {
+        ObjectHost host = ObjectHost.of(world);
+        BlockPosition at = sapling.at();
+        TreeGrowthSettings growth = treeGrowth(host, at);
+        if (!growth.enabled()) {
             return Optional.empty();
         }
-
-        IrisObjectPlacement placement = pickPlacement(engine, sapling);
-        if (placement == null) {
+        Optional<ObjectPlacement> placement = pickPlacement(host, growth, sapling);
+        if (placement.isEmpty()) {
             return Optional.empty();
         }
-
-        IrisData data = engine.getData();
-        IrisObject object = data.getObjectLoader().load(placement.getPlace().getRandom(RNG.r));
-        GrowthPlacer placer = new GrowthPlacer(engine, surroundings);
+        List<String> keys = placement.get().place();
+        Optional<PlaceableObject> tree = host.object(keys.get(RNG.r.i(keys.size())));
+        if (tree.isEmpty()) {
+            return Optional.empty();
+        }
+        PlaceableObject object = tree.get();
+        GrowthSink sink = new GrowthSink(surroundings, host);
         BlockPosition center = sapling.center();
-        object.place(center.x(), center.y() + object.getH() / 2, center.z(), placer, placement, RNG.r, data);
-        return Optional.of(new Growth(object.getLoadKey(), placer.placed()));
+        host.placeInto(object, center.x(), center.y() + object.height() / 2, center.z(), placement.get(), sink, RNG.r);
+        return Optional.of(new Growth(object.key(), sink.placed()));
     }
 
     @Override
     public TreeObjects treeObjects(PackWorld world) {
-        Engine engine = IrisPackWorld.of(world).engine();
+        ObjectHost host = ObjectHost.of(world);
         Set<String> objects = new HashSet<>();
         Set<String> procedural = new HashSet<>();
-
-        for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            if (region != null) {
-                collectPlacements(ObjectPlacements.all(region), objects);
-                collectProceduralTrees(ObjectPlacements.procedural(region), procedural);
-            }
+        for (Declaration<ObjectSettings> declaration : host.declarations(ObjectSettings.class)) {
+            collectPlacements(declaration.settings().objects(), objects);
         }
-        for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-            if (biome != null) {
-                collectPlacements(ObjectPlacements.all(biome), objects);
-                collectProceduralTrees(ObjectPlacements.procedural(biome), procedural);
-            }
+        for (Declaration<ProceduralObjectSettings> declaration : host.declarations(ProceduralObjectSettings.class)) {
+            collectProceduralTrees(declaration.settings().trees(), procedural);
         }
         return new TreeObjects(objects, procedural);
     }
 
-    /** One placement, picked at random, of the tree placements that grow {@code sapling}'s species; null for none. */
-    private static IrisObjectPlacement pickPlacement(Engine engine, Sapling sapling) {
-        KList<IrisObjectPlacement> placements = new KList<>();
-        boolean useAll = ObjectPlacements.treeGrowth(engine.getDimension()).mode() == TreeMode.ALL;
-
-        BlockPosition at = sapling.at();
-        placements.addAll(matching(ObjectPlacements.all(engine.getBiome(at.x(), at.y(), at.z())), sapling.species()));
-        if (useAll || placements.isEmpty()) {
-            placements.addAll(matching(ObjectPlacements.all(engine.getRegion(at.x(), at.z())), sapling.species()));
+    private static TreeGrowthSettings treeGrowth(ObjectHost host, BlockPosition at) {
+        for (Entry<TreeGrowthSettings> entry : host.columnSettings().at(TreeGrowthSettings.class, at.x(), at.z())) {
+            if (entry.level() == Target.DIMENSION) {
+                return entry.value();
+            }
         }
-        return placements.isNotEmpty() ? placements.getRandom() : null;
+        return new TreeGrowthSettings();
     }
 
-    private static KList<IrisObjectPlacement> matching(KList<IrisObjectPlacement> objects, String species) {
-        KList<IrisObjectPlacement> matches = new KList<>();
-        for (IrisObjectPlacement placement : objects) {
-            if (placement.matches(SAPLING_WIDTH, SAPLING_DEPTH, species)) {
+    /** One placement, picked at random, of the tree placements that grow {@code sapling}'s species. */
+    private static Optional<ObjectPlacement> pickPlacement(ObjectHost host, TreeGrowthSettings growth, Sapling sapling) {
+        List<ObjectPlacement> placements = new ArrayList<>();
+        BlockPosition at = sapling.at();
+        ResourceId biome = host.biomeAt(at.x(), at.y(), at.z());
+        host.biomeDeclaration(biome, ObjectSettings.class).ifPresent(settings -> placements.addAll(matching(settings, sapling.species())));
+        if (growth.mode() == TreeMode.ALL || placements.isEmpty()) {
+            ResourceId region = host.regionAt(at.x(), at.z());
+            host.regionDeclaration(region, ObjectSettings.class).ifPresent(settings -> placements.addAll(matching(settings, sapling.species())));
+        }
+        if (placements.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(placements.get(RNG.r.i(placements.size())));
+    }
+
+    private static List<ObjectPlacement> matching(ObjectSettings settings, String species) {
+        List<ObjectPlacement> matches = new ArrayList<>();
+        for (ObjectPlacement placement : settings.objects()) {
+            if (placement.trees().stream().anyMatch(tree -> tree.matches(SAPLING_WIDTH, SAPLING_DEPTH, species))) {
                 matches.add(placement);
             }
         }
         return matches;
     }
 
-    private static void collectPlacements(Iterable<IrisObjectPlacement> placements, Set<String> objectKeys) {
-        if (placements == null) {
-            return;
-        }
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null
-                    || placement.getTrees() == null
-                    || placement.getTrees().isEmpty()
-                    || placement.getPlace() == null) {
+    private static void collectPlacements(List<ObjectPlacement> placements, Set<String> objectKeys) {
+        for (ObjectPlacement placement : placements) {
+            if (placement == null || placement.trees().isEmpty()) {
                 continue;
             }
-            for (String objectKey : placement.getPlace()) {
+            for (String objectKey : placement.place()) {
                 if (objectKey != null && !objectKey.isBlank()) {
                     objectKeys.add(objectKey);
                 }
@@ -141,32 +139,27 @@ public final class TreeGrowing implements SaplingGrowth {
         }
     }
 
-    private static void collectProceduralTrees(ResolvedProceduralObjects proceduralObjects, Set<String> objectKeys) {
-        if (proceduralObjects == null || proceduralObjects.getTrees() == null) {
-            return;
-        }
-        for (ResolvedTree resolved : proceduralObjects.getTrees()) {
-            Tree tree = resolved.settings();
-            if (tree.name() == null || tree.name().isBlank()) {
+    private static void collectProceduralTrees(List<Tree> trees, Set<String> objectKeys) {
+        for (Tree tree : trees) {
+            if (tree == null || tree.name() == null || tree.name().isBlank()) {
                 continue;
             }
             int variants = Math.max(1, tree.variants());
             for (int index = 0; index < variants; index++) {
-                objectKeys.add(resolved.getVariantLoadKey(index));
+                objectKeys.add(Tree.variantLoadKey(tree.name(), index));
             }
         }
     }
 
     /** Places an object into a list of blocks, reading the world around the sapling through the host. */
-    private static final class GrowthPlacer implements IObjectPlacer {
-        private final Engine engine;
+    private static final class GrowthSink implements ObjectSink {
         private final Surroundings surroundings;
-        private final PlatformBlockStates states = new PlatformBlockStates(key -> IrisPlatforms.get().registries().block(key));
+        private final ObjectHost host;
         private final List<PlacedBlock> placed = new ArrayList<>();
 
-        private GrowthPlacer(Engine engine, Surroundings surroundings) {
-            this.engine = engine;
+        private GrowthSink(Surroundings surroundings, ObjectHost host) {
             this.surroundings = surroundings;
+            this.host = host;
         }
 
         private List<PlacedBlock> placed() {
@@ -174,77 +167,23 @@ public final class TreeGrowing implements SaplingGrowth {
         }
 
         @Override
-        public int getHighest(int x, int z, IrisData data) {
-            return surroundings.highest(x, z, false);
-        }
-
-        @Override
-        public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
+        public int highest(int x, int z, boolean ignoreFluid) {
             return surroundings.highest(x, z, ignoreFluid);
         }
 
         @Override
-        public void set(int x, int y, int z, PlatformBlockState state) {
-            placed.add(new PlacedBlock(new BlockPosition(x, y, z), states.toApi(state), Optional.empty()));
+        public BlockState get(int x, int y, int z) {
+            return surroundings.blockAt(x, y, z);
         }
 
         @Override
-        public PlatformBlockState get(int x, int y, int z) {
-            BlockState block = surroundings.blockAt(x, y, z);
-            return states.toPlatform(block);
+        public void set(int x, int y, int z, BlockState state) {
+            placed.add(new PlacedBlock(new BlockPosition(x, y, z), state, Optional.empty()));
         }
 
         @Override
-        public boolean isPreventingDecay() {
-            return true;
-        }
-
-        @Override
-        public boolean isCarved(int x, int y, int z) {
-            return false;
-        }
-
-        @Override
-        public boolean isSurfaceSolid(int x, int y, int z) {
-            return isSolid(x, y, z);
-        }
-
-        @Override
-        public boolean isSolid(int x, int y, int z) {
-            return get(x, y, z).isSolid();
-        }
-
-        @Override
-        public boolean isUnderwater(int x, int z) {
-            return false;
-        }
-
-        @Override
-        public int getFluidHeight() {
-            return engine.getDimension().getFluidHeight();
-        }
-
-        @Override
-        public boolean isDebugSmartBore() {
-            return false;
-        }
-
-        @Override
-        public void setTile(int xx, int yy, int zz, TileData tile) {
-        }
-
-        @Override
-        public <T> void setData(int xx, int yy, int zz, T data) {
-        }
-
-        @Override
-        public <T> T getData(int xx, int yy, int zz, Class<T> t) {
-            return null;
-        }
-
-        @Override
-        public Engine getEngine() {
-            return engine;
+        public int fluidHeight() {
+            return host.fluidHeight();
         }
     }
 }

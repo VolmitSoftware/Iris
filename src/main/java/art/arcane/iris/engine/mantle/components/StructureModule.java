@@ -73,7 +73,7 @@ public final class StructureModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Structure.PLACE).requires(IrisStages.Objects.PLACE).softAfter(IrisStages.Floating.OBJECTS.ref())
+        graph.define(IrisStages.Structure.PLACE).softAfter(IrisStages.Objects.PLACE.ref(), IrisStages.Floating.OBJECTS.ref())
                 .reach(this::reach).run(StructureModule::place);
     }
 

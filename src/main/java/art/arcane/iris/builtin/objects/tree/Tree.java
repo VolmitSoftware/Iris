@@ -257,6 +257,14 @@ public final class Tree {
     public Tree() {
     }
 
+    /** The key the variant {@code index} of the tree named {@code name} is loaded under, which placement markers and the sapling tree list name. */
+    public static String variantLoadKey(String name, int index) {
+        if (index < 0) {
+            throw new IllegalArgumentException("index must not be negative");
+        }
+        return "procedural/tree/" + name + "#" + index;
+    }
+
     public String name() {
         return name;
     }

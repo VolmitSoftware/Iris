@@ -18,3 +18,14 @@ module art.arcane.iris.engine.modifier.PostModule
 include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
 module art.arcane.iris.engine.modifier.PerfectionModule
 module art.arcane.iris.engine.modifier.MatterModule
+module art.arcane.iris.engine.mantle.components.ObjectModule
+include art/arcane/iris/engine/mantle/components/ObjectPlacing*.class
+include art/arcane/iris/engine/mantle/components/ChunkObjectPlacing*.class
+include art/arcane/iris/engine/mantle/components/CaveAnchors*.class
+include art/arcane/iris/engine/mantle/components/CaveSettings*.class
+include art/arcane/iris/engine/mantle/components/CaveRejects*.class
+include art/arcane/iris/engine/mantle/components/EffectivePlacements*.class
+include art/arcane/iris/engine/mantle/components/PlacementReach*.class
+include art/arcane/iris/engine/mantle/components/ObjectWarmUp*.class
+include art/arcane/iris/engine/mantle/components/ObjectLocating*.class
+include art/arcane/iris/engine/mantle/components/TreeGrowing*.class

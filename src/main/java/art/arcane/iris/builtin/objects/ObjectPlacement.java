@@ -65,7 +65,7 @@ import java.util.Optional;
 @Snippet("object-placer")
 @Desc("Represents an iris object placer. It places objects.")
 @JsonAdapter(ObjectPlacement.KeepingItsJson.class)
-public final class ObjectPlacement {
+public final class ObjectPlacement implements PlacementSource {
     private static final int DEFAULT_SURFACE_SUPPORT_BUFFER = 2;
     private static final int DEFAULT_SURFACE_SUPPORT_DEPTH = 2;
 
@@ -190,6 +190,7 @@ public final class ObjectPlacement {
         return place == null ? List.of() : Collections.unmodifiableList(place);
     }
 
+    @Override
     public double chance() {
         return chance;
     }
@@ -227,6 +228,7 @@ public final class ObjectPlacement {
         return warp;
     }
 
+    @Override
     public ObjectPlaceMode mode() {
         return mode;
     }
@@ -235,18 +237,22 @@ public final class ObjectPlacement {
         return Optional.ofNullable(vacuumSettings);
     }
 
+    @Override
     public CarvingMode carvingSupport() {
         return carvingSupport;
     }
 
+    @Override
     public CaveAnchorMode caveAnchorMode() {
         return caveAnchorMode;
     }
 
+    @Override
     public boolean underwater() {
         return underwater;
     }
 
+    @Override
     public boolean isDolphinTarget() {
         return isDolphinTarget;
     }
@@ -255,10 +261,12 @@ public final class ObjectPlacement {
         return forcePlace;
     }
 
+    @Override
     public boolean requireSurfaceSupport() {
         return requireSurfaceSupport;
     }
 
+    @Override
     public int surfaceSupportBuffer() {
         return surfaceSupportBuffer;
     }

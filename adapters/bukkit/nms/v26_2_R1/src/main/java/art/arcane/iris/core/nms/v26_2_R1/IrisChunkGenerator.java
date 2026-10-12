@@ -3,7 +3,7 @@ package art.arcane.iris.core.nms.v26_2_R1;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
@@ -208,7 +208,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 throw new IllegalStateException("Native structure locate received an unregistered structure holder");
             }
             String structureId = id.toString();
-            if (!IrisStructureLocator.hasNativePlacement(engine, structureId)) {
+            if (!ModuleServices.startsStructure(engine, structureId)) {
                 continue;
             }
             NativeStructureLocatePersistence.Probe probe = NativeStructureLocatePersistence.probe(
@@ -220,19 +220,19 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         searches.sort(Comparator.comparing(IrisNativeLocateSearch::structureId));
         for (int attempt = 0; attempt < NativeStructureLocatePersistence.MAX_SELECTED_CANDIDATE_RETRIES; attempt++) {
             IrisNativeLocateSearch bestSearch = null;
-            IrisStructureLocator.LocateResult bestResult = null;
+            ModuleServices.StructureSearch bestResult = null;
             long bestDistance = Long.MAX_VALUE;
             for (IrisNativeLocateSearch search : searches) {
-                IrisStructureLocator.LocateResult result = search.search().predict();
-                if (result.status() == IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED) {
+                ModuleServices.StructureSearch result = search.search().predict();
+                if (result.outcome() == ModuleServices.StructureSearch.Outcome.SEARCH_LIMIT_REACHED) {
                     throw new IllegalStateException("Iris structure locate reached its safety limit for "
                             + search.structureId() + " within " + radius + " placement rings");
                 }
                 if (!result.found()) {
                     continue;
                 }
-                long dx = (long) result.originX() - pos.getX();
-                long dz = (long) result.originZ() - pos.getZ();
+                long dx = (long) result.x() - pos.getX();
+                long dz = (long) result.z() - pos.getZ();
                 long distance = dx * dx + dz * dz;
                 if (distance < bestDistance) {
                     bestDistance = distance;
@@ -245,7 +245,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                         pos, null, () -> { }, nativeLocated, nativeReference);
             }
             Pair<BlockPos, Holder<Structure>> predicted = Pair.of(
-                    new BlockPos(bestResult.originX(), bestResult.baseY(), bestResult.originZ()),
+                    new BlockPos(bestResult.x(), bestResult.y(), bestResult.z()),
                     bestSearch.holder());
             if (NativeStructureLocateResults.nearest(pos, predicted, nativeLocated) != predicted) {
                 return NativeStructureLocateResults.selectAndReference(
@@ -258,8 +258,8 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 continue;
             }
             BlockPos located = new BlockPos(
-                    bestResult.originX(), verified.ownership().locatorY(),
-                    bestResult.originZ());
+                    bestResult.x(), verified.ownership().locatorY(),
+                    bestResult.z());
             Pair<BlockPos, Holder<Structure>> irisLocated = Pair.of(located, bestSearch.holder());
             IrisNativeLocateSearch selectedSearch = bestSearch;
             NativeStructureLocatePersistence.VerifiedStart selectedStart = verified;

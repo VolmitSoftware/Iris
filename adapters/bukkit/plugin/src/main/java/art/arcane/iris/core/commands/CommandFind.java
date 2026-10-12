@@ -26,7 +26,6 @@ import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.datapack.DatapackIngestService;
 import art.arcane.iris.core.service.ObjectStudioSaveService;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -146,8 +145,8 @@ public class CommandFind implements DirectorExecutor {
         NativeStructureGenerationStatus status = registered
                 ? NativeStructureGenerationPolicy.resolve(e, structureKey)
                 : null;
-        boolean nativePlacement = IrisStructureLocator.hasNativePlacement(e, structureKey);
-        boolean locatableNativePlacement = IrisStructureLocator.hasLocatableNativePlacement(e, structureKey);
+        boolean nativePlacement = ModuleServices.startsStructure(e, structureKey);
+        boolean locatableNativePlacement = ModuleServices.canLocateStart(e, structureKey);
         boolean locatableEditablePlacement = ModuleServices.canLocateStructure(e, structureKey);
         World targetWorld = target.getWorld();
         boolean nativeGenerationEnabled = targetWorld.canGenerateStructures();
@@ -273,8 +272,8 @@ public class CommandFind implements DirectorExecutor {
             String normalizedKey = entry.getKey();
             String key = entry.getValue();
             NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
-            boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
-            boolean locatableNativePlacement = IrisStructureLocator.hasLocatableNativePlacement(engine, key);
+            boolean nativePlacement = ModuleServices.startsStructure(engine, key);
+            boolean locatableNativePlacement = ModuleServices.canLocateStart(engine, key);
             boolean locatableEditablePlacement = ModuleServices.canLocateStructure(engine, key);
             StructureLookupRoute route = selectStructureLookupRoute(
                     true, status, nativePlacement, locatableNativePlacement,
@@ -296,18 +295,18 @@ public class CommandFind implements DirectorExecutor {
 
         int configuredUnregistered = 0;
         Set<String> configuredUnregisteredKeys = new LinkedHashSet<>();
-        for (String configuredKey : IrisStructureLocator.placedKeys(engine)) {
+        for (String configuredKey : ModuleServices.placedStructures(engine)) {
             String normalizedKey = normalizeStructureKey(configuredKey);
             if (normalizedKey.isEmpty()
                     || registeredKeys.containsKey(normalizedKey)
-                    || !IrisStructureLocator.hasNativePlacement(engine, configuredKey)
+                    || !ModuleServices.startsStructure(engine, configuredKey)
                     || !configuredUnregisteredKeys.add(normalizedKey)) {
                 continue;
             }
             exclusions.add(new StructureExclusion(
                     StructureExclusionKind.UNREGISTERED, configuredKey, null,
                     describeConfiguredUnregisteredNative(
-                            IrisStructureLocator.hasLocatableNativePlacement(engine, configuredKey))));
+                            ModuleServices.canLocateStart(engine, configuredKey))));
             configuredUnregistered++;
         }
 
@@ -319,11 +318,11 @@ public class CommandFind implements DirectorExecutor {
             String normalizedKey = normalizeStructureKey(editableKey);
             if (!isUnplacedEditableCandidate(
                     normalizedKey, registeredKeys.keySet(), locatableEditableKeys,
-                    IrisStructureLocator.hasNativePlacement(engine, editableKey))
+                    ModuleServices.startsStructure(engine, editableKey))
                     || !unplacedEditableKeys.add(normalizedKey)) {
                 continue;
             }
-            boolean configuredPlacement = IrisStructureLocator.hasEditablePlacement(engine, editableKey);
+            boolean configuredPlacement = ModuleServices.placesStructure(engine, editableKey);
             String reason = configuredPlacement
                     ? "editable Iris structure has a configured placement, but no matching placement is active "
                     + "because its density is not positive or its Y band does not intersect this world"

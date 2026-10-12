@@ -53,6 +53,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -77,6 +78,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void isPlacedIsFalseForNullOrEmptyKey() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         assertFalse(IrisStructureLocator.isPlaced(engine, null));
         assertFalse(IrisStructureLocator.isPlaced(engine, ""));
     }
@@ -126,6 +128,7 @@ public class IrisStructureLocatorContractTest {
         placements.add(editable);
         placements.add(nativePlacement);
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getMinHeight()).thenReturn(-64);
@@ -154,6 +157,7 @@ public class IrisStructureLocatorContractTest {
     public void nativeStructureReplacementSuppressesOnlyItsRegisteredSource() {
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
         IrisStructurePlacement placement = new IrisStructurePlacement()
                 .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
@@ -175,6 +179,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void suppressesVanillaIsFalseForNullOrEmptyKey() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         assertFalse(IrisStructureLocator.suppressesVanilla(engine, null));
         assertFalse(IrisStructureLocator.suppressesVanilla(engine, ""));
     }
@@ -198,13 +203,15 @@ public class IrisStructureLocatorContractTest {
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
 
         Engine engine = mock(Engine.class);
+
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
 
         assertTrue(IrisStructureLocator.isPlaced(engine, "minecraft:ancient_city"));
         assertFalse(IrisStructureLocator.suppressesVanilla(engine, "minecraft:ancient_city"));
         placement.setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
-        IrisStructureLocator.invalidate(engine);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         assertTrue(IrisStructureLocator.suppressesVanilla(engine, "minecraft:ancient_city"));
     }
 
@@ -228,6 +235,8 @@ public class IrisStructureLocatorContractTest {
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
 
         Engine engine = mock(Engine.class);
+
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
 
@@ -290,6 +299,7 @@ public class IrisStructureLocatorContractTest {
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
 
@@ -313,6 +323,7 @@ public class IrisStructureLocatorContractTest {
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
 
@@ -332,6 +343,7 @@ public class IrisStructureLocatorContractTest {
         when(dimension.getAllRegions(any())).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
 
@@ -384,6 +396,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void locateReturnsNotFoundForNullOrEmptyKey() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         assertEquals(IrisStructureLocator.LocateStatus.NOT_FOUND,
                 IrisStructureLocator.locate(engine, null, 0, 0, 100).status());
         assertEquals(IrisStructureLocator.LocateStatus.NOT_FOUND,
@@ -478,6 +491,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void searchableDensityRequiresPositiveProbabilityAndWorldHeightOverlap() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
         IrisStructurePlacement placement = new IrisStructurePlacement();
@@ -497,21 +511,16 @@ public class IrisStructureLocatorContractTest {
     }
 
     @Test
-    public void invalidateIsNullSafe() {
-        IrisStructureLocator.invalidate(null);
-    }
-
-    @Test
-    public void placementIndexIsScopedAndInvalidatedPerEngine() {
+    public void placementIndexIsKeptPerWorld() {
         IrisData sharedData = mock(IrisData.class);
         Engine firstEngine = emptyEngine(sharedData);
         Engine secondEngine = emptyEngine(sharedData);
         Set<String> firstIndex = IrisStructureLocator.placedKeys(firstEngine);
-        Set<String> secondIndex = IrisStructureLocator.placedKeys(secondEngine);
-        assertNotSame(firstIndex, secondIndex);
+        assertSame(firstIndex, IrisStructureLocator.placedKeys(firstEngine));
+        assertNotSame(firstIndex, IrisStructureLocator.placedKeys(secondEngine));
 
-        IrisStructureLocator.invalidate(firstEngine);
-        assertNotSame(firstIndex, IrisStructureLocator.placedKeys(firstEngine));
+        when(firstEngine.getGeneration()).thenReturn(new EngineGeneration(firstEngine));
+        assertNotSame("a new world builds its own index", firstIndex, IrisStructureLocator.placedKeys(firstEngine));
     }
 
     @Test
@@ -604,6 +613,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void caveSearchabilityReservesVerticalBoundaryCells() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight()).thenReturn(384);
         IrisStructurePlacement placement = new IrisStructurePlacement()
@@ -625,6 +635,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void undergroundAssemblyIsShiftedBelowEveryTerrainColumn() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight(anyInt(), anyInt(), eq(true)))
                 .thenAnswer(invocation -> invocation.<Integer>getArgument(0) == 1 ? 140 : 164);
@@ -647,6 +658,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void undergroundBurialIncludesForceCarveCeiling() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(164);
         IrisStructurePlacement placement = new IrisStructurePlacement();
@@ -676,6 +688,7 @@ public class IrisStructureLocatorContractTest {
     @Test
     public void zeroForceCarvePaddingDoesNotExpandTheBurialEnvelope() {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(164);
         IrisStructurePlacement placement = new IrisStructurePlacement()
@@ -781,6 +794,7 @@ public class IrisStructureLocatorContractTest {
 
     private Engine emptyEngine(IrisData data) {
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
@@ -807,6 +821,8 @@ public class IrisStructureLocatorContractTest {
         placement.setMaxHeight(placementMax);
 
         Engine engine = mock(Engine.class);
+
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
         KList<IrisStructurePlacement> placements = new KList<>();
         placements.add(placement);

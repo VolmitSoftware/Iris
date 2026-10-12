@@ -171,6 +171,7 @@ public class IrisStructurePlacementRingLocatorTest {
         IrisData data = mock(IrisData.class);
         IrisDimension dimension = mock(IrisDimension.class);
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         KList<IrisStructurePlacement> configured = new KList<>();
         for (IrisStructurePlacement placement : placements) {
             configured.add(placement);

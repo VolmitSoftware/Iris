@@ -1,7 +1,8 @@
 package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
+import art.arcane.iris.core.modules.ModuleServices;
+import art.arcane.iris.core.modules.StructureSearchLimitException;
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.spi.IrisLogging;
 import net.minecraft.SharedConstants;
@@ -149,7 +150,7 @@ public final class NativeStructureLocatePersistence {
 
         private void claim() {
             if (used >= maximum) {
-                throw new IrisStructureLocator.CandidateSearchLimitException();
+                throw new StructureSearchLimitException();
             }
             used++;
         }
@@ -256,20 +257,19 @@ public final class NativeStructureLocatePersistence {
             this.probe = probe;
         }
 
-        public IrisStructureLocator.LocateResult predict() {
+        public ModuleServices.StructureSearch predict() {
             if (rejectedChunks.size() >= MAX_SELECTED_CANDIDATE_RETRIES) {
-                return new IrisStructureLocator.LocateResult(
-                        IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED, 0, 0, 0);
+                return ModuleServices.StructureSearch.SEARCH_LIMIT_REACHED;
             }
-            return IrisStructureLocator.locateInPlacementRings(
+            return ModuleServices.locateStart(
                     engine, structureKey, blockX, blockZ, radius,
                     (chunkX, chunkZ) -> !rejectedChunks.contains(ChunkPos.pack(chunkX, chunkZ))
                             && probe.accepts(chunkX, chunkZ));
         }
 
-        public VerifiedStart verify(IrisStructureLocator.LocateResult result) {
-            int chunkX = result.originX() >> 4;
-            int chunkZ = result.originZ() >> 4;
+        public VerifiedStart verify(ModuleServices.StructureSearch result) {
+            int chunkX = result.x() >> 4;
+            int chunkZ = result.z() >> 4;
             StructureStart start = probe.verifySelected(chunkX, chunkZ);
             if (start == null) {
                 return null;
@@ -282,8 +282,8 @@ public final class NativeStructureLocatePersistence {
             return new VerifiedStart(start, ownership);
         }
 
-        public void reject(IrisStructureLocator.LocateResult result) {
-            rejectedChunks.add(ChunkPos.pack(result.originX() >> 4, result.originZ() >> 4));
+        public void reject(ModuleServices.StructureSearch result) {
+            rejectedChunks.add(ChunkPos.pack(result.x() >> 4, result.z() >> 4));
         }
 
         public void reference(VerifiedStart verified) {

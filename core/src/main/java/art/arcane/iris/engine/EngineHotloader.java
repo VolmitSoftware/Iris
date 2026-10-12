@@ -24,8 +24,6 @@ import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
 import art.arcane.iris.engine.framework.EngineTarget;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
-import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
@@ -117,8 +115,6 @@ final class EngineHotloader {
                 }
                 engine.getPlatformHooks().validateDimensionHotload(engine, replacement);
                 replacementData.registerEngine(engine);
-                IrisStructureLocator.invalidate(engine);
-                StructureReachability.invalidate(engine);
                 EngineTarget replacementTarget = new EngineTarget(engine.getWorld(), replacement, replacementData);
                 EngineRuntime nextRuntime = engine.runtimeBuilder.buildRuntime(replacementTarget);
                 engine.runtimeBuilder.publishRuntime(nextRuntime, previousRuntime);
@@ -151,8 +147,6 @@ final class EngineHotloader {
                             e.addSuppressed(replacementDataFailure);
                         }
                     }
-                    IrisStructureLocator.invalidate(engine);
-                    StructureReachability.invalidate(engine);
                     if (engine.lifecycleState != LifecycleState.FAILED) {
                         Throwable rollbackFailure = runCleanup(null, engine.getMantle()::hotload);
                         if (rollbackFailure == null) {

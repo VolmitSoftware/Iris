@@ -21,7 +21,6 @@ package art.arcane.iris.modded.command;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
@@ -107,9 +106,9 @@ final class ModdedUnregisteredStructures {
                 continue;
             }
             NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
-            boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
+            boolean nativePlacement = ModuleServices.startsStructure(engine, key);
             boolean locatableNativePlacement = nativePlacement
-                    && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
+                    && ModuleServices.canLocateStart(engine, key);
             boolean locatableEditableReplacement = !nativePlacement
                     && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                     && ModuleServices.canLocateStructure(engine, key);
@@ -128,8 +127,8 @@ final class ModdedUnregisteredStructures {
             excluded.put(normalizedKey, new ExcludedStructure(ReportStatus.EXCLUDED, key, reason));
         }
         List<String> absentNativeKeys = missingConfiguredNativeKeys(
-                IrisStructureLocator.placedKeys(engine), registeredKeys,
-                (String key) -> IrisStructureLocator.hasNativePlacement(engine, key));
+                ModuleServices.placedStructures(engine), registeredKeys,
+                (String key) -> ModuleServices.startsStructure(engine, key));
         for (String key : absentNativeKeys) {
             String normalizedKey = ModdedCommandSuggestions.normalizeKey(key);
             excluded.putIfAbsent(normalizedKey, new ExcludedStructure(ReportStatus.UNREGISTERED, key,
@@ -143,12 +142,12 @@ final class ModdedUnregisteredStructures {
                 continue;
             }
             boolean registered = registeredKeys.contains(normalizedKey);
-            boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
+            boolean nativePlacement = ModuleServices.startsStructure(engine, key);
             boolean locatableEditable = ModuleServices.canLocateStructure(engine, key);
             if (!registered && !nativePlacement && locatableEditable) {
                 continue;
             }
-            boolean configured = IrisStructureLocator.hasEditablePlacement(engine, key);
+            boolean configured = ModuleServices.placesStructure(engine, key);
             excluded.putIfAbsent(normalizedKey, new ExcludedStructure(
                     ReportStatus.UNPLACED, key.trim(), editableExclusionReason(configured)));
         }

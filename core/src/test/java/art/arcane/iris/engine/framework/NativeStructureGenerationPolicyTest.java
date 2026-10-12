@@ -236,6 +236,7 @@ public class NativeStructureGenerationPolicyTest {
                           KList<IrisStructurePlacement> dimensionPlacements, List<IrisModule> packModules) throws IOException {
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisDimension dimension = mock(IrisDimension.class);
         IrisRegion region = mock(IrisRegion.class);
         when(region.getStructures()).thenReturn(regionPlacements);

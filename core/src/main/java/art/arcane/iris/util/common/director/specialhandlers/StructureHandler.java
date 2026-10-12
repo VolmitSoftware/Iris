@@ -20,7 +20,6 @@ package art.arcane.iris.util.common.director.specialhandlers;
 
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
@@ -62,7 +61,7 @@ public class StructureHandler implements DirectorParameterHandler<String> {
             String normalizedKey = normalizeKey(key);
             if (!normalizedKey.isEmpty()
                     && !registeredKeys.containsKey(normalizedKey)
-                    && !IrisStructureLocator.hasNativePlacement(activeEngine, key)) {
+                    && !ModuleServices.startsStructure(activeEngine, key)) {
                 suggestions.putIfAbsent(normalizedKey, key.trim());
             }
         }
@@ -116,9 +115,9 @@ public class StructureHandler implements DirectorParameterHandler<String> {
     private static boolean isEligibleRegisteredKey(Engine engine, String key, String normalizedKey,
                                                    Set<String> reachableKeys, boolean nativeGenerationEnabled) {
         NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
-        boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
+        boolean nativePlacement = ModuleServices.startsStructure(engine, key);
         boolean locatableNativePlacement = nativePlacement
-                && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
+                && ModuleServices.canLocateStart(engine, key);
         boolean locatableEditableReplacement = !nativePlacement
                 && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                 && ModuleServices.canLocateStructure(engine, key);

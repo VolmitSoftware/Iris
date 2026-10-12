@@ -8,9 +8,7 @@ import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.mantle.components.StructureModule;
-import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -151,8 +149,6 @@ public class StructureHandlerTest {
             verify(hooks, times(1)).structureKeys();
             verify(hooks, times(1)).reachableStructureKeys(platformWorld);
         } finally {
-            IrisStructureLocator.invalidate(engine);
-            StructureReachability.invalidate(engine);
             IrisPlatforms.unbind();
         }
     }
@@ -213,8 +209,6 @@ public class StructureHandlerTest {
             assertFalse(possibilities.contains("minecraft:explicit"));
             assertFalse(possibilities.contains("minecraft:reachable"));
         } finally {
-            IrisStructureLocator.invalidate(engine);
-            StructureReachability.invalidate(engine);
             IrisPlatforms.unbind();
         }
     }

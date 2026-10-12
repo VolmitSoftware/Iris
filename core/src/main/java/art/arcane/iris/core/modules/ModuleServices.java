@@ -24,6 +24,7 @@ import com.volmit.host.FeatureCatalog;
 import com.volmit.host.ServiceRegistration;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.CaveBiomes;
@@ -34,6 +35,7 @@ import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaFeatures;
+import com.volmit.service.VanillaStructures;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 /**
  * What Iris core asks the pack's modules through their services ({@link com.volmit.service.Service}) instead of reading
@@ -236,26 +239,90 @@ public final class ModuleServices {
 
     /** Whether a module of the world can locate structure {@code key}, matched without regard to case. */
     public static boolean canLocateStructure(Engine engine, String key) {
-        return structureLocatorOf(engine, key).isPresent();
+        return structureLocatorOf(engine, key, StructureLocator::locatable).isPresent();
+    }
+
+    /**
+     * Every key under which the world's modules find what they place, locatable or not: their own structures and the
+     * platform structures they start or stand in for.
+     */
+    public static Set<String> placedStructures(Engine engine) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
+            keys.addAll(provider.service().placed(provider.world()));
+        }
+        return keys;
+    }
+
+    /** Whether a module of the world places structure {@code key}, located or not, matched without regard to case. */
+    public static boolean placesStructure(Engine engine, String key) {
+        return structureLocatorOf(engine, key, StructureLocator::placed).isPresent();
     }
 
     /**
      * Searches for the start of structure {@code key} nearest to {@code fromX}, {@code fromZ} with the first module that
-     * can locate it, in the world's own coordinates; not found when none can.
+     * places it, in the world's own coordinates; not found when none does.
      */
     public static StructureSearch locateStructure(Engine engine, String key, int fromX, int fromZ, int maxRadiusChunks) {
-        LocateResult result = structureLocatorOf(engine, key)
+        LocateResult result = structureLocatorOf(engine, key, StructureLocator::placed)
                 .map(provider -> provider.service().locate(provider.world(), key, fromX, fromZ, maxRadiusChunks))
                 .orElse(LocateResult.NOT_FOUND);
         return StructureSearch.of(result, engine);
+    }
+
+    /** The platform structures the world's modules start themselves, as lower-case registry keys. */
+    public static Set<String> startedStructures(Engine engine) {
+        return platformStructures(engine, VanillaStructures::startedStructures);
+    }
+
+    /** Whether a module of the world starts the platform structure {@code key} itself. */
+    public static boolean startsStructure(Engine engine, String key) {
+        return key != null && startedStructures(engine).contains(normalized(key));
+    }
+
+    /** Whether a module of the world can find the starts it makes of the platform structure {@code key}. */
+    public static boolean canLocateStart(Engine engine, String key) {
+        return key != null && platformStructures(engine, VanillaStructures::locatableStarts).contains(normalized(key));
+    }
+
+    /**
+     * Searches ring by ring, up to {@code maxRings} rings, for the start the first module that can find them makes of the
+     * platform structure {@code key} nearest to {@code fromX}, {@code fromZ}, trying only chunks {@code candidates}
+     * accepts, in the world's own coordinates. A {@link StructureSearchLimitException} from {@code candidates} ends the
+     * search as {@link StructureSearch.Outcome#SEARCH_LIMIT_REACHED}.
+     */
+    public static StructureSearch locateStart(Engine engine, String key, int fromX, int fromZ, int maxRings,
+                                              CandidateChunks candidates) {
+        Optional<ResourceId> structure = registryId(key);
+        if (structure.isEmpty()) {
+            return StructureSearch.NOT_FOUND;
+        }
+        for (Provider<VanillaStructures> provider : providers(engine, VanillaStructures.class)) {
+            if (!provider.service().locatableStarts(provider.world()).contains(structure.get())) {
+                continue;
+            }
+            try {
+                return StructureSearch.of(provider.service().locateStart(provider.world(), structure.get(), fromX, fromZ,
+                        maxRings, candidates::accepts), engine);
+            } catch (StructureSearchLimitException limit) {
+                return StructureSearch.SEARCH_LIMIT_REACHED;
+            }
+        }
+        return StructureSearch.NOT_FOUND;
+    }
+
+    /** The chunks a search for a module's start of a platform structure may answer with. */
+    @FunctionalInterface
+    public interface CandidateChunks {
+        boolean accepts(int chunkX, int chunkZ);
     }
 
     /** How a structure search ended. A found start is at {@code x}, {@code y}, {@code z}: world coordinates, Y the world's own. */
     public record StructureSearch(Outcome outcome, int x, int y, int z) {
         public enum Outcome { FOUND, NOT_FOUND, SEARCH_LIMIT_REACHED }
 
-        private static final StructureSearch NOT_FOUND = new StructureSearch(Outcome.NOT_FOUND, 0, 0, 0);
-        private static final StructureSearch SEARCH_LIMIT_REACHED = new StructureSearch(Outcome.SEARCH_LIMIT_REACHED, 0, 0, 0);
+        public static final StructureSearch NOT_FOUND = new StructureSearch(Outcome.NOT_FOUND, 0, 0, 0);
+        public static final StructureSearch SEARCH_LIMIT_REACHED = new StructureSearch(Outcome.SEARCH_LIMIT_REACHED, 0, 0, 0);
 
         public boolean found() {
             return outcome == Outcome.FOUND;
@@ -272,18 +339,39 @@ public final class ModuleServices {
         }
     }
 
-    /** The first provider, in the catalog's order, whose locatable structures hold {@code key}. */
-    private static Optional<Provider<StructureLocator>> structureLocatorOf(Engine engine, String key) {
+    /** The first provider, in the catalog's order, whose structures of the kind {@code keys} lists hold {@code key}. */
+    private static Optional<Provider<StructureLocator>> structureLocatorOf(Engine engine, String key,
+                                                                          BiFunction<StructureLocator, PackWorld, Set<String>> keys) {
         if (key == null || key.isBlank()) {
             return Optional.empty();
         }
         String wanted = normalized(key);
         for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
-            if (provider.service().locatable(provider.world()).stream().map(ModuleServices::normalized).anyMatch(wanted::equals)) {
+            if (keys.apply(provider.service(), provider.world()).stream().map(ModuleServices::normalized).anyMatch(wanted::equals)) {
                 return Optional.of(provider);
             }
         }
         return Optional.empty();
+    }
+
+    /** The platform structures every provider lists with {@code structures}, as lower-case registry keys. */
+    private static Set<String> platformStructures(Engine engine, BiFunction<VanillaStructures, PackWorld, Set<ResourceId>> structures) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (Provider<VanillaStructures> provider : providers(engine, VanillaStructures.class)) {
+            structures.apply(provider.service(), provider.world()).forEach(id -> keys.add(id.toString()));
+        }
+        return keys;
+    }
+
+    private static Optional<ResourceId> registryId(String key) {
+        if (key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(ResourceId.parse(normalized(key.trim())));
+        } catch (IllegalArgumentException notAnId) {
+            return Optional.empty();
+        }
     }
 
     private static String normalized(String key) {

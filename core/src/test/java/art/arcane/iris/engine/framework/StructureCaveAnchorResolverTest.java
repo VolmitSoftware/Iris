@@ -1,10 +1,16 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -19,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -27,6 +34,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StructureCaveAnchorResolverTest {
+    @Before
+    public void bindPlatform() {
+        IrisPlatforms.unbind();
+        PlatformBlockState block = mock(PlatformBlockState.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.block(anyString())).thenReturn(block);
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.registries()).thenReturn(registries);
+        IrisPlatforms.bind(platform);
+    }
+
+    @After
+    public void unbindPlatform() {
+        IrisPlatforms.unbind();
+    }
+
     @Test
     public void floorRequiresSolidBoundaryAndUpwardClearance() {
         IntPredicate carved = carvedAt(10, 11, 12, 13);

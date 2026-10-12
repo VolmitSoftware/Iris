@@ -70,6 +70,7 @@ public class FloatingIslands {
     private final Engine engine;
     private final RNG rng;
     private final BiomeLayers biomeLayers;
+    private final IrisLayers glue;
     private final ModuleLog log;
 
     private KList<PlatformBlockState> generateBottomPaletteLayers(ResolvedFloatingChild entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
@@ -109,7 +110,7 @@ public class FloatingIslands {
                 }
 
                 try {
-                    generated.add(IrisLayers.platform(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom())));
+                    generated.add(glue.platform(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom())));
                 } catch (Throwable e) {
                     log.error("Failed to pick a block of a floating island's palette", e);
                 }
@@ -192,9 +193,9 @@ public class FloatingIslands {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
         int entrySeed = entry == null || entry.settings().biome() == null ? 0 : entry.settings().biome().hashCode();
         RNG layerRng = rng.nextParallelRNG((int) (colSeed ^ 0x7A4E ^ entrySeed));
-        KList<PlatformBlockState> topBlocks = target == null ? null : IrisLayers.platform(biomeLayers.generateLayers(IrisLayers.biome(target), IrisLayers.explosion(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, IrisLayers.slope(engine)));
+        KList<PlatformBlockState> topBlocks = target == null ? null : glue.platform(biomeLayers.generateLayers(glue.biome(target), IrisLayers.explosionOf(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, glue.slope()));
         if (topBlocks == null || topBlocks.isEmpty()) {
-            topBlocks = IrisLayers.platform(biomeLayers.generateLayers(IrisLayers.biome(parent), IrisLayers.explosion(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, IrisLayers.slope(engine)));
+            topBlocks = glue.platform(biomeLayers.generateLayers(glue.biome(parent), IrisLayers.explosionOf(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, glue.slope()));
         }
         KList<PlatformBlockState> bottomBlocks = generateBottomPaletteLayers(entry, dimension, wx, wz, layerRng, paletteDepth, data, complex);
         return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"));
@@ -217,6 +218,7 @@ public class FloatingIslands {
         this.log = log;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
         biomeLayers = BiomeLayers.of(engine.getGeneration().world());
+        glue = new IrisLayers(engine);
     }
 
     /** Fills the islands' solids into the chunk whose first block is {@code x}, {@code z}. */

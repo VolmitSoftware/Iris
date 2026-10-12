@@ -36,20 +36,35 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.block.BlockState;
 
-/** What Iris's carving and floating islands, which hold Iris's own types, hand the terrain's layers and palettes, and take back as the platform's blocks. */
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+
+/**
+ * What Iris's carving and floating islands, which hold Iris's own types, hand the terrain's layers and palettes, and take back as the
+ * platform's blocks. One per engine: what a biome declares about its layers is read once for each biome.
+ */
 final class IrisLayers {
-    private IrisLayers() {
+    private final Engine engine;
+    private final Map<IrisBiome, LayeredBiome> biomes = Collections.synchronizedMap(new IdentityHashMap<>());
+    private final Map<BlockState, PlatformBlockState> platformStates = Collections.synchronizedMap(new IdentityHashMap<>());
+    private final ColumnSlope slope;
+    private volatile PaletteExplosion explosion;
+
+    IrisLayers(Engine engine) {
+        this.engine = engine;
+        this.slope = (x, z) -> engine.getComplex().getSlopeStream().get(x, z);
     }
 
     /** What the biome declares about its layers. */
-    static LayeredBiome biome(IrisBiome biome) {
-        return new LayeredBiome(
-                biome.getModuleSettings().find(LayersSettings.class).orElse(null),
-                biome.getModuleSettings().find(SeaLayersSettings.class).orElse(null),
-                biome.getModuleSettings().find(CaveCeilingLayersSettings.class).orElse(null),
-                biome.getModuleSettings().find(LockLayersSettings.class).orElse(null),
-                biome.getModuleSettings().find(LockLayersMaxSettings.class).orElse(null),
-                biome.getModuleSettings().find(WallSettings.class).orElse(null));
+    LayeredBiome biome(IrisBiome biome) {
+        return biomes.computeIfAbsent(biome, declared -> new LayeredBiome(
+                declared.getModuleSettings().find(LayersSettings.class).orElse(null),
+                declared.getModuleSettings().find(SeaLayersSettings.class).orElse(null),
+                declared.getModuleSettings().find(CaveCeilingLayersSettings.class).orElse(null),
+                declared.getModuleSettings().find(LockLayersSettings.class).orElse(null),
+                declared.getModuleSettings().find(LockLayersMaxSettings.class).orElse(null),
+                declared.getModuleSettings().find(WallSettings.class).orElse(null)));
     }
 
     /** The biome with only its wall, for a caller that asks for nothing else. */
@@ -57,7 +72,17 @@ final class IrisLayers {
         return new LayeredBiome(null, null, null, null, null, biome.getModuleSettings().find(WallSettings.class).orElse(null));
     }
 
-    static PaletteExplosion explosion(IrisDimension dimension) {
+    /** What the engine's dimension declares about separating layers with barriers. */
+    PaletteExplosion explosion() {
+        PaletteExplosion known = explosion;
+        if (known == null) {
+            known = explosionOf(engine.getDimension());
+            explosion = known;
+        }
+        return known;
+    }
+
+    static PaletteExplosion explosionOf(IrisDimension dimension) {
         if (dimension == null) {
             return PaletteExplosion.NONE;
         }
@@ -67,15 +92,16 @@ final class IrisLayers {
                         .orElse(ExplodeBiomePaletteSizeSettings.DEFAULT_SIZE));
     }
 
-    static ColumnSlope slope(Engine engine) {
-        return (x, z) -> engine.getComplex().getSlopeStream().get(x, z);
+    ColumnSlope slope() {
+        return slope;
     }
 
-    static PlatformBlockState platform(BlockState block) {
-        return block == null ? null : B.getState(block.key());
+    /** The platform's block for {@code block}, worked out once for each block instance, since a world's layers hold few. */
+    PlatformBlockState platform(BlockState block) {
+        return block == null ? null : platformStates.computeIfAbsent(block, known -> B.getState(known.key()));
     }
 
-    static KList<PlatformBlockState> platform(KList<BlockState> blocks) {
+    KList<PlatformBlockState> platform(KList<BlockState> blocks) {
         KList<PlatformBlockState> converted = new KList<>(blocks.size());
         for (BlockState block : blocks) {
             converted.add(platform(block));

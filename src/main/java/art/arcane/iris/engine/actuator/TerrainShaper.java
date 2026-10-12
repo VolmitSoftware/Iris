@@ -209,7 +209,7 @@ final class TerrainShaper {
         BlockState upperMappedSurface = upper.surfaceBlock(realX, realZ).orElse(null);
         int upperThickness = chunkHeight - 1 - upperSurfaceY;
         LayeredBiome upperBiome = upperBiome(upperSettings, realX, realZ);
-        KList<BlockState> upperBlocks = layers.generateLayers(upperBiome, PaletteExplosion.of(upperSettings, realX, realZ),
+        KList<BlockState> upperBlocks = layers.generateLayers(upperBiome, chunk.upperExplosion(upperSettings, realX, realZ),
                 realX, realZ, rng, upperThickness, upperThickness, chunk.slope);
 
         for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
@@ -267,6 +267,7 @@ final class TerrainShaper {
         final Optional<UpperDimension> upper;
         final ResolvedOres dimensionOres;
         private final boolean hideOres;
+        private PaletteExplosion upperExplosion;
 
         Chunk(ChunkStageContext context) {
             this.blocks = context.hunk(BlockState.class);
@@ -284,6 +285,14 @@ final class TerrainShaper {
             this.upper = terrain.upperDimension();
             // Dimension-level ore lookups are chunk-invariant; resolving them per column paid the settings lookup times 256 per chunk for a constant.
             this.dimensionOres = hideOres ? ResolvedOres.NONE : ores.of(levelValue(settings.at(OreSettings.class, centreX, centreZ), Target.DIMENSION));
+        }
+
+        /** What the upper dimension declares about exploded palettes: a setting of the dimension, so the same for every column of the chunk. */
+        PaletteExplosion upperExplosion(FeatureSettings upperSettings, int worldX, int worldZ) {
+            if (upperExplosion == null) {
+                upperExplosion = PaletteExplosion.of(upperSettings, worldX, worldZ);
+            }
+            return upperExplosion;
         }
 
         /** The ores of the column's region and biome; none where the levels below the dimension declare none, or the dimension hides ores. */

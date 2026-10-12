@@ -70,12 +70,14 @@ public class CaveApplying {
     private final PlatformBlockState AIR = B.getState("CAVE_AIR");
     private final PlatformBlockState LAVA = B.getState("LAVA");
     private final BiomeLayers layers;
+    private final IrisLayers glue;
     private final TerrainPalettes palettes;
 
     public CaveApplying(Engine engine, ModuleLog log) {
         this.engine = engine;
         rng = new RNG(engine.getSeedManager().getCarve());
         layers = BiomeLayers.of(engine.getGeneration().world());
+        glue = new IrisLayers(engine);
         palettes = TerrainPalettes.of(engine.getGeneration().world());
     }
 
@@ -153,7 +155,7 @@ public class CaveApplying {
                 if (explicitCarveIntent) {
                     // Only a fluid cavern consumes the fluid sample, and on the maintenance path that
                     // sample is a full procedural stream evaluation, so never take it per voxel.
-                    PlatformBlockState fluid = isFluidIntent(cavern) ? IrisLayers.platform(palettes.fluidAt(chunkBlockX + rx, chunkBlockZ + rz)) : null;
+                    PlatformBlockState fluid = isFluidIntent(cavern) ? glue.platform(palettes.fluidAt(chunkBlockX + rx, chunkBlockZ + rz)) : null;
                     output.setRaw(rx, yy, rz, resolveExplicitCarveState(cavern, fluid, LAVA, AIR));
                 } else if (usesDefaultLava(caveLavaHeight, yy)) {
                     output.setRaw(rx, yy, rz, LAVA);
@@ -180,7 +182,7 @@ public class CaveApplying {
                             : resolveCustomBiome(customBiomeCache, customBiome);
 
                     if (biome != null) {
-                        PlatformBlockState data = IrisLayers.platform(layers.wall(IrisLayers.wallOf(biome)).get(rng, worldX, yy, worldZ));
+                        PlatformBlockState data = glue.platform(layers.wall(IrisLayers.wallOf(biome)).get(rng, worldX, yy, worldZ));
                         int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
 
                         if (data != null && B.isSolid(output.getRaw(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
@@ -515,8 +517,8 @@ public class CaveApplying {
         }
 
         if (floorBiome != null) {
-            KList<PlatformBlockState> floorLayers = IrisLayers.platform(layers.generateLayers(IrisLayers.biome(floorBiome),
-                    IrisLayers.explosion(engine.getDimension()), worldX, worldZ, rng, 3, zoneFloor, IrisLayers.slope(engine)));
+            KList<PlatformBlockState> floorLayers = glue.platform(layers.generateLayers(glue.biome(floorBiome),
+                    glue.explosion(), worldX, worldZ, rng, 3, zoneFloor, glue.slope()));
             for (int i = 0; i < zoneFloor - 1; i++) {
                 if (!floorLayers.hasIndex(i)) {
                     break;
@@ -540,8 +542,8 @@ public class CaveApplying {
 
         if (ceilingBiome != null) {
             int worldMaxY = engine.getWorld().maxHeight() - engine.getWorld().minHeight();
-            KList<PlatformBlockState> ceilingLayers = IrisLayers.platform(layers.generateCeilingLayers(IrisLayers.biome(ceilingBiome),
-                    IrisLayers.explosion(engine.getDimension()), worldX, worldZ, rng, 3));
+            KList<PlatformBlockState> ceilingLayers = glue.platform(layers.generateCeilingLayers(glue.biome(ceilingBiome),
+                    glue.explosion(), worldX, worldZ, rng, 3));
             for (int i = 0; i < ceilingLayers.size(); i++) {
                 int ceilingY = zoneCeiling + i + 1;
                 if (ceilingY >= worldMaxY) {
@@ -602,7 +604,7 @@ public class CaveApplying {
         }
 
         if (floorBiome != null) {
-            KList<PlatformBlockState> floorBlocks = IrisLayers.platform(layers.generateLayers(IrisLayers.biome(floorBiome), IrisLayers.explosion(engine.getDimension()), xx, zz, rng, 3, zone.floor, IrisLayers.slope(engine)));
+            KList<PlatformBlockState> floorBlocks = glue.platform(layers.generateLayers(glue.biome(floorBiome), glue.explosion(), xx, zz, rng, 3, zone.floor, glue.slope()));
             for (int i = 0; i < zone.floor - 1; i++) {
                 if (!floorBlocks.hasIndex(i)) {
                     break;
@@ -622,7 +624,7 @@ public class CaveApplying {
         }
 
         if (ceilingBiome != null) {
-            KList<PlatformBlockState> ceilingBlocks = IrisLayers.platform(layers.generateCeilingLayers(IrisLayers.biome(ceilingBiome), IrisLayers.explosion(engine.getDimension()), xx, zz, rng, 3));
+            KList<PlatformBlockState> ceilingBlocks = glue.platform(layers.generateCeilingLayers(glue.biome(ceilingBiome), glue.explosion(), xx, zz, rng, 3));
             for (int i = 0; i < ceilingBlocks.size(); i++) {
                 int cy = zone.ceiling + i + 1;
                 if (cy >= maxY) {

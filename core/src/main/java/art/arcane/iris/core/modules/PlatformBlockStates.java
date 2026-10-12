@@ -49,6 +49,9 @@ public final class PlatformBlockStates {
     /** The state read last: scans over a chunk read long runs of one state, such as stone or air, so most reads hit it. */
     private PlatformBlockState lastRead;
     private BlockState lastReadAsApi;
+    /** The state written last: a stage fills long runs of one block, such as rock, so most writes hit it. */
+    private BlockState lastWritten;
+    private PlatformBlockState lastWrittenAsPlatform;
 
     /** {@code platformStates} turns a block state key into the platform's state, such as {@code B::getState}. */
     public PlatformBlockStates(Function<String, PlatformBlockState> platformStates) {
@@ -82,11 +85,14 @@ public final class PlatformBlockStates {
     }
 
     public PlatformBlockState toPlatform(BlockState state) {
-        PlatformBlockState origin = origins.get(state);
-        if (origin != null) {
-            return origin;
+        if (state == lastWritten) {
+            return lastWrittenAsPlatform;
         }
-        return written.computeIfAbsent(state, api -> platformStates.apply(api.key()));
+        PlatformBlockState origin = origins.get(state);
+        PlatformBlockState platform = origin != null ? origin : written.computeIfAbsent(state, api -> platformStates.apply(api.key()));
+        lastWritten = state;
+        lastWrittenAsPlatform = platform;
+        return platform;
     }
 
     /** {@code key} with Minecraft's namespace when it names none, as Minecraft reads such keys. */

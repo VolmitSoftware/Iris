@@ -37,7 +37,8 @@ final class StageMetrics implements StageTimings {
             "iris:post/smooth", EngineMetrics::getPost,
             "iris:perfection/surface", EngineMetrics::getPerfection,
             "iris:deposit/ores", EngineMetrics::getDeposit,
-            "iris:decorant/decorate", EngineMetrics::getDecoration);
+            "iris:decorant/decorate", EngineMetrics::getDecoration,
+            "iris:terrain/shape", EngineMetrics::getTerrain);
 
     private final EngineMetrics metrics;
 

@@ -1,11 +1,13 @@
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.engine.modifier.ApiChunk;
+import art.arcane.iris.engine.terrain.TestPackWorld;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisFeature;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.PackSettings;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -26,26 +28,34 @@ public class OreWarmUpTest {
 
     @Test
     public void biomesByKeyThenRegionsByKeyThenTheDimensionWarmWithConsecutiveSeedsOfTheWorld() {
-        SeedManager seeds = mock(SeedManager.class);
-        when(seeds.getComponent()).thenReturn(COMPONENT_SEED);
-        IrisDimension dimension = mock(IrisDimension.class);
-        Engine engine = mock(Engine.class);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        when(engine.getDimension()).thenReturn(dimension);
         TerrainOres ores = mock(TerrainOres.class);
-        IrisBiome biomeB = biome("b", ores, "b0", "b1");
-        IrisBiome biomeA = biome("a", ores, "a0");
-        IrisRegion regionY = region("y", ores, "y0");
-        IrisRegion regionX = region("x", ores, "x0", "x1");
-        ResolvedOres dimensionOres = resolved("d0");
-        when(ores.of(dimension)).thenReturn(dimensionOres);
-        when(engine.getAllBiomes()).thenReturn(new KList<>(List.of(biomeB, biomeA)));
-        when(dimension.getAllRegions(engine)).thenReturn(new KList<>(List.of(regionY, regionX)));
+        List<Entry<OreSettings>> declared = new ArrayList<>();
+        // The pack lists the dimension first, then regions and biomes, in no particular order.
+        declared.add(entry(Target.DIMENSION, "dimension/overworld", ores, "d0"));
+        declared.add(entry(Target.REGION, "region/y", ores, "y0"));
+        declared.add(entry(Target.BIOME, "biome/b", ores, "b0", "b1"));
+        declared.add(entry(Target.REGION, "region/x", ores, "x0", "x1"));
+        declared.add(entry(Target.BIOME, "biome/a", ores, "a0"));
+        PackSettings settings = new PackSettings() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+                return (List<Entry<F>>) (List<?>) declared;
+            }
+        };
+        TestPackWorld world = new TestPackWorld(new ApiChunk(0, 0, 16).resources(), settings, COMPONENT_SEED);
 
-        new OreWarmUp(engine, ores).warm();
+        new OreWarmUp(world, ores).warm();
 
         assertEquals(List.of("a0@" + ROOT_SEED, "b0@" + (ROOT_SEED + 1), "b1@" + (ROOT_SEED + 2),
                 "x0@" + (ROOT_SEED + 3), "x1@" + (ROOT_SEED + 4), "y0@" + (ROOT_SEED + 5), "d0@" + (ROOT_SEED + 6)), warmed);
+    }
+
+    private Entry<OreSettings> entry(Target level, String source, TerrainOres ores, String... oreNames) {
+        OreSettings settings = new OreSettings(List.of());
+        ResolvedOres declared = resolved(oreNames);
+        when(ores.of(settings)).thenReturn(declared);
+        return new Entry<>(level, ResourceId.parse("test:" + source), settings);
     }
 
     private ResolvedOres resolved(String... names) {
@@ -56,21 +66,5 @@ public class OreWarmUpTest {
             ores.add(ore);
         }
         return new ResolvedOres(ores);
-    }
-
-    private IrisBiome biome(String key, TerrainOres ores, String... oreNames) {
-        IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getLoadKey()).thenReturn(key);
-        ResolvedOres declared = resolved(oreNames);
-        when(ores.of(biome)).thenReturn(declared);
-        return biome;
-    }
-
-    private IrisRegion region(String key, TerrainOres ores, String... oreNames) {
-        IrisRegion region = mock(IrisRegion.class);
-        when(region.getLoadKey()).thenReturn(key);
-        ResolvedOres declared = resolved(oreNames);
-        when(ores.of(region)).thenReturn(declared);
-        return region;
     }
 }

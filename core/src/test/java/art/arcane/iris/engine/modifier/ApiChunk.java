@@ -72,6 +72,7 @@ import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.TerrainSampler;
+import com.volmit.world.UpperDimension;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -124,6 +125,7 @@ public final class ApiChunk implements GenerationContext {
     private final List<IrisFeature> dimensionSettings = new ArrayList<>();
     private final List<IrisFeature> regionSettings = new ArrayList<>();
     private final List<IrisFeature> biomeSettings = new ArrayList<>();
+    private boolean stackedOnItself;
     private BiomeSample biomeSample;
     private BiomeKind surfaceKind = BiomeKind.LAND;
     private int minWorldY;
@@ -211,6 +213,12 @@ public final class ApiChunk implements GenerationContext {
         return new Blocks();
     }
 
+    /** The dimension above is this dimension itself, stacked on it (with {@link #upperDimension}). */
+    public ApiChunk stackedOnItself() {
+        this.stackedOnItself = true;
+        return this;
+    }
+
     /** A block a placement planned in the mantle, in world coordinates. */
     public ApiChunk plan(int x, int y, int z, BlockState block) {
         planned.put(new BlockPosition(x, y, z), block);
@@ -259,7 +267,12 @@ public final class ApiChunk implements GenerationContext {
 
     /** Empty stand-ins for the built-in stages the ported modules order after: terrain, carving and floating islands. */
     public static List<IrisModule> standIns() {
-        return List.of(new TerrainStandIn(), new CarveStandIn(), new FloatingStandIn());
+        return List.of(new CarveStandIn(), new FloatingStandIn());
+    }
+
+    /** An empty stand-in for {@code iris:terrain}, for modules that order after the shaping of the ground. */
+    public static IrisModule terrainStandIn() {
+        return new TerrainStandIn();
     }
 
     /** Runs {@code modules} as a pack's chunk graph, with the {@link #standIns()}. */
@@ -306,6 +319,11 @@ public final class ApiChunk implements GenerationContext {
                 addEntries(entries, featureType, Target.BIOME, BIOME, biomeSettings);
                 return entries;
             }
+
+            @Override
+            public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+                return biomeSettings.stream().filter(featureType::isInstance).map(featureType::cast).findFirst();
+            }
         };
     }
 
@@ -347,6 +365,34 @@ public final class ApiChunk implements GenerationContext {
         return new BlockBox(originX, 0, originZ, originX + WIDTH, blocks.getHeight(), originZ + WIDTH);
     }
 
+    /** The dimension above, which is the one generated. */
+    private final class SelfUpper implements UpperDimension {
+        @Override
+        public boolean isThisDimension() {
+            return true;
+        }
+
+        @Override
+        public String key() {
+            return "overworld";
+        }
+
+        @Override
+        public FeatureSettings settings() {
+            return ApiChunk.this.settings();
+        }
+
+        @Override
+        public PackResources resources() {
+            return world.resources;
+        }
+
+        @Override
+        public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+            return Optional.empty();
+        }
+    }
+
     private final class Terrain implements TerrainSampler {
         @Override
         public BlockBox bounds() {
@@ -378,6 +424,16 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public int minWorldY() {
             return minWorldY;
+        }
+
+        @Override
+        public ResourceId surfaceBiome(int worldX, int worldZ) {
+            return biomeSample == null ? BIOME : biomeSample.surfaceBiome();
+        }
+
+        @Override
+        public Optional<UpperDimension> upperDimension() {
+            return upperDimension != null && stackedOnItself ? Optional.of(new SelfUpper()) : Optional.empty();
         }
 
         @Override

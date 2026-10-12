@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
@@ -64,7 +65,9 @@ public class CaveApplyingInferenceIsolationTest {
 
         Engine engine = mock(Engine.class);
         doReturn(mock(IrisData.class)).when(engine).getData();
-        doReturn(mock(IrisDimension.class)).when(engine).getDimension();
+        IrisDimension dimension = mock(IrisDimension.class);
+        doReturn(ModuleSettings.NONE).when(dimension).getModuleSettings();
+        doReturn(dimension).when(engine).getDimension();
         doReturn(mock(IrisComplex.class)).when(engine).getComplex();
         doReturn(IrisWorld.builder().minHeight(-256).maxHeight(512).build()).when(engine).getWorld();
         doReturn(mock(SeedManager.class)).when(engine).getSeedManager();

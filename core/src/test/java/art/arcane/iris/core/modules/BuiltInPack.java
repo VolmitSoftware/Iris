@@ -22,6 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.actuator.DecorantModule;
+import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.MatterModule;
 import art.arcane.iris.engine.modifier.PerfectionModule;
@@ -53,7 +54,7 @@ public final class BuiltInPack {
      * with Iris; {@code BuiltInModulesJarTest} loads the same modules from the jar instead.
      */
     public static List<IrisModule> jarModules() {
-        return List.of(new PostModule(), new PerfectionModule(), new MatterModule(), new DepositModule(), new DecorantModule());
+        return List.of(new PostModule(), new PerfectionModule(), new MatterModule(), new DepositModule(), new DecorantModule(), new TerrainModule());
     }
 
     /** Every built-in module: Iris's own and the compiled-in copies of the jar's ({@link #jarModules()}). */

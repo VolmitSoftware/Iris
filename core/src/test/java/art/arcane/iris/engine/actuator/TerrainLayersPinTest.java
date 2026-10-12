@@ -3,19 +3,20 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisPackResources;
-import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.iris.builtin.terrain.SlabSettings;
-import art.arcane.iris.engine.terrain.BiomeLayers;
-import art.arcane.iris.engine.terrain.TestLayerBlocks;
-import art.arcane.iris.engine.terrain.ResolvedLayer;
+import art.arcane.iris.builtin.terrain.BiomeLayers;
+import art.arcane.iris.builtin.terrain.ColumnSlope;
+import art.arcane.iris.builtin.terrain.LayeredBiome;
+import art.arcane.iris.builtin.terrain.PaletteExplosion;
+import art.arcane.iris.builtin.terrain.ResolvedLayer;
 import art.arcane.iris.engine.terrain.TerrainTestSettings;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.iris.engine.terrain.TestLayerBlocks;
+import art.arcane.iris.engine.terrain.TestLayeredBiomes;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.host.ModuleLogs;
@@ -86,7 +87,7 @@ public class TerrainLayersPinTest {
     private static final String[] BIOMES = {MESA, MEADOW, OCEAN, DEFAULTS};
 
     private IrisData data;
-    private IrisComplex complex;
+    private final ColumnSlope slope = (x, z) -> Math.abs((x * 3 + z * 5) % 11);
 
     @Before
     public void bindPlatform() {
@@ -98,8 +99,6 @@ public class TerrainLayersPinTest {
         when(data.getDataFolder()).thenReturn(new File("pack"));
         IrisPackResources resources = new IrisPackResources(data);
         when(data.getPackResources()).thenReturn(resources);
-        complex = mock(IrisComplex.class);
-        when(complex.getSlopeStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> Math.abs((x * 3 + z * 5) % 11)));
     }
 
     private static final PaletteLayer NO_LAYER = PaletteLayer.withoutBlocks();
@@ -126,44 +125,42 @@ public class TerrainLayersPinTest {
     }
 
     private void record(StringBuilder transcript, String biomeJson, boolean exploded) {
-        IrisDimension dimension = new IrisDimension();
-        dimension.setExplodeBiomePalettes(exploded);
-        dimension.setExplodeBiomePaletteSize(2);
+        PaletteExplosion explosion = new PaletteExplosion(exploded, 2);
         RNG rng = new RNG(TERRAIN_SEED);
-        IrisBiome biome = new IrisBiome();
-        biome.setModuleSettings(TerrainTestSettings.of(biomeJson));
-        BiomeLayers layers = new BiomeLayers(TestLayerBlocks.of(data.getPackResources()), ModuleLogs.discarding());
+        ModuleSettings settings = TerrainTestSettings.of(biomeJson);
+        LayeredBiome biome = TestLayeredBiomes.of(settings);
+        BiomeLayers layers = new BiomeLayers(TestLayerBlocks.of(data.getPackResources()), () -> data.getPackResources().noise(), ModuleLogs.discarding());
         for (int x = -COLUMN_RANGE; x < COLUMN_RANGE; x += COLUMN_STEP_X) {
             for (int z = -COLUMN_RANGE; z < COLUMN_RANGE; z += COLUMN_STEP_Z) {
-                transcript.append('|').append(keys(layers.generateLayers(biome, dimension, x, z, rng, 14, 70 + Math.floorMod(x + z, 9), data, complex)));
-                transcript.append('|').append(keys(layers.generateCeilingLayers(biome, dimension, x, z, rng, 12, 40, data, complex)));
-                transcript.append('|').append(keys(layers.generateSeaLayers(biome, x, z, rng, 7, data)));
-                transcript.append('|').append(smoothing(layers, biome, rng, x, z));
+                transcript.append('|').append(keys(layers.generateLayers(biome, explosion, x, z, rng, 14, 70 + Math.floorMod(x + z, 9), slope)));
+                transcript.append('|').append(keys(layers.generateCeilingLayers(biome, explosion, x, z, rng, 12)));
+                transcript.append('|').append(keys(layers.generateSeaLayers(biome, x, z, rng, 7)));
+                transcript.append('|').append(smoothing(layers, settings, biome, rng, x, z));
             }
         }
     }
 
     /** The block a slab and a wall place in post processing at the column, as the smoothing stage asks the biome. */
-    private String smoothing(BiomeLayers layers, IrisBiome biome, RNG rng, int x, int z) {
+    private String smoothing(BiomeLayers layers, ModuleSettings settings, LayeredBiome biome, RNG rng, int x, int z) {
         int height = 60 + Math.floorMod(x - z, 7);
-        double slope = complex.getSlopeStream().get(x, z);
-        ResolvedLayer slabLayer = layers.resolve(biome.getModuleSettings().find(SlabSettings.class).map(SlabSettings::layer).orElse(NO_LAYER));
+        double columnSlope = slope.at(x, z);
+        ResolvedLayer slabLayer = layers.resolve(settings.find(SlabSettings.class).map(SlabSettings::layer).orElse(NO_LAYER));
         ResolvedLayer wallLayer = layers.wall(biome);
-        String slab = slabLayer.slopeCondition().isValid(slope) ? key(slabLayer.get(rng, x, height, z)) : "-";
+        String slab = slabLayer.slopeCondition().isValid(columnSlope) ? key(slabLayer.get(rng, x, height, z)) : "-";
         String wall = !wallLayer.hasPalette() ? "-" : key(wallLayer.get(rng, x + height, height + height, z + height));
         return slab + "," + wall;
     }
 
-    private static String keys(KList<PlatformBlockState> states) {
+    private static String keys(KList<BlockState> states) {
         StringBuilder keys = new StringBuilder();
-        for (PlatformBlockState state : states) {
+        for (BlockState state : states) {
             keys.append(key(state)).append(' ');
         }
         return keys.toString();
     }
 
     /** The block's key without its namespace and with its properties in name order, which is how the platform identifies a state whatever order a pack lists them in. */
-    private static String key(PlatformBlockState state) {
+    private static String key(BlockState state) {
         if (state == null) {
             return "null";
         }

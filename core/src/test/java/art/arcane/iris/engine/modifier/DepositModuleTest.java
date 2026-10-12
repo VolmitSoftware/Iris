@@ -74,7 +74,7 @@ public class DepositModuleTest {
                         + " \"varience\": 1, \"palette\": [{\"block\": \"iron_ore\"}], \"replaceableBlocks\": [\"stone\"]}"));
         chunk.set(8, 20, 8, new BlockState("minecraft:dirt"));
 
-        chunk.generate(new DepositModule());
+        chunk.generate(ApiChunk.terrainStandIn(), new DepositModule());
 
         int ores = countOf(chunk, new BlockState("minecraft:iron_ore"));
         assertTrue("some ore was placed: " + ores, ores > 0);
@@ -97,8 +97,8 @@ public class DepositModuleTest {
         ApiChunk first = groundedChunk().dimensionSettings(deposits);
         ApiChunk second = groundedChunk().dimensionSettings(deposits);
 
-        first.generate(new DepositModule());
-        second.generate(new DepositModule());
+        first.generate(ApiChunk.terrainStandIn(), new DepositModule());
+        second.generate(ApiChunk.terrainStandIn(), new DepositModule());
 
         for (int x = 0; x < ApiChunk.WIDTH; x++) {
             for (int y = 0; y < HEIGHT; y++) {
@@ -124,8 +124,8 @@ public class DepositModuleTest {
             }
         }
 
-        free.generate(new DepositModule());
-        carved.generate(new DepositModule());
+        free.generate(ApiChunk.terrainStandIn(), new DepositModule());
+        carved.generate(ApiChunk.terrainStandIn(), new DepositModule());
 
         assertTrue(countBetween(free, 20, 40) > 0);
         assertEquals(0, countBetween(carved, 20, 40));
@@ -136,7 +136,7 @@ public class DepositModuleTest {
     public void aChunkWithoutDepositsAtItsCentreIsLeftAlone() {
         ApiChunk chunk = groundedChunk();
 
-        chunk.generate(new DepositModule());
+        chunk.generate(ApiChunk.terrainStandIn(), new DepositModule());
 
         assertEquals(0, countOf(chunk, new BlockState("minecraft:iron_ore")));
     }

@@ -5,16 +5,16 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.spi.PlatformBlockState;
 import com.google.gson.Gson;
+import com.volmit.block.BlockState;
 import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.PackResources;
 import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,15 +48,15 @@ public class ResolvedOreTest {
     @Test
     public void everyOreGeneratesAsIrisOreGeneratorDid() {
         UsableBlockPlatform.bind();
-        Engine engine = engine();
+        PackResources resources = resources();
         StringBuilder transcript = new StringBuilder();
         for (String json : ORES) {
-            ResolvedOre ore = ResolvedOre.of(new Gson().fromJson(json, OreGenerator.class), engine);
+            ResolvedOre ore = ResolvedOre.of(new Gson().fromJson(json, OreGenerator.class), resources, TERRAIN_SEED);
             ore.warm(WARM_SEED);
             for (int x = -30; x < 30; x += 3) {
                 for (int z = -30; z < 30; z += 4) {
                     for (int y = -20; y < 70; y += 5) {
-                        PlatformBlockState state = ore.generate(x, y, z);
+                        BlockState state = ore.generate(x, y, z);
                         transcript.append(state == null ? "-" : state.key()).append(';');
                     }
                 }
@@ -71,13 +71,12 @@ public class ResolvedOreTest {
 
     @Test
     public void theNoiseKeepsTheFirstSeedItIsBuiltFrom() {
-        UsableBlockPlatform.bind();
         OreGenerator settings = new Gson().fromJson(ORES[1], OreGenerator.class);
         List<Long> seeds = new ArrayList<>();
         ResolvedOre ore = new ResolvedOre(settings, (style, seed) -> {
             seeds.add(seed);
             return constant(0);
-        }, null, TERRAIN_SEED, List.of(UsableBlockPlatform.block("iron_ore")));
+        }, null, TERRAIN_SEED, List.of(new BlockState("minecraft:iron_ore")));
 
         ore.warm(WARM_SEED);
         ore.warm(WARM_SEED + 1);
@@ -88,13 +87,12 @@ public class ResolvedOreTest {
 
     @Test
     public void anOreNothingWarmedBuildsItsNoiseFromTheTerrainSeed() {
-        UsableBlockPlatform.bind();
         OreGenerator settings = new Gson().fromJson(ORES[1], OreGenerator.class);
         List<Long> seeds = new ArrayList<>();
         ResolvedOre ore = new ResolvedOre(settings, (style, seed) -> {
             seeds.add(seed);
             return constant(0);
-        }, null, TERRAIN_SEED, List.of(UsableBlockPlatform.block("iron_ore")));
+        }, null, TERRAIN_SEED, List.of(new BlockState("minecraft:iron_ore")));
 
         ore.generate(0, 0, 0);
         ore.generate(1, 1, 1);
@@ -104,8 +102,7 @@ public class ResolvedOreTest {
 
     @Test
     public void nothingGeneratesOutsideTheBandOrWithAnEmptyPaletteOrAboveTheThreshold() {
-        UsableBlockPlatform.bind();
-        PlatformBlockState iron = UsableBlockPlatform.block("iron_ore");
+        BlockState iron = new BlockState("minecraft:iron_ore");
         OreGenerator settings = new Gson().fromJson(ORES[1], OreGenerator.class);
         ResolvedOre atThreshold = new ResolvedOre(settings, (style, seed) -> constant(0.5), null, TERRAIN_SEED, List.of(iron));
         ResolvedOre aboveThreshold = new ResolvedOre(settings, (style, seed) -> constant(0.51), null, TERRAIN_SEED, List.of(iron));
@@ -148,7 +145,7 @@ public class ResolvedOreTest {
         };
     }
 
-    private static Engine engine() {
+    private static PackResources resources() {
         IrisData data = mock(IrisData.class);
         @SuppressWarnings("unchecked")
         ResourceLoader<IrisBlockData> blocks = mock(ResourceLoader.class);
@@ -156,11 +153,6 @@ public class ResolvedOreTest {
         when(data.getDataFolder()).thenReturn(new File("pack"));
         IrisPackResources resources = new IrisPackResources(data);
         when(data.getPackResources()).thenReturn(resources);
-        SeedManager seeds = mock(SeedManager.class);
-        when(seeds.getTerrain()).thenReturn(TERRAIN_SEED);
-        Engine engine = mock(Engine.class);
-        when(engine.getData()).thenReturn(data);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        return engine;
+        return resources;
     }
 }

@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.loot.LootModule;
 import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.spawn.SpawnModule;
@@ -61,7 +60,7 @@ public final class IrisModuleHost {
      * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. A pack loads them from its {@code modules}
      * folder, and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the jar's list.
      */
-    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:deposit", "iris:decorant");
+    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:deposit", "iris:decorant", "iris:terrain");
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -85,7 +84,7 @@ public final class IrisModuleHost {
     }
 
     private static List<IrisModule> generationModules() {
-        return List.of(new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
+        return List.of(new CarveModule(), new ObjectModule(), new StructureModule(),
                 new FloatingModule(), new LootModule(), new SpawnModule());
     }
 

@@ -3,15 +3,15 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisPackResources;
-import art.arcane.iris.engine.UpperDimensionContext;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.decorator.DecoratorTestEngines;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.terrain.TerrainPalettes;
+import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.iris.engine.terrain.TerrainTestSettings;
+import art.arcane.iris.engine.terrain.TestPackWorld;
+import com.volmit.config.FeatureSettings;
+import com.volmit.resource.PackResources;
+import com.volmit.world.UpperDimension;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,9 +72,9 @@ public class TerrainPalettesPinTest {
     public void rockAndFluidPickAsTheyDidInTheComplex() {
         StringBuilder transcript = new StringBuilder();
         for (String json : List.of(STYLED, DEFAULTS, SINGLE)) {
-            IrisDimension dimension = dimension(json);
-            record(transcript, TerrainPalettes.of(engine(dimension, COMPLEX_SEED)));
-            record(transcript, TerrainPalettes.of(engine(dimension, UPPER_DIMENSION_SEED)));
+            ModuleSettings dimension = TerrainTestSettings.of(json);
+            record(transcript, TerrainPalettes.of(world(dimension, COMPLEX_SEED)));
+            record(transcript, TerrainPalettes.of(world(dimension, UPPER_DIMENSION_SEED)));
         }
 
         for (String picked : List.of("granite", "andesite", "diorite", "tuff", "lava", "packed_ice", "netherrack")) {
@@ -86,15 +86,10 @@ public class TerrainPalettesPinTest {
 
     @Test
     public void anUpperDimensionPicksItsRockFromTheSeedItDerivesFromTheWorldsAndItsOwnKey() {
-        IrisDimension upperDimension = dimension(STYLED);
-        upperDimension.setLoadKey(UPPER_DIMENSION_KEY);
-        UpperDimensionContext upper = mock(UpperDimensionContext.class);
-        when(upper.isSelfReferencing()).thenReturn(false);
-        when(upper.getDimension()).thenReturn(upperDimension);
-        when(upper.getData()).thenReturn(data);
-        TerrainPalettes world = TerrainPalettes.of(engine(dimension(DEFAULTS), COMPLEX_SEED));
-        TerrainPalettes derived = TerrainPalettes.of(engine(upperDimension, UPPER_DIMENSION_SEED));
-
+        ModuleSettings upperDimension = TerrainTestSettings.of(STYLED);
+        UpperDimension upper = upper(false, upperDimension);
+        TerrainPalettes world = TerrainPalettes.of(world(TerrainTestSettings.of(DEFAULTS), COMPLEX_SEED));
+        TerrainPalettes derived = TerrainPalettes.of(world(upperDimension, UPPER_DIMENSION_SEED));
         for (int x = -COLUMN_RANGE; x < COLUMN_RANGE; x += COLUMN_STEP_X) {
             for (int z = -COLUMN_RANGE; z < COLUMN_RANGE; z += COLUMN_STEP_Z) {
                 assertEquals(derived.rockAt(x, z).key(), world.upperRockAt(upper, x, z).key());
@@ -104,28 +99,43 @@ public class TerrainPalettesPinTest {
 
     @Test
     public void aDimensionThatIsItsOwnUpperDimensionSharesItsRock() {
-        TerrainPalettes world = TerrainPalettes.of(engine(dimension(STYLED), COMPLEX_SEED));
-        UpperDimensionContext upper = mock(UpperDimensionContext.class);
-        when(upper.isSelfReferencing()).thenReturn(true);
-
+        TerrainPalettes world = TerrainPalettes.of(world(TerrainTestSettings.of(STYLED), COMPLEX_SEED));
+        UpperDimension upper = upper(true, TerrainTestSettings.of(DEFAULTS));
         assertEquals(world.rockAt(17, -90).key(), world.upperRockAt(upper, 17, -90).key());
     }
 
-    private IrisDimension dimension(String json) {
-        IrisDimension dimension = new IrisDimension();
-        dimension.setModuleSettings(TerrainTestSettings.of(json));
-        return dimension;
+    private TestPackWorld world(ModuleSettings dimension, long complexSeed) {
+        return new TestPackWorld(data.getPackResources(), dimension, complexSeed);
     }
 
-    private Engine engine(IrisDimension dimension, long complexSeed) {
-        SeedManager seeds = mock(SeedManager.class);
-        when(seeds.getComplex()).thenReturn(complexSeed);
-        Engine engine = mock(Engine.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getData()).thenReturn(data);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        DecoratorTestEngines.withGeneration(engine);
-        return engine;
+    private UpperDimension upper(boolean thisDimension, ModuleSettings dimension) {
+        PackResources resources = data.getPackResources();
+        return new UpperDimension() {
+            @Override
+            public boolean isThisDimension() {
+                return thisDimension;
+            }
+
+            @Override
+            public String key() {
+                return UPPER_DIMENSION_KEY;
+            }
+
+            @Override
+            public FeatureSettings settings() {
+                return TestPackWorld.dimensionLevel(dimension);
+            }
+
+            @Override
+            public PackResources resources() {
+                return resources;
+            }
+
+            @Override
+            public java.util.Optional<com.volmit.block.BlockState> surfaceBlock(int worldX, int worldZ) {
+                return java.util.Optional.empty();
+            }
+        };
     }
 
     private static void record(StringBuilder transcript, TerrainPalettes palettes) {

@@ -129,6 +129,23 @@ public class IrisValuesTest {
     }
 
     @Test
+    public void theIrisStyleIsTheSignatureNoiseOfTheSeedThatSetsTheThicknessOfBiomeLayers() {
+        IrisNoiseFactory factory = new IrisNoiseFactory(packWithoutCustomBlocks());
+        long mismatches = 0;
+        for (long seed : new long[]{1, 7235, -3999281L, 1337L * 31, 987654321987L}) {
+            CNG signature = CNG.signature(new RNG(seed));
+            NoiseSampler sampler = factory.sampler(NoiseStyle.of("IRIS"), seed);
+            for (int x = -2000; x < 2000; x += 7) {
+                for (int z = -1000; z < 1000; z += 11) {
+                    double zoom = 5;
+                    mismatches += signature.noiseFast2D(x / zoom, z / zoom) == sampler.sample(x / zoom, z / zoom) ? 0 : 1;
+                }
+            }
+        }
+        assertEquals(0, mismatches);
+    }
+
+    @Test
     public void aStyleNameIrisDoesNotKnowIsFlat() {
         IrisData data = packWithoutCustomBlocks();
         IrisNoiseFactory noise = new IrisNoiseFactory(data);

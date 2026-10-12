@@ -15,35 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositBiomeScope;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositShape;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
- * One {@link DepositGenerator} made ready for one engine: its palette resolved to the platform's blocks, whether it is
- * an ore deposit, the blocks it may replace, and the clump shapes it places, built once per size. What the settings
- * describe stays in the settings; everything that needs the platform, the pack or the world seed is here.
+ * One {@link DepositGenerator} made ready for one world: its palette resolved to blocks, whether it is an ore deposit, the blocks
+ * it may replace, and the clump shapes it places, built once per size. What the settings describe stays in the settings;
+ * everything that needs the pack or the world seed is here.
  */
 final class ResolvedDeposit {
     private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
@@ -57,27 +53,18 @@ final class ResolvedDeposit {
 
     private final DepositGenerator generator;
     private final long depositSeed;
-    private final List<PlatformBlockState> palette;
+    private final List<BlockState> palette;
     private final boolean ore;
-    private final Set<String> replaceableMaterials;
-    private final Map<ClumpSizes, List<IrisObject>> clumps = new ConcurrentHashMap<>();
+    private final Set<ResourceId> replaceableMaterials;
+    private final Map<ClumpSizes, List<DepositClump>> clumps = new ConcurrentHashMap<>();
 
-    /** @param palette the generator's palette as the platform's blocks, in order */
-    ResolvedDeposit(DepositGenerator generator, long depositSeed, List<PlatformBlockState> palette) {
+    /** @param registry the pack's blocks, which resolve the generator's palette and the blocks it may replace */
+    ResolvedDeposit(DepositGenerator generator, long depositSeed, BlockRegistry registry) {
         this.generator = generator;
         this.depositSeed = depositSeed;
-        this.palette = List.copyOf(palette);
-        this.ore = palette.stream().anyMatch(PlatformBlockState::isOre);
-        this.replaceableMaterials = replaceableMaterials(generator.replaceableBlocks());
-    }
-
-    /** {@code generator} ready for {@code engine}: its blocks resolved through the pack, clumps seeded from the world's deposit seed. */
-    static ResolvedDeposit of(DepositGenerator generator, Engine engine) {
-        BlockRegistry blocks = engine.getData().getPackResources().blocks();
-        List<PlatformBlockState> palette = generator.palette().stream()
-                .map(spec -> B.getState(blocks.resolve(spec).key()))
-                .toList();
-        return new ResolvedDeposit(generator, engine.getSeedManager().getDeposit(), palette);
+        this.palette = generator.palette().stream().map(registry::resolve).toList();
+        this.ore = palette.stream().anyMatch(block -> registry.hasTrait(block, BlockTrait.ORE));
+        this.replaceableMaterials = replaceableMaterials(registry, generator.replaceableBlocks());
     }
 
     DepositGenerator generator() {
@@ -90,13 +77,19 @@ final class ResolvedDeposit {
     }
 
     /** Whether the deposit may replace {@code state}: any block when it names none, otherwise only the named ones. */
-    boolean canReplace(PlatformBlockState state) {
-        return generator.replaceableBlocks().isEmpty() || replaceableMaterials.contains(IrisProceduralBlocks.materialKey(state));
+    boolean canReplace(BlockState state) {
+        return generator.replaceableBlocks().isEmpty() || replaceableMaterials.contains(state.material());
     }
 
-    /** Whether the biome the generator's scope picks passes its include and exclude filters. */
-    boolean matchesBiome(IrisBiome surfaceBiome, IrisBiome caveBiome) {
-        IrisBiome selected = generator.biomeScope() == DepositBiomeScope.SURFACE ? surfaceBiome : caveBiome;
+    /**
+     * Whether the biome the generator's scope picks passes its include and exclude filters. The biomes are asked for only when
+     * the generator has a filter, and a biome that is none (a dimension without cave biomes) matches no key.
+     */
+    boolean matchesBiome(Supplier<BiomeIdentity> surfaceBiome, Supplier<BiomeIdentity> caveBiome) {
+        if (generator.includedBiomes().isEmpty() && generator.excludedBiomes().isEmpty()) {
+            return true;
+        }
+        BiomeIdentity selected = (generator.biomeScope() == DepositBiomeScope.SURFACE ? surfaceBiome : caveBiome).get();
         if (!generator.includedBiomes().isEmpty() && !matchesAnyBiome(selected, generator.includedBiomes())) {
             return false;
         }
@@ -104,12 +97,12 @@ final class ResolvedDeposit {
     }
 
     /** One clump to place, picked with {@code rng}. */
-    IrisObject clump(RNG rng) {
+    DepositClump clump(RNG rng) {
         return clump(rng, generator.minSize(), generator.maxSize(), 0L);
     }
 
     /** One clump to place with every size scaled by {@code sizeMultiplier}, as a biome's ore size tuning asks. */
-    IrisObject clump(RNG rng, double sizeMultiplier) {
+    DepositClump clump(RNG rng, double sizeMultiplier) {
         if (sizeMultiplier == 1D) {
             return clump(rng);
         }
@@ -119,13 +112,13 @@ final class ResolvedDeposit {
         return clump(rng, minSize, maxSize, sizeSeed);
     }
 
-    private IrisObject clump(RNG rng, int minSize, int maxSize, long sizeSeed) {
+    private DepositClump clump(RNG rng, int minSize, int maxSize, long sizeSeed) {
         if (generator.shape() != DepositShape.IRIS) {
             return configuredClump(rng, minSize, maxSize);
         }
-        List<IrisObject> variants = clumps.computeIfAbsent(new ClumpSizes(minSize, maxSize), sizes -> {
+        List<DepositClump> variants = clumps.computeIfAbsent(new ClumpSizes(minSize, maxSize), sizes -> {
             RNG variantRng = new RNG(depositSeed + stableClumpSalt() + sizeSeed);
-            List<IrisObject> built = new ArrayList<>();
+            List<DepositClump> built = new ArrayList<>();
             for (int i = 0; i < generator.varience(); i++) {
                 built.add(irisClump(variantRng.nextParallelRNG(VARIANT_SEED_STEP * i + VARIANT_SEED_OFFSET), sizes.minSize(), sizes.maxSize()));
             }
@@ -155,7 +148,7 @@ final class ResolvedDeposit {
         hash = mix(hash, Double.doubleToLongBits(generator.perClumpSpawnChance()));
         hash = mix(hash, Double.doubleToLongBits(generator.discardChanceOnAirExposure()));
         hash = mix(hash, palette.size());
-        for (PlatformBlockState block : palette) {
+        for (BlockState block : palette) {
             hash = mixString(hash, block == null ? null : block.key());
         }
         hash = mix(hash, generator.varience());
@@ -193,7 +186,7 @@ final class ResolvedDeposit {
         return mixed;
     }
 
-    private IrisObject configuredClump(RNG rng, int minSize, int maxSize) {
+    private DepositClump configuredClump(RNG rng, int minSize, int maxSize) {
         int size = rng.i(minSize, maxSize + 1);
         return switch (generator.shape()) {
             case VANILLA_ELLIPSOID -> vanillaEllipsoid(rng, size);
@@ -203,9 +196,9 @@ final class ResolvedDeposit {
     }
 
     /** Minecraft's ordinary ore vein: a chain of overlapping ellipsoids whose reach grows with {@code size}. */
-    IrisObject vanillaEllipsoid(RNG rng, int size) {
+    DepositClump vanillaEllipsoid(RNG rng, int size) {
         if (size <= 0) {
-            return new IrisObject(1, 1, 1);
+            return new DepositClump(1, 1, 1);
         }
 
         float angle = rng.nextFloat() * (float) Math.PI;
@@ -286,11 +279,11 @@ final class ResolvedDeposit {
             }
         }
 
-        return objectFromCells(cells, rng);
+        return clumpFromCells(cells, rng);
     }
 
     /** Minecraft's scattered ore: up to {@code size} candidate offsets, the later ones further from the centre. */
-    IrisObject vanillaScattered(RNG rng, int size) {
+    DepositClump vanillaScattered(RNG rng, int size) {
         KSet<BlockPosition> cells = new KSet<>();
         int candidates = rng.nextInt(Math.max(0, size) + 1);
         for (int i = 0; i < candidates; i++) {
@@ -300,12 +293,12 @@ final class ResolvedDeposit {
                     Math.round((rng.nextFloat() - rng.nextFloat()) * magnitude),
                     Math.round((rng.nextFloat() - rng.nextFloat()) * magnitude)));
         }
-        return objectFromCells(cells, rng);
+        return clumpFromCells(cells, rng);
     }
 
-    private IrisObject objectFromCells(KSet<BlockPosition> cells, RNG rng) {
+    private DepositClump clumpFromCells(KSet<BlockPosition> cells, RNG rng) {
         if (cells.isEmpty()) {
-            return new IrisObject(1, 1, 1);
+            return new DepositClump(1, 1, 1);
         }
 
         int minX = Integer.MAX_VALUE;
@@ -326,25 +319,24 @@ final class ResolvedDeposit {
         int extentX = Math.max(Math.abs(minX), Math.abs(maxX));
         int extentY = Math.max(Math.abs(minY), Math.abs(maxY));
         int extentZ = Math.max(Math.abs(minZ), Math.abs(maxZ));
-        IrisObject object = new IrisObject(extentX * 2 + 1, extentY * 2 + 1, extentZ * 2 + 1);
+        DepositClump clump = new DepositClump(extentX * 2 + 1, extentY * 2 + 1, extentZ * 2 + 1);
         for (BlockPosition cell : cells) {
-            object.setUnsigned(cell.getX() + extentX, cell.getY() + extentY, cell.getZ() + extentZ, nextBlock(rng));
+            clump.setFromCorner(cell.getX() + extentX, cell.getY() + extentY, cell.getZ() + extentZ, nextBlock(rng));
         }
-        return object;
+        return clump;
     }
 
     /** The traditional Iris clump: a cube just large enough for the block count, filled at random cells. */
-    private IrisObject irisClump(RNG rng, int minSize, int maxSize) {
+    private DepositClump irisClump(RNG rng, int minSize, int maxSize) {
         int remaining = rng.i(minSize, maxSize + 1);
         if (remaining == 1) {
-            IrisObject single = new IrisObject(1, 1, 1);
-            Vector3i center = single.getCenter();
-            single.getBlocks().put(new IrisBlockVector(center.getX(), center.getY(), center.getZ()), nextBlock(rng));
+            DepositClump single = new DepositClump(1, 1, 1);
+            single.setCentre(nextBlock(rng));
             return single;
         }
 
         int dimension = Math.min(MAX_CLUMP_DIMENSION, (int) Math.ceil(Math.cbrt(remaining)));
-        IrisObject clump = new IrisObject(dimension, dimension, dimension);
+        DepositClump clump = new DepositClump(dimension, dimension, dimension);
         if (remaining >= dimension * dimension * dimension) {
             fillCube(clump, dimension, rng);
             return clump;
@@ -357,45 +349,47 @@ final class ResolvedDeposit {
                 continue;
             }
             remaining--;
-            clump.setUnsigned(cell.getX(), cell.getY(), cell.getZ(), nextBlock(rng));
+            clump.setFromCorner(cell.getX(), cell.getY(), cell.getZ(), nextBlock(rng));
         }
         return clump;
     }
 
-    private void fillCube(IrisObject clump, int dimension, RNG rng) {
+    private void fillCube(DepositClump clump, int dimension, RNG rng) {
         for (int z = 0; z < dimension; z++) {
             for (int y = 0; y < dimension; y++) {
                 for (int x = 0; x < dimension; x++) {
-                    clump.setUnsigned(x, y, z, nextBlock(rng));
+                    clump.setFromCorner(x, y, z, nextBlock(rng));
                 }
             }
         }
     }
 
-    private PlatformBlockState nextBlock(RNG rng) {
+    private BlockState nextBlock(RNG rng) {
         return palette.get(rng.i(0, palette.size()));
     }
 
-    private static Set<String> replaceableMaterials(List<String> keys) {
-        Set<String> materials = new KSet<>();
+    /** The materials of the blocks the pack names that this platform knows; a block it does not know replaces nothing. */
+    private static Set<ResourceId> replaceableMaterials(BlockRegistry registry, List<String> keys) {
+        Set<ResourceId> materials = new HashSet<>();
         for (String key : keys) {
-            PlatformBlockState state = B.getStateOrNull(key, false);
-            if (state != null) {
-                materials.add(IrisProceduralBlocks.materialKey(state));
+            try {
+                materials.add(registry.resolve(key).material());
+            } catch (IllegalArgumentException unknownBlock) {
+                continue;
             }
         }
         return materials;
     }
 
-    private static boolean matchesAnyBiome(IrisBiome biome, List<String> configuredBiomes) {
+    private static boolean matchesAnyBiome(BiomeIdentity biome, List<String> configuredBiomes) {
         if (biome == null) {
             return false;
         }
         for (String configured : configuredBiomes) {
             String namespaced = configured.contains(":") ? configured : MINECRAFT_NAMESPACE + configured;
-            if (configured.equals(biome.getLoadKey())
-                    || namespaced.equals(biome.getDerivativeKey())
-                    || namespaced.equals(biome.getVanillaDerivativeKey())) {
+            if (configured.equals(biome.key())
+                    || namespaced.equals(biome.platformBiome())
+                    || namespaced.equals(biome.vanillaBiome())) {
                 return true;
             }
         }
@@ -404,5 +398,9 @@ final class ResolvedDeposit {
 
     /** The sizes one set of clump variants is built for: the generator's own, or scaled by a biome's ore tuning. */
     record ClumpSizes(int minSize, int maxSize) {
+    }
+
+    /** What a deposit's biome filter compares: the pack key of a biome, the platform biome it is written as and the one vanilla sees. */
+    record BiomeIdentity(String key, String platformBiome, String vanillaBiome) {
     }
 }

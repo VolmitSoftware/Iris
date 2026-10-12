@@ -18,3 +18,7 @@ module art.arcane.iris.engine.modifier.PostModule
 include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
 module art.arcane.iris.engine.modifier.PerfectionModule
 module art.arcane.iris.engine.modifier.MatterModule
+module art.arcane.iris.engine.modifier.DepositModule
+include art/arcane/iris/engine/modifier/DepositPlacer*.class
+include art/arcane/iris/engine/modifier/DepositClump*.class
+include art/arcane/iris/engine/modifier/ResolvedDeposit*.class

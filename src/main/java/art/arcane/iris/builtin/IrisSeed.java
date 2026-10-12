@@ -27,7 +27,7 @@ import com.volmit.world.PackWorld;
  * from {@link PackWorld#seed()}.
  */
 public enum IrisSeed {
-    BIOME, CARVE, COMPONENT, DECORATOR, DEPOSIT, ENTITY, LOOT, MANTLE, POST, TERRAIN;
+    BIOME, CARVE, COMPLEX, COMPONENT, DECORATOR, DEPOSIT, ENTITY, LOOT, MANTLE, POST, TERRAIN;
 
     /** This seed of {@code world}, which must be a world Iris generates. */
     public long of(PackWorld world) {

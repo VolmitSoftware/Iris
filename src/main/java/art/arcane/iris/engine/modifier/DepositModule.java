@@ -24,7 +24,6 @@ import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.deposit.DepositVariantSettings;
 import art.arcane.iris.builtin.deposit.OreFrequencySettings;
 import art.arcane.iris.builtin.deposit.OreSizeSettings;
-import art.arcane.iris.core.modules.IrisChunk;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -45,7 +44,6 @@ import java.util.List;
 public final class DepositModule implements IrisModule {
     private static final String VERSION = "built-in";
     private static final int CHUNK_CENTRE = 7;
-    private static final int CHUNK_SHIFT = 4;
 
     @Override
     public ModuleInfo info() {
@@ -69,13 +67,11 @@ public final class DepositModule implements IrisModule {
     }
 
     private static void place(ChunkStageContext context, List<Entry<DepositSettings>> inChunk) {
-        IrisChunk chunk = IrisChunk.current();
         List<DepositGenerator> generators = generatorsAtCentre(context.settings(), context.originX(), context.originZ());
-        if (generators.isEmpty() || chunk.bypassesMantleStages()) {
+        if (generators.isEmpty()) {
             return;
         }
-        chunk.state(DepositPlacer.class, DepositPlacer::new).generate(generators, chunk.blocks(),
-                chunk.originX() >> CHUNK_SHIFT, chunk.originZ() >> CHUNK_SHIFT, chunk.multicore(), chunk.context());
+        DepositPlacer.of(context.world()).generate(context, generators);
     }
 
     /** Every level's generators at the centre column of the chunk whose first block is {@code originX}, {@code originZ}, in level order. */

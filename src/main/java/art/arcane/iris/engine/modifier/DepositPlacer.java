@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
 import art.arcane.iris.builtin.deposit.DepositPlacementScope;
@@ -25,213 +25,341 @@ import art.arcane.iris.builtin.deposit.DepositVariant;
 import art.arcane.iris.builtin.deposit.DepositVariantSettings;
 import art.arcane.iris.builtin.deposit.OreFrequencySettings;
 import art.arcane.iris.builtin.deposit.OreSizeSettings;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineAssignedComponent;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.volmlib.util.data.HeightMap;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.iris.engine.modifier.ResolvedDeposit.BiomeIdentity;
+import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.iris.util.common.parallel.BurstExecutor;
-import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.config.FeatureSettings;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.hunk.Hunk;
+import com.volmit.mantle.MantleLayer;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKey;
+import com.volmit.stage.ChunkStageContext;
+import com.volmit.world.BiomeSample;
+import com.volmit.world.PackBiome;
+import com.volmit.world.PackWorld;
+import com.volmit.world.TerrainSampler;
 
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
- * Places deposit clumps into one chunk for {@link DepositModule}: one per engine runtime, holding the deposit
- * stream's random and each generator made ready for this engine ({@link ResolvedDeposit}: resolved blocks and clump
- * shapes). Each generator gets its own random, derived from the chunk and its position in the list.
+ * Places deposit clumps into one chunk for {@link DepositModule}: one per world, holding the deposit stream's random and each
+ * generator made ready for this world ({@link ResolvedDeposit}: resolved blocks and clump shapes). Each generator gets its own
+ * random, derived from the chunk and its position in the list, and the generators of a chunk run one after the other.
  */
-public class DepositPlacer extends EngineAssignedComponent {
-    private final RNG rng;
+final class DepositPlacer {
     private static final double UNCHANGED_ORE_MULTIPLIER = 1D;
+    private static final int CHUNK_SHIFT = 4;
+    private static final int CHUNK_WIDTH = 16;
+    private static final long CHUNK_X_SEED_FACTOR = 341873128712L;
+    private static final long CHUNK_Z_SEED_FACTOR = 132897987541L;
+    private static final int DEFAULT_SURFACE_CLEARANCE = 7;
+    private static final BlockState BEDROCK = new BlockState("minecraft:bedrock");
 
+    private final RNG rng;
+    private final BlockRegistry registry;
+    private final PackResources resources;
+    private final ModuleLog log;
+    private final boolean tunesOres;
+    private final boolean remapsOres;
     private final Map<DepositGenerator, ResolvedDeposit> resolved = new ConcurrentHashMap<>();
     private final Map<DepositVariant, ResolvedDepositVariant> variants = new ConcurrentHashMap<>();
+    private final Map<ResourceId, Optional<BiomeIdentity>> biomeIdentities = new ConcurrentHashMap<>();
 
-    public DepositPlacer(Engine engine) {
-        super(engine, "Deposit");
-        rng = new RNG(getEngine().getSeedManager().getDeposit());
+    DepositPlacer(PackWorld world) {
+        this.rng = new RNG(IrisSeed.DEPOSIT.of(world));
+        this.resources = world.resources();
+        this.registry = resources.blocks();
+        this.log = world.log();
+        this.tunesOres = declares(world, OreFrequencySettings.class) || declares(world, OreSizeSettings.class);
+        this.remapsOres = declares(world, DepositVariantSettings.class);
     }
 
-    /** Runs {@code generators}, in order, on the chunk at chunk coordinates {@code x}, {@code z}. */
-    public void generate(List<DepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z, boolean multicore,
-                         ChunkContext context) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        generateDeposits(generators, terrain, x, z, multicore, context);
-        getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
+    /** The world's deposit placer, kept in its state store. */
+    static DepositPlacer of(PackWorld world) {
+        return world.state(DepositPlacer.class, DepositPlacer::new);
     }
 
-    private void generateDeposits(List<DepositGenerator> generators, Hunk<PlatformBlockState> terrain, int x, int z,
-                                  boolean multicore, ChunkContext context) {
-        BurstExecutor burst = burst().burst(multicore);
+    /** Whether any level of the pack declares {@code settings}; a world that declares none never asks a biome for them. */
+    private static boolean declares(PackWorld world, Class<? extends com.volmit.IrisFeature> settings) {
+        return !world.settings().declared(settings).isEmpty();
+    }
 
-        long seed = x * 341873128712L + z * 132897987541L;
+    /** Runs {@code generators}, in order, on the chunk of {@code context}. */
+    void generate(ChunkStageContext context, List<DepositGenerator> generators) {
+        Placing placing = new Placing(context);
+        int chunkX = context.originX() >> CHUNK_SHIFT;
+        int chunkZ = context.originZ() >> CHUNK_SHIFT;
+        long seed = chunkX * CHUNK_X_SEED_FACTOR + chunkZ * CHUNK_Z_SEED_FACTOR;
         long mask = 0;
-        MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
-        try {
-            for (DepositGenerator k : generators) {
-                long finalSeed = seed * ++mask;
-                burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
-            }
-        } finally {
-            // complete() must run before release() even when queueing throws — already
-            // submitted burst tasks must never write into a released chunk.
-            try {
-                burst.complete();
-            } finally {
-                chunk.release();
-            }
+        for (DepositGenerator generator : generators) {
+            long finalSeed = seed * ++mask;
+            placing.generate(generator, rng.nextParallelRNG(finalSeed));
         }
     }
 
-    public void generate(DepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
-        generate(k, chunk, data, rng, cx, cz, safe, null, context);
+    private ResolvedDeposit resolved(DepositGenerator generator) {
+        return resolved.computeIfAbsent(generator, ignored -> new ResolvedDeposit(generator, rng.getSeed(), registry));
     }
 
-    public void generate(DepositGenerator k, MantleChunk chunk, Hunk<PlatformBlockState> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
-        ResolvedDeposit deposit = resolved(k);
-        if (k.spawnChance() < rng.d())
-            return;
+    private Optional<BiomeIdentity> identityOf(ResourceId biome) {
+        return biomeIdentities.computeIfAbsent(biome, id -> resources.find(new ResourceKey<>(id, PackBiome.class))
+                .map(found -> new BiomeIdentity(id.path(), found.platformBiome().toString(), found.vanillaBiome().toString())));
+    }
 
-        for (int l = 0; l < rng.i(k.minPerChunk(), k.maxPerChunk() + 1); l++) {
-            if (k.perClumpSpawnChance() < rng.d())
-                continue;
+    /** Places deposits into one chunk, with the views of its invocation. */
+    private final class Placing {
+        private final Hunk<BlockState> blocks;
+        private final TerrainSampler terrain;
+        private final FeatureSettings settings;
+        private final MantleLayer<Boolean> caverns;
+        private final int originX;
+        private final int originZ;
+        private final int worldHeight;
+        private final int minWorldY;
+        private final int[] surfaceHeights = new int[CHUNK_WIDTH * CHUNK_WIDTH];
+        private boolean surfaceKnown;
+        private final Map<BlockState, Boolean> airStates = new IdentityHashMap<>();
+        private final Map<BlockState, Boolean> replaceableStates = new IdentityHashMap<>();
+        private final Map<BlockState, Map<BlockState, BlockState>> suitedOres = new IdentityHashMap<>();
 
-            IrisObject clump = deposit.clump(rng);
+        Placing(ChunkStageContext context) {
+            this.blocks = context.hunk(BlockState.class);
+            this.terrain = context.terrain();
+            this.settings = context.settings();
+            this.caverns = context.mantle().caverns();
+            this.originX = context.originX();
+            this.originZ = context.originZ();
+            this.worldHeight = blocks.getHeight();
+            this.minWorldY = terrain.minWorldY();
+        }
 
-            int dim = clump.getW();
-            int min = dim / 2;
-            int max = (int) (16D - dim / 2D);
+        void generate(DepositGenerator k, RNG rng) {
+            ResolvedDeposit deposit = resolved(k);
+            if (k.spawnChance() < rng.d())
+                return;
 
-            if (min > max || min < 0 || max > 15) {
-                min = 6;
-                max = 9;
-            }
+            for (int l = 0; l < rng.i(k.minPerChunk(), k.maxPerChunk() + 1); l++) {
+                if (k.perClumpSpawnChance() < rng.d())
+                    continue;
 
-            int x = rng.i(min, max + 1);
-            int z = rng.i(min, max + 1);
-            int terrainSurface = getDepositTerrainSurface(cx, cz, x, z, he, context);
-            int height = k.placementScope() == DepositPlacementScope.TERRAIN
-                    ? depositSurfaceLimit(terrainSurface, k.surfaceClearance())
-                    : getEngine().getHeight() - 1;
+                DepositClump clump = deposit.clump(rng);
 
-            if (height < 0) {
-                continue;
-            }
+                int dim = clump.width();
+                int min = dim / 2;
+                int max = (int) (16D - dim / 2D);
 
-            int y = sampleHeight(
-                    k.heightDistribution(), rng, k.minHeight(), k.maxHeight(),
-                    Math.min(height, getEngine().getHeight() - 1));
-            if (y == Integer.MIN_VALUE) {
-                continue;
-            }
+                if (min > max || min < 0 || max > 15) {
+                    min = 6;
+                    max = 9;
+                }
 
-            boolean clippedHeight = k.heightDistribution() == DepositHeightDistribution.CLIPPED_UNIFORM;
-            if (clippedHeight && y > height - 2)
-                continue;
+                int x = rng.i(min, max + 1);
+                int z = rng.i(min, max + 1);
+                int terrainSurface = terrainSurface(x, z);
+                int height = k.placementScope() == DepositPlacementScope.TERRAIN
+                        ? depositSurfaceLimit(terrainSurface, k.surfaceClearance())
+                        : worldHeight - 1;
 
-            int biomeY = Math.max(0, Math.min(getEngine().getHeight() - 1, y));
-            boolean oreDeposit = deposit.isOre();
-            IrisBiome surfaceBiome = context.getBiome().get(x, z);
-            IrisBiome depositBiome = oreDeposit || k.usesCaveBiomeFilter()
-                    ? getEngine().getCaveBiome((cx << 4) + x, biomeY, (cz << 4) + z)
-                    : null;
-            if (!deposit.matchesBiome(surfaceBiome, depositBiome)) {
-                continue;
-            }
+                if (height < 0) {
+                    continue;
+                }
 
-            if (oreDeposit) {
-                if (depositBiome != null) {
-                    double frequencyMultiplier = oreFrequencyMultiplier(depositBiome);
-                    if (frequencyMultiplier < 1D
-                            && !passesOreFrequency(frequencyMultiplier, rng.d())) {
-                        continue;
-                    }
+                int y = sampleHeight(
+                        k.heightDistribution(), rng, k.minHeight(), k.maxHeight(),
+                        Math.min(height, worldHeight - 1));
+                if (y == Integer.MIN_VALUE) {
+                    continue;
+                }
 
-                    double sizeMultiplier = oreSizeMultiplier(depositBiome);
-                    if (sizeMultiplier != 1D) {
-                        IrisObject scaledClump = deposit.clump(rng, sizeMultiplier);
-                        int scaledDimension = scaledClump.getW();
-                        x = clampDepositCenter(x, scaledDimension, 16);
-                        if (clippedHeight) {
-                            y = clampDepositCenter(y, scaledDimension, getEngine().getHeight());
+                boolean clippedHeight = k.heightDistribution() == DepositHeightDistribution.CLIPPED_UNIFORM;
+                if (clippedHeight && y > height - 2)
+                    continue;
+
+                int biomeY = Math.max(0, Math.min(worldHeight - 1, y));
+                boolean oreDeposit = deposit.isOre();
+                Supplier<BiomeSample> biomes = biomesAt(x, biomeY, z);
+                if (!deposit.matchesBiome(() -> identityOf(biomes.get().surfaceBiome()).orElse(null),
+                        () -> biomes.get().caveBiome().flatMap(id -> identityOf(id)).orElse(null))) {
+                    continue;
+                }
+
+                if (oreDeposit && tunesOres) {
+                    Optional<ResourceId> caveBiome = biomes.get().caveBiome();
+                    if (caveBiome.isPresent()) {
+                        double frequencyMultiplier = oreFrequencyMultiplier(caveBiome.get());
+                        if (frequencyMultiplier < 1D
+                                && !passesOreFrequency(frequencyMultiplier, rng.d())) {
+                            continue;
                         }
-                        z = clampDepositCenter(z, scaledDimension, 16);
-                        clump = scaledClump;
+
+                        double sizeMultiplier = oreSizeMultiplier(caveBiome.get());
+                        if (sizeMultiplier != 1D) {
+                            DepositClump scaledClump = deposit.clump(rng, sizeMultiplier);
+                            int scaledDimension = scaledClump.width();
+                            x = clampDepositCenter(x, scaledDimension, 16);
+                            if (clippedHeight) {
+                                y = clampDepositCenter(y, scaledDimension, worldHeight);
+                            }
+                            z = clampDepositCenter(z, scaledDimension, 16);
+                            clump = scaledClump;
+                        }
                     }
                 }
+
+                placeClump(k, deposit, clump, rng, x, y, z);
             }
+        }
 
-            IrisDimension dimension = getDimension();
-
-            for (art.arcane.volmlib.util.math.IrisBlockVector j : clump.getBlocks().keys()) {
+        private void placeClump(DepositGenerator k, ResolvedDeposit deposit, DepositClump clump, RNG rng, int x, int y, int z) {
+            for (IrisBlockVector j : clump.blocks().keys()) {
                 int nx = j.getBlockX() + x;
                 int ny = j.getBlockY() + y;
                 int nz = j.getBlockZ() + z;
 
-                if (nx > 15 || nx < 0 || ny >= getEngine().getHeight() || ny < 0 || nz < 0 || nz > 15) {
+                if (nx > 15 || nx < 0 || ny >= worldHeight || ny < 0 || nz < 0 || nz > 15) {
                     continue;
                 }
-                int columnSurface = getDepositTerrainSurface(cx, cz, nx, nz, he, context);
+                int columnSurface = terrainSurface(nx, nz);
                 if (!placementSurfaceAllows(
                         k.placementScope(), ny, columnSurface, k.surfaceClearance())) {
                     continue;
                 }
 
-                PlatformBlockState current = data.get(nx, ny, nz);
-                if (!canReplaceDepositTarget(current)) {
+                BlockState current = blocks.get(nx, ny, nz);
+                if (!canReplaceTarget(current)) {
                     continue;
                 }
                 if (!deposit.canReplace(current)) {
                     continue;
                 }
-                if (!k.replaceBedrock() && IrisProceduralBlocks.materialKey(current).equals("minecraft:bedrock")) {
+                if (!k.replaceBedrock() && current.material().equals(BEDROCK.material())) {
                     continue;
                 }
                 if (shouldDiscardExposed(
-                        k.discardChanceOnAirExposure(), rng.d(), isAdjacentToAir(data, nx, ny, nz))) {
+                        k.discardChanceOnAirExposure(), rng.d(), isAdjacentToAir(blocks, nx, ny, nz, this::isAir))) {
                     continue;
                 }
 
-                if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
-                    PlatformBlockState ore = clump.getBlocks().get(j);
-                    PlatformBlockState remapped = resolveDepositVariant(
-                            cx, cz, nx, ny, nz, ore, dimension, context);
-                    PlatformBlockState finalBlock = remapped != null
+                if (caverns.get(originX + nx, ny, originZ + nz) == null) {
+                    BlockState ore = clump.blocks().get(j);
+                    BlockState remapped = remapped(nx, ny, nz, ore);
+                    BlockState finalBlock = remapped != null
                             ? remapped
-                            : B.toDeepSlateOre(current, ore);
-                    data.set(nx, ny, nz, finalBlock);
+                            : oreSuiting(current, ore);
+                    blocks.set(nx, ny, nz, finalBlock);
                 }
             }
         }
-    }
 
-    private ResolvedDeposit resolved(DepositGenerator generator) {
-        return resolved.computeIfAbsent(generator, ignored -> ResolvedDeposit.of(generator, getEngine()));
-    }
+        /** Asks the host for the biomes of the column only if a filter or an ore tuning reads them, and only once. */
+        private Supplier<BiomeSample> biomesAt(int localX, int y, int localZ) {
+            BiomeSample[] sample = new BiomeSample[1];
+            return () -> {
+                if (sample[0] == null) {
+                    sample[0] = terrain.biome(originX + localX, y, originZ + localZ);
+                }
+                return sample[0];
+            };
+        }
 
-    private int getDepositTerrainSurface(
-            int cx, int cz, int localX, int localZ, HeightMap heightMap,
-            ChunkContext context) {
-        return heightMap != null
-                ? heightMap.getHeight((cx << 4) + localX, (cz << 4) + localZ)
-                : context.getRoundedHeight(localX, localZ);
+        /** {@code ore}, or the variant of it that suits the rock it replaces; the platform knows the variants, so each pair is asked once. */
+        private BlockState oreSuiting(BlockState rock, BlockState ore) {
+            return suitedOres.computeIfAbsent(rock, known -> new IdentityHashMap<>())
+                    .computeIfAbsent(ore, known -> registry.oreFor(rock, known));
+        }
+
+        private boolean isAir(BlockState state) {
+            return airStates.computeIfAbsent(state, known -> registry.hasTrait(known, BlockTrait.AIR));
+        }
+
+        private boolean canReplaceTarget(BlockState state) {
+            return replaceableStates.computeIfAbsent(state, known -> canReplaceDepositTarget(registry, known));
+        }
+
+        /** The height of the terrain at a column of the chunk, as the stages before the deposits see it. */
+        private int terrainSurface(int localX, int localZ) {
+            if (!surfaceKnown) {
+                for (int x = 0; x < CHUNK_WIDTH; x++) {
+                    for (int z = 0; z < CHUNK_WIDTH; z++) {
+                        surfaceHeights[x * CHUNK_WIDTH + z] = (int) Math.round(terrain.surfaceY(originX + x, originZ + z));
+                    }
+                }
+                surfaceKnown = true;
+            }
+            return surfaceHeights[localX * CHUNK_WIDTH + localZ];
+        }
+
+        private BlockState remapped(int localX, int localY, int localZ, BlockState ore) {
+            if (!remapsOres) {
+                return null;
+            }
+            int worldX = originX + localX;
+            int worldZ = originZ + localZ;
+            int worldY = absoluteWorldY(minWorldY, localY);
+
+            Optional<ResourceId> caveBiome = terrain.biome(worldX, localY, worldZ).caveBiome();
+            if (caveBiome.isPresent()) {
+                BlockState match = matchDepositVariant(settings.declaredBy(caveBiome.get(), DepositVariantSettings.class), ore, worldY);
+                if (match != null) {
+                    return match;
+                }
+            }
+
+            BlockState match = matchDepositVariant(levelSettings(Target.REGION, worldX, worldZ), ore, worldY);
+            if (match != null) {
+                return match;
+            }
+
+            return matchDepositVariant(levelSettings(Target.DIMENSION, worldX, worldZ), ore, worldY);
+        }
+
+        private Optional<DepositVariantSettings> levelSettings(Target level, int worldX, int worldZ) {
+            return settings.at(DepositVariantSettings.class, worldX, worldZ).stream()
+                    .filter(entry -> entry.level() == level)
+                    .map(Entry::value)
+                    .findFirst();
+        }
+
+        private BlockState matchDepositVariant(Optional<DepositVariantSettings> owner, BlockState ore, int y) {
+            for (DepositVariant declared : owner.map(DepositVariantSettings::variants).orElse(List.of())) {
+                ResolvedDepositVariant variant = variants.computeIfAbsent(declared, rule -> new ResolvedDepositVariant(rule, registry, log));
+                if (!variant.appliesAt(y)) {
+                    continue;
+                }
+
+                BlockState swapped = variant.remapOrNull(ore);
+                if (swapped != null) {
+                    return swapped;
+                }
+            }
+
+            return null;
+        }
+
+        private double oreFrequencyMultiplier(ResourceId caveBiome) {
+            return settings.declaredBy(caveBiome, OreFrequencySettings.class).map(OreFrequencySettings::multiplier).orElse(UNCHANGED_ORE_MULTIPLIER);
+        }
+
+        private double oreSizeMultiplier(ResourceId caveBiome) {
+            return settings.declaredBy(caveBiome, OreSizeSettings.class).map(OreSizeSettings::multiplier).orElse(UNCHANGED_ORE_MULTIPLIER);
+        }
     }
 
     static int depositSurfaceLimit(int surfaceY) {
-        return depositSurfaceLimit(surfaceY, 7);
+        return depositSurfaceLimit(surfaceY, DEFAULT_SURFACE_CLEARANCE);
     }
 
     static int depositSurfaceLimit(int surfaceY, int surfaceClearance) {
@@ -252,8 +380,8 @@ public class DepositPlacer extends EngineAssignedComponent {
         return minHeight + localY;
     }
 
-    static boolean canReplaceDepositTarget(PlatformBlockState state) {
-        return state != null && !state.isAir() && !state.isFluid();
+    static boolean canReplaceDepositTarget(BlockRegistry registry, BlockState state) {
+        return state != null && !registry.hasTrait(state, BlockTrait.AIR) && !registry.hasTrait(state, BlockTrait.FLUID);
     }
 
     static int sampleHeight(
@@ -285,23 +413,22 @@ public class DepositPlacer extends EngineAssignedComponent {
         return adjacentToAir && chance > 0D && sample < Math.min(1D, chance);
     }
 
-    static boolean isAdjacentToAir(Hunk<PlatformBlockState> data, int x, int y, int z) {
-        return isAirAt(data, x - 1, y, z)
-                || isAirAt(data, x + 1, y, z)
-                || isAirAt(data, x, y - 1, z)
-                || isAirAt(data, x, y + 1, z)
-                || isAirAt(data, x, y, z - 1)
-                || isAirAt(data, x, y, z + 1);
+    static boolean isAdjacentToAir(Hunk<BlockState> data, int x, int y, int z, Predicate<BlockState> isAir) {
+        return isAirAt(data, x - 1, y, z, isAir)
+                || isAirAt(data, x + 1, y, z, isAir)
+                || isAirAt(data, x, y - 1, z, isAir)
+                || isAirAt(data, x, y + 1, z, isAir)
+                || isAirAt(data, x, y, z - 1, isAir)
+                || isAirAt(data, x, y, z + 1, isAir);
     }
 
-    private static boolean isAirAt(Hunk<PlatformBlockState> data, int x, int y, int z) {
+    private static boolean isAirAt(Hunk<BlockState> data, int x, int y, int z, Predicate<BlockState> isAir) {
         if (x < 0 || x >= data.getWidth()
                 || y < 0 || y >= data.getHeight()
                 || z < 0 || z >= data.getDepth()) {
             return false;
         }
-        PlatformBlockState state = data.getRaw(x, y, z);
-        return state == null || state.isAir();
+        return isAir.test(data.get(x, y, z));
     }
 
     static boolean passesOreFrequency(double multiplier, double sample) {
@@ -312,64 +439,5 @@ public class DepositPlacer extends EngineAssignedComponent {
         int minimum = dimension / 2;
         int maximum = (int) (limit - dimension / 2D);
         return Math.max(minimum, Math.min(center, maximum));
-    }
-
-    private PlatformBlockState resolveDepositVariant(int cx, int cz, int nx, int localY, int nz, PlatformBlockState ore, IrisDimension dimension, ChunkContext context) {
-        int worldX = (cx << 4) + nx;
-        int worldZ = (cz << 4) + nz;
-        int worldY = absoluteWorldY(getEngine().getMinHeight(), localY);
-
-        IrisBiome biome = getEngine().getCaveBiome(worldX, localY, worldZ);
-        if (biome != null) {
-            PlatformBlockState match = matchDepositVariant(biome, ore, worldY);
-            if (match != null) {
-                return match;
-            }
-        }
-
-        IrisRegion region = context.getRegion().get(nx, nz);
-        if (region != null) {
-            PlatformBlockState match = matchDepositVariant(region, ore, worldY);
-            if (match != null) {
-                return match;
-            }
-        }
-
-        if (dimension != null) {
-            PlatformBlockState match = matchDepositVariant(dimension, ore, worldY);
-            if (match != null) {
-                return match;
-            }
-        }
-
-        return null;
-    }
-
-    private PlatformBlockState matchDepositVariant(IrisRegistrant owner, PlatformBlockState ore, int y) {
-        for (DepositVariant declared : variantsOf(owner)) {
-            ResolvedDepositVariant variant = variants.computeIfAbsent(declared, ResolvedDepositVariant::new);
-            if (!variant.appliesAt(y)) {
-                continue;
-            }
-
-            PlatformBlockState swapped = variant.remapOrNull(ore);
-            if (swapped != null) {
-                return swapped;
-            }
-        }
-
-        return null;
-    }
-
-    private static List<DepositVariant> variantsOf(IrisRegistrant owner) {
-        return owner.getModuleSettings().find(DepositVariantSettings.class).map(DepositVariantSettings::variants).orElse(List.of());
-    }
-
-    private static double oreFrequencyMultiplier(IrisBiome biome) {
-        return biome.getModuleSettings().find(OreFrequencySettings.class).map(OreFrequencySettings::multiplier).orElse(UNCHANGED_ORE_MULTIPLIER);
-    }
-
-    private static double oreSizeMultiplier(IrisBiome biome) {
-        return biome.getModuleSettings().find(OreSizeSettings.class).map(OreSizeSettings::multiplier).orElse(UNCHANGED_ORE_MULTIPLIER);
     }
 }

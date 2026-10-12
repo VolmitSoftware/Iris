@@ -548,6 +548,10 @@ by noise (each block counts as often as its weight, the style's noise at x, y, z
 one block is that block everywhere, and one without a block to pick (an empty list, or only weights of zero) is an
 `IllegalArgumentException` when the sampler is asked for. Seed it like noise.
 
+`NoiseSampler.signed(...)` is `sample * 2 - 1`, which a host may answer from a per-thread memo of the coordinates it was just asked (read it
+where one field is sampled at the same points again and again, as a carver does). `scaled(factor)` is the same noise with the coordinates
+multiplied by `factor`, folded into the host's generator, not a multiplication in front of it.
+
 The types are values the host creates with their no-argument constructors and reads the JSON into, like settings,
 so an omitted option keeps the default the type declares (a `Range` is 16 to 32 unless the pack or the field's
 own default says otherwise). They keep the snippet folders packs already use (`style`, `style-range`, `range`, `palette`).

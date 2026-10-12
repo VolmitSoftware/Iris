@@ -209,6 +209,11 @@ running Iris is the pack publisher's responsibility.
   expression falls back to the base style, and a missing image map fails.
   Answer `NoiseSampler.signed(...)` with the generator's own signed read (and its per-thread coordinate memo) when it
   has one; the default is `sample * 2 - 1`.
+  Answer `NoiseSampler.scaled(factor)` by building the generator again with the factor folded into its scale, leaving the sampler it
+  is called on untouched (the default multiplies the coordinates, which may round differently).
+- Answer `PackWorld.minHeight()` (the platform's Y of the dimension's bottom), `PackResources.idOf(key)` (the ids the host gives
+  its own resources, characters an id cannot hold replaced) and `TerrainSampler.caveBiome(x, y, z)` (the cave biome of a block,
+  without the work of the rest of the sample) when the defaults do not fit the host.
 - Answer `BlockRegistry.hasTrait` (`VINE` included) and `canPlaceOn` (the support rule decorations need) as the platform
   does; stages ask per block, so answer from memory once a state was seen.
 - Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their

@@ -20,7 +20,9 @@ public interface GenerationContext extends InvocationContext {
     FeatureSettings settings();
 
     /** Non-null mantle access scoped to this invocation; the host owns its lifetime. Chunk stages read it
-     * only: the mantle pipeline has finished around the chunk, and writes throw.
+     * only: the mantle pipeline has finished around the chunk, and writes throw. Like {@link #terrain()} it covers the
+     * chunk and the 16 blocks around it, so a stage that places something against a neighbor can see what the mantle
+     * holds there.
      */
     Mantle mantle();
 

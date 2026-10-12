@@ -24,6 +24,14 @@ import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.modifier.MatterModule;
 import art.arcane.iris.engine.modifier.PerfectionModule;
 import art.arcane.iris.engine.modifier.PostModule;
+import art.arcane.iris.engine.object.placement.AnchorModule;
+import art.arcane.iris.engine.object.placement.BlocksModule;
+import art.arcane.iris.engine.object.placement.BoreModule;
+import art.arcane.iris.engine.object.placement.PrepareModule;
+import art.arcane.iris.engine.object.placement.SnowModule;
+import art.arcane.iris.engine.object.placement.StiltModule;
+import art.arcane.iris.engine.object.placement.ValidateModule;
+import art.arcane.iris.engine.object.placement.VacuumModule;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.host.LoadedPack;
@@ -51,7 +59,8 @@ public final class BuiltInPack {
      * with Iris; {@code BuiltInModulesJarTest} loads the same modules from the jar instead.
      */
     public static List<IrisModule> jarModules() {
-        return List.of(new PostModule(), new PerfectionModule(), new MatterModule());
+        return List.of(new PostModule(), new PerfectionModule(), new MatterModule(), new PrepareModule(), new AnchorModule(),
+                new ValidateModule(), new BoreModule(), new BlocksModule(), new StiltModule(), new VacuumModule(), new SnowModule());
     }
 
     /** Every built-in module: Iris's own and the compiled-in copies of the jar's ({@link #jarModules()}). */

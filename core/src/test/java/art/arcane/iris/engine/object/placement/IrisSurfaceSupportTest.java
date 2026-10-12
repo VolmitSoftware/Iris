@@ -1,5 +1,10 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.placement.StructureVolumes;
+import art.arcane.iris.builtin.prepare.AxisRotationClamp;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.objects.formation.Formation;
@@ -8,12 +13,12 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisSurfaceSupport;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.block.BlockState;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -31,6 +36,8 @@ import static org.mockito.Mockito.when;
 
 public class IrisSurfaceSupportTest {
     private static final List<IrisBlockVector> SINGLE_COLUMN = List.of(new IrisBlockVector(0, 0, 0));
+    private static final ObjectTranslate NO_TRANSLATE = new ObjectTranslate();
+    private static final ObjectRotation NO_ROTATION = ObjectRotation.of(false, new AxisRotationClamp(), new AxisRotationClamp(), new AxisRotationClamp());
 
     @Test
     public void carvedSurfaceColumnRejectsPlacement() {
@@ -113,28 +120,29 @@ public class IrisSurfaceSupportTest {
         SurfacePlacer placer = new SurfacePlacer(80);
         placer.carve(5, 80, -3);
 
-        assertTrue(IrisSurfaceSupport.isUnsupported(placer, null, 0, 0, null, null, 0, 0, 0,
+        assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, NO_TRANSLATE, NO_ROTATION, 0, 0, 0,
                 List.of(new IrisBlockVector(5, 0, -3)), 0, 1));
     }
 
     @Test
     public void placementTranslationAndRotationMatchObjectBlocks() {
         SurfacePlacer placer = new SurfacePlacer(80);
-        IrisObjectTranslate translate = new IrisObjectTranslate().setX(5).setZ(-3);
-        IrisObjectRotation rotation = IrisObjectRotation.of(0, 90, 0);
+        ObjectTranslate translate = ObjectTranslate.of(5, 0, 0, -3);
+        IrisObjectRotation turned = IrisObjectRotation.of(0, 90, 0);
+        ObjectRotation rotation = ObjectRotation.of(turned.isEnabled(), turned.getXAxis(), turned.getYAxis(), turned.getZAxis());
         placer.carve(-3, 80, -7);
 
-        assertTrue(IrisSurfaceSupport.isUnsupported(placer, null, 0, 0, translate, rotation, 0, 0, 0,
+        assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, translate, rotation, 0, 0, 0,
                 List.of(new IrisBlockVector(2, 0, 0)), 0, 1));
     }
 
     @Test
     public void emptyFootprintFallsBackToPlacementOrigin() {
         SurfacePlacer placer = new SurfacePlacer(80);
-        IrisObjectTranslate translate = new IrisObjectTranslate().setX(4).setZ(-2);
+        ObjectTranslate translate = ObjectTranslate.of(4, 0, 0, -2);
         placer.carve(4, 80, -2);
 
-        assertTrue(IrisSurfaceSupport.isUnsupported(placer, null, 0, 0, translate, null, 0, 0, 0,
+        assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, translate, NO_ROTATION, 0, 0, 0,
                 List.of(), 0, 1));
     }
 
@@ -175,8 +183,91 @@ public class IrisSurfaceSupportTest {
 
     private static boolean isUnsupported(IObjectPlacer placer, List<IrisBlockVector> footprint,
                                          int buffer, int minSolidDepth) {
-        return IrisSurfaceSupport.isUnsupported(placer, null, 0, 0, null, null, 0, 0, 0,
+        return IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, NO_TRANSLATE, NO_ROTATION, 0, 0, 0,
                 footprint, buffer, minSolidDepth);
+    }
+
+    /** The three questions the support check asks, answered by a placer; the rest of a placement's terrain is not asked. */
+    private record Terrain(IObjectPlacer placer) implements PlacementTerrain {
+        @Override
+        public int highest(int x, int z, boolean ignoreFluid) {
+            return placer.getHighest(x, z, null, ignoreFluid);
+        }
+
+        @Override
+        public boolean isCarved(int x, int y, int z) {
+            return placer.isCarved(x, y, z);
+        }
+
+        @Override
+        public boolean isSurfaceSolid(int x, int y, int z) {
+            return placer.isSurfaceSolid(x, y, z);
+        }
+
+        @Override
+        public boolean isUnderwater(int x, int z) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int fluidHeight() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean preventsDecay() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean debugsSmartBore() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean hasWorld() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public double slopeAt(int x, int z) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public double heightAt(double x, double z) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean hasBedrock() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int minHeight() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int worldHeight() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BlockState rockAt(int x, int z) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String objectKeyAt(int x, int y, int z) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static final class SurfacePlacer implements IObjectPlacer {

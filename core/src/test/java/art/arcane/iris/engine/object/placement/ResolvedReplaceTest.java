@@ -107,7 +107,7 @@ public class ResolvedReplaceTest {
         ResolvedReplace replace = new ResolvedReplace(List.of(), false, 1F, spec, blocks);
         RNG rng = new RNG(SEED);
 
-        assertEquals("minecraft:chest", replace.tile(rng).orElseThrow().getMaterialKey());
+        assertEquals("minecraft:chest", BlockEntities.tileOf(replace.tile(rng).orElseThrow()).getMaterialKey());
         assertEquals("no draw", new RNG(SEED).nextInt(1000), rng.nextInt(1000));
     }
 
@@ -124,11 +124,11 @@ public class ResolvedReplaceTest {
 
         for (long seed = 0; seed < 40; seed++) {
             int drawn = new RNG(seed).nextInt(3);
-            Optional<TileData> tile = replace.tile(new RNG(seed));
+            Optional<BlockEntityData> tile = replace.tile(new RNG(seed));
             if (drawn == 2) {
                 assertTrue("an entry without tile data gives none", tile.isEmpty());
             } else {
-                assertEquals(drawn == 0 ? "minecraft:chest" : "minecraft:barrel", tile.orElseThrow().getMaterialKey());
+                assertEquals(drawn == 0 ? "minecraft:chest" : "minecraft:barrel", BlockEntities.tileOf(tile.orElseThrow()).getMaterialKey());
             }
         }
     }

@@ -28,7 +28,6 @@ import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.modifier.CarveModule;
 import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.FloatingModule;
-import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
 import com.volmit.ModuleLog;
@@ -63,7 +62,8 @@ public final class IrisModuleHost {
      * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. A pack loads them from its {@code modules}
      * folder, and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the jar's list.
      */
-    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter");
+    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:prepare",
+            "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum", "iris:snow");
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -76,14 +76,14 @@ public final class IrisModuleHost {
         return Holder.HOST;
     }
 
-    /** The modules every pack loads before its own: Iris's own, placement and the chunk generation every world runs. */
+    /** The modules every pack loads before its own: Iris's own and the chunk generation every world runs. */
     public static List<IrisModule> builtInModules() {
-        return Stream.of(hostModules(), PlacementModules.all(), generationModules()).flatMap(List::stream).toList();
+        return Stream.of(hostModules(), generationModules()).flatMap(List::stream).toList();
     }
 
-    /** Modules that are Iris itself, not features: they write the layout's platform biomes and record the platform's custom blocks. A pack never replaces them and the built-ins jar does not hold them. */
+    /** Modules that are Iris itself, not features: they write the layout's platform biomes, record the platform's custom blocks and describe the classes Iris's placement settings hold. A pack never replaces them and the built-ins jar does not hold them. */
     private static List<IrisModule> hostModules() {
-        return List.of(new BiomeModule(), new CustomModule());
+        return List.of(new BiomeModule(), new CustomModule(), new PlacementSettingsModule());
     }
 
     private static List<IrisModule> generationModules() {

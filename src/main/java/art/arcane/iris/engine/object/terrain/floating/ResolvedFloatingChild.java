@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
+import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.core.loader.IrisData;
@@ -28,14 +30,14 @@ import art.arcane.iris.engine.object.terrain.carving.CaveProfiles;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
-import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;
-import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+
+import java.util.List;
 
 /**
  * A {@link FloatingChildBiome} made ready for one engine: the noise its styles build (each from the world seed it is first
@@ -157,10 +159,10 @@ public final class ResolvedFloatingChild implements IRare {
             return null;
         }
 
-        CarvingResolver resolver = CarvingResolver.of(engine.getGeneration().world());
-        ResolvedCarvingEntry entry = resolver.index().get(carving);
+        CarvingEntry entry = dimensionCarvingEntry(carving, engine);
         if (entry != null) {
-            return resolver.entryBiome(entry) == null || data.getBiomeLoader() == null ? null : data.getBiomeLoader().load(entry.biomeKey().trim());
+            String biomeKey = entry.biome().trim();
+            return biomeKey.isEmpty() || data.getBiomeLoader() == null ? null : data.getBiomeLoader().load(biomeKey);
         }
 
         if (data.getBiomeLoader() == null) {
@@ -168,6 +170,17 @@ public final class ResolvedFloatingChild implements IRare {
         }
 
         return data.getBiomeLoader().load(carving);
+    }
+
+    /** The dimension's carving entry with this id (the last of several with one id); null when it declares none. */
+    private static CarvingEntry dimensionCarvingEntry(String id, Engine engine) {
+        CarvingEntry found = null;
+        for (CarvingEntry entry : engine.getDimension().getModuleSettings().find(CarvingSettings.class).map(CarvingSettings::entries).orElse(List.of())) {
+            if (entry != null && !entry.id().isBlank() && entry.id().trim().equals(id)) {
+                found = entry;
+            }
+        }
+        return found;
     }
 
     public KList<IrisObjectPlacement> resolveTopObjects(IrisBiome target) {

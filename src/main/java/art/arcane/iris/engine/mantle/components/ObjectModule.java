@@ -63,7 +63,8 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Objects.PLACE).requires(IrisStages.Carve.CAVES).reach(this::reach).run(ObjectModule::place);
+        // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Objects.PLACE).softAfter(IrisStages.Carve.CAVES.ref()).reach(this::reach).run(ObjectModule::place);
     }
 
     @Override

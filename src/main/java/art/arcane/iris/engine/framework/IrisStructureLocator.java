@@ -40,8 +40,6 @@ import art.arcane.iris.engine.object.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.core.modules.IrisModuleHost;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
@@ -59,7 +57,7 @@ import java.util.regex.Pattern;
  * Finds where Iris assembly and native jigsaw placements generate. A structure key matches
  * an Iris structure load key, its {@code vanillaSource}, or a configured native registry key.
  *
- * A per-engine index of placed keys is cached so {@code /locate} and {@code /iris goto} skip
+ * Each world keeps an index of placed keys in its state, so {@code /locate} and {@code /iris goto} skip
  * the grid scan entirely for keys that are not placed (keeping them as fast as vanilla).
  *
  * For RANDOM_SPREAD placements (the common, vanilla-style spaced grid) the locator jumps
@@ -75,9 +73,6 @@ public final class IrisStructureLocator {
     private static final long CAVE_ANCHOR_DOMAIN = 0x43415645414E4348L;
     private static final Pattern NAMESPACED_RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
-    private static final Cache<Engine, PlacementIndex> INDEX_CACHE = Caffeine.newBuilder().weakKeys().build();
-    private static final Cache<Engine, LocatableIndex> LOCATABLE_INDEX_CACHE =
-            Caffeine.newBuilder().weakKeys().build();
     private static final PlacementIndex EMPTY_INDEX = new PlacementIndex(
             Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
             Collections.emptySet(), Collections.emptyList());
@@ -97,6 +92,28 @@ public final class IrisStructureLocator {
             return Collections.emptySet();
         }
         return index(engine).loadKeys;
+    }
+
+    /**
+     * Every key under which a structure the engine's placements place can be found: the placed keys and the platform
+     * structures Iris structures stand in for ({@code vanillaSource}), the latter in lower case.
+     */
+    public static Set<String> placedKeysAndAliases(Engine engine) {
+        if (engine == null) {
+            return Collections.emptySet();
+        }
+        PlacementIndex placementIndex = index(engine);
+        Set<String> keys = new LinkedHashSet<>(placementIndex.loadKeys);
+        keys.addAll(placementIndex.vanillaAliases);
+        return Collections.unmodifiableSet(keys);
+    }
+
+    /** The platform structures the engine's placements start natively ({@code nativeStructures}), in lower case. */
+    public static Set<String> nativeKeys(Engine engine) {
+        if (engine == null) {
+            return Collections.emptySet();
+        }
+        return index(engine).nativeKeys;
     }
 
     public static boolean isPlaced(Engine engine, String key) {
@@ -166,13 +183,6 @@ public final class IrisStructureLocator {
             return false;
         }
         return index(engine).suppressedVanillaSources.contains(normalize(vanillaKey));
-    }
-
-    public static void invalidate(Engine engine) {
-        if (engine != null) {
-            INDEX_CACHE.invalidate(engine);
-            LOCATABLE_INDEX_CACHE.invalidate(engine);
-        }
     }
 
     public static boolean startsInChunk(Engine engine, String key, int cx, int cz) {
@@ -1057,14 +1067,14 @@ public final class IrisStructureLocator {
         if (engine.getData() == null || engine.getDimension() == null) {
             throw new IllegalStateException("Iris structure index requires a fully bound engine and dimension");
         }
-        return INDEX_CACHE.get(engine, ignored -> build(engine));
+        return engine.getGeneration().state(PlacementIndex.class, IrisStructureLocator::build);
     }
 
     private static LocatableIndex locatableIndex(Engine engine) {
         if (engine == null) {
             return EMPTY_LOCATABLE_INDEX;
         }
-        return LOCATABLE_INDEX_CACHE.get(engine, ignored -> buildLocatableIndex(engine));
+        return engine.getGeneration().state(LocatableIndex.class, IrisStructureLocator::buildLocatableIndex);
     }
 
     private static LocatableIndex buildLocatableIndex(Engine engine) {

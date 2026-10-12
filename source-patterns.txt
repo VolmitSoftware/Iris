@@ -10,7 +10,6 @@ art/arcane/iris/engine/framework/vanillafeatures/**
 art/arcane/iris/engine/framework/StructureAssembler.java
 art/arcane/iris/engine/framework/IrisStructureLocator.java
 art/arcane/iris/engine/framework/StructureCaveAnchorResolver.java
-art/arcane/iris/engine/framework/StructureReachability.java
 art/arcane/iris/engine/framework/StructurePlacementScope.java
 art/arcane/iris/engine/framework/StructurePlacementGrid.java
 art/arcane/iris/engine/framework/StructurePlacementMarker.java

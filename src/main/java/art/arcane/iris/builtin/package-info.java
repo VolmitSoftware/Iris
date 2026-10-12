@@ -30,7 +30,8 @@
  * Besides those, it holds what the compiled-in built-ins and the built-ins jar must share, since each sees its own copy
  * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
  * ({@link art.arcane.iris.builtin.IrisSeed}), and per-world state several of them use
- * ({@link art.arcane.iris.builtin.terrain.LayerBlocks}). Keep them few: each is a promise.
+ * ({@link art.arcane.iris.builtin.terrain.LayerBlocks}, {@link art.arcane.iris.builtin.terrain.BiomeLayers},
+ * {@link art.arcane.iris.builtin.terrain.TerrainPalettes}). Keep them few: each is a promise.
  * <p>
  * Some built-in stages produce Iris's own types, such as the placement settings of {@code iris:prepare}. A
  * pack module can require such a stage to run after it, but cannot read its output: the pack load rejects

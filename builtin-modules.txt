@@ -24,3 +24,7 @@ include art/arcane/iris/engine/modifier/DepositClump*.class
 include art/arcane/iris/engine/modifier/ResolvedDeposit*.class
 module art.arcane.iris.engine.actuator.DecorantModule
 include art/arcane/iris/engine/decorator/**
+module art.arcane.iris.engine.actuator.TerrainModule
+include art/arcane/iris/engine/actuator/Terrain*.class
+include art/arcane/iris/engine/actuator/ResolvedOre*.class
+include art/arcane/iris/engine/actuator/OreWarmUp*.class

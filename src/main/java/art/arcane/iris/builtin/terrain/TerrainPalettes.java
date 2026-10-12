@@ -15,21 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+package art.arcane.iris.builtin.terrain;
 
-package art.arcane.iris.engine.terrain;
-
-import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
-import art.arcane.iris.builtin.terrain.RockPaletteSettings;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisPackResources;
-import art.arcane.iris.engine.UpperDimensionContext;
+import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.PackResources;
+import com.volmit.world.PackWorld;
+import com.volmit.world.UpperDimension;
 
 import java.util.List;
 import java.util.Map;
@@ -53,21 +51,23 @@ public final class TerrainPalettes {
     @FunctionalInterface
     public interface ColumnBlocks {
         /** The block at the column, or null when the palette has no block. */
-        PlatformBlockState at(double x, double z);
+        BlockState at(double x, double z);
     }
 
-    private final Engine engine;
+    private final PackWorld world;
+    private final long complexSeed;
     private final AtomicCache<ColumnBlocks> rock = new AtomicCache<>();
     private final AtomicCache<ColumnBlocks> fluid = new AtomicCache<>();
-    private final Map<UpperDimensionContext, ColumnBlocks> upperRocks = new ConcurrentHashMap<>();
+    private final Map<String, ColumnBlocks> upperRocks = new ConcurrentHashMap<>();
 
-    TerrainPalettes(Engine engine) {
-        this.engine = engine;
+    TerrainPalettes(PackWorld world) {
+        this.world = world;
+        this.complexSeed = IrisSeed.COMPLEX.of(world);
     }
 
-    /** The palettes of the world {@code engine} generates now. */
-    public static TerrainPalettes of(Engine engine) {
-        return engine.getGeneration().state(TerrainPalettes.class, TerrainPalettes::new);
+    /** The palettes of {@code world}. */
+    public static TerrainPalettes of(PackWorld world) {
+        return world.state(TerrainPalettes.class, TerrainPalettes::new);
     }
 
     /** Builds the rock and fluid noise now instead of when first asked for. */
@@ -77,54 +77,60 @@ public final class TerrainPalettes {
     }
 
     /** The rock at the column, below the biome's layers. */
-    public PlatformBlockState rockAt(double x, double z) {
+    public BlockState rockAt(double x, double z) {
         return rock().at(x, z);
     }
 
     /** The fluid at the column, above the terrain up to the fluid height. */
-    public PlatformBlockState fluidAt(double x, double z) {
+    public BlockState fluidAt(double x, double z) {
         return fluid().at(x, z);
     }
 
     /** The rock at the column of the upper dimension: the world's own when the upper dimension is the dimension itself. */
-    public PlatformBlockState upperRockAt(UpperDimensionContext upper, double x, double z) {
-        return upperRocks.computeIfAbsent(upper, this::upperRock).at(x, z);
+    public BlockState upperRockAt(UpperDimension upper, double x, double z) {
+        return upperRocks.computeIfAbsent(upper.key(), key -> upperRock(upper, x, z)).at(x, z);
     }
 
     private ColumnBlocks rock() {
-        return rock.aquireOrThrow(() -> columns(rockPalette(engine.getDimension()), complexRng().nextParallelRNG(ROCK_SIGNATURE), engine.getData()));
+        return rock.aquireOrThrow(() -> columns(rockPalette(world.settings().declared(RockPaletteSettings.class)), complexRng().nextParallelRNG(ROCK_SIGNATURE),
+                world.resources()));
     }
 
     private ColumnBlocks fluid() {
-        return fluid.aquireOrThrow(() -> columns(fluidPalette(engine.getDimension()), complexRng().nextParallelRNG(FLUID_SIGNATURE), engine.getData()));
+        return fluid.aquireOrThrow(() -> columns(fluidPalette(world.settings().declared(FluidPaletteSettings.class)), complexRng().nextParallelRNG(FLUID_SIGNATURE),
+                world.resources()));
     }
 
     private RNG complexRng() {
-        return new RNG(engine.getSeedManager().getComplex());
+        return new RNG(complexSeed);
     }
 
-    private ColumnBlocks upperRock(UpperDimensionContext upper) {
-        if (upper.isSelfReferencing()) {
+    private ColumnBlocks upperRock(UpperDimension upper, double x, double z) {
+        if (upper.isThisDimension()) {
             return rock();
         }
 
-        long seedOffset = upper.getDimension().getLoadKey().hashCode();
-        RNG rng = new RNG(engine.getSeedManager().getComplex() ^ seedOffset);
-        return columns(rockPalette(upper.getDimension()), rng.nextParallelRNG(ROCK_SIGNATURE), upper.getData());
+        long seedOffset = upper.key().hashCode();
+        RNG rng = new RNG(complexSeed ^ seedOffset);
+        List<Entry<RockPaletteSettings>> declared = upper.settings().at(RockPaletteSettings.class, (int) x, (int) z);
+        return columns(rockPalette(declared), rng.nextParallelRNG(ROCK_SIGNATURE), upper.resources());
     }
 
-    private static PaletteSpec rockPalette(IrisDimension dimension) {
-        return dimension.getModuleSettings().find(RockPaletteSettings.class).orElseGet(RockPaletteSettings::new).palette();
+    private static PaletteSpec rockPalette(List<Entry<RockPaletteSettings>> declared) {
+        return dimensionLevel(declared).map(Entry::value).orElseGet(RockPaletteSettings::new).palette();
     }
 
-    private static PaletteSpec fluidPalette(IrisDimension dimension) {
-        return dimension.getModuleSettings().find(FluidPaletteSettings.class).orElseGet(FluidPaletteSettings::new).palette();
+    private static PaletteSpec fluidPalette(List<Entry<FluidPaletteSettings>> declared) {
+        return dimensionLevel(declared).map(Entry::value).orElseGet(FluidPaletteSettings::new).palette();
+    }
+
+    private static <S extends com.volmit.IrisFeature> java.util.Optional<Entry<S>> dimensionLevel(List<Entry<S>> declared) {
+        return declared.stream().filter(entry -> entry.level() == Target.DIMENSION).findFirst();
     }
 
     /** The palette's blocks over the columns, picked by its noise: the noise at a column, from 0 to 1, is how far down the weighted list the block is. */
-    private static ColumnBlocks columns(PaletteSpec palette, RNG rng, IrisData data) {
-        IrisPackResources resources = data.getPackResources();
-        List<PlatformBlockState> blocks = PaletteBlocks.weighted(resources.blocks(), palette.palette());
+    private static ColumnBlocks columns(PaletteSpec palette, RNG rng, PackResources resources) {
+        List<BlockState> blocks = PaletteBlocks.weighted(resources.blocks(), palette.palette());
         if (blocks.isEmpty()) {
             return (x, z) -> null;
         }

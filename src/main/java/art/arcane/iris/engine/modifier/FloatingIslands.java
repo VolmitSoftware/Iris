@@ -27,6 +27,8 @@ import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.builtin.terrain.ExplodeBiomePaletteSizeSettings;
+import art.arcane.iris.builtin.terrain.ExplodeBiomePalettesSettings;
 import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.engine.decorator.FloatingDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
@@ -34,14 +36,14 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.terrain.BiomeLayers;
-import art.arcane.iris.engine.terrain.ResolvedLayer;
+import art.arcane.iris.builtin.terrain.BiomeLayers;
+import art.arcane.iris.builtin.terrain.LayerNoise;
+import art.arcane.iris.builtin.terrain.ResolvedLayer;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
@@ -86,7 +88,7 @@ public class FloatingIslands {
         int generatorSeed = 7235;
         for (int i = 0; i < layers.size(); i++) {
             ResolvedLayer layer = biomeLayers.resolve(layers.get(i));
-            CNG heightGenerator = layer.heightNoise(random.nextParallelRNG((generatorSeed++) * generatorSeed * generatorSeed * generatorSeed));
+            LayerNoise heightGenerator = layer.heightNoise(random.nextParallelRNG((generatorSeed++) * generatorSeed * generatorSeed * generatorSeed));
             if (heightGenerator == null) {
                 continue;
             }
@@ -107,7 +109,7 @@ public class FloatingIslands {
                 }
 
                 try {
-                    generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom()));
+                    generated.add(IrisLayers.platform(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom())));
                 } catch (Throwable e) {
                     log.error("Failed to pick a block of a floating island's palette", e);
                 }
@@ -117,9 +119,11 @@ public class FloatingIslands {
                 break;
             }
 
-            if (dimension != null && dimension.isExplodeBiomePalettes()) {
+            if (dimension != null && dimension.getModuleSettings().find(ExplodeBiomePalettesSettings.class).map(ExplodeBiomePalettesSettings::explode).orElse(false)) {
                 PlatformBlockState barrier = B.getState("minecraft:barrier");
-                for (int j = 0; j < dimension.getExplodeBiomePaletteSize(); j++) {
+                int gap = dimension.getModuleSettings().find(ExplodeBiomePaletteSizeSettings.class).map(ExplodeBiomePaletteSizeSettings::size)
+                        .orElse(ExplodeBiomePaletteSizeSettings.DEFAULT_SIZE);
+                for (int j = 0; j < gap; j++) {
                     generated.add(barrier);
 
                     if (generated.size() >= maxDepth) {
@@ -188,9 +192,9 @@ public class FloatingIslands {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
         int entrySeed = entry == null || entry.settings().biome() == null ? 0 : entry.settings().biome().hashCode();
         RNG layerRng = rng.nextParallelRNG((int) (colSeed ^ 0x7A4E ^ entrySeed));
-        KList<PlatformBlockState> topBlocks = target == null ? null : biomeLayers.generateLayers(target, dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+        KList<PlatformBlockState> topBlocks = target == null ? null : IrisLayers.platform(biomeLayers.generateLayers(IrisLayers.biome(target), IrisLayers.explosion(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, IrisLayers.slope(engine)));
         if (topBlocks == null || topBlocks.isEmpty()) {
-            topBlocks = biomeLayers.generateLayers(parent, dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+            topBlocks = IrisLayers.platform(biomeLayers.generateLayers(IrisLayers.biome(parent), IrisLayers.explosion(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, IrisLayers.slope(engine)));
         }
         KList<PlatformBlockState> bottomBlocks = generateBottomPaletteLayers(entry, dimension, wx, wz, layerRng, paletteDepth, data, complex);
         return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"));
@@ -212,7 +216,7 @@ public class FloatingIslands {
         this.engine = engine;
         this.log = log;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
-        biomeLayers = BiomeLayers.of(engine, log);
+        biomeLayers = BiomeLayers.of(engine.getGeneration().world());
     }
 
     /** Fills the islands' solids into the chunk whose first block is {@code x}, {@code z}. */

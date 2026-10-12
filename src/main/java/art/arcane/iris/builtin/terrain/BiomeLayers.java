@@ -15,33 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-package art.arcane.iris.engine.terrain;
+package art.arcane.iris.builtin.terrain;
 
 import art.arcane.iris.builtin.prepare.SlopeClip;
-import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
-import art.arcane.iris.builtin.terrain.LayersSettings;
-import art.arcane.iris.builtin.terrain.LockLayersMaxSettings;
-import art.arcane.iris.builtin.terrain.LayerBlocks;
-import art.arcane.iris.builtin.terrain.LockLayersSettings;
-import art.arcane.iris.builtin.terrain.PaletteLayer;
-import art.arcane.iris.builtin.terrain.SeaLayersSettings;
-import art.arcane.iris.builtin.terrain.WallSettings;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisValues;
-import art.arcane.iris.engine.IrisComplex;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-
 import com.volmit.ModuleLog;
+import com.volmit.block.BlockState;
+import com.volmit.config.FeatureSettings;
+import com.volmit.noise.NoiseFactory;
+import com.volmit.resource.ResourceId;
+import com.volmit.world.PackWorld;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,73 +47,62 @@ public final class BiomeLayers {
     private static final int LOCKED_LAYERS_REFERENCE_HEIGHT = 512;
     private static final LayersSettings DEFAULT_LAYERS = new LayersSettings();
     private static final PaletteLayer NO_LAYER = PaletteLayer.withoutBlocks();
-
-    private static final class States {
-        private static final PlatformBlockState BARRIER = B.getState("BARRIER");
-    }
+    private static final BlockState BARRIER = new BlockState("minecraft:barrier");
 
     private final Supplier<LayerBlocks> layerBlocks;
+    private final Supplier<NoiseFactory> noise;
     private final ModuleLog log;
     private final Map<PaletteLayer, ResolvedLayer> resolved = new ConcurrentHashMap<>();
-    private final Map<LayersSettings, AtomicCache<KList<CNG>>> surfaceHeights = new ConcurrentHashMap<>();
-    private final Map<SeaLayersSettings, AtomicCache<KList<CNG>>> seaHeights = new ConcurrentHashMap<>();
-    private volatile Double busiestBiomeLayerCount;
+    private final Map<LayersSettings, AtomicCache<KList<LayerNoise>>> surfaceHeights = new ConcurrentHashMap<>();
+    private final Map<SeaLayersSettings, AtomicCache<KList<LayerNoise>>> seaHeights = new ConcurrentHashMap<>();
+    private final Map<ResourceId, LayeredBiome> biomes = new ConcurrentHashMap<>();
 
-    /** The layers of the world {@code engine} generates now, reporting failures to {@code log}. */
-    public static BiomeLayers of(Engine engine, ModuleLog log) {
-        return engine.getGeneration().state(BiomeLayers.class,
-                generating -> new BiomeLayers(() -> LayerBlocks.of(generating.getGeneration().world()), log));
+    /** The layers of {@code world}. */
+    public static BiomeLayers of(PackWorld world) {
+        return world.state(BiomeLayers.class, generating -> new BiomeLayers(() -> LayerBlocks.of(generating), () -> generating.resources().noise(), generating.log()));
     }
 
-    /** The layers of a world whose layer blocks {@code layerBlocks} gives, asked for when a layer first picks a block. */
-    public BiomeLayers(Supplier<LayerBlocks> layerBlocks, ModuleLog log) {
+    /** The layers of a world whose layer blocks {@code layerBlocks} and noise {@code noise} give, asked for when a layer first needs them. */
+    public BiomeLayers(Supplier<LayerBlocks> layerBlocks, Supplier<NoiseFactory> noise, ModuleLog log) {
         this.layerBlocks = layerBlocks;
+        this.noise = noise;
         this.log = log;
     }
 
     /** {@code layer} ready for this world; its block picks are the world's {@link LayerBlocks}. */
     public ResolvedLayer resolve(PaletteLayer layer) {
-        return resolved.computeIfAbsent(layer, declared -> ResolvedLayer.of(declared, layerBlocks));
+        return resolved.computeIfAbsent(layer, declared -> ResolvedLayer.of(declared, layerBlocks, noise));
+    }
+
+    /** What the biome {@code id} declares about its layers, read once from {@code settings}. */
+    public LayeredBiome biome(ResourceId id, FeatureSettings settings) {
+        LayeredBiome known = biomes.get(id);
+        if (known != null) {
+            return known;
+        }
+        return biomes.computeIfAbsent(id, ignored -> new LayeredBiome(
+                settings.declaredBy(id, LayersSettings.class).orElse(null),
+                settings.declaredBy(id, SeaLayersSettings.class).orElse(null),
+                settings.declaredBy(id, CaveCeilingLayersSettings.class).orElse(null),
+                settings.declaredBy(id, LockLayersSettings.class).orElse(null),
+                settings.declaredBy(id, LockLayersMaxSettings.class).orElse(null),
+                settings.declaredBy(id, WallSettings.class).orElse(null)));
     }
 
     /** The biome's wall, which places no block when the biome declares none. */
-    public ResolvedLayer wall(IrisBiome biome) {
-        PaletteLayer layer = biome.getModuleSettings().find(WallSettings.class).map(WallSettings::layer).orElse(NO_LAYER);
+    public ResolvedLayer wall(LayeredBiome biome) {
+        PaletteLayer layer = biome.wall() == null ? NO_LAYER : biome.wall().layer();
         return resolve(layer);
     }
 
-    /** The layers of the biome's surface, top first. */
-    public static List<PaletteLayer> layersOf(IrisBiome biome) {
-        return surfaceSettings(biome).layers();
-    }
-
-    /** The noise style of each layer of the biome's surface, top first, as Iris's generators know them. */
-    public static List<NoiseStyle> layerStyles(IrisBiome biome) {
-        return layersOf(biome).stream().map(layer -> IrisValues.generatorStyle(layer.style()).getStyle()).toList();
-    }
-
-    /** The most layers any biome the dimension reaches has, which is what studio's layer load view compares a biome with. */
-    public double busiestLayerCount(Engine engine) {
-        Double cached = busiestBiomeLayerCount;
-        if (cached != null) {
-            return cached;
-        }
-
-        double busiest = 0D;
-        for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-            busiest = Math.max(busiest, layersOf(biome).size());
-        }
-        busiestBiomeLayerCount = busiest;
-        return busiest;
-    }
-
     /** The blocks the biome's layers stack up to at the column, top first, at most {@code maxDepth} of them. */
-    public KList<PlatformBlockState> generateLayers(IrisBiome biome, IrisDimension dimension, double wx, double wz, RNG random, int maxDepth, int height, IrisData data, IrisComplex complex) {
+    public KList<BlockState> generateLayers(LayeredBiome biome, PaletteExplosion explosion, double wx, double wz, RNG random, int maxDepth, int height,
+                                            ColumnSlope slope) {
         if (isLocked(biome)) {
-            return generateLockedLayers(biome, wx, wz, random, maxDepth, height, complex);
+            return generateLockedLayers(biome, wx, wz, random, maxDepth, height, slope);
         }
 
-        KList<PlatformBlockState> blocks = new KList<>();
+        KList<BlockState> blocks = new KList<>();
         if (maxDepth <= 0) {
             return blocks;
         }
@@ -138,10 +113,10 @@ public final class BiomeLayers {
             return blocks;
         }
 
-        KList<CNG> heightNoises = surfaceHeightNoises(settings, random);
+        KList<LayerNoise> heightNoises = surfaceHeightNoises(settings, random);
         for (int i = 0; i < layers.size(); i++) {
             ResolvedLayer layer = resolve(layers.get(i));
-            double depth = layerDepth(layer, heightNoises.get(i), wx, wz, complex);
+            double depth = layerDepth(layer, heightNoises.get(i), wx, wz, slope);
             if (depth <= 0) {
                 continue;
             }
@@ -151,26 +126,25 @@ public final class BiomeLayers {
                 break;
             }
 
-            separateLayers(blocks, dimension, maxDepth);
+            separateLayers(blocks, explosion, maxDepth);
         }
 
         return blocks;
     }
 
     /** The blocks the biome's cave ceiling layers stack up to at the column, nearest the ceiling first, at most {@code maxDepth} of them. */
-    public KList<PlatformBlockState> generateCeilingLayers(IrisBiome biome, IrisDimension dimension, double wx, double wz, RNG random, int maxDepth, int height, IrisData data, IrisComplex complex) {
-        KList<PlatformBlockState> blocks = new KList<>();
+    public KList<BlockState> generateCeilingLayers(LayeredBiome biome, PaletteExplosion explosion, double wx, double wz, RNG random, int maxDepth) {
+        KList<BlockState> blocks = new KList<>();
         if (maxDepth <= 0) {
             return blocks;
         }
 
-        List<PaletteLayer> ceilingLayers = biome.getModuleSettings().find(CaveCeilingLayersSettings.class)
-                .map(CaveCeilingLayersSettings::layers).orElse(List.of());
+        List<PaletteLayer> ceilingLayers = biome.ceilingLayers() == null ? List.of() : biome.ceilingLayers().layers();
         if (ceilingLayers.isEmpty()) {
             return blocks;
         }
 
-        KList<CNG> heightNoises = surfaceHeightNoises(surfaceSettings(biome), random);
+        KList<LayerNoise> heightNoises = surfaceHeightNoises(surfaceSettings(biome), random);
         // Ceiling layers reuse the surface-layer height noise, so entries beyond the surface layers have none; skip them.
         int usableLayers = Math.min(ceilingLayers.size(), heightNoises.size());
         for (int i = 0; i < usableLayers; i++) {
@@ -185,22 +159,22 @@ public final class BiomeLayers {
                 break;
             }
 
-            separateLayers(blocks, dimension, maxDepth);
+            separateLayers(blocks, explosion, maxDepth);
         }
 
         return blocks;
     }
 
     /** The blocks of the biome's sea layers at the column, from the water surface down, at most {@code maxDepth} of them. */
-    public KList<PlatformBlockState> generateSeaLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepth, IrisData data) {
-        KList<PlatformBlockState> blocks = new KList<>();
-        SeaLayersSettings settings = biome.getModuleSettings().find(SeaLayersSettings.class).orElse(null);
+    public KList<BlockState> generateSeaLayers(LayeredBiome biome, double wx, double wz, RNG random, int maxDepth) {
+        KList<BlockState> blocks = new KList<>();
+        SeaLayersSettings settings = biome.seaLayers();
         if (settings == null || settings.layers().isEmpty()) {
             return blocks;
         }
 
         List<PaletteLayer> layers = settings.layers();
-        KList<CNG> heightNoises = seaHeightNoises(settings, random);
+        KList<LayerNoise> heightNoises = seaHeightNoises(settings, random);
         for (int i = 0; i < layers.size(); i++) {
             ResolvedLayer layer = resolve(layers.get(i));
             int depth = heightNoises.get(i).fit(layer.minHeight(), layer.maxHeight(), wx / layer.zoom(), wz / layer.zoom());
@@ -217,9 +191,9 @@ public final class BiomeLayers {
         return blocks;
     }
 
-    private KList<PlatformBlockState> generateLockedLayers(IrisBiome biome, double wx, double wz, RNG random, int maxDepthLimit, int height, IrisComplex complex) {
-        KList<PlatformBlockState> stacked = new KList<>();
-        KList<PlatformBlockState> locked = new KList<>();
+    private KList<BlockState> generateLockedLayers(LayeredBiome biome, double wx, double wz, RNG random, int maxDepthLimit, int height, ColumnSlope slope) {
+        KList<BlockState> stacked = new KList<>();
+        KList<BlockState> locked = new KList<>();
         int maxDepth = Math.min(maxDepthLimit, lockedLayersMax(biome));
         if (maxDepth <= 0) {
             return stacked;
@@ -228,10 +202,10 @@ public final class BiomeLayers {
         LayersSettings settings = surfaceSettings(biome);
         List<PaletteLayer> layers = settings.layers();
         if (!layers.isEmpty()) {
-            KList<CNG> heightNoises = surfaceHeightNoises(settings, random);
+            KList<LayerNoise> heightNoises = surfaceHeightNoises(settings, random);
             for (int i = 0; i < layers.size(); i++) {
                 ResolvedLayer layer = resolve(layers.get(i));
-                double depth = layerDepth(layer, heightNoises.get(i), wx, wz, complex);
+                double depth = layerDepth(layer, heightNoises.get(i), wx, wz, slope);
                 if (depth <= 0) {
                     continue;
                 }
@@ -252,7 +226,7 @@ public final class BiomeLayers {
         return locked;
     }
 
-    private void stackLayer(KList<PlatformBlockState> blocks, ResolvedLayer layer, int index, double depth, double wx, double wz, RNG random, int maxDepth) {
+    private void stackLayer(KList<BlockState> blocks, ResolvedLayer layer, int index, double depth, double wx, double wz, RNG random, int maxDepth) {
         for (int j = 0; j < depth; j++) {
             if (blocks.size() >= maxDepth) {
                 break;
@@ -262,14 +236,14 @@ public final class BiomeLayers {
         }
     }
 
-    private void stackLayerUnlimited(KList<PlatformBlockState> blocks, ResolvedLayer layer, int index, double depth, double wx, double wz, RNG random) {
+    private void stackLayerUnlimited(KList<BlockState> blocks, ResolvedLayer layer, int index, double depth, double wx, double wz, RNG random) {
         for (int j = 0; j < depth; j++) {
             addBlock(blocks, layer, index, j, wx, wz, random);
         }
     }
 
     /** Adds the layer's block {@code j} blocks down; a layer that fails to pick adds nothing. */
-    private void addBlock(KList<PlatformBlockState> blocks, ResolvedLayer layer, int index, int j, double wx, double wz, RNG random) {
+    private void addBlock(KList<BlockState> blocks, ResolvedLayer layer, int index, int j, double wx, double wz, RNG random) {
         double zoom = layer.zoom();
         try {
             blocks.add(layer.get(random, index + j, (wx + j) / zoom, j, (wz - j) / zoom));
@@ -279,13 +253,13 @@ public final class BiomeLayers {
     }
 
     /** The barrier blocks a dimension puts between layers to show them apart. */
-    private void separateLayers(KList<PlatformBlockState> blocks, IrisDimension dimension, int maxDepth) {
-        if (!dimension.isExplodeBiomePalettes()) {
+    private void separateLayers(KList<BlockState> blocks, PaletteExplosion explosion, int maxDepth) {
+        if (!explosion.exploded()) {
             return;
         }
 
-        for (int j = 0; j < dimension.getExplodeBiomePaletteSize(); j++) {
-            blocks.add(States.BARRIER);
+        for (int j = 0; j < explosion.size(); j++) {
+            blocks.add(BARRIER);
             if (blocks.size() >= maxDepth) {
                 break;
             }
@@ -293,39 +267,39 @@ public final class BiomeLayers {
     }
 
     /** How thick the layer is at the column: nothing where the slope is outside the layer's limits. */
-    private double layerDepth(ResolvedLayer layer, CNG heightNoise, double wx, double wz, IrisComplex complex) {
+    private double layerDepth(ResolvedLayer layer, LayerNoise heightNoise, double wx, double wz, ColumnSlope slope) {
         double depth = layerThickness(layer, heightNoise, wx, wz);
-        SlopeClip slope = layer.slopeCondition();
-        if (!slope.isDefault() && !slope.isValid(complex.getSlopeStream().get(wx, wz))) {
+        SlopeClip clip = layer.slopeCondition();
+        if (!clip.isDefault() && !clip.isValid(slope.at(wx, wz))) {
             return 0;
         }
 
         return depth;
     }
 
-    private double layerThickness(ResolvedLayer layer, CNG heightNoise, double wx, double wz) {
+    private double layerThickness(ResolvedLayer layer, LayerNoise heightNoise, double wx, double wz) {
         double zoom = layer.zoom();
         return heightNoise.fit(layer.minHeight(), layer.maxHeight(), wx / zoom, wz / zoom);
     }
 
-    private KList<CNG> surfaceHeightNoises(LayersSettings settings, RNG rng) {
-        AtomicCache<KList<CNG>> cache = surfaceHeights.computeIfAbsent(settings, declared -> new AtomicCache<>());
+    private KList<LayerNoise> surfaceHeightNoises(LayersSettings settings, RNG rng) {
+        AtomicCache<KList<LayerNoise>> cache = surfaceHeights.computeIfAbsent(settings, declared -> new AtomicCache<>());
         return heightNoises(cache, settings.layers(), SURFACE_HEIGHT_SEED, rng);
     }
 
-    private KList<CNG> seaHeightNoises(SeaLayersSettings settings, RNG rng) {
-        AtomicCache<KList<CNG>> cache = seaHeights.computeIfAbsent(settings, declared -> new AtomicCache<>());
+    private KList<LayerNoise> seaHeightNoises(SeaLayersSettings settings, RNG rng) {
+        AtomicCache<KList<LayerNoise>> cache = seaHeights.computeIfAbsent(settings, declared -> new AtomicCache<>());
         return heightNoises(cache, settings.layers(), SEA_HEIGHT_SEED, rng);
     }
 
-    private KList<CNG> heightNoises(AtomicCache<KList<CNG>> cache, List<PaletteLayer> layers, int firstSeed, RNG rng) {
-        KList<CNG> cached = cache.getIfPresent();
+    private KList<LayerNoise> heightNoises(AtomicCache<KList<LayerNoise>> cache, List<PaletteLayer> layers, int firstSeed, RNG rng) {
+        KList<LayerNoise> cached = cache.getIfPresent();
         if (cached != null) {
             return cached;
         }
 
         return cache.aquire(() -> {
-            KList<CNG> noises = new KList<>();
+            KList<LayerNoise> noises = new KList<>();
             int seed = firstSeed;
             for (PaletteLayer layer : layers) {
                 noises.add(resolve(layer).heightNoise(rng.nextParallelRNG((seed++) * seed * seed * seed)));
@@ -334,15 +308,15 @@ public final class BiomeLayers {
         });
     }
 
-    private static LayersSettings surfaceSettings(IrisBiome biome) {
-        return biome.getModuleSettings().find(LayersSettings.class).orElse(DEFAULT_LAYERS);
+    private static LayersSettings surfaceSettings(LayeredBiome biome) {
+        return biome.layers() == null ? DEFAULT_LAYERS : biome.layers();
     }
 
-    private static boolean isLocked(IrisBiome biome) {
-        return biome.getModuleSettings().find(LockLayersSettings.class).map(LockLayersSettings::locked).orElse(false);
+    private static boolean isLocked(LayeredBiome biome) {
+        return biome.lock() != null && biome.lock().locked();
     }
 
-    private static int lockedLayersMax(IrisBiome biome) {
-        return biome.getModuleSettings().find(LockLayersMaxSettings.class).map(LockLayersMaxSettings::layers).orElse(LockLayersMaxSettings.DEFAULT_LAYERS);
+    private static int lockedLayersMax(LayeredBiome biome) {
+        return biome.lockMax() == null ? LockLayersMaxSettings.DEFAULT_LAYERS : biome.lockMax().layers();
     }
 }

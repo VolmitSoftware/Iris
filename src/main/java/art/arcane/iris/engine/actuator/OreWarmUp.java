@@ -15,16 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.terrain.OreSettings;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.resource.ResourceId;
+import com.volmit.world.PackWorld;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.LongSupplier;
 
 /**
@@ -35,36 +37,40 @@ import java.util.function.LongSupplier;
 final class OreWarmUp {
     private static final long ROOT_SEED_SALT = 7777L;
 
-    private final Engine engine;
+    private final PackWorld world;
     private final TerrainOres ores;
     private final RNG root;
     private int warmed;
 
-    OreWarmUp(Engine engine) {
-        this(engine, TerrainOres.of(engine));
+    OreWarmUp(PackWorld world) {
+        this(world, TerrainOres.of(world));
     }
 
-    OreWarmUp(Engine engine, TerrainOres ores) {
-        this.engine = engine;
+    OreWarmUp(PackWorld world, TerrainOres ores) {
+        this.world = world;
         this.ores = ores;
-        this.root = new RNG(engine.getSeedManager().getComponent() + ROOT_SEED_SALT);
+        this.root = new RNG(IrisSeed.COMPONENT.of(world) + ROOT_SEED_SALT);
     }
 
     void warm() {
         LongSupplier seeds = () -> root.nextParallelRNG(warmed++).getSeed();
 
-        KList<IrisBiome> biomes = engine.getAllBiomes();
-        biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
-        for (IrisBiome biome : biomes) {
-            ores.of(biome).warm(seeds);
-        }
+        List<Entry<OreSettings>> declared = world.settings().declared(OreSettings.class);
+        warmLevel(declared, Target.BIOME, seeds);
+        warmLevel(declared, Target.REGION, seeds);
+        warmLevel(declared, Target.DIMENSION, seeds);
+    }
 
-        KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
-        regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
-        for (IrisRegion region : regions) {
-            ores.of(region).warm(seeds);
-        }
+    /** The ores of every owner at {@code level}, ordered by the key of the biome, region or dimension that declares them. */
+    private void warmLevel(List<Entry<OreSettings>> declared, Target level, LongSupplier seeds) {
+        declared.stream()
+                .filter(entry -> entry.level() == level)
+                .sorted(Comparator.comparing((Entry<OreSettings> entry) -> key(entry.source())))
+                .forEach(entry -> ores.of(entry.value()).warm(seeds));
+    }
 
-        ores.of(engine.getDimension()).warm(seeds);
+    private static String key(ResourceId source) {
+        String path = source.path();
+        return path.substring(path.indexOf('/') + 1);
     }
 }

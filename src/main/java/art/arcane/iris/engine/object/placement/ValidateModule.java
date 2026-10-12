@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.terrain.BedrockSettings;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.validate.ObjectLimit;
@@ -101,7 +102,8 @@ public final class ValidateModule implements IrisModule {
 
     private static boolean isOnBedrock(PreparedPlacement prepared, int y) {
         Engine engine = prepared.terrain().getEngine();
-        return engine != null && engine.getDimension().isBedrock() && y <= BEDROCK_ROW;
+        return engine != null && y <= BEDROCK_ROW
+                && engine.getDimension().getModuleSettings().find(BedrockSettings.class).map(BedrockSettings::bedrock).orElse(true);
     }
 
     private static boolean lacksSurfaceSupport(IrisPlacement placement, PreparedPlacement prepared) {

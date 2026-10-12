@@ -24,7 +24,7 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
-import art.arcane.iris.engine.terrain.TerrainPalettes;
+import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfiles;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;
@@ -471,7 +471,7 @@ public class CaveCarving {
 
     private void prefillProfileFieldSamples(int startX, int startZ, IrisComplex complex, BlendScratch blendScratch) {
         fillFieldHeights(complex.getHeightStream(), startX, startZ, blendScratch.fieldSurfaceHeights);
-        fillFieldFluidPresence(TerrainPalettes.of(engine), startX, startZ, blendScratch.fieldHasFluid);
+        fillFieldFluidPresence(TerrainPalettes.of(engine.getGeneration().world()), startX, startZ, blendScratch.fieldHasFluid);
         fillFieldObjects(complex.getRegionStream(), startX, startZ, blendScratch.fieldRegions);
         fillFieldObjects(complex.getTrueBiomeStream(), startX, startZ, blendScratch.fieldSurfaceBiomes);
         fillFieldObjects(complex.getCaveBiomeStream(), startX, startZ, blendScratch.fieldCaveBiomes);
@@ -499,7 +499,8 @@ public class CaveCarving {
         for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
             int worldX = startX + fieldX;
             for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
-                target[(fieldX * FIELD_SIZE) + fieldZ] = B.isFluid(palettes.fluidAt(worldX, startZ + fieldZ));
+                com.volmit.block.BlockState fluid = palettes.fluidAt(worldX, startZ + fieldZ);
+                target[(fieldX * FIELD_SIZE) + fieldZ] = fluid != null && B.isFluid(B.getState(fluid.key()));
             }
         }
     }

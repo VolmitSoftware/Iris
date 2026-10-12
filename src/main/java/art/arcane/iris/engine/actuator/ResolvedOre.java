@@ -15,25 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.terrain.OreGenerator;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSampler;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.PackResources;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * One {@link OreGenerator} made ready for one world: its palette resolved to the platform's blocks and the noise that
+ * One {@link OreGenerator} made ready for one world: its palette resolved to blocks and the noise that
  * decides where it places ore, built from the seed it is warmed with or, when nothing warmed it, from the terrain seed
  * of its first use. The palette picks with the terrain seed. What the generator describes stays in the settings;
  * everything that needs the platform, the pack or the world seed is here.
@@ -43,7 +41,7 @@ final class ResolvedOre {
     private final NoiseFactory noise;
     private final BlockRegistry blockRegistry;
     private final long terrainSeed;
-    private final List<PlatformBlockState> blocks;
+    private final List<BlockState> blocks;
     private final AtomicCache<NoiseSampler> chance = new AtomicCache<>();
     private final AtomicCache<PaletteSampler> palette = new AtomicCache<>();
 
@@ -51,7 +49,7 @@ final class ResolvedOre {
      * @param terrainSeed the seed the palette picks with, and the noise is built from when nothing warmed it first
      * @param blocks the palette as the platform's blocks, each repeated by its weight
      */
-    ResolvedOre(OreGenerator settings, NoiseFactory noise, BlockRegistry blockRegistry, long terrainSeed, List<PlatformBlockState> blocks) {
+    ResolvedOre(OreGenerator settings, NoiseFactory noise, BlockRegistry blockRegistry, long terrainSeed, List<BlockState> blocks) {
         this.settings = settings;
         this.noise = noise;
         this.blockRegistry = blockRegistry;
@@ -59,20 +57,16 @@ final class ResolvedOre {
         this.blocks = List.copyOf(blocks);
     }
 
-    /** {@code settings} ready for {@code engine}: its blocks resolved through the pack, its picks seeded with the terrain seed. */
-    static ResolvedOre of(OreGenerator settings, Engine engine) {
-        var resources = engine.getData().getPackResources();
+    /** {@code settings} ready for a world with {@code resources}: its blocks resolved through the pack, its picks seeded with the terrain seed. */
+    static ResolvedOre of(OreGenerator settings, PackResources resources, long terrainSeed) {
         BlockRegistry registry = resources.blocks();
-        return new ResolvedOre(settings, resources.noise(), registry, engine.getSeedManager().getTerrain(), weighted(registry, settings.palette().palette()));
+        return new ResolvedOre(settings, resources.noise(), registry, terrainSeed, weighted(registry, settings.palette().palette()));
     }
 
-    private static List<PlatformBlockState> weighted(BlockRegistry registry, List<BlockSpec> specs) {
-        List<PlatformBlockState> weighted = new ArrayList<>();
+    private static List<BlockState> weighted(BlockRegistry registry, List<BlockSpec> specs) {
+        List<BlockState> weighted = new ArrayList<>();
         for (BlockSpec spec : specs) {
-            PlatformBlockState state = B.getState(registry.resolve(spec).key());
-            if (state == null) {
-                continue;
-            }
+            BlockState state = registry.resolve(spec);
             for (int n = 0; n < spec.weight(); n++) {
                 weighted.add(state);
             }
@@ -98,7 +92,7 @@ final class ResolvedOre {
     }
 
     /** The ore block at the position, or null when the position is out of the band, the chance noise is above the threshold or the palette has no block. */
-    PlatformBlockState generate(int x, int y, int z) {
+    BlockState generate(int x, int y, int z) {
         if (!settings.range().contains(y)) {
             return null;
         }
@@ -120,7 +114,7 @@ final class ResolvedOre {
         return chance.aquire(() -> noise.sampler(settings.chanceStyle(), terrainSeed));
     }
 
-    private PlatformBlockState pick(int x, int y, int z) {
+    private BlockState pick(int x, int y, int z) {
         if (blocks.isEmpty()) {
             return null;
         }
@@ -128,6 +122,6 @@ final class ResolvedOre {
             return blocks.getFirst();
         }
         PaletteSampler sampler = palette.aquire(() -> blockRegistry.palette(settings.palette(), terrainSeed));
-        return B.getState(sampler.at(x, y, z).key());
+        return sampler.at(x, y, z);
     }
 }

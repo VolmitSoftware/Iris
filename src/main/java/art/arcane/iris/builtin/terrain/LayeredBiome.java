@@ -15,18 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+package art.arcane.iris.builtin.terrain;
 
-package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.terrain.HideOresSettings;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-
-/** Whether a dimension hides its ores ({@code hideOresForHiddenOre}): the terrain places none and the perfection pass turns the rest into their base blocks. */
-public final class HiddenOres {
-    private HiddenOres() {
-    }
-
-    public static boolean in(IrisDimension dimension) {
-        return dimension.getModuleSettings().find(HideOresSettings.class).map(HideOresSettings::hide).orElse(false);
-    }
+/**
+ * What a biome declares about the layers of its ground: the layers of its surface, of its sea floor and of its cave ceilings, whether
+ * they are locked to the highest height the biome reaches, and its wall. A setting the biome does not declare is null.
+ */
+public record LayeredBiome(LayersSettings layers, SeaLayersSettings seaLayers, CaveCeilingLayersSettings ceilingLayers,
+                           LockLayersSettings lock, LockLayersMaxSettings lockMax, WallSettings wall) {
+    /** A biome that declares nothing about its layers: the one layer of grass the settings default to. */
+    public static final LayeredBiome UNDECLARED = new LayeredBiome(null, null, null, null, null, null);
 }

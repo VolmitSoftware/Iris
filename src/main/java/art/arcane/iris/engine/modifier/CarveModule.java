@@ -67,7 +67,8 @@ public final class CarveModule implements IrisModule {
     @Override
     public void install(StageGraph graph) {
         graph.define(IrisStages.Carve.CAVES).reach(CAVE_REACH_BLOCKS).run(CarveModule::planCaves);
-        graph.define(IrisStages.Carve.APPLY).requires(IrisStages.Terrain.SHAPE).run(CarveModule::applyCaves);
+        // Ordering only: iris:terrain ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Carve.APPLY).softAfter(IrisStages.Terrain.SHAPE.ref()).run(CarveModule::applyCaves);
     }
 
     private static void planCaves(MantleStageContext context) {

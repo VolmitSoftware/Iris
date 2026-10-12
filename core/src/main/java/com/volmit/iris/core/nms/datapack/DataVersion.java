@@ -6,6 +6,7 @@ import com.volmit.iris.core.nms.datapack.v1206.DataFixerV1206;
 import com.volmit.iris.core.nms.datapack.v1213.DataFixerV1213;
 import com.volmit.iris.core.nms.datapack.v1217.DataFixerV1217;
 import com.volmit.iris.core.nms.datapack.v2601.DataFixerV2601;
+import com.volmit.iris.core.nms.datapack.v2603.DataFixerV2603;
 import com.volmit.iris.util.collection.KMap;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -21,7 +22,8 @@ public enum DataVersion {
     V1_21_3("1.21.3", 57, DataFixerV1213::new),
     V1_21_11("1.21.11", 75, DataFixerV1217::new),
     V26_1_2("26.1.2", 101, DataFixerV2601::new),
-    V26_2("26.2", 107, DataFixerV2601::new);
+    V26_2("26.2", 107, DataFixerV2601::new),
+    V26_3("26.3", 121, DataFixerV2603::new);
     private static final KMap<DataVersion, IDataFixer> cache = new KMap<>();
     @Getter(AccessLevel.NONE)
     private final Supplier<IDataFixer> constructor;

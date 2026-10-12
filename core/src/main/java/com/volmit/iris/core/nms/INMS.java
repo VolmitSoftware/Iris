@@ -28,9 +28,10 @@ import java.util.List;
 public class INMS {
     private static final Version CURRENT = Boolean.getBoolean("iris.no-version-limit") ?
             new Version(Integer.MAX_VALUE, Integer.MAX_VALUE, null) :
-            new Version(26, 2, null);
+            new Version(26, 3, null);
 
     private static final List<Version> REVISION = List.of(
+            new Version(26, 3, "v26_3_R1"),
             new Version(26, 1, "v26_1_R1"),
             new Version(21, 11, "v1_21_R7"),
             new Version(21, 9, "v1_21_R6"),

@@ -34,7 +34,7 @@ plugins {
 }
 
 group = "com.volmit"
-version = "3.9.2-1.20.1-26.2"
+version = "3.9.2-1.20.1-26.3"
 
 apply<ApiGenerator>()
 
@@ -64,6 +64,7 @@ val color = "truecolor"
 val errorReporting = "true" == findProperty("errorReporting")
 
 val nmsBindings = mapOf(
+    "v26_3_R1" to "26.3.build.176-stable",
     "v26_1_R1" to "26.1.2.build.74-stable",
     "v1_21_R7" to "1.21.11-R0.1-SNAPSHOT",
     "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
@@ -77,9 +78,9 @@ val nmsBindings = mapOf(
     "v1_20_R2" to "1.20.2-R0.1-SNAPSHOT",
     "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
-val jvmVersion = mapOf("v26_1_R1" to 25)
+val jvmVersion = mapOf("v26_3_R1" to 25, "v26_1_R1" to 25)
 // From 26.1 on the server is not obfuscated, so these bindings compile against Paper's dev bundle as-is.
-val userDevBindings = setOf("v26_1_R1")
+val userDevBindings = setOf("v26_3_R1", "v26_1_R1")
 nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()

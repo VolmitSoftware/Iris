@@ -1,13 +1,18 @@
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.BlockState;
+import com.volmit.host.ArrayHunk;
 import com.volmit.host.ModuleLogs;
-import org.bukkit.block.BlockSupport;
-import org.bukkit.block.data.BlockData;
+import com.volmit.hunk.Hunk;
+import com.volmit.mantle.BlockBox;
+import com.volmit.mantle.MantleLayer;
+import com.volmit.mantle.MantleVisitor;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -16,13 +21,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DecoratorCoreTest {
+    private static final BlockState AIR = ApiChunk.AIR;
+    private static final BlockState GRASS_BLOCK = new BlockState("minecraft:grass_block");
+    private static final BlockState STONE = new BlockState("minecraft:stone");
+    private static final BlockState POPPY = new BlockState("minecraft:poppy");
+    private static final BlockState TALL_GRASS = BlockState.parse("minecraft:tall_grass[half=lower]");
 
     @Test
     public void partSeed_differsByPartOrdinal() {
@@ -121,252 +129,182 @@ public class DecoratorCoreTest {
     @Test
     public void singleStackTargetsBlockAboveSupport() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        when(decorant.key()).thenReturn("minecraft:stone");
-        when(decorant.canPlaceOnto(support)).thenReturn(true);
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(1);
-        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(POPPY);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
-        output.set(0, 1, 0, support);
-        output.set(0, 2, 0, air);
+        Hunk<BlockState> output = hunk(1, 4, 1);
+        output.set(0, 1, 0, GRASS_BLOCK);
         DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
 
-        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 3, output, opts);
+        DecoratorCore.placeStackUp(decorator, scene(output), 0, 0, 0, 0, 1, 3, opts);
 
-        assertSame(support, output.get(0, 1, 0));
-        assertSame(decorant, output.get(0, 2, 0));
+        assertSame(GRASS_BLOCK, output.get(0, 1, 0));
+        assertSame(POPPY, output.get(0, 2, 0));
     }
 
     @Test
     public void singleStackDoesNotOverwriteOccupiedTarget() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        when(occupied.isAir()).thenReturn(false);
-        when(occupied.isFluid()).thenReturn(false);
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(1);
-        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(POPPY);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
-        output.set(0, 1, 0, support);
-        output.set(0, 2, 0, occupied);
-        DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
+        Hunk<BlockState> output = hunk(1, 4, 1);
+        output.set(0, 1, 0, GRASS_BLOCK);
+        output.set(0, 2, 0, STONE);
 
-        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 3, output, opts);
+        DecoratorCore.placeStackUp(decorator, scene(output), 0, 0, 0, 0, 1, 3, new DecoratorCore.PlaceOpts());
 
-        assertSame(support, output.get(0, 1, 0));
-        assertSame(occupied, output.get(0, 2, 0));
+        assertSame(GRASS_BLOCK, output.get(0, 1, 0));
+        assertSame(STONE, output.get(0, 2, 0));
     }
 
     @Test
     public void multiStackStopsBeforeOccupiedTarget() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        when(occupied.isAir()).thenReturn(false);
-        when(occupied.isFluid()).thenReturn(false);
-        when(decorant.key()).thenReturn("minecraft:tall_grass");
-        when(decorant.canPlaceOnto(support)).thenReturn(true);
+        BlockState decorant = new BlockState("minecraft:tall_grass");
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(3);
         when(decorator.topThreshold()).thenReturn(0.75);
         when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(decorant);
         when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(decorant);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 5, 1);
-        output.set(0, 1, 0, support);
-        output.set(0, 2, 0, air);
-        output.set(0, 3, 0, occupied);
-        output.set(0, 4, 0, air);
-        DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
+        Hunk<BlockState> output = hunk(1, 5, 1);
+        output.set(0, 1, 0, GRASS_BLOCK);
+        output.set(0, 3, 0, STONE);
 
-        DecoratorCore.placeStackUp(decorator, 0, 0, 0, 0, 1, 4, output, opts);
+        DecoratorCore.placeStackUp(decorator, scene(output), 0, 0, 0, 0, 1, 4, new DecoratorCore.PlaceOpts());
 
         assertSame(decorant, output.get(0, 2, 0));
-        assertSame(occupied, output.get(0, 3, 0));
-        assertSame(air, output.get(0, 4, 0));
+        assertSame(STONE, output.get(0, 3, 0));
+        assertSame(AIR, output.get(0, 4, 0));
     }
 
     @Test
     public void descendingStackStopsAtLocalWorldFloor() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        when(decorant.key()).thenReturn("minecraft:stone");
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(2);
         when(decorator.topThreshold()).thenReturn(1.0);
-        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(decorant);
-        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(STONE);
+        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(STONE);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
-        DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
+        Hunk<BlockState> output = hunk(1, 2, 1);
 
-        DecoratorCore.placeStackDown(
-                decorator, 0, 0, 0, 0, 0, -64, output, 2, opts, null);
+        DecoratorCore.placeStackDown(decorator, scene(output), 0, 0, 0, 0, 0, -64, 2, new DecoratorCore.PlaceOpts());
 
-        assertSame(decorant, output.get(0, 0, 0));
+        assertSame(STONE, output.get(0, 0, 0));
     }
 
     @Test
     public void singleDescendingStackPreservesTargetWhenPickIsNull() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState existing = mock(PlatformBlockState.class);
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(1);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
-        output.set(0, 0, 0, existing);
-        DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
+        Hunk<BlockState> output = hunk(1, 2, 1);
+        output.set(0, 0, 0, STONE);
 
-        DecoratorCore.placeStackDown(
-                decorator, 0, 0, 0, 0, 0, 0, output, 1, opts, null);
+        DecoratorCore.placeStackDown(decorator, scene(output), 0, 0, 0, 0, 0, 0, 1, new DecoratorCore.PlaceOpts());
 
-        assertSame(existing, output.get(0, 0, 0));
+        assertSame(STONE, output.get(0, 0, 0));
     }
 
     @Test
     public void multiDescendingStackStopsWhenPickIsNull() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState lowerExisting = mock(PlatformBlockState.class);
-        PlatformBlockState upperExisting = mock(PlatformBlockState.class);
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(2);
         when(decorator.topThreshold()).thenReturn(1.0);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
-        output.set(0, 0, 0, lowerExisting);
-        output.set(0, 1, 0, upperExisting);
-        DecoratorCore.PlaceOpts opts = new DecoratorCore.PlaceOpts();
+        Hunk<BlockState> output = hunk(1, 2, 1);
+        output.set(0, 0, 0, STONE);
+        output.set(0, 1, 0, GRASS_BLOCK);
 
-        DecoratorCore.placeStackDown(
-                decorator, 0, 0, 0, 0, 1, 0, output, 2, opts, null);
+        DecoratorCore.placeStackDown(decorator, scene(output), 0, 0, 0, 0, 1, 0, 2, new DecoratorCore.PlaceOpts());
 
-        assertSame(lowerExisting, output.get(0, 0, 0));
-        assertSame(upperExisting, output.get(0, 1, 0));
+        assertSame(STONE, output.get(0, 0, 0));
+        assertSame(GRASS_BLOCK, output.get(0, 1, 0));
     }
 
     @Test
     public void floatingStackStopsAtHunkCeiling() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        when(decorant.key()).thenReturn("minecraft:stone");
         when(decorator.stackHeight(anyDouble(), anyDouble())).thenReturn(3);
         when(decorator.topThreshold()).thenReturn(1.0);
-        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(decorant);
-        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(STONE);
+        when(decorator.pickTopBlock(anyDouble(), anyDouble())).thenReturn(STONE);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 2, 1);
-        int placed = DecoratorCore.placeFloatingStacked(
-                decorator, 0, 0, 0, 0, 0, 3, output);
+        Hunk<BlockState> output = hunk(1, 2, 1);
+        int placed = DecoratorCore.placeFloatingStacked(decorator, scene(output), 0, 0, 0, 0, 0, 3);
 
         assertEquals(1, placed);
-        assertSame(decorant, output.get(0, 1, 0));
+        assertSame(STONE, output.get(0, 1, 0));
     }
 
     @Test
     public void tallSurfacePlantDoesNotPlaceWhenUpperTargetIsOccupied() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState plant = tallPlantState();
-        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(plant);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(TALL_GRASS);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
-        output.set(0, 0, 0, support);
-        output.set(0, 1, 0, air);
-        output.set(0, 2, 0, occupied);
+        Hunk<BlockState> output = hunk(1, 4, 1);
+        output.set(0, 0, 0, GRASS_BLOCK);
+        output.set(0, 2, 0, STONE);
 
-        DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
+        DecoratorCore.placeSurfaceSingle(decorator, scene(output), 0, 0, 0, 0, 0, false, false);
 
-        assertSame(air, output.get(0, 1, 0));
-        assertSame(occupied, output.get(0, 2, 0));
+        assertSame(AIR, output.get(0, 1, 0));
+        assertSame(STONE, output.get(0, 2, 0));
     }
 
     @Test
     public void tallFloatingPlantDoesNotPlaceWhenUpperTargetIsOccupied() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState air = airState();
-        PlatformBlockState occupied = mock(PlatformBlockState.class);
-        PlatformBlockState plant = tallPlantState();
-        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(plant);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(TALL_GRASS);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
-        output.set(0, 1, 0, air);
-        output.set(0, 2, 0, occupied);
+        Hunk<BlockState> output = hunk(1, 4, 1);
+        output.set(0, 2, 0, STONE);
 
-        DecoratorCore.placeFloatingSimple(
-                decorator, 0, 0, 0, 0, 0, 3, output, ModuleLogs.discarding());
+        DecoratorCore.placeFloatingSimple(decorator, scene(output), 0, 0, 0, 0, 0, 3);
 
-        assertSame(air, output.get(0, 1, 0));
-        assertSame(occupied, output.get(0, 2, 0));
+        assertSame(AIR, output.get(0, 1, 0));
+        assertSame(STONE, output.get(0, 2, 0));
     }
 
     @Test
     public void tallSurfacePlantPlacesBothHalvesTogether() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState lowerAir = airState();
-        PlatformBlockState upperAir = airState();
-        PlatformBlockState lower = mock(PlatformBlockState.class);
-        PlatformBlockState upper = mock(PlatformBlockState.class);
-        PlatformBlockState plant = tallPlantState(lower, upper);
-        when(plant.canPlaceOnto(support)).thenReturn(true);
-        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(plant);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(TALL_GRASS);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 4, 1);
-        output.set(0, 0, 0, support);
-        output.set(0, 1, 0, lowerAir);
-        output.set(0, 2, 0, upperAir);
+        Hunk<BlockState> output = hunk(1, 4, 1);
+        output.set(0, 0, 0, GRASS_BLOCK);
 
-        DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
+        DecoratorCore.placeSurfaceSingle(decorator, scene(output), 0, 0, 0, 0, 0, false, false);
 
-        assertSame(lower, output.get(0, 1, 0));
-        assertSame(upper, output.get(0, 2, 0));
+        assertEquals(BlockState.parse("minecraft:tall_grass[half=lower]"), output.get(0, 1, 0));
+        assertEquals(BlockState.parse("minecraft:tall_grass[half=upper]"), output.get(0, 2, 0));
     }
 
     @Test
-    public void surfaceDecorantRejectsInvalidNativeSupport() {
+    public void surfaceDecorantRejectsInvalidSupport() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        when(decorant.canPlaceOnto(support)).thenReturn(false);
-        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(decorant);
+        when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(POPPY);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 3, 1);
-        output.set(0, 0, 0, support);
-        output.set(0, 1, 0, air);
+        Hunk<BlockState> output = hunk(1, 3, 1);
+        output.set(0, 0, 0, STONE);
 
-        DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
+        DecoratorCore.placeSurfaceSingle(decorator, scene(output), 0, 0, 0, 0, 0, false, false);
 
-        assertSame(air, output.get(0, 1, 0));
+        assertSame(AIR, output.get(0, 1, 0));
     }
 
     @Test
     public void forcedSurfaceBlockStillPlacesDecorantAboveIt() {
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState farmland = sturdyState();
-        PlatformBlockState air = airState();
-        PlatformBlockState wheat = mock(PlatformBlockState.class);
-        when(wheat.key()).thenReturn("minecraft:wheat[age=7]");
+        BlockState farmland = new BlockState("minecraft:farmland");
+        BlockState wheat = BlockState.parse("minecraft:wheat[age=7]");
         when(decorator.forceBlock()).thenReturn(farmland);
         when(decorator.pickBlock(anyDouble(), anyDouble())).thenReturn(wheat);
 
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 3, 1);
-        output.set(0, 0, 0, support);
-        output.set(0, 1, 0, air);
+        Hunk<BlockState> output = hunk(1, 3, 1);
+        output.set(0, 0, 0, STONE);
 
-        DecoratorCore.placeSurfaceSingle(
-                decorator, 0, 0, 0, 0, 0, output, false, false, null, ModuleLogs.discarding());
+        DecoratorCore.placeSurfaceSingle(decorator, scene(output), 0, 0, 0, 0, 0, false, false);
 
         assertSame(farmland, output.get(0, 0, 0));
         assertSame(wheat, output.get(0, 1, 0));
@@ -374,69 +312,104 @@ public class DecoratorCoreTest {
 
     @Test
     public void descendingWeepingVinesUsePlantBodiesAndOneFreeEndTip() {
-        PlatformBlockState vine = mock(PlatformBlockState.class);
-        when(vine.key()).thenReturn("minecraft:weeping_vines");
+        BlockState vine = new BlockState("minecraft:weeping_vines");
 
-        assertEquals("minecraft:weeping_vines_plant", DecoratorCore.stackedVineKey(vine, 3, 0));
-        assertEquals("minecraft:weeping_vines_plant", DecoratorCore.stackedVineKey(vine, 3, 1));
-        assertEquals("minecraft:weeping_vines", DecoratorCore.stackedVineKey(vine, 3, 2));
+        assertEquals("minecraft:weeping_vines_plant", DecoratorCore.stackedVineMaterial(vine, 3, 0).toString());
+        assertEquals("minecraft:weeping_vines_plant", DecoratorCore.stackedVineMaterial(vine, 3, 1).toString());
+        assertEquals("minecraft:weeping_vines", DecoratorCore.stackedVineMaterial(vine, 3, 2).toString());
     }
 
     @Test
     public void ascendingTwistingVinesUsePlantBodiesAndOneFreeEndTip() {
-        PlatformBlockState vine = mock(PlatformBlockState.class);
-        when(vine.key()).thenReturn("minecraft:twisting_vines_plant");
+        BlockState vine = new BlockState("minecraft:twisting_vines_plant");
 
-        assertEquals("minecraft:twisting_vines_plant", DecoratorCore.stackedVineKey(vine, 3, 0));
-        assertEquals("minecraft:twisting_vines_plant", DecoratorCore.stackedVineKey(vine, 3, 1));
-        assertEquals("minecraft:twisting_vines", DecoratorCore.stackedVineKey(vine, 3, 2));
+        assertEquals("minecraft:twisting_vines_plant", DecoratorCore.stackedVineMaterial(vine, 3, 0).toString());
+        assertEquals("minecraft:twisting_vines_plant", DecoratorCore.stackedVineMaterial(vine, 3, 1).toString());
+        assertEquals("minecraft:twisting_vines", DecoratorCore.stackedVineMaterial(vine, 3, 2).toString());
+        assertNull(DecoratorCore.stackedVineMaterial(STONE, 3, 2));
     }
 
     @Test
-    public void boundDecoratorHooksWinWhenBukkitClassesArePresent() {
-        PlatformBlockState vine = mock(PlatformBlockState.class);
-        PlatformBlockState fixed = mock(PlatformBlockState.class);
-        PlatformBlockState decorator = mock(PlatformBlockState.class);
-        PlatformBlockState surface = mock(PlatformBlockState.class);
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, 1, 1);
-        DecoratorPlatformHooks.FaceFixer faceFixer = mock(DecoratorPlatformHooks.FaceFixer.class);
-        DecoratorPlatformHooks.SurfaceSturdiness sturdiness = mock(DecoratorPlatformHooks.SurfaceSturdiness.class);
-        when(vine.isVineBlock()).thenReturn(true);
-        when(faceFixer.fixFaces(vine, output, 0, 0, 0, 0, 0, null)).thenReturn(fixed);
-        when(decorator.canPlaceOnto(surface)).thenReturn(true);
-        when(sturdiness.canGoOn(surface)).thenReturn(true);
-        DecoratorPlatformHooks.Bindings previous = DecoratorPlatformHooks.bind(faceFixer, sturdiness);
-        try {
-            assertSame(fixed, DecoratorCore.fixFacesForHunk(vine, output, 0, 0, 0, 0, 0, null));
-            assertTrue(DecoratorCore.canGoOn(decorator, surface));
-        } finally {
-            DecoratorPlatformHooks.restore(previous);
+    public void aVineFacesTheNeighboursThatCanHoldIt() {
+        Hunk<BlockState> output = hunk(3, 3, 3);
+        output.set(2, 1, 1, STONE);
+
+        BlockState fixed = DecoratorCore.fixFacesForHunk(scene(output), vine(), 1, 1, 1, 1, 1);
+
+        assertEquals("true", fixed.properties().get("east"));
+        for (String face : new String[]{"north", "south", "west", "up", "down"}) {
+            assertEquals(face, "false", fixed.properties().get(face));
         }
     }
 
-    private PlatformBlockState airState() {
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        return air;
+    @Test
+    public void aVineHeldByBlocksThePlannedMantleHoldsOutsideTheChunkFacesThem() {
+        Hunk<BlockState> output = hunk(3, 3, 3);
+        Map<String, BlockState> planned = new HashMap<>();
+        planned.put("-1,1,1", STONE);
+
+        BlockState fixed = DecoratorCore.fixFacesForHunk(scene(output, plannedLayer(planned)), vine(), 0, 1, 0, 1, 1);
+
+        assertEquals("true", fixed.properties().get("west"));
+        assertEquals("false", fixed.properties().get("east"));
     }
 
-    private PlatformBlockState tallPlantState() {
-        return tallPlantState(mock(PlatformBlockState.class), mock(PlatformBlockState.class));
+    @Test
+    public void aVineNothingHoldsFacesDown() {
+        BlockState fixed = DecoratorCore.fixFacesForHunk(scene(hunk(3, 3, 3)), vine(), 1, 1, 1, 1, 1);
+
+        assertEquals("true", fixed.properties().get("down"));
+        assertEquals("false", fixed.properties().get("up"));
     }
 
-    private PlatformBlockState tallPlantState(PlatformBlockState lower, PlatformBlockState upper) {
-        PlatformBlockState plant = mock(PlatformBlockState.class);
-        when(plant.key()).thenReturn("minecraft:tall_grass[half=lower]");
-        when(plant.withProperty("half", "lower")).thenReturn(lower);
-        when(plant.withProperty("half", "upper")).thenReturn(upper);
-        return plant;
+    @Test
+    public void otherBlocksAreNotFaced() {
+        assertSame(STONE, DecoratorCore.fixFacesForHunk(scene(hunk(1, 1, 1)), STONE, 0, 0, 0, 0, 0));
     }
 
-    private PlatformBlockState sturdyState() {
-        PlatformBlockState support = mock(PlatformBlockState.class);
-        BlockData blockData = mock(BlockData.class);
-        when(support.nativeHandle()).thenReturn(blockData);
-        when(blockData.isFaceSturdy(any(), eq(BlockSupport.FULL))).thenReturn(true);
-        return support;
+    private static BlockState vine() {
+        return BlockState.parse("minecraft:vine[down=false,east=false,north=false,south=false,up=false,west=false]");
+    }
+
+    private static Hunk<BlockState> hunk(int width, int height, int depth) {
+        return new ArrayHunk<>(BlockState.class, width, height, depth, AIR);
+    }
+
+    private static DecorationScene scene(Hunk<BlockState> blocks) {
+        return scene(blocks, null);
+    }
+
+    private static DecorationScene scene(Hunk<BlockState> blocks, MantleLayer<BlockState> planned) {
+        return new DecorationScene(blocks, ApiChunk.blocks(), null, planned, null, 1L, ModuleLogs.discarding());
+    }
+
+    /** Blocks planned at "x,y,z" in world coordinates; everywhere else reads none. */
+    private static MantleLayer<BlockState> plannedLayer(Map<String, BlockState> planned) {
+        return new MantleLayer<>() {
+            @Override
+            public BlockState get(int x, int y, int z) {
+                return planned.get(x + "," + y + "," + z);
+            }
+
+            @Override
+            public void set(int x, int y, int z, BlockState value) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void remove(int x, int y, int z) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void visit(BlockBox area, MantleVisitor<BlockState> visitor) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void clear(BlockBox area) {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 }

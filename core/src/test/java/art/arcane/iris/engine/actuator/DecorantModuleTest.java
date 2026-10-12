@@ -1,98 +1,72 @@
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.ModuleSettings;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineGeneration;
-import art.arcane.iris.engine.framework.EngineMetrics;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.project.context.ChunkedDataCache;
-import art.arcane.iris.util.project.hunk.Hunk;
-import com.volmit.world.PackWorld;
+import art.arcane.iris.builtin.decorant.DecorantSettings;
+import art.arcane.iris.builtin.decorant.DecorateSettings;
+import art.arcane.iris.builtin.decorant.Decorator;
+import art.arcane.iris.engine.modifier.ApiChunk;
+import art.arcane.iris.engine.object.TestSettings;
+import com.google.gson.Gson;
+import com.volmit.block.BlockState;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import java.util.List;
 
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
 
-/**
- * Decorating reads nothing of the chunk when the dimension does not decorate, skips biomes without decorators, and is
- * kept per world in the world's state store.
- */
+/** Decorating puts a biome's decorators on its surface, unless the dimension says not to or the biome has none. */
 public class DecorantModuleTest {
+    private static final int GROUND = 8;
+    private static final BlockState GRASS_BLOCK = new BlockState("minecraft:grass_block");
+    private static final BlockState POPPY = new BlockState("minecraft:poppy");
+    private static final DecorantSettings POPPIES = new DecorantSettings(List.of(new Gson().fromJson("{\"chance\": 1, \"palette\": [{\"block\": \"poppy\"}]}", Decorator.class)));
+
     @Test
-    public void eachWorldKeepsOneDecoratingInItsStateStore() {
-        Engine engine = engine(true);
-        when(engine.getData()).thenReturn(mock(IrisData.class));
-        EngineGeneration generation = new EngineGeneration(engine);
-        when(engine.getGeneration()).thenReturn(generation);
-        PackWorld world = generation.world();
+    public void everyColumnOfABiomeWithDecoratorsGetsOne() {
+        ApiChunk chunk = ground().biomeSettings(POPPIES);
 
-        DecorantModule.Decorating decorating = DecorantModule.decorating(world);
+        chunk.generate(new DecorantModule());
 
-        assertSame(decorating, DecorantModule.decorating(world));
-        assertSame("built-in stages share the store", decorating,
-                generation.state(DecorantModule.Decorating.class, DecorantModule.Decorating::new));
-        EngineGeneration otherGeneration = new EngineGeneration(engine);
-        when(engine.getGeneration()).thenReturn(otherGeneration);
-        assertNotSame(decorating, DecorantModule.decorating(otherGeneration.world()));
+        assertEquals(256, countAt(chunk, GROUND + 1, POPPY));
+        assertEquals("on top of the ground, not in it", 0, countAt(chunk, GROUND, POPPY));
     }
 
     @Test
     public void aDimensionThatDoesNotDecorateIsLeftAlone() {
-        DecorantModule.Decorating decorating = new DecorantModule.Decorating(engineWithGeneration(false));
-        ChunkContext context = mock(ChunkContext.class);
+        ApiChunk chunk = ground().biomeSettings(POPPIES).dimensionSettings(TestSettings.of(DecorateSettings.class, "{\"decorate\": false}"));
 
-        decorating.decorate(0, 0, Hunk.newArrayHunk(16, 16, 16), context);
+        chunk.generate(new DecorantModule());
 
-        verifyNoInteractions(context);
+        assertEquals(0, countAt(chunk, GROUND + 1, POPPY));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void aBiomeWithoutDecoratorsGetsNothingPlaced() {
-        DecorantModule.Decorating decorating = new DecorantModule.Decorating(engineWithGeneration(true));
-        IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getModuleSettings()).thenReturn(ModuleSettings.NONE);
-        ChunkedDataCache<IrisBiome> biomes = mock(ChunkedDataCache.class);
-        when(biomes.get(anyInt(), anyInt())).thenReturn(biome);
-        ChunkContext context = mock(ChunkContext.class);
-        when(context.getBiome()).thenReturn(biomes);
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        when(output.getWidth()).thenReturn(16);
-        when(output.getDepth()).thenReturn(16);
+        ApiChunk chunk = ground();
 
-        decorating.decorate(0, 0, output, context);
+        chunk.generate(new DecorantModule());
 
-        verify(output, never()).set(anyInt(), anyInt(), anyInt(), org.mockito.ArgumentMatchers.any());
-        verify(biomes, org.mockito.Mockito.times(16 * 16)).get(anyInt(), anyInt());
+        assertEquals(0, countAt(chunk, GROUND + 1, POPPY));
     }
 
-    private Engine engineWithGeneration(boolean decorate) {
-        Engine engine = engine(decorate);
-        when(engine.getData()).thenReturn(mock(IrisData.class));
-        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
-        return engine;
+    private static ApiChunk ground() {
+        ApiChunk chunk = new ApiChunk(0, 0, 32).surface((x, z) -> GROUND);
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                for (int y = 0; y <= GROUND; y++) {
+                    chunk.set(x, y, z, GRASS_BLOCK);
+                }
+            }
+        }
+        return chunk;
     }
 
-    private Engine engine(boolean decorate) {
-        IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.isDecorate()).thenReturn(decorate);
-        SeedManager seeds = mock(SeedManager.class);
-        Engine engine = mock(Engine.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
-        return engine;
+    private static int countAt(ApiChunk chunk, int y, BlockState block) {
+        int count = 0;
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                count += chunk.get(x, y, z).equals(block) ? 1 : 0;
+            }
+        }
+        return count;
     }
 }

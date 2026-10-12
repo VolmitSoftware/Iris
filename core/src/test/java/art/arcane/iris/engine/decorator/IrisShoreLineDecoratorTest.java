@@ -1,23 +1,18 @@
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.iris.util.project.stream.ProceduralStream;
-import org.bukkit.block.BlockSupport;
-import org.bukkit.block.data.BlockData;
+import art.arcane.iris.engine.modifier.ApiChunk;
+import com.volmit.block.BlockState;
+import com.volmit.host.ArrayHunk;
+import com.volmit.host.ModuleLogs;
+import com.volmit.hunk.Hunk;
+import com.volmit.world.BiomeKind;
+import com.volmit.world.TerrainSampler;
 import org.junit.Test;
 
 import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -25,123 +20,75 @@ import static org.mockito.Mockito.when;
 
 public class IrisShoreLineDecoratorTest {
     private static final int FLUID_HEIGHT = 4;
+    private static final BlockState AIR = ApiChunk.AIR;
+    private static final BlockState GRASS_BLOCK = new BlockState("minecraft:grass_block");
+    private static final BlockState WATER = new BlockState("minecraft:water");
+    private static final BlockState POPPY = new BlockState("minecraft:poppy");
+    private static final DecoratedBiome BIOME = new DecoratedBiome("shore", null, BiomeKind.SHORE);
 
     @Test
     public void carvedSurfaceRejectsShorelineDecoration() {
         Fixture fixture = createFixture(false);
-        PlatformBlockState carvedAir = airState();
-        PlatformBlockState targetAir = airState();
-        Hunk<PlatformBlockState> output = output(carvedAir, targetAir);
+        Hunk<BlockState> output = fixture.withSupport(AIR);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
-                output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
 
-        assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
+        assertSame(AIR, output.get(0, FLUID_HEIGHT + 1, 0));
         verify(fixture.decorator).passesChanceGate(anyDouble(), anyDouble());
-        verify(fixture.decorator, never()).blockAt(eq(fixture.biome), anyDouble(), anyDouble(), anyDouble());
+        verify(fixture.decorator, never()).blockAt(anyDouble(), anyDouble(), anyDouble());
     }
 
     @Test
     public void preservedFluidRejectsShorelineDecoration() {
         Fixture fixture = createFixture(false);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        PlatformBlockState targetAir = airState();
-        when(fluid.isFluid()).thenReturn(true);
-        Hunk<PlatformBlockState> output = output(fluid, targetAir);
+        Hunk<BlockState> output = fixture.withSupport(WATER);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
-                output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
 
-        assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
-        verify(fixture.decorator, never()).blockAt(eq(fixture.biome), anyDouble(), anyDouble(), anyDouble());
+        assertSame(AIR, output.get(0, FLUID_HEIGHT + 1, 0));
+        verify(fixture.decorator, never()).blockAt(anyDouble(), anyDouble(), anyDouble());
     }
 
     @Test
     public void sturdySurfacePlacesShorelineDecoration() {
         Fixture fixture = createFixture(false);
-        PlatformBlockState support = sturdyState();
-        PlatformBlockState targetAir = airState();
-        when(fixture.decorant.canPlaceOnto(support)).thenReturn(true);
-        Hunk<PlatformBlockState> output = output(support, targetAir);
+        Hunk<BlockState> output = fixture.withSupport(GRASS_BLOCK);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
-                output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
 
-        assertSame(fixture.decorant, output.get(0, FLUID_HEIGHT + 1, 0));
+        assertSame(POPPY, output.get(0, FLUID_HEIGHT + 1, 0));
     }
 
     @Test
     public void forcePlaceStillRejectsMissingSurface() {
         Fixture fixture = createFixture(true);
-        PlatformBlockState targetAir = airState();
-        Hunk<PlatformBlockState> output = output(airState(), targetAir);
+        Hunk<BlockState> output = fixture.withSupport(AIR);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1,
-                output, fixture.biome, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
 
-        assertSame(targetAir, output.get(0, FLUID_HEIGHT + 1, 0));
+        assertSame(AIR, output.get(0, FLUID_HEIGHT + 1, 0));
     }
 
-    @SuppressWarnings("unchecked")
     private Fixture createFixture(boolean forcePlace) {
-        Engine engine = mock(Engine.class);
-        SeedManager seedManager = mock(SeedManager.class);
-        IrisDimension dimension = mock(IrisDimension.class);
-        IrisComplex complex = mock(IrisComplex.class);
-        IrisData data = mock(IrisData.class);
-        IrisBiome biome = mock(IrisBiome.class);
+        TerrainSampler terrain = mock(TerrainSampler.class);
+        when(terrain.fluidHeight()).thenReturn(FLUID_HEIGHT);
+        when(terrain.surfaceY(anyInt(), anyInt())).thenReturn((double) FLUID_HEIGHT - 1);
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
         BiomeDecorators decorators = mock(BiomeDecorators.class);
-        PlatformBlockState decorant = mock(PlatformBlockState.class);
-        ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
-
-        when(engine.getCacheID()).thenReturn(1);
-        when(engine.getSeedManager()).thenReturn(seedManager);
-        when(seedManager.getComponent()).thenReturn(17L);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(dimension.getFluidHeight()).thenReturn(FLUID_HEIGHT);
-        when(engine.getComplex()).thenReturn(complex);
-        when(complex.getFluidHeight()).thenReturn((double) FLUID_HEIGHT);
-        when(complex.getHeightStream()).thenReturn(heightStream);
-        when(heightStream.get(anyDouble(), anyDouble())).thenReturn((double) FLUID_HEIGHT - 1);
-        when(engine.getData()).thenReturn(data);
-        when(decorators.decorators(biome, DecorationPart.SHORE_LINE)).thenReturn(new ResolvedDecorator[]{decorator});
+        when(decorators.decorators(BIOME, DecorationPart.SHORE_LINE)).thenReturn(new ResolvedDecorator[]{decorator});
         when(decorator.passesChanceGate(anyDouble(), anyDouble())).thenReturn(true);
         when(decorator.isForcePlace()).thenReturn(forcePlace);
-        when(decorator.blockAt(eq(biome), anyDouble(), anyDouble(), anyDouble())).thenReturn(decorant);
-        DecoratorTestEngines.keepDecorators(engine, decorators);
-
-        return new Fixture(new IrisShoreLineDecorator(engine), data, biome, decorator, decorant);
+        when(decorator.blockAt(anyDouble(), anyDouble(), anyDouble())).thenReturn(POPPY);
+        Hunk<BlockState> blocks = new ArrayHunk<>(BlockState.class, 1, FLUID_HEIGHT + 3, 1, AIR);
+        return new Fixture(new IrisShoreLineDecorator(new DecorationScene(blocks, ApiChunk.blocks(), terrain, null, decorators, 17L,
+                ModuleLogs.discarding())), decorator, blocks);
     }
 
-    private Hunk<PlatformBlockState> output(PlatformBlockState support, PlatformBlockState target) {
-        Hunk<PlatformBlockState> output = Hunk.newArrayHunk(1, FLUID_HEIGHT + 3, 1);
-        output.set(0, FLUID_HEIGHT, 0, support);
-        output.set(0, FLUID_HEIGHT + 1, 0, target);
-        return output;
-    }
-
-    private PlatformBlockState airState() {
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        return air;
-    }
-
-    private PlatformBlockState sturdyState() {
-        PlatformBlockState support = mock(PlatformBlockState.class);
-        BlockData blockData = mock(BlockData.class);
-        when(support.isSolid()).thenReturn(true);
-        when(support.nativeHandle()).thenReturn(blockData);
-        when(blockData.isFaceSturdy(any(), eq(BlockSupport.FULL))).thenReturn(true);
-        return support;
-    }
-
-    private record Fixture(
-            IrisShoreLineDecorator shoreline,
-            IrisData data,
-            IrisBiome biome,
-            ResolvedDecorator decorator,
-            PlatformBlockState decorant
-    ) {
+    private record Fixture(IrisShoreLineDecorator shoreline, ResolvedDecorator decorator, Hunk<BlockState> blocks) {
+        /** The blocks with {@code support} at the fluid height, where the shoreline decorates from. */
+        Hunk<BlockState> withSupport(BlockState support) {
+            blocks.set(0, FLUID_HEIGHT, 0, support);
+            return blocks;
+        }
     }
 }

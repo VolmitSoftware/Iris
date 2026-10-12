@@ -5,11 +5,10 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
 import com.google.gson.Gson;
+import com.volmit.block.BlockState;
 import com.volmit.host.ModuleLogs;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.noise.NoiseSampler;
@@ -50,19 +49,16 @@ public class ResolvedDecoratorTest {
     public void everyDecoratorPicksAsIrisDecoratorDid() {
         UsableBlockPlatform.bind();
         IrisData data = data();
-        Engine engine = engine(data);
-        IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getName()).thenReturn("test");
         Gson gson = new Gson();
         StringBuilder transcript = new StringBuilder();
         for (String json : DECORATORS) {
-            ResolvedDecorator resolved = ResolvedDecorator.of(gson.fromJson(json, Decorator.class), engine, SEED, ModuleLogs.discarding());
+            ResolvedDecorator resolved = ResolvedDecorator.of(gson.fromJson(json, Decorator.class), data.getPackResources(), SEED, ModuleLogs.discarding(), "test");
             for (int x = -40; x < 40; x += 3) {
                 for (int z = -40; z < 40; z += 5) {
                     transcript.append(resolved.passesChanceGate(x, z)).append(resolved.stackHeight(x, z)).append(key(resolved.pickBlock(x, z)))
                             .append(key(resolved.pickTopBlock(x, z)));
                     for (int y = 60; y < 66; y += 2) {
-                        transcript.append(key(resolved.blockAt(biome, x, y, z))).append(key(resolved.topBlockAt(biome, x, y, z)));
+                        transcript.append(key(resolved.blockAt(x, y, z))).append(key(resolved.topBlockAt(x, y, z)));
                     }
                 }
             }
@@ -83,7 +79,7 @@ public class ResolvedDecoratorTest {
         };
         Decorator decorator = new Gson().fromJson("{\"style\": {\"style\": \"SIMPLEX\"}, \"variance\": {\"style\": \"PERLIN\"}, \"heightVariance\": {\"style\": \"CLOVER\"},"
                 + "\"stackMin\": 2, \"stackMax\": 7}", Decorator.class);
-        ResolvedDecorator resolved = new ResolvedDecorator(decorator, SEED, recording, state("a", "b", "b"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
+        ResolvedDecorator resolved = new ResolvedDecorator(decorator, SEED, recording, state("a", "b", "b"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
 
         resolved.warm();
 
@@ -95,7 +91,7 @@ public class ResolvedDecoratorTest {
         NoiseFactory refusing = (style, seed) -> {
             throw new IllegalStateException("no noise");
         };
-        ResolvedDecorator single = new ResolvedDecorator(new Decorator(), SEED, refusing, state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
+        ResolvedDecorator single = new ResolvedDecorator(new Decorator(), SEED, refusing, state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
 
         assertEquals("a one block palette never needs its variance noise", "minecraft:a", single.pickBlock(1, 2).key());
         assertEquals("equal limits never need the height noise", 1, single.stackHeight(1, 2));
@@ -105,8 +101,8 @@ public class ResolvedDecoratorTest {
     @Test
     public void stackHeightFollowsTheHeightNoiseBetweenTheLimits() {
         Decorator decorator = new Gson().fromJson("{\"stackMin\": 1, \"stackMax\": 2}", Decorator.class);
-        ResolvedDecorator top = new ResolvedDecorator(decorator, SEED, (style, seed) -> constant(1.0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
-        ResolvedDecorator bottom = new ResolvedDecorator(decorator, SEED, (style, seed) -> constant(0.0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
+        ResolvedDecorator top = new ResolvedDecorator(decorator, SEED, (style, seed) -> constant(1.0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
+        ResolvedDecorator bottom = new ResolvedDecorator(decorator, SEED, (style, seed) -> constant(0.0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
 
         assertEquals(2, top.stackHeight(0, 0));
         assertEquals(1, bottom.stackHeight(0, 0));
@@ -114,12 +110,12 @@ public class ResolvedDecoratorTest {
 
     @Test
     public void whiteAndBlackListsKeepTheDecoratorOffSurfaces() {
-        PlatformBlockState sand = state("sand").get(0);
-        PlatformBlockState stone = state("stone").get(0);
+        BlockState sand = state("sand").get(0);
+        BlockState stone = state("stone").get(0);
         Decorator listed = new Gson().fromJson("{\"whitelist\": [{\"block\": \"sand\"}], \"blacklist\": [{\"block\": \"stone\"}]}", Decorator.class);
         ResolvedDecorator resolved = new ResolvedDecorator(listed, SEED, (style, seed) -> constant(0), state("a"), List.of(),
-                null, List.of(sand), List.of(stone), ModuleLogs.discarding());
-        ResolvedDecorator unlisted = new ResolvedDecorator(new Decorator(), SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
+                null, List.of(sand), List.of(stone), ModuleLogs.discarding(), "test");
+        ResolvedDecorator unlisted = new ResolvedDecorator(new Decorator(), SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
 
         assertFalse(resolved.rejectsSurface(sand));
         assertTrue(resolved.rejectsSurface(stone));
@@ -131,9 +127,9 @@ public class ResolvedDecoratorTest {
     public void onlyASlopeOutsideTheLimitsBlocksAndOnlyWhenTheDecoratorLimitsIt() {
         Decorator limited = new Gson().fromJson("{\"slopeCondition\": {\"maximumSlope\": 4}}", Decorator.class);
         Decorator forced = new Gson().fromJson("{\"forcePlace\": true, \"slopeCondition\": {\"maximumSlope\": 4}}", Decorator.class);
-        ResolvedDecorator resolvedLimited = new ResolvedDecorator(limited, SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
-        ResolvedDecorator resolvedForced = new ResolvedDecorator(forced, SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
-        ResolvedDecorator resolvedDefault = new ResolvedDecorator(new Decorator(), SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding());
+        ResolvedDecorator resolvedLimited = new ResolvedDecorator(limited, SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
+        ResolvedDecorator resolvedForced = new ResolvedDecorator(forced, SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
+        ResolvedDecorator resolvedDefault = new ResolvedDecorator(new Decorator(), SEED, (style, seed) -> constant(0), state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test");
 
         assertTrue(resolvedLimited.slopeBlocks(() -> 5));
         assertFalse(resolvedLimited.slopeBlocks(() -> 3));
@@ -143,11 +139,10 @@ public class ResolvedDecoratorTest {
         }));
     }
 
-    private static List<PlatformBlockState> state(String... keys) {
-        UsableBlockPlatform.bind();
-        List<PlatformBlockState> states = new ArrayList<>();
+    private static List<BlockState> state(String... keys) {
+        List<BlockState> states = new ArrayList<>();
         for (String key : keys) {
-            states.add(UsableBlockPlatform.block(key));
+            states.add(ApiChunk.blocks().resolve(key));
         }
         return states;
     }
@@ -166,7 +161,7 @@ public class ResolvedDecoratorTest {
         };
     }
 
-    private static String key(PlatformBlockState state) {
+    private static String key(BlockState state) {
         return state == null ? null : state.key();
     }
 
@@ -179,11 +174,5 @@ public class ResolvedDecoratorTest {
         IrisPackResources resources = new IrisPackResources(data);
         when(data.getPackResources()).thenReturn(resources);
         return data;
-    }
-
-    private static Engine engine(IrisData data) {
-        Engine engine = mock(Engine.class);
-        when(engine.getData()).thenReturn(data);
-        return engine;
     }
 }

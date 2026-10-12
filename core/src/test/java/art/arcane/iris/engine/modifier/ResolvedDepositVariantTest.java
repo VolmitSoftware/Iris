@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.host.ModuleLogs;
+import art.arcane.iris.engine.UsableBlockPlatform;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -17,6 +19,12 @@ public class ResolvedDepositVariantTest {
             {"minHeight": -64, "maxHeight": 0, "remap": {"minecraft:iron_ore": "minecraft:deepslate_iron_ore", "unknown_block": "minecraft:stone"}}
             """;
     private static final ModuleLog LOG = ModuleLogs.discarding();
+
+    /** Other tests bind a platform and leave B's cached registries behind; the tests that run after this class bind their own. */
+    @After
+    public void forgetCachedPlatform() {
+        UsableBlockPlatform.unbind();
+    }
 
     private static ResolvedDepositVariant variant(String json) {
         return new ResolvedDepositVariant(new Gson().fromJson(json, DepositVariant.class), ApiChunk.blocks(), LOG);

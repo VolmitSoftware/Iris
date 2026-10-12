@@ -39,7 +39,7 @@ public class FloatingIslandsTest {
         when(output.getHeight()).thenReturn(64);
 
         islands.fillSolids(CHUNK_ORIGIN, CHUNK_ORIGIN, output, false, context);
-        islands.decorateColumns(CHUNK_ORIGIN, CHUNK_ORIGIN, output, false, context);
+        islands.decorateColumns(CHUNK_ORIGIN, CHUNK_ORIGIN, output, false, context, null);
 
         verify(sampler, times(2)).parent(CHUNK_ORIGIN + 15, CHUNK_ORIGIN + 15);
         verify(output, never()).set(anyInt(), anyInt(), anyInt(), any());

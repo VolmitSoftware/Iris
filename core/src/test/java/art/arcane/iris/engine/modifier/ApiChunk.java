@@ -58,6 +58,7 @@ import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
 import com.volmit.noise.NoiseFactory;
+import com.volmit.noise.NoiseSampler;
 import com.volmit.object.BlockEntityData;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -95,6 +96,8 @@ public final class ApiChunk implements GenerationContext {
     public static final int WIDTH = 16;
     public static final BlockState AIR = new BlockState("minecraft:air");
     private static final long SEED = 1337L;
+    /** What every noise of the fixture's pack samples, everywhere. */
+    private static final double HALF = 0.5;
     /** A key that the fixture's pack has no block for. */
     public static final String UNKNOWN_BLOCK = "unknown_block";
     private static final ResourceId DIMENSION = ResourceId.parse("test:dimension/overworld");
@@ -571,7 +574,17 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public NoiseFactory noise() {
-            throw new UnsupportedOperationException("No noise here");
+            return (style, seed) -> new NoiseSampler() {
+                @Override
+                public double sample(double worldX, double worldZ) {
+                    return HALF;
+                }
+
+                @Override
+                public double sample(double worldX, double y, double worldZ) {
+                    return HALF;
+                }
+            };
         }
 
         @Override

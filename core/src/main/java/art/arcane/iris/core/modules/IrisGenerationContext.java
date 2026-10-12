@@ -40,6 +40,8 @@ import java.util.Collection;
 final class IrisGenerationContext implements GenerationContext {
     /** Chunk stages write only their own chunk, but see the terrain this far around it (IrisApi's promise). */
     private static final int TERRAIN_MARGIN_BLOCKS = 16;
+    /** The mantle too reaches this far around the chunk; chunks beyond its own are pinned when a stage first reads them. */
+    private static final int MANTLE_MARGIN_BLOCKS = 16;
     private static final int CHUNK_WIDTH = 16;
 
     private final Engine engine;
@@ -61,7 +63,8 @@ final class IrisGenerationContext implements GenerationContext {
         this.blocks = new BlockStateHunk(blocks, states);
         this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, TERRAIN_MARGIN_BLOCKS, states);
         this.settings = new ChunkModuleSettings(engine, ids);
-        BlockBox chunk = ApiHeights.columns(engine, originX, originZ, originX + CHUNK_WIDTH, originZ + CHUNK_WIDTH);
+        BlockBox chunk = ApiHeights.columns(engine, originX - MANTLE_MARGIN_BLOCKS, originZ - MANTLE_MARGIN_BLOCKS,
+                originX + CHUNK_WIDTH + MANTLE_MARGIN_BLOCKS, originZ + CHUNK_WIDTH + MANTLE_MARGIN_BLOCKS);
         this.mantle = new IrisModuleMantle(chunk, mantleChunks, mantleLayers, PlannedBlocks.of(engine, chunk, mantleChunks, states));
     }
 

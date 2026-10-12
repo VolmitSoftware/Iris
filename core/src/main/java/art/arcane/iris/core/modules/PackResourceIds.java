@@ -22,6 +22,8 @@ import com.volmit.resource.ResourceId;
 
 import java.io.File;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -38,6 +40,8 @@ final class PackResourceIds {
     private static final String PACK_PATH = "pack";
 
     private final String namespace;
+    /** Stages ask for the id of the same few keys for every column, so each is worked out once. */
+    private final Map<String, ResourceId> known = new ConcurrentHashMap<>();
 
     PackResourceIds(File packFolder) {
         String name = NOT_NAMESPACE.matcher(packFolder.getName().toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT);
@@ -56,11 +60,15 @@ final class PackResourceIds {
 
     /** {@code key} of a resource whose type its use makes clear, such as a biome in a biome sample. */
     ResourceId of(String key) {
-        return new ResourceId(namespace, NOT_PATH.matcher(key.toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT));
+        return known.computeIfAbsent(key, this::idOf);
     }
 
     /** {@code key} of a resource of {@code type}, such as {@code overworld:biome/desert/dunes}. */
     ResourceId of(String type, String key) {
         return of(type + "/" + key);
+    }
+
+    private ResourceId idOf(String key) {
+        return new ResourceId(namespace, NOT_PATH.matcher(key.toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT));
     }
 }

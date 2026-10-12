@@ -179,7 +179,7 @@ public class DimensionBottomTest {
         assertEquals("minecraft:stone", blocks.get(0, BOTTOM, 0).key());
         assertEquals("the chunk's block hunk starts at the bottom, not at the world's minimum height", 1, countBlocks(blocks));
         assertEquals(List.of(WHOLE_HEIGHT_AROUND_ONE_CHUNK), terrainBounds);
-        assertEquals(List.of(WHOLE_HEIGHT_OF_ONE_CHUNK), viewBounds);
+        assertEquals("the mantle reaches as far around the chunk as the terrain", List.of(WHOLE_HEIGHT_AROUND_ONE_CHUNK), viewBounds);
         assertEquals("the terrain samples count from the same bottom", List.of(Double.valueOf(SURFACE_HEIGHT)), surfaces);
     }
 

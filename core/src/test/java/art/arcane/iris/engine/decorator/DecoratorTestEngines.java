@@ -21,9 +21,4 @@ public final class DecoratorTestEngines {
         when(engine.getGeneration()).thenReturn(generation);
         return generation;
     }
-
-    /** Makes {@code engine} keep {@code decorators} as its world's decorators. */
-    static void keepDecorators(Engine engine, BiomeDecorators decorators) {
-        withGeneration(engine).state(BiomeDecorators.class, ignored -> decorators);
-    }
 }

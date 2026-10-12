@@ -1,34 +1,29 @@
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.world.biome.InferredType;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
+import art.arcane.iris.engine.modifier.ApiChunk;
+import com.volmit.block.BlockState;
+import com.volmit.host.ArrayHunk;
+import com.volmit.host.ModuleLogs;
+import com.volmit.hunk.Hunk;
+import com.volmit.world.BiomeKind;
+import com.volmit.world.TerrainSampler;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class IrisDecoratorCaveContextTest {
+    private static final int FLUID_HEIGHT = 63;
+
     @Test
-    @SuppressWarnings("unchecked")
-    public void explicitCaveContextSkipsFluidWithoutMutatingBiome() {
-        Engine engine = mock(Engine.class);
-        SeedManager seedManager = mock(SeedManager.class);
-        doReturn(seedManager).when(engine).getSeedManager();
-        doReturn(mock(IrisData.class)).when(engine).getData();
-        IrisDimension dimension = mock(IrisDimension.class);
-        doReturn(63).when(dimension).getFluidHeight();
-        doReturn(dimension).when(engine).getDimension();
+    public void explicitCaveContextSkipsFluid() {
+        TerrainSampler terrain = mock(TerrainSampler.class);
+        doReturn(FLUID_HEIGHT).when(terrain).fluidHeight();
 
         ResolvedDecorator decorator = mock(ResolvedDecorator.class);
         doReturn(true).when(decorator).passesChanceGate(anyDouble(), anyDouble());
@@ -36,35 +31,29 @@ public class IrisDecoratorCaveContextTest {
         doReturn(true).when(decorator).isForcePlace();
         doReturn(1).when(decorator).stackHeight(anyDouble(), anyDouble());
 
-        IrisBiome biome = mock(IrisBiome.class);
-        doReturn(InferredType.LAND).when(biome).getInferredType();
+        DecoratedBiome cave = new DecoratedBiome("cave", null, BiomeKind.CAVE);
         BiomeDecorators decorators = mock(BiomeDecorators.class);
-        doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(biome, DecorationPart.NONE);
-        doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(biome, DecorationPart.CEILING);
-        DecoratorTestEngines.keepDecorators(engine, decorators);
+        doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(cave, DecorationPart.NONE);
+        doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(cave, DecorationPart.CEILING);
 
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        doReturn(true).when(fluid).isFluid();
-        Hunk<PlatformBlockState> output = mock(Hunk.class);
-        doReturn(128).when(output).getHeight();
-        doReturn(fluid).when(output).get(0, 10, 0);
+        Hunk<BlockState> output = new ArrayHunk<>(BlockState.class, 1, 128, 1, new BlockState("minecraft:water"));
+        DecorationScene scene = new DecorationScene(output, ApiChunk.blocks(), terrain, null, decorators, 1L, ModuleLogs.discarding());
 
-        IrisSurfaceDecorator surfaceDecorator = new IrisSurfaceDecorator(engine);
-        surfaceDecorator.decorate(0, 0, 0, 0, 0, 0, 0, 0, output, biome, InferredType.CAVE, 10, 10);
+        new IrisSurfaceDecorator(scene).decorate(0, 0, 0, 0, 0, 0, 0, 0, cave, 10, 10);
         DecoratorCore.PlaceOpts surfaceOptions = DecoratorCore.SCRATCH_OPTS.get();
         assertTrue(surfaceOptions.caveSkipFluid);
         assertFalse(surfaceOptions.underwater);
 
-        IrisCeilingDecorator ceilingDecorator = new IrisCeilingDecorator(engine);
-        ceilingDecorator.decorate(0, 0, 0, 0, 0, 0, 0, 0, output, biome, InferredType.CAVE, 10, 10);
-        DecoratorCore.PlaceOpts ceilingOptions = DecoratorCore.SCRATCH_OPTS.get();
-        assertTrue(ceilingOptions.caveSkipFluid);
-        assertEquals(InferredType.LAND, biome.getInferredType());
+        new IrisCeilingDecorator(scene).decorate(0, 0, 0, 0, 0, 0, 0, 0, cave, 10, 10);
+        assertTrue(DecoratorCore.SCRATCH_OPTS.get().caveSkipFluid);
+        assertSame(BiomeKind.CAVE, cave.kind());
     }
 
     @Test
-    public void nullInferenceRemainsSafeForNormalSurfaceContext() {
-        assertTrue(IrisSurfaceDecorator.isUnderwater(null, 10, 63));
-        assertFalse(IrisSurfaceDecorator.skipsFluid(null));
+    public void aSurfaceBiomeIsUnderwaterBelowTheFluidAndNeverSkipsFluid() {
+        assertTrue(IrisSurfaceDecorator.isUnderwater(BiomeKind.LAND, 10, FLUID_HEIGHT));
+        assertFalse(IrisSurfaceDecorator.isUnderwater(BiomeKind.CAVE, 10, FLUID_HEIGHT));
+        assertFalse(IrisSurfaceDecorator.skipsFluid(BiomeKind.SEA));
+        assertTrue(IrisSurfaceDecorator.skipsFluid(BiomeKind.CAVE));
     }
 }

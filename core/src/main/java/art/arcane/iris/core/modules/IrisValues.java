@@ -18,6 +18,8 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.terrain.LayerLoad;
+import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
@@ -33,6 +35,7 @@ import com.volmit.config.Range;
 import com.volmit.noise.StyledRange;
 import com.volmit.world.BlockPosition;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -107,6 +110,12 @@ public final class IrisValues {
         iris.setExponent(style.exponent());
         iris.setCacheSize(style.cacheSize());
         return iris;
+    }
+
+    /** The noise style of each layer of the biome's surface, top first, as Iris's generators know them. */
+    public static List<art.arcane.iris.engine.object.noise.NoiseStyle> layerStyles(art.arcane.iris.engine.object.world.biome.IrisBiome biome) {
+        return LayerLoad.layersOf(biome.getModuleSettings().find(LayersSettings.class).orElse(null)).stream()
+                .map(layer -> generatorStyle(layer.style()).getStyle()).toList();
     }
 
     /** {@code range} as the range Iris reads the same JSON into. */

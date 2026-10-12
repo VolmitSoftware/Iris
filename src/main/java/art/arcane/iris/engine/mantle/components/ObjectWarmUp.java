@@ -20,7 +20,8 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
+import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -52,15 +53,15 @@ final class ObjectWarmUp {
         KList<IrisBiome> biomes = engine.getAllBiomes();
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
         for (IrisBiome biome : biomes) {
-            warmPlacements(biome.getObjects());
-            warmProcedural(biome.getProceduralObjects());
+            warmPlacements(ObjectPlacements.all(biome));
+            warmProcedural(ObjectPlacements.procedural(biome));
         }
 
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
         for (IrisRegion region : regions) {
-            warmPlacements(region.getObjects());
-            warmProcedural(region.getProceduralObjects());
+            warmPlacements(ObjectPlacements.all(region));
+            warmProcedural(ObjectPlacements.procedural(region));
         }
     }
 
@@ -78,7 +79,7 @@ final class ObjectWarmUp {
         }
     }
 
-    private void warmProcedural(IrisProceduralObjects procedural) {
+    private void warmProcedural(ResolvedProceduralObjects procedural) {
         if (procedural == null) {
             return;
         }

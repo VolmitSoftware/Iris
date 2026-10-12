@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -44,14 +45,14 @@ public final class ObjectLocating implements ObjectsAt {
         Engine engine = engine(world);
         Set<String> biomes = new LinkedHashSet<>();
         for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-            if (biome != null && placesObject(biome.getSurfaceObjects(), objectKey)) {
+            if (biome != null && placesObject(ObjectPlacements.surface(biome), objectKey)) {
                 biomes.add(biome.getLoadKey());
             }
         }
 
         Set<String> regions = new LinkedHashSet<>();
         for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            if (region != null && placesObject(region.getSurfaceObjects(), objectKey)) {
+            if (region != null && placesObject(ObjectPlacements.surface(region), objectKey)) {
                 regions.add(region.getLoadKey());
             }
         }

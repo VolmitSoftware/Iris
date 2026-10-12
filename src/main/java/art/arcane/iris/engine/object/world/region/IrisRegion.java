@@ -18,8 +18,6 @@
 
 package art.arcane.iris.engine.object.world.region;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.InferredType;
@@ -58,8 +56,6 @@ import java.util.Random;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisRegion extends IrisRegistrant implements IRare {
-    private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<KList<String>> cacheRidge = new AtomicCache<>();
     private final transient AtomicCache<KList<String>> cacheSpot = new AtomicCache<>();
     private final transient AtomicCache<CNG> shoreHeightGenerator = new AtomicCache<>();
@@ -76,11 +72,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MaxNumber(128)
     @Desc("The rarity of the region")
     private int rarity = 1;
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
-    @Desc("Objects define what schematics (iob files) iris will place in this region")
-    private KList<IrisObjectPlacement> objects = new KList<>();
-    @Desc("Procedural objects (trees, ruins, formations, coral, fungi, crystals) iris generates from scratch and places across this region")
-    private IrisProceduralObjects proceduralObjects = new IrisProceduralObjects();
     @ArrayType(min = 1, type = IrisStructurePlacement.class)
     @Desc("Structures define jigsaw or vanilla/datapack structures iris will place in this region")
     private KList<IrisStructurePlacement> structures = new KList<>();
@@ -127,36 +118,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     public String getName() {
         return name;
-    }
-
-    public KList<IrisObjectPlacement> getSurfaceObjects() {
-        return getSurfaceObjectsCache().aquire(() ->
-        {
-            KList<IrisObjectPlacement> o = getObjects().copy();
-
-            for (IrisObjectPlacement i : o.copy()) {
-                if (!i.getCarvingSupport().supportsSurface()) {
-                    o.remove(i);
-                }
-            }
-
-            return o;
-        });
-    }
-
-    public KList<IrisObjectPlacement> getCarvingObjects() {
-        return getCarveObjectsCache().aquire(() ->
-        {
-            KList<IrisObjectPlacement> o = getObjects().copy();
-
-            for (IrisObjectPlacement i : o.copy()) {
-                if (!i.getCarvingSupport().supportsCarving()) {
-                    o.remove(i);
-                }
-            }
-
-            return o;
-        });
     }
 
     public CNG getShoreHeightGenerator() {

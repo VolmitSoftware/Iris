@@ -25,7 +25,6 @@ import art.arcane.iris.engine.object.image.IrisImageMapBinding;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
 import art.arcane.iris.engine.object.runtime.StudioMode;
 import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.value.IrisRange;
@@ -123,8 +122,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(16)
     @Desc("Every X/Z % debugCrossSectionsMod == 0 cuts the chunk")
     private int debugCrossSectionsMod = 3;
-    @Desc("Tree growth override settings")
-    private IrisTreeSettings treeSettings = new IrisTreeSettings();
     @MinNumber(0)
     @Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
     private int version = 1;
@@ -150,12 +147,6 @@ public class IrisDimension extends IrisRegistrant {
     private boolean debugSmartBore = false;
     @Desc("Generate decorations or not")
     private boolean decorate = true;
-    @Desc("Refuse to place surface objects and trees over carved surface openings.")
-    private boolean requireObjectSurfaceSupport = true;
-    @MinNumber(0)
-    @MaxNumber(16)
-    @Desc("Minimum surface-support buffer, in blocks, applied to every surface object placement in this dimension. A placement may ask for more but never less.")
-    private int objectSurfaceSupportBuffer = 2;
     @Desc("The world environment")
     private IrisEnvironment environment = IrisEnvironment.NORMAL;
     @RegistryListResource(IrisRegion.class)
@@ -188,10 +179,6 @@ public class IrisDimension extends IrisRegistrant {
     private int upperDimensionGap = 32;
     @Desc("When true, cave carving will cut through the upper dimension terrain. When false, the upper terrain is a solid untouched mass.")
     private boolean upperDimensionCarving = false;
-    @Desc("When true, objects from the mantle (structures, trees, etc.) can be placed in the upper dimension terrain zone. When false, the upper terrain is protected from object placement.")
-    private boolean upperDimensionObjects = false;
-    @Desc("When true, upper-dimension objects force-place regardless of placement restrictions (slope, underwater, clamp, collisions, carving). Normal dimension objects always place first; upper objects place second and may clip or occlude lower-dimension placements when this is enabled.")
-    private boolean upperObjectsForcePlace = false;
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";

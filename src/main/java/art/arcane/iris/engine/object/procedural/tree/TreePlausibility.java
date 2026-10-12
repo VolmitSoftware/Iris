@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.spi.PlatformBlockState;
 
 import java.util.ArrayDeque;
@@ -38,7 +38,7 @@ public final class TreePlausibility {
     }
 
     public static void apply(Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved, Set<TreeBlockCanvas.Vec> trunkPositions,
-                             Set<TreeBlockCanvas.Vec> leafPositions, IrisProceduralTree tree) {
+                             Set<TreeBlockCanvas.Vec> leafPositions, Tree tree) {
         Set<TreeBlockCanvas.Vec> realLeaves = new HashSet<>();
         for (TreeBlockCanvas.Vec v : leafPositions) {
             PlatformBlockState state = resolved.get(v);
@@ -55,7 +55,7 @@ public final class TreePlausibility {
         for (TreeBlockCanvas.Vec v : realLeaves) {
             PlatformBlockState leaf = resolved.get(v);
             Integer d = distance.get(v);
-            if (!tree.isPlausible()) {
+            if (!tree.plausible()) {
                 leaf = leaf.withProperty("persistent", "true").withProperty("distance", "1");
             } else if (d != null && d < MAX_DISTANCE) {
                 leaf = leaf.withProperty("persistent", "false").withProperty("distance", String.valueOf(Math.max(1, d)));

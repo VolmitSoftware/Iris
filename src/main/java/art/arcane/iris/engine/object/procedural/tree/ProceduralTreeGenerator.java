@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
@@ -36,13 +36,13 @@ public final class ProceduralTreeGenerator {
     private ProceduralTreeGenerator() {
     }
 
-    public static IrisObject generate(IrisProceduralTree tree, int height, RNG rng, IrisData data) {
+    public static IrisObject generate(Tree tree, int height, RNG rng, IrisData data) {
         TreeBlockCanvas canvas = new TreeBlockCanvas();
         long baseSeed = rng.getSeed();
 
         List<TreeTrunkBuilder.Limb> limbs = TreeTrunkBuilder.build(canvas, tree, height);
 
-        boolean wantEndpoints = tree.getDecorators() != null && !tree.getDecorators().isEmpty();
+        boolean wantEndpoints = tree.decorators() != null && !tree.decorators().isEmpty();
         List<int[]> branchEndpoints = wantEndpoints ? new ArrayList<>() : null;
 
         int limbIndex = 0;
@@ -55,11 +55,11 @@ public final class ProceduralTreeGenerator {
             TreeDecoratorApplier.apply(canvas, tree, baseSeed, branchEndpoints);
         }
 
-        if (tree.isRoots()) {
+        if (tree.roots()) {
             TreeRootBuilder.build(canvas, tree, height, baseSeed);
         }
 
-        if (tree.isPlausible()) {
+        if (tree.plausible()) {
             TreeSupport.ensureLeavesSupported(canvas, 24);
         }
 

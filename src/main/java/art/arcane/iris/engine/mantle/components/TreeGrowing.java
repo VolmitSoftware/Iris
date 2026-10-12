@@ -24,12 +24,13 @@ import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisTreeSize;
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeModes;
+import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
+import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.engine.object.procedural.tree.ResolvedTree;
+import art.arcane.iris.builtin.objects.TreeMode;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -54,12 +55,13 @@ import java.util.Set;
  * of blocks the host then places. The same placements tell which objects are trees.
  */
 public final class TreeGrowing implements SaplingGrowth {
-    private static final IrisTreeSize SAPLING_SIZE = new IrisTreeSize(1, 1);
+    private static final int SAPLING_WIDTH = 1;
+    private static final int SAPLING_DEPTH = 1;
 
     @Override
     public Optional<Growth> grow(PackWorld world, Sapling sapling, Surroundings surroundings) {
         Engine engine = IrisPackWorld.of(world).engine();
-        if (!engine.getDimension().getTreeSettings().isEnabled()) {
+        if (!ObjectPlacements.treeGrowth(engine.getDimension()).enabled()) {
             return Optional.empty();
         }
 
@@ -84,14 +86,14 @@ public final class TreeGrowing implements SaplingGrowth {
 
         for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
             if (region != null) {
-                collectPlacements(region.getObjects(), objects);
-                collectProceduralTrees(region.getProceduralObjects(), procedural);
+                collectPlacements(ObjectPlacements.all(region), objects);
+                collectProceduralTrees(ObjectPlacements.procedural(region), procedural);
             }
         }
         for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
             if (biome != null) {
-                collectPlacements(biome.getObjects(), objects);
-                collectProceduralTrees(biome.getProceduralObjects(), procedural);
+                collectPlacements(ObjectPlacements.all(biome), objects);
+                collectProceduralTrees(ObjectPlacements.procedural(biome), procedural);
             }
         }
         return new TreeObjects(objects, procedural);
@@ -100,12 +102,12 @@ public final class TreeGrowing implements SaplingGrowth {
     /** One placement, picked at random, of the tree placements that grow {@code sapling}'s species; null for none. */
     private static IrisObjectPlacement pickPlacement(Engine engine, Sapling sapling) {
         KList<IrisObjectPlacement> placements = new KList<>();
-        boolean useAll = engine.getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
+        boolean useAll = ObjectPlacements.treeGrowth(engine.getDimension()).mode() == TreeMode.ALL;
 
         BlockPosition at = sapling.at();
-        placements.addAll(matching(engine.getBiome(at.x(), at.y(), at.z()).getObjects(), sapling.species()));
+        placements.addAll(matching(ObjectPlacements.all(engine.getBiome(at.x(), at.y(), at.z())), sapling.species()));
         if (useAll || placements.isEmpty()) {
-            placements.addAll(matching(engine.getRegion(at.x(), at.z()).getObjects(), sapling.species()));
+            placements.addAll(matching(ObjectPlacements.all(engine.getRegion(at.x(), at.z())), sapling.species()));
         }
         return placements.isNotEmpty() ? placements.getRandom() : null;
     }
@@ -113,7 +115,7 @@ public final class TreeGrowing implements SaplingGrowth {
     private static KList<IrisObjectPlacement> matching(KList<IrisObjectPlacement> objects, String species) {
         KList<IrisObjectPlacement> matches = new KList<>();
         for (IrisObjectPlacement placement : objects) {
-            if (placement.matches(SAPLING_SIZE, species)) {
+            if (placement.matches(SAPLING_WIDTH, SAPLING_DEPTH, species)) {
                 matches.add(placement);
             }
         }
@@ -139,17 +141,18 @@ public final class TreeGrowing implements SaplingGrowth {
         }
     }
 
-    private static void collectProceduralTrees(IrisProceduralObjects proceduralObjects, Set<String> objectKeys) {
+    private static void collectProceduralTrees(ResolvedProceduralObjects proceduralObjects, Set<String> objectKeys) {
         if (proceduralObjects == null || proceduralObjects.getTrees() == null) {
             return;
         }
-        for (IrisProceduralTree tree : proceduralObjects.getTrees()) {
-            if (tree == null || tree.getName() == null || tree.getName().isBlank()) {
+        for (ResolvedTree resolved : proceduralObjects.getTrees()) {
+            Tree tree = resolved.settings();
+            if (tree.name() == null || tree.name().isBlank()) {
                 continue;
             }
-            int variants = Math.max(1, tree.getVariants());
+            int variants = Math.max(1, tree.variants());
             for (int index = 0; index < variants; index++) {
-                objectKeys.add(tree.getVariantLoadKey(index));
+                objectKeys.add(resolved.getVariantLoadKey(index));
             }
         }
     }

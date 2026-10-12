@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.terrain.BiomeLayers;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
@@ -68,7 +69,7 @@ final class IrisBiomeColorRenderer {
                 return biome.getCacheColorObjectDensity().aquire(() -> {
                     double density = 0;
 
-                    for (IrisObjectPlacement i : biome.getObjects()) {
+                    for (IrisObjectPlacement i : ObjectPlacements.all(biome)) {
                         density += i.getDensity() * i.getChance();
                     }
 

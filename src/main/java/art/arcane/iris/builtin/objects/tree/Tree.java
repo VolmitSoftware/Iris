@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,53 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.procedural.tree;
+package art.arcane.iris.builtin.objects.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
-import art.arcane.iris.builtin.objects.tree.TreeDecorator;
-import art.arcane.iris.builtin.objects.tree.TreeCanopy;
-import art.arcane.iris.builtin.objects.tree.TreeRootStyle;
-import art.arcane.iris.builtin.objects.tree.TreeProfile;
-import art.arcane.iris.builtin.objects.tree.TreeFunction;
-import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
-import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.object.annotations.ArrayType;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.RegistryListBlockType;
-import art.arcane.iris.engine.object.annotations.Required;
-import art.arcane.iris.engine.object.annotations.Snippet;
-import art.arcane.iris.engine.object.procedural.tree.ProceduralTreeGenerator;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.block.PaletteSpec;
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinItems;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
+import com.volmit.config.Required;
+import com.volmit.config.Snippet;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Snippet("procedural-tree")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
 @Desc("A single procedurally generated tree. Iris bakes a pool of deterministic variants from these settings and scatters them at world-gen time, exactly like an object placement but generated from scratch instead of loaded from an iob file.")
-@Data
-public class IrisProceduralTree implements IrisProceduralPlacement {
-    private final transient AtomicCache<KList<IrisObject>> variantCache = new AtomicCache<>();
-
+public final class Tree {
     @Desc("A human readable name used in logs and as the variant load key.")
     private String name = "procedural-tree";
 
@@ -90,7 +69,7 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
 
     @Desc("Rotate this tree's placement.")
-    private IrisObjectRotation rotation = new IrisObjectRotation();
+    private ObjectRotation rotation = new ObjectRotation();
 
     @Desc("Limit the max or min height of placement.")
     private ObjectLimit clamp = new ObjectLimit();
@@ -102,7 +81,7 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private boolean underwater = false;
 
     @Desc("Translate (offset) this placement along each axis; for example set a negative y to sink it into the ground.")
-    private IrisObjectTranslate translate = new IrisObjectTranslate();
+    private ObjectTranslate translate = new ObjectTranslate();
 
     @Desc("Settings for the stilt place modes (STILT, MIN_STILT, FAST_STILT, CENTER_STILT, ERODE_STILT, ORGANIC_STILT).")
     private StiltSettings stiltSettings;
@@ -112,19 +91,19 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
 
     @Required
     @Desc("The trunk (log) block, e.g. minecraft:oak_log. Ignored when trunkPalette is set.")
-    @RegistryListBlockType
+    @Ref(Reference.BLOCK)
     private String trunk = "minecraft:oak_log";
 
     @Desc("A noise-driven palette for the trunk. When set this overrides the single trunk block, letting the trunk mix blocks by noise.")
-    private IrisMaterialPalette trunkPalette = null;
+    private PaletteSpec trunkPalette;
 
     @Required
     @Desc("The leaf block, e.g. minecraft:oak_leaves. Ignored when leavesPalette is set.")
-    @RegistryListBlockType
+    @Ref(Reference.BLOCK)
     private String leaves = "minecraft:oak_leaves";
 
     @Desc("A noise-driven palette for the leaves. When set this overrides the single leaf block, letting the canopy mix leaf (or other) blocks by noise. Only blocks that are actually leaves get vanilla decay distances.")
-    private IrisMaterialPalette leavesPalette = null;
+    private PaletteSpec leavesPalette;
 
     @Desc("The named canopy profile that drives default crown radii and shape.")
     private TreeProfile profile = TreeProfile.OAK;
@@ -209,27 +188,27 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private int azimuthWhorlCount = 5;
 
     @Desc("Optional accent leaf block scattered through the canopy (blossoms, shroomlight).")
-    @RegistryListBlockType
-    private String secondaryLeaves = null;
+    @Ref(Reference.BLOCK)
+    private String secondaryLeaves;
 
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The fraction of leaves replaced by the secondary leaf block(s).")
     private double secondaryLeafFraction = 0.35;
 
-    @ArrayType(min = 1, type = TreeSecondaryLeaf.class)
+    @MinItems(1)
     @Desc("Optional weighted set of accent leaf blocks. When set this overrides the single secondaryLeaves block.")
-    private KList<TreeSecondaryLeaf> weightedSecondaryLeaves = new KList<>();
+    private List<TreeSecondaryLeaf> weightedSecondaryLeaves = List.of();
 
     @Desc("A noise-driven palette for the secondary (accent) leaves. When set this overrides both secondaryLeaves and weightedSecondaryLeaves.")
-    private IrisMaterialPalette secondaryLeavesPalette = null;
+    private PaletteSpec secondaryLeavesPalette;
 
     @Desc("Optional secondary trunk block used over a height band (for color-banded trunks). Ignored when secondaryTrunkPalette is set.")
-    @RegistryListBlockType
-    private String secondaryTrunk = null;
+    @Ref(Reference.BLOCK)
+    private String secondaryTrunk;
 
     @Desc("A noise-driven palette for the secondary trunk band. When set this overrides the single secondaryTrunk block.")
-    private IrisMaterialPalette secondaryTrunkPalette = null;
+    private PaletteSpec secondaryTrunkPalette;
 
     @MinNumber(0)
     @MaxNumber(1)
@@ -271,80 +250,254 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     @Desc("The leaf crown configuration.")
     private TreeCanopy canopy = new TreeCanopy();
 
-    @ArrayType(min = 1, type = TreeDecorator.class)
+    @MinItems(1)
     @Desc("Accent decorators applied after the tree is built (fruit, vines, snow, glow).")
-    private KList<TreeDecorator> decorators = new KList<>();
+    private List<TreeDecorator> decorators = List.of();
 
-    public KList<IrisObject> getVariantObjects(IrisData data) {
-        return variantCache.aquire(() -> {
-            KList<IrisObject> baked = new KList<>();
-            int count = Math.max(1, variants);
-            int lo = Math.min(heightMin, heightMax);
-            int hi = Math.max(heightMin, heightMax);
-            RNG heightRng = new RNG(seed);
-
-            for (int i = 0; i < count; i++) {
-                int height;
-                if (count == 1 || lo == hi) {
-                    height = heightRng.i(lo, hi + 1);
-                } else {
-                    double step = (hi - lo) / (double) (count - 1);
-                    double base = lo + step * i;
-                    double jitter = heightRng.d(-step * 0.3, step * 0.3);
-                    height = (int) Math.round(Math.max(lo, Math.min(hi, base + jitter)));
-                }
-
-                IrisObject object = ProceduralTreeGenerator.generate(this, Math.max(2, height), new RNG(seed + (i * 7919L)), data);
-                if (object == null || object.getBlocks().isEmpty()) {
-                    continue;
-                }
-                object.setLoadKey(getVariantLoadKey(i));
-                object.setLoader(data);
-                baked.add(object);
-            }
-
-            if (new java.io.File("plugins/Iris/goldendebug.txt").isFile()) {
-                for (IrisObject object : baked) {
-                    long[] digest = new long[]{0L};
-                    object.getBlocks().forEach((vector, state) -> {
-                        long position = ((long) vector.getBlockX() << 40) ^ ((long) vector.getBlockY() << 20) ^ vector.getBlockZ();
-                        digest[0] ^= Long.rotateLeft(position * 0x9E3779B97F4A7C15L ^ state.key().hashCode(), (int) (position & 63));
-                    });
-                    IrisLogging.debug("Goldendebug bake: " + object.getLoadKey() + " blocks=" + object.getBlocks().size() + " digest=" + Long.toHexString(digest[0]));
-                }
-            }
-
-            return baked;
-        });
+    public Tree() {
     }
 
-    public IrisObject getVariantObject(IrisData data, RNG rng) {
-        KList<IrisObject> baked = getVariantObjects(data);
-        if (baked == null || baked.isEmpty()) {
-            return null;
-        }
-        return baked.get(rng.i(baked.size()));
+    public String name() {
+        return name;
     }
 
-    public String getVariantLoadKey(int index) {
-        if (index < 0) {
-            throw new IllegalArgumentException("index must not be negative");
-        }
-        return "procedural/tree/" + name + "#" + index;
+    public double chance() {
+        return chance;
     }
 
-    public IrisObjectPlacement asPlacement() {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setMode(mode);
-        placement.setRotation(rotation);
-        placement.setClamp(clamp);
-        placement.setCarvingSupport(carvingSupport);
-        placement.setUnderwater(underwater);
-        placement.setTranslate(translate);
-        placement.setStiltSettings(stiltSettings);
-        placement.setVacuumSettings(vacuumSettings);
-        placement.setChance(chance);
-        placement.setDensity(density);
-        return placement;
+    public int density() {
+        return density;
+    }
+
+    public int variants() {
+        return variants;
+    }
+
+    public long seed() {
+        return seed;
+    }
+
+    public boolean plausible() {
+        return plausible;
+    }
+
+    public ObjectPlaceMode mode() {
+        return mode;
+    }
+
+    public ObjectRotation rotation() {
+        return rotation;
+    }
+
+    public ObjectLimit clamp() {
+        return clamp;
+    }
+
+    public CarvingMode carvingSupport() {
+        return carvingSupport;
+    }
+
+    public boolean underwater() {
+        return underwater;
+    }
+
+    public ObjectTranslate translate() {
+        return translate;
+    }
+
+    public Optional<StiltSettings> stiltSettings() {
+        return Optional.ofNullable(stiltSettings);
+    }
+
+    public Optional<VacuumSettings> vacuumSettings() {
+        return Optional.ofNullable(vacuumSettings);
+    }
+
+    public String trunk() {
+        return trunk;
+    }
+
+    public Optional<PaletteSpec> trunkPalette() {
+        return Optional.ofNullable(trunkPalette);
+    }
+
+    public String leaves() {
+        return leaves;
+    }
+
+    public Optional<PaletteSpec> leavesPalette() {
+        return Optional.ofNullable(leavesPalette);
+    }
+
+    public TreeProfile profile() {
+        return profile;
+    }
+
+    public int heightMin() {
+        return heightMin;
+    }
+
+    public int heightMax() {
+        return heightMax;
+    }
+
+    public int trunkWidth() {
+        return trunkWidth;
+    }
+
+    public TreeFunction trunkShape() {
+        return trunkShape;
+    }
+
+    public double shapeStart() {
+        return shapeStart;
+    }
+
+    public double shapeEnd() {
+        return shapeEnd;
+    }
+
+    public double shapeSteepness() {
+        return shapeSteepness;
+    }
+
+    public double shapeBase() {
+        return shapeBase;
+    }
+
+    public double shapePeriod() {
+        return shapePeriod;
+    }
+
+    public double shapeAmplitude() {
+        return shapeAmplitude;
+    }
+
+    public double shapePeakOffset() {
+        return shapePeakOffset;
+    }
+
+    public double shapeFloor() {
+        return shapeFloor;
+    }
+
+    public double leanAzimuth() {
+        return leanAzimuth;
+    }
+
+    public double leanAngle() {
+        return leanAngle;
+    }
+
+    public TreeFunction trunkCurve() {
+        return trunkCurve;
+    }
+
+    public double curveSteepness() {
+        return curveSteepness;
+    }
+
+    public TreeAzimuthMode leanAzimuthMode() {
+        return leanAzimuthMode;
+    }
+
+    public double azimuthStart() {
+        return azimuthStart;
+    }
+
+    public double azimuthEnd() {
+        return azimuthEnd;
+    }
+
+    public double azimuthTurns() {
+        return azimuthTurns;
+    }
+
+    public double azimuthAmplitude() {
+        return azimuthAmplitude;
+    }
+
+    public double azimuthPeriod() {
+        return azimuthPeriod;
+    }
+
+    public double azimuthOffset() {
+        return azimuthOffset;
+    }
+
+    public double azimuthScale() {
+        return azimuthScale;
+    }
+
+    public int azimuthWhorlCount() {
+        return azimuthWhorlCount;
+    }
+
+    public Optional<String> secondaryLeaves() {
+        return Optional.ofNullable(secondaryLeaves);
+    }
+
+    public double secondaryLeafFraction() {
+        return secondaryLeafFraction;
+    }
+
+    public List<TreeSecondaryLeaf> weightedSecondaryLeaves() {
+        return weightedSecondaryLeaves == null ? List.of() : Collections.unmodifiableList(weightedSecondaryLeaves);
+    }
+
+    public Optional<PaletteSpec> secondaryLeavesPalette() {
+        return Optional.ofNullable(secondaryLeavesPalette);
+    }
+
+    public Optional<String> secondaryTrunk() {
+        return Optional.ofNullable(secondaryTrunk);
+    }
+
+    public Optional<PaletteSpec> secondaryTrunkPalette() {
+        return Optional.ofNullable(secondaryTrunkPalette);
+    }
+
+    public double secondaryTrunkStart() {
+        return secondaryTrunkStart;
+    }
+
+    public double secondaryTrunkEnd() {
+        return secondaryTrunkEnd;
+    }
+
+    public boolean roots() {
+        return roots;
+    }
+
+    public TreeRootStyle rootStyle() {
+        return rootStyle;
+    }
+
+    public int rootDepth() {
+        return rootDepth;
+    }
+
+    public double rootFlare() {
+        return rootFlare;
+    }
+
+    public int trunkForks() {
+        return trunkForks;
+    }
+
+    public double forkHeight() {
+        return forkHeight;
+    }
+
+    public double forkAngle() {
+        return forkAngle;
+    }
+
+    public TreeCanopy canopy() {
+        return canopy;
+    }
+
+    public List<TreeDecorator> decorators() {
+        return decorators == null ? List.of() : Collections.unmodifiableList(decorators);
     }
 }

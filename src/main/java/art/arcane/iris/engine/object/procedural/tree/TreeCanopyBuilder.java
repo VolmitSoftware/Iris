@@ -24,7 +24,8 @@ import art.arcane.iris.builtin.objects.tree.TreeCanopy;
 import art.arcane.iris.builtin.objects.tree.TreeBranches;
 import art.arcane.iris.builtin.objects.tree.TreeProfile;
 import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -34,15 +35,15 @@ public final class TreeCanopyBuilder {
     private TreeCanopyBuilder() {
     }
 
-    public static void build(TreeBlockCanvas canvas, IrisProceduralTree tree, int height, double[][] offsets,
+    public static void build(TreeBlockCanvas canvas, Tree tree, int height, double[][] offsets,
                              int branchStartY, long baseSeed, List<int[]> branchEndpoints) {
-        TreeCanopy canopy = tree.getCanopy();
+        TreeCanopy canopy = tree.canopy();
         if (canopy == null) {
             canopy = new TreeCanopy();
         }
         TreeBranches branches = canopy.branches().orElse(null);
 
-        double[][] layers = resolveLayers(canopy, tree.getProfile(), height, branches != null);
+        double[][] layers = resolveLayers(canopy, tree.profile(), height, branches != null);
 
         if (branches != null) {
             if (layers.length > 0) {
@@ -56,7 +57,7 @@ public final class TreeCanopyBuilder {
         }
     }
 
-    private static void placeApexCap(TreeBlockCanvas canvas, IrisProceduralTree tree, int height, double[][] layers,
+    private static void placeApexCap(TreeBlockCanvas canvas, Tree tree, int height, double[][] layers,
                                      double[][] offsets, long baseSeed) {
         int ocx = 0;
         int ocz = 0;
@@ -69,7 +70,7 @@ public final class TreeCanopyBuilder {
             maxR = Math.max(maxR, layer[1]);
         }
         int capRadius = Math.max(2, Math.min(3, (int) Math.round(maxR * 0.35)));
-        TreeCanopy canopy = tree.getCanopy();
+        TreeCanopy canopy = tree.canopy();
         TreeLeafMode mode = canopy != null ? canopy.mode() : TreeLeafMode.TRIMMED;
         double density = canopy != null ? canopy.leafDensity() : 1.0;
         placeLeafCluster(canvas, tree, ocx, height - 1, ocz, capRadius, mode, density, baseSeed + 5555L);
@@ -88,7 +89,7 @@ public final class TreeCanopyBuilder {
         return TreeProfiles.presetLayers(profile, height, branchDriven);
     }
 
-    private static void volumeCanopy(TreeBlockCanvas canvas, IrisProceduralTree tree, double[][] layers,
+    private static void volumeCanopy(TreeBlockCanvas canvas, Tree tree, double[][] layers,
                                      TreeCanopy canopy, long baseSeed, double[][] offsets) {
         int ocx = 0;
         int ocz = 0;
@@ -136,7 +137,7 @@ public final class TreeCanopyBuilder {
         return (int) Math.ceil(radius * squish);
     }
 
-    private static void placeLeafDisc(TreeBlockCanvas canvas, IrisProceduralTree tree, int cx, int cy, int cz,
+    private static void placeLeafDisc(TreeBlockCanvas canvas, Tree tree, int cx, int cy, int cz,
                                       double radius, TreeLeafMode mode, double density, long seed) {
         double sx = stretchX(tree);
         double sz = stretchZ(tree);
@@ -157,7 +158,7 @@ public final class TreeCanopyBuilder {
         }
     }
 
-    private static void placeLeafCluster(TreeBlockCanvas canvas, IrisProceduralTree tree, int cx, int cy, int cz,
+    private static void placeLeafCluster(TreeBlockCanvas canvas, Tree tree, int cx, int cy, int cz,
                                          int radius, TreeLeafMode mode, double density, long seed) {
         double sx = stretchX(tree);
         double sz = stretchZ(tree);
@@ -180,13 +181,13 @@ public final class TreeCanopyBuilder {
         }
     }
 
-    private static double stretchX(IrisProceduralTree tree) {
-        TreeCanopy c = tree.getCanopy();
+    private static double stretchX(Tree tree) {
+        TreeCanopy c = tree.canopy();
         return c == null ? 1.0 : Math.max(0.1, c.crownStretchX());
     }
 
-    private static double stretchZ(IrisProceduralTree tree) {
-        TreeCanopy c = tree.getCanopy();
+    private static double stretchZ(Tree tree) {
+        TreeCanopy c = tree.canopy();
         return c == null ? 1.0 : Math.max(0.1, c.crownStretchZ());
     }
 
@@ -244,20 +245,20 @@ public final class TreeCanopyBuilder {
         }
     }
 
-    private static TreeBlockCanvas.Role resolveLeaf(IrisProceduralTree tree, RNG rng) {
-        boolean hasSecondary = TreeTrunkBuilder.paletteSet(tree.getSecondaryLeavesPalette())
-                || (tree.getWeightedSecondaryLeaves() != null && !tree.getWeightedSecondaryLeaves().isEmpty())
-                || (tree.getSecondaryLeaves() != null && !tree.getSecondaryLeaves().isEmpty());
-        if (!hasSecondary || tree.getSecondaryLeafFraction() <= 0.0) {
+    private static TreeBlockCanvas.Role resolveLeaf(Tree tree, RNG rng) {
+        boolean hasSecondary = IrisProceduralBlocks.paletteSet(tree.secondaryLeavesPalette())
+                || (tree.weightedSecondaryLeaves() != null && !tree.weightedSecondaryLeaves().isEmpty())
+                || tree.secondaryLeaves().filter(leaves -> !leaves.isEmpty()).isPresent();
+        if (!hasSecondary || tree.secondaryLeafFraction() <= 0.0) {
             return TreeBlockCanvas.Role.LEAF;
         }
-        if (rng.nextDouble() >= tree.getSecondaryLeafFraction()) {
+        if (rng.nextDouble() >= tree.secondaryLeafFraction()) {
             return TreeBlockCanvas.Role.LEAF;
         }
         return TreeBlockCanvas.Role.SECONDARY_LEAF;
     }
 
-    private static void branchCanopy(TreeBlockCanvas canvas, IrisProceduralTree tree, int height,
+    private static void branchCanopy(TreeBlockCanvas canvas, Tree tree, int height,
                                      TreeBranches branches, int branchStartY, long baseSeed, double[][] offsets,
                                      List<int[]> branchEndpoints) {
         long branchSeed = baseSeed + 9999;
@@ -297,7 +298,7 @@ public final class TreeCanopyBuilder {
         }
     }
 
-    private static void growSubBranches(TreeBlockCanvas canvas, IrisProceduralTree tree, int ox, int oy, int oz,
+    private static void growSubBranches(TreeBlockCanvas canvas, Tree tree, int ox, int oy, int oz,
                                         double az, double el, double len, TreeSubBranches sub, int depth, long seed) {
         if (sub == null || depth <= 0) {
             return;

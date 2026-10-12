@@ -19,8 +19,8 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
+import art.arcane.iris.builtin.objects.tree.Tree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,10 +32,10 @@ public final class TreeTrunkBuilder {
     private TreeTrunkBuilder() {
     }
 
-    public static List<Limb> build(TreeBlockCanvas canvas, IrisProceduralTree tree, int height) {
+    public static List<Limb> build(TreeBlockCanvas canvas, Tree tree, int height) {
         boolean hasSecondary = hasSecondaryTrunk(tree);
         double[][] mainOffsets = leanPath(tree, height);
-        int forks = Math.max(1, tree.getTrunkForks());
+        int forks = Math.max(1, tree.trunkForks());
 
         List<Limb> limbs = new ArrayList<>();
         if (forks == 1) {
@@ -45,12 +45,12 @@ public final class TreeTrunkBuilder {
             return limbs;
         }
 
-        int forkY = Math.max(1, Math.min(height - 2, (int) Math.round(tree.getForkHeight() * (height - 1))));
+        int forkY = Math.max(1, Math.min(height - 2, (int) Math.round(tree.forkHeight() * (height - 1))));
         placeColumn(canvas, tree, mainOffsets, height, 0, forkY, hasSecondary);
 
         double baseCx = mainOffsets[forkY][0];
         double baseCz = mainOffsets[forkY][1];
-        double reachMax = (height - forkY) * Math.tan(Math.toRadians(tree.getForkAngle()));
+        double reachMax = (height - forkY) * Math.tan(Math.toRadians(tree.forkAngle()));
 
         for (int f = 0; f < forks; f++) {
             double az = Math.toRadians((360.0 / forks) * f);
@@ -73,7 +73,7 @@ public final class TreeTrunkBuilder {
         return limbs;
     }
 
-    private static double[][] leanPath(IrisProceduralTree tree, int height) {
+    private static double[][] leanPath(Tree tree, int height) {
         double[][] offsets = new double[height][2];
         for (int y = 0; y < height; y++) {
             double[] lean = leanOffset(tree, y, height);
@@ -83,7 +83,7 @@ public final class TreeTrunkBuilder {
         return offsets;
     }
 
-    private static void placeColumn(TreeBlockCanvas canvas, IrisProceduralTree tree, double[][] offsets, int height,
+    private static void placeColumn(TreeBlockCanvas canvas, Tree tree, double[][] offsets, int height,
                                     int yStart, int yEnd, boolean hasSecondary) {
         double prevCx = yStart > 0 ? offsets[yStart - 1][0] : 0.0;
         double prevCz = yStart > 0 ? offsets[yStart - 1][1] : 0.0;
@@ -128,45 +128,41 @@ public final class TreeTrunkBuilder {
         }
     }
 
-    private static int widthAt(IrisProceduralTree tree, int y, int height) {
+    private static int widthAt(Tree tree, int y, int height) {
         double t = y / (double) Math.max(height - 1, 1);
         double multiplier = TreeFunctions.trunkWidthMultiplier(tree, t);
-        return Math.max(1, (int) Math.round(tree.getTrunkWidth() * multiplier));
+        return Math.max(1, (int) Math.round(tree.trunkWidth() * multiplier));
     }
 
-    private static TreeBlockCanvas.Role trunkRole(IrisProceduralTree tree, boolean hasSecondary, int y, int height) {
+    private static TreeBlockCanvas.Role trunkRole(Tree tree, boolean hasSecondary, int y, int height) {
         if (!hasSecondary) {
             return TreeBlockCanvas.Role.TRUNK;
         }
         double t = y / (double) Math.max(height - 1, 1);
-        if (tree.getSecondaryTrunkStart() <= t && t <= tree.getSecondaryTrunkEnd()) {
+        if (tree.secondaryTrunkStart() <= t && t <= tree.secondaryTrunkEnd()) {
             return TreeBlockCanvas.Role.SECONDARY_TRUNK;
         }
         return TreeBlockCanvas.Role.TRUNK;
     }
 
-    private static boolean hasSecondaryTrunk(IrisProceduralTree tree) {
-        if (paletteSet(tree.getSecondaryTrunkPalette())) {
+    private static boolean hasSecondaryTrunk(Tree tree) {
+        if (IrisProceduralBlocks.paletteSet(tree.secondaryTrunkPalette())) {
             return true;
         }
-        return tree.getSecondaryTrunk() != null && !tree.getSecondaryTrunk().isEmpty();
+        return tree.secondaryTrunk().filter(trunk -> !trunk.isEmpty()).isPresent();
     }
 
-    static boolean paletteSet(IrisMaterialPalette palette) {
-        return palette != null && palette.getPalette() != null && !palette.getPalette().isEmpty();
-    }
-
-    private static double[] leanOffset(IrisProceduralTree tree, int y, int height) {
-        if (tree.getLeanAngle() == 0.0 || height <= 1) {
+    private static double[] leanOffset(Tree tree, int y, int height) {
+        if (tree.leanAngle() == 0.0 || height <= 1) {
             return new double[]{0.0, 0.0};
         }
         double t = y / (double) Math.max(height - 1, 1);
-        double progress = TreeFunctions.curveProgress(tree.getTrunkCurve(), t, tree.getCurveSteepness());
-        double maxReach = height * Math.tan(Math.toRadians(tree.getLeanAngle()));
+        double progress = TreeFunctions.curveProgress(tree.trunkCurve(), t, tree.curveSteepness());
+        double maxReach = height * Math.tan(Math.toRadians(tree.leanAngle()));
         double reach = maxReach * progress;
-        double azDeg = tree.getLeanAzimuthMode() == TreeAzimuthMode.CONSTANT
-                ? tree.getLeanAzimuth()
-                : TreeFunctions.azimuthDegrees(tree.getLeanAzimuthMode(), t, -1, tree, tree.getLeanAzimuth(), null);
+        double azDeg = tree.leanAzimuthMode() == TreeAzimuthMode.CONSTANT
+                ? tree.leanAzimuth()
+                : TreeFunctions.azimuthDegrees(tree.leanAzimuthMode(), t, -1, tree, tree.leanAzimuth(), null);
         double azRad = Math.toRadians(azDeg);
         double dx = reach * Math.sin(azRad);
         double dz = reach * Math.cos(azRad);

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.procedural.tree;
+package art.arcane.iris.builtin.objects;
 
-import art.arcane.iris.engine.object.annotations.Desc;
+import com.volmit.config.Desc;
 
 @Desc("Sapling override object picking options")
-public enum IrisTreeModes {
+public enum TreeMode {
     @Desc("Check biome, then region, pick the first one that has options. Dimension placements are not consulted.")
     FIRST,
 

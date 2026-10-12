@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.builtin.objects.tree.TreeDecorator;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
@@ -31,8 +31,8 @@ public final class TreeDecoratorApplier {
     private TreeDecoratorApplier() {
     }
 
-    public static void apply(TreeBlockCanvas canvas, IrisProceduralTree tree, long baseSeed, List<int[]> branchEndpoints) {
-        KList<TreeDecorator> decorators = tree.getDecorators();
+    public static void apply(TreeBlockCanvas canvas, Tree tree, long baseSeed, List<int[]> branchEndpoints) {
+        List<TreeDecorator> decorators = tree.decorators();
         if (decorators == null || decorators.isEmpty()) {
             return;
         }

@@ -21,7 +21,7 @@ package art.arcane.iris.engine.object.procedural.tree;
 import art.arcane.iris.builtin.objects.tree.TreeBranches;
 import art.arcane.iris.builtin.objects.tree.TreeFunction;
 import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.volmlib.util.math.RNG;
 
 public final class TreeFunctions {
@@ -30,27 +30,27 @@ public final class TreeFunctions {
     private TreeFunctions() {
     }
 
-    public static double trunkWidthMultiplier(IrisProceduralTree tree, double t) {
-        double start = tree.getShapeStart();
-        double end = tree.getShapeEnd();
-        return switch (tree.getTrunkShape()) {
+    public static double trunkWidthMultiplier(Tree tree, double t) {
+        double start = tree.shapeStart();
+        double end = tree.shapeEnd();
+        return switch (tree.trunkShape()) {
             case CONSTANT -> 1.0;
             case LINEAR -> start + (end - start) * t;
-            case SIGMOID -> 1.0 / (1.0 + Math.exp(tree.getShapeSteepness() * (t - 0.5)));
+            case SIGMOID -> 1.0 / (1.0 + Math.exp(tree.shapeSteepness() * (t - 0.5)));
             case LOG -> {
-                double base = Math.max(1.0001, tree.getShapeBase());
+                double base = Math.max(1.0001, tree.shapeBase());
                 if (t <= 0.0) {
                     yield 1.0;
                 }
                 yield Math.max(0.0, 1.0 - Math.log(1.0 + t * (base - 1.0)) / Math.log(base));
             }
             case SINE -> {
-                double period = tree.getShapePeriod() == 0 ? 1.0 : tree.getShapePeriod();
-                yield 1.0 + tree.getShapeAmplitude() * Math.sin(2.0 * Math.PI * t / period);
+                double period = tree.shapePeriod() == 0 ? 1.0 : tree.shapePeriod();
+                yield 1.0 + tree.shapeAmplitude() * Math.sin(2.0 * Math.PI * t / period);
             }
             case PARABOLIC -> {
-                double peak = tree.getShapePeakOffset();
-                double floor = tree.getShapeFloor();
+                double peak = tree.shapePeakOffset();
+                double floor = tree.shapeFloor();
                 double denom = Math.pow(Math.max(peak, 1.0 - peak), 2);
                 if (denom == 0) {
                     denom = 1;
@@ -59,7 +59,7 @@ public final class TreeFunctions {
             }
             case EXPONENTIAL -> geometric(start, end, t);
             case SQRT -> start + (end - start) * Math.sqrt(t);
-            case STEP -> t < tree.getShapePeakOffset() ? start : end;
+            case STEP -> t < tree.shapePeakOffset() ? start : end;
             case BELL -> start + (end - start) * bell(t);
             case EASE_IN_OUT -> start + (end - start) * smoothstep(t);
         };
@@ -114,24 +114,24 @@ public final class TreeFunctions {
         };
     }
 
-    public static double azimuthDegrees(TreeAzimuthMode mode, double t, int index, IrisProceduralTree tree, double constantBase, RNG rng) {
+    public static double azimuthDegrees(TreeAzimuthMode mode, double t, int index, Tree tree, double constantBase, RNG rng) {
         return switch (mode) {
             case CONSTANT -> constantBase;
-            case LINEAR -> tree.getAzimuthStart() + (tree.getAzimuthEnd() - tree.getAzimuthStart()) * t;
-            case SPIRAL -> tree.getAzimuthStart() + tree.getAzimuthTurns() * 360.0 * t;
+            case LINEAR -> tree.azimuthStart() + (tree.azimuthEnd() - tree.azimuthStart()) * t;
+            case SPIRAL -> tree.azimuthStart() + tree.azimuthTurns() * 360.0 * t;
             case SINE -> {
-                double period = tree.getAzimuthPeriod() == 0 ? 1.0 : tree.getAzimuthPeriod();
-                yield tree.getAzimuthOffset() + tree.getAzimuthAmplitude() * Math.sin(2.0 * Math.PI * t / period);
+                double period = tree.azimuthPeriod() == 0 ? 1.0 : tree.azimuthPeriod();
+                yield tree.azimuthOffset() + tree.azimuthAmplitude() * Math.sin(2.0 * Math.PI * t / period);
             }
-            case NOISE -> noiseAzimuth(t, tree.getAzimuthScale(), tree.getSeed());
+            case NOISE -> noiseAzimuth(t, tree.azimuthScale(), tree.seed());
             case RANDOM -> rng != null ? rng.d(0.0, 360.0) : constantBase;
             case GOLDEN_ANGLE -> index >= 0 ? constantBase + index * GOLDEN_ANGLE : constantBase;
             case ALTERNATING -> index >= 0 ? constantBase + (index % 2) * 180.0 : constantBase;
             case WHORL -> {
-                int count = Math.max(1, tree.getAzimuthWhorlCount());
+                int count = Math.max(1, tree.azimuthWhorlCount());
                 yield index >= 0 ? constantBase + (index % count) * (360.0 / count) : constantBase;
             }
-            case ZIGZAG -> index >= 0 ? constantBase + ((index % 2 == 0) ? -tree.getAzimuthAmplitude() : tree.getAzimuthAmplitude()) : constantBase;
+            case ZIGZAG -> index >= 0 ? constantBase + ((index % 2 == 0) ? -tree.azimuthAmplitude() : tree.azimuthAmplitude()) : constantBase;
         };
     }
 

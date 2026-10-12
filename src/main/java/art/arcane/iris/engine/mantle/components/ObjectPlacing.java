@@ -27,6 +27,7 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfiles;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.util.common.data.B;
@@ -43,9 +44,9 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
+import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.engine.object.procedural.tree.ResolvedTree;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
@@ -145,8 +146,8 @@ public class ObjectPlacing {
                     + " surfaceY=" + surfaceY
                     + " maxAnchorY=" + maxY
                     + " carvedAtCenter=" + carvedBlocks
-                    + " biomeCarvingObjects=" + caveBiome.getCarvingObjects().size()
-                    + " regionCarvingObjects=" + region.getCarvingObjects().size()
+                    + " biomeCarvingObjects=" + ObjectPlacements.carving(caveBiome).size()
+                    + " regionCarvingObjects=" + ObjectPlacements.carving(region).size()
                     + " sameBiome=" + (caveBiome == surfaceBiome || java.util.Objects.equals(caveBiome.getLoadKey(), surfaceBiome.getLoadKey())));
         }
         if (traceRegen) {
@@ -154,16 +155,16 @@ public class ObjectPlacing {
                     + " surfaceBiome=" + surfaceBiome.getLoadKey()
                     + " caveBiome=" + caveBiome.getLoadKey()
                     + " region=" + region.getLoadKey()
-                    + " biomeSurfacePlacers=" + surfaceBiome.getSurfaceObjects().size()
-                    + " biomeCavePlacers=" + caveBiome.getCarvingObjects().size()
-                    + " regionSurfacePlacers=" + region.getSurfaceObjects().size()
-                    + " regionCavePlacers=" + region.getCarvingObjects().size());
+                    + " biomeSurfacePlacers=" + ObjectPlacements.surface(surfaceBiome).size()
+                    + " biomeCavePlacers=" + ObjectPlacements.carving(caveBiome).size()
+                    + " regionSurfacePlacers=" + ObjectPlacements.surface(region).size()
+                    + " regionCavePlacers=" + ObjectPlacements.carving(region).size());
         }
         ObjectPlacementSummary summary = placeObjects(writer, rng, x, z, surfaceBiome, caveBiome, region, complex, traceRegen);
         placeProceduralObjects(writer, rng, x, z, surfaceBiome, caveBiome, region);
         UpperDimensionContext upperCtx = engine.getUpperContext();
         IrisDimension dimension = engine.getDimension();
-        if (upperCtx != null && dimension.isUpperDimensionObjects()) {
+        if (upperCtx != null && ObjectPlacements.upperObjects(dimension)) {
             placeUpperObjects(writer, rng, x, z, xxx, zzz, surfaceY, upperCtx, dimension, complex, traceRegen);
         }
         if (traceRegen) {
@@ -212,7 +213,7 @@ public class ObjectPlacing {
                 continue;
             }
 
-            if (!sampled.getCarvingObjects().isEmpty()) {
+            if (!ObjectPlacements.carving(sampled).isEmpty()) {
                 ladderChoice = sampled;
             }
         }
@@ -243,7 +244,7 @@ public class ObjectPlacing {
         CaveProfile regionCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(region), CaveProfiles.declaredBy(caveBiome));
         CaveAnchorCache caveAnchorCache = new CaveAnchorCache();
 
-        for (IrisObjectPlacement i : surfaceBiome.getSurfaceObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.surface(surfaceBiome)) {
             biomeSurfaceChecked++;
             boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
             if (traceRegen) {
@@ -272,7 +273,7 @@ public class ObjectPlacing {
             }
         }
 
-        for (IrisObjectPlacement i : caveBiome.getCarvingObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.carving(caveBiome)) {
             if (!i.getCarvingSupport().supportsCarving()) {
                 continue;
             }
@@ -304,7 +305,7 @@ public class ObjectPlacing {
             }
         }
 
-        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.surface(region)) {
             regionSurfaceChecked++;
             boolean chance = rng.chance(i.getChance() + rng.d(-0.005, 0.005));
             if (traceRegen) {
@@ -333,7 +334,7 @@ public class ObjectPlacing {
             }
         }
 
-        for (IrisObjectPlacement i : region.getCarvingObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.carving(region)) {
             if (!i.getCarvingSupport().supportsCarving()) {
                 continue;
             }
@@ -386,11 +387,11 @@ public class ObjectPlacing {
     private void placeProceduralObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome surfaceBiome, IrisBiome caveBiome, IrisRegion region) {
         CaveProfile surfaceCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(surfaceBiome), CaveProfiles.declaredBy(region));
         CaveProfile regionCaveProfile = resolveCaveProfile(CaveProfiles.declaredBy(region), caveBiome == null ? null : CaveProfiles.declaredBy(caveBiome));
-        placeProceduralFrom(writer, rng, x, z, surfaceBiome.getProceduralObjects(), surfaceBiome.getName(), surfaceCaveProfile, surfaceBiome.getLoadKey());
-        placeProceduralFrom(writer, rng, x, z, region.getProceduralObjects(), region.getName(), regionCaveProfile, null);
+        placeProceduralFrom(writer, rng, x, z, ObjectPlacements.procedural(surfaceBiome), surfaceBiome.getName(), surfaceCaveProfile, surfaceBiome.getLoadKey());
+        placeProceduralFrom(writer, rng, x, z, ObjectPlacements.procedural(region), region.getName(), regionCaveProfile, null);
         if (caveBiome != null && caveBiome != surfaceBiome) {
             CaveProfile caveProfile = resolveCaveProfile(CaveProfiles.declaredBy(caveBiome), CaveProfiles.declaredBy(region));
-            placeProceduralFrom(writer, rng, x, z, caveBiome.getProceduralObjects(), caveBiome.getName(), caveProfile, caveBiome.getLoadKey());
+            placeProceduralFrom(writer, rng, x, z, ObjectPlacements.procedural(caveBiome), caveBiome.getName(), caveProfile, caveBiome.getLoadKey());
         }
     }
 
@@ -400,7 +401,7 @@ public class ObjectPlacing {
             RNG rng,
             int x,
             int z,
-            IrisProceduralObjects proceduralObjects,
+            ResolvedProceduralObjects proceduralObjects,
             String scope,
             CaveProfile caveProfile,
             String expectedCaveBiomeKey
@@ -414,7 +415,7 @@ public class ObjectPlacing {
         boolean golden = GoldenDebugObjectPlacer.isGoldenDebugChunk(x, z);
         CaveAnchorCache caveAnchorCache = new CaveAnchorCache();
         for (IrisProceduralPlacement p : proceduralObjects.getAllPlacements()) {
-            boolean treePlacement = p instanceof IrisProceduralTree;
+            boolean treePlacement = p instanceof ResolvedTree;
             boolean chancePassed = passesProceduralChance(rng, p.getChance());
             if (golden) {
                 log.debug("Goldendebug procedural chance: chunk=" + x + "," + z
@@ -979,9 +980,9 @@ public class ObjectPlacing {
             return;
         }
 
-        boolean forcePlace = dimension.isUpperObjectsForcePlace();
+        boolean forcePlace = ObjectPlacements.upperObjectsForced(dimension);
         if (upperBiome != null) {
-            for (IrisObjectPlacement i : upperBiome.getSurfaceObjects()) {
+            for (IrisObjectPlacement i : ObjectPlacements.surface(upperBiome)) {
                 if (!rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                     continue;
                 }
@@ -995,7 +996,7 @@ public class ObjectPlacing {
         }
 
         if (upperRegion != null) {
-            for (IrisObjectPlacement i : upperRegion.getSurfaceObjects()) {
+            for (IrisObjectPlacement i : ObjectPlacements.surface(upperRegion)) {
                 if (!rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                     continue;
                 }
@@ -1163,8 +1164,8 @@ public class ObjectPlacing {
     /** Dimension acts as the floor: it can force support on and widen the buffer, never weaken either. */
     private IrisObjectPlacement applyDimensionSurfaceSupport(IrisObjectPlacement placement) {
         IrisDimension dimension = engine.getDimension();
-        boolean require = placement.isRequireSurfaceSupport() && dimension.isRequireObjectSurfaceSupport();
-        int buffer = Math.max(placement.getSurfaceSupportBuffer(), dimension.getObjectSurfaceSupportBuffer());
+        boolean require = placement.isRequireSurfaceSupport() && ObjectPlacements.requiresSurfaceSupport(dimension);
+        int buffer = Math.max(placement.getSurfaceSupportBuffer(), ObjectPlacements.surfaceSupportBuffer(dimension));
         if (require == placement.isRequireSurfaceSupport() && buffer == placement.getSurfaceSupportBuffer()) {
             return placement;
         }
@@ -1432,13 +1433,13 @@ public class ObjectPlacing {
         IrisBiome biome = engine.getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
         Set<String> v = new KSet<>();
-        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.surface(biome)) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 v.addAll(guessPlacedKeys(rng, x, z, i));
             }
         }
 
-        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.surface(region)) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 v.addAll(guessPlacedKeys(rng, x, z, i));
             }
@@ -1457,15 +1458,15 @@ public class ObjectPlacing {
             if (region == null) {
                 continue;
             }
-            radius = Math.max(radius, computePlacementRadius(region.getObjects(), sizeCache, warnedLargeObjects));
-            radius = Math.max(radius, computeProceduralRadius(region.getProceduralObjects()));
+            radius = Math.max(radius, computePlacementRadius(ObjectPlacements.all(region), sizeCache, warnedLargeObjects));
+            radius = Math.max(radius, computeProceduralRadius(ObjectPlacements.procedural(region)));
         }
         for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
             if (biome == null) {
                 continue;
             }
-            radius = Math.max(radius, computePlacementRadius(biome.getObjects(), sizeCache, warnedLargeObjects));
-            radius = Math.max(radius, computeProceduralRadius(biome.getProceduralObjects()));
+            radius = Math.max(radius, computePlacementRadius(ObjectPlacements.all(biome), sizeCache, warnedLargeObjects));
+            radius = Math.max(radius, computeProceduralRadius(ObjectPlacements.procedural(biome)));
         }
 
         return radius;
@@ -1500,7 +1501,7 @@ public class ObjectPlacing {
         return radius;
     }
 
-    private int computeProceduralRadius(IrisProceduralObjects procedural) {
+    private int computeProceduralRadius(ResolvedProceduralObjects procedural) {
         if (procedural == null || procedural.isEmpty()) {
             return 0;
         }

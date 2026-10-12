@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.framework;
 
 
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
@@ -466,7 +467,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
         IrisRegion region = getRegion(x, z);
 
-        for (IrisObjectPlacement i : region.getObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.all(region)) {
             if (i.getPlace().contains(object)) {
                 return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
             }
@@ -474,7 +475,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
         IrisBiome biome = getSurfaceBiome(x, z);
 
-        for (IrisObjectPlacement i : biome.getObjects()) {
+        for (IrisObjectPlacement i : ObjectPlacements.all(biome)) {
             if (i.getPlace().contains(object)) {
                 return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
             }
@@ -492,12 +493,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         }
 
         Set<String> biomeKeys = getDimension().getReachableBiomes(this).stream()
-                .filter((i) -> containsObjectPlacement(i.getObjects(), normalizedObjectKey))
+                .filter((i) -> containsObjectPlacement(ObjectPlacements.all(i), normalizedObjectKey))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Set<String> regionKeys = getDimension().getAllRegions(this).stream()
                 .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
-                        || containsObjectPlacement(i.getObjects(), normalizedObjectKey))
+                        || containsObjectPlacement(ObjectPlacements.all(i), normalizedObjectKey))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         return !regionKeys.isEmpty();

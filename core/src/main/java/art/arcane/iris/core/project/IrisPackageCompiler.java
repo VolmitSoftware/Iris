@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import com.google.gson.Gson;
 import art.arcane.iris.core.loader.IrisData;
@@ -122,8 +123,8 @@ public class IrisPackageCompiler {
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));
         biomes.forEach(moduleResources::followSettingsOf);
         KList<IrisObjectPlacement> allPlacements = new KList<>();
-        regions.forEach((r) -> allPlacements.addAll(r.getObjects()));
-        biomes.forEach((i) -> allPlacements.addAll(i.getObjects()));
+        regions.forEach((r) -> allPlacements.addAll(ObjectPlacements.all(r)));
+        biomes.forEach((i) -> allPlacements.addAll(ObjectPlacements.all(i)));
         moduleResources.follow(allPlacements);
         Set<String> structureKeys = new LinkedHashSet<>();
         collectStructureKeys(structureKeys, dimension.getStructures());

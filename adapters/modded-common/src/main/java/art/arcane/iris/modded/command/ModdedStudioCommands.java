@@ -31,6 +31,7 @@ import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
 import art.arcane.iris.core.project.IrisProjectCopier;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -909,9 +910,9 @@ public final class ModdedStudioCommands {
                 }
             });
             moduleResources.followSettingsOf(region);
-            moduleResources.follow(region.getObjects());
+            moduleResources.follow(ObjectPlacements.all(region));
             collectStructureKeys(structureKeys, region.getStructures());
-            objectKeys.addAll(PackExportClosure.collectObjectKeys(region.getObjects()));
+            objectKeys.addAll(PackExportClosure.collectObjectKeys(ObjectPlacements.all(region)));
         }
         for (String biomeKey : biomeKeys) {
             IrisBiome biome = dm.getBiomeLoader().load(biomeKey);
@@ -920,9 +921,9 @@ public final class ModdedStudioCommands {
             }
             biome.getGenerators().forEach((IrisBiomeGeneratorLink link) -> generatorKeys.add(link.getGenerator()));
             moduleResources.followSettingsOf(biome);
-            moduleResources.follow(biome.getObjects());
+            moduleResources.follow(ObjectPlacements.all(biome));
             collectStructureKeys(structureKeys, biome.getStructures());
-            objectKeys.addAll(PackExportClosure.collectObjectKeys(biome.getObjects()));
+            objectKeys.addAll(PackExportClosure.collectObjectKeys(ObjectPlacements.all(biome)));
         }
 
         StringBuilder hashes = new StringBuilder();

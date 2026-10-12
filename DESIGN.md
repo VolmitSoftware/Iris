@@ -804,6 +804,14 @@ Why these lines:
   biome band splits into child bands with noise shrunk by a factor, and a module that multiplied the coordinates itself would
   round differently from the generator Iris has always built, moving a cell border here and there. A default method
   (multiply the coordinates) keeps every other sampler valid.
+- **`PackResources.idOf(packKey)`**: a pack names its biomes, regions and objects by key (`desert/dunes`) in its own settings; the
+  host's ids for them hold the pack's namespace and replace characters an id cannot hold. A module that turns a key into an id would
+  have to know that rule, so the resources say it; a default method (namespace and key) serves a host without such characters.
+- **`TerrainSampler.caveBiome(x, y, z)`** is `biome(...).caveBiome()` without the region and the surface biome: a cave wall asks for the
+  cave biome around it five times per block, and the other two lookups were most of the cost. A default method keeps every sampler valid.
+- **`ReadOnlyMantle.host()`** hands a host's own extension back the mantle behind a chunk stage's read-only view. A chunk stage may not
+  write the mantle, but Iris's cave stage stamps markers into the matter that the platform reads, through a built-in facade, so the
+  facade has to reach past the view. Not for pack modules: writing through it breaks the promise the view makes.
 - **`PackWorld.minHeight()`**: all heights are above the dimension's bottom, but packs write some settings as absolute
   world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with the
   platform's Y of the bottom, a default method (0) so a fixture without negative Y needs nothing.

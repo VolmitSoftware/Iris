@@ -18,25 +18,28 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.builtin.prepare.SlopeClip;
-import com.volmit.FeatureRegistry;
-import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.placer.HeightmapObjectPlacer;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
+import art.arcane.iris.builtin.anchor.PlaceTrait;
+import art.arcane.iris.builtin.placement.BlockTraits;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.ObjectShape;
+import art.arcane.iris.builtin.placement.PlacementSettings;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.placement.SurfaceWarp;
+import art.arcane.iris.builtin.prepare.AxisRotationClamp;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectSpinKernel;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.StageGraph;
+
+import java.util.Optional;
 
 /**
  * Module {@code iris:prepare}: checks the slope, turns the object downhill when asked, and chooses the
@@ -56,12 +59,6 @@ public final class PrepareModule implements IrisModule {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(SlopeClip.class);
-        registry.registerHeldType(AxisRotationClamp.class);
-    }
-
-    @Override
     public void install(StageGraph graph) {
         graph.define(IrisStages.Prepare.SLOPE).produce(PrepareModule::slope);
         graph.define(IrisStages.Prepare.TRANSFORMS)
@@ -69,76 +66,78 @@ public final class PrepareModule implements IrisModule {
                 .produce(PrepareModule::transforms);
     }
 
-    private static IrisObjectPlacement slope(PlacementStageContext context) {
-        IrisPlacement placement = IrisPlacement.current();
-        IrisObjectPlacement config = placement.config();
-        boolean checksSlope = !config.isForcePlace() && !config.getSlopeCondition().isDefault();
-        if (!checksSlope && !config.isRotateTowardsSlope()) {
-            return config;
+    private static ObjectRotation slope(PlacementStageContext context) {
+        ObjectPlacement placement = ObjectPlacement.current();
+        PlacementSettings settings = placement.settings();
+        ObjectRotation requested = settings.rotation();
+        boolean checksSlope = !settings.forcePlace() && !settings.slopeCondition().isDefault();
+        if (!checksSlope && !settings.rotateTowardsSlope()) {
+            return requested;
         }
-        Engine engine = placement.placer().getEngine();
-        if (engine == null) {
+        if (!placement.terrain().hasWorld()) {
             throw new IllegalStateException("Object placement requires an active Iris engine for slope settings.");
         }
-        if (checksSlope && !config.getSlopeCondition().isValid(engine.getComplex().getSlopeStream().get(placement.x(), placement.z()))) {
+        if (checksSlope && !settings.slopeCondition().isValid(placement.terrain().slopeAt(placement.x(), placement.z()))) {
             context.reject("slope");
-            return config;
+            return requested;
         }
-        return config.isRotateTowardsSlope() ? turnedDownhill(placement.object(), config, engine, placement.x(), placement.z()) : config;
+        return settings.rotateTowardsSlope() ? turnedDownhill(placement, requested) : requested;
     }
 
-    /** A copy of {@code config} whose Y rotation faces the lowest side of the rectangle around the object. */
-    private static IrisObjectPlacement turnedDownhill(IrisObject object, IrisObjectPlacement config, Engine engine, int x, int z) {
-        ProceduralStream<Double> heights = engine.getComplex().getHeightStream();
-        double north = heights.get(x, z + ((float) object.d) / 2);
-        double east = heights.get(x + ((float) object.w) / 2, z);
-        double south = heights.get(x, z - ((float) object.d) / 2);
-        double west = heights.get(x - ((float) object.w) / 2, z);
+    /** A copy of {@code requested} whose Y rotation faces the lowest side of the rectangle around the object. */
+    private static ObjectRotation turnedDownhill(ObjectPlacement placement, ObjectRotation requested) {
+        PlacementTerrain terrain = placement.terrain();
+        ObjectShape object = placement.object();
+        int x = placement.x();
+        int z = placement.z();
+        double north = terrain.heightAt(x, z + ((float) object.depth()) / 2);
+        double east = terrain.heightAt(x + ((float) object.width()) / 2, z);
+        double south = terrain.heightAt(x, z - ((float) object.depth()) / 2);
+        double west = terrain.heightAt(x - ((float) object.width()) / 2, z);
         double lowest = Math.min(Math.min(north, east), Math.min(south, west));
         double downhill = lowest == north ? NORTH : lowest == east ? EAST : lowest == south ? SOUTH : WEST;
 
-        IrisObjectRotation requested = config.getRotation();
-        double turn = requested.getYAxis().min() + downhill;
-        IrisObjectRotation rotation = new IrisObjectRotation();
-        rotation.setXAxis(requested.getXAxis());
-        rotation.setZAxis(requested.getZAxis());
+        double turn = requested.yAxis().min() + downhill;
         if (turn == 0) {
-            rotation.setYAxis(AxisRotationClamp.of(false, false, 0, 0, QUARTER_TURN));
-            rotation.setEnabled(requested.canRotateX() || requested.canRotateZ());
-        } else {
-            rotation.setYAxis(AxisRotationClamp.of(true, false, turn, turn, QUARTER_TURN));
-            rotation.setEnabled(true);
+            return ObjectRotation.of(requested.canRotateX() || requested.canRotateZ(), requested.xAxis(),
+                    AxisRotationClamp.of(false, false, 0, 0, QUARTER_TURN), requested.zAxis());
         }
-        IrisObjectPlacement turned = config.toPlacement(config.getPlace().toArray(new String[0]));
-        turned.setRotation(rotation);
-        return turned;
+        return ObjectRotation.of(true, requested.xAxis(), AxisRotationClamp.of(true, false, turn, turn, QUARTER_TURN),
+                requested.zAxis());
     }
 
     private static PreparedPlacement transforms(PlacementStageContext context) {
-        IrisPlacement placement = IrisPlacement.current();
-        IrisObjectPlacement config = context.output(IrisStages.Prepare.SLOPE);
-        IrisObject object = placement.object();
+        ObjectPlacement placement = ObjectPlacement.current();
+        PlacementSettings settings = placement.settings();
+        ObjectRotation rotation = context.output(IrisStages.Prepare.SLOPE);
+        ObjectShape object = placement.object();
         RNG rng = new RNG(context.random().nextLong());
-        IObjectPlacer terrain = config.getHeightmap() == null ? placement.placer()
-                : new HeightmapObjectPlacer(rng, placement.x(), placement.requestedY(), placement.z(), config, placement.placer());
+        PlacementTerrain terrain = placement.terrainFor(rng);
         int spinX = rng.imax() / SPIN_DIVISOR;
         int spinY = rng.imax() / SPIN_DIVISOR;
         int spinZ = rng.imax() / SPIN_DIVISOR;
-        IrisObjectRotation rotation = config.getRotation();
-        IrisObjectTranslate translate = config.getTranslate();
-        int centerY = object.getCenter().getBlockY();
-        int rotatedCenterY = rotation.rotate(new IrisBlockVector(0, centerY, 0), spinX, spinY, spinZ).getBlockY();
-        int translatedCenterY = translate.translate(new IrisBlockVector(0, centerY, 0), rotation, spinX, spinY, spinZ).getBlockY();
+        ObjectTranslate translate = settings.translate();
         ObjectSpinKernel spin = new ObjectSpinKernel(rotation, spinX, spinY, spinZ);
-        IrisBlockVector translation = translate.canTranslate()
-                ? rotation.rotate(new IrisBlockVector(translate.getX(), translate.getY(), translate.getZ()), spinX, spinY, spinZ)
-                : null;
-        int randomY = randomHeightOffset(translate.getYRandom(), rng);
-        int warpMargin = config.getWarp().isFlat() ? 0 : (int) Math.ceil(Math.abs(config.getWarp().getMultiplier()) / 2D);
-        TransformedBounds bounds = transformedBounds(object, spin, translation, config.getMode().placeMode().has(PlaceTrait.UPSIDE_DOWN), warpMargin);
-        CNG surfaceWarp = config.getWarp().isFlat() ? null : config.getSurfaceWarp(rng, object.getLoader());
-        return new PreparedPlacement(config, terrain, spin, spinX, spinY, spinZ, translation, rotatedCenterY,
-                translatedCenterY, randomY, warpMargin, bounds, surfaceWarp);
+        IrisBlockVector rotatedCenter = new IrisBlockVector(0, object.centerY(), 0);
+        spin.rotate(rotatedCenter);
+        IrisBlockVector translation = translate.canTranslate() ? rotated(spin, translate) : null;
+        IrisBlockVector translatedCenter = new IrisBlockVector(0, object.centerY(), 0);
+        if (translation != null) {
+            translatedCenter = (IrisBlockVector) translatedCenter.clone().add(translation);
+        }
+        int randomY = randomHeightOffset(translate.yRandom(), rng);
+        Optional<SurfaceWarp> surfaceWarp = placement.surfaceWarp(rng);
+        int warpMargin = surfaceWarp.map(warp -> (int) Math.ceil(Math.abs(warp.multiplier()) / 2D)).orElse(0);
+        TransformedBounds bounds = transformedBounds(object, spin, translation, settings.mode().placeMode().has(PlaceTrait.UPSIDE_DOWN), warpMargin);
+        return new PreparedPlacement(placement, rotation, new BlockTraits(placement), terrain, spin,
+                spinX, spinY, spinZ, translation, rotatedCenter.getBlockY(), translatedCenter.getBlockY(), randomY,
+                warpMargin, bounds, surfaceWarp.orElse(null));
+    }
+
+    private static IrisBlockVector rotated(ObjectSpinKernel spin, ObjectTranslate translate) {
+        IrisBlockVector shift = new IrisBlockVector(translate.x(), translate.y(), translate.z());
+        spin.rotate(shift);
+        return shift;
     }
 
     /** Within {@code range} of zero, on the side its sign gives. */
@@ -149,11 +148,11 @@ public final class PrepareModule implements IrisModule {
         return range < 0 ? rng.i(range, 0) : 0;
     }
 
-    private static TransformedBounds transformedBounds(IrisObject object, ObjectSpinKernel spin, IrisBlockVector translation,
+    private static TransformedBounds transformedBounds(ObjectShape object, ObjectSpinKernel spin, IrisBlockVector translation,
                                                        boolean ceilingHang, int margin) {
-        int[] sourceX = {-object.getCenter().getBlockX(), object.getW() - object.getCenter().getBlockX() - 1};
-        int[] sourceY = {-object.getCenter().getBlockY(), object.getH() - object.getCenter().getBlockY() - 1};
-        int[] sourceZ = {-object.getCenter().getBlockZ(), object.getD() - object.getCenter().getBlockZ() - 1};
+        int[] sourceX = {-object.centerX(), object.width() - object.centerX() - 1};
+        int[] sourceY = {-object.centerY(), object.height() - object.centerY() - 1};
+        int[] sourceZ = {-object.centerZ(), object.depth() - object.centerZ() - 1};
         int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
         int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
         int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;

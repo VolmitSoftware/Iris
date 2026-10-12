@@ -20,9 +20,9 @@ package art.arcane.iris.builtin;
 
 import art.arcane.iris.builtin.anchor.AnchorHeight;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.stilt.StiltLayers;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.PreparedPlacement;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.MantleStage;
@@ -40,8 +40,8 @@ public final class IrisStages {
 
     /** Module {@code iris:prepare}: what a placement decides before it looks for its height. */
     public static final class Prepare {
-        /** The settings the placement uses: the requested ones, turned downhill when they ask to face the slope. Rejects {@code slope}. */
-        public static final PlacementStage<IrisObjectPlacement> SLOPE = Stage.placement("iris:prepare/slope", IrisObjectPlacement.class);
+        /** The rotation the placement uses: the requested one, turned downhill when the settings ask to face the slope. Rejects {@code slope}. */
+        public static final PlacementStage<ObjectRotation> SLOPE = Stage.placement("iris:prepare/slope", ObjectRotation.class);
         /** The random rotation, translation and height offset, chosen once per placement. */
         public static final PlacementStage<PreparedPlacement> TRANSFORMS = Stage.placement("iris:prepare/transforms", PreparedPlacement.class);
 

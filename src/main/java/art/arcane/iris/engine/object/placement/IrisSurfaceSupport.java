@@ -1,8 +1,9 @@
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectSpinKernel;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 
 import java.util.Arrays;
@@ -20,29 +21,41 @@ public final class IrisSurfaceSupport {
     private IrisSurfaceSupport() {
     }
 
-    public static boolean isUnsupported(IObjectPlacer placer, IrisData data, int x, int z,
-                                       IrisObjectTranslate translate, IrisObjectRotation rotation,
+    public static boolean isUnsupported(PlacementTerrain terrain, int x, int z,
+                                       ObjectTranslate translate, ObjectRotation rotation,
                                        int spinX, int spinY, int spinZ,
                                        List<IrisBlockVector> supportOffsets, int buffer, int minSolidDepth) {
         Stencil stencil = STENCIL.get();
-        if (!stencil.build(supportOffsets, translate, rotation, spinX, spinY, spinZ, Math.max(0, buffer))) {
+        Transform transform = new Transform(translate, new ObjectSpinKernel(rotation, spinX, spinY, spinZ));
+        if (!stencil.build(supportOffsets, transform, Math.max(0, buffer))) {
             return true;
         }
-        return stencil.anyColumnUnsupported(placer, data, x, z, Math.max(1, minSolidDepth));
+        return stencil.anyColumnUnsupported(terrain, x, z, Math.max(1, minSolidDepth));
     }
 
-    private static IrisBlockVector transform(IrisBlockVector offset, IrisObjectTranslate translate,
-                                             IrisObjectRotation rotation, int spinX, int spinY, int spinZ) {
-        IrisBlockVector transformed = offset.clone();
-        if (rotation != null) {
-            transformed = rotation.rotate(transformed, spinX, spinY, spinZ);
+    /** The placement's rotation and translation, as they move a support offset. */
+    private static final class Transform {
+        private final ObjectSpinKernel spin;
+        private final IrisBlockVector translation;
+
+        private Transform(ObjectTranslate translate, ObjectSpinKernel spin) {
+            this.spin = spin;
+            if (translate.canTranslate()) {
+                translation = new IrisBlockVector(translate.x(), translate.y(), translate.z());
+                spin.rotate(translation);
+            } else {
+                translation = null;
+            }
         }
-        if (translate == null) {
+
+        private IrisBlockVector apply(IrisBlockVector offset) {
+            IrisBlockVector transformed = offset.clone();
+            spin.rotate(transformed);
+            if (translation != null) {
+                transformed.add(translation);
+            }
             return transformed;
         }
-        return rotation == null
-                ? translate.translate(transformed)
-                : translate.translate(transformed, rotation, spinX, spinY, spinZ);
     }
 
     /**
@@ -61,8 +74,7 @@ public final class IrisSurfaceSupport {
         private int centerX;
         private int centerZ;
 
-        private boolean build(List<IrisBlockVector> supportOffsets, IrisObjectTranslate translate,
-                              IrisObjectRotation rotation, int spinX, int spinY, int spinZ, int buffer) {
+        private boolean build(List<IrisBlockVector> supportOffsets, Transform transform, int buffer) {
             boolean originOnly = supportOffsets == null || supportOffsets.isEmpty();
             int count = originOnly ? 1 : supportOffsets.size();
             if (offsetX.length < count) {
@@ -76,7 +88,7 @@ public final class IrisSurfaceSupport {
             int highZ = Integer.MIN_VALUE;
             for (int i = 0; i < count; i++) {
                 IrisBlockVector source = originOnly ? new IrisBlockVector(0, 0, 0) : supportOffsets.get(i);
-                IrisBlockVector transformed = transform(source, translate, rotation, spinX, spinY, spinZ);
+                IrisBlockVector transformed = transform.apply(source);
                 int transformedX = transformed.getBlockX();
                 int transformedZ = transformed.getBlockZ();
                 offsetX[i] = transformedX;
@@ -150,13 +162,13 @@ public final class IrisSurfaceSupport {
         }
 
         /** Centre-outward so the common failure, a hole right under the anchor, costs one column. */
-        private boolean anyColumnUnsupported(IObjectPlacer placer, IrisData data, int x, int z, int minSolidDepth) {
+        private boolean anyColumnUnsupported(PlacementTerrain terrain, int x, int z, int minSolidDepth) {
             int maxRing = Math.max(
                     Math.max(centerX, width - 1 - centerX),
                     Math.max(centerZ, depth - 1 - centerZ));
             for (int ring = 0; ring <= maxRing; ring++) {
                 if (ring == 0) {
-                    if (isColumnUnsupported(placer, data, x, z, centerX, centerZ, minSolidDepth)) {
+                    if (isColumnUnsupported(terrain, x, z, centerX, centerZ, minSolidDepth)) {
                         return true;
                     }
                     continue;
@@ -167,14 +179,14 @@ public final class IrisSurfaceSupport {
                 int lowZ = centerZ - ring;
                 int highZ = centerZ + ring;
                 for (int sx = lowX; sx <= highX; sx++) {
-                    if (isColumnUnsupported(placer, data, x, z, sx, lowZ, minSolidDepth)
-                            || isColumnUnsupported(placer, data, x, z, sx, highZ, minSolidDepth)) {
+                    if (isColumnUnsupported(terrain, x, z, sx, lowZ, minSolidDepth)
+                            || isColumnUnsupported(terrain, x, z, sx, highZ, minSolidDepth)) {
                         return true;
                     }
                 }
                 for (int sz = lowZ + 1; sz < highZ; sz++) {
-                    if (isColumnUnsupported(placer, data, x, z, lowX, sz, minSolidDepth)
-                            || isColumnUnsupported(placer, data, x, z, highX, sz, minSolidDepth)) {
+                    if (isColumnUnsupported(terrain, x, z, lowX, sz, minSolidDepth)
+                            || isColumnUnsupported(terrain, x, z, highX, sz, minSolidDepth)) {
                         return true;
                     }
                 }
@@ -182,7 +194,7 @@ public final class IrisSurfaceSupport {
             return false;
         }
 
-        private boolean isColumnUnsupported(IObjectPlacer placer, IrisData data, int x, int z,
+        private boolean isColumnUnsupported(PlacementTerrain terrain, int x, int z,
                                             int stencilX, int stencilZ, int minSolidDepth) {
             if (stencilX < 0 || stencilX >= width || stencilZ < 0 || stencilZ >= depth
                     || !cells[(stencilX * depth) + stencilZ]) {
@@ -191,13 +203,13 @@ public final class IrisSurfaceSupport {
 
             int columnX = x + minX + stencilX;
             int columnZ = z + minZ + stencilZ;
-            int surfaceY = placer.getHighest(columnX, columnZ, data, true);
+            int surfaceY = terrain.highest(columnX, columnZ, true);
             for (int below = 0; below < minSolidDepth; below++) {
-                if (placer.isCarved(columnX, surfaceY - below, columnZ)) {
+                if (terrain.isCarved(columnX, surfaceY - below, columnZ)) {
                     return true;
                 }
             }
-            return !placer.isSurfaceSolid(columnX, surfaceY, columnZ);
+            return !terrain.isSurfaceSolid(columnX, surfaceY, columnZ);
         }
     }
 }

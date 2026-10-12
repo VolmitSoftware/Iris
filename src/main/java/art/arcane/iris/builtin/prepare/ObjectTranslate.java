@@ -52,6 +52,20 @@ public final class ObjectTranslate {
     public ObjectTranslate() {
     }
 
+    /** A shift of the given size, as Iris's own translate model hands it to the placement stages. */
+    public static ObjectTranslate of(int x, int y, int yRandom, int z) {
+        ObjectTranslate translate = new ObjectTranslate();
+        translate.x = x;
+        translate.y = y;
+        translate.yRandom = yRandom;
+        translate.z = z;
+        return translate;
+    }
+
+    public boolean canTranslate() {
+        return x != 0 || y != 0 || z != 0;
+    }
+
     public int x() {
         return x;
     }

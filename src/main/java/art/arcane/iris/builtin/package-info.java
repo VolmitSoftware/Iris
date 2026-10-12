@@ -32,8 +32,9 @@
  * ({@link art.arcane.iris.builtin.IrisSeed}), and per-world state several of them use
  * ({@link art.arcane.iris.builtin.terrain.LayerBlocks}). Keep them few: each is a promise.
  * <p>
- * Some built-in stages produce Iris's own types, such as the placement settings of {@code iris:prepare}. A
- * pack module can require such a stage to run after it, but cannot read its output: the pack load rejects
- * a pack class that uses a type Iris hides.
+ * The placement stages ({@code iris:prepare} to {@code iris:snow}) reach the object being placed through
+ * {@link art.arcane.iris.builtin.placement.ObjectPlacement}, a facade Iris implements for each placement. Its types
+ * answer with IrisApi, VolmLib and built-in values only, and the stages' outputs ({@link art.arcane.iris.builtin.prepare.PreparedPlacement})
+ * are built-in types too, so a pack module can require a placement stage and read what it chose.
  */
 package art.arcane.iris.builtin;

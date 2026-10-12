@@ -19,33 +19,28 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.blocks.ObjectReplace;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
 import com.volmit.block.BlockRegistry;
+import com.volmit.stage.PlacementStageContext;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** The {@link ResolvedReplace}s of one engine runtime, one per decoded {@link ObjectReplace}, built when a placement first uses it. */
+/** The {@link ResolvedReplace}s of one pack's block registry, one per decoded {@link ObjectReplace}, built when a placement first uses it. */
 final class ResolvedReplaces {
     private final BlockRegistry blocks;
     private final Map<ObjectReplace, ResolvedReplace> resolved = new ConcurrentHashMap<>();
-
-    ResolvedReplaces(Engine engine) {
-        this(engine.getData().getPackResources().blocks());
-    }
 
     ResolvedReplaces(BlockRegistry blocks) {
         this.blocks = blocks;
     }
 
-    /** The replacements of the engine {@code data} serves, or of {@code data} alone when no engine runs it. */
-    static ResolvedReplaces of(IrisData data) {
-        Engine engine = data.getEngine();
-        if (engine == null) {
-            return new ResolvedReplaces(data.getPackResources().blocks());
+    /** The replacements of the world {@code context} places in, or of the pack alone when the placement has no world. */
+    static ResolvedReplaces of(PlacementStageContext context, PlacementTerrain terrain) {
+        if (!terrain.hasWorld()) {
+            return new ResolvedReplaces(context.resources().blocks());
         }
-        return engine.getGeneration().state(ResolvedReplaces.class, ResolvedReplaces::new);
+        return context.world().state(ResolvedReplaces.class, world -> new ResolvedReplaces(world.resources().blocks()));
     }
 
     ResolvedReplace of(ObjectReplace settings) {

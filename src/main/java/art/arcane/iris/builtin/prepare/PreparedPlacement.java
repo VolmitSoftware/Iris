@@ -16,24 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.placement;
+package art.arcane.iris.builtin.prepare;
 
 import art.arcane.iris.builtin.anchor.PlaceMode;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.builtin.placement.BlockTraits;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.PlacementSettings;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.placement.SurfaceWarp;
 import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.iris.util.project.noise.CNG;
+import com.volmit.block.BlockState;
 import com.volmit.world.BlockPosition;
 
 /**
- * What one placement chose before it is anchored: the settings it uses, the placer that answers its
- * terrain questions, its random rotation and height offsets, and the bounds of the transformed object
- * around its anchor. Object blocks are transformed by rotating them, flipping them for a ceiling hang and
- * translating them.
+ * What one placement chose before it is anchored: the settings it uses, the rotation it ended up with, the terrain
+ * that answers its height, water and carving questions, its random spin and height offsets, and the bounds of the
+ * transformed object around its anchor. Object blocks are transformed by rotating them, flipping them for a ceiling
+ * hang and translating them.
  */
 public final class PreparedPlacement {
-    private final IrisObjectPlacement config;
-    private final IObjectPlacer terrain;
+    private final ObjectPlacement placement;
+    private final PlacementSettings settings;
+    private final PlaceMode mode;
+    private final ObjectRotation rotation;
+    private final BlockTraits traits;
+    private final PlacementTerrain terrain;
     private final ObjectSpinKernel spin;
     private final int spinX;
     private final int spinY;
@@ -44,12 +52,17 @@ public final class PreparedPlacement {
     private final int randomY;
     private final int warpMargin;
     private final TransformedBounds bounds;
-    private final CNG surfaceWarp;
+    private final SurfaceWarp surfaceWarp;
 
-    PreparedPlacement(IrisObjectPlacement config, IObjectPlacer terrain, ObjectSpinKernel spin, int spinX, int spinY,
-                      int spinZ, IrisBlockVector translation, int rotatedCenterY, int translatedCenterY, int randomY,
-                      int warpMargin, TransformedBounds bounds, CNG surfaceWarp) {
-        this.config = config;
+    /** Everything the preparation worked out; {@code translation} and {@code surfaceWarp} are null when the placement has none. */
+    public PreparedPlacement(ObjectPlacement placement, ObjectRotation rotation, BlockTraits traits, PlacementTerrain terrain,
+                             ObjectSpinKernel spin, int spinX, int spinY, int spinZ, IrisBlockVector translation, int rotatedCenterY,
+                             int translatedCenterY, int randomY, int warpMargin, TransformedBounds bounds, SurfaceWarp surfaceWarp) {
+        this.placement = placement;
+        this.settings = placement.settings();
+        this.mode = settings.mode().placeMode();
+        this.rotation = rotation;
+        this.traits = traits;
         this.terrain = terrain;
         this.spin = spin;
         this.spinX = spinX;
@@ -64,72 +77,82 @@ public final class PreparedPlacement {
         this.surfaceWarp = surfaceWarp;
     }
 
-    /** The settings this placement uses, which may differ from the requested ones. */
-    public IrisObjectPlacement config() {
-        return config;
+    /** The settings the placement was asked for; the rotation may differ, see {@link #rotation()}. */
+    public PlacementSettings settings() {
+        return settings;
+    }
+
+    /** The rotation the placement uses, which may differ from the requested one. */
+    public ObjectRotation rotation() {
+        return rotation;
+    }
+
+    /** The traits of the block states this placement handles. */
+    public BlockTraits traits() {
+        return traits;
     }
 
     /** Answers height, water and carving questions; a heightmap placement answers heights from its noise. */
-    IObjectPlacer terrain() {
+    public PlacementTerrain terrain() {
         return terrain;
     }
 
-    PlaceMode mode() {
-        return config.getMode().placeMode();
+    public PlaceMode mode() {
+        return mode;
     }
 
-    int spinX() {
+    public int spinX() {
         return spinX;
     }
 
-    int spinY() {
+    public int spinY() {
         return spinY;
     }
 
-    int spinZ() {
+    public int spinZ() {
         return spinZ;
     }
 
     /** The rotated translation, or null when the placement does not translate. */
-    IrisBlockVector translation() {
+    public IrisBlockVector translation() {
         return translation;
     }
 
     /** The height of the object's center after rotation. */
-    int rotatedCenterY() {
+    public int rotatedCenterY() {
         return rotatedCenterY;
     }
 
     /** The height of the object's center after translation. */
-    int translatedCenterY() {
+    public int translatedCenterY() {
         return translatedCenterY;
     }
 
     /** The random height offset added once the anchor is final. */
-    int randomY() {
+    public int randomY() {
         return randomY;
     }
 
-    int warpMargin() {
+    public int warpMargin() {
         return warpMargin;
     }
 
-    TransformedBounds bounds() {
+    public TransformedBounds bounds() {
         return bounds;
     }
 
-    boolean isWarped() {
+    public boolean isWarped() {
         return surfaceWarp != null;
     }
 
     /** Moves a world column by the surface warp, along X for {@code x} and along Z for the swapped call. */
-    int warpOffset(double along, double y, double across) {
-        double half = config.getWarp().getMultiplier() / 2D;
-        return (int) surfaceWarp.fitDouble(-half, half, along, y, across);
+    public int warpOffset(double along, double y, double across) {
+        double half = surfaceWarp.multiplier() / 2D;
+        return (int) surfaceWarp.fit(-half, half, along, y, across);
     }
 
     /** An object block's offset from the anchor after this placement's transforms. */
-    BlockPosition transform(BlockPosition local) {
+    public BlockPosition transform(BlockPosition local) {
         IrisBlockVector offset = new IrisBlockVector(local.x(), local.y(), local.z());
         spin.rotate(offset);
         if (mode().has(PlaceTrait.UPSIDE_DOWN)) {
@@ -142,7 +165,7 @@ public final class PreparedPlacement {
     }
 
     /** A block state turned with the object, so stairs and logs face the way the object does. */
-    PlatformBlockState rotate(PlatformBlockState state) {
-        return spin.rotate(state);
+    public BlockState rotate(BlockState state) {
+        return placement.rotate(state, rotation, spinX, spinY, spinZ);
     }
 }

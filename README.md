@@ -6,7 +6,7 @@ direct dependencies on Iris internals.
 
 Ported features are IrisApi modules that every pack loads before its own: object placement
 (`iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`,
-`iris:vacuum`, `iris:snow`), the mantle, and chunk generation. Every mantle stage is a pass of Iris's
+`iris:vacuum`, `iris:snow`, shipped in the built-ins jar), the mantle, and chunk generation. Every mantle stage is a pass of Iris's
 mantle of its own, in the stage graph's order: `iris:carve/caves`, `iris:objects/place`,
 `iris:floating/objects`, `iris:structure/place`, so a pack's mantle stage can order itself after any of
 them. Chunk generation then runs, in this order: `iris:biome`, `iris:terrain`, `iris:carve` (cutting the
@@ -68,8 +68,10 @@ palette, ore checks, clump shapes per world seed) lives in the module's own code
 
 Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition
 or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
-`.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). The module registers each with
-`registry.registerHeldType(...)` so studio describes it from the module's own annotations; packs write the same JSON as before. Behaviour
+`.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). A module compiled into Iris registers each with
+`registry.registerHeldType(...)` so studio describes it from the module's own annotations; only such a module may, so the classes
+Iris's `IrisObjectPlacement` holds are described by the host module `iris:placement-settings` (the placement stages ship in the
+built-ins jar). Packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
 worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
 
@@ -137,9 +139,11 @@ naming the class and what it uses. A VolmLib class that Iris's Bukkit jar strips
 `core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on that classpath but missing on a
 server, so the check treats it as missing and fails the task naming it. `check` runs the task.
 
-The jar holds `iris:post`, `iris:perfection` and `iris:matter`. They are written against IrisApi and
+The jar holds `iris:post`, `iris:perfection` and `iris:matter`, and the object placement stages `iris:prepare`, `iris:anchor`,
+`iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are written against IrisApi and
 `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and `canPlaceOn`, the terrain
-sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks.
+sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks; the
+placement stages read the placement being run through the `ObjectPlacement` facade (below).
 Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
 `iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
 `iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads. Iris warns once per pack folder
@@ -149,5 +153,11 @@ when a pack loads none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, wh
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class: `IrisSeed` (Iris's per-feature world seeds, a facade Iris's worlds implement, so existing worlds generate the
 same) and `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
-layers, and a layer's noise is built once per world by whichever asks first). `iris:post` reads its switches
+layers, and a layer's noise is built once per world by whichever asks first). The placement stages need more of the object being
+placed than IrisApi describes, so `placement.ObjectPlacement` is the facade Iris implements for each placement and binds to the placing
+thread (`ObjectPlacement.current()`): the object's size (`ObjectShape`), the placement's settings (`PlacementSettings`, read from
+Iris's `IrisObjectPlacement`), the terrain questions of its placer and the world around it (`PlacementTerrain`), the surface warp,
+and the block operations only the platform can do (turning a state with the object, merging two states, matching, traits of the
+placement's own states). Its types answer with IrisApi, VolmLib and built-in values only. `prepare.PreparedPlacement`, the output of
+`iris:prepare/transforms`, lives in the exposed package too, because `IrisStages` names it. `iris:post` reads its switches
 (`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.

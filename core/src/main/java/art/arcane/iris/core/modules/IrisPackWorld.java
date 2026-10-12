@@ -105,6 +105,7 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source {
         return switch (seed) {
             case BIOME -> seeds.getBiome();
             case CARVE -> seeds.getCarve();
+            case COMPLEX -> seeds.getComplex();
             case COMPONENT -> seeds.getComponent();
             case DECORATOR -> seeds.getDecorator();
             case DEPOSIT -> seeds.getDeposit();

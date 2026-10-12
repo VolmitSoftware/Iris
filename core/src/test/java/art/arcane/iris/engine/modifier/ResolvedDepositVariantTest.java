@@ -1,42 +1,30 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositVariant;
-import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
 import com.google.gson.Gson;
-import org.junit.After;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockState;
+import com.volmit.host.ModuleLogs;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 public class ResolvedDepositVariantTest {
     private static final String DEEP_IRON = """
             {"minHeight": -64, "maxHeight": 0, "remap": {"minecraft:iron_ore": "minecraft:deepslate_iron_ore", "unknown_block": "minecraft:stone"}}
             """;
+    private static final ModuleLog LOG = ModuleLogs.discarding();
 
-    private static void knowEveryBlockButTheUnknownOne() {
-        UsableBlockPlatform.bind();
-        when(IrisPlatforms.get().registries().blockOrNull(anyString(), anyBoolean())).thenAnswer(call -> {
-            String name = call.getArgument(0);
-            return name.equals("unknown_block") ? null : UsableBlockPlatform.block(name);
-        });
-    }
-
-    @After
-    public void unbindPlatform() {
-        UsableBlockPlatform.unbind();
+    private static ResolvedDepositVariant variant(String json) {
+        return new ResolvedDepositVariant(new Gson().fromJson(json, DepositVariant.class), ApiChunk.blocks(), LOG);
     }
 
     @Test
     public void aVariantAppliesWithinItsInclusiveBand() {
-        ResolvedDepositVariant variant = new ResolvedDepositVariant(new Gson().fromJson(DEEP_IRON, DepositVariant.class));
+        ResolvedDepositVariant variant = variant(DEEP_IRON);
 
         assertTrue(variant.appliesAt(-64));
         assertTrue(variant.appliesAt(0));
@@ -46,30 +34,33 @@ public class ResolvedDepositVariantTest {
 
     @Test
     public void anOreIsRemappedByItsMaterialAndOtherBlocksAreNot() {
-        knowEveryBlockButTheUnknownOne();
-        ResolvedDepositVariant variant = new ResolvedDepositVariant(new Gson().fromJson(DEEP_IRON, DepositVariant.class));
-        PlatformBlockState iron = UsableBlockPlatform.block("iron_ore");
+        ResolvedDepositVariant variant = variant(DEEP_IRON);
 
-        PlatformBlockState remapped = variant.remapOrNull(iron);
+        BlockState remapped = variant.remapOrNull(new BlockState("minecraft:iron_ore"));
 
         assertEquals("minecraft:deepslate_iron_ore", remapped.key());
-        assertNull(variant.remapOrNull(UsableBlockPlatform.block("coal_ore")));
+        assertNull(variant.remapOrNull(new BlockState("minecraft:coal_ore")));
         assertNull(variant.remapOrNull(null));
     }
 
     @Test
     public void aRuleWhoseSourceTheServerDoesNotKnowRemapsNothing() {
-        knowEveryBlockButTheUnknownOne();
-        DepositVariant unknown = new Gson().fromJson("{\"remap\": {\"unknown_block\": \"minecraft:stone\"}}", DepositVariant.class);
+        ResolvedDepositVariant unknown = variant("{\"remap\": {\"unknown_block\": \"minecraft:stone\"}}");
 
-        assertNull(new ResolvedDepositVariant(unknown).remapOrNull(UsableBlockPlatform.block("unknown_block")));
+        assertNull(unknown.remapOrNull(new BlockState("minecraft:unknown_block")));
+    }
+
+    @Test
+    public void aRuleWhoseReplacementTheServerDoesNotKnowRemapsNothing() {
+        ResolvedDepositVariant unknown = variant("{\"remap\": {\"minecraft:iron_ore\": \"unknown_block\"}}");
+
+        assertNull(unknown.remapOrNull(new BlockState("minecraft:iron_ore")));
     }
 
     @Test
     public void aVariantWithoutRemapsChangesNothing() {
-        UsableBlockPlatform.bind();
-        ResolvedDepositVariant variant = new ResolvedDepositVariant(new Gson().fromJson("{\"maxHeight\": 5}", DepositVariant.class));
+        ResolvedDepositVariant variant = variant("{\"maxHeight\": 5}");
 
-        assertNull(variant.remapOrNull(UsableBlockPlatform.block("iron_ore")));
+        assertNull(variant.remapOrNull(new BlockState("minecraft:iron_ore")));
     }
 }

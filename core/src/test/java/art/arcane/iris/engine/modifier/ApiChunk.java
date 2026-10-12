@@ -65,6 +65,7 @@ import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceKey;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -74,6 +75,7 @@ import com.volmit.world.TerrainSampler;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,7 +95,10 @@ public final class ApiChunk implements GenerationContext {
     public static final int WIDTH = 16;
     public static final BlockState AIR = new BlockState("minecraft:air");
     private static final long SEED = 1337L;
+    /** A key that the fixture's pack has no block for. */
+    public static final String UNKNOWN_BLOCK = "unknown_block";
     private static final ResourceId DIMENSION = ResourceId.parse("test:dimension/overworld");
+    private static final ResourceId REGION = ResourceId.parse("test:region/plains");
     private static final ResourceId BIOME = ResourceId.parse("test:biome/plains");
     private static final int TERRAIN_MARGIN = 16;
     private static final Set<String> AIRS = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
@@ -112,8 +117,13 @@ public final class ApiChunk implements GenerationContext {
     private final ArrayHunk<BlockState> blocks;
     private final Map<BlockPosition, BlockState> planned = new HashMap<>();
     private final World world = new World();
+    private final Set<BlockPosition> carved = new HashSet<>();
     private final List<IrisFeature> dimensionSettings = new ArrayList<>();
+    private final List<IrisFeature> regionSettings = new ArrayList<>();
     private final List<IrisFeature> biomeSettings = new ArrayList<>();
+    private BiomeSample biomeSample;
+    private BiomeKind surfaceKind = BiomeKind.LAND;
+    private int minWorldY;
     private IntBinaryOperator surface = (x, z) -> 0;
     private IntBinaryOperator upperDimension;
     private double slope;
@@ -149,6 +159,53 @@ public final class ApiChunk implements GenerationContext {
     public ApiChunk upperDimension(IntBinaryOperator heights) {
         this.upperDimension = heights;
         return this;
+    }
+
+    /** The biomes every column and cave position of the chunk has. */
+    public ApiChunk biomes(ResourceId surfaceBiome, ResourceId caveBiome) {
+        this.biomeSample = new BiomeSample(ResourceId.parse("test:region/plains"), surfaceBiome, Optional.ofNullable(caveBiome));
+        return this;
+    }
+
+    /** What the surface biome of every column is generated as. */
+    public ApiChunk surfaceKind(BiomeKind kind) {
+        this.surfaceKind = kind;
+        return this;
+    }
+
+    /** The Y in the world of the dimension's bottom. */
+    public ApiChunk minWorldY(int minWorldY) {
+        this.minWorldY = minWorldY;
+        return this;
+    }
+
+    /** A void the mantle carved, in world coordinates. */
+    public ApiChunk carve(int x, int y, int z) {
+        carved.add(new BlockPosition(x, y, z));
+        return this;
+    }
+
+    /** Settings the dimension declares. */
+    public ApiChunk dimensionSettings(IrisFeature... settings) {
+        dimensionSettings.addAll(List.of(settings));
+        return this;
+    }
+
+    /** Settings every region of the chunk declares. */
+    public ApiChunk regionSettings(IrisFeature... settings) {
+        regionSettings.addAll(List.of(settings));
+        return this;
+    }
+
+    /** Settings every surface biome of the chunk declares. */
+    public ApiChunk biomeSettings(IrisFeature... settings) {
+        biomeSettings.addAll(List.of(settings));
+        return this;
+    }
+
+    /** The blocks the fixture's pack knows, by the rule in {@link Blocks}. */
+    public static BlockRegistry blocks() {
+        return new Blocks();
     }
 
     /** A block a placement planned in the mantle, in world coordinates. */
@@ -197,9 +254,9 @@ public final class ApiChunk implements GenerationContext {
         return TestSettings.with(new PaletteLayer(), "palette", List.of(BlockSpec.of(block.key())), "slopeCondition", slope);
     }
 
-    /** Empty stand-ins for the built-in stages the ported modules order after: carving and floating islands. */
+    /** Empty stand-ins for the built-in stages the ported modules order after: terrain, carving and floating islands. */
     public static List<IrisModule> standIns() {
-        return List.of(new CarveStandIn(), new FloatingStandIn());
+        return List.of(new TerrainStandIn(), new CarveStandIn(), new FloatingStandIn());
     }
 
     /** Runs {@code modules} as a pack's chunk graph, with the {@link #standIns()}. */
@@ -242,6 +299,7 @@ public final class ApiChunk implements GenerationContext {
             public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
                 List<Entry<F>> entries = new ArrayList<>();
                 addEntries(entries, featureType, Target.DIMENSION, DIMENSION, dimensionSettings);
+                addEntries(entries, featureType, Target.REGION, REGION, regionSettings);
                 addEntries(entries, featureType, Target.BIOME, BIOME, biomeSettings);
                 return entries;
             }
@@ -302,7 +360,21 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public BiomeSample biome(int worldX, int y, int worldZ) {
-            throw new UnsupportedOperationException("The ported built-ins read biomes through their settings");
+            if (biomeSample == null) {
+                throw new UnsupportedOperationException("The ported built-ins read biomes through their settings");
+            }
+            return biomeSample;
+        }
+
+        @Override
+        public BiomeKind surfaceKind(int worldX, int worldZ) {
+            requireInside(worldX, worldZ);
+            return surfaceKind;
+        }
+
+        @Override
+        public int minWorldY() {
+            return minWorldY;
         }
 
         @Override
@@ -337,6 +409,11 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public MantleLayer<BlockState> blocks() {
             return new PlannedLayer();
+        }
+
+        @Override
+        public MantleLayer<Boolean> caverns() {
+            return new CarvedLayer();
         }
 
         @Override
@@ -381,8 +458,41 @@ public final class ApiChunk implements GenerationContext {
         }
     }
 
+    private final class CarvedLayer implements MantleLayer<Boolean> {
+        @Override
+        public Boolean get(int x, int y, int z) {
+            return carved.contains(new BlockPosition(x, y, z)) ? Boolean.TRUE : null;
+        }
+
+        @Override
+        public void set(int x, int y, int z, Boolean value) {
+            throw new UnsupportedOperationException("Caverns are read-only");
+        }
+
+        @Override
+        public void remove(int x, int y, int z) {
+            throw new UnsupportedOperationException("Caverns are read-only");
+        }
+
+        @Override
+        public void visit(BlockBox area, MantleVisitor<Boolean> visitor) {
+            List<BlockPosition> positions = new ArrayList<>(carved);
+            positions.sort(VISIT_ORDER);
+            for (BlockPosition position : positions) {
+                if (area.contains(position.x(), position.y(), position.z())) {
+                    visitor.accept(position.x(), position.y(), position.z(), Boolean.TRUE);
+                }
+            }
+        }
+
+        @Override
+        public void clear(BlockBox area) {
+            throw new UnsupportedOperationException("Caverns are read-only");
+        }
+    }
+
     /** A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. */
-    private static final class World implements PackWorld, IrisSeed.Source {
+    private final class World implements PackWorld, IrisSeed.Source {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
 
@@ -398,7 +508,16 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public PackSettings settings() {
-            throw new UnsupportedOperationException("No pack settings here");
+            return new PackSettings() {
+                @Override
+                public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+                    List<Entry<F>> entries = new ArrayList<>();
+                    addEntries(entries, featureType, Target.DIMENSION, DIMENSION, dimensionSettings);
+                    addEntries(entries, featureType, Target.REGION, REGION, regionSettings);
+                    addEntries(entries, featureType, Target.BIOME, BIOME, biomeSettings);
+                    return entries;
+                }
+            };
         }
 
         @Override
@@ -473,7 +592,10 @@ public final class ApiChunk implements GenerationContext {
     private static final class Blocks implements BlockRegistry {
         @Override
         public BlockState resolve(String key) {
-            return BlockState.parse(key);
+            if (key.contains(UNKNOWN_BLOCK)) {
+                throw new IllegalArgumentException("Unknown block: " + key);
+            }
+            return BlockState.parse(key.contains(":") ? key : "minecraft:" + key);
         }
 
         @Override
@@ -510,6 +632,7 @@ public final class ApiChunk implements GenerationContext {
                 case FOLIAGE -> FOLIAGE.contains(material);
                 case DECORATION -> DECORATIONS.contains(material);
                 case VINE -> vine;
+                case ORE -> material.endsWith("_ore");
                 default -> false;
             };
         }
@@ -532,6 +655,19 @@ public final class ApiChunk implements GenerationContext {
             String material = state.material().toString();
             boolean plant = DECORATIONS.contains(material) || FOLIAGE.contains(material);
             return !plant || SOILS.contains(below.material().toString());
+        }
+    }
+
+    private static final class TerrainStandIn implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("iris:terrain", "Terrain stand-in", "test");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+            graph.define(IrisStages.Terrain.SHAPE).run(context -> {
+            });
         }
     }
 

@@ -20,8 +20,10 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
+import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
+import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
@@ -29,6 +31,8 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class DepositModuleTest {
     private static final int CENTRE = 7;
@@ -57,5 +61,123 @@ public class DepositModuleTest {
 
     private static FeatureSettings.Entry<DepositSettings> entry(Target level, String source, DepositGenerator generator) {
         return new FeatureSettings.Entry<>(level, ResourceId.parse("pack:" + source), new DepositSettings(List.of(generator)));
+    }
+
+    private static final int HEIGHT = 128;
+    private static final int GROUND = 80;
+    private static final BlockState STONE = new BlockState("minecraft:stone");
+
+    @Test
+    public void aDimensionsDepositsReplaceStoneInsideTheirBandAndNothingElse() {
+        ApiChunk chunk = groundedChunk()
+                .dimensionSettings(depositsOf("{\"minHeight\": 10, \"maxHeight\": 40, \"minSize\": 6, \"maxSize\": 6, \"minPerChunk\": 4, \"maxPerChunk\": 4,"
+                        + " \"varience\": 1, \"palette\": [{\"block\": \"iron_ore\"}], \"replaceableBlocks\": [\"stone\"]}"));
+        chunk.set(8, 20, 8, new BlockState("minecraft:dirt"));
+
+        chunk.generate(new DepositModule());
+
+        int ores = countOf(chunk, new BlockState("minecraft:iron_ore"));
+        assertTrue("some ore was placed: " + ores, ores > 0);
+        assertEquals("the dirt is not stone", new BlockState("minecraft:dirt"), chunk.get(8, 20, 8));
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                for (int y = 0; y < HEIGHT; y++) {
+                    if (chunk.get(x, y, z).equals(new BlockState("minecraft:iron_ore"))) {
+                        assertTrue("ore at " + y + " is below the ground and inside the band's reach", y <= GROUND - 7);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void depositsAreTheSameWheneverTheSameChunkIsGenerated() {
+        DepositSettings deposits = depositsOf("{\"minHeight\": 10, \"maxHeight\": 60, \"minSize\": 3, \"maxSize\": 9, \"minPerChunk\": 3, \"maxPerChunk\": 6,"
+                + " \"palette\": [{\"block\": \"coal_ore\"}, {\"block\": \"iron_ore\"}]}");
+        ApiChunk first = groundedChunk().dimensionSettings(deposits);
+        ApiChunk second = groundedChunk().dimensionSettings(deposits);
+
+        first.generate(new DepositModule());
+        second.generate(new DepositModule());
+
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                    assertEquals(x + " " + y + " " + z, first.get(x, y, z), second.get(x, y, z));
+                }
+            }
+        }
+        assertTrue(countOf(first, new BlockState("minecraft:coal_ore")) + countOf(first, new BlockState("minecraft:iron_ore")) > 0);
+    }
+
+    @Test
+    public void depositsLeaveCarvedVoidsAlone() {
+        DepositSettings deposits = depositsOf("{\"minHeight\": 10, \"maxHeight\": 60, \"minSize\": 40, \"maxSize\": 40, \"minPerChunk\": 6, \"maxPerChunk\": 6,"
+                + " \"palette\": [{\"block\": \"iron_ore\"}]}");
+        ApiChunk free = groundedChunk().dimensionSettings(deposits);
+        ApiChunk carved = groundedChunk().dimensionSettings(deposits);
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                for (int y = 20; y < 40; y++) {
+                    carved.carve(32 + x, y, -16 + z);
+                }
+            }
+        }
+
+        free.generate(new DepositModule());
+        carved.generate(new DepositModule());
+
+        assertTrue(countBetween(free, 20, 40) > 0);
+        assertEquals(0, countBetween(carved, 20, 40));
+        assertTrue("above and below the voids the same deposits grow", countBetween(carved, 0, 20) + countBetween(carved, 40, HEIGHT) > 0);
+    }
+
+    @Test
+    public void aChunkWithoutDepositsAtItsCentreIsLeftAlone() {
+        ApiChunk chunk = groundedChunk();
+
+        chunk.generate(new DepositModule());
+
+        assertEquals(0, countOf(chunk, new BlockState("minecraft:iron_ore")));
+    }
+
+    private static ApiChunk groundedChunk() {
+        ApiChunk chunk = new ApiChunk(32, -16, HEIGHT).surface((x, z) -> GROUND);
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                for (int y = 0; y <= GROUND; y++) {
+                    chunk.set(x, y, z, STONE);
+                }
+            }
+        }
+        return chunk;
+    }
+
+    private static DepositSettings depositsOf(String generatorJson) {
+        return TestSettings.of(DepositSettings.class, "{\"generators\": [" + generatorJson + "]}");
+    }
+
+    private static int countOf(ApiChunk chunk, BlockState block) {
+        int count = 0;
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                    count += chunk.get(x, y, z).equals(block) ? 1 : 0;
+                }
+            }
+        }
+        return count;
+    }
+
+    private static int countBetween(ApiChunk chunk, int from, int to) {
+        int count = 0;
+        for (int x = 0; x < ApiChunk.WIDTH; x++) {
+            for (int y = from; y < to; y++) {
+                for (int z = 0; z < ApiChunk.WIDTH; z++) {
+                    count += chunk.get(x, y, z).equals(new BlockState("minecraft:iron_ore")) ? 1 : 0;
+                }
+            }
+        }
+        return count;
     }
 }

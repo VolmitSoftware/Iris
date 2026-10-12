@@ -3,21 +3,12 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.OreFrequencySettings;
 import art.arcane.iris.builtin.deposit.OreSizeSettings;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.core.modules.PackResourceFixture;
-import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.engine.modifier.ResolvedDeposit.BiomeIdentity;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
+import com.volmit.block.BlockRegistry;
 import com.volmit.config.Desc;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -27,40 +18,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /** A deposit generator made ready for an engine: its clump shapes, ore tuning, replaceable blocks and biome filters. */
 public class ResolvedDepositTest {
     private static final long DEPOSIT_SEED = 41L;
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    private static final BlockRegistry BLOCKS = ApiChunk.blocks();
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void thePaletteResolvesThroughThePacksBlocks() throws Exception {
-        UsableBlockPlatform.bind();
-        try {
-            IrisData data = mock(IrisData.class);
-            when(data.getDataFolder()).thenReturn(folder.newFolder("pack"));
-            when(data.getBlockLoader()).thenReturn(mock(ResourceLoader.class));
-            PackResourceFixture.serve(data);
-            Engine engine = mock(Engine.class);
-            SeedManager seeds = mock(SeedManager.class);
-            when(engine.getData()).thenReturn(data);
-            when(engine.getSeedManager()).thenReturn(seeds);
-            when(seeds.getDeposit()).thenReturn(DEPOSIT_SEED);
+    public void thePaletteResolvesThroughThePacksBlocks() {
+        ResolvedDeposit deposit = new ResolvedDeposit(generator("{\"minSize\": 1, \"maxSize\": 1, \"palette\": [{\"block\": \"iron_ore\"}]}"), DEPOSIT_SEED, BLOCKS);
+        DepositClump clump = deposit.clump(new RNG(3));
 
-            ResolvedDeposit deposit = ResolvedDeposit.of(generator("{\"minSize\": 1, \"maxSize\": 1, \"palette\": [{\"block\": \"iron_ore\"}]}"), engine);
-            IrisObject clump = deposit.clump(new RNG(3));
-
-            List<String> keys = new java.util.ArrayList<>();
-            clump.getBlocks().values().forEachRemaining(block -> keys.add(block.key()));
-            assertEquals(List.of("minecraft:iron_ore"), keys);
-        } finally {
-            UsableBlockPlatform.unbind();
-        }
+        List<String> keys = new java.util.ArrayList<>();
+        clump.blocks().values().forEachRemaining(block -> keys.add(block.key()));
+        assertEquals(List.of("minecraft:iron_ore"), keys);
     }
 
     @Test
@@ -100,28 +72,27 @@ public class ResolvedDepositTest {
     @Test
     public void clumpShapesAreBuiltOncePerSizeFromTheWorldsDepositSeed() {
         DepositGenerator generator = generator("{\"minSize\": 4, \"maxSize\": 8, \"varience\": 1}");
-        ResolvedDeposit firstWorld = new ResolvedDeposit(generator, DEPOSIT_SEED, List.of(state("minecraft:granite", false)));
-        ResolvedDeposit secondWorld = new ResolvedDeposit(generator, DEPOSIT_SEED + 1, List.of(state("minecraft:granite", false)));
+        ResolvedDeposit firstWorld = new ResolvedDeposit(withPalette(generator, "granite"), DEPOSIT_SEED, BLOCKS);
+        ResolvedDeposit secondWorld = new ResolvedDeposit(withPalette(generator, "granite"), DEPOSIT_SEED + 1, BLOCKS);
 
         assertTrue("one variant: every pick is the same shape", firstWorld.clump(new RNG(1)) == firstWorld.clump(new RNG(2)));
-        assertNotEquals(firstWorld.clump(new RNG(1)).getBlocks().keys().toString(), secondWorld.clump(new RNG(1)).getBlocks().keys().toString());
+        assertNotEquals(firstWorld.clump(new RNG(1)).blocks().keys().toString(), secondWorld.clump(new RNG(1)).blocks().keys().toString());
         assertTrue("scaled sizes are their own shapes", firstWorld.clump(new RNG(1)) != firstWorld.clump(new RNG(1), 2D));
     }
 
     @Test
     public void clumpSaltIsStableAcrossEquivalentConfigInstances() {
-        ResolvedDeposit first = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:granite", false)));
-        ResolvedDeposit second = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:granite", false)));
+        ResolvedDeposit first = new ResolvedDeposit(withPalette(new DepositGenerator(), "granite"), DEPOSIT_SEED, BLOCKS);
+        ResolvedDeposit second = new ResolvedDeposit(withPalette(new DepositGenerator(), "granite"), DEPOSIT_SEED, BLOCKS);
 
         assertEquals(first.stableClumpSalt(), second.stableClumpSalt());
     }
 
     @Test
     public void clumpSaltIncludesAuthoredConfigAndPalette() {
-        ResolvedDeposit granite = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:granite", false)));
-        ResolvedDeposit andesite = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:andesite", false)));
-        ResolvedDeposit alteredShape = new ResolvedDeposit(generator("{\"shape\": \"VANILLA_SCATTERED\"}"), DEPOSIT_SEED,
-                List.of(state("minecraft:granite", false)));
+        ResolvedDeposit granite = new ResolvedDeposit(withPalette(new DepositGenerator(), "granite"), DEPOSIT_SEED, BLOCKS);
+        ResolvedDeposit andesite = new ResolvedDeposit(withPalette(new DepositGenerator(), "andesite"), DEPOSIT_SEED, BLOCKS);
+        ResolvedDeposit alteredShape = new ResolvedDeposit(withPalette(generator("{\"shape\": \"VANILLA_SCATTERED\"}"), "granite"), DEPOSIT_SEED, BLOCKS);
 
         assertEquals("the salt Iris deposits always had", 3112546198474861350L, granite.stableClumpSalt());
         assertNotEquals(granite.stableClumpSalt(), andesite.stableClumpSalt());
@@ -130,21 +101,21 @@ public class ResolvedDepositTest {
 
     @Test
     public void onlyOreDepositPalettesReceiveBiomeTuning() {
-        assertTrue(new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:iron_ore", true))).isOre());
-        assertFalse(new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:stone", false))).isOre());
+        assertTrue(new ResolvedDeposit(withPalette(new DepositGenerator(), "iron_ore"), DEPOSIT_SEED, BLOCKS).isOre());
+        assertFalse(new ResolvedDeposit(withPalette(new DepositGenerator(), "stone"), DEPOSIT_SEED, BLOCKS).isOre());
     }
 
     @Test
     public void vanillaEllipsoidSizeControlsGeometryRatherThanExactBlockCount() {
-        ResolvedDeposit deposit = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:iron_ore", true)));
+        ResolvedDeposit deposit = new ResolvedDeposit(withPalette(new DepositGenerator(), "iron_ore"), DEPOSIT_SEED, BLOCKS);
         long smallBlocks = 0L;
         long mediumBlocks = 0L;
         long largeBlocks = 0L;
         int samples = 500;
         for (int i = 0; i < samples; i++) {
-            smallBlocks += deposit.vanillaEllipsoid(new RNG(i), 4).getBlocks().size();
-            mediumBlocks += deposit.vanillaEllipsoid(new RNG(i), 8).getBlocks().size();
-            largeBlocks += deposit.vanillaEllipsoid(new RNG(i), 17).getBlocks().size();
+            smallBlocks += deposit.vanillaEllipsoid(new RNG(i), 4).blocks().size();
+            mediumBlocks += deposit.vanillaEllipsoid(new RNG(i), 8).blocks().size();
+            largeBlocks += deposit.vanillaEllipsoid(new RNG(i), 17).blocks().size();
         }
 
         assertTrue(smallBlocks > 0L);
@@ -155,12 +126,12 @@ public class ResolvedDepositTest {
 
     @Test
     public void vanillaScatteredSizeIsAnUpperCandidateBound() {
-        ResolvedDeposit deposit = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, List.of(state("minecraft:iron_ore", true)));
+        ResolvedDeposit deposit = new ResolvedDeposit(withPalette(new DepositGenerator(), "iron_ore"), DEPOSIT_SEED, BLOCKS);
         boolean foundEmpty = false;
         boolean foundNonEmpty = false;
         RNG rng = new RNG(991L);
         for (int i = 0; i < 200; i++) {
-            int blocks = deposit.vanillaScattered(rng, 3).getBlocks().size();
+            int blocks = deposit.vanillaScattered(rng, 3).blocks().size();
             assertTrue(blocks <= 3);
             foundEmpty |= blocks == 0;
             foundNonEmpty |= blocks > 0;
@@ -172,35 +143,59 @@ public class ResolvedDepositTest {
 
     @Test
     public void biomeFiltersAcceptResourceKeysAndVanillaDerivatives() {
-        IrisBiome mountain = new IrisBiome();
-        mountain.setLoadKey("custom/mountain");
-        mountain.setDerivative("minecraft:stony_peaks");
-        IrisBiome plains = new IrisBiome();
-        plains.setLoadKey("custom/plains");
-        plains.setDerivative("minecraft:plains");
+        BiomeIdentity mountain = new BiomeIdentity("custom/mountain", "minecraft:stony_peaks", "minecraft:stony_peaks");
+        BiomeIdentity plains = new BiomeIdentity("custom/plains", "minecraft:plains", "minecraft:plains");
 
         DepositGenerator included = generator("{\"biomeScope\": \"SURFACE\", \"includedBiomes\": [\"minecraft:stony_peaks\"]}");
-        ResolvedDeposit surface = new ResolvedDeposit(included, DEPOSIT_SEED, List.of());
-        assertTrue(surface.matchesBiome(mountain, plains));
-        assertFalse(surface.matchesBiome(plains, mountain));
+        ResolvedDeposit surface = new ResolvedDeposit(included, DEPOSIT_SEED, BLOCKS);
+        assertTrue(surface.matchesBiome(() -> mountain, () -> plains));
+        assertFalse(surface.matchesBiome(() -> plains, () -> mountain));
         assertFalse(included.usesCaveBiomeFilter());
 
         DepositGenerator excluded = generator("{\"biomeScope\": \"SURFACE\", \"excludedBiomes\": [\"custom/mountain\"]}");
-        ResolvedDeposit excluding = new ResolvedDeposit(excluded, DEPOSIT_SEED, List.of());
-        assertFalse(excluding.matchesBiome(mountain, plains));
-        assertTrue(excluding.matchesBiome(plains, mountain));
+        ResolvedDeposit excluding = new ResolvedDeposit(excluded, DEPOSIT_SEED, BLOCKS);
+        assertFalse(excluding.matchesBiome(() -> mountain, () -> plains));
+        assertTrue(excluding.matchesBiome(() -> plains, () -> mountain));
 
         assertTrue(generator("{\"excludedBiomes\": [\"custom/mountain\"]}").usesCaveBiomeFilter());
+    }
+
+    @Test
+    public void aBiomeThatIsNoneMatchesNoKey() {
+        ResolvedDeposit including = new ResolvedDeposit(generator("{\"biomeScope\": \"CAVE\", \"includedBiomes\": [\"carving/drip\"]}"), DEPOSIT_SEED, BLOCKS);
+        ResolvedDeposit excluding = new ResolvedDeposit(generator("{\"biomeScope\": \"CAVE\", \"excludedBiomes\": [\"carving/drip\"]}"), DEPOSIT_SEED, BLOCKS);
+
+        assertFalse(including.matchesBiome(() -> null, () -> null));
+        assertTrue(excluding.matchesBiome(() -> null, () -> null));
+    }
+
+    @Test
+    public void noFilterAsksNoBiome() {
+        ResolvedDeposit unfiltered = new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, BLOCKS);
+
+        assertTrue(unfiltered.matchesBiome(() -> {
+            throw new AssertionError("The surface biome is asked for only when a filter reads it");
+        }, () -> {
+            throw new AssertionError("The cave biome is asked for only when a filter reads it");
+        }));
+    }
+
+    @Test
+    public void onlyTheBlocksTheServerKnowsAreReplaceable() {
+        ResolvedDeposit deposit = new ResolvedDeposit(generator("{\"replaceableBlocks\": [\"stone\", \"" + ApiChunk.UNKNOWN_BLOCK + "\"]}"), DEPOSIT_SEED, BLOCKS);
+
+        assertTrue(deposit.canReplace(new com.volmit.block.BlockState("minecraft:stone")));
+        assertFalse(deposit.canReplace(new com.volmit.block.BlockState("minecraft:dirt")));
+        assertTrue("a deposit that names no blocks replaces any", new ResolvedDeposit(new DepositGenerator(), DEPOSIT_SEED, BLOCKS)
+                .canReplace(new com.volmit.block.BlockState("minecraft:dirt")));
     }
 
     private static DepositGenerator generator(String json) {
         return new Gson().fromJson(json, DepositGenerator.class);
     }
 
-    private static PlatformBlockState state(String key, boolean ore) {
-        PlatformBlockState state = mock(PlatformBlockState.class);
-        when(state.isOre()).thenReturn(ore);
-        when(state.key()).thenReturn(key);
-        return state;
+    /** {@code generator} with a palette of {@code block}, as its JSON would have it. */
+    private static DepositGenerator withPalette(DepositGenerator generator, String block) {
+        return art.arcane.iris.engine.object.TestSettings.with(generator, "palette", List.of(com.volmit.block.BlockSpec.of(block)));
     }
 }

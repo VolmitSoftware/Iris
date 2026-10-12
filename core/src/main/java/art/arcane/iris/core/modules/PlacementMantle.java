@@ -71,6 +71,11 @@ final class PlacementMantle implements Mantle, AutoCloseable {
     }
 
     @Override
+    public MantleLayer<Boolean> caverns() {
+        return new StoredRange<>(placement.caverns());
+    }
+
+    @Override
     public MantleEdit edit() {
         throw new UnsupportedOperationException("The placement owns the mantle edit; write through layer()");
     }

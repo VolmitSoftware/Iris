@@ -24,6 +24,7 @@ import com.volmit.mantle.BlockBox;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
 import com.volmit.resource.PackResources;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSample;
@@ -69,6 +70,16 @@ final class IrisPlacementInputs implements PlacementContext {
 
             @Override
             public BiomeSample biome(int worldX, int y, int worldZ) {
+                throw withoutEngine();
+            }
+
+            @Override
+            public BiomeKind surfaceKind(int worldX, int worldZ) {
+                throw withoutEngine();
+            }
+
+            @Override
+            public int minWorldY() {
                 throw withoutEngine();
             }
 

@@ -26,7 +26,6 @@ import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.spawn.SpawnModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.modifier.CarveModule;
-import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.FloatingModule;
 import art.arcane.iris.engine.object.placement.PlacementModules;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -63,7 +62,7 @@ public final class IrisModuleHost {
      * {@code IrisModule/builtin-modules.txt}) instead of being compiled into Iris. A pack loads them from its {@code modules}
      * folder, and {@link MissingBuiltInModules} warns when it loads none; a test keeps this equal to the jar's list.
      */
-    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter");
+    public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:deposit");
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -88,7 +87,7 @@ public final class IrisModuleHost {
 
     private static List<IrisModule> generationModules() {
         return List.of(new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
-                new FloatingModule(), new DepositModule(), new DecorantModule(), new LootModule(), new SpawnModule());
+                new FloatingModule(), new DecorantModule(), new LootModule(), new SpawnModule());
     }
 
     /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */

@@ -192,8 +192,15 @@ public final class IrisPackResources implements PackResources {
         return new Kind<>(ids, files::keys, (id, key) -> files.read(key));
     }
 
+    /** Iris's own biome that {@code id}, as a {@code BiomeSample} gives it, names; for host code that reads what the biome declares. */
+    Optional<IrisBiome> irisBiome(ResourceId id) {
+        String key = irisKinds.get(PackBiome.class).keyOf(id);
+        return key == null ? Optional.empty() : Optional.ofNullable(data.getBiomeLoader().load(key));
+    }
+
     private PackBiome biomeOf(ResourceId id, IrisBiome biome) {
-        return new PackBiome(id, biome.getName(), ResourceId.parse(biome.getDerivativeKey()), biome.getRarity(), idsOf(biome.getChildren()));
+        return new PackBiome(id, biome.getName(), ResourceId.parse(biome.getDerivativeKey()), ResourceId.parse(biome.getVanillaDerivativeKey()),
+                biome.getRarity(), idsOf(biome.getChildren()));
     }
 
     private PackRegion regionOf(ResourceId id, IrisRegion region) {
@@ -227,6 +234,11 @@ public final class IrisPackResources implements PackResources {
                 R resource = loader.get().load(key);
                 return resource == null ? null : conversion.apply(id, resource);
             });
+        }
+
+        /** The pack key that has {@code id}, or null. */
+        String keyOf(ResourceId id) {
+            return keysById().get(id);
         }
 
         Optional<T> find(ResourceId id) {

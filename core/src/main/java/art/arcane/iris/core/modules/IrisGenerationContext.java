@@ -59,7 +59,7 @@ final class IrisGenerationContext implements GenerationContext {
         this.originX = originX;
         this.originZ = originZ;
         this.blocks = new BlockStateHunk(blocks, states);
-        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, TERRAIN_MARGIN_BLOCKS);
+        this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, TERRAIN_MARGIN_BLOCKS, states);
         this.settings = new ChunkModuleSettings(engine, ids);
         BlockBox chunk = ApiHeights.columns(engine, originX, originZ, originX + CHUNK_WIDTH, originZ + CHUNK_WIDTH);
         this.mantle = new IrisModuleMantle(chunk, mantleChunks, mantleLayers, PlannedBlocks.of(engine, chunk, mantleChunks, states));

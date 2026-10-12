@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 
 /** The services and hooks Iris's built-in modules provide, which Iris core asks instead of their features. */
 public class BuiltInServicesTest {
-    private static final FeatureCatalog BUILT_INS = ModuleResourceFixture.catalogOf(IrisModuleHost.builtInModules().toArray(IrisModule[]::new));
+    private static final FeatureCatalog BUILT_INS = ModuleResourceFixture.catalogOf(BuiltInPack.allBuiltIns().toArray(IrisModule[]::new));
 
     @Test
     public void objectsTellWhichObjectsAChunkGets() {

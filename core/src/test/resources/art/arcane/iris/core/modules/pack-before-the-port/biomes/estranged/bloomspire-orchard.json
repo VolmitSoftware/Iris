@@ -1,0 +1,98 @@
+{
+    "name": "Bloomspire Orchard",
+    "color": "#F2B6D6",
+    "rarity": 3,
+    "derivative": "minecraft:cherry_grove",
+    "vanillaDerivative": "minecraft:cherry_grove",
+    "customDerivitives": [{
+        "id": "estranged_bloomspire",
+        "foliageColor": "#E79AD0",
+        "grassColor": "#88C04A",
+        "category": "forest"
+    }],
+    "generators": [
+        {"generator": "smooth-dunes", "max": 12, "min": 5},
+        {"generator": "rare-hills", "max": 34, "min": 0}
+    ],
+    "wall": {"palette": [
+        {"block": "minecraft:stone"},
+        {"block": "minecraft:andesite"}
+    ]},
+    "layers": [
+        {"palette": [{"block": "minecraft:grass_block"}]},
+        {"minHeight": 2, "maxHeight": 2, "palette": [{"block": "minecraft:dirt"}]},
+        {"minHeight": 1, "maxHeight": 3, "palette": [
+            {"block": "minecraft:dirt"},
+            {"block": "minecraft:stone"}
+        ]}
+    ],
+    "proceduralObjects": {
+        "trees": [
+            {
+                "name": "bloomspire",
+                "chance": 0.6,
+                "density": 2,
+                "variants": 6,
+                "seed": 8501,
+                "trunk": "minecraft:cherry_wood",
+                "trunkPalette": {
+                    "style": {"style": "CELLULAR", "zoom": 0.4},
+                    "zoom": 2,
+                    "palette": [
+                        {"block": "minecraft:cherry_wood", "weight": 5},
+                        {"block": "minecraft:oak_wood", "weight": 2}
+                    ]
+                },
+                "leaves": "minecraft:cherry_leaves",
+                "leavesPalette": {
+                    "style": {"style": "CELLULAR", "zoom": 0.3},
+                    "palette": [
+                        {"block": "minecraft:cherry_leaves", "weight": 5},
+                        {"block": "minecraft:flowering_azalea_leaves", "weight": 2}
+                    ]
+                },
+                "profile": "CHERRY",
+                "heightMin": 10,
+                "heightMax": 16,
+                "trunkWidth": 1,
+                "trunkShape": "BELL",
+                "shapeStart": 1.0,
+                "shapeEnd": 0.8,
+                "rotation": {"enabled": true, "yAxis": {"enabled": true, "min": 0, "max": 360, "interval": 90}},
+                "canopy": {
+                    "mode": "DENSITY",
+                    "leafDensity": 0.88,
+                    "crownStretchX": 1.2,
+                    "crownStretchZ": 1.2,
+                    "branches": {
+                        "probabilityFunction": "TOP_HEAVY",
+                        "probabilityExponent": 2,
+                        "lengthFunction": "LINEAR",
+                        "lengthBase": 2,
+                        "lengthCrown": 4,
+                        "azimuthMode": "GOLDEN_ANGLE",
+                        "elevation": 10,
+                        "sag": 0.2,
+                        "clusterRadius": 2,
+                        "clusterMode": "DENSITY",
+                        "clusterDensity": 0.85
+                    }
+                },
+                "decorators": [
+                    {"target": "GROUND_SCATTER", "block": "minecraft:pink_petals", "chance": 0.12},
+                    {"target": "LEAF_SURFACE", "block": "minecraft:cherry_leaves", "chance": 0.04}
+                ]
+            }
+        ]
+    },
+    "decorators": [
+        {"chance": 0.45, "palette": [{"block": "minecraft:short_grass"}]},
+        {"chance": 0.08, "palette": [
+            {"block": "minecraft:pink_tulip"},
+            {"block": "minecraft:allium"},
+            {"block": "minecraft:peony"}
+        ]},
+        "snippet/decorator/leaf",
+        "snippet/decorator/bush"
+    ]
+}

@@ -20,6 +20,7 @@ package art.arcane.iris.engine.object.procedural;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.coral.Coral;
 import art.arcane.iris.builtin.objects.coral.CoralForm;
 import art.arcane.iris.builtin.objects.crystal.Crystal;
@@ -31,7 +32,6 @@ import art.arcane.iris.builtin.objects.ruin.Ruin;
 import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
@@ -74,9 +74,7 @@ public class ProceduralSettingsDecodingTest {
              "shardCountMin": 3, "shardCountMax": 6, "shardLengthMin": 2, "shardLengthMax": 5, "shardBaseRadius": 1.1,
              "shardTaper": 1.0, "spreadAngle": 68, "distribution": "GOLDEN_ANGLE", "jitter": 0.35}
             """;
-    private static final String BIOME = """
-            {"name": "Glacial", "proceduralObjects": "snippet/procedural-objects/frozen/magical-ice-spikes-biome"}
-            """;
+    private static final String BIOME_SNIPPET = "\"snippet/procedural-objects/frozen/magical-ice-spikes-biome\"";
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -144,19 +142,18 @@ public class ProceduralSettingsDecodingTest {
 
     @Test
     public void aBiomeHoldsItsProceduralObjectsFromASnippet() {
-        IrisBiome biome = gson.fromJson(BIOME, IrisBiome.class);
+        ProceduralObjectSettings objects = gson.fromJson(BIOME_SNIPPET, ProceduralObjectSettings.class);
 
-        IrisProceduralObjects objects = biome.getProceduralObjects();
-        assertEquals(1, objects.getFormations().size());
-        assertEquals(1, objects.getCrystals().size());
-        assertEquals("glacial-iceberg", objects.getFormations().get(0).name());
-        assertFalse(objects.isEmpty());
+        assertEquals(1, objects.formations().size());
+        assertEquals(1, objects.crystals().size());
+        assertEquals("glacial-iceberg", objects.formations().get(0).name());
+        assertFalse(new ResolvedProceduralObjects(objects).isEmpty());
     }
 
     @Test
     public void everyKindPlacesWithItsSettingsAndMakesTheSamePlacementEachTime() {
-        IrisProceduralObjects objects = gson.fromJson("{\"coral\": [{}], \"fungi\": [{}], \"ruins\": [{}], "
-                + "\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}", IrisProceduralObjects.class);
+        ResolvedProceduralObjects objects = new ResolvedProceduralObjects(gson.fromJson("{\"coral\": [{}], \"fungi\": [{}], \"ruins\": [{}], "
+                + "\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}", ProceduralObjectSettings.class));
 
         List<IrisProceduralPlacement> placements = objects.getAllPlacements();
         assertEquals(5, placements.size());

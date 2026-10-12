@@ -1,0 +1,21 @@
+{
+    "style": {
+        "style": "CELLULAR",
+        "zoom": 0.55
+    },
+    "zoom": 2.5,
+    "palette": [
+        {
+            "block": "minecraft:packed_ice",
+            "weight": 5
+        },
+        {
+            "block": "minecraft:ice",
+            "weight": 2
+        },
+        {
+            "block": "minecraft:blue_ice",
+            "weight": 2
+        }
+    ]
+}

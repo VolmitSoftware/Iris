@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.object.world;
 
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisTree;
+import art.arcane.iris.builtin.objects.TreeOverride;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -27,8 +27,8 @@ public class RemovedDeadFieldsTest {
         assertThrows(NoSuchFieldException.class, () -> IrisRegion.class.getDeclaredField("realRiverBiomes"));
         assertThrows(NoSuchFieldException.class, () -> IrisRegion.class.getDeclaredField("realLakeBiomes"));
         assertThrows(NoSuchFieldException.class, () -> IrisObjectPlacement.class.getDeclaredField("translateCenter"));
-        assertThrows(NoSuchFieldException.class, () -> IrisTree.class.getDeclaredField("anyTree"));
-        assertThrows(NoSuchFieldException.class, () -> IrisTree.class.getDeclaredField("anySize"));
+        assertThrows(NoSuchFieldException.class, () -> TreeOverride.class.getDeclaredField("anyTree"));
+        assertThrows(NoSuchFieldException.class, () -> TreeOverride.class.getDeclaredField("anySize"));
         assertThrows(NoSuchMethodException.class, () -> IrisRegion.class.getDeclaredMethod("getBiomeZoom", InferredType.class));
     }
 
@@ -41,7 +41,7 @@ public class RemovedDeadFieldsTest {
         assertNotNull(dimension);
         assertEquals("x", dimension.getName());
 
-        IrisTree tree = new Gson().fromJson("{\"anyTree\":true,\"anySize\":true}", IrisTree.class);
+        TreeOverride tree = new Gson().fromJson("{\"anyTree\":true,\"anySize\":true}", TreeOverride.class);
         assertNotNull(tree);
 
         IrisRegion region = new Gson().fromJson(

@@ -23,6 +23,8 @@ import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInModulesJar;
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -58,7 +60,7 @@ public class ModuleResourceClosureTest {
             closure.followSettingsOf(dimension);
             closure.followSettingsOf(region);
             closure.followSettingsOf(biome);
-            closure.follow(biome.getObjects());
+            closure.follow(ObjectPlacements.all(biome));
 
             assertEquals(List.of("drops", "global", "regional"), closure.keysOf(LootTable.class));
             assertEquals(List.of("camp/zombies", "cave", "marker/spawner"), closure.keysOf(Spawner.class));
@@ -123,6 +125,7 @@ public class ModuleResourceClosureTest {
         write(pack, "entities/beta/sentinel.json", "{\"type\":\"minecraft:skeleton\"}");
         write(pack, "entities/cow.json", "{\"type\":\"minecraft:cow\"}");
         write(pack, "markers/camp.json", "{\"spawners\":[\"marker/spawner\"]}");
+        BuiltInModulesJar.writeInto(pack.toPath());
         return pack.toPath();
     }
 

@@ -15,7 +15,7 @@ import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.IrisTree;
+import art.arcane.iris.builtin.objects.TreeOverride;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectScale;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
@@ -45,7 +45,7 @@ public class IrisObjectPlacementToPlacementTest {
         IrisObjectScale scale = new IrisObjectScale();
         KList<IrisObjectLoot> loot = new KList<>();
         KList<IrisObjectVanillaLoot> vanillaLoot = new KList<>();
-        KList<IrisTree> trees = new KList<>();
+        KList<TreeOverride> trees = new KList<>();
         KList<String> allowedCollisions = new KList<>();
         KList<String> forbiddenCollisions = new KList<>();
         SlopeClip slopeCondition = new SlopeClip();
@@ -54,7 +54,7 @@ public class IrisObjectPlacementToPlacementTest {
         edit.add(new ObjectReplace());
         loot.add(new IrisObjectLoot());
         vanillaLoot.add(new IrisObjectVanillaLoot());
-        trees.add(new IrisTree());
+        trees.add(new TreeOverride());
         allowedCollisions.add("objects/allowed");
         forbiddenCollisions.add("objects/forbidden");
 

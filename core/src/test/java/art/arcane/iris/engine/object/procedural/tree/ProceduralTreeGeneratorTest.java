@@ -35,7 +35,7 @@ public class ProceduralTreeGeneratorTest {
         Tree tree = new Tree();
         TestSettings.with(tree, "name", "towering-oak");
 
-        assertEquals("procedural/tree/towering-oak#3", ResolvedTree.variantLoadKey(tree.name(), 3));
+        assertEquals("procedural/tree/towering-oak#3", Tree.variantLoadKey(tree.name(), 3));
     }
 
     @Test

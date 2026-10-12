@@ -19,6 +19,9 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.engine.loot.LootResources;
+import art.arcane.iris.engine.spawn.SpawnResources;
+import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
 import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
@@ -199,7 +202,7 @@ public final class ApiChunk implements GenerationContext {
 
     /** Empty stand-ins for the built-in stages the ported modules order after: carving and floating islands. */
     public static List<IrisModule> standIns() {
-        return List.of(new CarveStandIn(), new FloatingStandIn());
+        return List.of(new CarveStandIn(), new FloatingStandIn(), new LootKindsStandIn(), new SpawnKindsStandIn());
     }
 
     /** Runs {@code modules} as a pack's chunk graph, with the {@link #standIns()}. */
@@ -545,6 +548,42 @@ public final class ApiChunk implements GenerationContext {
         public void install(StageGraph graph) {
             graph.define(IrisStages.Carve.APPLY).run(context -> {
             });
+            graph.define(IrisStages.Carve.CAVES).run(context -> {
+            });
+        }
+    }
+
+    /** Stand-in for the loot module, whose loot tables the jar's object placements name. */
+    private static final class LootKindsStandIn implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("iris:loot", "Loot stand-in", "test");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+        }
+
+        @Override
+        public void register(FeatureRegistry registry) {
+            LootResources.kinds().forEach(registry::registerResourceKind);
+        }
+    }
+
+    /** Stand-in for the spawn module, whose markers the jar's object placements name. */
+    private static final class SpawnKindsStandIn implements IrisModule {
+        @Override
+        public ModuleInfo info() {
+            return ModuleInfo.of("iris:spawn", "Spawn stand-in", "test");
+        }
+
+        @Override
+        public void install(StageGraph graph) {
+        }
+
+        @Override
+        public void register(FeatureRegistry registry) {
+            SpawnResources.kinds().forEach(registry::registerResourceKind);
         }
     }
 

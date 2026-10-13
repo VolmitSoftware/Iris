@@ -53,6 +53,7 @@ import java.util.Set;
 
 @ComponentFlag(ReservedFlag.FLOATING_OBJECT)
 public class MantleFloatingObjectComponent extends IrisMantleComponent {
+    private static final int MINIMUM_PLACEMENT_RADIUS = 16;
     private static final int INVERTED_PICK_ATTEMPTS = 8;
     private static final IrisObjectRotation ROTATION_NONE = IrisObjectRotation.of(0, 0, 0);
 
@@ -62,6 +63,9 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+        if (getRadius() == 0) {
+            return;
+        }
         IrisComplex complex = context.getComplex();
         if (!complex.allowsNewGenerationChunk(x, z)) {
             return;
@@ -593,7 +597,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
 
     @Override
     protected int computeRadius() {
-        int maxObjectExtent = 16;
+        int maxObjectExtent = 0;
         Map<String, IrisBlockVector> sizeCache = new HashMap<>();
         Set<String> warnedLargeObjects = new HashSet<>();
         try {
@@ -613,16 +617,20 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                         if (target != null) {
                             maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveTopObjects(target), data, sizeCache, warnedLargeObjects));
                             maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveBottomObjects(target), data, sizeCache, warnedLargeObjects));
+                        } else {
+                            maxObjectExtent = Math.max(maxObjectExtent, MINIMUM_PLACEMENT_RADIUS);
                         }
                     } catch (Throwable e) {
                         GenerationFailures.rethrowEngineFailure(e);
                         IrisLogging.reportError(e);
+                        maxObjectExtent = Math.max(maxObjectExtent, MINIMUM_PLACEMENT_RADIUS);
                     }
                 }
             }
         } catch (Throwable e) {
             GenerationFailures.rethrowEngineFailure(e);
             IrisLogging.reportError(e);
+            maxObjectExtent = Math.max(maxObjectExtent, MINIMUM_PLACEMENT_RADIUS);
         }
         return maxObjectExtent;
     }
@@ -630,10 +638,13 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
     private int computePlacementRadius(KList<IrisObjectPlacement> placements, IrisData data,
                                        Map<String, IrisBlockVector> sizeCache,
                                        Set<String> warnedLargeObjects) {
-        int radius = 0;
         if (placements == null) {
-            return radius;
+            return MINIMUM_PLACEMENT_RADIUS;
         }
+        if (placements.isEmpty()) {
+            return 0;
+        }
+        int radius = MINIMUM_PLACEMENT_RADIUS;
         for (IrisObjectPlacement placement : placements) {
             if (placement == null || placement.getPlace() == null) {
                 continue;

@@ -30,7 +30,6 @@ import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockResolution;
@@ -382,16 +381,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             if (!state.isStorageChest()) {
                 return;
             }
-            try {
-                ModdedLootApplier.apply(engine, level, pos, state, chunk);
-            } catch (SavedBiomeUnavailableException unavailable) {
-                GenerationFailures.rethrowEngineFailure(unavailable);
-                IrisLogging.warnOnce("chunk-update-loot:" + level.name() + ":" + unavailable.getMessage(),
-                        "Iris left the container at " + pos + " in " + level.name() + " without loot: " + unavailable.getMessage());
-            } catch (Throwable e) {
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
-            }
+            ModdedLootApplier.apply(engine, level, pos, state, chunk);
         } else {
             NativeWorldMaintenance.refresh(level, pos);
         }

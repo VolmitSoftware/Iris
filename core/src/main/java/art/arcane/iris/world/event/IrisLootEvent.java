@@ -4,7 +4,6 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.world.loot.InventorySlotType;
 import art.arcane.iris.world.loot.IrisLootTable;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.world.task.J;
 import lombok.Getter;
@@ -92,6 +91,10 @@ public class IrisLootEvent extends Event {
      * @return true when the event was canceled
      */
     public static boolean callLootEvent(KList<ItemStack> loot, Inventory inv, World world, int x, int y, int z) {
+        if (!J.isOwnedByCurrentRegion(world, x >> 4, z >> 4)) {
+            throw new IllegalStateException("LootGenerateEvent requires the owning region at "
+                    + world.getName() + " [" + x + "," + y + "," + z + "].");
+        }
         InventoryHolder holder = inv.getHolder();
         Location loc = new Location(world, x, y, z);
         if (holder == null) {
@@ -106,39 +109,8 @@ public class IrisLootEvent extends Event {
 
         LootContext context = new LootContext.Builder(loc).build();
         LootGenerateEvent event = new LootGenerateEvent(world, null, holder, EMPTY, context, loot, true);
-        if (!Bukkit.isPrimaryThread()) {
-            IrisLogging.warn("LootGenerateEvent was not called on the main thread, please report this issue.");
-            Thread.dumpStack();
-            J.sfut(() -> {
-                try {
-                    Bukkit.getPluginManager().callEvent(event);
-                } catch (Throwable e) {
-                    IrisLogging.reportError("LootGenerateEvent dispatch failed at "
-                            + world.getName() + " [" + x + "," + y + "," + z + "].", e);
-                    if (e instanceof RuntimeException runtimeException) {
-                        throw runtimeException;
-                    }
-                    if (e instanceof Error error) {
-                        throw error;
-                    }
-                    throw new IllegalStateException(e);
-                }
-            }).join();
-        } else {
-            try {
-                Bukkit.getPluginManager().callEvent(event);
-            } catch (Throwable e) {
-                IrisLogging.reportError("LootGenerateEvent dispatch failed at "
-                        + world.getName() + " [" + x + "," + y + "," + z + "].", e);
-                if (e instanceof RuntimeException runtimeException) {
-                    throw runtimeException;
-                }
-                if (e instanceof Error error) {
-                    throw error;
-                }
-                throw new IllegalStateException(e);
-            }
-        }
+
+        Bukkit.getPluginManager().callEvent(event);
 
         return event.isCancelled();
     }

@@ -93,8 +93,10 @@ public class WorldObjectPlacer implements IObjectPlacer {
             }
             InventoryHolder holder = (InventoryHolder) block.getState();
             EngineBukkitOps.addItems(engine, false, holder.getInventory(), tables, InventorySlotType.STORAGE, world, x, y, z);
-        } catch (Throwable e) {
-            IrisLogging.reportError(e);
+        } catch (RuntimeException | Error failure) {
+            IrisLogging.reportError("Failed to populate placed container at " + world.getName()
+                    + " [" + x + "," + y + "," + z + "].", failure);
+            throw failure;
         }
     }
 

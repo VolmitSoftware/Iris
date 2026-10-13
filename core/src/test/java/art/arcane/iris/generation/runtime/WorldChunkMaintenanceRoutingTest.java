@@ -175,6 +175,7 @@ public class WorldChunkMaintenanceRoutingTest {
     public void failedMaterializationRetainsRetryAndReportsTheFailure() throws Exception {
         try (Fixture fixture = new Fixture()) {
             IllegalStateException failure = new IllegalStateException("Provider placement failed");
+            fixture.logging.when(() -> IrisLogging.errorOnce(anyString(), anyString())).thenReturn(true, false);
             fixture.updates.when(() -> EngineBukkitOps.updateChunk(fixture.engine, fixture.chunk, fixture.savedMantle)).thenThrow(failure);
             fixture.schedule();
             fixture.prepare();
@@ -182,6 +183,10 @@ public class WorldChunkMaintenanceRoutingTest {
             fixture.apply();
             fixture.awaitRelease();
 
+            fixture.schedule();
+            fixture.prepare();
+            fixture.apply();
+            fixture.awaitRelease();
             fixture.logging.verify(() -> IrisLogging.reportError(anyString(), eq(failure)));
             fixture.schedule();
             assertEquals(1, fixture.async.size());

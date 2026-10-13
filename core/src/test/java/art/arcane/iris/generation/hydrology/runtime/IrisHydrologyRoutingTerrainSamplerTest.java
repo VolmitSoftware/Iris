@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.runtime;
 
 import art.arcane.iris.generation.hydrology.HydrologyRoutingTerrainSampler;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.hydrology.HydrologyTerrainSample;
 import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.generation.concurrent.MultiBurst;
@@ -40,6 +41,132 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class IrisHydrologyRoutingTerrainSamplerTest {
+    @Test
+    public void provisionalOceanClassificationIsReevaluated() {
+        AtomicInteger calls = new AtomicInteger();
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources((x, z, height) -> {
+                    throw new AssertionError("Classification must not load a basis");
+                }, (x, z) -> {
+                    if (calls.incrementAndGet() == 1) {
+                        ProvisionalSampling.mark();
+                        return 100D;
+                    }
+                    return 40D;
+                }, (x, z) -> true, 60), IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16));
+        assertEquals(IrisHydrologyRoutingTerrainSampler.NaturalClassification.LAND, sampler.classifyNatural(2, 3));
+        assertEquals(0, sampler.oceanClassificationCacheSize());
+        assertEquals(IrisHydrologyRoutingTerrainSampler.NaturalClassification.OCEAN, sampler.classifyNatural(2, 3));
+        assertEquals(1, sampler.oceanClassificationCacheSize());
+    }
+
+    @Test
+    public void bulkHeightProviderReceivesOnlyUniqueUncachedCoordinates() {
+        ArrayList<Long> requested = new ArrayList<>();
+        IrisHydrologyNaturalHeightProvider heights = new IrisHydrologyNaturalHeightProvider() {
+            @Override
+            public double sample(int x, int z) {
+                return 100D + Math.floorMod(x + z, 17);
+            }
+
+            @Override
+            public boolean supportsBatch() {
+                return true;
+            }
+
+            @Override
+            public void sampleBatch(long[] coordinates, int count, double[] target) {
+                for (int index = 0; index < count; index++) {
+                    requested.add(coordinates[index]);
+                    target[index] = sample(RiverFootprint.unpackX(coordinates[index]), RiverFootprint.unpackZ(coordinates[index]));
+                }
+            }
+        };
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources((x, z, height) ->
+                        new IrisHydrologyRoutingTerrainSampler.TerrainBasis(height,
+                                HydrologyTerrainSample.openLand((int) height, 0D, "land")), heights, (x, z) -> false, 60),
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(8192));
+        sampler.sampleBasisWithoutSlope(-1, 5);
+        sampler.sampleLandHeight(6, -7);
+        long[] coordinates = {RiverFootprint.pack(-1, 5), RiverFootprint.pack(6, -7),
+                RiverFootprint.pack(-9, 19), RiverFootprint.pack(-9, 19),
+                RiverFootprint.pack(Integer.MAX_VALUE, Integer.MIN_VALUE)};
+        for (int repeat = 0; repeat < 2; repeat++) {
+            HydrologyTerrainSample[] samples = sampler.sampleBasisWithoutSlopeBatch(coordinates, coordinates.length);
+            for (int index = 0; index < coordinates.length; index++) {
+                assertEquals((int) heights.sample(RiverFootprint.unpackX(coordinates[index]),
+                        RiverFootprint.unpackZ(coordinates[index])), samples[index].naturalHeight());
+            }
+        }
+        assertEquals(List.of(coordinates[2], coordinates[4]), requested);
+    }
+
+    @Test
+    public void gridUsesBoundedHeightSlices() {
+        ArrayList<Integer> sizes = new ArrayList<>();
+        IrisHydrologyNaturalHeightProvider heights = new IrisHydrologyNaturalHeightProvider() {
+            @Override
+            public double sample(int x, int z) {
+                throw new AssertionError("Expected bulk height sampling");
+            }
+
+            @Override
+            public boolean supportsBatch() {
+                return true;
+            }
+
+            @Override
+            public void sampleBatch(long[] coordinates, int count, double[] target) {
+                sizes.add(count);
+                for (int index = 0; index < count; index++) {
+                    target[index] = 100D;
+                }
+            }
+        };
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources((x, z, height) ->
+                        new IrisHydrologyRoutingTerrainSampler.TerrainBasis(height,
+                                HydrologyTerrainSample.openLand((int) height, 0D, "land")), heights, (x, z) -> false, 60),
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(8192));
+        HydrologyTerrainSample[] samples = sampler.sampleGrid(new HydrologyRoutingTerrainSampler.GridRequest(-1024, -4096, 65, 8));
+        assertEquals(65 * 65, samples.length);
+        assertEquals(List.of(4096, 260), sizes);
+        for (HydrologyTerrainSample sample : samples) {
+            assertEquals(100, sample.naturalHeight());
+            assertEquals(0D, sample.slope(), 0D);
+        }
+    }
+
+    @Test
+    public void provisionalBulkAndScalarHeightsNeverBecomeRoutingCacheEntries() {
+        AtomicInteger calls = new AtomicInteger();
+        IrisHydrologyNaturalHeightProvider heights = new IrisHydrologyNaturalHeightProvider() {
+            @Override
+            public double sample(int x, int z) {
+                ProvisionalSampling.mark();
+                return 100D + calls.incrementAndGet();
+            }
+
+            @Override
+            public boolean supportsBatch() {
+                return true;
+            }
+        };
+        IrisHydrologyRoutingTerrainSampler sampler = new IrisHydrologyRoutingTerrainSampler(
+                new IrisHydrologyRoutingTerrainSampler.Sources((x, z, height) ->
+                        new IrisHydrologyRoutingTerrainSampler.TerrainBasis(height,
+                                HydrologyTerrainSample.openLand((int) height, 0D, "land")), heights, (x, z) -> false, 60),
+                IrisHydrologyRoutingTerrainSampler.SamplingOptions.serial(16));
+        long[] coordinates = {RiverFootprint.pack(4, -3)};
+        assertEquals(101, sampler.sampleBasisWithoutSlopeBatch(coordinates, 1)[0].naturalHeight());
+        assertEquals(102, sampler.sampleBasisWithoutSlopeBatch(coordinates, 1)[0].naturalHeight());
+        assertEquals(103, sampler.sampleBasisWithoutSlope(4, -3).naturalHeight());
+        assertEquals(104, sampler.sampleBasisWithoutSlope(4, -3).naturalHeight());
+        assertEquals(0, sampler.basisCacheSize());
+        assertEquals(0, sampler.naturalHeightCacheSize());
+    }
+
     @Test
     public void boundedBasisBatchUsesScopedWorkersAndDrainsNestedPool() throws Exception {
         ThreadLocal<Integer> scope = new ThreadLocal<>();

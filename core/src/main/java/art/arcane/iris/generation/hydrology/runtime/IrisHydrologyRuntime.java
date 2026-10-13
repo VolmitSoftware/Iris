@@ -100,7 +100,7 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
         HydrologyGeometrySampler geometrySampler = geometrySampler(context, hydrology);
         IrisHydrologyRoutingTerrainSampler.Sources terrainSources = new IrisHydrologyRoutingTerrainSampler.Sources(
                 this::createTerrainBasis,
-                (int x, int z) -> context.naturalHeightProvider().sample(x, z),
+                context.naturalHeightProvider(),
                 (int x, int z) -> context.naturalOceanClassifier().isOcean(x, z),
                 settings.seaLevel()
         );

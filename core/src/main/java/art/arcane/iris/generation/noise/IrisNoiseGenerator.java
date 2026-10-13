@@ -48,6 +48,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.DoubleBinaryOperator;
 
 @Snippet("generator")
 @Accessors(chain = true)
@@ -174,6 +175,67 @@ public class IrisNoiseGenerator {
         }
 
         return sample(getGenerator(superSeed, data, engine), x, z);
+    }
+
+    boolean supportsBatch() {
+        if (getClass() != IrisNoiseGenerator.class) {
+            return false;
+        }
+        if (!enabled) {
+            return true;
+        }
+        for (IrisGeneratorStyle current = style; current != null; current = current.getFracture()) {
+            if (current.getClass() != IrisGeneratorStyle.class || current.getExpression() != null
+                    || current.getImageMap() != null) {
+                return false;
+            }
+        }
+        for (IrisNoiseGenerator child : fracture) {
+            if (!child.supportsBatch()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    DoubleBinaryOperator prepareBatch(long superSeed, IrisData data, Engine engine) {
+        if (!enabled) {
+            double value = offsetY;
+            return (x, z) -> value;
+        }
+        if (hasDeepFracture()) {
+            FractureSamples samples = new FractureSamples();
+            if (samples.prepare(this, superSeed, data, engine)) {
+                return samples::sample;
+            }
+        }
+        DoubleBinaryOperator[] children = new DoubleBinaryOperator[fracture.size()];
+        double[] offsets = new double[fracture.size()];
+        int salt = 33;
+        for (int index = 0; index < children.length; index++) {
+            IrisNoiseGenerator child = fracture.get(index);
+            if (child.isEnabled()) {
+                children[index] = child.prepareBatch(superSeed + seed + salt, data, engine);
+                offsets[index] = child.getOpacity() / 2D;
+            }
+            salt += 819;
+        }
+        CNG generator = getGenerator(superSeed, data, engine);
+        return (x, z) -> samplePrepared(generator, children, offsets, x, z);
+    }
+
+    private double samplePrepared(CNG generator, DoubleBinaryOperator[] children, double[] offsets,
+                                  double xv, double zv) {
+        double x = xv;
+        double z = zv;
+        for (int index = 0; index < children.length; index++) {
+            DoubleBinaryOperator child = children[index];
+            if (child != null) {
+                x += child.applyAsDouble(xv, zv) - offsets[index];
+                z += child.applyAsDouble(zv, xv) - offsets[index];
+            }
+        }
+        return sample(generator, x, z);
     }
 
     public KList<IrisNoiseGenerator> getAllComposites() {

@@ -41,7 +41,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.DoubleBinaryOperator;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -208,26 +211,106 @@ public class IrisGenerator extends IrisRegistrant {
         if (surfaceDetail == 1D) {
             return sampleHeight(rx, rz, superSeed, data, engine);
         }
+        return surfaceHeight(rx, rz, superSeed, data, engine, null);
+    }
+
+    public boolean supportsBatch() {
+        if (getClass() != IrisGenerator.class || !Double.isFinite(surfaceDetail)
+                || surfaceDetail < 0D || surfaceDetail > 1D) {
+            return false;
+        }
+        for (IrisNoiseGenerator layer : composite) {
+            if (!layer.supportsBatch()) {
+                return false;
+            }
+        }
+        return !hasCliffs() || cliffHeightGenerator.supportsBatch();
+    }
+
+    public void getHeights(double[] xs, double[] zs, long superSeed, double[] target, int count) {
+        Objects.checkFromIndexSize(0, count, xs.length);
+        Objects.checkFromIndexSize(0, count, zs.length);
+        Objects.checkFromIndexSize(0, count, target.length);
+        if (count > 4096) {
+            throw new IllegalArgumentException("Generator batch exceeds 4096 samples");
+        }
+        if (count < 8 || !supportsBatch()) {
+            for (int index = 0; index < count; index++) {
+                target[index] = getHeight(xs[index], zs[index], superSeed);
+            }
+            return;
+        }
+        if (composite.isEmpty()) {
+            Arrays.fill(target, 0, count, 0D);
+            return;
+        }
+        IrisData data = getLoader();
+        Engine engine = data == null ? null : data.getEngine();
+        DoubleBinaryOperator prepared = prepareHeight(superSeed, data, engine);
+        for (int index = 0; index < count; index++) {
+            target[index] = surfaceDetail == 1D ? prepared.applyAsDouble(xs[index], zs[index])
+                    : surfaceHeight(xs[index], zs[index], superSeed, data, engine, prepared);
+        }
+    }
+
+    private DoubleBinaryOperator prepareHeight(long superSeed, IrisData data, Engine engine) {
+        int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * getSeed() + offsetX + offsetZ);
+        DoubleBinaryOperator[] layers = new DoubleBinaryOperator[composite.size()];
+        double totalOpacity = 0D;
+        for (int index = 0; index < layers.length; index++) {
+            IrisNoiseGenerator layer = composite.get(index);
+            layers[index] = layer.prepareBatch(getSeed() + superSeed + hc, data, engine);
+            if (!multiplicitive) {
+                totalOpacity += layer.getOpacity();
+            }
+        }
+        double sumOpacity = totalOpacity;
+        double cliffSeed = (double) (superSeed + 294596 + hc) - 34857;
+        DoubleBinaryOperator cliffs = hasCliffs() ? cliffHeightGenerator.prepareBatch(
+                (long) (getSeed() + cliffSeed + hc), data, engine) : null;
+        return (rx, rz) -> {
+            double sampleX = (rx + offsetX) / zoom;
+            double sampleZ = (rz + offsetZ) / zoom;
+            double h = multiplicitive ? 1D : 0D;
+            for (DoubleBinaryOperator layer : layers) {
+                double sampled = layer.applyAsDouble(sampleX, sampleZ);
+                h = multiplicitive ? h * sampled : h + sampled;
+            }
+            double value = multiplicitive ? h * opacity : (h / sumOpacity) * opacity;
+            if (Double.isNaN(value)) {
+                value = 0D;
+            }
+            if (cliffs != null) {
+                double height = IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax,
+                        cliffs.applyAsDouble(sampleX, sampleZ));
+                value = (Math.round((value * 255D) / height) * height) / 255D;
+            }
+            return hasCellCracks() ? cell(rx, rz, value, superSeed + 48622 + hc) : value;
+        };
+    }
+
+    private double surfaceHeight(double rx, double rz, long superSeed, IrisData data, Engine engine,
+                                 DoubleBinaryOperator prepared) {
         SurfaceCacheStripe[] stripes = surfaceCache(data, engine).stripes();
         double lowerX = Math.floor(rx / SURFACE_GRID) * SURFACE_GRID;
         double lowerZ = Math.floor(rz / SURFACE_GRID) * SURFACE_GRID;
         double dx = (rx - lowerX) / SURFACE_GRID;
         double dz = (rz - lowerZ) / SURFACE_GRID;
-        double northWest = cachedSurfaceHeight(lowerX, lowerZ, superSeed, stripes, data, engine);
+        double northWest = cachedSurfaceHeight(lowerX, lowerZ, superSeed, stripes, data, engine, prepared);
         if (dx == 0D && dz == 0D) {
             return northWest;
         }
         double north = dx == 0D ? northWest : IrisInterpolation.lerp(northWest,
-                cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ, superSeed, stripes, data, engine), dx);
+                cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ, superSeed, stripes, data, engine, prepared), dx);
         double smooth = north;
         if (dz != 0D) {
-            double southWest = cachedSurfaceHeight(lowerX, lowerZ + SURFACE_GRID, superSeed, stripes, data, engine);
+            double southWest = cachedSurfaceHeight(lowerX, lowerZ + SURFACE_GRID, superSeed, stripes, data, engine, prepared);
             double south = dx == 0D ? southWest : IrisInterpolation.lerp(southWest,
-                    cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID, superSeed, stripes, data, engine), dx);
+                    cachedSurfaceHeight(lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID, superSeed, stripes, data, engine, prepared), dx);
             smooth = IrisInterpolation.lerp(north, south, dz);
         }
         return surfaceDetail == 0D ? smooth
-                : smooth + (sampleHeight(rx, rz, superSeed, data, engine) - smooth) * surfaceDetail;
+                : smooth + ((prepared == null ? sampleHeight(rx, rz, superSeed, data, engine) : prepared.applyAsDouble(rx, rz)) - smooth) * surfaceDetail;
     }
 
     private double sampleHeight(double rx, double rz, long superSeed, IrisData data, Engine engine) {
@@ -267,9 +350,9 @@ public class IrisGenerator extends IrisRegistrant {
         return v;
     }
 
-    private double cachedSurfaceHeight(double x, double z, long superSeed, SurfaceCacheStripe[] stripes, IrisData data, Engine engine) {
+    private double cachedSurfaceHeight(double x, double z, long superSeed, SurfaceCacheStripe[] stripes, IrisData data, Engine engine, DoubleBinaryOperator prepared) {
         if (x != (int) x || z != (int) z) {
-            return sampleHeight(x, z, superSeed, data, engine);
+            return prepared == null ? sampleHeight(x, z, superSeed, data, engine) : prepared.applyAsDouble(x, z);
         }
         long key = ((long) (int) x << 32) | ((int) z & 0xffffffffL);
         long mixed = key ^ (key >>> 33);
@@ -281,7 +364,7 @@ public class IrisGenerator extends IrisRegistrant {
         if (cached != null) {
             return cached.height();
         }
-        double height = sampleHeight(x, z, superSeed, data, engine);
+        double height = prepared == null ? sampleHeight(x, z, superSeed, data, engine) : prepared.applyAsDouble(x, z);
         stripe.put(slot, new SurfaceSample(key, superSeed, height));
         return height;
     }

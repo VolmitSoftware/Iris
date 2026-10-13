@@ -31,10 +31,16 @@ const traceMovement = context => {
     return write.call(this, name, packet, ...rest)
   }
   context.expect(context.bot.supportFeature('sendsClientTickEndPacket'), 'Fixture client supports tick delimiters')
-  const finishTick = () => client.write('tick_end', {})
+  let tickTimer
+  const finishTick = () => {
+    clearTimeout(tickTimer)
+    client.write('tick_end', {})
+    tickTimer = setTimeout(finishTick, 50)
+  }
   context.bot.on('move', finishTick)
   finishTick()
   context.signal.addEventListener('abort', () => {
+    clearTimeout(tickTimer)
     client.write = write
     client.removeListener('position', incoming)
     client.removeListener('player_rotation', rotation)
@@ -63,13 +69,17 @@ export default {
       await action()
       return true
     }, { label, timeoutMs: 10000 })
+    let lastActivation = 0
     const openChest = async material => {
       const position = context.bot.entity.position.clone().set(2, 161, 2)
       await context.waitUntil(() => context.bot.blockAt(position)?.name === material, {
         label: `${material} reached the client`, timeoutMs: 10000
       })
-      const opened = context.waitForEvent('windowOpen', undefined, 120000)
+      const delay = 150 - (performance.now() - lastActivation)
+      if (delay > 0) await context.sleep(delay)
+      const opened = context.waitForEvent('windowOpen', undefined, 30000)
       await bounded(`Activate ${material}`, () => context.bot.activateBlock(context.bot.blockAt(position)))
+      lastActivation = performance.now()
       const [window] = await opened
       return window
     }

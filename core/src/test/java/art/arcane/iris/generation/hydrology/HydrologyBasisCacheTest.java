@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -37,6 +38,34 @@ public class HydrologyBasisCacheTest {
         assertEquals(87, cache.sampleWithoutSlopeBatch(new long[]{later}, 1, sampler)[0].naturalHeight());
         assertNull(cache.sampleWithoutSlopeBatch(new long[]{key}, 1, sampler)[0]);
         assertEquals(3, sampler.slopeFreeCalls.get());
+    }
+
+    @Test
+    public void batchOwnershipKeepsProviderOrderAcrossStripes() {
+        HydrologyBasisCache cache = new HydrologyBasisCache();
+        CountingSampler sampler = new CountingSampler() {
+            @Override
+            public HydrologyTerrainSample[] sampleBasisWithoutSlopeBatch(long[] coordinates, int count) {
+                assertArrayEquals(new long[]{RiverFootprint.pack(7, 0), RiverFootprint.pack(-9, 0),
+                        RiverFootprint.pack(-17, 0)}, Arrays.copyOf(coordinates, count));
+                return super.sampleBasisWithoutSlopeBatch(coordinates, count);
+            }
+
+            @Override
+            public HydrologyTerrainSample sampleBasisWithoutSlope(int x, int z) {
+                return HydrologyTerrainSample.openLand(63 + x, 0D, "land");
+            }
+        };
+        HydrologyTerrainSample seeded = cache.sampleWithoutSlope(4, 0, sampler);
+        HydrologyTerrainSample[] samples = cache.sampleWithoutSlopeBatch(new long[]{
+                RiverFootprint.pack(7, 0), RiverFootprint.pack(-9, 0), RiverFootprint.pack(7, 0),
+                RiverFootprint.pack(4, 0), RiverFootprint.pack(-17, 0), RiverFootprint.pack(4, 0)}, 6, sampler);
+        assertEquals(70, samples[0].naturalHeight());
+        assertEquals(54, samples[1].naturalHeight());
+        assertSame(samples[0], samples[2]);
+        assertSame(seeded, samples[3]);
+        assertEquals(46, samples[4].naturalHeight());
+        assertSame(seeded, samples[5]);
     }
 
     @Test(timeout = 10_000)

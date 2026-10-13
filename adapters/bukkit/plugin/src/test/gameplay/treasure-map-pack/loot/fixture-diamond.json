@@ -1,0 +1,15 @@
+{
+  "name": "Fixture Diamond",
+  "rarity": 1,
+  "minPicked": 1,
+  "maxPicked": 1,
+  "maxTries": 1,
+  "loot": [
+    {
+      "type": "diamond",
+      "rarity": 1,
+      "minAmount": 1,
+      "maxAmount": 1
+    }
+  ]
+}

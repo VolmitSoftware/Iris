@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "Treasure map gameplay fixtures",
+    "min_format": [
+      107,
+      1
+    ],
+    "max_format": [
+      107,
+      1
+    ]
+  }
+}

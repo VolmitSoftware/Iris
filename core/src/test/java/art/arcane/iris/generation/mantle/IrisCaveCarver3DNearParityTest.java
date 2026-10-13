@@ -53,6 +53,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.withSettings;
 
 public class IrisCaveCarver3DNearParityTest {
@@ -299,10 +300,10 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     @Test
-    public void carvingReleasesSectionReferencesAfterSuccessAndFailure() throws Exception {
+    public void carvingReleasesReferencesAfterSuccessAndFailure() throws Exception {
         for (boolean fail : new boolean[]{false, true}) {
             Engine engine = createEngine(128, 110);
-            IrisCaveProfile profile = createProfile(false, false).setAdaptiveSampling(false)
+            IrisCaveProfile profile = createProfile(false, false).setAdaptiveSampling(true)
                     .setAllowFluid(false).setDetailWeight(0D)
                     .setDensityThreshold(new IrisStyledRange(2D, 2D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
             IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
@@ -333,6 +334,9 @@ public class IrisCaveCarver3DNearParityTest {
             }
             for (MatterSlice<?> slice : scratch.sectionSlices) {
                 assertNull(slice);
+            }
+            for (CaveDensityGrid.Column column : scratch.densityColumns) {
+                assertNull(column);
             }
         }
     }
@@ -1072,6 +1076,153 @@ public class IrisCaveCarver3DNearParityTest {
                         sharedSamples.get() < isolatedSamples.get() * 3 / 4);
             }
         }
+    }
+
+    @Test
+    public void retainedLatticeColumnsPreserveRawSamplesThroughEvictionAndClear() throws Exception {
+        Method latticeDensity = IrisCaveCarver3D.class.getDeclaredMethod("latticeDensity",
+                CaveCarveScratch.class, int.class, int.class, int.class);
+        latticeDensity.setAccessible(true);
+        Method planeDensity = IrisCaveCarver3D.class.getDeclaredMethod("samplePlaneDensity",
+                CaveCarveScratch.class, int.class, int.class, int.class);
+        planeDensity.setAccessible(true);
+        Engine engine = createEngine(128, 110);
+        for (boolean warp : new boolean[]{false, true}) {
+            for (boolean modules : new boolean[]{false, true}) {
+                AtomicInteger lookups = new AtomicInteger();
+                CaveDensityGrid grid = countingGrid(4, lookups);
+                IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, createProfile(warp, modules), grid);
+                CaveCarveScratch retained = new CaveCarveScratch();
+                CaveCarveScratch reference = new CaveCarveScratch();
+                for (int y = 0; y < 128; y++) {
+                    if (y == 64) {
+                        grid.clear();
+                    }
+                    for (int x = -16; x <= 0; x += 8) {
+                        for (int z = 32; z <= 48; z += 8) {
+                            double expected = (double) planeDensity.invoke(carver, reference, x, y, z);
+                            double actual = (double) latticeDensity.invoke(carver, retained, x, y, z);
+                            assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual));
+                        }
+                    }
+                    assertEquals(Double.doubleToRawLongBits((double) planeDensity.invoke(carver, reference, -15, y, 33)),
+                            Double.doubleToRawLongBits((double) latticeDensity.invoke(carver, retained, -15, y, 33)));
+                }
+                assertEquals(9, lookups.get());
+                retained.releaseReferences();
+                latticeDensity.invoke(carver, retained, -16, 1, 32);
+                assertEquals(10, lookups.get());
+                double expected = (double) planeDensity.invoke(carver, reference, 16, 1, 32);
+                double actual = (double) latticeDensity.invoke(carver, retained, 16, 1, 32);
+                assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual));
+                assertEquals(11, lookups.get());
+                IrisCaveCarver3D reloaded = new IrisCaveCarver3D(engine,
+                        createProfile(warp, modules).setBaseWeight(0.73D), grid);
+                expected = (double) planeDensity.invoke(reloaded, new CaveCarveScratch(), 16, 1, 32);
+                actual = (double) latticeDensity.invoke(reloaded, retained, 16, 1, 32);
+                assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(actual));
+                assertEquals(12, lookups.get());
+            }
+        }
+    }
+
+    @Test
+    public void retainedLatticeColumnsMatchOriginalCarvesAndReduceLookups() throws Exception {
+        Field fixedDensity = IrisCaveCarver3D.class.getDeclaredField("parallelDensity");
+        fixedDensity.setAccessible(true);
+        Engine engine = createEngine(128, 110);
+        for (boolean warp : new boolean[]{false, true}) {
+            for (boolean modules : new boolean[]{false, true}) {
+                AtomicInteger originalLookups = new AtomicInteger();
+                AtomicInteger retainedLookups = new AtomicInteger();
+                IrisCaveCarver3D original = new IrisCaveCarver3D(engine,
+                        createProfile(warp, modules), countingGrid(4096, originalLookups));
+                fixedDensity.set(original, false);
+                IrisCaveCarver3D retained = new IrisCaveCarver3D(engine,
+                        createProfile(warp, modules), countingGrid(4096, retainedLookups));
+                for (int chunkX = -1; chunkX <= 0; chunkX++) {
+                    WriterCapture expected = createWriterCapture(128);
+                    WriterCapture actual = createWriterCapture(128);
+                    assertEquals(original.carve(expected.writer, chunkX, -3, fullWeights(), 0D, 0D,
+                                    null, filledHeights(110)),
+                            retained.carve(actual.writer, chunkX, -3, fullWeights(), 0D, 0D,
+                                    null, filledHeights(110)));
+                    assertFalse(expected.carvedCells.isEmpty());
+                    assertEquals(expected.carvedCells, actual.carvedCells);
+                    assertEquals(expected.carvedLiquids, actual.carvedLiquids);
+                }
+                assertEquals(18, retainedLookups.get());
+                assertTrue(originalLookups.get() > retainedLookups.get() * 50);
+            }
+        }
+    }
+
+    @Test
+    public void expressionDensityDoesNotRetainEvictedColumns() throws Exception {
+        Engine engine = createEngine(128, 110);
+        CNG density = mock(CNG.class, withSettings().stubOnly());
+        AtomicInteger samples = new AtomicInteger();
+        doAnswer(invocation -> samples.incrementAndGet() * 0.125D).when(density)
+                .noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+        IrisGeneratorStyle style = mock(IrisGeneratorStyle.class, withSettings().stubOnly());
+        doReturn("density_expression").when(style).getExpression();
+        doReturn(density).when(style).create(any(RNG.class), any(IrisData.class));
+        AtomicInteger lookups = new AtomicInteger();
+        CaveDensityGrid grid = countingGrid(4, lookups);
+        IrisCaveCarver3D carver = new IrisCaveCarver3D(engine,
+                createProfile(false, false).setBaseDensityStyle(style).setDetailWeight(0D), grid);
+        CaveCarveScratch scratch = new CaveCarveScratch();
+        Method latticeDensity = IrisCaveCarver3D.class.getDeclaredMethod("latticeDensity",
+                CaveCarveScratch.class, int.class, int.class, int.class);
+        latticeDensity.setAccessible(true);
+        double first = (double) latticeDensity.invoke(carver, scratch, -16, 20, 32);
+        grid.clear();
+        double second = (double) latticeDensity.invoke(carver, scratch, -16, 20, 32);
+        assertNotEquals(Double.doubleToRawLongBits(first), Double.doubleToRawLongBits(second));
+        assertEquals(2, samples.get());
+        assertEquals(2, lookups.get());
+        for (CaveDensityGrid.Column column : scratch.densityColumns) {
+            assertNull(column);
+        }
+    }
+
+    @Test
+    public void nestedAdaptiveCarvingPreservesRetainedColumns() throws Exception {
+        Engine engine = createEngine(128, 110);
+        IrisCaveProfile profile = createProfile(true, true);
+        WriterCapture expected = createWriterCapture(128);
+        new IrisCaveCarver3D(engine, profile).carve(expected.writer, -1, 2,
+                fullWeights(), 0D, 0D, null, filledHeights(110));
+        IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
+        CNG original = (CNG) baseDensityField.get(carver);
+        CNG density = mock(CNG.class, withSettings().stubOnly());
+        AtomicBoolean entered = new AtomicBoolean();
+        WriterCapture nested = createWriterCapture(128);
+        doAnswer(invocation -> {
+            if (entered.compareAndSet(false, true)) {
+                carver.carve(nested.writer, -9, -11, fullWeights(), 0D, 0D, null, filledHeights(80));
+            }
+            double x = invocation.getArgument(0);
+            double y = invocation.getArgument(1);
+            double z = invocation.getArgument(2);
+            return original.noiseFastSigned3D(x, y, z);
+        }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
+        baseDensityField.set(carver, density);
+        WriterCapture actual = createWriterCapture(128);
+        carver.carve(actual.writer, -1, 2, fullWeights(), 0D, 0D, null, filledHeights(110));
+        assertTrue(entered.get());
+        assertFalse(nested.carvedCells.isEmpty());
+        assertEquals(expected.carvedCells, actual.carvedCells);
+        assertEquals(expected.carvedLiquids, actual.carvedLiquids);
+    }
+
+    private CaveDensityGrid countingGrid(int capacity, AtomicInteger lookups) {
+        CaveDensityGrid grid = spy(new CaveDensityGrid(capacity));
+        doAnswer(invocation -> {
+            lookups.incrementAndGet();
+            return invocation.callRealMethod();
+        }).when(grid).column(any(), anyInt(), anyInt(), anyInt(), anyInt());
+        return grid;
     }
 
     private void assertExactParity(boolean warp, boolean modules, boolean adaptiveSampling) throws Exception {

@@ -223,7 +223,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private IrisUpdateNotifier updateNotifier;
     private BukkitDebugDump debugDump;
     private volatile SettingsHotloadWatch settingsHotloadWatch;
-    private volatile Thread serverLifecycleThread;
     private volatile ServerShutdownBoundary serverShutdownBoundary;
 
     public static VolmitSender getSender() {
@@ -832,7 +831,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     public void addShutdownHook() {
         removeShutdownHook();
-        serverLifecycleThread = Thread.currentThread();
         serverShutdownBoundary = INMS.isBound() ? INMS.get().createServerShutdownBoundary() : null;
         shutdownHook = new Thread(this::runShutdownHook, "Iris-ShutdownHook");
         try {
@@ -1164,7 +1162,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             if (generator == null) {
                 continue;
             }
-            IrisToolbelt.beginWorldMaintenance(world, reason, true);
+            IrisToolbelt.beginWorldMaintenance(world, reason);
             if (!deferredShutdownGenerators.contains(generator)) {
                 deferredShutdownGenerators.add(generator);
             }
@@ -1176,34 +1174,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         if (!postStopFinisherStarted.compareAndSet(false, true)) {
             return;
         }
-        Thread activeServerThread = serverLifecycleThread;
-        if (activeServerThread == null) {
-            Iris.warn("Iris could not start its post-stop runtime finisher because the server lifecycle thread is unavailable.");
-            return;
-        }
-
-        Thread finisher = new Thread(() -> {
-            if (!awaitServerThreadTermination(activeServerThread)) {
-                return;
-            }
-            finishDeferredRuntimeTeardown("post-server-stop", 30L);
-        }, "Iris-PostStop-Finisher");
+        Thread finisher = new Thread(() -> finishRuntimeAfterServerShutdown("post-server-stop"),
+                "Iris-PostStop-Finisher");
         finisher.setDaemon(false);
         finisher.start();
-    }
-
-    static boolean awaitServerThreadTermination(Thread serverThread) {
-        if (serverThread == null || serverThread == Thread.currentThread()) {
-            return false;
-        }
-        try {
-            serverThread.join();
-            return true;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            Iris.reportError("Iris post-stop runtime finisher was interrupted.", e);
-            return false;
-        }
     }
 
     private void runShutdownHook() {
@@ -1211,17 +1185,21 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             finishDeferredRuntimeTeardown("startup-boundary-restart-hook", 30L);
             return;
         }
+        finishRuntimeAfterServerShutdown("shutdown-hook");
+    }
+
+    private void finishRuntimeAfterServerShutdown(String reason) {
         if (!awaitServerShutdownBoundary()) {
-            SHUTDOWN_ERRORS.println("[Iris] Paper did not reach its post-world-close boundary; retaining the runtime and plugin class loader until JVM exit.");
+            SHUTDOWN_ERRORS.println("[Iris] The server did not reach its post-world-close boundary; retaining the runtime and plugin class loader until JVM exit.");
             return;
         }
-        finishDeferredRuntimeTeardown("shutdown-hook", 30L);
+        finishDeferredRuntimeTeardown(reason, 30L);
     }
 
     private boolean awaitServerShutdownBoundary() {
         ServerShutdownBoundary boundary = serverShutdownBoundary;
         if (boundary == null) {
-            return true;
+            return false;
         }
         try {
             return boundary.await(

@@ -279,11 +279,22 @@ public class PreparedHydrologyTileStoreTest {
         HydrologyTile original = tile();
         PreparedHydrologyTileStore store = store();
         store.save(original);
-        HydrologyTile oversized = new HydrologyTile(original.key(), original.worldSeed(),
-                original.settingsFingerprint(), original.tileSize(), original.nodes(), original.edges(),
-                original.outlets(), original.courses(), original.regionalCourseIds(), original.cavePlans(),
-                Collections.nCopies(600_000, original.localDiagnosticCandidates().getFirst()), original.footprint());
-        assertThrows(IOException.class, () -> store.save(oversized));
+        long allocationLimit = Math.max(16L * 1024L * 1024L,
+                Math.min(512L * 1024L * 1024L, Runtime.getRuntime().maxMemory() / 8L));
+        int pointCount = 4096;
+        int courseCount = Math.toIntExact(allocationLimit / (256L * pointCount) + 1L);
+        HydraulicSegment segment = new HydraulicSegment(45L, 44L, HydrologyFeatureType.SURFACE_POOL,
+                72, 72, 4, 2, false, false, Collections.nCopies(pointCount, new HydrologyPoint(0, 72, 0)),
+                HydraulicChannelProfile.uniform(4D, 2D));
+        RiverCourse course = new RiverCourse(44L, RiverCourseType.SURFACE, OptionalLong.of(1L),
+                OptionalLong.of(2L), "default", 1, List.of(), List.of(segment));
+        HydrologyOwnerDraft draft = new HydrologyOwnerDraft(original.key(),
+                new HydrologyCaveCourseFilter.Result(original.nodes(), original.edges(), original.outlets(),
+                        original.courses(), original.cavePlans()), original.localDiagnosticCandidates(), null);
+        HydrologyTile oversized = original.withResolvedOwner(new CrossTileResolvedOwner(draft,
+                Collections.nCopies(courseCount, new CrossTileRejectedCourse(course, 4L))));
+        IOException failure = assertThrows(IOException.class, () -> store.save(oversized));
+        assertEquals("Prepared hydrology tile exceeds its allocation budget.", failure.getMessage());
         assertEquals(original, store.load(original.key()).orElseThrow());
         try (Stream<Path> files = Files.list(store.file(original.key()).getParent())) {
             assertEquals(List.of(store.file(original.key())), files.toList());

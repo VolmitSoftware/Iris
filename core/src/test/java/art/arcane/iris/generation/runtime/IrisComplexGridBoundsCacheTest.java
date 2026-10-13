@@ -13,20 +13,52 @@ import org.junit.runners.Parameterized.Parameters;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 
 @RunWith(Enclosed.class)
 public class IrisComplexGridBoundsCacheTest {
     public static class CornerCache {
+        @Test(timeout = 10_000L)
+        public void concurrentFirstSamplesShareOneCornerTable() throws Exception {
+            IrisComplex complex = createComplex();
+            Method sharedCache = IrisComplex.class.getDeclaredMethod("sharedCornerBounds");
+            sharedCache.setAccessible(true);
+            CountDownLatch entered = new CountDownLatch(4);
+            CountDownLatch release = new CountDownLatch(1);
+            try (ExecutorService readers = Executors.newFixedThreadPool(4)) {
+                List<Future<SharedCornerBounds>> results = new ArrayList<>();
+                for (int index = 0; index < 4; index++) {
+                    results.add(readers.submit(() -> {
+                        entered.countDown();
+                        assertTrue(release.await(5L, TimeUnit.SECONDS));
+                        return (SharedCornerBounds) sharedCache.invoke(complex);
+                    }));
+                }
+                assertTrue(entered.await(5L, TimeUnit.SECONDS));
+                release.countDown();
+                SharedCornerBounds expected = results.getFirst().get(5L, TimeUnit.SECONDS);
+                for (Future<SharedCornerBounds> result : results) {
+                    assertSame(expected, result.get(5L, TimeUnit.SECONDS));
+                }
+            }
+        }
+
     @Test
         public void gridBoundsCacheIsIsolatedPerComplex() throws Exception {
             IrisComplex first = createComplex();

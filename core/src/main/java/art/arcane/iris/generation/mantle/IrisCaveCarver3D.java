@@ -449,7 +449,7 @@ public class IrisCaveCarver3D {
 
             return carved;
         } finally {
-            scratchCache.get().releaseSections();
+            scratchCache.get().releaseReferences();
             carving.set(nested);
             if (nested) {
                 scratchCache.set(previousScratch);
@@ -2466,8 +2466,19 @@ public class IrisCaveCarver3D {
 
     private double latticeDensity(CaveCarveScratch scratch, int x, int y, int z) {
         int latticeMask = (1 << CaveDensityGrid.LATTICE_SHIFT) - 1;
-        CaveDensityGrid.Column column = ((x | z) & latticeMask) != 0 ? null : densityGrid.column(this, densityGridOwner,
-                densityMaximumY + 1, x >> CaveDensityGrid.LATTICE_SHIFT, z >> CaveDensityGrid.LATTICE_SHIFT);
+        if (((x | z) & latticeMask) != 0) {
+            return samplePlaneDensity(scratch, x, y, z);
+        }
+        int latticeX = x >> CaveDensityGrid.LATTICE_SHIFT;
+        int latticeZ = z >> CaveDensityGrid.LATTICE_SHIFT;
+        int slot = ((latticeX & 3) << 2) | (latticeZ & 3);
+        CaveDensityGrid.Column column = parallelDensity ? scratch.densityColumns[slot] : null;
+        if (column == null || !column.matches(this, latticeX, latticeZ)) {
+            column = densityGrid.column(this, densityGridOwner, densityMaximumY + 1, latticeX, latticeZ);
+            if (parallelDensity) {
+                scratch.densityColumns[slot] = column;
+            }
+        }
         if (column == null) {
             return samplePlaneDensity(scratch, x, y, z);
         }

@@ -37,7 +37,7 @@ final class CaveDensityGrid {
         if (cached == null) {
             cached = columns.putIfAbsent(key, new Column(owner, latticeX, latticeZ, height));
         }
-        return cached.owner == owner && cached.latticeX == latticeX && cached.latticeZ == latticeZ ? cached : null;
+        return cached.matches(owner, latticeX, latticeZ) ? cached : null;
     }
 
     void clear() {
@@ -55,6 +55,10 @@ final class CaveDensityGrid {
             this.latticeX = latticeX;
             this.latticeZ = latticeZ;
             segments = new AtomicReferenceArray<>(Math.ceilDiv(Math.max(1, height), SEGMENT_SIZE));
+        }
+
+        boolean matches(Object owner, int latticeX, int latticeZ) {
+            return this.owner == owner && this.latticeX == latticeX && this.latticeZ == latticeZ;
         }
 
         double get(int y) {

@@ -39,6 +39,8 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.HydrologyColumnSnapshot;
 import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyNaturalSample;
+import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyNaturalHeightProvider;
+import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntimeContext;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
@@ -454,7 +456,7 @@ public class IrisComplex implements DataProvider {
                     engine.getDimension(),
                     data,
                     (x, z, naturalHeight) -> sampleHydrologyNatural(engine, x, z, naturalHeight),
-                    (x, z) -> naturalHeightStream.getDouble(x, z),
+                    new HydrologyHeightProvider(),
                     (x, z) -> describeNaturalHeight(engine, x, z),
                     this::sampleNaturalOcean,
                     footprint -> new MantleHydrologyCaveVoxelView(engine, this, footprint),
@@ -789,6 +791,154 @@ public class IrisComplex implements DataProvider {
     private double nearbyTerrainSurfaceHeight(int x, int surfaceY, int z) {
         Terrain3DColumn column = terrainColumn(x, z);
         return column == null ? getHeightStream().getDouble(x, z) : column.nearestSurfaceY(surfaceY);
+    }
+
+    private boolean supportsHeightBatch() {
+        if (terrainEngine.getDimension().getTerrainSamplingStep() != 1 || !biomeBuffetGenerators.isEmpty()
+                || !reuseNaturalBaseBiome) {
+            return false;
+        }
+        for (IrisGenerator[] group : frozenGenerators) {
+            for (IrisGenerator generator : group) {
+                if (!generator.supportsBatch()) {
+                    return false;
+                }
+            }
+        }
+        for (IrisShapedGeneratorStyle overlay : terrainEngine.getDimension().getOverlayNoise()) {
+            if (overlay.getClass() != IrisShapedGeneratorStyle.class) {
+                return false;
+            }
+            for (IrisGeneratorStyle style = overlay.getGenerator(); style != null; style = style.getFracture()) {
+                if (style.getClass() != IrisGeneratorStyle.class || style.getExpression() != null) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void sampleBaseHeightBatch(long[] coordinates, int count, double[] target) {
+        ((CachedDoubleStream2D) baseTerrainHeightStream).getBatch(coordinates, count, target, this::resolveBaseHeightBatch);
+    }
+
+    private void resolveBaseHeightBatch(long[] missing, int size, double[] values) {
+        double[] xs = new double[size];
+        double[] zs = new double[size];
+        double[] lows = new double[size];
+        double[] highs = new double[size];
+        double[] activeXs = new double[size];
+        double[] activeZs = new double[size];
+        double[] noise = new double[size];
+        double[] groupHeights = new double[size];
+        int[] active = new int[size];
+        for (int index = 0; index < size; index++) {
+            xs[index] = RiverFootprint.unpackX(missing[index]);
+            zs[index] = RiverFootprint.unpackZ(missing[index]);
+        }
+        long seed = terrainEngine.getSeedManager().getHeight() + 239945;
+        for (int group = 0; group < frozenInterpolators.length; group++) {
+            IrisGenerator[] generators = frozenGenerators[group];
+            if (generators.length == 0) {
+                continue;
+            }
+            int activeCount = 0;
+            Arrays.fill(groupHeights, 0D);
+            for (int index = 0; index < size; index++) {
+                NoiseBounds bounds = gridSampleBounds(terrainEngine, frozenInterpolators[group], group,
+                        generators, xs[index], zs[index]);
+                lows[index] = bounds.min();
+                highs[index] = bounds.max();
+                if (!Double.isFinite(lows[index]) || !Double.isFinite(highs[index])) {
+                    averageGeneratorHeights(generators, lows[index], highs[index], xs[index], zs[index], seed);
+                }
+                if (lows[index] != highs[index]) {
+                    active[activeCount] = index;
+                    activeXs[activeCount] = xs[index];
+                    activeZs[activeCount++] = zs[index];
+                } else {
+                    for (int generator = 0; generator < generators.length; generator++) {
+                        groupHeights[index] += lows[index];
+                    }
+                }
+            }
+            for (IrisGenerator generator : generators) {
+                if (activeCount == 0) {
+                    break;
+                }
+                generator.getHeights(activeXs, activeZs, seed, noise, activeCount);
+                for (int sample = 0; sample < activeCount; sample++) {
+                    int index = active[sample];
+                    if (!Double.isFinite(noise[sample])) {
+                        throw new IllegalStateException("Terrain generator noise was not finite at " + xs[index] + "," + zs[index]
+                                + " (generator=" + generator.getLoadKey() + ", noise=" + noise[sample]
+                                + ", bounds=" + lows[index] + ".." + highs[index] + ").");
+                    }
+                    groupHeights[index] += M.lerp(lows[index], highs[index], noise[sample]);
+                }
+            }
+            for (int index = 0; index < size; index++) {
+                values[index] += groupHeights[index] / generators.length;
+            }
+        }
+        for (int index = 0; index < size; index++) {
+            double height = Math.max(Math.min(values[index] + fluidHeight + overlayStream.get(xs[index], zs[index]),
+                    terrainEngine.getHeight()), 0);
+            values[index] = imageMapRuntime.sampleTerrainHeight(xs[index], zs[index], height);
+        }
+    }
+
+    private void sampleUnblendedHeightBatch(long[] coordinates, int count, double[] target) {
+        if (terrain3D == null) {
+            sampleBaseHeightBatch(coordinates, count, target);
+            return;
+        }
+        ((CachedDoubleStream2D) unblendedNaturalHeightStream).getBatch(coordinates, count, target, (missing, size, values) -> {
+            long[] required = new long[size];
+            int requiredCount = 0;
+            for (int index = 0; index < size; index++) {
+                if (terrain3D.requiresBaseHeight(RiverFootprint.unpackX(missing[index]), RiverFootprint.unpackZ(missing[index]))) {
+                    required[requiredCount++] = missing[index];
+                }
+            }
+            if (requiredCount > 0) {
+                sampleBaseHeightBatch(required, requiredCount, new double[requiredCount]);
+            }
+            for (int index = 0; index < size; index++) {
+                values[index] = sampleTerrain3DHeight(RiverFootprint.unpackX(missing[index]), RiverFootprint.unpackZ(missing[index]));
+            }
+        });
+    }
+
+    private final class HydrologyHeightProvider implements IrisHydrologyNaturalHeightProvider {
+        private final boolean batch = supportsHeightBatch();
+
+        @Override
+        public double sample(int blockX, int blockZ) {
+            return naturalHeightStream.getDouble(blockX, blockZ);
+        }
+
+        @Override
+        public boolean supportsBatch() {
+            return batch;
+        }
+
+        @Override
+        public void sampleBatch(long[] coordinates, int count, double[] heights) {
+            if (!batch) {
+                IrisHydrologyNaturalHeightProvider.super.sampleBatch(coordinates, count, heights);
+            } else if (transitionDisplacement == null) {
+                sampleUnblendedHeightBatch(coordinates, count, heights);
+            } else {
+                ((CachedDoubleStream2D) naturalHeightStream).getBatch(coordinates, count, heights, (missing, size, values) -> {
+                    sampleUnblendedHeightBatch(missing, size, values);
+                    for (int index = 0; index < size; index++) {
+                        values[index] = transitionDisplacement.height(RiverFootprint.unpackX(missing[index]),
+                                RiverFootprint.unpackZ(missing[index]), values[index]);
+                    }
+                });
+            }
+        }
     }
 
     private double sampleUnblendedNaturalTerrainHeight(double x, double z) {

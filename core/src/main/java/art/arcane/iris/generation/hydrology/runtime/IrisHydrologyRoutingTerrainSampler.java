@@ -10,6 +10,8 @@ import art.arcane.iris.generation.hydrology.RiverFootprint;
 import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
 import art.arcane.iris.generation.hydrology.HydrologyForkJoin;
 import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 
@@ -98,15 +100,10 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 return cached;
             }
         }
-        NaturalClassification sampled = NaturalClassification.LAND;
-        if (oceanClassifier.isOcean(blockX, blockZ)) {
-            double height = naturalHeight(stripe, packed, blockX, blockZ);
-            if (!Double.isFinite(height)) {
-                return NaturalClassification.UNAVAILABLE;
-            }
-            if (physicalOcean(true, height, seaLevel)) {
-                sampled = NaturalClassification.OCEAN;
-            }
+        long revision = ProvisionalSampling.revision();
+        NaturalClassification sampled = classifyNatural(stripe, packed, blockX, blockZ);
+        if (sampled == NaturalClassification.UNAVAILABLE || revision != ProvisionalSampling.revision()) {
+            return sampled;
         }
         synchronized (stripe) {
             TerrainBasis basis = stripe.bases.getAndMoveToLast(packed);
@@ -121,6 +118,17 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
             stripe.evictOldest(stripe.oceanClassifications);
         }
         return sampled;
+    }
+
+    private NaturalClassification classifyNatural(CacheStripe stripe, long packed, int blockX, int blockZ) {
+        if (!oceanClassifier.isOcean(blockX, blockZ)) {
+            return NaturalClassification.LAND;
+        }
+        double height = naturalHeight(stripe, packed, blockX, blockZ);
+        if (!Double.isFinite(height)) {
+            return NaturalClassification.UNAVAILABLE;
+        }
+        return physicalOcean(true, height, seaLevel) ? NaturalClassification.OCEAN : NaturalClassification.LAND;
     }
 
     @Override
@@ -144,10 +152,15 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         int workers = Math.min(Math.min(samplingOptions.maximumWorkers(), Runtime.getRuntime().availableProcessors()),
                 Math.ceilDiv(count, MINIMUM_PARALLEL_BASIS_SAMPLES));
         Supplier<NativeGenerationScope> scope = workers > 1 ? samplingOptions.batchScopes().capture() : null;
-        if (scope == null) {
-            return HydrologyNaturalTerrainSampler.super.sampleBasisWithoutSlopeBatch(coordinates, count);
-        }
         HydrologyTerrainSample[] samples = new HydrologyTerrainSample[count];
+        if (scope == null) {
+            TerrainBasis[] bases = new TerrainBasis[count];
+            fillBasisBatch(coordinates, count, bases, 0);
+            for (int index = 0; index < count; index++) {
+                samples[index] = bases[index].terrain();
+            }
+            return samples;
+        }
         int perWorker = Math.ceilDiv(count, workers);
         ArrayList<Callable<Void>> tasks = new ArrayList<>(workers);
         for (int worker = 0; worker < workers; worker++) {
@@ -158,12 +171,12 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
             }
             tasks.add(() -> {
                 try (NativeGenerationScope ignored = scope.get()) {
+                    long[] slice = new long[end - start];
+                    System.arraycopy(coordinates, start, slice, 0, slice.length);
+                    TerrainBasis[] bases = new TerrainBasis[slice.length];
+                    fillBasisBatch(slice, slice.length, bases, 0);
                     for (int index = start; index < end; index++) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            throw new CancellationException("Terrain basis sampling interrupted");
-                        }
-                        samples[index] = sampleBasisWithoutSlope(RiverFootprint.unpackX(coordinates[index]),
-                                RiverFootprint.unpackZ(coordinates[index]));
+                        samples[index] = bases[index - start].terrain();
                     }
                 }
                 return null;
@@ -183,9 +196,12 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 return cached.terrain().ocean() ? Double.NaN : cached.terrain().naturalHeight();
             }
         }
+        long revision = ProvisionalSampling.revision();
         double naturalHeight = naturalHeight(stripe, packed, blockX, blockZ);
+        boolean memoizable = revision == ProvisionalSampling.revision();
         if (!Double.isFinite(naturalHeight)) {
-            TerrainBasis basis = loadBasis(blockX, blockZ, stripe, packed, naturalHeight);
+            TerrainBasis basis = memoizable ? loadBasis(blockX, blockZ, stripe, packed, naturalHeight)
+                    : sampleBasis(blockX, blockZ, naturalHeight);
             return basis.terrain().ocean() ? Double.NaN : basis.terrain().naturalHeight();
         }
         long roundedHeight = StrictMath.round(naturalHeight);
@@ -194,7 +210,8 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
         }
         NaturalClassification classification = classifyNatural(blockX, blockZ);
         if (classification == NaturalClassification.UNAVAILABLE) {
-            TerrainBasis basis = loadBasis(blockX, blockZ, stripe, packed, naturalHeight);
+            TerrainBasis basis = memoizable ? loadBasis(blockX, blockZ, stripe, packed, naturalHeight)
+                    : sampleBasis(blockX, blockZ, naturalHeight);
             return basis.terrain().ocean() ? Double.NaN : basis.terrain().naturalHeight();
         }
         return classification == NaturalClassification.OCEAN ? Double.NaN : (int) roundedHeight;
@@ -209,16 +226,28 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 return cached;
             }
         }
-        return loadBasis(blockX, blockZ, stripe, packed, naturalHeight(stripe, packed, blockX, blockZ));
+        long revision = ProvisionalSampling.revision();
+        TerrainBasis sampled = sampleBasis(blockX, blockZ, naturalHeight(stripe, packed, blockX, blockZ));
+        return revision == ProvisionalSampling.revision() ? publishBasis(stripe, packed, sampled) : sampled;
     }
 
     private TerrainBasis loadBasis(int blockX, int blockZ, CacheStripe stripe, long packed, double naturalHeight) {
+        long revision = ProvisionalSampling.revision();
+        TerrainBasis sampled = sampleBasis(blockX, blockZ, naturalHeight);
+        return revision == ProvisionalSampling.revision() ? publishBasis(stripe, packed, sampled) : sampled;
+    }
+
+    private TerrainBasis sampleBasis(int blockX, int blockZ, double naturalHeight) {
         TerrainBasis sampled = basisProvider.sample(blockX, blockZ, naturalHeight);
         if (sampled == null) {
             throw new NullPointerException(
                     "Hydrology terrain basis provider returned null at " + blockX + "," + blockZ
             );
         }
+        return sampled;
+    }
+
+    private TerrainBasis publishBasis(CacheStripe stripe, long packed, TerrainBasis sampled) {
         synchronized (stripe) {
             TerrainBasis existing = stripe.bases.getAndMoveToLast(packed);
             if (existing != null) {
@@ -349,13 +378,107 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
             int minimumRow,
             int maximumRow
     ) {
+        int capacity = Math.min(HydrologyTerrainSampler.MAXIMUM_BATCH_SIZE,
+                Math.multiplyExact(maximumRow - minimumRow, planeWidth));
+        long[] coordinates = new long[capacity];
+        int count = 0;
+        int destination = minimumRow * planeWidth;
         for (int gridZ = minimumRow; gridZ < maximumRow; gridZ++) {
             int z = Math.toIntExact((long) minimumZ + (long) gridZ * spacing);
-            int planeIndex = gridZ * planeWidth;
             for (int gridX = 0; gridX < planeWidth; gridX++) {
                 int x = Math.toIntExact((long) minimumX + (long) gridX * spacing);
-                plane[planeIndex++] = basis(x, z);
+                coordinates[count++] = RiverFootprint.pack(x, z);
+                if (count == coordinates.length) {
+                    fillBasisBatch(coordinates, count, plane, destination);
+                    destination += count;
+                    count = 0;
+                }
             }
+        }
+        if (count > 0) {
+            fillBasisBatch(coordinates, count, plane, destination);
+        }
+    }
+
+    private void fillBasisBatch(long[] coordinates, int count, TerrainBasis[] target, int offset) {
+        if (!heightProvider.supportsBatch()) {
+            for (int index = 0; index < count; index++) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new CancellationException("Terrain basis sampling interrupted");
+                }
+                target[offset + index] = basis(RiverFootprint.unpackX(coordinates[index]),
+                        RiverFootprint.unpackZ(coordinates[index]));
+            }
+            return;
+        }
+        long[] missing = new long[count];
+        int[] slots = new int[count];
+        double[] heights = new double[count];
+        Long2IntOpenHashMap indices = new Long2IntOpenHashMap(count);
+        indices.defaultReturnValue(-1);
+        int missingCount = 0;
+        for (int index = 0; index < count; index++) {
+            int x = RiverFootprint.unpackX(coordinates[index]);
+            int z = RiverFootprint.unpackZ(coordinates[index]);
+            long packed = pack(x, z);
+            CacheStripe stripe = stripe(packed);
+            synchronized (stripe) {
+                TerrainBasis basis = stripe.bases.getAndMoveToLast(packed);
+                if (basis != null) {
+                    target[offset + index] = basis;
+                    slots[index] = -1;
+                    continue;
+                }
+                heights[index] = stripe.naturalHeights.getAndMoveToLast(packed);
+            }
+            if (!Double.isNaN(heights[index])) {
+                slots[index] = -1;
+                continue;
+            }
+            int slot = indices.get(coordinates[index]);
+            if (slot < 0) {
+                slot = missingCount++;
+                indices.put(coordinates[index], slot);
+                missing[slot] = coordinates[index];
+            }
+            slots[index] = slot;
+        }
+        double[] sampled = new double[missingCount];
+        boolean memoizable = true;
+        if (missingCount > 0) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new CancellationException("Terrain basis sampling interrupted");
+            }
+            long revision = ProvisionalSampling.revision();
+            heightProvider.sampleBatch(missing, missingCount, sampled);
+            memoizable = revision == ProvisionalSampling.revision();
+            for (int index = 0; memoizable && index < missingCount; index++) {
+                if (!Double.isFinite(sampled[index])) {
+                    continue;
+                }
+                long packed = pack(RiverFootprint.unpackX(missing[index]), RiverFootprint.unpackZ(missing[index]));
+                CacheStripe stripe = stripe(packed);
+                synchronized (stripe) {
+                    double existing = stripe.naturalHeights.getAndMoveToLast(packed);
+                    if (Double.isNaN(existing)) {
+                        stripe.naturalHeights.putAndMoveToLast(packed, sampled[index]);
+                        stripe.evictOldest(stripe.naturalHeights);
+                    } else {
+                        sampled[index] = existing;
+                    }
+                }
+            }
+        }
+        for (int index = 0; index < count; index++) {
+            if (target[offset + index] != null) {
+                continue;
+            }
+            int x = RiverFootprint.unpackX(coordinates[index]);
+            int z = RiverFootprint.unpackZ(coordinates[index]);
+            long packed = pack(x, z);
+            double height = slots[index] < 0 ? heights[index] : sampled[slots[index]];
+            target[offset + index] = memoizable ? loadBasis(x, z, stripe(packed), packed, height)
+                    : sampleBasis(x, z, height);
         }
     }
 
@@ -384,8 +507,9 @@ final class IrisHydrologyRoutingTerrainSampler implements HydrologyNaturalTerrai
                 return cachedBasis.naturalHeight();
             }
         }
+        long revision = ProvisionalSampling.revision();
         double sampled = heightProvider.sample(blockX, blockZ);
-        if (!Double.isFinite(sampled)) {
+        if (!Double.isFinite(sampled) || revision != ProvisionalSampling.revision()) {
             // Never memoize a broken sample: the basis provider rejects it with a diagnostic and a
             // later sample of the same column gets a fresh chance instead of the cached failure.
             return sampled;

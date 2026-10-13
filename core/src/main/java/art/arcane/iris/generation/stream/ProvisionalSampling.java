@@ -16,6 +16,10 @@ public final class ProvisionalSampling {
     private ProvisionalSampling() {
     }
 
+    public static long revision() {
+        return TRACKERS.get().revision;
+    }
+
     /** Records that the calling thread just answered from inputs that are not final. */
     public static void mark() {
         TRACKERS.get().revision++;

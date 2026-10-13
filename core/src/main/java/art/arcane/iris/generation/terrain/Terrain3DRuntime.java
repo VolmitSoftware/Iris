@@ -63,6 +63,10 @@ public final class Terrain3DRuntime {
         return Math.max(ANCHOR_BLOCK_SIZE, (int) (maximumEntries / ANCHOR_BLOCK_SIZE) * ANCHOR_BLOCK_SIZE);
     }
 
+    public boolean requiresBaseHeight(int x, int z) {
+        return !active() || columns.get(x, z) == null;
+    }
+
     public double height(int x, int z) {
         if (!active()) {
             return baseHeight(x, z);

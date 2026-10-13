@@ -50,6 +50,20 @@ public class CachedDoubleStream2D extends BasicStream<Double> implements Procedu
         }
     }
 
+    public void getBatch(long[] coordinates, int count, double[] target, WorldCache2DDouble.BatchResolver resolver) {
+        try {
+            cache.getBatch(coordinates, count, target, (missing, size, values) ->
+                    ProvisionalSampling.memoizable(() -> {
+                        resolver.resolve(missing, size, values);
+                        return values;
+                    }));
+        } catch (ProvisionalSampling.Unmemoizable provisional) {
+            for (int index = 0; index < count; index++) {
+                target[index] = getDouble((int) (coordinates[index] >> 32), (int) coordinates[index]);
+            }
+        }
+    }
+
     @Override
     public long getSize() {
         return cache.getSize();

@@ -20,7 +20,6 @@ package art.arcane.iris.platform.generation;
 
 import art.arcane.iris.world.history.GenerationFindCatalog;
 
-import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.world.event.IrisLootEvent;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.ExternalDataSVC;
@@ -73,6 +72,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Chest;
 import org.bukkit.entity.Player;
@@ -82,6 +82,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.Lootable;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -89,9 +91,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 import art.arcane.iris.localization.BukkitRuntimeMessages;
 import art.arcane.iris.localization.IrisLanguage;
@@ -124,14 +124,7 @@ public final class EngineBukkitOps {
         }
 
         if (!J.isFolia() && !J.isPrimaryThread()) {
-            CompletableFuture<?> scheduled = J.sfut(() -> updateChunk(engine, c, mantle));
-            if (scheduled != null) {
-                try {
-                    scheduled.join();
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                }
-            }
+            awaitMaterialization(J.sfut(() -> updateChunk(engine, c, mantle)));
             return;
         }
 
@@ -303,21 +296,25 @@ public final class EngineBukkitOps {
         });
 
         if (!scheduled) {
-            if (J.isPrimaryThread()) {
-                runnable.run();
-            }
-            return;
+            throw new IllegalStateException("Failed to schedule chunk materialization for "
+                    + contextChunk.getWorld().getName() + " at chunk " + contextChunk.getX() + "," + contextChunk.getZ() + ".");
         }
 
+        awaitMaterialization(completion);
+    }
+
+    private static void awaitMaterialization(CompletableFuture<?> completion) {
         try {
             completion.join();
         } catch (CompletionException error) {
             Throwable cause = error.getCause();
-            IrisLogging.reportError(
-                    "Failed deferred chunk materialization for " + contextChunk.getWorld().getName()
-                            + " at chunk " + contextChunk.getX() + "," + contextChunk.getZ() + ".",
-                    cause == null ? error : cause
-            );
+            if (cause instanceof RuntimeException runtimeFailure) {
+                throw runtimeFailure;
+            }
+            if (cause instanceof Error fatalFailure) {
+                throw fatalFailure;
+            }
+            throw error;
         }
     }
 
@@ -351,8 +348,12 @@ public final class EngineBukkitOps {
                     InventoryHolder m = (InventoryHolder) block.getState();
                     addItems(engine, false, m.getInventory(), tables, slot, c.getWorld(), worldX, y, worldZ);
 
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
+                } catch (RuntimeException | Error failure) {
+                    if (IrisLogging.errorOnce("container-loot:" + world.getUID() + ":" + worldX + "," + y + "," + worldZ + ":" + failure,
+                            "Failed to populate loot at " + world.getName() + " [" + worldX + "," + y + "," + worldZ + "].")) {
+                        IrisLogging.reportError(failure);
+                    }
+                    throw failure;
                 }
             }
         } else {
@@ -515,6 +516,10 @@ public final class EngineBukkitOps {
     }
 
     public static void addItems(Engine engine, boolean debug, Inventory inv, KList<IrisLootTable> tables, InventorySlotType slot, World world, int x, int y, int z) {
+        if (!J.isOwnedByCurrentRegion(world, x >> 4, z >> 4)) {
+            throw new IllegalStateException("Loot inventory mutation requires the owning region at "
+                    + world.getName() + " [" + x + "," + y + "," + z + "].");
+        }
         KList<ItemStack> items = new KList<>();
 
         for (IrisLootTable i : tables) {
@@ -525,57 +530,69 @@ public final class EngineBukkitOps {
         if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
             return;
 
-        if (PaperLib.isPaper() && engine.getWorld().hasPlatformWorld()) {
-            PaperLib.getChunkAtAsync(BukkitWorldBinding.world(engine.getWorld()), x >> 4, z >> 4).thenAccept((c) -> {
-                Runnable mutation = () -> {
-                    for (ItemStack i : items) {
-                        inv.addItem(i);
-                    }
+        populateInventory(engine, inv, items, LootResolver.containerRng(engine.getSeedManager().getLoot(), x, y, z));
+    }
 
-                    scramble(engine, inv, LootResolver.containerRng(engine.getSeedManager().getLoot(), x, y, z));
-                };
-
-                LootMutationTask task = new LootMutationTask(world, x >> 4, z >> 4, mutation);
-                boolean scheduled = dispatchLootMutation(
-                        task,
-                        J.isFolia(),
-                        Bukkit::isPrimaryThread,
-                        regionTask -> J.runRegion(
-                                regionTask.world(),
-                                regionTask.chunkX(),
-                                regionTask.chunkZ(),
-                                regionTask.mutation()),
-                        J::s
-                );
-                if (!scheduled) {
-                    IrisLogging.error("Failed to schedule loot inventory mutation for " + world.getName() + "@" + (x >> 4) + "," + (z >> 4) + ".");
-                }
-            });
+    static void populateInventory(Engine engine, Inventory inv, List<ItemStack> items, RNG rng) {
+        List<BlockState> states = new ArrayList<>(2);
+        InventoryHolder holder = inv.getHolder();
+        if (holder instanceof DoubleChest chest) {
+            snapshotContainer(states, chest.getLeftSide());
+            snapshotContainer(states, chest.getRightSide());
         } else {
-            for (ItemStack i : items) {
-                inv.addItem(i);
+            snapshotContainer(states, holder);
+        }
+        ItemStack[] contents = null;
+        try {
+            if (states.isEmpty()) {
+                contents = copyContents(inv.getContents());
             }
-
-            scramble(engine, inv, LootResolver.containerRng(engine.getSeedManager().getLoot(), x, y, z));
+            for (ItemStack i : items) {
+                if (i != null) {
+                    inv.addItem(i.clone());
+                }
+            }
+            scramble(engine, inv, rng);
+        } catch (RuntimeException | Error failure) {
+            if (states.isEmpty()) {
+                if (contents != null) {
+                    try {
+                        inv.setContents(contents);
+                    } catch (RuntimeException | Error rollbackFailure) {
+                        if (rollbackFailure != failure) {
+                            failure.addSuppressed(rollbackFailure);
+                        }
+                    }
+                }
+            } else {
+                for (BlockState state : states) {
+                    try {
+                        if (!state.update(true, false)) {
+                            throw new IllegalStateException("Failed to restore loot container at " + state.getLocation());
+                        }
+                    } catch (RuntimeException | Error rollbackFailure) {
+                        if (rollbackFailure != failure) {
+                            failure.addSuppressed(rollbackFailure);
+                        }
+                    }
+                }
+            }
+            throw failure;
         }
     }
 
-    static boolean dispatchLootMutation(
-            LootMutationTask task,
-            boolean folia,
-            BooleanSupplier primaryThread,
-            Predicate<LootMutationTask> regionScheduler,
-            Consumer<Runnable> syncScheduler) {
-        if (folia) {
-            return regionScheduler.test(task);
+    private static void snapshotContainer(List<BlockState> snapshots, InventoryHolder holder) {
+        if (holder instanceof BlockState state) {
+            snapshots.add(state.getBlock().getState());
         }
+    }
 
-        if (primaryThread.getAsBoolean()) {
-            task.mutation().run();
-        } else {
-            syncScheduler.accept(task.mutation());
+    private static ItemStack[] copyContents(ItemStack[] contents) {
+        ItemStack[] copy = new ItemStack[contents.length];
+        for (int index = 0; index < contents.length; index++) {
+            copy[index] = contents[index] == null ? null : contents[index].clone();
         }
-        return true;
+        return copy;
     }
 
     public static IrisBiome getBiome(Engine engine, Location l) {
@@ -838,6 +855,4 @@ public final class EngineBukkitOps {
         }
     }
 
-    record LootMutationTask(World world, int chunkX, int chunkZ, Runnable mutation) {
-    }
 }

@@ -57,7 +57,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
@@ -171,7 +170,7 @@ public class ModdedChunkUpdateServiceTest {
     }
 
     @Test
-    public void permanentSavedBiomeUnavailabilityCompletesThePassWithAWarning() {
+    public void permanentSavedBiomeUnavailabilityRetainsPendingLoot() {
         ChestUpdateMantleChunk chunk = new ChestUpdateMantleChunk();
         Engine engine = updateEngine(chunk);
         NativeWorld level = chestLevel();
@@ -187,13 +186,46 @@ public class ModdedChunkUpdateServiceTest {
                 return null;
             });
 
-            new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, 0, 0);
+            assertThrows(SavedBiomeUnavailableException.class,
+                    () -> new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, 0, 0));
+
+            assertFalse(chunk.isFlagged(MantleFlag.ETCHED));
+            assertFalse(chunk.isFlagged(MantleFlag.UPDATE));
+            assertFalse(chunk.deleted());
+            verify(chunk.slice, never()).set(2, 5, 2, null);
+
+        }
+    }
+
+    @Test
+    public void ordinaryLootFailureRetainsPendingWorkAndRetries() {
+        ChestUpdateMantleChunk chunk = new ChestUpdateMantleChunk();
+        Engine engine = updateEngine(chunk);
+        NativeWorld level = chestLevel();
+        AtomicInteger attempts = new AtomicInteger();
+        ModdedChunkUpdateService service = new ModdedChunkUpdateService();
+        IllegalStateException failure = new IllegalStateException("Loot provider unavailable");
+        try (MockedStatic<ModdedLootApplier> loot = mockStatic(ModdedLootApplier.class)) {
+            loot.when(() -> ModdedLootApplier.apply(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+                NativeBlockPoint position = invocation.getArgument(2);
+                if (position.x() == 2 && attempts.getAndIncrement() == 0) {
+                    throw failure;
+                }
+                return null;
+            });
+
+            assertSame(failure, assertThrows(IllegalStateException.class,
+                    () -> service.updateRegeneratedChunk(engine, level, 0, 0)));
+            assertFalse(chunk.isFlagged(MantleFlag.UPDATE));
+            assertFalse(chunk.isFlagged(MantleFlag.ETCHED));
+            assertFalse(chunk.deleted());
+            verify(chunk.slice, never()).set(2, 5, 2, null);
+
+            service.updateRegeneratedChunk(engine, level, 0, 0);
 
             assertTrue(chunk.isFlagged(MantleFlag.ETCHED));
             assertTrue(chunk.deleted());
-            logging.verify(() -> IrisLogging.warnOnce(anyString(), contains(reason)));
-            logging.verify(() -> IrisLogging.reportError(any(Throwable.class)), never());
-            logging.verify(() -> IrisLogging.reportError(anyString(), any(Throwable.class)), never());
+            assertEquals(2, attempts.get());
         }
     }
 

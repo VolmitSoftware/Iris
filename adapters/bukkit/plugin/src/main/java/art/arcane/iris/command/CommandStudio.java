@@ -81,7 +81,6 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.Vector;
 
@@ -309,23 +308,33 @@ public class CommandStudio implements DirectorExecutor {
         O<Integer> ta = new O<>();
         ta.set(-1);
 
-        var sender = sender();
-        var player = player();
-        var engine = engine();
+        VolmitSender sender = sender();
+        Player player = player();
+        Engine engine = engine();
 
-        ta.set(J.sr(() ->
-        {
-            if (!player.getOpenInventory().getType().equals(InventoryType.CHEST)) {
+        ta.set(J.sr(() -> {
+            if (!J.runEntity(player, () -> {
+                if (player.getOpenInventory().getTopInventory() != inv) {
+                    J.csr(ta.get());
+                    sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_OPENED_INVENTORY));
+                    return;
+                }
+                if (!add) {
+                    inv.clear();
+                }
+                Location location = player.getLocation();
+                try {
+                    EngineBukkitOps.addItems(engine, true, inv, tables, InventorySlotType.STORAGE,
+                            location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+                } catch (RuntimeException | Error failure) {
+                    J.csr(ta.get());
+                    Iris.reportError(failure);
+                    sender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_CANNOT_ADD_ITEMS_VIRTUAL_INVENTORY_BECAUSE,
+                            MessageArgument.untrusted("value", String.valueOf(failure.getMessage()))));
+                }
+            }, 0, () -> J.csr(ta.get()))) {
                 J.csr(ta.get());
-                sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_OPENED_INVENTORY));
-                return;
             }
-
-            if (!add) {
-                inv.clear();
-            }
-
-            EngineBukkitOps.addItems(engine, true, inv, tables, InventorySlotType.STORAGE, player.getWorld(), player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ());
         }, fast ? 5 : 35));
 
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_INVENTORY_NOW));

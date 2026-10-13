@@ -289,6 +289,8 @@ final class WorldChunkMaintenance {
             boolean scheduled = J.runRegion(world, chunkX, chunkZ, manager.managedTask("bukkit_world_manager_chunk_update", () -> {
                 try {
                     updateChunkRegion(world, chunkX, chunkZ);
+                } catch (RuntimeException | Error failure) {
+                    reportMaterializationFailure(new MaterializationTarget(world, chunkX, chunkZ), failure);
                 } finally {
                     chunkUpdateQueue.remove(key);
                 }
@@ -508,6 +510,13 @@ final class WorldChunkMaintenance {
         return loadedChunkPositions;
     }
 
+    private void reportMaterializationFailure(MaterializationTarget target, Throwable failure) {
+        String context = "Failed to materialize chunk " + target.x() + "," + target.z() + " in " + target.world().getName() + ".";
+        if (IrisLogging.errorOnce("chunk-materialization:" + target.world().getUID() + ":" + target.x() + "," + target.z() + ":" + failure, context)) {
+            IrisLogging.reportError(context, failure);
+        }
+    }
+
     private record MaterializationTarget(World world, int x, int z) {
         private long key() {
             return Cache.key(x, z);
@@ -614,7 +623,7 @@ final class WorldChunkMaintenance {
                 }
                 spawnInitially(chunk);
             } catch (Throwable failure) {
-                IrisLogging.reportError("Failed to materialize saved chunk at " + target.x() + "," + target.z() + ".", failure);
+                reportMaterializationFailure(target, failure);
             } finally {
                 synchronized (this) {
                     applying = false;

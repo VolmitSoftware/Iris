@@ -17,6 +17,7 @@ dependencies {
     implementation(project(':core'))
     compileOnly(libs.spigot)
     testImplementation('junit:junit:4.13.2')
+    testImplementation('org.mockito:mockito-core:5.23.0')
     testImplementation(libs.gson)
     testImplementation(testFixtures(project(':core')))
     testImplementation('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {

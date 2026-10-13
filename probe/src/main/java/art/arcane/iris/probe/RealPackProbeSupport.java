@@ -43,7 +43,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,9 +55,9 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
-import java.util.stream.Stream;
 
 final class RealPackProbeSupport {
+    private static final long WORKER_DRAIN_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(120);
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
 
     private RealPackProbeSupport() {
@@ -157,7 +156,7 @@ final class RealPackProbeSupport {
     }
 
     private static void awaitGenerationWorkers() throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        long deadline = System.nanoTime() + WORKER_DRAIN_TIMEOUT_NANOS;
         List<ForkJoinPool> pools = new ArrayList<>(3);
         for (MultiBurst burst : List.of(MultiBurst.hydrology, MultiBurst.ioBurst, MultiBurst.burst)) {
             try {
@@ -170,6 +169,10 @@ final class RealPackProbeSupport {
                 throw new IllegalStateException("Probe generation worker barrier failed", failure);
             }
         }
+        awaitGenerationWorkers(pools, deadline);
+    }
+
+    static void awaitGenerationWorkers(List<ForkJoinPool> pools, long deadline) throws InterruptedException {
         long[] previous = quietWorkerSnapshot(pools, deadline);
         while (true) {
             long[] current = quietWorkerSnapshot(pools, deadline);
@@ -189,7 +192,8 @@ final class RealPackProbeSupport {
                     throw new InterruptedException("Probe generation worker barrier interrupted");
                 }
                 if (System.nanoTime() >= deadline) {
-                    throw new IllegalStateException("Probe generation workers did not settle within 15 seconds");
+                    throw new IllegalStateException("Probe generation workers did not settle before the deadline: pool "
+                            + (index + 1) + "/" + pools.size() + " " + pool);
                 }
                 long count = pool.getStealCount();
                 boolean quiet = pool.isQuiescent();
@@ -616,7 +620,7 @@ final class RealPackProbeSupport {
             if (clone.waitFor() == 0) {
                 return destination;
             }
-            deleteRecursively(destination.toPath());
+            ProbeWorkspaceCleanup.deleteRecursively(destination.toPath());
         }
         Path sourcePath = source.toPath();
         Files.walkFileTree(sourcePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE,
@@ -657,23 +661,10 @@ final class RealPackProbeSupport {
 
     private static Throwable deleteWorkRoot(File workRoot) {
         try {
-            deleteRecursively(workRoot.toPath());
+            ProbeWorkspaceCleanup.deleteRecursively(workRoot.toPath());
             return null;
         } catch (Throwable failure) {
             return failure;
-        }
-    }
-
-    private static void deleteRecursively(Path root) throws Exception {
-        if (!Files.exists(root)) {
-            return;
-        }
-        List<Path> paths;
-        try (Stream<Path> walk = Files.walk(root)) {
-            paths = walk.sorted(Comparator.reverseOrder()).toList();
-        }
-        for (Path path : paths) {
-            Files.deleteIfExists(path);
         }
     }
 

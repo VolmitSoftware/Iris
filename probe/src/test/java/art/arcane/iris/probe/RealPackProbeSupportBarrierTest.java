@@ -17,13 +17,17 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public final class RealPackProbeSupportBarrierTest {
@@ -66,6 +70,89 @@ public final class RealPackProbeSupportBarrierTest {
             }
         }
         PlatformLeakGuard.requireClean("closed real-pack workspace", "end");
+    }
+
+    @Test(timeout = 10_000L)
+    public void waitsForActiveWorkWithinItsDeadline() throws Exception {
+        try (ForkJoinPool pool = new ForkJoinPool(1)) {
+            CountDownLatch entered = new CountDownLatch(1);
+            Future<?> task = pool.submit(() -> {
+                entered.countDown();
+                Thread.sleep(100L);
+                return null;
+            });
+            assertTrue(entered.await(5L, TimeUnit.SECONDS));
+            RealPackProbeSupport.awaitGenerationWorkers(List.of(pool),
+                    System.nanoTime() + TimeUnit.SECONDS.toNanos(5));
+            assertTrue(task.isDone());
+            task.get();
+        }
+    }
+
+    @Test(timeout = 10_000L)
+    public void rejectsUnsettledWorkAtItsDeadlineWithoutCancellingIt() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        try (ForkJoinPool pool = new ForkJoinPool(1)) {
+            CountDownLatch entered = new CountDownLatch(1);
+            Future<?> task = pool.submit(() -> {
+                entered.countDown();
+                release.await();
+                return null;
+            });
+            try {
+                assertTrue(entered.await(5L, TimeUnit.SECONDS));
+                IllegalStateException failure = assertThrows(IllegalStateException.class,
+                        () -> RealPackProbeSupport.awaitGenerationWorkers(List.of(pool),
+                                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(50)));
+                assertTrue(failure.getMessage().contains("pool 1/1"));
+                assertTrue(failure.getMessage().contains("active ="));
+                assertFalse(task.isDone());
+            } finally {
+                release.countDown();
+            }
+            RealPackProbeSupport.awaitGenerationWorkers(List.of(pool),
+                    System.nanoTime() + TimeUnit.SECONDS.toNanos(5));
+            task.get();
+        }
+    }
+
+    @Test(timeout = 10_000L)
+    public void interruptionStopsAnActiveWorkerWait() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        try (ForkJoinPool pool = new ForkJoinPool(1)) {
+            CountDownLatch entered = new CountDownLatch(1);
+            Future<?> task = pool.submit(() -> {
+                entered.countDown();
+                release.await();
+                return null;
+            });
+            AtomicReference<Throwable> failure = new AtomicReference<>();
+            CountDownLatch waiting = new CountDownLatch(1);
+            Thread waiter = new Thread(() -> {
+                waiting.countDown();
+                try {
+                    RealPackProbeSupport.awaitGenerationWorkers(List.of(pool),
+                            System.nanoTime() + TimeUnit.SECONDS.toNanos(5));
+                } catch (Throwable interrupted) {
+                    failure.set(interrupted);
+                }
+            });
+            try {
+                assertTrue(entered.await(5L, TimeUnit.SECONDS));
+                waiter.start();
+                assertTrue(waiting.await(5L, TimeUnit.SECONDS));
+                waiter.interrupt();
+                waiter.join(5_000L);
+                assertFalse(waiter.isAlive());
+                assertTrue(failure.get() instanceof InterruptedException);
+                assertFalse(task.isDone());
+            } finally {
+                release.countDown();
+                waiter.interrupt();
+                waiter.join(5_000L);
+            }
+            task.get();
+        }
     }
 
     private static void verifyCrossPoolContinuation(RealPackProbeSupport.EngineSession session,

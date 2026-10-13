@@ -40,6 +40,7 @@ final class CaveCarveScratch {
     final double[] planeThresholdLimit = new double[256];
     final boolean[] planeCarve = new boolean[256];
     final double[] adaptivePlaneDensity = new double[81];
+    final CaveDensityGrid.Column[] densityColumns = new CaveDensityGrid.Column[16];
     double[] verticalDensityLower = new double[9];
     double[] verticalDensityUpper = new double[9];
     int verticalDensityLowerY = Integer.MIN_VALUE;
@@ -79,8 +80,9 @@ final class CaveCarveScratch {
     int adaptiveGeometryAxisCells = -1;
     boolean fullWeightsInitialized;
 
-    void releaseSections() {
+    void releaseReferences() {
         Arrays.fill(sectionMatter, null);
         Arrays.fill(sectionSlices, null);
+        Arrays.fill(densityColumns, null);
     }
 }

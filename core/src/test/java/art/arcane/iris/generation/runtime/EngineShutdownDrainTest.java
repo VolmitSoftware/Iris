@@ -103,6 +103,39 @@ public class EngineShutdownDrainTest {
     }
 
     @Test
+    public void closeKeepsRuntimeOpenUntilAdmittedGenerationFinishes() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        GenerationSessionManager sessions = spy(new GenerationSessionManager());
+        when(fixture.engine.getGenerationSessions()).thenReturn(sessions);
+        CountDownLatch draining = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            draining.countDown();
+            return invocation.callRealMethod();
+        }).when(sessions).sealAndAwait("close", IrisEngine.SESSION_DRAIN_TIMEOUT_MILLIS, true);
+        GenerationSessionLease activeGeneration = sessions.acquire("chunk_generate");
+        try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+            Future<?> closing = worker.submit(() -> {
+                try (MockedStatic<NativeStructureOwnershipStore> ownership = mockStatic(NativeStructureOwnershipStore.class)) {
+                    fixture.shutdown.close();
+                }
+            });
+            try {
+                assertTrue(draining.await(5, TimeUnit.SECONDS));
+                assertFalse(closing.isDone());
+                verify(fixture.complex, never()).close();
+                verify(fixture.mantle, never()).close();
+                verify(fixture.target, never()).close();
+            } finally {
+                activeGeneration.close();
+            }
+            closing.get(5, TimeUnit.SECONDS);
+            verify(fixture.complex).close();
+            verify(fixture.mantle).close();
+            assertTrue(fixture.engine.closed);
+        }
+    }
+
+    @Test
     public void closingRuntimeAllowsItsBackgroundWorkersToOpenCapturedScopes() throws Exception {
         ShutdownFixture fixture = new ShutdownFixture();
         doCallRealMethod().when(fixture.engine).openGenerationRuntimeScope(any());

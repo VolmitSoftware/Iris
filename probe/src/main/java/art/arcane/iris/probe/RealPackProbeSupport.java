@@ -57,6 +57,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 
 final class RealPackProbeSupport {
+    private static final long WORKER_DRAIN_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(120);
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
 
     private RealPackProbeSupport() {
@@ -155,7 +156,7 @@ final class RealPackProbeSupport {
     }
 
     private static void awaitGenerationWorkers() throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        long deadline = System.nanoTime() + WORKER_DRAIN_TIMEOUT_NANOS;
         List<ForkJoinPool> pools = new ArrayList<>(3);
         for (MultiBurst burst : List.of(MultiBurst.hydrology, MultiBurst.ioBurst, MultiBurst.burst)) {
             try {
@@ -168,6 +169,10 @@ final class RealPackProbeSupport {
                 throw new IllegalStateException("Probe generation worker barrier failed", failure);
             }
         }
+        awaitGenerationWorkers(pools, deadline);
+    }
+
+    static void awaitGenerationWorkers(List<ForkJoinPool> pools, long deadline) throws InterruptedException {
         long[] previous = quietWorkerSnapshot(pools, deadline);
         while (true) {
             long[] current = quietWorkerSnapshot(pools, deadline);
@@ -187,7 +192,8 @@ final class RealPackProbeSupport {
                     throw new InterruptedException("Probe generation worker barrier interrupted");
                 }
                 if (System.nanoTime() >= deadline) {
-                    throw new IllegalStateException("Probe generation workers did not settle within 15 seconds");
+                    throw new IllegalStateException("Probe generation workers did not settle before the deadline: pool "
+                            + (index + 1) + "/" + pools.size() + " " + pool);
                 }
                 long count = pool.getStealCount();
                 boolean quiet = pool.isQuiescent();

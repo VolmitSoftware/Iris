@@ -125,7 +125,7 @@ public class IrisComplex implements DataProvider {
     private static final int GRID_BOUNDS_CACHE_SIZE = 8192;
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
     private static final int TERRAIN_COLUMN_CACHE_SIZE = 524_288;
-    /** One million corners: about 16 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
+    /** One million corners: about 20 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
     /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
     private static final double SLOPE_RUN = 3D;
@@ -148,7 +148,7 @@ public class IrisComplex implements DataProvider {
     private final transient ThreadLocal<GridBoundsCache> gridBoundsCache = ThreadLocal.withInitial(GridBoundsCache::new);
     @Getter(AccessLevel.NONE)
     private final int biomeBoundsSamplingStep;
-    private transient volatile SharedCornerBounds sharedCornerBounds = new SharedCornerBounds(SHARED_CORNER_BOUNDS_CAPACITY);
+    private transient volatile SharedCornerBounds sharedCornerBounds;
     @Getter(AccessLevel.NONE)
     private final transient IrisInterpolator[] frozenInterpolators;
     @Getter(AccessLevel.NONE)
@@ -407,11 +407,13 @@ public class IrisComplex implements DataProvider {
                 GenerationStreams.cache2D(bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
                         .convertAware2D(this::implode), "baseBiomeStream", engine, cacheSize);
         baseBiomeStream = focusedBiomes != null || !imageMapRuntime.has(IrisImageMapApplication.BIOME)
-                ? proceduralBaseBiomeStream : GenerationStreams.cache2D(proceduralBaseBiomeStream
-                .convertAware2D((biome, x, z) -> {
+                ? proceduralBaseBiomeStream : GenerationStreams.cache2D(ProceduralStream.of((x, z) -> {
                     IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
-                    return mapped == null ? biome : mapped;
-                }), "imageMappedBaseBiomeStream", engine, cacheSize);
+                    return mapped == null ? proceduralBaseBiomeStream.get(x, z) : mapped;
+                }, (x, y, z) -> {
+                    IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
+                    return mapped == null ? proceduralBaseBiomeStream.get(x, y, z) : mapped;
+                }, proceduralBaseBiomeStream), "imageMappedBaseBiomeStream", engine, cacheSize);
         proceduralTerrainHeight = new ProceduralTerrainHeightSampler(
                 (x, z) -> getHeight(engine, x, z, engine.getSeedManager().getHeight()),
                 engine.getDimension().getTerrainSamplingStep());
@@ -441,14 +443,9 @@ public class IrisComplex implements DataProvider {
                 : GenerationStreams.cache2DDouble(ProceduralStream.ofDouble((x, z) -> transitionDisplacement.height(
                 blockCoordinate(x), blockCoordinate(z), unblendedNaturalHeightStream.getDouble(x, z))),
                 "naturalHeightStream", engine, cacheSize);
-        naturalTrueBiomeStream = focusedBiomes != null ? GenerationStreams.cache2D(focusedBiomes, "naturalTrueBiomeStream-focus", engine, cacheSize) : GenerationStreams.cache2D(naturalHeightStream
-                .convertAware2D((h, x, z) -> {
-                    IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
-                    return mapped == null
-                            ? fixBiomeType(h, baseBiomeStream.get(x, z), regionStream.get(x, z), x, z,
-                            transitionFluidHeight(x, z, fluidHeight))
-                            : mapped;
-                }), "naturalTrueBiomeStream", engine, cacheSize);
+        naturalTrueBiomeStream = focusedBiomes != null ? GenerationStreams.cache2D(focusedBiomes, "naturalTrueBiomeStream-focus", engine, cacheSize)
+                : GenerationStreams.cache2D(ProceduralStream.of(this::sampleNaturalTrueBiome, this::sampleNaturalTrueBiome,
+                Interpolated.of(value -> 0D, value -> null)), "naturalTrueBiomeStream", engine, cacheSize);
         IrisHydrology configuredHydrology = engine.getDimension().getHydrology();
         if (hydrologyActive(configuredHydrology)) {
             hydrologyRuntime = new IrisHydrologyRuntime(new IrisHydrologyRuntimeContext(
@@ -477,10 +474,8 @@ public class IrisComplex implements DataProvider {
                                 Math.max(4096, cacheSize), data, banks3D));
             }
         }
-        cachedHeightStream = new CachedDoubleStream2D("heightStream", engine,
-                ProceduralStream.ofDouble(this::resolveHydrologyTerrainHeight), cacheSize);
-        heightStream = ProceduralStream.ofDouble((x, z) -> terrainEngine.getPlatformHooks().isMainThread()
-                ? nonblockingTerrainHeight(x, z) : cachedHeightStream.getDouble(x, z));
+        cachedHeightStream = new TerrainHeightStream(engine, cacheSize);
+        heightStream = cachedHeightStream;
         roundedHeighteightStream = GenerationStreams.contextInjecting(heightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
                 .round();
         slopeStream = GenerationStreams.contextInjecting(heightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
@@ -1036,6 +1031,22 @@ public class IrisComplex implements DataProvider {
             return hydrologyBanks3D.column(blockCoordinate(x), blockCoordinate(z)).topY();
         }
         return sample.terrainHeight();
+    }
+
+    private IrisBiome sampleNaturalTrueBiome(double x, double z) {
+        IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
+        return mapped == null
+                ? fixBiomeType(naturalHeightStream.getDouble(x, z), baseBiomeStream.get(x, z), regionStream.get(x, z), x, z,
+                transitionFluidHeight(x, z, fluidHeight))
+                : mapped;
+    }
+
+    private IrisBiome sampleNaturalTrueBiome(double x, double y, double z) {
+        IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
+        return mapped == null
+                ? fixBiomeType(naturalHeightStream.getDouble(x, y, z), baseBiomeStream.get(x, z), regionStream.get(x, z), x, z,
+                transitionFluidHeight(x, z, fluidHeight))
+                : mapped;
     }
 
     private double nonblockingTerrainHeight(double x, double z) {
@@ -1693,12 +1704,17 @@ public class IrisComplex implements DataProvider {
         return packed;
     }
 
-    /** The field initializer covers every real complex; an instance built without it gets one here. */
+    /** Coarse bounds allocate their shared table on the first corner sample. */
     private SharedCornerBounds sharedCornerBounds() {
         SharedCornerBounds shared = sharedCornerBounds;
         if (shared == null) {
-            shared = new SharedCornerBounds(SHARED_CORNER_BOUNDS_CAPACITY);
-            sharedCornerBounds = shared;
+            synchronized (this) {
+                shared = sharedCornerBounds;
+                if (shared == null) {
+                    shared = new SharedCornerBounds(SHARED_CORNER_BOUNDS_CAPACITY);
+                    sharedCornerBounds = shared;
+                }
+            }
         }
         return shared;
     }
@@ -2211,6 +2227,62 @@ public class IrisComplex implements DataProvider {
             hash *= 0xff51afd7ed558ccdL;
             hash ^= (hash >>> 33);
             return (int) hash;
+        }
+    }
+
+    private final class TerrainHeightStream extends CachedDoubleStream2D {
+        private TerrainHeightStream(Engine engine, int cacheSize) {
+            super("heightStream", engine, ProceduralStream.ofDouble(IrisComplex.this::resolveHydrologyTerrainHeight), cacheSize);
+        }
+
+        @Override
+        public double getDouble(double x, double z) {
+            return terrainEngine.getPlatformHooks().isMainThread()
+                    ? nonblockingTerrainHeight(x, z) : super.getDouble(x, z);
+        }
+
+        @Override
+        public Double get(double x, double y, double z) {
+            return getDouble(x, z);
+        }
+
+        @Override
+        public double getDouble(double x, double y, double z) {
+            return getDouble(x, z);
+        }
+
+        @Override
+        public void fillChunkDoubles(int worldX, int worldZ, double[] target) {
+            boolean mainThread = terrainEngine.getPlatformHooks().isMainThread();
+            if (!mainThread && (worldX & 15) == 0 && (worldZ & 15) == 0) {
+                super.fillChunkDoubles(worldX, worldZ, target);
+                return;
+            }
+            if (target == null || target.length != 256) {
+                throw new IllegalArgumentException("Expected a 16x16 target array.");
+            }
+            for (int index = 0; index < 256; index++) {
+                int x = worldX + (index & 15);
+                int z = worldZ + (index >> 4);
+                target[index] = mainThread ? nonblockingTerrainHeight(x, z) : super.getDouble(x, z);
+            }
+        }
+
+        @Override
+        public void fillChunkRaw(int worldX, int worldZ, Object[] target) {
+            boolean mainThread = terrainEngine.getPlatformHooks().isMainThread();
+            if (!mainThread && (worldX & 15) == 0 && (worldZ & 15) == 0) {
+                super.fillChunkRaw(worldX, worldZ, target);
+                return;
+            }
+            if (target == null || target.length != 256) {
+                throw new IllegalArgumentException("Expected a 16x16 target array.");
+            }
+            for (int index = 0; index < 256; index++) {
+                int x = worldX + (index & 15);
+                int z = worldZ + (index >> 4);
+                target[index] = mainThread ? nonblockingTerrainHeight(x, z) : super.getDouble(x, z);
+            }
         }
     }
 

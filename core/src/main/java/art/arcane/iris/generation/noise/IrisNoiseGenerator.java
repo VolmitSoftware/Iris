@@ -31,6 +31,14 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.noise.FlatNoise;
+import art.arcane.volmlib.util.noise.FractalBillowPerlinNoise;
+import art.arcane.volmlib.util.noise.FractalBillowSimplexNoise;
+import art.arcane.volmlib.util.noise.FractalFBMSimplexNoise;
+import art.arcane.volmlib.util.noise.NoiseGenerator;
+import art.arcane.volmlib.util.noise.OffsetNoiseGenerator;
+import art.arcane.volmlib.util.noise.PerlinNoise;
+import art.arcane.volmlib.util.noise.SimplexNoise;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -50,6 +58,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IrisNoiseGenerator {
     private static final int GENERATOR_CACHE_SIZE = 32;
     private static final long GENERATOR_SEED_SALT = 33_955_677L;
+    private static final int MINIMUM_FRACTURE_DEPTH = 4;
+    private static final int MAXIMUM_FRACTURE_NODES = 32;
+    private static final ThreadLocal<FractureSamples> FRACTURE_SAMPLES = ThreadLocal.withInitial(FractureSamples::new);
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -135,6 +146,20 @@ public class IrisNoiseGenerator {
             return offsetY;
         }
 
+        if (hasDeepFracture()) {
+            FractureSamples samples = FRACTURE_SAMPLES.get();
+            if (!samples.active) {
+                samples.active = true;
+                try {
+                    if (samples.prepare(this, superSeed, data, engine)) {
+                        return samples.sample(xv, zv);
+                    }
+                } finally {
+                    samples.clear();
+                }
+            }
+        }
+
         double x = xv;
         double z = zv;
         int g = 33;
@@ -148,17 +173,7 @@ public class IrisNoiseGenerator {
             g += 819;
         }
 
-        CNG cng = getGenerator(superSeed, data, engine);
-        double sampleX = (x / zoom) + offsetX;
-        double sampleZ = (z / zoom) + offsetZ;
-        double n = cng.noiseFast2D(sampleX, sampleZ) * opacity;
-        n = negative ? (-n + opacity) : n;
-        n = (exponent != 1 ? n < 0 ? -Math.pow(-n, exponent) : Math.pow(n, exponent) : n) + offsetY;
-        n = parametric ? IrisInterpolation.parametric(n, 2D) : n;
-        n = bezier ? IrisInterpolation.bezier(n) : n;
-        n = sinCentered ? IrisInterpolation.sinCenter(n) : n;
-
-        return n;
+        return sample(getGenerator(superSeed, data, engine), x, z);
     }
 
     public KList<IrisNoiseGenerator> getAllComposites() {
@@ -171,6 +186,65 @@ public class IrisNoiseGenerator {
         }
 
         return g;
+    }
+
+    private double sample(CNG cng, double x, double z) {
+        double sampleX = (x / zoom) + offsetX;
+        double sampleZ = (z / zoom) + offsetZ;
+        double n = cng.noiseFast2D(sampleX, sampleZ) * opacity;
+        n = negative ? (-n + opacity) : n;
+        n = (exponent != 1 ? n < 0 ? -Math.pow(-n, exponent) : Math.pow(n, exponent) : n) + offsetY;
+        n = parametric ? IrisInterpolation.parametric(n, 2D) : n;
+        n = bezier ? IrisInterpolation.bezier(n) : n;
+        n = sinCentered ? IrisInterpolation.sinCenter(n) : n;
+
+        return n;
+    }
+
+    private boolean hasDeepFracture() {
+        IrisNoiseGenerator node = this;
+        for (int depth = 0; depth < MINIMUM_FRACTURE_DEPTH; depth++) {
+            if (node.getClass() != IrisNoiseGenerator.class || !node.enabled || node.fracture.size() != 1) {
+                return false;
+            }
+            node = node.fracture.get(0);
+        }
+        return true;
+    }
+
+    private boolean hasPureStyle() {
+        return style != null && style.getClass() == IrisGeneratorStyle.class
+                && style.getExpression() == null && style.getImageMap() == null
+                && style.getFracture() == null && style.getCellularFrequency() == 0D
+                && style.getCacheSize() == 0;
+    }
+
+    private static boolean isPureGenerator(CNG cng) {
+        for (int depth = 0; depth < MAXIMUM_FRACTURE_NODES; depth++) {
+            if (cng.getClass() != CNG.class || cng.getChildren() != null
+                    || cng.getCustomGenerator() != null || cng.getInjector() != CNG.ADD
+                    || !isPureBase(cng.getGenerator())) {
+                return false;
+            }
+            cng = cng.getFracture();
+            if (cng == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isPureBase(NoiseGenerator generator) {
+        for (int depth = 0; depth < MAXIMUM_FRACTURE_NODES && generator != null; depth++) {
+            Class<?> type = generator.getClass();
+            if (type != OffsetNoiseGenerator.class) {
+                return type == SimplexNoise.class || type == PerlinNoise.class || type == FlatNoise.class
+                        || type == FractalBillowPerlinNoise.class || type == FractalBillowSimplexNoise.class
+                        || type == FractalFBMSimplexNoise.class;
+            }
+            generator = ((OffsetNoiseGenerator) generator).getBase();
+        }
+        return false;
     }
 
     private static final class GeneratorKey {
@@ -205,6 +279,59 @@ public class IrisNoiseGenerator {
             result = 31 * result + System.identityHashCode(engine);
             result = 31 * result + Long.hashCode(seed);
             return result;
+        }
+    }
+
+    private static final class FractureSamples {
+        private final IrisNoiseGenerator[] nodes = new IrisNoiseGenerator[MAXIMUM_FRACTURE_NODES];
+        private final CNG[] generators = new CNG[MAXIMUM_FRACTURE_NODES];
+        private int size;
+        private boolean active;
+
+        private boolean prepare(IrisNoiseGenerator node, long superSeed, IrisData data, Engine engine) {
+            while (size < MAXIMUM_FRACTURE_NODES) {
+                if (node.getClass() != IrisNoiseGenerator.class || !node.enabled || !node.hasPureStyle()
+                        || node.fracture.size() > 1) {
+                    return false;
+                }
+                CNG generator = node.getGenerator(superSeed, data, engine);
+                if (!isPureGenerator(generator)) {
+                    return false;
+                }
+                nodes[size] = node;
+                generators[size++] = generator;
+                if (node.fracture.isEmpty()) {
+                    return true;
+                }
+                superSeed += node.seed + 33;
+                node = node.fracture.get(0);
+            }
+            return false;
+        }
+
+        private double sample(double x, double z) {
+            int leaf = size - 1;
+            double forward = nodes[leaf].sample(generators[leaf], x, z);
+            double reverse = nodes[leaf].sample(generators[leaf], z, x);
+            for (int index = leaf - 1; index >= 0; index--) {
+                double offset = nodes[index + 1].opacity / 2D;
+                double forwardX = x + (forward - offset);
+                double forwardZ = z + (reverse - offset);
+                forward = nodes[index].sample(generators[index], forwardX, forwardZ);
+                if (index > 0) {
+                    reverse = nodes[index].sample(generators[index], forwardZ, forwardX);
+                }
+            }
+            return forward;
+        }
+
+        private void clear() {
+            for (int index = 0; index < size; index++) {
+                nodes[index] = null;
+                generators[index] = null;
+            }
+            size = 0;
+            active = false;
         }
     }
 

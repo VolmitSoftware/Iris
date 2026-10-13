@@ -54,16 +54,37 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         int depth = output.getDepth();
         int planeWidth = width + 2;
         int[] heights = heightPlane(x, z, width, depth, planeWidth);
+        boolean[] rivers = riverPlane(getComplex().getRiverCarveWeightStream(), x, z, width, depth);
         IrisDimension dimension = getDimension();
         boolean walls = dimension.isPostProcessingWalls();
         boolean slabs = dimension.isPostProcessingSlabs();
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < depth; j++) {
-                post(i, j, sync, i + x, j + z, context, heights, planeWidth, walls, slabs);
+                post(i, j, sync, i + x, j + z, context, heights, rivers, planeWidth, walls, slabs);
             }
         }
 
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
+    }
+
+    static boolean[] riverPlane(ProceduralStream<Double> carveWeights, int x, int z, int width, int depth) {
+        int planeWidth = width + 2;
+        boolean[] rivers = new boolean[planeWidth * (depth + 2)];
+        for (int j = -1; j <= depth; j++) {
+            boolean edge = j == -1 || j == depth;
+            int from = edge ? 0 : -1;
+            int to = edge ? width - 1 : width;
+            int row = (j + 1) * planeWidth;
+            for (int i = from; i <= to; i++) {
+                rivers[row + i + 1] = carveWeights.get(x + i, z + j) > 0D;
+            }
+        }
+        return rivers;
+    }
+
+    static boolean skipsHydrologyColumn(boolean[] rivers, int center, int planeWidth) {
+        return rivers[center] || rivers[center + 1] || rivers[center - 1]
+                || rivers[center + planeWidth] || rivers[center - planeWidth];
     }
 
     /**
@@ -71,26 +92,6 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
      * resolve the same height stream entry up to five times. Resolve the padded plane once instead. The
      * four diagonal corners are never read, so they are left unresolved.
      */
-    private boolean riverColumn(int x, int z) {
-        ProceduralStream<Double> carveWeights = getComplex().getRiverCarveWeightStream();
-        return skipsHydrologyColumn(new double[] {
-                carveWeights.get(x, z),
-                carveWeights.get(x + 1, z),
-                carveWeights.get(x - 1, z),
-                carveWeights.get(x, z + 1),
-                carveWeights.get(x, z - 1)
-        });
-    }
-
-    static boolean skipsHydrologyColumn(double[] carveWeights) {
-        for (double weight : carveWeights) {
-            if (weight > 0D) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private int[] heightPlane(int x, int z, int width, int depth, int planeWidth) {
         int[] heights = new int[planeWidth * (depth + 2)];
         EngineMantle mantle = getEngine().getMantle();
@@ -109,7 +110,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         return heights;
     }
 
-    private void post(int currentPostX, int currentPostZ, Hunk<NativeBlockState> currentData, int x, int z, ChunkContext context, int[] heights, int planeWidth, boolean walls, boolean slabs) {
+    private void post(int currentPostX, int currentPostZ, Hunk<NativeBlockState> currentData, int x, int z, ChunkContext context, int[] heights, boolean[] rivers, int planeWidth, boolean walls, boolean slabs) {
         // x/z are world coordinates, the hunk is indexed relative to this chunk origin.
         int originX = x - currentPostX;
         int originZ = z - currentPostZ;
@@ -120,7 +121,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         int hc = heights[center - 1];
         int hd = heights[center - planeWidth];
         int fluidHeight = (int) Math.round(getComplex().getRiverWaterSurfaceStream().get(x, z));
-        boolean river = riverColumn(x, z);
+        boolean river = skipsHydrologyColumn(rivers, center, planeWidth);
 
         // Floating Nibs
         int g = 0;

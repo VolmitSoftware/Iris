@@ -91,9 +91,9 @@ public class IrisPostModifierSlabSupportTest {
         heights[2 * PLANE_WIDTH + 3] = SURFACE + 1;
 
         Method post = IrisPostModifier.class.getDeclaredMethod("post", int.class, int.class, Hunk.class,
-                int.class, int.class, ChunkContext.class, int[].class, int.class, boolean.class, boolean.class);
+                int.class, int.class, ChunkContext.class, int[].class, boolean[].class, int.class, boolean.class, boolean.class);
         post.setAccessible(true);
-        post.invoke(modifier, 1, 1, output, 1, 1, context, heights, PLANE_WIDTH, false, true);
+        post.invoke(modifier, 1, 1, output, 1, 1, context, heights, new boolean[heights.length], PLANE_WIDTH, false, true);
         return output.get(1, SURFACE + 1, 1);
     }
 

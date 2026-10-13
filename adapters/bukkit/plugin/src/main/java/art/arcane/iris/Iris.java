@@ -1508,12 +1508,15 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     public int getIrisVersion() {
         String input = getDescription().getVersion();
         int hyphenIndex = input.indexOf('-');
-        if (hyphenIndex != -1) {
-            String result = input.substring(0, hyphenIndex);
-            result = result.replaceAll("\\.", "");
-            return Integer.parseInt(result);
+        String release = hyphenIndex < 0 ? input : input.substring(0, hyphenIndex);
+        if (!release.matches("[0-9]+(?:\\.[0-9]+)*")) {
+            return -1;
         }
-        return -1;
+        try {
+            return Integer.parseInt(release.replace(".", ""));
+        } catch (NumberFormatException invalid) {
+            return -1;
+        }
     }
 
     public int getMCVersion() {

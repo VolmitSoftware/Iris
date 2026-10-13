@@ -84,12 +84,14 @@ public class IrisComplexBiomeBuffetTest {
             IrisComplex complex = new IrisComplex(engine);
             doReturn(complex).when(engine).getComplex();
             try {
+                assertNull(complex.getSharedCornerBounds());
                 assertEquals("alpha", complex.getTrueBiomeStream().get(15, 0).getLoadKey());
                 assertEquals("beta", complex.getTrueBiomeStream().get(16, 0).getLoadKey());
                 assertEquals("gamma", complex.getTrueBiomeStream().get(0, 16).getLoadKey());
                 assertEquals(137D, complex.getBaseTerrainHeightStream().getDouble(15, 0), 0D);
                 assertEquals(147D, complex.getBaseTerrainHeightStream().getDouble(16, 0), 0D);
                 assertEquals(157D, complex.getBaseTerrainHeightStream().getDouble(0, 16), 0D);
+                assertNull(complex.getSharedCornerBounds());
                 assertEquals("owned", complex.getRegionStream().get(16, 0).getLoadKey());
                 assertEquals("iris-focus/", complex.getRegionStream().get(0, 16).getLoadKey().substring(0, 11));
                 assertEquals("alpha", dimension.getFocus());

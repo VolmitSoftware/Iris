@@ -946,8 +946,6 @@ final class HydrologyFootprintCompiler {
             HydrologyTerrainSample cached = terrainBases.get(key);
             if (cached != null) {
                 samples[index] = cached;
-            } else if (sharedBasis != null && sharedBasis.findWithoutSlope(key, samples, index)) {
-                continue;
             } else if (naturalSampler == null) {
                 samples[index] = sampleTerrainBasis(RiverFootprint.unpackX(key), RiverFootprint.unpackZ(key));
             } else {
@@ -956,10 +954,11 @@ final class HydrologyFootprintCompiler {
             }
         }
         if (missingCount > 0) {
-            HydrologyTerrainSample[] loaded = naturalSampler.sampleBasisWithoutSlopeBatch(missing, missingCount);
+            HydrologyTerrainSample[] loaded = sharedBasis == null
+                    ? naturalSampler.sampleBasisWithoutSlopeBatch(missing, missingCount)
+                    : sharedBasis.sampleWithoutSlopeBatch(missing, missingCount, naturalSampler);
             for (int index = 0; index < missingCount; index++) {
-                samples[positions[index]] = sharedBasis == null ? loaded[index]
-                        : sharedBasis.rememberWithoutSlope(missing[index], loaded[index]);
+                samples[positions[index]] = loaded[index];
             }
         }
         for (int index = 0; index < count; index++) {

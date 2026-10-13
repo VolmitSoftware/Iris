@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,6 +24,44 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class HydrologyForkJoinTest {
+    @Test(timeout = 10_000)
+    public void workerProvisionalAnswersReachEveryAwaitingCaller() throws Exception {
+        HydrologyForkJoin.Task<Integer> task = new HydrologyForkJoin.Task<>(() -> {
+            ProvisionalSampling.mark();
+            return 73;
+        });
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            workers.submit(task).get(5, TimeUnit.SECONDS);
+            for (int attempt = 0; attempt < 2; attempt++) {
+                ProvisionalSampling.Unmemoizable result = workers.submit(() -> assertThrows(
+                        ProvisionalSampling.Unmemoizable.class,
+                        () -> ProvisionalSampling.memoizable(task::await))).get(5, TimeUnit.SECONDS);
+                assertEquals(Integer.valueOf(73), result.value());
+            }
+        } finally {
+            workers.shutdownNow();
+            assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test(timeout = 10_000)
+    public void provisionalWorkerMarksTheBatchCaller() {
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            ProvisionalSampling.Unmemoizable result = assertThrows(ProvisionalSampling.Unmemoizable.class,
+                    () -> ProvisionalSampling.memoizable(() -> HydrologyForkJoin.invokeAll(List.of(
+                            () -> 1,
+                            () -> {
+                                ProvisionalSampling.mark();
+                                return 2;
+                            }), workers)));
+            assertEquals(List.of(1, 2), result.value());
+        } finally {
+            workers.shutdownNow();
+        }
+    }
+
     @Test
     public void blockedGridBatchNeverHelpsUnrelatedOwnerWork() throws Exception {
         ForkJoinPool pool = new ForkJoinPool(2, ForkJoinPool.defaultForkJoinWorkerThreadFactory,

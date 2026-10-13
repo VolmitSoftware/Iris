@@ -56,7 +56,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Stream;
 
 public final class GenerationProbe {
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
@@ -564,7 +563,7 @@ public final class GenerationProbe {
             }
         }
         try {
-            deleteRecursively(workRoot.toPath());
+            ProbeWorkspaceCleanup.deleteRecursively(workRoot.toPath());
         } catch (Throwable e) {
             failure = appendFailure(failure, e);
         }
@@ -579,19 +578,6 @@ public final class GenerationProbe {
             failure.addSuppressed(additional);
         }
         return failure;
-    }
-
-    private static void deleteRecursively(Path root) throws Exception {
-        if (!Files.exists(root)) {
-            return;
-        }
-        List<Path> paths;
-        try (Stream<Path> walk = Files.walk(root)) {
-            paths = walk.sorted(Comparator.reverseOrder()).toList();
-        }
-        for (Path path : paths) {
-            Files.deleteIfExists(path);
-        }
     }
 
     private static List<Throwable> settleAndDrain() throws InterruptedException {

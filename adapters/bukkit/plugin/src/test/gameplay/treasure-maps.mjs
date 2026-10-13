@@ -8,10 +8,40 @@ const simplifyNbt = value => {
   return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, simplifyNbt(entry)]))
 }
 
+const traceMovement = context => {
+  const client = context.bot._client
+  const write = client.write
+  const records = context.report.treasureMovement = []
+  const numeric = value => typeof value === 'number' && !Number.isFinite(value) ? String(value) : value
+  const record = (direction, name, packet) => {
+    const entity = context.bot.entity
+    records.push({ direction, name, at: new Date().toISOString(),
+      packet: Object.fromEntries(['teleportId', 'x', 'y', 'z', 'yaw', 'pitch', 'flags']
+        .filter(key => key in packet).map(key => [key, numeric(packet[key])])),
+      entity: Object.fromEntries(['x', 'y', 'z'].map(key => [key, numeric(entity.position[key])])
+        .concat(['yaw', 'pitch'].map(key => [key, numeric(entity[key])]))) })
+    if (records.length > 64) records.shift()
+  }
+  const incoming = packet => record('incoming', 'position', packet)
+  const rotation = packet => record('incoming', 'player_rotation', packet)
+  client.prependListener('position', incoming)
+  client.prependListener('player_rotation', rotation)
+  client.write = function (name, packet, ...rest) {
+    if (['position', 'position_look', 'look', 'teleport_confirm'].includes(name)) record('outgoing', name, packet)
+    return write.call(this, name, packet, ...rest)
+  }
+  context.signal.addEventListener('abort', () => {
+    client.write = write
+    client.removeListener('position', incoming)
+    client.removeListener('player_rotation', rotation)
+  }, { once: true })
+}
+
 export default {
   name: 'iris-treasure-maps',
   description: 'Verify exploration-map targets, bounded misses, retained loot, and normal/copper storage on Iris.',
   async run(context) {
+    traceMovement(context)
     context.bot.physicsEnabled = false
     context.bot.clearControlStates()
     context.bot.entity.velocity.set(0, 0, 0)

@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
+import art.arcane.iris.generation.stream.ProvisionalSampling;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -91,6 +93,7 @@ public final class HydrologyForkJoin {
         private final CountDownLatch complete = new CountDownLatch(1);
         private T result;
         private Throwable failure;
+        private boolean provisional;
 
         Task(Callable<T> work) {
             this.work = Objects.requireNonNull(work);
@@ -136,6 +139,9 @@ public final class HydrologyForkJoin {
             if (failure != null) {
                 throw unwrap(failure);
             }
+            if (provisional) {
+                ProvisionalSampling.mark();
+            }
             return result;
         }
 
@@ -156,7 +162,10 @@ public final class HydrologyForkJoin {
                 return;
             }
             try {
-                result = call(work);
+                result = ProvisionalSampling.memoizable(() -> call(work));
+            } catch (ProvisionalSampling.Unmemoizable value) {
+                result = value.value();
+                provisional = true;
             } catch (RuntimeException | Error failed) {
                 failure = failed;
             } finally {

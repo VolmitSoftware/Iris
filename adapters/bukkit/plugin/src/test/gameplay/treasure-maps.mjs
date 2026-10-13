@@ -27,13 +27,18 @@ const traceMovement = context => {
   client.prependListener('position', incoming)
   client.prependListener('player_rotation', rotation)
   client.write = function (name, packet, ...rest) {
-    if (['position', 'position_look', 'look', 'teleport_confirm'].includes(name)) record('outgoing', name, packet)
+    if (['position', 'position_look', 'look', 'teleport_confirm', 'tick_end'].includes(name)) record('outgoing', name, packet)
     return write.call(this, name, packet, ...rest)
   }
+  context.expect(context.bot.supportFeature('sendsClientTickEndPacket'), 'Fixture client supports tick delimiters')
+  const finishTick = () => client.write('tick_end', {})
+  context.bot.on('move', finishTick)
+  finishTick()
   context.signal.addEventListener('abort', () => {
     client.write = write
     client.removeListener('position', incoming)
     client.removeListener('player_rotation', rotation)
+    context.bot.removeListener('move', finishTick)
   }, { once: true })
 }
 

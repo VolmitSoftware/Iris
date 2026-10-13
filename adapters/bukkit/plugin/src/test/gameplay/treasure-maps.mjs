@@ -59,13 +59,17 @@ export default {
       context.expect(response.includes(expected), response)
       return response
     }
+    const bounded = (label, action) => context.waitUntil(async () => {
+      await action()
+      return true
+    }, { label, timeoutMs: 10000 })
     const openChest = async material => {
       const position = context.bot.entity.position.clone().set(2, 161, 2)
       await context.waitUntil(() => context.bot.blockAt(position)?.name === material, {
         label: `${material} reached the client`, timeoutMs: 10000
       })
       const opened = context.waitForEvent('windowOpen', undefined, 120000)
-      await context.bot.activateBlock(context.bot.blockAt(position))
+      await bounded(`Activate ${material}`, () => context.bot.activateBlock(context.bot.blockAt(position)))
       const [window] = await opened
       return window
     }
@@ -88,11 +92,17 @@ export default {
     for (const material of ['chest', 'copper_chest']) {
       for (const destination of ['blocked', 'disabled', 'found', 'mixed']) {
         await context.step(`open ${material} with ${destination} map target and retain all loot`, async () => {
+          const evidence = { destination, material, phase: 'prepare' }
+          context.report.treasureMaps ??= []
+          context.report.treasureMaps.push(evidence)
           const located = destination === 'found' || destination === 'mixed'
           const mapName = located ? 'filled_map' : missItem
           await command(`treasure-map-chest ${destination} ${material.toUpperCase()}`,
             `TREASURE_MAP_CHEST destination=${destination} material=${material.toUpperCase()}`)
+          evidence.phase = 'open'
           const window = await openChest(material)
+          evidence.windowType = window.type
+          evidence.inventoryStart = window.inventoryStart
           let targetId
           let diamondType
           let diamondsBefore
@@ -128,13 +138,18 @@ export default {
             }
             diamondType = diamond.type
             diamondsBefore = context.bot.inventory.count(diamondType)
-            await context.bot.clickWindow(diamond.slot, 0, 1)
+            evidence.phase = 'withdraw'
+            evidence.diamondSlot = diamond.slot
+            await bounded(`Withdraw diamond from ${material} ${destination}`,
+              () => context.bot.clickWindow(diamond.slot, 0, 1))
+            evidence.phase = 'withdrawn'
             await context.waitUntil(() => chestItems(window).every(item => item.name !== 'diamond'), {
               label: 'Diamond transferred out of the chest', timeoutMs: 10000
             })
           } finally {
             context.bot.closeWindow(window)
           }
+          evidence.phase = 'reopen'
           const reopened = await openChest(material)
           try {
             await context.waitUntil(() => chestItems(reopened).some(item => item.name === mapName), {
@@ -149,8 +164,7 @@ export default {
             await context.waitUntil(() => context.bot.inventory.count(diamondType) === diamondsBefore + 1, {
               label: 'Chest awards exactly one diamond', timeoutMs: 10000
             })
-            context.report.treasureMaps ??= []
-            context.report.treasureMaps.push({ destination, material, mapItem: mapName,
+            Object.assign(evidence, { phase: 'complete', mapItem: mapName,
               mapId: targetId ?? null, marker: marker ?? null, verified, reopened: true })
           } finally {
             context.bot.closeWindow(reopened)
@@ -164,7 +178,15 @@ export default {
     await context.step('verify plugin loot runs on its owning region', async () => {
       await command('treasure-region-check', 'TREASURE_REGION_LOOT copper=8 normal=1 events=9 owned=true', 120000)
     })
-    await context.step('reload a data pack without reusing the previous native loot table', async () => {
+    await context.step('verify native loot table reload support', async () => {
+      await command('treasure-reload-before', 'TREASURE_RELOAD material=DIAMOND')
+      if (context.report.treasurePlatform.folia) {
+        const response = await context.command('/minecraft:reload', /Unknown or incomplete command|Reloading/i, 10000)
+        context.expect(response.includes('Unknown or incomplete command'),
+          'Folia fixture expects its unavailable data pack reload command', { response })
+        context.report.treasureReload = { status: 'unavailable', before: 'diamond', evidence: response }
+        return
+      }
       const properties = await readFile(path.join(context.server.directory, 'server.properties'), 'utf8')
       const levelName = properties.match(/^level-name=(.+)$/m)?.[1].trim() ?? 'world'
       const tablePath = path.join(context.server.directory, levelName, 'datapacks', 'iris_treasure',
@@ -184,13 +206,12 @@ export default {
           label: 'Server resource reload completed', timeoutMs: 120000, intervalMs: 500
         })
       }
-      await command('treasure-reload-before', 'TREASURE_RELOAD material=DIAMOND')
       replacement.pools[0].entries[0].name = 'minecraft:emerald'
       try {
         await writeFile(tablePath, `${JSON.stringify(replacement, null, 2)}\n`)
         await reload()
         await command('treasure-reload-after', 'TREASURE_RELOAD material=EMERALD')
-        context.report.treasureReload = { before: 'diamond', after: 'emerald' }
+        context.report.treasureReload = { status: 'passed', before: 'diamond', after: 'emerald' }
       } finally {
         await writeFile(tablePath, original)
         if (!context.signal.aborted) {

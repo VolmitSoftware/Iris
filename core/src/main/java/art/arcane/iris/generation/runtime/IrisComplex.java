@@ -1685,8 +1685,8 @@ public class IrisComplex implements DataProvider {
         // The per-thread table above catches the walk through one chunk; the shared table
         // catches the same corner reached by another thread or by hydrology planning earlier.
         SharedCornerBounds shared = sharedCornerBounds();
-        long sharedKey = SharedCornerBounds.key(gx, gz, interpolatorIndex);
-        long packed = shared.get(sharedKey);
+        long sharedKey = SharedCornerBounds.key(gx, gz);
+        long packed = shared.get(sharedKey, interpolatorIndex);
         if (packed == Long.MIN_VALUE) {
             packed = computePackedBounds(cache, engine, interpolator, generators, gx, gz);
             if (!Double.isFinite(boundsLow(packed)) || !Double.isFinite(boundsHigh(packed))) {
@@ -1694,7 +1694,7 @@ public class IrisComplex implements DataProvider {
                 // hand it back uncached so the next sample recomputes it instead of pinning it.
                 return packed;
             }
-            shared.put(sharedKey, packed);
+            shared.put(sharedKey, interpolatorIndex, packed);
         }
         cache.gx[slot] = gx;
         cache.gz[slot] = gz;

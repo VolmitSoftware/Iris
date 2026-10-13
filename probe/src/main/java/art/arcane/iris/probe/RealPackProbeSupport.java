@@ -43,7 +43,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +55,6 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
-import java.util.stream.Stream;
 
 final class RealPackProbeSupport {
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
@@ -616,7 +614,7 @@ final class RealPackProbeSupport {
             if (clone.waitFor() == 0) {
                 return destination;
             }
-            deleteRecursively(destination.toPath());
+            ProbeWorkspaceCleanup.deleteRecursively(destination.toPath());
         }
         Path sourcePath = source.toPath();
         Files.walkFileTree(sourcePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE,
@@ -657,23 +655,10 @@ final class RealPackProbeSupport {
 
     private static Throwable deleteWorkRoot(File workRoot) {
         try {
-            deleteRecursively(workRoot.toPath());
+            ProbeWorkspaceCleanup.deleteRecursively(workRoot.toPath());
             return null;
         } catch (Throwable failure) {
             return failure;
-        }
-    }
-
-    private static void deleteRecursively(Path root) throws Exception {
-        if (!Files.exists(root)) {
-            return;
-        }
-        List<Path> paths;
-        try (Stream<Path> walk = Files.walk(root)) {
-            paths = walk.sorted(Comparator.reverseOrder()).toList();
-        }
-        for (Path path : paths) {
-            Files.deleteIfExists(path);
         }
     }
 

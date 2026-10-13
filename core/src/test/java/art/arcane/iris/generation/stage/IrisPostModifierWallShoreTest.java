@@ -123,9 +123,10 @@ public class IrisPostModifierWallShoreTest {
         heights[5] = SURFACE - 4;
 
         Method post = IrisPostModifier.class.getDeclaredMethod("post", int.class, int.class, Hunk.class,
-                int.class, int.class, ChunkContext.class, int[].class, int.class, boolean.class, boolean.class);
+                int.class, int.class, ChunkContext.class, int[].class, boolean[].class, int.class, boolean.class, boolean.class);
         post.setAccessible(true);
-        post.invoke(modifier, 0, 0, data, 0, 0, context, heights, PLANE_WIDTH, walls, false);
+        boolean[] rivers = IrisPostModifier.riverPlane(carveWeights, 0, 0, PLANE_WIDTH - 2, PLANE_WIDTH - 2);
+        post.invoke(modifier, 0, 0, data, 0, 0, context, heights, rivers, PLANE_WIDTH, walls, false);
         return data.get(0, SURFACE, 0);
     }
 

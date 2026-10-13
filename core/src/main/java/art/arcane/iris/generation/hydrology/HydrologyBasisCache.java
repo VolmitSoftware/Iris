@@ -56,35 +56,57 @@ final class HydrologyBasisCache {
         Pending[] pending = new Pending[count];
         long[] ownedCoordinates = new long[count];
         Pending[] owned = new Pending[count];
-        int ownedCount = 0;
+        int ownedCount = count;
+        Completion completion = new Completion();
+        int[] next = new int[count];
+        int[] heads = groupByStripe(coordinates, count, next);
         try {
-            for (int index = 0; index < count; index++) {
-                long packed = coordinates[index];
-                Stripe stripe = stripe(withoutSlope, packed);
+            for (int stripeIndex = 0; stripeIndex < withoutSlope.length; stripeIndex++) {
+                if (heads[stripeIndex] == 0) {
+                    continue;
+                }
+                Stripe stripe = withoutSlope[stripeIndex];
                 synchronized (stripe) {
-                    HydrologyTerrainSample cached = stripe.samples.getAndMoveToFirst(packed);
-                    if (cached != null || stripe.samples.containsKey(packed)) {
-                        samples[index] = cached;
-                        continue;
+                    for (int position = heads[stripeIndex]; position != 0; position = next[position - 1]) {
+                        int index = position - 1;
+                        long packed = coordinates[index];
+                        HydrologyTerrainSample cached = stripe.samples.getAndMoveToFirst(packed);
+                        if (cached != null || stripe.samples.containsKey(packed)) {
+                            samples[index] = cached;
+                            continue;
+                        }
+                        Pending loading = stripe.pending.get(packed);
+                        if (loading == null) {
+                            loading = new Pending(completion);
+                            stripe.pending.put(packed, loading);
+                            ownedCoordinates[index] = packed;
+                            owned[index] = loading;
+                        }
+                        pending[index] = loading;
                     }
-                    Pending loading = stripe.pending.get(packed);
-                    if (loading == null) {
-                        loading = new Pending();
-                        stripe.pending.put(packed, loading);
-                        ownedCoordinates[ownedCount] = packed;
-                        owned[ownedCount++] = loading;
-                    }
-                    pending[index] = loading;
                 }
             }
+            int claimed = 0;
+            for (int index = 0; index < count; index++) {
+                if (owned[index] != null) {
+                    ownedCoordinates[claimed] = ownedCoordinates[index];
+                    owned[claimed++] = owned[index];
+                }
+            }
+            ownedCount = claimed;
             if (ownedCount > 0) {
                 loadBatch(ownedCoordinates, owned, ownedCount, sampler);
             }
         } catch (RuntimeException | Error failure) {
             for (int index = 0; index < ownedCount; index++) {
-                fail(withoutSlope, ownedCoordinates[index], owned[index], failure);
+                if (owned[index] != null) {
+                    fail(withoutSlope, ownedCoordinates[index], owned[index], failure);
+                }
             }
+            completion.failure = failure;
             throw failure;
+        } finally {
+            completion.complete.countDown();
         }
         for (int index = 0; index < count; index++) {
             if (pending[index] != null) {
@@ -111,7 +133,7 @@ final class HydrologyBasisCache {
             }
             loading = stripe.pending.get(packed);
             if (loading == null) {
-                loading = new Pending();
+                loading = new Pending(new Completion());
                 stripe.pending.put(packed, loading);
                 owner = true;
             }
@@ -126,6 +148,8 @@ final class HydrologyBasisCache {
             } catch (RuntimeException | Error failure) {
                 fail(stripes, packed, loading, failure);
                 throw failure;
+            } finally {
+                loading.completion.complete.countDown();
             }
         }
         return loading.await();
@@ -143,34 +167,58 @@ final class HydrologyBasisCache {
         if (samples.length < count) {
             throw new IllegalStateException("Terrain basis batch returned too few samples");
         }
-        for (int index = 0; index < count; index++) {
-            complete(withoutSlope, coordinates[index], pending[index], samples[index], provisional);
+        int[] next = new int[count];
+        int[] heads = groupByStripe(coordinates, count, next);
+        for (int stripeIndex = 0; stripeIndex < withoutSlope.length; stripeIndex++) {
+            if (heads[stripeIndex] == 0) {
+                continue;
+            }
+            Stripe stripe = withoutSlope[stripeIndex];
+            synchronized (stripe) {
+                for (int position = heads[stripeIndex]; position != 0; position = next[position - 1]) {
+                    int index = position - 1;
+                    complete(stripe, coordinates[index], pending[index], samples[index], provisional);
+                }
+            }
         }
+    }
+
+    private int[] groupByStripe(long[] coordinates, int count, int[] next) {
+        int[] heads = new int[withoutSlope.length];
+        for (int index = count - 1; index >= 0; index--) {
+            int stripeIndex = (int) CacheKey.mix(coordinates[index]) & (withoutSlope.length - 1);
+            next[index] = heads[stripeIndex];
+            heads[stripeIndex] = index + 1;
+        }
+        return heads;
     }
 
     private void complete(Stripe[] stripes, long packed, Pending pending, HydrologyTerrainSample sample,
                           boolean provisional) {
         Stripe stripe = stripe(stripes, packed);
         synchronized (stripe) {
-            if (stripe.samples.containsKey(packed)) {
-                sample = stripe.samples.getAndMoveToFirst(packed);
-                provisional = false;
-            } else if (!provisional) {
-                stripe.put(packed, sample);
-            }
-            stripe.pending.remove(packed);
-            pending.sample = sample;
-            pending.provisional = provisional;
-            pending.complete.countDown();
+            complete(stripe, packed, pending, sample, provisional);
         }
+    }
+
+    private void complete(Stripe stripe, long packed, Pending pending, HydrologyTerrainSample sample,
+                          boolean provisional) {
+        if (stripe.samples.containsKey(packed)) {
+            sample = stripe.samples.getAndMoveToFirst(packed);
+            provisional = false;
+        } else if (!provisional) {
+            stripe.put(packed, sample);
+        }
+        stripe.pending.remove(packed);
+        pending.sample = sample;
+        pending.provisional = provisional;
     }
 
     private void fail(Stripe[] stripes, long packed, Pending pending, Throwable failure) {
         Stripe stripe = stripe(stripes, packed);
         synchronized (stripe) {
             if (stripe.pending.remove(packed, pending)) {
-                pending.failure = failure;
-                pending.complete.countDown();
+                pending.completion.failure = failure;
             }
         }
     }
@@ -206,14 +254,30 @@ final class HydrologyBasisCache {
         }
     }
 
-    private static final class Pending implements ForkJoinPool.ManagedBlocker {
-        private final Thread owner = Thread.currentThread();
-        private final CountDownLatch complete = new CountDownLatch(1);
+    private static final class Pending {
+        private final Completion completion;
         private HydrologyTerrainSample sample;
-        private Throwable failure;
         private boolean provisional;
 
+        private Pending(Completion completion) {
+            this.completion = completion;
+        }
+
         private HydrologyTerrainSample await() {
+            completion.await();
+            if (provisional) {
+                ProvisionalSampling.mark();
+            }
+            return sample;
+        }
+    }
+
+    private static final class Completion implements ForkJoinPool.ManagedBlocker {
+        private final Thread owner = Thread.currentThread();
+        private final CountDownLatch complete = new CountDownLatch(1);
+        private Throwable failure;
+
+        private void await() {
             if (!isReleasable() && owner == Thread.currentThread()) {
                 throw new IllegalStateException("Recursive terrain basis sampling");
             }
@@ -245,10 +309,6 @@ final class HydrologyBasisCache {
             if (failure instanceof RuntimeException runtime) {
                 throw runtime;
             }
-            if (provisional) {
-                ProvisionalSampling.mark();
-            }
-            return sample;
         }
 
         @Override

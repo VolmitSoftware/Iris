@@ -11,13 +11,12 @@ import java.lang.invoke.VarHandle;
  * it to even; readers reject a slot whose stamp changed or was odd while they read it.
  */
 final class SharedCornerBounds {
-    private static final VarHandle STAMPS = MethodHandles.arrayElementVarHandle(int[].class);
+    private static final VarHandle INTS = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle LONGS = MethodHandles.arrayElementVarHandle(long[].class);
-    private static final long PRESENT = 1L << 63;
-    private static final long COORDINATE_MASK = (1L << 21) - 1;
 
     private final long[] keys;
     private final long[] values;
+    private final int[] interpolators;
     private final int[] stamps;
     private final int mask;
 
@@ -27,70 +26,58 @@ final class SharedCornerBounds {
         }
         this.keys = new long[capacity];
         this.values = new long[capacity];
+        this.interpolators = new int[capacity];
         this.stamps = new int[capacity];
         this.mask = capacity - 1;
     }
 
-    /** Never zero, so an untouched slot can never match a real corner. */
-    static long key(int cornerX, int cornerZ, int interpolatorIndex) {
-        return PRESENT
-                | ((cornerX & COORDINATE_MASK) << 42)
-                | ((cornerZ & COORDINATE_MASK) << 21)
-                | (interpolatorIndex & COORDINATE_MASK);
+    static long key(int cornerX, int cornerZ) {
+        return ((long) cornerX << 32) | (cornerZ & 0xFFFFFFFFL);
     }
 
-    int slot(long key) {
-        long mixed = (key ^ (key >>> 30)) * 0xBF58476D1CE4E5B9L;
+    int slot(long key, int interpolatorIndex) {
+        long mixed = key ^ (0x9E3779B97F4A7C15L * interpolatorIndex);
+        mixed = (mixed ^ (mixed >>> 30)) * 0xBF58476D1CE4E5B9L;
         mixed = (mixed ^ (mixed >>> 27)) * 0x94D049BB133111EBL;
         return (int) ((mixed ^ (mixed >>> 31)) & mask);
     }
 
-    boolean contains(long key) {
-        int slot = slot(key);
-        int before = (int) STAMPS.getAcquire(stamps, slot);
-        if ((before & 1) != 0) {
-            return false;
-        }
-        long storedKey = (long) LONGS.getAcquire(keys, slot);
-        VarHandle.loadLoadFence();
-        int after = (int) STAMPS.getAcquire(stamps, slot);
-        return before == after && storedKey == key;
-    }
-
     /**
      * The value stored for the key, or {@link Long#MIN_VALUE} when the slot holds another corner
-     * or is being written. Callers check {@link #contains(long)} first; a value that legitimately
-     * equals the sentinel is recomputed, which is only a wasted starcast.
+     * or is being written. A value that legitimately equals the sentinel is recomputed, which is
+     * only a wasted starcast.
      */
-    long get(long key) {
-        int slot = slot(key);
-        int before = (int) STAMPS.getAcquire(stamps, slot);
-        if ((before & 1) != 0) {
+    long get(long key, int interpolatorIndex) {
+        int slot = slot(key, interpolatorIndex);
+        int before = (int) INTS.getAcquire(stamps, slot);
+        if (before == 0 || (before & 1) != 0) {
             return Long.MIN_VALUE;
         }
         long storedKey = (long) LONGS.getAcquire(keys, slot);
+        int storedInterpolator = (int) INTS.getAcquire(interpolators, slot);
         long value = (long) LONGS.getAcquire(values, slot);
         // The data loads above must not drift past the second stamp read, or a torn slot could pass.
         VarHandle.loadLoadFence();
-        int after = (int) STAMPS.getAcquire(stamps, slot);
-        if (before != after || storedKey != key) {
+        int after = (int) INTS.getAcquire(stamps, slot);
+        if (before != after || storedKey != key || storedInterpolator != interpolatorIndex) {
             return Long.MIN_VALUE;
         }
         return value;
     }
 
-    void put(long key, long value) {
-        int slot = slot(key);
-        int stamp = (int) STAMPS.getAcquire(stamps, slot);
+    void put(long key, int interpolatorIndex, long value) {
+        int slot = slot(key, interpolatorIndex);
+        int stamp = (int) INTS.getAcquire(stamps, slot);
         if ((stamp & 1) != 0) {
             // Another writer owns the slot; the corner is recomputed by whoever misses next.
             return;
         }
-        if (!STAMPS.compareAndSet(stamps, slot, stamp, stamp + 1)) {
+        if (!INTS.compareAndSet(stamps, slot, stamp, stamp + 1)) {
             return;
         }
         LONGS.setRelease(keys, slot, key);
+        INTS.setRelease(interpolators, slot, interpolatorIndex);
         LONGS.setRelease(values, slot, value);
-        STAMPS.setRelease(stamps, slot, stamp + 2);
+        INTS.setRelease(stamps, slot, stamp + 2);
     }
 }

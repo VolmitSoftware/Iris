@@ -88,6 +88,23 @@ public class IrisComplexGridBoundsCacheTest {
             assertEquals(1, interpolator.getInvocations());
         }
 
+        @Test
+        public void distantCornersKeepTheirOwnBounds() throws Exception {
+            IrisComplex complex = createComplex();
+            Method cornerBounds = cornerBoundsMethod();
+            CoordinateInterpolator interpolator = new CoordinateInterpolator();
+            int[][] coordinates = {{64, -32}, {64 + (1 << 21), -32}, {64 - (1 << 21), -32},
+                    {64, -32 + (1 << 21)}, {64, -32 - (1 << 21)}};
+
+            for (int[] coordinate : coordinates) {
+                long packed = invokeCornerBounds(complex, cornerBounds, interpolator,
+                        coordinate[0], coordinate[1]);
+                assertBoundsBitsEqual(packedCoordinateBounds(coordinate[0], coordinate[1]),
+                        new NoiseBounds(unpackLow(packed), unpackHigh(packed)));
+            }
+            assertEquals(coordinates.length, interpolator.getInvocations());
+        }
+
     @Test
         public void nonFiniteCornerBoundsAreNeverCached() throws Exception {
             IrisComplex complex = createComplex();

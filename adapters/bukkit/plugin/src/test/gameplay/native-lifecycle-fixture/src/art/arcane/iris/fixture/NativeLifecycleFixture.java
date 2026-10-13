@@ -1,8 +1,12 @@
 package art.arcane.iris.fixture;
 
+import art.arcane.iris.Iris;
 import art.arcane.volmlib.nativelib.NativeAdapters;
 import art.arcane.iris.world.runtime.RuntimeInjection;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.world.IrisCreator;
+import art.arcane.iris.world.task.J;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.world.IrisWorldStorage;
 import art.arcane.iris.world.WorldCreatorCompat;
@@ -13,6 +17,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
+import org.bukkit.block.Container;
+import org.bukkit.loot.Lootable;
+import org.bukkit.loot.LootTable;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapView;
+import org.bukkit.generator.structure.Structure;
+import org.bukkit.util.StructureSearchResult;
 import art.arcane.volmlib.nativelib.terrain.NativeTerrainAccess;
 import art.arcane.volmlib.nativelib.terrain.NativeStructureReader;
 import art.arcane.volmlib.nativelib.terrain.NativeWorldRuntime;
@@ -38,12 +51,15 @@ public final class NativeLifecycleFixture extends JavaPlugin implements WorldRun
     private static final NamespacedKey WORLD_KEY = NamespacedKey.minecraft("native_lifecycle_probe");
     private static final NamespacedKey TERRAIN_KEY = new NamespacedKey("iris", "native_terrain_probe");
     private static final NamespacedKey COMMAND_KEY = new NamespacedKey("iris", "lifecycle_probe");
+    private static final NamespacedKey TREASURE_KEY = new NamespacedKey("iris", "treasure_map_probe");
     private static final long WORLD_SEED = 78264193L;
     private NativeWorldRuntime runtime;
+    private TreasureLootChecks treasureLootChecks;
 
     @Override
     public void onEnable() {
         runtime = NativeAdapters.require(NativeWorldRuntime.class);
+        treasureLootChecks = new TreasureLootChecks(this);
         NativeTerrainAccess terrain = NativeAdapters.require(NativeTerrainAccess.class);
         getLogger().info("Native lifecycle ready: " + runtime.description()
                 + "; terrain provider=" + terrain.getClass().getName());
@@ -56,12 +72,32 @@ public final class NativeLifecycleFixture extends JavaPlugin implements WorldRun
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] arguments) {
-        if (arguments.length != 1) {
+        if (arguments.length == 0) {
             sender.sendMessage("Use /irislifecycle create|unload|status|structures|terrain-create|terrain-check|terrain-unload|lifecycle-status|lifecycle-entry");
             return true;
         }
         try {
             switch (arguments[0]) {
+                case "treasure-map-create" -> createTreasureMapWorld(sender);
+                case "treasure-map-limit" -> runTreasureRegion(sender, () -> checkTreasureMapLimit(sender));
+                case "treasure-map-chest" -> {
+                    if (arguments.length != 3) {
+                        throw new IllegalArgumentException("Use treasure-map-chest <destination> <CHEST|COPPER_CHEST>");
+                    }
+                    runTreasureRegion(sender, () -> prepareTreasureMapChest(sender, arguments[1], arguments[2]));
+                }
+                case "treasure-map-inspect" -> {
+                    if (arguments.length != 2) {
+                        throw new IllegalArgumentException("Use treasure-map-inspect <destination>");
+                    }
+                    runTreasureRegion(sender, () -> inspectTreasureMapChest(sender, arguments[1]));
+                }
+                case "treasure-map-check" -> runTreasureRegion(sender, () -> verifyTreasureMapLoot(sender));
+                case "treasure-extra-check" -> runTreasureRegion(sender, () -> treasureLootChecks.verify(sender));
+                case "treasure-region-check" -> runTreasureRegion(sender, () -> treasureLootChecks.verifyRegion(sender));
+                case "treasure-reload-before" -> runTreasureRegion(sender, () -> treasureLootChecks.verifyReload(sender, false));
+                case "treasure-reload-after" -> runTreasureRegion(sender, () -> treasureLootChecks.verifyReload(sender, true));
+                case "treasure-resources" -> treasureLootChecks.reportResourceReloads(sender);
                 case "create" -> create(sender);
                 case "unload" -> unload(sender);
                 case "structures" -> structures(sender);
@@ -78,6 +114,177 @@ public final class NativeLifecycleFixture extends JavaPlugin implements WorldRun
             fail(sender, failure);
         }
         return true;
+    }
+
+    private void createTreasureMapWorld(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            throw new IllegalStateException("Treasure map fixture requires a player");
+        }
+        runTreasureRegion(sender, () -> prepareTreasureMapWorld(player));
+    }
+
+    private void runTreasureRegion(CommandSender sender, Runnable task) {
+        ensureTreasureMapWorld()
+                .thenCompose(ignored -> J.runRegionFuture(Bukkit.getWorld(TREASURE_KEY), 0, 0, task))
+                .whenComplete((ignored, failure) -> {
+                    if (failure != null) {
+                        fail(sender, failure);
+                    }
+                });
+    }
+
+    private CompletableFuture<?> ensureTreasureMapWorld() {
+        if (Bukkit.getWorld(TREASURE_KEY) != null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        if (WorldCreatorCompat.persistentLevelRoot(TREASURE_KEY).exists()) {
+            return Iris.instance.worldReconciler().loadWorld(ServerProperties.BUKKIT_YML, TREASURE_KEY.toString());
+        }
+        return runAsync(() -> {
+            try {
+                new IrisCreator().name(TREASURE_KEY.toString()).dimension("treasure-map-fixture")
+                        .seed(WORLD_SEED).create();
+            } catch (Exception failure) {
+                throw new IllegalStateException("Treasure map fixture creation failed", failure);
+            }
+        });
+    }
+
+    private void prepareTreasureMapWorld(Player player) {
+        World world = Bukkit.getWorld(TREASURE_KEY);
+        if (world == null || !IrisToolbelt.isIrisWorld(world) || world.getSeed() != WORLD_SEED
+                || !"treasure-map-fixture".equals(IrisToolbelt.access(world).getEngine().getDimension().getLoadKey())) {
+            throw new IllegalStateException("Treasure map fixture world identity is invalid");
+        }
+        for (int x = 0; x <= 8; x++) {
+            for (int z = 0; z <= 8; z++) {
+                world.getBlockAt(x, 160, z).setType(Material.STONE, false);
+                for (int y = 161; y <= 164; y++) {
+                    world.getBlockAt(x, y, z).setType(Material.AIR, false);
+                }
+            }
+        }
+        if (!J.runEntity(player, () -> player.teleportAsync(new Location(world, 0.5, 161, 0.5)).whenComplete((teleported, failure) -> {
+            if (failure != null) {
+                fail(player, failure);
+            } else if (!Boolean.TRUE.equals(teleported)) {
+                fail(player, new IllegalStateException("Treasure map fixture teleport failed"));
+            } else {
+                player.sendMessage("TREASURE_MAP_READY world=" + TREASURE_KEY
+                        + " version=" + Bukkit.getMinecraftVersion() + " folia=" + J.isFolia());
+            }
+        }))) {
+            throw new IllegalStateException("Could not schedule treasure map fixture teleport");
+        }
+    }
+
+    private void checkTreasureMapLimit(CommandSender sender) {
+        World world = Bukkit.getWorld(TREASURE_KEY);
+        if (world == null) {
+            throw new IllegalStateException("Treasure map fixture world is absent");
+        }
+        Engine engine = IrisToolbelt.access(world).getEngine();
+        IrisStructureLocator.LocateResult located = IrisStructureLocator.locateInPlacementRings(
+                engine, "minecraft:buried_treasure", 2, 2, 50, (x, z) -> true);
+        if (located.status() != IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED) {
+            throw new IllegalStateException("Blocked treasure placement returned " + located.status());
+        }
+        sender.sendMessage("TREASURE_MAP_LIMIT status=" + located.status());
+    }
+
+    private void prepareTreasureMapChest(CommandSender sender, String destination, String material) {
+        World world = Bukkit.getWorld(TREASURE_KEY);
+        treasureMapChest(world, destination, material);
+        sender.sendMessage("TREASURE_MAP_CHEST destination=" + destination + " material=" + material);
+    }
+
+    private Container treasureMapChest(World world, String destination, String material) {
+        requireTreasureDestination(destination);
+        if (!List.of("CHEST", "COPPER_CHEST").contains(material)) {
+            throw new IllegalArgumentException("Unknown treasure map container: " + material);
+        }
+        LootTable loot = Bukkit.getLootTable(new NamespacedKey("iris_qa", destination));
+        if (loot == null) {
+            throw new IllegalStateException("Treasure map loot table is absent: " + destination);
+        }
+        world.getBlockAt(2, 161, 2).setType(Material.AIR, false);
+        world.getBlockAt(2, 161, 2).setType(Material.valueOf(material), false);
+        Container chest = (Container) world.getBlockAt(2, 161, 2).getState();
+        ((Lootable) chest).setLootTable(loot);
+        ((Lootable) chest).setSeed(WORLD_SEED);
+        if (!chest.update(true, false)) {
+            throw new IllegalStateException("Treasure map loot chest was not installed");
+        }
+        return (Container) world.getBlockAt(2, 161, 2).getState();
+    }
+
+    private void verifyTreasureMapLoot(CommandSender sender) {
+        checkTreasureMapLimit(sender);
+        World world = Bukkit.getWorld(TREASURE_KEY);
+        for (String destination : List.of("blocked", "disabled", "found", "mixed")) {
+            Inventory inventory = treasureMapChest(world, destination, "CHEST").getInventory();
+            inspectTreasureMapChest(sender, destination);
+            inventory.remove(Material.DIAMOND);
+            Inventory reopened = ((Container) world.getBlockAt(2, 161, 2).getState()).getInventory();
+            if (reopened.contains(Material.DIAMOND)
+                    || !(reopened.contains(Material.FILLED_MAP) || reopened.contains(Material.MAP))) {
+                throw new IllegalStateException("Reopening changed " + destination + " chest loot");
+            }
+        }
+        sender.sendMessage("TREASURE_MAP_CHECK destinations=4 retained=true");
+    }
+
+    private void inspectTreasureMapChest(CommandSender sender, String destination) {
+        requireTreasureDestination(destination);
+        World world = Bukkit.getWorld(TREASURE_KEY);
+        Inventory inventory = ((Container) world.getBlockAt(2, 161, 2).getState()).getInventory();
+        ItemStack map = null;
+        int diamonds = 0;
+        for (ItemStack item : inventory.getContents()) {
+            if (item == null) {
+                continue;
+            }
+            if ((item.getType() == Material.MAP || item.getType() == Material.FILLED_MAP)
+                    && item.getAmount() == 1 && map == null) {
+                map = item;
+            } else if (item.getType() == Material.DIAMOND) {
+                diamonds += item.getAmount();
+            } else {
+                throw new IllegalStateException("Unexpected chest loot: " + item);
+            }
+        }
+        if (map == null || diamonds != 1) {
+            throw new IllegalStateException("Invalid " + destination + " chest: map=" + map + " diamonds=" + diamonds);
+        }
+        boolean expectedLocated = destination.equals("found") || destination.equals("mixed");
+        MapView view = map.getItemMeta() instanceof MapMeta meta && meta.hasMapView() ? meta.getMapView() : null;
+        if ((view != null) != expectedLocated) {
+            throw new IllegalStateException("Unexpected map data for " + destination + ": " + map);
+        }
+        String result = "TREASURE_MAP_INSPECT destination=" + destination + " diamonds=1 located=" + expectedLocated;
+        if (view != null) {
+            StructureSearchResult target = world.locateNearestStructure(
+                    new Location(world, 2, 161, 2), Structure.DESERT_PYRAMID, 50, false);
+            if (target == null || target.getStructure() != Structure.DESERT_PYRAMID) {
+                throw new IllegalStateException("Map has no verified pyramid target");
+            }
+            int targetX = target.getLocation().getBlockX();
+            int targetZ = target.getLocation().getBlockZ();
+            if (view.getWorld() != world || view.getScale() != MapView.Scale.CLOSEST
+                    || view.getCenterX() != Math.floorDiv(targetX + 64, 128) * 128
+                    || view.getCenterZ() != Math.floorDiv(targetZ + 64, 128) * 128) {
+                throw new IllegalStateException("Map data does not cover the verified pyramid at " + target.getLocation());
+            }
+            result += " mapId=" + view.getId() + " targetX=" + targetX + " targetZ=" + targetZ
+                    + " centerX=" + view.getCenterX() + " centerZ=" + view.getCenterZ();
+        }
+        sender.sendMessage(result);
+    }
+
+    private void requireTreasureDestination(String destination) {
+        if (!List.of("blocked", "disabled", "found", "mixed").contains(destination)) {
+            throw new IllegalArgumentException("Unknown treasure map destination: " + destination);
+        }
     }
 
     private void lifecycleStatus(CommandSender sender) throws Exception {
@@ -282,11 +489,11 @@ public final class NativeLifecycleFixture extends JavaPlugin implements WorldRun
     }
 
     public boolean regionized() {
-        return false;
+        return J.isFolia();
     }
 
     public boolean primaryThread() {
-        return Bukkit.isPrimaryThread();
+        return J.isFolia() ? Bukkit.isGlobalTickThread() : Bukkit.isPrimaryThread();
     }
 
     public CompletableFuture<Void> runGlobal(Runnable task) {
@@ -299,10 +506,10 @@ public final class NativeLifecycleFixture extends JavaPlugin implements WorldRun
                 result.completeExceptionally(failure);
             }
         };
-        if (Bukkit.isPrimaryThread()) {
+        if (primaryThread()) {
             wrapped.run();
-        } else {
-            Bukkit.getScheduler().runTask(this, wrapped);
+        } else if (!J.runGlobal(wrapped)) {
+            result.completeExceptionally(new IllegalStateException("Could not schedule fixture task"));
         }
         return result;
     }

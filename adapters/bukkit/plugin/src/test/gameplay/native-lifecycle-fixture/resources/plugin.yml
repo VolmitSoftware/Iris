@@ -2,6 +2,7 @@ name: IrisNativeLifecycleFixture
 version: 1.0.0
 main: art.arcane.iris.fixture.NativeLifecycleFixture
 api-version: '26.1.2'
+folia-supported: true
 depend: [Iris]
 commands:
   irislifecycle:

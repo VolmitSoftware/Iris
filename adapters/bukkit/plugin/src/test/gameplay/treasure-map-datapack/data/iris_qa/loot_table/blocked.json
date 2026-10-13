@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:filled_map",
+          "modifier": {
+            "destination": "#iris_qa:blocked",
+            "decoration": "minecraft:red_x",
+            "zoom": 0,
+            "search_radius": 50,
+            "skip_existing_chunks": false,
+            "type": "minecraft:exploration_map"
+          }
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:diamond"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "Treasure Map Fixture",
+  "version": 1,
+  "mode": {
+    "type": "OVERWORLD"
+  },
+  "regions": [
+    "flat"
+  ],
+  "focusRegion": "flat",
+  "focus": "flat",
+  "landChance": 1,
+  "environment": "NORMAL",
+  "dimensionHeight": {
+    "min": -64,
+    "max": 320
+  },
+  "logicalHeight": 384,
+  "fluidHeight": 0,
+  "bedrock": false,
+  "rockPalette": {
+    "palette": [
+      {
+        "block": "minecraft:red_concrete"
+      }
+    ]
+  },
+  "importedStructures": {
+    "disabled": [
+      "minecraft:"
+    ]
+  },
+  "structures": [
+    {
+      "placementId": "blocked-treasure",
+      "nativeStructures": [
+        {
+          "structure": "minecraft:buried_treasure"
+        }
+      ],
+      "distribution": "RANDOM_SPREAD",
+      "spacing": 1,
+      "separation": 0,
+      "minHeight": 0,
+      "maxHeight": 0
+    },
+    {
+      "placementId": "reachable-pyramid",
+      "nativeStructures": [
+        {
+          "structure": "minecraft:desert_pyramid"
+        }
+      ],
+      "distribution": "RANDOM_SPREAD",
+      "spacing": 16,
+      "separation": 4
+    }
+  ],
+  "loot": {
+    "tables": [
+      "fixture-diamond"
+    ]
+  }
+}

@@ -8,9 +8,12 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.RandomizableContainer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.SpeleothemBlock;
 import net.minecraft.world.level.block.state.properties.SpeleothemThickness;
 import org.junit.BeforeClass;
@@ -60,6 +63,42 @@ public class ModdedBlockResolutionContractTest {
         ModdedBlockState state = ModdedBlockResolution.BLOCKS.getOrNull("minecraft:oak_log[not_a_property=x]", true);
         assertNotNull(state);
         assertEquals(Blocks.OAK_LOG, state.handle().getBlock());
+    }
+
+    @Test
+    public void copperChestVariantsReceiveIrisLootAndPostLoadUpdates() {
+        for (String key : new String[]{"copper_chest", "exposed_copper_chest", "weathered_copper_chest",
+                "oxidized_copper_chest", "waxed_copper_chest", "waxed_exposed_copper_chest",
+                "waxed_weathered_copper_chest", "waxed_oxidized_copper_chest"}) {
+            ModdedBlockState state = ModdedBlockResolution.BLOCKS.getOrNull("minecraft:" + key);
+            assertNotNull(key, state);
+            assertTrue(key, state.isStorage());
+            assertTrue(key, state.isStorageChest());
+            assertTrue(key, NativeBlockProperties.isUpdatable(state.handle()));
+            assertTrue(key, ((EntityBlock) state.handle().getBlock()).newBlockEntity(BlockPos.ZERO, state.handle())
+                    instanceof RandomizableContainer);
+        }
+    }
+
+    @Test
+    public void lootContainerClassificationPreservesExistingContainerBoundaries() {
+        for (String key : new String[]{"chest", "trapped_chest", "barrel", "shulker_box",
+                "blue_shulker_box", "dispenser", "dropper", "hopper"}) {
+            ModdedBlockState state = ModdedBlockResolution.BLOCKS.getOrNull("minecraft:" + key);
+            assertNotNull(key, state);
+            assertTrue(key, state.isStorage());
+            assertTrue(key, state.isStorageChest());
+        }
+        for (Block block : new Block[]{Blocks.FURNACE, Blocks.BLAST_FURNACE, Blocks.SMOKER}) {
+            assertTrue(block.toString(), NativeBlockProperties.isStorage(block.defaultBlockState()));
+            assertFalse(block.toString(), NativeBlockProperties.isStorageChest(block.defaultBlockState()));
+        }
+        for (String key : new String[]{"stone", "air", "ender_chest", "copper_block"}) {
+            ModdedBlockState state = ModdedBlockResolution.BLOCKS.getOrNull("minecraft:" + key);
+            assertNotNull(key, state);
+            assertFalse(key, state.isStorage());
+            assertFalse(key, state.isStorageChest());
+        }
     }
 
     @Test

@@ -33,13 +33,12 @@ public class IrisVanillaLootTable extends IrisLootTable {
     private final String lootTableKey;
 
     /**
-     * The resolved table, looked up once. Every chest pull resolved it again - a NamespacedKey parse plus a registry
-     * lookup per container, and a dungeon room is a lot of containers.
+     * Cache the parsed key; resolve its table from the current registry for every container.
      * <p>
      * Transient for the same reason the field above is a String: it keeps the Bukkit type argument out of the Gson
      * field walk and out of the pack purity gate, both of which resolve generic field types for the fields they visit.
      */
-    private final transient AtomicCache<LootTable> resolvedTable = new AtomicCache<>();
+    private final transient AtomicCache<NamespacedKey> resolvedKey = new AtomicCache<>();
 
     @Override
     public String getName() {
@@ -83,10 +82,8 @@ public class IrisVanillaLootTable extends IrisLootTable {
     }
 
     private LootTable resolveTable() {
-        return resolvedTable.aquire(() -> {
-            NamespacedKey key = NamespacedKey.fromString(lootTableKey);
-            return key == null ? null : Bukkit.getLootTable(key);
-        });
+        NamespacedKey key = resolvedKey.aquire(() -> NamespacedKey.fromString(lootTableKey));
+        return key == null ? null : Bukkit.getLootTable(key);
     }
 
     @Override

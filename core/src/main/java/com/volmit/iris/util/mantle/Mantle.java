@@ -21,6 +21,7 @@ package com.volmit.iris.util.mantle;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.pregenerator.MantleHeapPressure;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
@@ -76,6 +77,7 @@ public class Mantle {
     private final IOWorker worker;
     private final AtomicDouble adjustedIdleDuration;
     private final KSet<Long> toUnload;
+    private final KMap<Long, CompletableFuture<TectonicPlate>> loadingRegions;
 
     /**
      * Create a new mantle
@@ -96,6 +98,7 @@ public class Mantle {
         ioBurst = MultiBurst.ioBurst;
         adjustedIdleDuration = new AtomicDouble(0);
         toUnload = new KSet<>();
+        loadingRegions = new KMap<>();
         worker = new IOWorker(dataFolder, worldHeight);
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
@@ -484,9 +487,10 @@ public class Mantle {
         }
 
         double idleDuration = baseIdleDuration;
+        double minimumIdleDuration = Math.max(500D, Math.min(baseIdleDuration, 4000D));
         if (loadedRegions.size() > tectonicLimit) {
             // todo update this correctly and maybe do something when its above a 100%
-            idleDuration = Math.max(idleDuration - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000);
+            idleDuration = Math.max(idleDuration - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), minimumIdleDuration);
         }
         adjustedIdleDuration.set(idleDuration);
 
@@ -616,6 +620,7 @@ public class Mantle {
             if (unload) ioTectonicUnload.release();
         }
 
+        ensureRetryable(x, z);
         Iris.warn("Retrying to get " + x + " " + z + " Mantle Region");
         return get(x, z);
     }
@@ -644,6 +649,7 @@ public class Mantle {
                 .thenCompose(p -> {
                     release.apply(p);
                     if (p != null) return CompletableFuture.completedFuture(p);
+                    ensureRetryable(x, z);
                     Iris.warn("Retrying to get " + x + " " + z + " Mantle Region");
                     return getFuture(x, z);
                 });
@@ -667,9 +673,16 @@ public class Mantle {
         return fallback.get();
     }
 
+    private void ensureRetryable(int x, int z) {
+        if (closed.get() || Thread.currentThread().isInterrupted()) {
+            throw new IllegalStateException("Stopped retrying Tectonic Plate " + x + " " + z + " because the Mantle closed or the thread was interrupted");
+        }
+    }
+
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.
-     * All methods accessing tectonic plates should go through this method
+     * All methods accessing tectonic plates should go through this method. Concurrent requests for a plate that is
+     * still loading share one load instead of each occupying an IO thread while they wait on the plate's lock.
      *
      * @param x the region x
      * @param z the region z
@@ -677,7 +690,31 @@ public class Mantle {
      */
     @RegionCoordinates
     protected CompletableFuture<TectonicPlate> getSafe(int x, int z) {
-        return ioBurst.completableFuture(() -> hyperLock.withResult(x, z, () -> {
+        Long key = key(x, z);
+        CompletableFuture<TectonicPlate> published = new CompletableFuture<>();
+        CompletableFuture<TectonicPlate> existing = loadingRegions.putIfAbsent(key, published);
+        if (existing != null) {
+            return existing;
+        }
+
+        try {
+            loadRegion(x, z).whenComplete((region, failure) -> {
+                loadingRegions.remove(key, published);
+                if (failure == null) {
+                    published.complete(region);
+                } else {
+                    published.completeExceptionally(failure);
+                }
+            });
+        } catch (Throwable failure) {
+            loadingRegions.remove(key, published);
+            published.completeExceptionally(failure);
+        }
+        return published;
+    }
+
+    private CompletableFuture<TectonicPlate> loadRegion(int x, int z) {
+        return CompletableFuture.supplyAsync(() -> hyperLock.withResult(x, z, () -> {
             Long k = key(x, z);
             use(k);
             TectonicPlate r = loadedRegions.get(k);
@@ -719,7 +756,7 @@ public class Mantle {
             Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
             use(k);
             return region;
-        }));
+        }), ioBurst);
     }
 
     private void use(Long key) {
@@ -768,6 +805,8 @@ public class Mantle {
     }
 
     public boolean shouldReduce(Engine engine) {
-        return !engine.isStudio() || IrisSettings.get().getPerformance().isTrimMantleInStudio();
+        return !engine.isStudio()
+                || IrisSettings.get().getPerformance().isTrimMantleInStudio()
+                || MantleHeapPressure.overHighWater();
     }
 }

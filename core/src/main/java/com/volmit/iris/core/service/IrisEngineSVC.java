@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.ResourceLoader;
+import com.volmit.iris.core.pregenerator.MantleHeapPressure;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -218,7 +219,7 @@ public class IrisEngineSVC implements IrisService {
                         return;
 
                     try {
-                        engine.getMantle().trim(tectonicLimit());
+                        engine.getMantle().trim(heapScaledKeepAliveMillis(), tectonicLimit());
                     } catch (Throwable e) {
                         Iris.reportError(e);
                         Iris.error("EngineSVC: Failed to trim for " + name);
@@ -235,7 +236,7 @@ public class IrisEngineSVC implements IrisService {
 
                     try {
                         long unloadStart = System.currentTimeMillis();
-                        int count = engine.getMantle().unloadTectonicPlate(IrisSettings.get().getPerformance().getEngineSVC().forceMulticoreWrite ? 0 : tectonicLimit());
+                        int count = engine.getMantle().unloadTectonicPlate(shouldUnloadMulticore() ? 0 : tectonicLimit());
                         if (count > 0) {
                             Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
@@ -250,6 +251,19 @@ public class IrisEngineSVC implements IrisService {
 
         private int tectonicLimit() {
             return tectonicLimit.get() / Math.max(worlds.size(), 1);
+        }
+
+        private long heapScaledKeepAliveMillis() {
+            long keepAlive = TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAlive());
+            return Math.round(keepAlive * (1D - currentReclaimUrgency()));
+        }
+
+        private boolean shouldUnloadMulticore() {
+            return IrisSettings.get().getPerformance().getEngineSVC().forceMulticoreWrite || currentReclaimUrgency() >= 1D;
+        }
+
+        private double currentReclaimUrgency() {
+            return MantleHeapPressure.reclaimUrgency(MantleHeapPressure.usedFraction());
         }
 
         @Synchronized

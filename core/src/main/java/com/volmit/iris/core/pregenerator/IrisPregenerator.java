@@ -67,6 +67,7 @@ public class IrisPregenerator {
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
     private final IrisPackBenchmarking benchmarking;
+    private final PregenMantleBackpressure backpressure;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         benchmarking = IrisPackBenchmarking.getInstance();
@@ -77,6 +78,7 @@ public class IrisPregenerator {
         this.paused = new AtomicBoolean(false);
         this.task = task;
         this.generator = generator;
+        this.backpressure = new PregenMantleBackpressure(this::getMantle, shutdown::get);
         retry = new KSet<>();
         net = new KSet<>();
         currentGeneratorMethod = new AtomicReference<>("Void");
@@ -244,6 +246,11 @@ public class IrisPregenerator {
             task.iterateChunks(x, z, (xx, zz) -> {
                 while (paused.get() && !shutdown.get()) {
                     J.sleep(50);
+                }
+
+                backpressure.apply();
+                if (shutdown.get()) {
+                    return;
                 }
 
                 generator.generateChunk(xx, zz, listener);

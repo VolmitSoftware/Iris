@@ -147,11 +147,36 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPregen {
+        private static final int REFERENCE_WORLD_HEIGHT = 384;
+        private static final int MIN_RESIDENT_TECTONIC_PLATES = 16;
+        private static final double MANTLE_HEAP_FRACTION = 0.6D;
+        private static final int REFERENCE_PLATE_MEGABYTES = 48;
+
         public boolean useCacheByDefault = true;
         public boolean useHighPriority = false;
         public boolean useVirtualThreads = false;
         public boolean useTicketQueue = true;
         public int maxConcurrency = 256;
+        public int maxResidentTectonicPlates = 96;
+        public int mantleBackpressureWaitMs = 25;
+        public int mantleBackpressureTimeoutMs = 60_000;
+
+        public int getEffectiveResidentTectonicPlates(int worldHeight) {
+            int normalizedHeight = Math.max(1, worldHeight);
+            int heightScaledCap = (int) Math.round((double) maxResidentTectonicPlates * REFERENCE_WORLD_HEIGHT / normalizedHeight);
+            double plateMegabytes = (double) REFERENCE_PLATE_MEGABYTES * normalizedHeight / REFERENCE_WORLD_HEIGHT;
+            int heapBudgetCap = (int) Math.floor(MANTLE_HEAP_FRACTION * getHardware.getProcessMemory() / plateMegabytes);
+            int effective = Math.min(heightScaledCap, heapBudgetCap);
+            return Math.max(MIN_RESIDENT_TECTONIC_PLATES, Math.min(maxResidentTectonicPlates, effective));
+        }
+
+        public int getMantleBackpressureWaitMs() {
+            return Math.max(5, Math.min(mantleBackpressureWaitMs, 1_000));
+        }
+
+        public int getMantleBackpressureTimeoutMs() {
+            return Math.max(5_000, Math.min(mantleBackpressureTimeoutMs, 600_000));
+        }
     }
 
     @Data

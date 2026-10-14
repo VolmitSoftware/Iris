@@ -167,6 +167,26 @@ public class IrisPregenerator {
     }
 
     public void start() {
+        boolean completed = false;
+        try {
+            generateAll();
+            completed = true;
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            Iris.error("Pregen failed and is stopping: %s", e);
+            e.printStackTrace();
+        } finally {
+            shutdown();
+        }
+
+        if (benchmarking == null) {
+            Iris.info(C.IRIS + "Pregen stopped.");
+        } else if (completed) {
+            benchmarking.finishedBenchmark(chunksPerSecondHistory);
+        }
+    }
+
+    private void generateAll() {
         init();
         ticker.start();
         checkRegions();
@@ -174,12 +194,6 @@ public class IrisPregenerator {
         task.iterateRegions((x, z) -> visitRegion(x, z, true));
         task.iterateRegions((x, z) -> visitRegion(x, z, false));
         Iris.info("Pregen took " + Form.duration((long) p.getMilliseconds()));
-        shutdown();
-        if (benchmarking == null) {
-            Iris.info(C.IRIS + "Pregen stopped.");
-        } else {
-            benchmarking.finishedBenchmark(chunksPerSecondHistory);
-        }
     }
 
     private void checkRegions() {

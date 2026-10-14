@@ -12,6 +12,7 @@ import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
 import java.lang.Byte
+import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.Boolean
 import kotlin.IllegalStateException
 import kotlin.Int
@@ -21,14 +22,16 @@ import kotlin.Unit
 
 abstract class FlaggedChunk() {
     private val flags = AtomicBooleanArray(MantleFlag.MAX_ORDINAL + 1)
-    private val locks = 0.rangeUntil(flags.length()).map { Mutex() }.toTypedArray()
+    // Created per flag on first use: a mutex for every possible ordinal cost ~66 KB per chunk, which made the mantle
+    // the largest consumer of heap during generation.
+    private val locks = AtomicReferenceArray<Mutex>(flags.length())
 
     abstract fun isClosed(): Boolean
 
     protected fun copyFrom(other: FlaggedChunk, action: Runnable) = runBlocking {
         coroutineScope {
             for (i in 0 until flags.length()) {
-                launch { locks[i].lock() }.start()
+                launch { lockFor(i).lock() }.start()
             }
         }
 
@@ -39,8 +42,14 @@ abstract class FlaggedChunk() {
         }
 
         for (i in 0 until flags.length()) {
-            locks[i].unlock()
+            lockFor(i).unlock()
         }
+    }
+
+    private fun lockFor(index: Int): Mutex {
+        locks.get(index)?.let { return it }
+        val created = Mutex()
+        return if (locks.compareAndSet(index, null, created)) created else locks.get(index)
     }
 
     fun isFlagged(flag: MantleFlag) = flags.get(flag.ordinal())
@@ -53,7 +62,7 @@ abstract class FlaggedChunk() {
         if (isClosed()) throw IllegalStateException("Chunk is closed!")
         if (isFlagged(flag)) return
 
-        locks[flag.ordinal()].withLock {
+        lockFor(flag.ordinal()).withLock {
             if (isFlagged(flag)) return
             task()
             if (flags.getAndSet(flag.ordinal(), true))

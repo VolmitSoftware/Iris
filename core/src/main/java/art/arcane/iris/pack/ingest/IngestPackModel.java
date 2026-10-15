@@ -44,17 +44,19 @@ final class IngestPackModel {
     private final WorldgenCatalogIndex index;
     private final String dimensionPath;
     private final String environment;
+    private final String borrowedDimensionType;
     private final int packMinY;
     private final int packMaxY;
     private final List<RegionProfile> regions;
     private final Map<String, String> reachableBiomes;
 
-    private IngestPackModel(IngestPack pack, WorldgenCatalogIndex index, String dimensionPath, String environment,
+    private IngestPackModel(IngestPack pack, WorldgenCatalogIndex index, String dimensionPath, JsonObject dimension,
                             int[] heightRange, List<RegionProfile> regions, Map<String, String> reachableBiomes) {
         this.pack = pack;
         this.index = index;
         this.dimensionPath = dimensionPath;
-        this.environment = environment;
+        this.environment = text(dimension.get("environment"), "NORMAL").toUpperCase(Locale.ROOT);
+        this.borrowedDimensionType = text(dimension.get("borrowedDimensionType"), "");
         this.packMinY = heightRange[0];
         this.packMaxY = heightRange[1];
         this.regions = regions;
@@ -64,10 +66,6 @@ final class IngestPackModel {
     static IngestPackModel load(IngestPack pack, String dimensionKey, WorldgenCatalogIndex index) throws IOException {
         String dimensionPath = IngestPack.dimensionPath(dimensionKey);
         JsonObject dimension = pack.require(dimensionPath);
-        JsonElement environmentValue = dimension.get("environment");
-        String environment = environmentValue != null && environmentValue.isJsonPrimitive()
-                ? environmentValue.getAsString().trim().toUpperCase(Locale.ROOT)
-                : "NORMAL";
         Map<String, String> reachable = new LinkedHashMap<>();
         List<String> regionKeys = IngestJson.strings(dimension.get("regions"));
         List<JsonObject> regionJson = new ArrayList<>(regionKeys.size());
@@ -84,7 +82,7 @@ final class IngestPackModel {
         for (int position = 0; position < regionJson.size(); position++) {
             profiles.add(profile(loadedRegionKeys.get(position), regionJson.get(position), reachable, index));
         }
-        return new IngestPackModel(pack, index, dimensionPath, environment, heightRange(pack, dimension),
+        return new IngestPackModel(pack, index, dimensionPath, dimension, heightRange(pack, dimension),
                 Collections.unmodifiableList(profiles), Collections.unmodifiableMap(reachable));
     }
 
@@ -118,15 +116,11 @@ final class IngestPackModel {
     }
 
     VanillaHeights.VerticalBounds verticalBounds() {
-        String typeKey = switch (environment) {
-            case "NORMAL" -> "minecraft:overworld";
-            case "NETHER" -> "minecraft:the_nether";
-            case "THE_END" -> "minecraft:the_end";
-            default -> "";
-        };
-        Optional<CatalogDimensionType> type = index.dimensionType(typeKey);
-        if (type.isPresent() && type.get().height() > 0) {
-            return new VanillaHeights.VerticalBounds(type.get().minY(), type.get().height());
+        if (!borrowedDimensionType.isEmpty()) {
+            Optional<CatalogDimensionType> borrowed = index.dimensionType(borrowedDimensionType);
+            if (borrowed.isPresent() && borrowed.get().height() > 0) {
+                return new VanillaHeights.VerticalBounds(borrowed.get().minY(), borrowed.get().height());
+            }
         }
         return new VanillaHeights.VerticalBounds(packMinY, Math.max(1, packMaxY - packMinY));
     }
@@ -181,6 +175,10 @@ final class IngestPackModel {
             return new int[]{DEFAULT_MIN_Y, DEFAULT_MAX_Y};
         }
         return new int[]{(int) number(range.get("min"), DEFAULT_MIN_Y), (int) number(range.get("max"), DEFAULT_MAX_Y)};
+    }
+
+    private static String text(JsonElement value, String fallback) {
+        return value != null && value.isJsonPrimitive() ? value.getAsString().trim() : fallback;
     }
 
     private static double number(JsonElement value, double fallback) {

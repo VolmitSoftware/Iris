@@ -63,7 +63,7 @@ public class ModIngesterFeatureTest {
         assertEquals(4, deposits.size());
         assertNotNull(stone);
         assertNotNull(deepslate);
-        assertEquals(80, stone.get("minHeight").getAsInt());
+        assertEquals(16, stone.get("minHeight").getAsInt());
         assertEquals(427, stone.get("maxHeight").getAsInt());
         assertEquals("UNIFORM", stone.get("heightDistribution").getAsString());
         assertEquals(12, stone.get("minPerChunk").getAsInt());

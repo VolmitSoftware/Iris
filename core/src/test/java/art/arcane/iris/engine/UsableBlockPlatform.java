@@ -25,12 +25,17 @@ public final class UsableBlockPlatform {
     }
 
     public static void bind() {
-        IrisPlatforms.unbind();
-        forgetCachedRegistries();
         PlatformRegistries registries = mock(PlatformRegistries.class);
         Map<String, PlatformBlockState> states = new HashMap<>();
         when(registries.block(anyString())).thenAnswer(invocation -> states.computeIfAbsent(
                 invocation.<String>getArgument(0).toLowerCase(Locale.ROOT), UsableBlockPlatform::block));
+        bind(registries);
+    }
+
+    /** Binds a platform with {@code registries}, for a test that needs blocks to behave more like the game's. */
+    public static void bind(PlatformRegistries registries) {
+        IrisPlatforms.unbind();
+        forgetCachedRegistries();
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);

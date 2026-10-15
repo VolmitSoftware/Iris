@@ -40,7 +40,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -75,7 +74,8 @@ import static org.mockito.Mockito.when;
  */
 public class ProceduralObjectsGoldenTest {
     private static final String FIXTURE = "/procedural-golden";
-    private static final Map<String, String> EXPECTED = Map.ofEntries(
+    /** Digests on a platform whose blocks have no properties and which knows no block by {@code blockOrNull}. */
+    private static final Map<String, String> BLOCK_ONLY = Map.ofEntries(
             Map.entry("biomes-carving-frost-shards", "954613b558bd0e8b"),
             Map.entry("biomes-estranged-baobab-grove", "3232037f828a9107"),
             Map.entry("biomes-estranged-birchglass-heath", "a55859aa6a343b2a"),
@@ -101,14 +101,36 @@ public class ProceduralObjectsGoldenTest {
             Map.entry("biomes-temperate-sea-ocean", "ebd0960ae22f4fc6"),
             Map.entry("regions-estranged", "a806532a68e8c232"),
             Map.entry("regions-mushroom", "f08c6663543ac201"));
+    /** Digests on {@link GameLikeBlocks}. */
+    private static final Map<String, String> GAME_LIKE = Map.ofEntries(
+            Map.entry("biomes-carving-frost-shards", "b425550ade26b810"),
+            Map.entry("biomes-estranged-baobab-grove", "ba75886b7bc06be0"),
+            Map.entry("biomes-estranged-birchglass-heath", "cb04761bb5074cf2"),
+            Map.entry("biomes-estranged-bloomspire-orchard", "27dca6f700d2c683"),
+            Map.entry("biomes-estranged-bonsai", "9d9a3eb1125a25fa"),
+            Map.entry("biomes-estranged-candlewood-grove", "6c085c37f8993922"),
+            Map.entry("biomes-estranged-emberbark-woods", "a8636178fffd89f2"),
+            Map.entry("biomes-estranged-mistveil-swamp", "03fc65a53bf531d9"),
+            Map.entry("biomes-estranged-pallid-necropolis", "0aeafb5af5224fd8"),
+            Map.entry("biomes-estranged-skyreach-pines", "facf4e1de1615c66"),
+            Map.entry("biomes-estranged-slinky-spires", "a8d019e9c4da8b14"),
+            Map.entry("biomes-estranged-snarlwood-thicket", "e5ce78962c3853d0"),
+            Map.entry("biomes-estranged-spindlewood", "71cca12bfe23e18e"),
+            Map.entry("biomes-estranged-stiltroot-shallows", "21d67797a8e38e9d"),
+            Map.entry("biomes-estranged-taxodium", "2f8f7b47d78102c9"),
+            Map.entry("biomes-estranged-weeping-mire", "f871b1643435a2f7"),
+            Map.entry("biomes-frozen-fields-hilly-plains", "6ab2b00dd640de13"),
+            Map.entry("biomes-frozen-ice-spikes", "732b09dfd0799a23"),
+            Map.entry("biomes-frozen-sea-frozen-parent-river", "a2fbf4ff15ad75aa"),
+            Map.entry("biomes-magnetics-glass", "6dfa6bacedf24a5f"),
+            Map.entry("biomes-magnetics-glass-shard", "21f08d7a93fd78c2"),
+            Map.entry("biomes-ocean-warm", "3df57be11fa3d53c"),
+            Map.entry("biomes-temperate-sea-ocean", "4e2269f4f39cff87"),
+            Map.entry("regions-estranged", "61d9ed40fed38854"),
+            Map.entry("regions-mushroom", "ccf240de087fac38"));
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    @Before
-    public void bindPlatform() {
-        UsableBlockPlatform.bind();
-    }
 
     @After
     public void unbindPlatform() {
@@ -116,7 +138,18 @@ public class ProceduralObjectsGoldenTest {
     }
 
     @Test
-    public void everyProceduralObjectOfTheOverworldPackBakesAsBefore() throws Exception {
+    public void onABlockOnlyPlatformEveryProceduralObjectOfTheOverworldPackBakesAsBefore() throws Exception {
+        UsableBlockPlatform.bind();
+        assertEquals(new TreeMap<>(BLOCK_ONLY), bakeAll());
+    }
+
+    @Test
+    public void onAGameLikePlatformEveryProceduralObjectOfTheOverworldPackBakesAsBefore() throws Exception {
+        UsableBlockPlatform.bind(new GameLikeBlocks().registries());
+        assertEquals(new TreeMap<>(GAME_LIKE), bakeAll());
+    }
+
+    private Map<String, String> bakeAll() throws Exception {
         copyFixtureInto(folder.getRoot().toPath());
         IrisData data = mock(IrisData.class, withSettings().stubOnly().defaultAnswer(CALLS_REAL_METHODS));
         IrisPackResources resources = mock(IrisPackResources.class, withSettings().stubOnly());
@@ -131,8 +164,7 @@ public class ProceduralObjectsGoldenTest {
             ProceduralObjectSettings settings = gson.fromJson(sets.get(name), ProceduralObjectSettings.class);
             actual.put(name, bake(settings, data));
         }
-
-        assertEquals(new TreeMap<>(EXPECTED), actual);
+        return actual;
     }
 
     private static String bake(ProceduralObjectSettings settings, IrisData data) throws NoSuchAlgorithmException {

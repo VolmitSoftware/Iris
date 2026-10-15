@@ -53,6 +53,7 @@ val lib = "com.volmit.iris.util"
 dependencies {
     // Provided or Classpath
     compileOnly(libs.paper)
+    compileOnly(platform(libs.adventure.bom))
     compileOnly(libs.log4j.api)
     compileOnly(libs.log4j.core)
 

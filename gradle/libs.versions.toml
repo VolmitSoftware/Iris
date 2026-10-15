@@ -14,6 +14,7 @@ grgit = "5.3.2" # https://github.com/ajoberstar/grgit
 # Core Libraries
 lombok = "1.18.38"
 paper = "1.20.1-R0.1-SNAPSHOT" # https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml
+adventure = "5.2.0" # https://github.com/KyoriPowered/adventure
 log4j = "2.19.0" # https://central.sonatype.com/artifact/org.apache.logging.log4j/log4j-api
 
 annotations = "26.0.2" # https://central.sonatype.com/artifact/org.jetbrains/annotations
@@ -58,6 +59,7 @@ craftengine = "26.5" # https://github.com/Xiao-MoMi/craft-engine/releases
 # Core Libraries
 lombok = { module = "org.projectlombok:lombok", version.ref ="lombok" }
 paper = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
+adventure-bom = { module = "net.kyori:adventure-bom", version.ref = "adventure" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }

@@ -301,9 +301,9 @@ public final class IrisModdedCommands {
             String featureStatus = irisGenerator.importedFeaturesStatus();
             lines.add(irisIdentity + ": pack=" + engine.getDimension().getLoadKey()
                     + " world=" + dimensionId
-                    + (showSeed ? " seed=" + level.seed() : "")
+                    + (showSeed ? " seed=" + engine.getWorld().getRawWorldSeed() : "")
                     + " height=" + engine.getMinHeight() + ".." + engine.getMaxHeight()
-                    + " generated=" + engine.getGenerated()
+                    + " generated=" + engine.getEngineData().getStatistics().getChunksGenerated()
                     + (featureStatus == null ? "" : " importedFeatures=" + featureStatus)
                     + " data=" + engine.getData().getDataFolder().getName());
         }
@@ -329,7 +329,7 @@ public final class IrisModdedCommands {
             fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_14));
             return 0;
         }
-        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", level.seed())));
+        ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_WORLD_SEED, MessageArgument.untrusted("value", engine.getWorld().getRawWorldSeed())));
         ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_ENGINE_SEED_MIXED, MessageArgument.untrusted("value", engine.getSeedManager().getSeed()), MessageArgument.untrusted("value2", engine.getSeedManager().getFullMixedSeed())));
         return 1;
     }

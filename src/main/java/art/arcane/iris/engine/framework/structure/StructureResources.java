@@ -30,7 +30,7 @@ import com.volmit.resource.ResourceKind;
 import java.util.List;
 
 /**
- * The resource kinds of module {@code iris:structure}, which keep the folders and files Iris packs have always used,
+ * The resource kinds of Iris's module {@code iris:structure-model}, which keep the folders and files Iris packs have always used,
  * and lookups by pack key for code that still names structures, pools and pieces by key. Every lookup goes through
  * the pack's {@link com.volmit.resource.PackResources}, so it sees the pack's current snapshot: a hotload, or
  * {@link IrisData#invalidateStructureResources()} after a tool rewrote the files, reads them again.
@@ -40,16 +40,16 @@ import java.util.List;
  */
 public final class StructureResources {
     /** Jigsaw structures, in {@code structures/}. */
-    public static final ResourceKind<IrisStructure> STRUCTURES = ResourceKind.of("iris:structure/structure", "structures", IrisStructure.class);
+    public static final ResourceKind<IrisStructure> STRUCTURES = ResourceKind.of("iris:structure-model/structure", "structures", IrisStructure.class);
     /** Jigsaw pools a structure starts from and connectors lead to, in {@code jigsaw-pools/}. */
-    public static final ResourceKind<IrisJigsawPool> POOLS = ResourceKind.of("iris:structure/pool", "jigsaw-pools", IrisJigsawPool.class);
+    public static final ResourceKind<IrisJigsawPool> POOLS = ResourceKind.of("iris:structure-model/pool", "jigsaw-pools", IrisJigsawPool.class);
     /** Jigsaw pieces pools hold, each an object with connectors, in {@code jigsaw-pieces/}. */
-    public static final ResourceKind<IrisJigsawPiece> PIECES = ResourceKind.of("iris:structure/piece", "jigsaw-pieces", IrisJigsawPiece.class);
+    public static final ResourceKind<IrisJigsawPiece> PIECES = ResourceKind.of("iris:structure-model/piece", "jigsaw-pieces", IrisJigsawPiece.class);
 
     private StructureResources() {
     }
 
-    /** Every resource kind of the structure module. */
+    /** Every resource kind of the structure model. */
     public static List<ResourceKind<?>> kinds() {
         return List.of(STRUCTURES, POOLS, PIECES);
     }

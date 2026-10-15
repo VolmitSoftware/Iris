@@ -91,3 +91,4 @@ include art/arcane/iris/engine/mantle/components/FloatingObjectPlacing*.class
 include art/arcane/iris/engine/mantle/components/FloatingIslandSampleResolver*.class
 include art/arcane/iris/engine/mantle/components/IslandFace*.class
 include art/arcane/iris/engine/mantle/components/UndersideTurn*.class
+module art.arcane.iris.engine.mantle.components.StructureModule

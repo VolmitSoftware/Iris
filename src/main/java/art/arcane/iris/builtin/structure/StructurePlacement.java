@@ -18,14 +18,12 @@
 
 package art.arcane.iris.builtin.structure;
 
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
-import com.volmit.config.ResourceRef;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,13 +32,12 @@ import java.util.Optional;
 /**
  * Where and how often the structures of a dimension, region or biome start, written as one entry of its
  * {@code "structures": [...]}: the pack's own structures to assemble or the platform's to start natively, the
- * distribution of the starts, the height they anchor at, and how they meet the terrain. IrisApi types only, besides
- * the structure resource kind the {@code structures} keys name.
+ * distribution of the starts, the height they anchor at, and how they meet the terrain. IrisApi types only.
  */
 @Desc("Attaches structures to a biome, region or dimension and controls where and how often they generate. This is independent of a structure's own native generation, so you can add custom placements in tandem with native generation or instead of it.")
 public final class StructurePlacement {
     @MinItems(1)
-    @ResourceRef(IrisStructure.class)
+    @Ref(Reference.PACK_STRUCTURE)
     @Desc("Editable Iris assembly resources offered by this placement. Leave empty when nativeStructures supplies the source.")
     private List<String> structures = List.of();
 

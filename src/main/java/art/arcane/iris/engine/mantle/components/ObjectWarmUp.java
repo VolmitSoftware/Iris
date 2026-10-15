@@ -18,16 +18,19 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralPlacement;
+import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.world.PackWorld;
 
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * Builds what object placing would build on first use, for every object placement and procedural object the world's
@@ -37,55 +40,48 @@ import java.util.Comparator;
  */
 final class ObjectWarmUp {
     private static final long ROOT_SEED_SALT = 7777L;
-    private static final int PROBE_COORDINATE = 0;
 
-    private final Engine engine;
+    private final ObjectHost host;
     private final RNG root;
     private int warmed;
 
-    ObjectWarmUp(Engine engine) {
-        this.engine = engine;
-        this.root = new RNG(engine.getSeedManager().getComponent() + ROOT_SEED_SALT);
+    ObjectWarmUp(PackWorld world) {
+        this.host = ObjectHost.of(world);
+        this.root = new RNG(IrisSeed.COMPONENT.of(world) + ROOT_SEED_SALT);
     }
 
     void warm() {
-        KList<IrisBiome> biomes = engine.getAllBiomes();
-        biomes.sort(Comparator.comparing(IrisBiome::getLoadKey));
-        for (IrisBiome biome : biomes) {
-            warmPlacements(biome.getObjects());
-            warmProcedural(biome.getProceduralObjects());
-        }
-
-        KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
-        regions.sort(Comparator.comparing(IrisRegion::getLoadKey));
-        for (IrisRegion region : regions) {
-            warmPlacements(region.getObjects());
-            warmProcedural(region.getProceduralObjects());
-        }
-    }
-
-    private void warmPlacements(KList<IrisObjectPlacement> placements) {
-        if (placements == null) {
-            return;
-        }
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null) {
-                continue;
+        List<Declaration<ObjectSettings>> placements = byKey(host.declarations(ObjectSettings.class));
+        List<Declaration<ProceduralObjectSettings>> procedural = byKey(host.declarations(ProceduralObjectSettings.class));
+        for (Target level : new Target[]{Target.BIOME, Target.REGION}) {
+            for (Declaration<ObjectSettings> declaration : placements) {
+                if (declaration.level() == level) {
+                    warmPlacements(declaration.settings().objects());
+                }
             }
-            RNG rng = root.nextParallelRNG(warmed++);
-            placement.getSurfaceWarp(rng, engine.getData(), engine);
-            placement.getDensity(rng, PROBE_COORDINATE, PROBE_COORDINATE, engine.getData());
+            for (Declaration<ProceduralObjectSettings> declaration : procedural) {
+                if (declaration.level() == level) {
+                    warmProcedural(declaration.settings());
+                }
+            }
         }
     }
 
-    private void warmProcedural(IrisProceduralObjects procedural) {
-        if (procedural == null) {
-            return;
-        }
-        for (IrisProceduralPlacement placement : procedural.getAllPlacements()) {
+    private static <F extends com.volmit.IrisFeature> List<Declaration<F>> byKey(List<Declaration<F>> declarations) {
+        return declarations.stream().sorted(Comparator.comparing(Declaration::key)).toList();
+    }
+
+    private void warmPlacements(List<ObjectPlacement> placements) {
+        for (ObjectPlacement placement : placements) {
             if (placement != null) {
-                placement.getVariantObject(engine.getData(), root.nextParallelRNG(warmed++));
+                host.warm(placement, root.nextParallelRNG(warmed++));
             }
+        }
+    }
+
+    private void warmProcedural(ProceduralObjectSettings settings) {
+        for (ProceduralPlacement placement : host.procedural(settings)) {
+            placement.variant(root.nextParallelRNG(warmed++));
         }
     }
 }

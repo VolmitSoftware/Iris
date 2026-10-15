@@ -18,13 +18,14 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import com.volmit.FeatureAttachment.Target;
 import com.volmit.service.ObjectsAt;
 import com.volmit.world.PackWorld;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,38 +37,28 @@ import java.util.Set;
 public final class ObjectLocating implements ObjectsAt {
     @Override
     public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
-        return ObjectModule.placing(engine(world), world.log()).guess(chunkX, chunkZ);
+        return ObjectPlacing.of(world).guess(chunkX, chunkZ);
     }
 
     @Override
     public PlacedBy placedBy(PackWorld world, String objectKey) {
-        Engine engine = engine(world);
         Set<String> biomes = new LinkedHashSet<>();
-        for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-            if (biome != null && placesObject(biome.getSurfaceObjects(), objectKey)) {
-                biomes.add(biome.getLoadKey());
-            }
-        }
-
         Set<String> regions = new LinkedHashSet<>();
-        for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            if (region != null && placesObject(region.getSurfaceObjects(), objectKey)) {
-                regions.add(region.getLoadKey());
+        for (Declaration<ObjectSettings> declaration : ObjectHost.of(world).declarations(ObjectSettings.class)) {
+            if (!placesObject(declaration.settings().objects(), objectKey)) {
+                continue;
             }
+            (declaration.level() == Target.BIOME ? biomes : regions).add(declaration.key());
         }
         return new PlacedBy(biomes, regions);
     }
 
-    private static boolean placesObject(List<IrisObjectPlacement> placements, String objectKey) {
-        for (IrisObjectPlacement placement : placements) {
-            if (placement != null && placement.getPlace().contains(objectKey)) {
+    private static boolean placesObject(List<ObjectPlacement> placements, String objectKey) {
+        for (ObjectPlacement placement : placements) {
+            if (placement != null && placement.carvingSupport().supportsSurface() && placement.place().contains(objectKey)) {
                 return true;
             }
         }
         return false;
-    }
-
-    private static Engine engine(PackWorld world) {
-        return IrisPackWorld.of(world).engine();
     }
 }

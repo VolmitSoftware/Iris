@@ -19,18 +19,14 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.objects.coral.Coral;
-import art.arcane.iris.builtin.objects.crystal.Crystal;
-import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.builtin.objects.fungi.Fungus;
-import art.arcane.iris.builtin.objects.ruin.Ruin;
-import art.arcane.iris.builtin.objects.tree.TreeCanopy;
-import art.arcane.iris.builtin.objects.tree.TreeDecorator;
-import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
-import art.arcane.iris.core.modules.IrisMantleChunk;
-import art.arcane.iris.core.modules.IrisPackSettings;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
+import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
+import art.arcane.iris.builtin.objects.TreeGrowthSettings;
+import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
+import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -72,33 +68,26 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         log = registry.log();
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
-        registry.registerHeldType(TreeCanopy.class);
-        registry.registerHeldType(TreeDecorator.class);
-        registry.registerHeldType(TreeSecondaryLeaf.class);
-        registry.registerHeldType(Coral.class);
-        registry.registerHeldType(Crystal.class);
-        registry.registerHeldType(Formation.class);
-        registry.registerHeldType(Fungus.class);
-        registry.registerHeldType(Ruin.class);
+        registry.registerSettings(ObjectSettings.class);
+        registry.registerSettings(ProceduralObjectSettings.class);
+        registry.registerSettings(TreeGrowthSettings.class);
+        registry.registerSettings(RequireSurfaceSupportSettings.class);
+        registry.registerSettings(SurfaceSupportBufferSettings.class);
+        registry.registerSettings(UpperObjectsSettings.class);
+        registry.registerSettings(UpperObjectsForceSettings.class);
         registry.registerLifecycle(this);
     }
 
     @Override
     public void warmUp(PackWorld world) {
-        new ObjectWarmUp(IrisPackWorld.of(world).engine()).warm();
+        new ObjectWarmUp(world).warm();
     }
 
     private static void place(MantleStageContext context) {
-        IrisMantleChunk chunk = IrisMantleChunk.current();
-        placing(chunk.engine(), context.log()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
+        ObjectPlacing.of(context.world()).place(context);
     }
 
     private int reach(PackSettings settings) {
-        return placing(IrisPackSettings.of(settings).engine(), log).reach();
-    }
-
-    /** The engine runtime's object placing, which the module's {@link ObjectsAt} also asks; {@code log} is the module's. */
-    public static ObjectPlacing placing(Engine engine, ModuleLog log) {
-        return engine.getGeneration().state(ObjectPlacing.class, generating -> new ObjectPlacing(generating, log));
+        return new PlacementReach(ObjectHost.of(settings), log).ofPack(settings);
     }
 }

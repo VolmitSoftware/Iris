@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.objects.TreeOverride;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
@@ -63,7 +64,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
-import org.bukkit.TreeType;
 import org.jetbrains.annotations.Nullable;
 
 
@@ -176,8 +176,8 @@ public class IrisObjectPlacement {
     @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
     private boolean overrideGlobalLoot = false;
     @Desc("This object / these objects override the following trees when they grow...")
-    @ArrayType(min = 1, type = IrisTree.class)
-    private KList<IrisTree> trees = new KList<>();
+    @ArrayType(min = 1, type = TreeOverride.class)
+    private KList<TreeOverride> trees = new KList<>();
     @RegistryListResource(IrisObject.class)
     @ArrayType(type = String.class)
     @Desc("List of objects to this object is allowed to collied with")
@@ -267,14 +267,10 @@ public class IrisObjectPlacement {
         return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
     }
 
-    /** Whether a tree placement grows the species the platform calls {@code species} for a sapling area of {@code size}. */
-    public boolean matches(IrisTreeSize size, String species) {
-        return matches(size, TreeType.valueOf(species));
-    }
-
-    public boolean matches(IrisTreeSize size, TreeType type) {
-        for (IrisTree i : getTrees()) {
-            if (i.matches(size, type)) {
+    /** Whether a tree placement grows the species the platform calls {@code species} for a sapling area of {@code width} by {@code depth}. */
+    public boolean matches(int width, int depth, String species) {
+        for (TreeOverride tree : getTrees()) {
+            if (tree.matches(width, depth, species)) {
                 return true;
             }
         }

@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-final class CaveObjectPlacementTransaction implements IObjectPlacer {
+public final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private static final int CACHE_MISS = Integer.MIN_VALUE;
 
     private final IObjectPlacer delegate;
@@ -46,7 +46,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private final Long2IntOpenHashMap caveCeilings;
     private int blockWrites;
 
-    CaveObjectPlacementTransaction(IObjectPlacer delegate, int anchorY, int minDepthBelowSurface) {
+    public CaveObjectPlacementTransaction(IObjectPlacer delegate, int anchorY, int minDepthBelowSurface) {
         this.delegate = delegate;
         this.engine = delegate.getEngine();
         this.anchorY = anchorY;
@@ -60,7 +60,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         this.caveCeilings.defaultReturnValue(CACHE_MISS);
     }
 
-    CommitResult commit() {
+    public CommitResult commit() {
         if (blockWrites == 0) {
             discard();
             return CommitResult.EMPTY;
@@ -80,13 +80,13 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         return CommitResult.COMMITTED;
     }
 
-    void discard() {
+    public void discard() {
         mutations.clear();
         bufferedBlocks.clear();
         blockWrites = 0;
     }
 
-    int getCaveCeiling(int x, int z) {
+    public int getCaveCeiling(int x, int z) {
         long key = CacheKey.key(x, z);
         int cached = caveCeilings.get(key);
         if (cached != CACHE_MISS) {
@@ -242,7 +242,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         return Math.min(worldHeight, scanLimit + 1);
     }
 
-    enum CommitResult {
+    public enum CommitResult {
         COMMITTED,
         EMPTY,
         REJECTED_BOUNDS

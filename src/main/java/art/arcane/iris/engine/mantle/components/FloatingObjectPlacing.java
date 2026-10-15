@@ -29,6 +29,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
+import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.prefab.IrisObject;
@@ -593,7 +594,7 @@ public class FloatingObjectPlacing {
                         size = IrisObject.sampleSize(file);
                         sizeCache.put(objectKey, size);
                     }
-                    int reach = ObjectPlacing.calculatePlacementReach(size, placement);
+                    int reach = calculatePlacementReach(size, placement);
                     if (reach > 128 && warnedLargeObjects.add(objectKey)) {
                         log.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
                     }
@@ -604,5 +605,54 @@ public class FloatingObjectPlacing {
             }
         }
         return radius;
+    }
+
+    static int calculatePlacementReach(IrisBlockVector size, IrisObjectPlacement placement) {
+        if (size == null) {
+            return 0;
+        }
+        if (placement == null) {
+            return Math.max(Math.abs(size.getBlockX()), Math.abs(size.getBlockZ()));
+        }
+
+        double scale = placement.getScale() != null ? Math.max(1D, placement.getScale().getMaxScale()) : 1D;
+        int width = scaledDimension(size.getBlockX(), scale);
+        int height = scaledDimension(size.getBlockY(), scale);
+        int depth = scaledDimension(size.getBlockZ(), scale);
+        IrisObjectRotation rotation = placement.getRotation();
+        boolean rotateX = rotation != null && rotation.isEnabled() && rotation.getXAxis() != null && rotation.getXAxis().enabled();
+        boolean rotateZ = rotation != null && rotation.isEnabled() && rotation.getZAxis() != null && rotation.getZAxis().enabled();
+        int footprint = rotateX || rotateZ ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
+        int translation = calculateTranslationReach(placement.getTranslate(), rotation, rotateX || rotateZ);
+        int warp = placement.getWarp() != null && !placement.getWarp().isFlat()
+                ? (int) Math.ceil(Math.abs(placement.getWarp().getMultiplier()) / 2D)
+                : 0;
+        int vacuum = placement.getMode().placeMode().bendsTerrain()
+                ? 2 * IrisObjectVacuum.resolveRadius(placement.getMode().placeMode().vacuum(), placement.getVacuumSettings())
+                : 0;
+        long reach = (long) footprint + translation + warp + vacuum;
+        return reach > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) reach;
+    }
+
+    private static int scaledDimension(int dimension, double scale) {
+        int absoluteDimension = Math.abs(dimension);
+        if (scale <= 1D) {
+            return absoluteDimension;
+        }
+        return (int) Math.ceil((absoluteDimension * scale) + (scale * 2D));
+    }
+
+    private static int calculateTranslationReach(IrisObjectTranslate translate, IrisObjectRotation rotation, boolean rotateVertically) {
+        if (translate == null || !translate.canTranslate()) {
+            return 0;
+        }
+        double x = translate.getX();
+        double y = translate.getY();
+        double z = translate.getZ();
+        if (rotateVertically) {
+            return (int) Math.ceil(Math.sqrt((x * x) + (y * y) + (z * z)));
+        }
+        boolean rotateY = rotation != null && rotation.isEnabled() && rotation.getYAxis() != null && rotation.getYAxis().enabled();
+        return rotateY ? (int) Math.ceil(Math.hypot(x, z)) : (int) Math.max(Math.abs(x), Math.abs(z));
     }
 }

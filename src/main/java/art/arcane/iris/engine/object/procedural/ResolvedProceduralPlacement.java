@@ -63,6 +63,11 @@ public abstract class ResolvedProceduralPlacement implements IrisProceduralPlace
         return Math.max(1, shape.variants());
     }
 
+    /** The options this object shares with an object placement. */
+    public Shape shape() {
+        return shape;
+    }
+
     @Override
     public String getName() {
         return shape.name();

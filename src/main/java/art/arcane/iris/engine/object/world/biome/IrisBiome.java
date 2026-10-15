@@ -20,8 +20,6 @@ package art.arcane.iris.engine.object.world.biome;
 
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -79,8 +77,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorObjectDensity = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
@@ -140,11 +136,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = String.class)
     @Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 4 biomes down the tree.")
     private KList<String> children = new KList<>();
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
-    @Desc("Objects define what schematics (iob files) iris will place in this biome")
-    private KList<IrisObjectPlacement> objects = new KList<>();
-    @Desc("Procedural objects (such as trees) iris generates from scratch and places in this biome, instead of loading them from iob files")
-    private IrisProceduralObjects proceduralObjects = new IrisProceduralObjects();
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
@@ -258,36 +249,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public IrisBiomeGeneratorLink getGenLink(String loadKey) {
         return IrisBiomeGenLinks.getGenLink(this, loadKey);
-    }
-
-    public KList<IrisObjectPlacement> getSurfaceObjects() {
-        return getSurfaceObjectsCache().aquire(() ->
-        {
-            KList<IrisObjectPlacement> o = getObjects().copy();
-
-            for (IrisObjectPlacement i : o.copy()) {
-                if (!i.getCarvingSupport().supportsSurface()) {
-                    o.remove(i);
-                }
-            }
-
-            return o;
-        });
-    }
-
-    public KList<IrisObjectPlacement> getCarvingObjects() {
-        return getCarveObjectsCache().aquire(() ->
-        {
-            KList<IrisObjectPlacement> o = getObjects().copy();
-
-            for (IrisObjectPlacement i : o.copy()) {
-                if (!i.getCarvingSupport().supportsCarving()) {
-                    o.remove(i);
-                }
-            }
-
-            return o;
-        });
     }
 
     public double getHeight(Engine xg, double x, double z, long seed) {

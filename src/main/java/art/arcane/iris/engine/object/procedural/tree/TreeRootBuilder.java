@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.builtin.objects.tree.TreeRootStyle;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public final class TreeRootBuilder {
     private TreeRootBuilder() {
     }
 
-    public static void build(TreeBlockCanvas canvas, IrisProceduralTree tree, int height, long baseSeed) {
+    public static void build(TreeBlockCanvas canvas, Tree tree, int height, long baseSeed) {
         List<int[]> cells = new ArrayList<>();
         for (TreeBlockCanvas.Vec v : canvas.getTrunk()) {
             if (v.y() == 0) {
@@ -40,7 +40,7 @@ public final class TreeRootBuilder {
             return;
         }
 
-        int depth = tree.getRootDepth() > 0 ? tree.getRootDepth() : autoDepth(height);
+        int depth = tree.rootDepth() > 0 ? tree.rootDepth() : autoDepth(height);
         RNG rng = new RNG(baseSeed ^ 0x5009L);
 
         double cx = 0;
@@ -56,9 +56,9 @@ public final class TreeRootBuilder {
         for (int[] c : cells) {
             baseRadius = Math.max(baseRadius, Math.hypot(c[0] - cx, c[1] - cz) + 0.5);
         }
-        double flare = tree.getRootFlare() > 0 ? tree.getRootFlare() : baseRadius + Math.max(2.0, depth * 0.6);
+        double flare = tree.rootFlare() > 0 ? tree.rootFlare() : baseRadius + Math.max(2.0, depth * 0.6);
 
-        TreeRootStyle style = tree.getRootStyle();
+        TreeRootStyle style = tree.rootStyle();
         switch (style) {
             case TAPROOT -> taproot(canvas, cells, cx, cz, baseRadius, depth);
             case BUTTRESS -> {

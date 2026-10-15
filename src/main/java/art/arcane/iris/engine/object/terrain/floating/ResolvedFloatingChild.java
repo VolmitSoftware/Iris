@@ -20,6 +20,7 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.core.loader.IrisData;
@@ -184,7 +185,7 @@ public final class ResolvedFloatingChild implements IRare {
     }
 
     public KList<IrisObjectPlacement> resolveTopObjects(IrisBiome target) {
-        KList<IrisObjectPlacement> surfaceObjects = (settings.inheritObjects() && target != null) ? target.getSurfaceObjects() : new KList<>();
+        KList<IrisObjectPlacement> surfaceObjects = (settings.inheritObjects() && target != null) ? ObjectPlacements.surface(target) : new KList<>();
         return resolveTopObjectsFromSurface(surfaceObjects);
     }
 

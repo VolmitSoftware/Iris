@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModMetadata;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
@@ -20,6 +21,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -43,6 +45,11 @@ public class ModdedPlatformPathsTest {
             @Override
             public String modVersion() {
                 return "0.0.0";
+            }
+
+            @Override
+            public List<NativeModMetadata> mods() {
+                return List.of();
             }
 
             @Override

@@ -221,34 +221,51 @@ final class ModFeatureIngester {
     }
 
     private String applyDeposits(FeaturePlan plan, Map<String, ModBiomeAdopter.AdoptedBiome> adopted, Set<String> universe, Set<String> caveKeys) throws IOException {
-        List<String> adoptedTargets = new ArrayList<>();
+        List<ModBiomeAdopter.AdoptedBiome> adoptedTargets = new ArrayList<>();
         boolean vanillaDeclared = false;
         for (String biome : plan.declaring()) {
             vanillaDeclared |= WorldgenCatalogIndex.namespaceOf(biome).equals("minecraft");
             ModBiomeAdopter.AdoptedBiome adoptedBiome = adopted.get(biome);
             if (adoptedBiome != null) {
-                adoptedTargets.add(adoptedBiome.irisKey());
+                adoptedTargets.add(adoptedBiome);
             }
         }
         if (!vanillaDeclared && !adoptedTargets.isEmpty()) {
-            for (String irisKey : adoptedTargets) {
-                appendAll(model.pack().require(IngestPack.biomePath(irisKey)), "deposits", plan.deposits());
+            List<String> targets = new ArrayList<>(adoptedTargets.size());
+            Map<String, List<String>> caveBiomesByRegion = new TreeMap<>();
+            for (ModBiomeAdopter.AdoptedBiome target : adoptedTargets) {
+                if (target.role() == BiomeRole.CAVE) {
+                    caveBiomesByRegion.computeIfAbsent(target.regionKey(), ignored -> new ArrayList<>()).add(target.irisKey());
+                    continue;
+                }
+                appendAll(model.pack().require(IngestPack.biomePath(target.irisKey())), "deposits", plan.deposits());
+                targets.add(target.irisKey());
             }
-            return String.join(",", adoptedTargets);
+            for (Map.Entry<String, List<String>> region : caveBiomesByRegion.entrySet()) {
+                appendAll(model.pack().edit(IngestPack.regionPath(region.getKey())), "deposits",
+                        scoped(plan.deposits(), region.getValue(), "CAVE"));
+                targets.add("region " + region.getKey());
+            }
+            return String.join(",", targets);
         }
         Set<String> included = new TreeSet<>(plan.declaring());
         included.retainAll(universe);
-        List<JsonObject> deposits = new ArrayList<>(plan.deposits().size());
-        for (JsonObject deposit : plan.deposits()) {
-            JsonObject copy = deposit.deepCopy();
-            if (!included.containsAll(universe)) {
-                copy.add("includedBiomes", IngestJson.stringArray(included));
-                copy.addProperty("biomeScope", caveKeys.containsAll(included) ? "CAVE" : "SURFACE");
-            }
-            deposits.add(copy);
-        }
+        List<JsonObject> deposits = included.containsAll(universe)
+                ? plan.deposits()
+                : scoped(plan.deposits(), List.copyOf(included), caveKeys.containsAll(included) ? "CAVE" : "SURFACE");
         appendAll(model.pack().edit(model.dimensionPath()), "deposits", deposits);
         return "dimension";
+    }
+
+    private static List<JsonObject> scoped(List<JsonObject> deposits, List<String> includedBiomes, String biomeScope) {
+        List<JsonObject> scoped = new ArrayList<>(deposits.size());
+        for (JsonObject deposit : deposits) {
+            JsonObject copy = deposit.deepCopy();
+            copy.add("includedBiomes", IngestJson.stringArray(includedBiomes));
+            copy.addProperty("biomeScope", biomeScope);
+            scoped.add(copy);
+        }
+        return scoped;
     }
 
     private String applyDecorator(FeaturePlan plan, Map<String, ModBiomeAdopter.AdoptedBiome> adopted) throws IOException {

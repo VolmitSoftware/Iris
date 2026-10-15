@@ -85,7 +85,7 @@ final class ModBiomeAdopter {
             transform(json, biome, ownsVegetation(biome, namespace));
             model.pack().create(IngestPack.biomePath(irisKey), json);
             appendToPool(region.key(), role, irisKey);
-            adopted.put(biome.key(), new AdoptedBiome(biome.key(), irisKey, role));
+            adopted.put(biome.key(), new AdoptedBiome(biome.key(), irisKey, role, region.key()));
             items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.ADOPTED, irisKey,
                     role.label() + " biome in region " + region.key() + " from template " + template));
         }
@@ -196,7 +196,7 @@ final class ModBiomeAdopter {
         return name.isEmpty() ? key : name.toString();
     }
 
-    record AdoptedBiome(String modKey, String irisKey, BiomeRole role) {
+    record AdoptedBiome(String modKey, String irisKey, BiomeRole role, String regionKey) {
     }
 
     private record Placement(IngestPackModel.RegionProfile region, String template) {

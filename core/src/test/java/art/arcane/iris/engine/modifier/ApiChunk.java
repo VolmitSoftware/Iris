@@ -24,6 +24,8 @@ import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.floating.FloatingHost;
+import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
 import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
@@ -79,6 +81,7 @@ import com.volmit.world.TerrainSampler;
 import com.volmit.world.UpperDimension;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -102,6 +105,7 @@ public final class ApiChunk implements GenerationContext {
     public static final int WIDTH = 16;
     public static final BlockState AIR = new BlockState("minecraft:air");
     private static final long SEED = 1337L;
+    private static final String FLOATING_ID = "iris:floating";
     /** What every noise of the fixture's pack samples, everywhere. */
     private static final double HALF = 0.5;
     /** A key that the fixture's pack has no block for. */
@@ -270,21 +274,17 @@ public final class ApiChunk implements GenerationContext {
         return TestSettings.with(new PaletteLayer(), "palette", List.of(BlockSpec.of(block.key())), "slopeCondition", slope);
     }
 
-    /** Empty stand-ins for the built-in stages the ported modules order after that the built-ins jar does not hold: floating islands. */
-    public static List<IrisModule> standIns() {
-        return List.of(new FloatingStandIn());
-    }
 
     /** An empty stand-in for {@code iris:terrain}, for modules that order after the shaping of the ground. */
     public static IrisModule terrainStandIn() {
         return new TerrainStandIn();
     }
 
-    /** Runs {@code modules} as a pack's chunk graph, with the {@link #standIns()}. */
+    /** Runs {@code modules} as a pack's chunk graph, with an empty stand-in for the floating islands unless they bring their own. */
     public ApiChunk generate(IrisModule... modules) {
         StageGraphBuilder builder = new StageGraphBuilder();
-        for (IrisModule module : standIns()) {
-            builder.install(DiscoveredModule.builtIn(module));
+        if (Arrays.stream(modules).noneMatch(module -> module.info().id().toString().equals(FLOATING_ID))) {
+            builder.install(DiscoveredModule.builtIn(new FloatingStandIn()));
         }
         for (IrisModule module : modules) {
             builder.install(DiscoveredModule.builtIn(module));
@@ -569,9 +569,22 @@ public final class ApiChunk implements GenerationContext {
     }
 
     /** A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. */
-    private final class World implements PackWorld, IrisSeed.Source {
+    /** A world without floating islands: its floating host answers no surface biome, so no column has an island. */
+    private final class World implements PackWorld, IrisSeed.Source, FloatingHost.Source, ObjectHost.Source {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
+        private final FloatingHost floating = mock(FloatingHost.class);
+        private final ObjectHost objects = mock(ObjectHost.class);
+
+        @Override
+        public FloatingHost floating() {
+            return floating;
+        }
+
+        @Override
+        public ObjectHost objects() {
+            return objects;
+        }
 
         @Override
         public long seed() {
@@ -761,7 +774,7 @@ public final class ApiChunk implements GenerationContext {
     private static final class FloatingStandIn implements IrisModule {
         @Override
         public ModuleInfo info() {
-            return ModuleInfo.of("iris:floating", "Floating stand-in", "test");
+            return ModuleInfo.of(FLOATING_ID, "Floating stand-in", "test");
         }
 
         @Override

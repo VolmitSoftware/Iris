@@ -20,7 +20,6 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.mantle.components.StructureModule;
-import art.arcane.iris.engine.modifier.FloatingModule;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.IrisModule;
 import com.volmit.ModuleLog;
@@ -57,7 +56,8 @@ public final class IrisModuleHost {
      */
     public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:loot",
             "iris:spawn", "iris:prepare", "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum",
-            "iris:snow", "iris:vanilla-features", "iris:carve", "iris:deposit", "iris:decorant", "iris:terrain", "iris:objects");
+            "iris:snow", "iris:vanilla-features", "iris:carve", "iris:deposit", "iris:decorant", "iris:terrain", "iris:objects",
+            "iris:floating");
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -81,7 +81,7 @@ public final class IrisModuleHost {
     }
 
     private static List<IrisModule> generationModules() {
-        return List.of(new StructureModule(), new FloatingModule());
+        return List.of(new StructureModule());
     }
 
     /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */

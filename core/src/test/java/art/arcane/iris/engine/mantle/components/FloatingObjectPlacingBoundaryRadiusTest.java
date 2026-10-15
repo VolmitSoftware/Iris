@@ -18,103 +18,62 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.core.modules.BuiltInPack;
-import art.arcane.iris.builtin.floating.FloatingChildSettings;
-import art.arcane.iris.engine.framework.EngineGeneration;
-import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.spi.IrisPlatform;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.PlatformRegistries;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.floating.FloatingChildSettings;
+import art.arcane.iris.builtin.floating.FloatingHost;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSize;
+import art.arcane.iris.engine.object.TestSettings;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisFeature;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.PackSettings;
 import com.volmit.host.ModuleLogs;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class FloatingObjectPlacingBoundaryRadiusTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Before
-    public void bindPlatform() {
-        IrisPlatforms.unbind();
-        PlatformRegistries registries = mock(PlatformRegistries.class);
-        // IrisObject retains these built-in states after this fixture unbinds its platform.
-        Map<String, PlatformBlockState> registryStates = new HashMap<>();
-        when(registries.block(anyString())).thenAnswer(invocation -> {
-            String key = invocation.<String>getArgument(0).toLowerCase(java.util.Locale.ROOT);
-            return registryStates.computeIfAbsent(key, value -> {
-                PlatformBlockState block = mock(PlatformBlockState.class);
-                when(block.key()).thenReturn(value);
-                when(block.materialKey()).thenReturn(value.split("\\[", 2)[0]);
-                when(block.isSolid()).thenReturn(!value.contains("air"));
-                when(block.isOccluding()).thenReturn(!value.contains("air"));
-                return block;
-            });
-        });
-        IrisPlatform platform = mock(IrisPlatform.class);
-        when(platform.registries()).thenReturn(registries);
-        IrisPlatforms.bind(platform);
-    }
-
-    @After
-    public void unbindPlatform() {
-        IrisPlatforms.unbind();
-    }
+    private static final ResourceId BIOME = ResourceId.parse("test:biome/floating");
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void transformedFloatingPlacementExpandsOwnerRadius() throws Exception {
-        File objectFile = temporaryFolder.newFile("floating.iob");
-        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(objectFile))) {
-            output.writeInt(1);
-            output.writeInt(1);
-            output.writeInt(1);
-        }
+    public void transformedFloatingPlacementExpandsOwnerRadius() {
+        ObjectPlacement placement = TestSettings.of(ObjectPlacement.class, "{\"place\":[\"test/floating\"],\"translate\":{\"x\":32}}");
+        FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "floatingObjects", List.of(placement));
+        ObjectHost objects = mock(ObjectHost.class);
+        when(objects.sizeOf("test/floating")).thenReturn(Optional.of(new ObjectSize(1, 1, 1)));
 
-        IrisObjectPlacement placement = new IrisObjectPlacement()
-                .setPlace(new KList<>("test/floating"))
-                .setTranslate(new IrisObjectTranslate().setX(32));
-        FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "floatingObjects", new KList<>(placement));
-        IrisBiome biome = new IrisBiome();
-        biome.setModuleSettings(BuiltInPack.settings(new FloatingChildSettings(List.of(floatingChild))));
-        IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getReachableBiomes(org.mockito.ArgumentMatchers.any())).thenReturn(new KList<>(biome));
+        assertEquals(33, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of(floatingChild)), objects), ModuleLogs.discarding()));
+    }
 
-        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(objectLoader.findFile("test/floating")).thenReturn(objectFile);
-        IrisData data = mock(IrisData.class);
-        when(data.getObjectLoader()).thenReturn(objectLoader);
+    private static PackSettings pack(FloatingChildSettings declared, ObjectHost objects) {
+        FloatingHost floating = mock(FloatingHost.class);
+        return new FloatingPack() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <T extends IrisFeature> List<Entry<T>> declared(Class<T> featureType) {
+                return featureType == FloatingChildSettings.class ? List.of(new Entry<>(Target.BIOME, BIOME, (T) declared)) : List.of();
+            }
 
-        Engine engine = mock(Engine.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getData()).thenReturn(data);
-        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
+            @Override
+            public FloatingHost floating() {
+                return floating;
+            }
 
-        assertEquals(33, new FloatingObjectPlacing(engine, ModuleLogs.discarding()).reach());
+            @Override
+            public ObjectHost objects() {
+                return objects;
+            }
+        };
+    }
+
+    private interface FloatingPack extends PackSettings, FloatingHost.Source, ObjectHost.Source {
     }
 }

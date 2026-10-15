@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -37,7 +38,7 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source, ObjectHost.Source {
+public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source, ObjectHost.Source, FloatingHost.Source {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
@@ -45,6 +46,7 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
     private final Map<ModuleLog, IrisPackWorld> viewsByLog;
     private final LiveWorld liveWorld;
     private volatile IrisObjectHost objectHost;
+    private volatile IrisFloatingHost floatingHost;
 
     IrisPackWorld(Engine engine) {
         this(engine, engine.getData().getPackResources(), new WorldStates(), IrisApiLogger.hostLog(), new ConcurrentHashMap<>());
@@ -138,6 +140,16 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
         if (host == null) {
             host = new IrisObjectHost(engine, log);
             objectHost = host;
+        }
+        return host;
+    }
+
+    @Override
+    public FloatingHost floating() {
+        IrisFloatingHost host = floatingHost;
+        if (host == null) {
+            host = new IrisFloatingHost(engine, log);
+            floatingHost = host;
         }
         return host;
     }

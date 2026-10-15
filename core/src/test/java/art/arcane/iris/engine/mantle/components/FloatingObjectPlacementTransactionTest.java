@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 public class FloatingObjectPlacementTransactionTest {
     @Test
     public void unsupportedFinalTerrainRejectsBlocksTilesAndMarkersTogether() {
-        IslandObjectPlacer delegate = createPlacer(false);
+        IslandAnchorPlacer delegate = createPlacer(false);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate);
         PlatformBlockState first = mock(PlatformBlockState.class);
         PlatformBlockState second = mock(PlatformBlockState.class);
@@ -62,7 +62,7 @@ public class FloatingObjectPlacementTransactionTest {
 
     @Test
     public void supportedNeighborChunkCommitsBlocksTilesAndMarkers() {
-        IslandObjectPlacer delegate = createPlacer(true);
+        IslandAnchorPlacer delegate = createPlacer(true);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate);
         PlatformBlockState first = mock(PlatformBlockState.class);
         PlatformBlockState second = mock(PlatformBlockState.class);
@@ -86,8 +86,8 @@ public class FloatingObjectPlacementTransactionTest {
         verify(delegate).set(16, 101, 8, second);
     }
 
-    private IslandObjectPlacer createPlacer(boolean supportNeighborChunk) {
-        IslandObjectPlacer placer = mock(IslandObjectPlacer.class);
+    private IslandAnchorPlacer createPlacer(boolean supportNeighborChunk) {
+        IslandAnchorPlacer placer = mock(IslandAnchorPlacer.class);
         Engine engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(384);
         when(placer.getEngine()).thenReturn(engine);

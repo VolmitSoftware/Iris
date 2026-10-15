@@ -1,123 +1,48 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CarvingSettings;
-import art.arcane.iris.core.modules.BuiltInPack;
-import art.arcane.iris.core.modules.ModuleSettings;
-import art.arcane.iris.engine.decorator.DecoratorTestEngines;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.builtin.floating.FloatingHost;
+import art.arcane.iris.engine.object.TestSettings;
 import com.google.gson.Gson;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.block.data.BlockData;
-import org.junit.BeforeClass;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
+import java.util.Optional;
 
-import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ResolvedFloatingChildCarvingResolutionTest {
-    @BeforeClass
-    public static void setupBukkit() {
-        if (Bukkit.getServer() != null) {
-            return;
-        }
+    @Test
+    public void carvingBiome_loadsBiomeKeyWhenEntryIdMissing() {
+        ResourceId biome = ResourceId.parse("ns:carving/mushroom");
+        FloatingWorld world = world(List.of(), Map.of("carving/mushroom", biome));
 
-        Server server = mock(Server.class);
-        doReturn(Logger.getLogger("IrisTest")).when(server).getLogger();
-        doReturn("IrisTestServer").when(server).getName();
-        doReturn("1.0").when(server).getVersion();
-        doReturn("1.0").when(server).getBukkitVersion();
-        doAnswer((InvocationOnMock invocation) -> namedBlockData(invocation.getArgument(0, Material.class).name().toLowerCase(Locale.ROOT))).when(server).createBlockData(any(Material.class));
-        doAnswer((InvocationOnMock invocation) -> namedBlockData(invocation.getArgument(0, String.class))).when(server).createBlockData(anyString());
-        try {
-            Bukkit.setServer(server);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static BlockData namedBlockData(String key) {
-        String canonical = key.indexOf(':') >= 0 ? key : "minecraft:" + key;
-        BlockData data = mock(BlockData.class);
-        doReturn(canonical).when(data).getAsString();
-        return data;
+        assertEquals(Optional.of(biome), child("carving/mushroom", world).carvingBiome());
     }
 
     @Test
-    public void resolveCarvingBiome_loadsBiomeKeyWhenEntryIdMissing() {
-        IrisBiome biome = mock(IrisBiome.class);
-        Fixture fixture = createFixture(Map.of(), Map.of("carving/mushroom", biome));
-
-        IrisBiome resolved = ResolvedFloatingChild.resolveCarvingBiome("carving/mushroom", fixture.engine, fixture.data);
-
-        assertSame(biome, resolved);
-    }
-
-    @Test
-    public void resolveCarvingBiome_prefersDimensionCarvingEntryId() {
-        IrisBiome entryBiome = mock(IrisBiome.class);
-        IrisBiome sameKeyBiome = mock(IrisBiome.class);
+    public void carvingBiome_prefersDimensionCarvingEntryId() {
+        ResourceId entryBiome = ResourceId.parse("ns:carving/standard-deepdark");
+        ResourceId sameKeyBiome = ResourceId.parse("ns:global-deepdark-band");
         CarvingEntry entry = new Gson().fromJson("{\"id\": \"global-deepdark-band\", \"biome\": \"carving/standard-deepdark\"}", CarvingEntry.class);
+        FloatingWorld world = world(List.of(entry), Map.of("carving/standard-deepdark", entryBiome, "global-deepdark-band", sameKeyBiome));
 
-        Map<String, CarvingEntry> entries = new HashMap<>();
-        entries.put("global-deepdark-band", entry);
-
-        Map<String, IrisBiome> biomes = new HashMap<>();
-        biomes.put("carving/standard-deepdark", entryBiome);
-        biomes.put("global-deepdark-band", sameKeyBiome);
-
-        Fixture fixture = createFixture(entries, biomes);
-
-        IrisBiome resolved = ResolvedFloatingChild.resolveCarvingBiome("global-deepdark-band", fixture.engine, fixture.data);
-
-        assertSame(entryBiome, resolved);
+        assertEquals(Optional.of(entryBiome), child("global-deepdark-band", world).carvingBiome());
     }
 
-    private Fixture createFixture(Map<String, CarvingEntry> entries, Map<String, IrisBiome> biomes) {
-        @SuppressWarnings("unchecked")
-        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
-        for (Map.Entry<String, IrisBiome> biome : biomes.entrySet()) {
-            doReturn(biome.getValue()).when(biomeLoader).load(biome.getKey());
-        }
-
-        IrisData data = mock(IrisData.class);
-        doReturn(biomeLoader).when(data).getBiomeLoader();
-
-        IrisDimension dimension = mock(IrisDimension.class);
-        ModuleSettings declared = BuiltInPack.settings(new CarvingSettings(new ArrayList<>(entries.values())));
-        doReturn(declared).when(dimension).getModuleSettings();
-
-        Engine engine = mock(Engine.class);
-        doReturn(data).when(engine).getData();
-        doReturn(dimension).when(engine).getDimension();
-        DecoratorTestEngines.withGeneration(engine);
-
-        return new Fixture(engine, data);
+    private static ResolvedFloatingChild child(String carving, FloatingWorld world) {
+        return new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "carving", carving), world);
     }
 
-    private static final class Fixture {
-        private final Engine engine;
-        private final IrisData data;
-
-        private Fixture(Engine engine, IrisData data) {
-            this.engine = engine;
-            this.data = data;
-        }
+    private static FloatingWorld world(List<CarvingEntry> dimensionCarving, Map<String, ResourceId> biomes) {
+        FloatingHost host = mock(FloatingHost.class);
+        when(host.biome(anyString())).thenAnswer(invocation -> Optional.ofNullable(biomes.get(invocation.getArgument(0, String.class))));
+        return new FloatingWorld(host, null, null, 0L, 0L, 0, dimensionCarving);
     }
 }

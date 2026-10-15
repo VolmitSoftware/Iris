@@ -24,6 +24,7 @@ import art.arcane.iris.builtin.floating.OverrideMode;
 import art.arcane.iris.builtin.floating.TopShapeMode;
 import art.arcane.iris.core.loader.IrisData;
 import com.google.gson.Gson;
+import com.volmit.noise.NoiseFactory;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,6 +38,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** The floating child of the overworld pack's magnetics/dunes biome, read into {@link FloatingChildBiome} with the values Iris's own class read from the same JSON. */
 public class FloatingChildBiomeDecodingTest {
@@ -99,9 +101,9 @@ public class FloatingChildBiomeDecodingTest {
         assertEquals(0.55, child.objectShrinkFactor(), 0);
         assertEquals(OverrideMode.MERGE, child.topObjectMode());
         assertEquals(2, child.topObjectOverrides().size());
-        assertEquals(5, child.topObjectOverrides().get(0).getDensity());
+        assertEquals(5, child.topObjectOverrides().get(0).density());
         assertEquals(OverrideMode.REPLACE, child.bottomObjectMode());
-        assertEquals("clutter/bone4", child.bottomObjectOverrides().get(0).getPlace().get(0));
+        assertEquals("clutter/bone4", child.bottomObjectOverrides().get(0).place().get(0));
     }
 
     @Test
@@ -134,13 +136,15 @@ public class FloatingChildBiomeDecodingTest {
     @Test
     public void theEdgeTaperProfileKeepsTheSettingsWidthExponentAndVariation() {
         FloatingChildBiome child = gson.fromJson(DUNES_CHILD, FloatingChildBiome.class);
-        ResolvedFloatingChild resolved = new ResolvedFloatingChild(child);
+        FloatingWorld world = mock(FloatingWorld.class);
+        when(world.noise()).thenReturn(mock(NoiseFactory.class));
+        ResolvedFloatingChild resolved = new ResolvedFloatingChild(child, world);
 
-        FloatingIslandEdgeProfile profile = resolved.getEdgeTaperProfile(77L, mock(IrisData.class));
+        FloatingIslandEdgeProfile profile = resolved.edgeTaperProfile();
 
         assertEquals(14, profile.width());
         assertEquals(1.45, profile.exponent(), 0);
         assertEquals(4, profile.variationAmplitude(), 0);
-        assertEquals(2, resolved.getRarity() + 1);
+        assertEquals(2, resolved.rarity() + 1);
     }
 }

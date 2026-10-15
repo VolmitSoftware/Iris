@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -39,7 +40,7 @@ import java.util.List;
  * structure hooks: the engine's dimension, then every region it can reach, then every biome. Iris's built-in modules
  * decide from Iris's own pack data instead of module settings; they reach the engine through {@link #of(PackSettings)}.
  */
-public final class IrisPackSettings implements PackSettings, ObjectHost.Source {
+public final class IrisPackSettings implements PackSettings, ObjectHost.Source, FloatingHost.Source {
     static final String DIMENSION = "dimension";
     static final String REGION = "region";
     static final String BIOME = "biome";
@@ -68,6 +69,11 @@ public final class IrisPackSettings implements PackSettings, ObjectHost.Source {
     @Override
     public ObjectHost objects() {
         return new IrisObjectHost(engine, IrisApiLogger.hostLog());
+    }
+
+    @Override
+    public FloatingHost floating() {
+        return new IrisFloatingHost(engine, IrisApiLogger.hostLog());
     }
 
     @Override

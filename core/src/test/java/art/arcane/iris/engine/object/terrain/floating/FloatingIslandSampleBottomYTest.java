@@ -2,10 +2,7 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.iris.util.project.noise.NoiseGenerator;
-import art.arcane.volmlib.util.math.RNG;
+import com.volmit.noise.NoiseSampler;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -63,8 +60,8 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void mergedEntryMask_preservesTopAndBottomOwners() {
-        ResolvedFloatingChild bottom = new ResolvedFloatingChild(new FloatingChildBiome());
-        ResolvedFloatingChild top = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild bottom = new ResolvedFloatingChild(new FloatingChildBiome(), null);
+        ResolvedFloatingChild top = new ResolvedFloatingChild(new FloatingChildBiome(), null);
         boolean[] mask = {true, true, false, true};
         ResolvedFloatingChild[] entryMask = {bottom, bottom, null, top};
         FloatingIslandSample sample = FloatingIslandSample.constructForTest(top, 80, mask.length, 3, 3, mask, entryMask);
@@ -132,7 +129,7 @@ public class FloatingIslandSampleBottomYTest {
     public void carveSolidInterior_preservesOuterShell() {
         boolean[] mask = {false, true, true, true, true, false};
         boolean[] lateralCarveMask = {true, true, true, true, true, true};
-        CNG carve = constantCng(1.0);
+        NoiseSampler carve = constantNoise(1.0);
 
         int count = FloatingIslandSample.carveSolidInterior(mask, lateralCarveMask, 100, 0, 0, carve, 0.5);
 
@@ -150,7 +147,7 @@ public class FloatingIslandSampleBottomYTest {
         boolean[] mask = {true, true, true, true, true, true};
         boolean[] lateralCarveMask = {false, false, false, false, false, false};
 
-        int count = FloatingIslandSample.carveSolidInterior(mask, lateralCarveMask, 100, 0, 0, constantCng(1.0), 0.5);
+        int count = FloatingIslandSample.carveSolidInterior(mask, lateralCarveMask, 100, 0, 0, constantNoise(1.0), 0.5);
 
         assertEquals(6, count);
         for (boolean solid : mask) {
@@ -160,17 +157,17 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void lateralCarving_requiresRoundedInteriorAndFullNeighborRing() {
-        CNG fullRing = constantCng(1.0);
+        NoiseSampler fullRing = constantNoise(1.0);
         FloatingIslandSample.NeighborSupport fullSupport = FloatingIslandSample.footprintNeighborSupport(fullRing, 0, 0, 0.0);
-        CNG missingDiagonal = new CNG(new RNG(11)) {
+        NoiseSampler missingDiagonal = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 1 && z == 1 ? 0.0 : 1.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
         FloatingIslandSample.NeighborSupport partialSupport = FloatingIslandSample.footprintNeighborSupport(missingDiagonal, 0, 0, 0.0);
@@ -182,15 +179,15 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void footprintPinholeFill_acceptsSingleColumnHoleWithSolidRing() {
-        CNG footprint = new CNG(new RNG(4)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 0 && z == 0 ? 0.46 : 1.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -200,15 +197,15 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void footprintPinholeFill_keepsBroadHoleOpen() {
-        CNG footprint = new CNG(new RNG(5)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return Math.abs(x) <= 1 && Math.abs(z) <= 1 ? 0.0 : 1.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -218,15 +215,15 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void layerSupport_rejectsIsolatedSolidProtrusion() {
-        CNG footprint = new CNG(new RNG(6)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 0 && z == 0 ? 1.0 : 0.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -236,15 +233,15 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void layerSupport_fillsSingleColumnAirGap() {
-        CNG footprint = new CNG(new RNG(7)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 0 && z == 0 ? 0.0 : 1.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -255,22 +252,17 @@ public class FloatingIslandSampleBottomYTest {
     @Test
     public void carveSolidInterior_rejectsIsolatedCarveAir() {
         boolean[] mask = {true, true, true, true, true};
-        CNG carve = new CNG(new RNG(8), new NoiseGenerator() {
+        NoiseSampler carve = new NoiseSampler() {
             @Override
-            public double noise(double x) {
-                return 0.0;
-            }
-
-            @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 0 && z == 0 ? 1.0 : 0.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
-        }, 1.0, 1);
+        };
 
         boolean[] lateralCarveMask = {true, true, true, true, true};
         int count = FloatingIslandSample.carveSolidInterior(mask, lateralCarveMask, 100, 0, 0, carve, 0.5);
@@ -289,7 +281,7 @@ public class FloatingIslandSampleBottomYTest {
             mask[i] = true;
             lateralCarveMask[i] = true;
         }
-        CNG carve = constantCng(1.0);
+        NoiseSampler carve = constantNoise(1.0);
 
         int count = FloatingIslandSample.carveSolidInterior(mask, lateralCarveMask, 100, 0, 0, carve, 0.5);
 
@@ -328,23 +320,23 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void directCarveEnabled_respectsCarvingReferenceOverride() {
-        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "carving", "carving/mushroom"));
-        CNG carve = new CNG(new RNG(9));
+        ResolvedFloatingChild entry = new ResolvedFloatingChild(TestSettings.with(new FloatingChildBiome(), "carving", "carving/mushroom"), null);
+        NoiseSampler carve = constantNoise(0.0);
 
         assertFalse(FloatingIslandSample.directCarveEnabled(entry, null, carve, 0.5));
     }
 
     @Test
     public void hasFootprintNeighborSupport_rejectsSingleIsolatedColumn() {
-        CNG footprint = new CNG(new RNG(2)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 0 && z == 0 ? 1.0 : 0.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -353,37 +345,32 @@ public class FloatingIslandSampleBottomYTest {
 
     @Test
     public void hasFootprintNeighborSupport_acceptsCardinalNeighbor() {
-        CNG footprint = new CNG(new RNG(3)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return (x == 0 && z == 0) || (x == 1 && z == 0) ? 1.0 : 0.0;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
         assertEquals(true, FloatingIslandSample.hasFootprintNeighborSupport(footprint, 0, 0, 0.0));
     }
 
-    private CNG constantCng(double value) {
-        return new CNG(new RNG(12), new NoiseGenerator() {
+    private NoiseSampler constantNoise(double value) {
+        return new NoiseSampler() {
             @Override
-            public double noise(double x) {
+            public double sample(double x, double z) {
                 return value;
             }
 
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double y, double z) {
                 return value;
             }
-
-            @Override
-            public double noise(double x, double y, double z) {
-                return value;
-            }
-        }, 1.0, 1);
+        };
     }
 }

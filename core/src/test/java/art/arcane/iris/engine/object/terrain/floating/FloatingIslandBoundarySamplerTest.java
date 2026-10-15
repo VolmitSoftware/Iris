@@ -18,22 +18,13 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.core.modules.ModuleSettings;
-import art.arcane.iris.core.modules.BuiltInPack;
-import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.floating.TopShapeMode;
-import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
-import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
-import art.arcane.iris.engine.object.world.IrisWorld;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
 import com.volmit.host.ModuleLogs;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutorService;
@@ -49,15 +40,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class FloatingIslandBoundarySamplerTest {
     @Test
     public void edgeFade_remainsFullInsideOneParentBiome() {
-        IrisBiome parent = new IrisBiome();
+        ResourceId parent = ResourceId.parse("ns:parent");
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
 
         assertEquals(1.0D, sampler.edgeFade(parent, 0, 0), 0.0D);
@@ -65,10 +54,8 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void edgeFade_roundsTowardParentBiomeBoundary() {
-        IrisBiome left = new IrisBiome();
-        left.setLoadKey("left");
-        IrisBiome right = new IrisBiome();
-        right.setLoadKey("right");
+        ResourceId left = ResourceId.parse("ns:left");
+        ResourceId right = ResourceId.parse("ns:right");
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> x < 0 ? left : right);
 
         assertEquals(FloatingIslandBoundarySampler.edgeFadeForDistance(1), sampler.edgeFade(right, 0, 0), 0.0D);
@@ -78,10 +65,8 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void edgeFade_acceptsReloadedBiomeInstanceWithSameKey() {
-        IrisBiome expected = new IrisBiome();
-        expected.setLoadKey("magnetics/mycelium");
-        IrisBiome reloaded = new IrisBiome();
-        reloaded.setLoadKey("magnetics/mycelium");
+        ResourceId expected = ResourceId.parse("ns:magnetics/mycelium");
+        ResourceId reloaded = ResourceId.parse("ns:magnetics/mycelium");
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> reloaded);
 
         assertEquals(1.0D, sampler.edgeFade(expected, 0, 0), 0.0D);
@@ -89,10 +74,8 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void edgeFade_detectsOffAxisBoundaryWithinRadius() {
-        IrisBiome parent = new IrisBiome();
-        parent.setLoadKey("parent");
-        IrisBiome neighbor = new IrisBiome();
-        neighbor.setLoadKey("neighbor");
+        ResourceId parent = ResourceId.parse("ns:parent");
+        ResourceId neighbor = ResourceId.parse("ns:neighbor");
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> x == 2 && z == 1 ? neighbor : parent);
 
         assertEquals(FloatingIslandBoundarySampler.edgeFadeForDistance(2), sampler.edgeFade(parent, 0, 0), 0.0D);
@@ -100,10 +83,8 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void edgeFade_isSymmetricAcrossChunkBoundary() {
-        IrisBiome left = new IrisBiome();
-        left.setLoadKey("left");
-        IrisBiome right = new IrisBiome();
-        right.setLoadKey("right");
+        ResourceId left = ResourceId.parse("ns:left");
+        ResourceId right = ResourceId.parse("ns:right");
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> x < 16 ? left : right);
 
         assertEquals(sampler.edgeFade(left, 15, 0), sampler.edgeFade(right, 16, 0), 0.0D);
@@ -113,7 +94,7 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void parent_cachesResolvedBiomeColumns() {
-        IrisBiome parent = new IrisBiome();
+        ResourceId parent = ResourceId.parse("ns:parent");
         AtomicInteger calls = new AtomicInteger();
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> {
             calls.incrementAndGet();
@@ -130,7 +111,7 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void edgeFade_boundsBiomeStreamReadsToChunkHalo() {
-        IrisBiome parent = new IrisBiome();
+        ResourceId parent = ResourceId.parse("ns:parent");
         AtomicInteger calls = new AtomicInteger();
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> {
             calls.incrementAndGet();
@@ -150,15 +131,15 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprintFade_usesDistanceForSaturatedHalfPlane() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(12)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x >= 0 ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
         int[] depths = new int[FloatingIslandBoundarySampler.EDGE_TAPER_WIDTH];
@@ -184,15 +165,15 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_deepSingleCellPinholeRemainsSolid() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(13)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x == 0.0D && z == 0.0D ? 0.0D : 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -205,27 +186,27 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_repairsOneByTwoAndDiagonalStaticGaps() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG adjacent = new CNG(new RNG(27)) {
+        NoiseSampler adjacent = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return z == 0.0D && (x == 0.0D || x == 1.0D) ? 0.0D : 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
-        CNG diagonal = new CNG(new RNG(28)) {
+        NoiseSampler diagonal = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 boolean gap = x == 0.0D && z == 0.0D || x == 1.0D && z == 1.0D;
                 return gap ? 0.0D : 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -238,15 +219,15 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_broadOpeningRemainsOpen() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(14)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return Math.abs(x) <= 1.0D && Math.abs(z) <= 1.0D ? 0.0D : 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -257,16 +238,16 @@ public class FloatingIslandBoundarySamplerTest {
     public void footprint_buildsOneBoundedChunkHalo() {
         AtomicInteger calls = new AtomicInteger();
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(15)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 calls.incrementAndGet();
                 return 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -282,15 +263,15 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void footprintFade_isStableAcrossChunkAlignedFields() {
-        CNG footprint = new CNG(new RNG(16)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return z >= 0.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
         FloatingIslandBoundarySampler forwardSampler = new FloatingIslandBoundarySampler((x, z) -> null);
@@ -316,15 +297,15 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_rejectsTwoColumnStaticFragment() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(17)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return z == 0.0D && (x == 0.0D || x == 1.0D) ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -335,26 +316,26 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_rejectsComponentWithoutThreeCellDeepCore() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG threeByThree = new CNG(new RNG(21)) {
+        NoiseSampler threeByThree = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return Math.abs(x) <= 1.0D && Math.abs(z) <= 1.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
-        CNG fourWideTendril = new CNG(new RNG(22)) {
+        NoiseSampler fourWideTendril = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x >= 0.0D && x <= 3.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -366,15 +347,15 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_acceptsComponentWithThreeCellDeepCore() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(23)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return Math.abs(x) <= 2.0D && Math.abs(z) <= 2.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -387,17 +368,17 @@ public class FloatingIslandBoundarySamplerTest {
     @Test
     public void footprint_trimsAttachedThinArmWithoutChunkSeam() {
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
-        CNG footprint = new CNG(new RNG(25)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 boolean arm = Math.abs(z) <= 1.0D;
                 boolean core = x >= -10.0D && x <= -6.0D && Math.abs(z) <= 2.0D;
                 return arm || core ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
 
@@ -408,20 +389,20 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void ownershipFade_tapersAcrossPickerBoundary() {
-        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome());
-        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome(), null);
+        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome(), null);
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(left);
         entries.add(right);
-        CNG picker = new CNG(new RNG(18)) {
+        NoiseSampler picker = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x < 0.0D ? 0.0D : 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
@@ -437,20 +418,20 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void ownershipFade_rejectsThinPickerRegion() {
-        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome());
-        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome(), null);
+        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome(), null);
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(left);
         entries.add(right);
-        CNG picker = new CNG(new RNG(24)) {
+        NoiseSampler picker = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return Math.abs(x) <= 1.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> null);
@@ -463,24 +444,22 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void labelFieldsTrimAttachedThinArmWithoutChunkSeam() {
-        IrisBiome leftParent = new IrisBiome();
-        leftParent.setLoadKey("left");
-        IrisBiome rightParent = new IrisBiome();
-        rightParent.setLoadKey("right");
-        ResolvedFloatingChild leftChild = new ResolvedFloatingChild(new FloatingChildBiome());
-        ResolvedFloatingChild rightChild = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResourceId leftParent = ResourceId.parse("ns:left");
+        ResourceId rightParent = ResourceId.parse("ns:right");
+        ResolvedFloatingChild leftChild = new ResolvedFloatingChild(new FloatingChildBiome(), null);
+        ResolvedFloatingChild rightChild = new ResolvedFloatingChild(new FloatingChildBiome(), null);
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(leftChild);
         entries.add(rightChild);
-        CNG picker = new CNG(new RNG(29)) {
+        NoiseSampler picker = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return isAttachedArm(x, z) ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler(
@@ -497,21 +476,20 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void sampler_fieldsPublishSafelyAcrossConcurrentReaders() throws Exception {
-        IrisBiome parent = new IrisBiome();
-        parent.setLoadKey("parent");
-        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome());
-        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome());
+        ResourceId parent = ResourceId.parse("ns:parent");
+        ResolvedFloatingChild left = new ResolvedFloatingChild(new FloatingChildBiome(), null);
+        ResolvedFloatingChild right = new ResolvedFloatingChild(new FloatingChildBiome(), null);
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(left);
         entries.add(right);
-        CNG constant = new CNG(new RNG(26)) {
+        NoiseSampler constant = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
+            public double sample(double x, double y, double z) {
                 return 1.0D;
             }
         };
@@ -538,55 +516,50 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void sample_appliesSpatialProfileToFinalWorldCoordinates() {
-        CNG footprint = new CNG(new RNG(19)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x >= 0.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
-        CNG constant = new CNG(new RNG(20)) {
+        NoiseSampler constant = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
+            public double sample(double x, double y, double z) {
                 return 1.0D;
             }
         };
         ResolvedFloatingChild entry = mock(ResolvedFloatingChild.class);
-        IrisBiome parent = mock(IrisBiome.class);
-        IrisData data = mock(IrisData.class);
-        Engine engine = mock(Engine.class);
-        IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(320).build();
+        ResourceId parent = ResourceId.parse("ns:parent");
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(entry);
-        ModuleSettings separate = BuiltInPack.settings(new MergeFloatingChildrenSettings(false));
-        when(parent.getModuleSettings()).thenReturn(separate);
-        when(entry.getFootprintCng(anyLong(), same(data))).thenReturn(footprint);
-        when(entry.getAltitudeCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getRealBiome(parent, data)).thenReturn(parent);
-        when(entry.getTopShapeCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getBottomCng(anyLong(), same(data))).thenReturn(constant);
-        when(entry.getWallWarpCng(anyLong(), same(data))).thenReturn(null);
-        when(entry.getCarvingProfileSampler(engine, data)).thenReturn(null);
+        FloatingWorld world = floatingWorld(parent, false, 31L);
+        when(entry.footprintNoise()).thenReturn(footprint);
+        when(entry.altitudeNoise()).thenReturn(constant);
+        when(entry.realBiome(parent)).thenReturn(parent);
+        when(entry.topShapeNoise()).thenReturn(constant);
+        when(entry.bottomNoise()).thenReturn(constant);
+        when(entry.wallWarpNoise()).thenReturn(null);
+        when(entry.carvingProfileSampler()).thenReturn(null);
         when(entry.hasCarvingReference()).thenReturn(false);
-        when(entry.getCarveCng(anyLong(), same(data))).thenReturn(constant);
+        when(entry.carveNoise()).thenReturn(constant);
         when(entry.settings()).thenReturn(TestSettings.with(new FloatingChildBiome(), "footprintThreshold", 0.5D, "minHeightAboveSurface", 160, "maxHeightAboveSurface", 160, "topShapeMode", TopShapeMode.NOISE, "topShapeAmp", 1.0D, "maxTopHeight", 18, "bottomExponent", 1.0D, "bottomDepthMin", 20, "bottomDepthMax", 20, "maxThickness", 64, "wallWarpAmplitude", 0.0D, "carveThreshold", 0.5D));
-        when(engine.getWorld()).thenReturn(world);
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
         int[] expectedBottom = {159, 158, 156, 153, 150, 147, 144, 142, 141, 140};
         int[] expectedTop = {161, 162, 164, 166, 169, 172, 174, 176, 177, 178};
 
-        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 31L, data, engine, sampler, ModuleLogs.discarding()));
+        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, world, sampler, ModuleLogs.discarding()));
         for (int i = 0; i < expectedBottom.length; i++) {
-            FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, i + 1, 0, 320, 31L, data, engine, sampler, ModuleLogs.discarding());
+            FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, i + 1, 0, 320, world, sampler, ModuleLogs.discarding());
             assertNotNull("distance " + (i + 2) + " rejected with code " + FloatingIslandSample.getLastReject(), sample);
             assertEquals(expectedBottom[i], sample.bottomY());
             assertEquals(expectedTop[i], sample.topY());
@@ -604,57 +577,52 @@ public class FloatingIslandBoundarySamplerTest {
 
     @Test
     public void sample_mergesNoiseTopEntriesAcrossSpatialRim() {
-        CNG footprint = new CNG(new RNG(33)) {
+        NoiseSampler footprint = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return x >= 0.0D ? 1.0D : 0.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
-                return noise(x, z);
+            public double sample(double x, double y, double z) {
+                return sample(x, z);
             }
         };
-        CNG constant = new CNG(new RNG(34)) {
+        NoiseSampler constant = new NoiseSampler() {
             @Override
-            public double noise(double x, double z) {
+            public double sample(double x, double z) {
                 return 1.0D;
             }
 
             @Override
-            public double noise(double x, double y, double z) {
+            public double sample(double x, double y, double z) {
                 return 1.0D;
             }
         };
         ResolvedFloatingChild lower = mock(ResolvedFloatingChild.class);
         ResolvedFloatingChild upper = mock(ResolvedFloatingChild.class);
-        IrisBiome parent = mock(IrisBiome.class);
-        IrisData data = mock(IrisData.class);
-        Engine engine = mock(Engine.class);
-        IrisWorld world = IrisWorld.builder().minHeight(0).maxHeight(320).build();
+        ResourceId parent = ResourceId.parse("ns:parent");
         KList<ResolvedFloatingChild> entries = new KList<>();
         entries.add(lower);
         entries.add(upper);
-        ModuleSettings merged = BuiltInPack.settings(new MergeFloatingChildrenSettings(true));
-        when(parent.getModuleSettings()).thenReturn(merged);
+        FloatingWorld world = floatingWorld(parent, true, 35L);
         for (ResolvedFloatingChild entry : entries) {
-            when(entry.getFootprintCng(anyLong(), same(data))).thenReturn(footprint);
-            when(entry.getAltitudeCng(anyLong(), same(data))).thenReturn(constant);
-            when(entry.getRealBiome(parent, data)).thenReturn(parent);
-            when(entry.getTopShapeCng(anyLong(), same(data))).thenReturn(constant);
-            when(entry.getBottomCng(anyLong(), same(data))).thenReturn(constant);
-            when(entry.getWallWarpCng(anyLong(), same(data))).thenReturn(null);
-            when(entry.getCarvingProfileSampler(engine, data)).thenReturn(null);
+            when(entry.footprintNoise()).thenReturn(footprint);
+            when(entry.altitudeNoise()).thenReturn(constant);
+            when(entry.realBiome(parent)).thenReturn(parent);
+            when(entry.topShapeNoise()).thenReturn(constant);
+            when(entry.bottomNoise()).thenReturn(constant);
+            when(entry.wallWarpNoise()).thenReturn(null);
+            when(entry.carvingProfileSampler()).thenReturn(null);
             when(entry.hasCarvingReference()).thenReturn(false);
-            when(entry.getCarveCng(anyLong(), same(data))).thenReturn(null);
+            when(entry.carveNoise()).thenReturn(null);
             when(entry.settings()).thenReturn(TestSettings.with(new FloatingChildBiome(), "footprintThreshold", 0.5D, "topShapeMode", TopShapeMode.NOISE, "topShapeAmp", 1.0D, "maxTopHeight", 18, "bottomExponent", 1.0D, "bottomDepthMin", 20, "bottomDepthMax", 20, "maxThickness", 64, "wallWarpAmplitude", 0.0D, "carveThreshold", 1.0D,
                     "minHeightAboveSurface", entry == lower ? 160 : 180, "maxHeightAboveSurface", entry == lower ? 160 : 180));
         }
-        when(engine.getWorld()).thenReturn(world);
         FloatingIslandBoundarySampler sampler = new FloatingIslandBoundarySampler((x, z) -> parent);
 
-        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, 35L, data, engine, sampler, ModuleLogs.discarding()));
-        FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, 1, 0, 320, 35L, data, engine, sampler, ModuleLogs.discarding());
+        assertNull(FloatingIslandSample.sample(parent, entries, 0, 0, 320, world, sampler, ModuleLogs.discarding()));
+        FloatingIslandSample sample = FloatingIslandSample.sample(parent, entries, 1, 0, 320, world, sampler, ModuleLogs.discarding());
 
         assertNotNull(sample);
         assertTrue(sample.hasMergedEntries());
@@ -663,6 +631,14 @@ public class FloatingIslandBoundarySamplerTest {
         assertEquals(23, sample.thickness);
         assertEquals(6, sample.solidCount);
         assertSame(upper, sample.entryAt(sample.topIdx));
+    }
+
+    private static FloatingWorld floatingWorld(ResourceId parent, boolean merges, long baseSeed) {
+        FloatingWorld world = mock(FloatingWorld.class);
+        when(world.merges(parent)).thenReturn(merges);
+        when(world.baseSeed()).thenReturn(baseSeed);
+        when(world.minHeight()).thenReturn(0);
+        return world;
     }
 
     private static boolean isAttachedArm(double x, double z) {

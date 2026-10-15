@@ -59,7 +59,7 @@ public class BuiltInModulesJarTest {
         Path pack = BuiltInPack.newPackFolder(folder);
         List<String> listed = BuiltInModulesJar.writeInto(pack);
 
-        try (LoadedPack loaded = loadWithStandIns(pack)) {
+        try (LoadedPack loaded = loadJar(pack)) {
             List<DiscoveredModule> fromJar = loaded.packModules();
             assertEquals(listed, fromJar.stream().map(module -> module.module().getClass().getName()).toList());
             fromJar.forEach(module -> assertNotSame(MatterModule.class.getClassLoader(), module.module().getClass().getClassLoader()));
@@ -71,7 +71,7 @@ public class BuiltInModulesJarTest {
         Path pack = BuiltInPack.newPackFolder(folder);
         BuiltInModulesJar.writeInto(pack);
 
-        try (LoadedPack loaded = loadWithStandIns(pack)) {
+        try (LoadedPack loaded = loadJar(pack)) {
             List<String> provided = loaded.packModules().stream().map(module -> module.info().id().toString()).toList();
             assertEquals(provided, IrisModuleHost.JAR_MODULE_IDS);
         }
@@ -85,7 +85,7 @@ public class BuiltInModulesJarTest {
         ApiChunk fromJar = scene();
 
         compiledIn.generate(BuiltInPack.jarModules().toArray(IrisModule[]::new));
-        try (LoadedPack loaded = loadWithStandIns(pack)) {
+        try (LoadedPack loaded = loadJar(pack)) {
             fromJar.generate(loaded.chunk());
         }
 
@@ -96,9 +96,9 @@ public class BuiltInModulesJarTest {
                 compiledIn.get(position[0], position[1], position[2]), fromJar.get(position[0], position[1], position[2])));
     }
 
-    /** The jar next to stand-ins for the compiled-in stages it orders after, exposing what Iris exposes. */
-    private LoadedPack loadWithStandIns(Path pack) throws IOException {
-        return LoadedPack.load(pack, ModuleHost.of(ApiChunk.standIns())
+    /** The jar on its own, exposing what Iris exposes. */
+    private LoadedPack loadJar(Path pack) throws IOException {
+        return LoadedPack.load(pack, ModuleHost.of(List.of())
                 .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
                 .copyingJarsTo(folder.newFolder().toPath()));
     }

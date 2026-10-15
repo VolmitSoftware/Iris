@@ -29,7 +29,6 @@ import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.loot.BlockDropping;
 import art.arcane.iris.engine.loot.LootResources;
-import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -143,7 +142,7 @@ public class BuiltInModulesJarServicesTest {
     private LoadedPack load() throws IOException {
         Path pack = BuiltInPack.newPackFolder(folder);
         BuiltInModulesJar.writeInto(pack);
-        return LoadedPack.load(pack, ModuleHost.of(ApiChunk.standIns())
+        return LoadedPack.load(pack, ModuleHost.of(List.of())
                 .exposing(IrisModuleHost.EXPOSED_PACKAGES.toArray(String[]::new))
                 .copyingJarsTo(folder.newFolder().toPath()));
     }

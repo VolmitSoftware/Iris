@@ -20,6 +20,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.platform.generation.BukkitChunkGenerator;
 import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.generation.locator.BiomeSearchFilter;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.block.Biome;
@@ -116,33 +117,43 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         LinkedHashSet<H> biomes = new LinkedHashSet<>();
         boolean fallbackPossible = false;
         for (OwnedBiome ownedBiome : getOwnedBiomes(engine)) {
-            IrisBiome irisBiome = ownedBiome.biome();
-            if (irisBiome.isCustom()) {
-                for (IrisBiomeCustom customBiome : irisBiome.getCustomDerivitives()) {
-                    H customHolder = resolveCustomBiomeHolder(
-                            customRegistry, engine, ownedBiome.dimension(), customBiome.getId());
-                    if (customHolder == null) {
-                        throw new IllegalStateException("Iris custom visible biome '"
-                                + customBiomeKey(ownedBiome.dimension(), customBiome.getId())
-                                + "' is not registered");
-                    }
-                    biomes.add(customHolder);
-                }
-                continue;
-            }
-            fallbackPossible |= !addVisibleBiomeHolder(
-                    biomes, registry, irisBiome.getDerivativeKey());
-            for (String scatter : irisBiome.getBiomeScatter()) {
-                fallbackPossible |= !addVisibleBiomeHolder(biomes, registry, scatter);
-            }
-            for (String scatter : irisBiome.getBiomeSkyScatter()) {
-                fallbackPossible |= !addVisibleBiomeHolder(biomes, registry, scatter);
-            }
+            fallbackPossible |= addVisibleBiomeHolders(biomes, customRegistry, registry, engine, ownedBiome);
         }
         if (fallbackPossible && fallback != null) {
             biomes.add(fallback);
         }
         return new ArrayList<>(biomes);
+    }
+
+    private static <H, V> boolean addVisibleBiomeHolders(
+            Set<H> biomes,
+            NativeBiomeRegistry<H, V> customRegistry,
+            NativeBiomeRegistry<H, V> registry,
+            Engine engine,
+            OwnedBiome ownedBiome
+    ) {
+        IrisBiome irisBiome = ownedBiome.biome();
+        if (irisBiome.isCustom()) {
+            for (IrisBiomeCustom customBiome : irisBiome.getCustomDerivitives()) {
+                H customHolder = resolveCustomBiomeHolder(
+                        customRegistry, engine, ownedBiome.dimension(), customBiome.getId());
+                if (customHolder == null) {
+                    throw new IllegalStateException("Iris custom visible biome '"
+                            + customBiomeKey(ownedBiome.dimension(), customBiome.getId())
+                            + "' is not registered");
+                }
+                biomes.add(customHolder);
+            }
+            return false;
+        }
+        boolean fallbackPossible = !addVisibleBiomeHolder(biomes, registry, irisBiome.getDerivativeKey());
+        for (String scatter : irisBiome.getBiomeScatter()) {
+            fallbackPossible |= !addVisibleBiomeHolder(biomes, registry, scatter);
+        }
+        for (String scatter : irisBiome.getBiomeSkyScatter()) {
+            fallbackPossible |= !addVisibleBiomeHolder(biomes, registry, scatter);
+        }
+        return fallbackPossible;
     }
 
     private static <H, V> boolean addVisibleBiomeHolder(
@@ -382,10 +393,6 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         }
         try (lease; IrisContext.Scope ignored = IrisContext.open(engine, lease.sessionId(), null)) {
             prepareVisibleBiomeBatch();
-            DimensionStackContext stackContext = engine.getDimensionStackContext();
-            if (stackContext == null) {
-                return query.fallback().get();
-            }
             Set<H> candidates = new HashSet<>();
             for (H biome : getVisibleBiomes(
                     biomeCustomRegistry, biomeRegistry, engine, fallbackBiome)) {
@@ -396,7 +403,16 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             if (candidates.isEmpty()) {
                 return null;
             }
-            return query.search().search(candidates, (blockX, blockZ) -> visibleColumn(stackContext, blockX, blockZ));
+            if (platformGenerator != null && platformGenerator.usesFlatStudioTerrain()) {
+                H flat = getFallbackBiome();
+                return query.search().search(candidates, (blockX, blockZ) -> blockY -> flat);
+            }
+            DimensionStackContext stackContext = engine.getDimensionStackContext();
+            if (stackContext != null) {
+                return query.search().search(candidates, (blockX, blockZ) -> visibleColumn(stackContext, blockX, blockZ));
+            }
+            BiomeSearchFilter filter = BiomeSearchFilter.of(engine, searchBiomeKeys(candidates));
+            return query.search().search(candidates, (blockX, blockZ) -> visibleColumn(filter, blockX, blockZ));
         }
     }
 
@@ -405,6 +421,38 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         int quartZ = blockZ >> 2;
         DimensionStackLayout stackLayout = context.sample(quartX << 2, quartZ << 2);
         return blockY -> resolveVisibleBiomeHolder(quartX, blockY >> 2, quartZ, null, stackLayout);
+    }
+
+    private Column<H> visibleColumn(BiomeSearchFilter filter, int blockX, int blockZ) {
+        int quartX = blockX >> 2;
+        int quartZ = blockZ >> 2;
+        int minHeight = engine.getWorld().minHeight();
+        BiomeSearchFilter.Column column = filter.column(quartX << 2, quartZ << 2);
+        return blockY -> column.admits(((blockY >> 2) << 2) - minHeight)
+                ? locateVisibleBiomeHolder(quartX, blockY >> 2, quartZ)
+                : null;
+    }
+
+    private H locateVisibleBiomeHolder(int quartX, int quartY, int quartZ) {
+        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored = openHistoryCoordinateScope(
+                quartX << 2, quartZ << 2, "bukkit_locate_visible_biome")) {
+            return resolveVisibleBiomeHolder(quartX, quartY, quartZ, null);
+        }
+    }
+
+    private Set<String> searchBiomeKeys(Set<H> candidates) {
+        H fallback = getFallbackBiome();
+        Set<String> keys = new HashSet<>();
+        for (OwnedBiome ownedBiome : getHostOwnedBiomes(engine)) {
+            Set<H> holders = new HashSet<>();
+            if (addVisibleBiomeHolders(holders, biomeCustomRegistry, biomeRegistry, engine, ownedBiome)) {
+                holders.add(fallback);
+            }
+            if (!Collections.disjoint(holders, candidates)) {
+                keys.add(ownedBiome.biome().getLoadKey());
+            }
+        }
+        return keys;
     }
 
     public static int horizontalBiomeSearchQuartStep(int blockY, int searchRadius) {

@@ -26,8 +26,8 @@ import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.object.marker.IrisObjectMarker;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
@@ -38,6 +38,8 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockSpec;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,12 +138,17 @@ public class IrisPlacementTest {
 
     @Test
     public void aMarkerRuleHasTheStatesOfItsTargetsAsApiStates() {
-        IrisObjectMarker marker = mock(IrisObjectMarker.class);
-        PlatformBlockState planks = UsableBlockPlatform.block("minecraft:oak_planks");
-        when(marker.getMarker()).thenReturn("spawn/zombie");
-        when(marker.getMaximumMarkers()).thenReturn(5);
-        when(marker.isExact()).thenReturn(true);
-        when(marker.getMark(any())).thenReturn(new KList<>(List.of(planks)));
+        BlockSpec planks = BlockSpec.of("minecraft:oak_planks");
+        PlacementMarker marker = mock(PlacementMarker.class);
+        when(marker.marker()).thenReturn("spawn/zombie");
+        when(marker.maximumMarkers()).thenReturn(5);
+        when(marker.exact()).thenReturn(true);
+        when(marker.mark()).thenReturn(List.of(planks));
+        IrisPackResources resources = mock(IrisPackResources.class);
+        BlockRegistry blocks = mock(BlockRegistry.class);
+        when(data.getPackResources()).thenReturn(resources);
+        when(resources.blocks()).thenReturn(blocks);
+        when(blocks.resolve(planks)).thenReturn(BlockState.parse("minecraft:oak_planks"));
         config.setMarkers(new KList<>(List.of(marker)));
         placement = placementOf(config);
 

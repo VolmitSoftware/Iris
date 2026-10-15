@@ -201,7 +201,7 @@ public final class IrisPlacement implements ObjectPlacement {
 
     @Override
     public Optional<SpawnMarker> marker(String key) {
-        return Optional.ofNullable(SpawnResources.marker(object.getLoader(), key));
+        return Optional.ofNullable(SpawnResources.marker(object.getLoader().getPackResources(), key));
     }
 
     /** Reports a buffered write as one of the object's own blocks, which Iris's placement listener hears after the commit. */

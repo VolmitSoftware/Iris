@@ -22,6 +22,7 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.placement.MarkerRule;
+import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.builtin.placement.PlacementSettings;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
@@ -30,7 +31,6 @@ import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.marker.IrisObjectMarker;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
@@ -171,7 +171,7 @@ final class IrisPlacementSettings implements PlacementSettings {
 
     @Override
     public List<MarkerRule> markers() {
-        return config.getMarkers().stream().<MarkerRule>map(marker -> new Marker(marker, data, states)).toList();
+        return config.getMarkers().stream().<MarkerRule>map(marker -> new Marker(marker, data)).toList();
     }
 
     @Override
@@ -200,34 +200,32 @@ final class IrisPlacementSettings implements PlacementSettings {
     }
 
     private static final class Marker implements MarkerRule {
-        private final IrisObjectMarker marker;
+        private final PlacementMarker marker;
         private final IrisData data;
-        private final PlatformBlockStates states;
 
-        private Marker(IrisObjectMarker marker, IrisData data, PlatformBlockStates states) {
+        private Marker(PlacementMarker marker, IrisData data) {
             this.marker = marker;
             this.data = data;
-            this.states = states;
         }
 
         @Override
         public String marker() {
-            return marker.getMarker();
+            return marker.marker();
         }
 
         @Override
         public List<BlockState> targets() {
-            return marker.getMark(data).stream().map(states::toApi).toList();
+            return marker.mark().stream().map(spec -> data.getPackResources().blocks().resolve(spec)).toList();
         }
 
         @Override
         public boolean exact() {
-            return marker.isExact();
+            return marker.exact();
         }
 
         @Override
         public int maximum() {
-            return marker.getMaximumMarkers();
+            return marker.maximumMarkers();
         }
     }
 }

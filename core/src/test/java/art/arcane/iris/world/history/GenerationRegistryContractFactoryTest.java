@@ -167,7 +167,7 @@ public class GenerationRegistryContractFactoryTest {
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.blockTypeKeys()).thenReturn(new KList<>());
         when(registries.entityKeys()).thenReturn(new KList<>());
-        FakeGenerationRegistry generationRegistry = new FakeGenerationRegistry("test-runtime");
+        FakeGenerationRegistry generationRegistry = new BorrowingGenerationRegistry("test-runtime");
 
         GenerationRegistryContract contract = GenerationRegistryContractFactory.create(
                 data,
@@ -185,6 +185,38 @@ public class GenerationRegistryContractFactoryTest {
         assertFalse(contract.definitions().containsKey(key(
                 GenerationRegistryContractFactory.DIMENSION_TYPE_REGISTRY, "test:skylands_type")));
         assertEquals("aether:the_aether", dimension.dimensionTypeResourceKey(generationRegistry, "borrowed-pack"));
+    }
+
+    @Test
+    public void platformWithoutBorrowedTypesKeepsTheGeneratedDimensionType() throws Exception {
+        File pack = temporary.newFolder("borrowed-pack-generated");
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(pack);
+        when(data.getContentGate()).thenReturn(mock(ContentGate.class));
+        IrisDimension dimension = spy(new IrisDimension().setBorrowedDimensionType("aether:the_aether"));
+        dimension.setLoadKey("skylands");
+        stubDimensions(data, dimension);
+        doReturn(new KList<>()).when(dimension).getReachableBiomes(any());
+        doReturn(new KList<>()).when(dimension).getAllRegions(any());
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.blockTypeKeys()).thenReturn(new KList<>());
+        when(registries.entityKeys()).thenReturn(new KList<>());
+        FakeGenerationRegistry generationRegistry = new FakeGenerationRegistry("test-runtime");
+
+        GenerationRegistryContract contract = GenerationRegistryContractFactory.create(
+                data,
+                dimension,
+                GenerationPackFingerprint.compute(pack.toPath(), GenerationPackFingerprint.CURRENT_VERSION),
+                DataVersion.getLatest().get(),
+                registries,
+                generationRegistry
+        );
+
+        assertFalse(contract.definitions().containsKey(key(
+                GenerationRegistryContractFactory.DIMENSION_TYPE_REGISTRY, "aether:the_aether")));
+        assertTrue(contract.definitions().containsKey(key(
+                GenerationRegistryContractFactory.DIMENSION_TYPE_REGISTRY, "test:skylands_type")));
+        assertEquals("test:skylands_type", dimension.dimensionTypeResourceKey(generationRegistry, "borrowed-pack-generated"));
     }
 
     @Test
@@ -953,6 +985,17 @@ public class GenerationRegistryContractFactoryTest {
 
         @Override
         public void fixDimension(Dimension dimension, JSONObject json) {
+        }
+    }
+
+    private static final class BorrowingGenerationRegistry extends FakeGenerationRegistry {
+        private BorrowingGenerationRegistry(String runtimeIdentity) {
+            super(runtimeIdentity);
+        }
+
+        @Override
+        public boolean supportsBorrowedDimensionTypes() {
+            return true;
         }
     }
 

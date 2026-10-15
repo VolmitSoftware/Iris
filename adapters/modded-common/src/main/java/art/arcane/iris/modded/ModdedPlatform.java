@@ -81,6 +81,11 @@ public final class ModdedPlatform implements IrisPlatform {
     }
 
     @Override
+    public boolean supportsBorrowedDimensionTypes() {
+        return true;
+    }
+
+    @Override
     public String minecraftVersion() {
         return loader.minecraftVersion();
     }

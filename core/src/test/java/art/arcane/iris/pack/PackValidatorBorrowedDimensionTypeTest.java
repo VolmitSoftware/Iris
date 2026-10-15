@@ -46,9 +46,23 @@ public class PackValidatorBorrowedDimensionTypeTest {
                 validate("{\"borrowedDimensionType\":42}"));
     }
 
+    @Test
+    public void rejectsBorrowedTypesOnPlatformsThatGenerateTheirOwnType() {
+        assertTrue(validate("{\"borrowedDimensionType\":\"\"}", false).isEmpty());
+        List<String> errors = validate("{\"borrowedDimensionType\":\"aether:the_aether\"}", false);
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.getFirst(), errors.getFirst().contains("borrowedDimensionType"));
+        assertTrue(errors.getFirst(), errors.getFirst().contains("Fabric, Forge, and NeoForge"));
+    }
+
     private static List<String> validate(String json) {
+        return validate(json, true);
+    }
+
+    private static List<String> validate(String json, boolean borrowingSupported) {
         List<String> errors = new ArrayList<>();
-        PackDimensionValidator.validateBorrowedDimensionType("main", new JSONObject(json), errors);
+        PackDimensionValidator.validateBorrowedDimensionType("main", new JSONObject(json), borrowingSupported, errors);
         return errors;
     }
 }

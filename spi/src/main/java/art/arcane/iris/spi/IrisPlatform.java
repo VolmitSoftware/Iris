@@ -76,6 +76,10 @@ public interface IrisPlatform {
         return false;
     }
 
+    default boolean supportsBorrowedDimensionTypes() {
+        return false;
+    }
+
     /**
      * Root folder Iris owns for packs, settings and generated data. Created if missing. Never null.
      */

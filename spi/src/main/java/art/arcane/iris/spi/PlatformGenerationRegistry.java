@@ -25,6 +25,10 @@ public interface PlatformGenerationRegistry extends NativeGenerationRegistry {
 
     String dimensionTypeResourceKey(String packName, String dimensionKey, String dimensionTypeKey);
 
+    default boolean supportsBorrowedDimensionTypes() {
+        return false;
+    }
+
     static String contentAddressedCustomBiomeResourceKey(String identitySha256) {
         String requiredFingerprint = Objects.requireNonNull(identitySha256, "identitySha256");
         if (!SHA_256_PATTERN.matcher(requiredFingerprint).matches()) {

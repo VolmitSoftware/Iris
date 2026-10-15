@@ -47,6 +47,11 @@ final class ModdedGenerationRegistry implements PlatformGenerationRegistry {
     }
 
     @Override
+    public boolean supportsBorrowedDimensionTypes() {
+        return true;
+    }
+
+    @Override
     public Definition definition(String registryKey, String resourceKey) {
         return nativeRegistry.definition(registryKey, resourceKey);
     }

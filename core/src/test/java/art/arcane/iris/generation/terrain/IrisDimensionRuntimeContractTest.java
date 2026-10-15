@@ -139,16 +139,15 @@ public class IrisDimensionRuntimeContractTest {
     }
 
     @Test
-    public void expectedContractUsesTheBorrowedTypeKey() {
+    public void expectedContractIsTheGeneratedIrisTypeEvenWhenThePackBorrowsOne() {
         IrisDimension dimension = borrowedDimension("aether:the_aether", 0, 256);
 
-        assertEquals("aether:the_aether", IrisDimensionRuntimeContract.expected(dimension, "iris").typeKey());
+        assertEquals("iris:skylands", IrisDimensionRuntimeContract.expected(dimension, "iris").typeKey());
     }
 
     @Test
     public void borrowedTypeAcceptsAPackRangeInsideTheBorrowedRange() {
-        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
-                borrowedDimension("aether:the_aether", 0, 192), "iris");
+        IrisDimensionRuntimeContract expected = borrowedContract("aether:the_aether", 0, 192);
 
         expected.requireBorrowedFit("Modded level 'aether:the_aether'",
                 new IrisDimensionRuntimeContract("aether:the_aether", 0, 256, 256));
@@ -158,8 +157,7 @@ public class IrisDimensionRuntimeContractTest {
 
     @Test
     public void borrowedTypeRejectsAPackTopAboveTheBorrowedTop() {
-        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
-                borrowedDimension("aether:the_aether", 0, 320), "iris");
+        IrisDimensionRuntimeContract expected = borrowedContract("aether:the_aether", 0, 320);
 
         assertBorrowedFitRejected(expected, new IrisDimensionRuntimeContract("aether:the_aether", 0, 256, 256),
                 "0..320", "0..256");
@@ -167,8 +165,7 @@ public class IrisDimensionRuntimeContractTest {
 
     @Test
     public void borrowedTypeRejectsAPackMinimumThatDiffersFromTheBorrowedMinimum() {
-        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
-                borrowedDimension("aether:the_aether", 16, 256), "iris");
+        IrisDimensionRuntimeContract expected = borrowedContract("aether:the_aether", 16, 256);
 
         assertBorrowedFitRejected(expected, new IrisDimensionRuntimeContract("aether:the_aether", 0, 256, 256),
                 "16..256", "0..256");
@@ -176,8 +173,7 @@ public class IrisDimensionRuntimeContractTest {
 
     @Test
     public void borrowedTypeRejectsALevelUsingAnotherType() {
-        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
-                borrowedDimension("aether:the_aether", 0, 256), "iris");
+        IrisDimensionRuntimeContract expected = borrowedContract("aether:the_aether", 0, 256);
 
         assertBorrowedFitRejected(expected, new IrisDimensionRuntimeContract("minecraft:overworld", 0, 256, 256),
                 "aether:the_aether", "minecraft:overworld");
@@ -190,6 +186,10 @@ public class IrisDimensionRuntimeContractTest {
         replacement.setBorrowedDimensionType("aether:the_aether");
 
         assertHotloadRejected(active, replacement, "aether:the_aether");
+    }
+
+    private static IrisDimensionRuntimeContract borrowedContract(String typeKey, int minHeight, int maxHeight) {
+        return new IrisDimensionRuntimeContract(typeKey, minHeight, maxHeight - minHeight, maxHeight - minHeight);
     }
 
     private IrisDimension borrowedDimension(String typeKey, int minHeight, int maxHeight) {

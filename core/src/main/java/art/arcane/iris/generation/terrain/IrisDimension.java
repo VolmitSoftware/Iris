@@ -1112,8 +1112,12 @@ public class IrisDimension extends IrisRegistrant {
         return borrowedDimensionType != null && !borrowedDimensionType.isBlank();
     }
 
+    public boolean borrowsDimensionType(PlatformGenerationRegistry registry) {
+        return hasBorrowedDimensionType() && registry.supportsBorrowedDimensionTypes();
+    }
+
     public String dimensionTypeResourceKey(PlatformGenerationRegistry registry, String packName) {
-        if (hasBorrowedDimensionType()) {
+        if (borrowsDimensionType(registry)) {
             return borrowedDimensionType.trim();
         }
         return registry.dimensionTypeResourceKey(packName, getLoadKey(), getDimensionTypeKey());

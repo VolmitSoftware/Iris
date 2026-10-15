@@ -19,6 +19,7 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.terrain.IrisDimensionType;
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.structure.object.IrisObjectScale;
 import art.arcane.iris.world.IrisWorldBoundary;
 import art.arcane.volmlib.util.json.JSONArray;
@@ -60,7 +61,7 @@ final class PackDimensionValidator {
 
             validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
-            validateBorrowedDimensionType(dimensionKey, dimJson, blockingErrors);
+            validateBorrowedDimensionType(dimensionKey, dimJson, borrowedDimensionTypesSupported(), blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "caveDensitySamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "biomeBoundsSamplingStep", 4, blockingErrors);
@@ -128,16 +129,29 @@ final class PackDimensionValidator {
         }
     }
 
-    static void validateBorrowedDimensionType(String dimensionKey, JSONObject dimension, List<String> errors) {
+    static void validateBorrowedDimensionType(String dimensionKey, JSONObject dimension, boolean borrowingSupported,
+                                              List<String> errors) {
         if (!dimension.has(BORROWED_DIMENSION_TYPE) || dimension.isNull(BORROWED_DIMENSION_TYPE)) {
             return;
         }
         Object value = dimension.opt(BORROWED_DIMENSION_TYPE);
-        if (value instanceof String key && (key.isEmpty() || RESOURCE_KEY.matcher(key).matches())) {
+        if (value instanceof String key && key.isEmpty()) {
             return;
         }
-        errors.add("Dimension '" + dimensionKey + "' " + BORROWED_DIMENSION_TYPE
-                + " must be a namespaced dimension type key such as aether:the_aether, but was '" + value + "'.");
+        if (!(value instanceof String key) || !RESOURCE_KEY.matcher(key).matches()) {
+            errors.add("Dimension '" + dimensionKey + "' " + BORROWED_DIMENSION_TYPE
+                    + " must be a namespaced dimension type key such as aether:the_aether, but was '" + value + "'.");
+            return;
+        }
+        if (!borrowingSupported) {
+            errors.add("Dimension '" + dimensionKey + "' sets " + BORROWED_DIMENSION_TYPE + " to '" + key
+                    + "', which only Fabric, Forge, and NeoForge servers support. This server generates its own Iris dimension type, so remove "
+                    + BORROWED_DIMENSION_TYPE + " to use this pack here.");
+        }
+    }
+
+    private static boolean borrowedDimensionTypesSupported() {
+        return !IrisPlatforms.isBound() || IrisPlatforms.get().supportsBorrowedDimensionTypes();
     }
 
     static void validateObjectScaleFactor(String dimensionKey, JSONObject dimension, List<String> errors) {

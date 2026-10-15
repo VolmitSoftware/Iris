@@ -175,7 +175,7 @@ public final class GenerationRegistryContractFactory {
         List<IrisBiome> reachableBiomes = new ArrayList<>(requiredDimension.getReachableBiomes(() -> requiredData));
         for (IrisDimension registryDimension : registryDimensions(requiredData, requiredDimension)) {
             String dimensionKey = requireText(registryDimension.getLoadKey(), "Dimension load key");
-            if (!registryDimension.hasBorrowedDimensionType()) {
+            if (!registryDimension.borrowsDimensionType(requiredGenerationRegistry)) {
                 addGeneratedDimensionType(
                         definitions,
                         generatedSources,

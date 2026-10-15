@@ -46,9 +46,7 @@ public record IrisDimensionRuntimeContract(
         Objects.requireNonNull(dimension, "dimension");
         Objects.requireNonNull(namespace, "namespace");
         return new IrisDimensionRuntimeContract(
-                dimension.hasBorrowedDimensionType()
-                        ? dimension.getBorrowedDimensionType().trim()
-                        : namespace + ":" + dimension.getDimensionTypeKey(),
+                namespace + ":" + dimension.getDimensionTypeKey(),
                 dimension.getMinHeight(),
                 dimension.getMaxHeight() - dimension.getMinHeight(),
                 dimension.getLogicalHeight());
@@ -63,6 +61,7 @@ public record IrisDimensionRuntimeContract(
         IrisDimensionRuntimeContract actual = expected(active, namespace);
         IrisDimensionRuntimeContract proposed = expected(replacement, namespace);
         proposed.requireExact(runtimeName, actual);
+        requireBorrowedTypeUnchanged(runtimeName, active, replacement);
         requireGeneratedTypeCompatible(runtimeName, active, replacement);
     }
 
@@ -118,6 +117,25 @@ public record IrisDimensionRuntimeContract(
                 + ", but the loaded runtime uses " + actualTypeKey + " with range " + actualRange
                 + " and logical height " + actualLogical
                 + ". Generation was refused before any chunk writes. Restart after installing the exact Iris dimension type; terrain clipping is not allowed.");
+    }
+
+    private static void requireBorrowedTypeUnchanged(
+            String runtimeName,
+            IrisDimension active,
+            IrisDimension replacement
+    ) {
+        String activeBorrowed = borrowedType(active);
+        String replacementBorrowed = borrowedType(replacement);
+        if (activeBorrowed.equals(replacementBorrowed)) {
+            return;
+        }
+        throw new IrisDimensionContractException(runtimeName + " cannot hotload a changed borrowedDimensionType. The active pack borrows '"
+                + activeBorrowed + "' and the replacement borrows '" + replacementBorrowed
+                + "'. Close and reopen Studio after changing borrowedDimensionType.");
+    }
+
+    private static String borrowedType(IrisDimension dimension) {
+        return dimension.hasBorrowedDimensionType() ? dimension.getBorrowedDimensionType().trim() : "";
     }
 
     private static void requireGeneratedTypeCompatible(

@@ -25,7 +25,6 @@ import art.arcane.iris.core.localization.ModdedCommandMessages;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.GenerationSessionException;
 import art.arcane.iris.engine.framework.GenerationSessionLease;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.Locator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
@@ -156,7 +155,7 @@ final class ModdedLocateCommands {
         }
         Optional<NativeStructureTarget> resolved = resolveNativeStructure(source, level, engine, key);
         if (resolved.isEmpty()) {
-            if (!IrisStructureLocator.hasNativePlacement(engine, key)
+            if (!ModuleServices.startsStructure(engine, key)
                     && ModuleServices.canLocateStructure(engine, key)) {
                 locateIrisStructure(source, level, engine, player, key);
                 return 1;
@@ -168,9 +167,9 @@ final class ModdedLocateCommands {
         NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, target.key());
         boolean nativeGenerationEnabled =
                 source.getServer().getWorldGenSettings().options().generateStructures();
-        boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, target.key());
+        boolean nativePlacement = ModuleServices.startsStructure(engine, target.key());
         boolean locatableNativePlacement = nativePlacement
-                && IrisStructureLocator.hasLocatableNativePlacement(engine, target.key());
+                && ModuleServices.canLocateStart(engine, target.key());
         boolean locatableEditableReplacement = !nativePlacement
                 && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                 && ModuleServices.canLocateStructure(engine, target.key());
@@ -357,7 +356,7 @@ final class ModdedLocateCommands {
                 case NO_PLACEMENT -> unsupported++;
             }
         }
-        int irisPlaced = IrisStructureLocator.placedKeys(engine).size();
+        int irisPlaced = ModuleServices.placedStructures(engine).size();
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_STRUCTURE_REACHABILITY_NATIVE_GENERATION_ELIGIBLE_IRIS_PLACED_NATIVE_DISABLED_NATIVE, MessageArgument.untrusted("available", available), MessageArgument.untrusted("irisPlaced", irisPlaced), MessageArgument.untrusted("disabled", disabled), MessageArgument.untrusted("suppressed", suppressed), MessageArgument.untrusted("unreachableBiomes", unreachableBiomes), MessageArgument.untrusted("unsupported", unsupported)));
         return 1;
     }
@@ -365,7 +364,7 @@ final class ModdedLocateCommands {
     private static int verifyStructure(CommandSourceStack source, ServerLevel level, Engine engine, String key) {
         Optional<NativeStructureTarget> target = resolveNativeStructure(source, level, engine, key);
         if (target.isEmpty()) {
-            if (IrisStructureLocator.isPlaced(engine, key)) {
+            if (ModuleServices.placesStructure(engine, key)) {
                 IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_STRUCTURE_IS_IRIS_PLACED_LOCATABLE_WITH_IRIS_GOTO_STRUCTURE, MessageArgument.untrusted("key", key), MessageArgument.untrusted("key2", key)));
                 return 1;
             }

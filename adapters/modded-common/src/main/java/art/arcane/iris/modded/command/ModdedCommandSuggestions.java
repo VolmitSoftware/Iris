@@ -23,7 +23,6 @@ import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.StructureReachability;
 import art.arcane.iris.engine.framework.NativeStructureGenerationStatus;
@@ -133,9 +132,9 @@ final class ModdedCommandSuggestions {
                 String key = identifier.toString();
                 registeredKeys.add(normalizeKey(key));
                 NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, key);
-                boolean nativePlacement = IrisStructureLocator.hasNativePlacement(engine, key);
+                boolean nativePlacement = ModuleServices.startsStructure(engine, key);
                 boolean locatableNativePlacement = nativePlacement
-                        && IrisStructureLocator.hasLocatableNativePlacement(engine, key);
+                        && ModuleServices.canLocateStart(engine, key);
                 boolean locatableEditableReplacement = !nativePlacement
                         && status == NativeStructureGenerationStatus.REPLACED_BY_IRIS
                         && ModuleServices.canLocateStructure(engine, key);
@@ -147,7 +146,7 @@ final class ModdedCommandSuggestions {
             }
             Collection<String> unregisteredIrisKeys = eligibleUnregisteredEditableKeys(
                     irisKeys, registeredKeys,
-                    (String candidate) -> IrisStructureLocator.hasNativePlacement(engine, candidate));
+                    (String candidate) -> ModuleServices.startsStructure(engine, candidate));
             return SharedSuggestionProvider.suggest(
                     combineStructureKeys(unregisteredIrisKeys, nativeKeys), builder);
         } catch (Throwable e) {

@@ -88,12 +88,6 @@ public class StructureReachabilityContractTest {
     }
 
     @Test
-    public void invalidateIsNullSafe() {
-        StructureReachability.invalidate(null);
-        StructureReachability.invalidate(mock(Engine.class));
-    }
-
-    @Test
     public void failedReachabilityBuildIsNotCachedAsEmpty() {
         Engine engine = mock(Engine.class);
         IrisWorld world = mock(IrisWorld.class);
@@ -102,6 +96,7 @@ public class StructureReachabilityContractTest {
         PlatformStructureHooks hooks = mock(PlatformStructureHooks.class);
         IllegalStateException cause = new IllegalStateException("registry unavailable");
         when(engine.getData()).thenReturn(mock(IrisData.class));
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(engine.getWorld()).thenReturn(world);
         when(world.platformWorld()).thenReturn(platformWorld);
         when(platform.structureHooks()).thenReturn(hooks);
@@ -115,7 +110,6 @@ public class StructureReachabilityContractTest {
             assertThrows(IllegalStateException.class, () -> StructureReachability.reachableKeys(engine));
             assertTrue(StructureReachability.reachableKeys(engine).contains("minecraft:monument"));
         } finally {
-            StructureReachability.invalidate(engine);
             IrisPlatforms.unbind();
         }
     }

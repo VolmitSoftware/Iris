@@ -34,7 +34,7 @@ import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.plugin.VolmitSender;
@@ -52,8 +52,7 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 @SuppressWarnings("ALL")
@@ -105,7 +104,7 @@ public class IrisPackageCompiler {
         KSet<IrisRegion> regions = new KSet<>();
         KSet<IrisBiome> biomes = new KSet<>();
         KSet<IrisGenerator> generators = new KSet<>();
-        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm);
+        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm).exportingElsewhere(IrisStructure.class);
         KSet<IrisBlockData> blocks = new KSet<>();
 
         // KSet is ConcurrentHashMap-backed: both add(null) and remove(null) throw NPE, so a
@@ -125,10 +124,7 @@ public class IrisPackageCompiler {
         regions.forEach((r) -> allPlacements.addAll(r.getObjects()));
         biomes.forEach((i) -> allPlacements.addAll(i.getObjects()));
         moduleResources.follow(allPlacements);
-        Set<String> structureKeys = new LinkedHashSet<>();
-        collectStructureKeys(structureKeys, dimension.getStructures());
-        regions.forEach((region) -> collectStructureKeys(structureKeys, region.getStructures()));
-        biomes.forEach((biome) -> collectStructureKeys(structureKeys, biome.getStructures()));
+        List<String> structureKeys = moduleResources.keysOf(IrisStructure.class);
         KMap<String, String> renameObjects = new KMap<>();
         String a;
         StringBuilder b = new StringBuilder();
@@ -264,19 +260,5 @@ public class IrisPackageCompiler {
         JSONObject settings = data.getModules().settings().encode(target, resource.getModuleSettings());
         settings.keySet().forEach(key -> json.put(key, settings.get(key)));
         return json;
-    }
-
-    private static void collectStructureKeys(Set<String> keys, KList<IrisStructurePlacement> placements) {
-        if (placements == null) {
-            return;
-        }
-        for (IrisStructurePlacement placement : placements) {
-            if (placement == null || placement.getStructures() == null) {
-                continue;
-            }
-            for (String structureKey : placement.getStructures()) {
-                keys.add(structureKey);
-            }
-        }
     }
 }

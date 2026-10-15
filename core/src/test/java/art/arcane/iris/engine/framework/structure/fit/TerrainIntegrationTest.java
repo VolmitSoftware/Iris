@@ -7,9 +7,9 @@ import art.arcane.iris.engine.framework.structure.NativeStructureFit;
 import art.arcane.iris.engine.mantle.components.StructureCarvingFootprint;
 import com.google.gson.Gson;
 import com.volmit.block.BlockState;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
 import com.volmit.vanilla.StartMemo;
-import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TerrainAdaptation;
 import org.junit.Test;
 
@@ -419,7 +419,7 @@ public class TerrainIntegrationTest {
     }
 
     private static FitStart start(String terrainJson, TerrainAdaptation adaptation, FitFixture.Piece... pieces) {
-        return FitFixture.start(terrainJson, adaptation, StructureStep.STRONGHOLDS, pieces);
+        return FitFixture.start(terrainJson, adaptation, DecorationStep.STRONGHOLDS, pieces);
     }
 
     private static TerrainIntegration.SourceTerrainSnapshot snapshot(FitFixture.World world, Box area) {

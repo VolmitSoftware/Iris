@@ -18,11 +18,13 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructureDistribution;
 import org.junit.Test;
+import art.arcane.iris.engine.object.TestSettings;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -109,11 +111,11 @@ public class StructurePlacementGridTest {
 
     @Test
     public void densityStartIsDeterministicAndPlacementIdScoped() {
-        IrisStructurePlacement placement = placement(StructureDistribution.DENSITY);
-        placement.setDensity(0.35);
-        IrisStructurePlacement secondPlacement = placement(StructureDistribution.DENSITY);
-        secondPlacement.setDensity(0.35);
-        secondPlacement.setPlacementId("second");
+        StructurePlacement placement = placement(StructureDistribution.DENSITY);
+        TestSettings.with(placement, "density", 0.35);
+        StructurePlacement secondPlacement = placement(StructureDistribution.DENSITY);
+        TestSettings.with(secondPlacement, "density", 0.35);
+        TestSettings.with(secondPlacement, "placementId", "second");
         boolean differsById = false;
         for (int cx = -32; cx <= 32; cx++) {
             for (int cz = -32; cz <= 32; cz++) {
@@ -129,22 +131,22 @@ public class StructurePlacementGridTest {
 
     @Test
     public void densityBoundariesNeverAndAlwaysStart() {
-        IrisStructurePlacement placement = placement(StructureDistribution.DENSITY);
-        placement.setDensity(0.0);
+        StructurePlacement placement = placement(StructureDistribution.DENSITY);
+        TestSettings.with(placement, "density", 0.0);
         assertFalse(StructurePlacementGrid.startsInChunk(placement, 4, -9, 77L));
-        placement.setDensity(1.0);
+        TestSettings.with(placement, "density", 1.0);
         assertTrue(StructurePlacementGrid.startsInChunk(placement, 4, -9, 77L));
     }
 
     @Test
     public void concentricRingCountIsFiniteTotalPlacementCount() {
-        IrisStructurePlacement placement = placement(StructureDistribution.CONCENTRIC_RINGS);
-        placement.setRingCount(10);
-        placement.setRingSpread(3);
-        placement.setRingDistance(12);
+        StructurePlacement placement = placement(StructureDistribution.CONCENTRIC_RINGS);
+        TestSettings.with(placement, "ringCount", 10);
+        TestSettings.with(placement, "ringSpread", 3);
+        TestSettings.with(placement, "ringDistance", 12);
         long seed = 484848L;
-        int lastRing = Math.ceilDiv(placement.getRingCount(), placement.getRingSpread());
-        int scanRadius = (lastRing + 2) * placement.getRingDistance();
+        int lastRing = Math.ceilDiv(placement.ringCount(), placement.ringSpread());
+        int scanRadius = (lastRing + 2) * placement.ringDistance();
         int starts = 0;
         for (int cx = -scanRadius; cx <= scanRadius; cx++) {
             for (int cz = -scanRadius; cz <= scanRadius; cz++) {
@@ -153,16 +155,16 @@ public class StructurePlacementGridTest {
                 }
             }
         }
-        assertEquals(placement.getRingCount(), starts);
-        assertNull(StructurePlacementGrid.concentricRingChunk(placement, placement.getRingCount(), seed));
+        assertEquals(placement.ringCount(), starts);
+        assertNull(StructurePlacementGrid.concentricRingChunk(placement, placement.ringCount(), seed));
     }
 
     @Test
     public void placementRngIsStableAndPlacementIdScoped() {
-        IrisStructurePlacement placement = placement(StructureDistribution.RANDOM_SPREAD);
+        StructurePlacement placement = placement(StructureDistribution.RANDOM_SPREAD);
         long first = StructurePlacementGrid.placementRng(placement, 7, -11, 123L).getSeed();
         long repeated = StructurePlacementGrid.placementRng(placement, 7, -11, 123L).getSeed();
-        placement.setPlacementId("second");
+        TestSettings.with(placement, "placementId", "second");
         long secondPlacement = StructurePlacementGrid.placementRng(placement, 7, -11, 123L).getSeed();
         assertEquals(first, repeated);
         assertNotEquals(first, secondPlacement);
@@ -170,24 +172,24 @@ public class StructurePlacementGridTest {
 
     @Test
     public void authoredPlacementIdSeparatesRandomSpreadStarts() {
-        IrisStructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD);
-        first.setPlacementId("first");
-        IrisStructurePlacement second = placement(StructureDistribution.RANDOM_SPREAD);
-        second.setPlacementId("second");
+        StructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD);
+        TestSettings.with(first, "placementId", "first");
+        StructurePlacement second = placement(StructureDistribution.RANDOM_SPREAD);
+        TestSettings.with(second, "placementId", "second");
         int[] firstStart = StructurePlacementGrid.randomSpreadCellChunk(
-                8, -3, first.getSpacing(), first.getSeparation(), StructurePlacementGrid.placementSalt(first), 31337L);
+                8, -3, first.spacing(), first.separation(), StructurePlacementGrid.placementSalt(first), 31337L);
         int[] secondStart = StructurePlacementGrid.randomSpreadCellChunk(
-                8, -3, second.getSpacing(), second.getSeparation(), StructurePlacementGrid.placementSalt(second), 31337L);
+                8, -3, second.spacing(), second.separation(), StructurePlacementGrid.placementSalt(second), 31337L);
         assertFalse(firstStart[0] == secondStart[0] && firstStart[1] == secondStart[1]);
     }
 
     @Test
     public void blankIdsDeriveDistinctStableRandomSpreadGridsFromContent() {
-        IrisStructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD);
-        IrisStructurePlacement recreatedFirst = placement(StructureDistribution.RANDOM_SPREAD);
-        IrisStructurePlacement second = placement(StructureDistribution.RANDOM_SPREAD);
-        second.getStructures().clear();
-        second.getStructures().add("test:other");
+        StructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD);
+        StructurePlacement recreatedFirst = placement(StructureDistribution.RANDOM_SPREAD);
+        StructurePlacement second = placement(StructureDistribution.RANDOM_SPREAD);
+        TestSettings.with(second, "structures", new java.util.ArrayList<>());
+        withAdded(second, "structures", "test:other");
 
         assertEquals(StructurePlacementGrid.placementSalt(first),
                 StructurePlacementGrid.placementSalt(recreatedFirst));
@@ -196,10 +198,10 @@ public class StructurePlacementGridTest {
         boolean differs = false;
         for (int cell = -8; cell <= 8; cell++) {
             int[] firstStart = StructurePlacementGrid.randomSpreadCellChunk(
-                    cell, cell + 3, first.getSpacing(), first.getSeparation(),
+                    cell, cell + 3, first.spacing(), first.separation(),
                     StructurePlacementGrid.placementSalt(first), 31337L);
             int[] secondStart = StructurePlacementGrid.randomSpreadCellChunk(
-                    cell, cell + 3, second.getSpacing(), second.getSeparation(),
+                    cell, cell + 3, second.spacing(), second.separation(),
                     StructurePlacementGrid.placementSalt(second), 31337L);
             differs |= firstStart[0] != secondStart[0] || firstStart[1] != secondStart[1];
         }
@@ -208,12 +210,12 @@ public class StructurePlacementGridTest {
 
     @Test
     public void anonymousIdentityPreservesAuthoredSourceOrder() {
-        IrisStructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD);
-        first.getStructures().add("test:second");
-        IrisStructurePlacement reordered = placement(StructureDistribution.RANDOM_SPREAD);
-        reordered.getStructures().clear();
-        reordered.getStructures().add("test:second");
-        reordered.getStructures().add("test:structure");
+        StructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD);
+        withAdded(first, "structures", "test:second");
+        StructurePlacement reordered = placement(StructureDistribution.RANDOM_SPREAD);
+        TestSettings.with(reordered, "structures", new java.util.ArrayList<>());
+        withAdded(reordered, "structures", "test:second");
+        withAdded(reordered, "structures", "test:structure");
 
         assertNotEquals(StructurePlacementGrid.placementIdentity(first),
                 StructurePlacementGrid.placementIdentity(reordered));
@@ -225,17 +227,17 @@ public class StructurePlacementGridTest {
 
     @Test
     public void blankIdsDeriveDistinctStableConcentricRingsFromContent() {
-        IrisStructurePlacement first = placement(StructureDistribution.CONCENTRIC_RINGS);
-        IrisStructurePlacement recreatedFirst = placement(StructureDistribution.CONCENTRIC_RINGS);
-        IrisStructurePlacement second = placement(StructureDistribution.CONCENTRIC_RINGS);
-        second.getStructures().clear();
-        second.getStructures().add("test:other");
-        first.setRingCount(12);
-        recreatedFirst.setRingCount(12);
-        second.setRingCount(12);
+        StructurePlacement first = placement(StructureDistribution.CONCENTRIC_RINGS);
+        StructurePlacement recreatedFirst = placement(StructureDistribution.CONCENTRIC_RINGS);
+        StructurePlacement second = placement(StructureDistribution.CONCENTRIC_RINGS);
+        TestSettings.with(second, "structures", new java.util.ArrayList<>());
+        withAdded(second, "structures", "test:other");
+        TestSettings.with(first, "ringCount", 12);
+        TestSettings.with(recreatedFirst, "ringCount", 12);
+        TestSettings.with(second, "ringCount", 12);
 
         boolean differs = false;
-        for (int index = 0; index < first.getRingCount(); index++) {
+        for (int index = 0; index < first.ringCount(); index++) {
             int[] firstPoint = StructurePlacementGrid.concentricRingChunk(first, index, 77123L);
             int[] recreatedPoint = StructurePlacementGrid.concentricRingChunk(recreatedFirst, index, 77123L);
             int[] secondPoint = StructurePlacementGrid.concentricRingChunk(second, index, 77123L);
@@ -248,9 +250,9 @@ public class StructurePlacementGridTest {
 
     @Test
     public void derivedPlacementIdentityIncludesPlacementSettings() {
-        IrisStructurePlacement first = placement(StructureDistribution.DENSITY);
-        IrisStructurePlacement second = placement(StructureDistribution.DENSITY);
-        second.setMinHeight(first.getMinHeight() + 1);
+        StructurePlacement first = placement(StructureDistribution.DENSITY);
+        StructurePlacement second = placement(StructureDistribution.DENSITY);
+        TestSettings.with(second, "minHeight", first.minHeight() + 1);
         long firstSeed = StructurePlacementGrid.placementRng(first, 9, 14, 42L).getSeed();
         long secondSeed = StructurePlacementGrid.placementRng(second, 9, 14, 42L).getSeed();
         assertNotEquals(firstSeed, secondSeed);
@@ -258,9 +260,8 @@ public class StructurePlacementGridTest {
 
     @Test
     public void legacyAnchorDoesNotMoveExistingPlacements() {
-        IrisStructurePlacement implicit = placement(StructureDistribution.RANDOM_SPREAD);
-        IrisStructurePlacement explicit = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.LEGACY);
+        StructurePlacement implicit = placement(StructureDistribution.RANDOM_SPREAD);
+        StructurePlacement explicit = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.LEGACY);
 
         assertEquals(StructurePlacementGrid.placementIdentity(implicit),
                 StructurePlacementGrid.placementIdentity(explicit));
@@ -270,10 +271,8 @@ public class StructurePlacementGridTest {
 
     @Test
     public void caveAnchorConfigurationParticipatesInAnonymousIdentity() {
-        IrisStructurePlacement floor = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.CAVE_FLOOR);
-        IrisStructurePlacement ceiling = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.CAVE_CEILING);
+        StructurePlacement floor = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.CAVE_FLOOR);
+        StructurePlacement ceiling = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.CAVE_CEILING);
 
         assertNotEquals(StructurePlacementGrid.placementIdentity(floor),
                 StructurePlacementGrid.placementIdentity(ceiling));
@@ -283,14 +282,9 @@ public class StructurePlacementGridTest {
 
     @Test
     public void unusedCaveSettingsDoNotMoveExplicitSurfacePlacements() {
-        IrisStructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.SURFACE);
-        IrisStructurePlacement second = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.SURFACE)
-                .setCaveAnchorAttempts(64)
-                .setCaveAnchorScanStep(16)
-                .setCaveMinimumClearance(64);
-        second.getCaveBiomes().add("unused");
+        StructurePlacement first = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.SURFACE);
+        StructurePlacement second = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.SURFACE, "caveAnchorAttempts", 64, "caveAnchorScanStep", 16, "caveMinimumClearance", 64);
+        withAdded(second, "caveBiomes", "unused");
 
         assertEquals(StructurePlacementGrid.placementIdentity(first),
                 StructurePlacementGrid.placementIdentity(second));
@@ -300,16 +294,14 @@ public class StructurePlacementGridTest {
 
     @Test
     public void caveBiomeAllowlistIdentityIgnoresOrderCaseWhitespaceAndDuplicates() {
-        IrisStructurePlacement first = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.CAVE_CENTER);
-        first.getCaveBiomes().add("crystal");
-        first.getCaveBiomes().add("deep");
-        IrisStructurePlacement second = placement(StructureDistribution.RANDOM_SPREAD)
-                .setAnchor(IrisStructureAnchorMode.CAVE_CENTER);
-        second.getCaveBiomes().add(" DEEP ");
-        second.getCaveBiomes().add("CRYSTAL");
-        second.getCaveBiomes().add("crystal");
-        second.getCaveBiomes().add(" ");
+        StructurePlacement first = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.CAVE_CENTER);
+        withAdded(first, "caveBiomes", "crystal");
+        withAdded(first, "caveBiomes", "deep");
+        StructurePlacement second = TestSettings.with(placement(StructureDistribution.RANDOM_SPREAD), "anchor", StructureAnchorMode.CAVE_CENTER);
+        withAdded(second, "caveBiomes", " DEEP ");
+        withAdded(second, "caveBiomes", "CRYSTAL");
+        withAdded(second, "caveBiomes", "crystal");
+        withAdded(second, "caveBiomes", " ");
 
         assertEquals(StructurePlacementGrid.placementIdentity(first),
                 StructurePlacementGrid.placementIdentity(second));
@@ -319,22 +311,22 @@ public class StructurePlacementGridTest {
 
     @Test
     public void explicitPlacementIdentityKeepsRngStableAcrossSettingEdits() {
-        IrisStructurePlacement first = placement(StructureDistribution.DENSITY);
-        first.setPlacementId("stable");
-        IrisStructurePlacement second = placement(StructureDistribution.DENSITY);
-        second.setPlacementId("stable");
-        second.setMinHeight(first.getMinHeight() + 1);
-        second.setDensity(0.75);
+        StructurePlacement first = placement(StructureDistribution.DENSITY);
+        TestSettings.with(first, "placementId", "stable");
+        StructurePlacement second = placement(StructureDistribution.DENSITY);
+        TestSettings.with(second, "placementId", "stable");
+        TestSettings.with(second, "minHeight", first.minHeight() + 1);
+        TestSettings.with(second, "density", 0.75);
         long firstSeed = StructurePlacementGrid.placementRng(first, 9, 14, 42L).getSeed();
         long secondSeed = StructurePlacementGrid.placementRng(second, 9, 14, 42L).getSeed();
         assertEquals(firstSeed, secondSeed);
     }
 
-    private IrisStructurePlacement placement(StructureDistribution distribution) {
-        IrisStructurePlacement placement = new IrisStructurePlacement();
-        placement.setDistribution(distribution);
-        placement.getStructures().add("test:structure");
-        placement.setSalt(31415926);
+    private StructurePlacement placement(StructureDistribution distribution) {
+        StructurePlacement placement = new StructurePlacement();
+        TestSettings.with(placement, "distribution", distribution);
+        withAdded(placement, "structures", "test:structure");
+        TestSettings.with(placement, "salt", 31415926);
         return placement;
     }
 }

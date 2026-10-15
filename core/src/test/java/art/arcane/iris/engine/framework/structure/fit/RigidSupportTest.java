@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
 import com.volmit.block.BlockState;
-import com.volmit.vanilla.StructureStep;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.TerrainAdaptation;
 import org.junit.Test;
 
@@ -184,7 +184,7 @@ public class RigidSupportTest {
     }
 
     private static FitStart start(String terrain, TerrainAdaptation adaptation, FitFixture.Piece... pieces) {
-        return FitFixture.start(terrain, adaptation, StructureStep.SURFACE_STRUCTURES, pieces);
+        return FitFixture.start(terrain, adaptation, DecorationStep.SURFACE_STRUCTURES, pieces);
     }
 
     private static FitFixture.World supportTerrain(Box columns) {

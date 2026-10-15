@@ -57,12 +57,12 @@ public class NativeStructureVolumeSuppressionTest {
         StructureSettings settings = new StructureSettings(List.of("minecraft:village"), List.of(), 0, true, List.of(), List.of());
         IrisDimension dimension = mock(IrisDimension.class);
         Engine engine = mock(Engine.class);
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         IrisData data = mock(IrisData.class);
         packs.add(BuiltInPack.serveWithResources(data, folder, List.of()));
         when(engine.getData()).thenReturn(data);
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(settings));
-        when(dimension.getStructures()).thenReturn(new KList<>());
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

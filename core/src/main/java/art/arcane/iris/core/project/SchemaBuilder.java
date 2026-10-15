@@ -28,14 +28,12 @@ import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.core.modules.ModuleResourceFiles;
 import art.arcane.iris.core.modules.ModuleTargets;
-import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.core.structure.StructureSchemaKeys;
 import art.arcane.iris.engine.framework.ListFunction;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
@@ -51,7 +49,6 @@ import art.arcane.iris.engine.object.annotations.RegistryListItemType;
 import art.arcane.iris.engine.object.annotations.RegistryListPotionEffect;
 import art.arcane.iris.engine.object.annotations.RegistryListResource;
 import art.arcane.iris.engine.object.annotations.RegistryListSpecialEntity;
-import art.arcane.iris.engine.object.annotations.RegistryListStructure;
 import art.arcane.iris.engine.object.annotations.RegistryListVanillaStructure;
 import art.arcane.iris.engine.object.annotations.RegistryMapBlockState;
 import art.arcane.iris.engine.object.annotations.Required;
@@ -601,21 +598,6 @@ public class SchemaBuilder {
                     } else {
                         IrisLogging.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                     }
-                } else if (k.isAnnotationPresent(RegistryListStructure.class)) {
-                    String key = "enum-iris-structure-placement";
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put("enum", new JSONArray(StructureSchemaKeys.collect(
-                                StructureResources.structureKeys(data),
-                                StructureResources.pieceKeys(data)).toArray(new String[0])));
-                        definitions.put(key, j);
-                    }
-
-                    fancyType = "Structure";
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla, datapack, or imported Iris structure (use ctrl+space for auto complete!)");
-
                 } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                     fancyType = "Block Type";
                     putRegistryEnumRef(prop, "enum-block-type", this::blockTypes);
@@ -777,22 +759,6 @@ public class SchemaBuilder {
                                 } else {
                                     IrisLogging.error("Cannot find Registry Loader for type (list schema) " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                                 }
-                            } else if (k.isAnnotationPresent(RegistryListStructure.class)) {
-                                fancyType = "List<Structure>";
-                                String key = "enum-iris-structure-placement";
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put("enum", new JSONArray(StructureSchemaKeys.collect(
-                                            StructureResources.structureKeys(data),
-                                            StructureResources.pieceKeys(data)).toArray(new String[0])));
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid vanilla, datapack, or imported Iris structure (use ctrl+space for auto complete!)");
                             } else if (k.isAnnotationPresent(RegistryListVanillaStructure.class)) {
                                 fancyType = "List<Vanilla Structure>";
                                 putRegistryEnumItems(prop, "enum-vanilla-structure", this::vanillaStructures);

@@ -37,10 +37,10 @@ import com.volmit.host.ServiceRegistration;
 import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaStructures;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
 import com.volmit.vanilla.StartMemo;
 import com.volmit.vanilla.StructureFit;
-import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.ModuleLog;
@@ -337,8 +337,8 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
         }
 
         @Override
-        public StructureStep step() {
-            return StructureStep.valueOf(start.step());
+        public DecorationStep step() {
+            return DecorationStep.valueOf(start.step());
         }
 
         @Override

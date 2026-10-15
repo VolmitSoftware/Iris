@@ -197,16 +197,16 @@ public class IrisModdedStructureCommandTest {
 
         assertTrue(method.contains("ServerLevel level = source.getLevel()"));
         assertTrue(method.contains("Engine engine = IrisModdedCommands.engineFor(level)"));
-        assertFalse(method.contains("IrisStructureLocator.locatableKeys(engine)"));
+        assertFalse(method.contains("IrisStructureLocator"));
         assertTrue(method.contains("ModuleServices.locatableStructures(engine)"));
         assertTrue(method.contains("StructureReachability.reachableKeys(engine)"));
         assertTrue(method.contains("NativeStructureGenerationPolicy.resolve(engine, key)"));
-        assertTrue(method.contains("IrisStructureLocator.hasLocatableNativePlacement(engine, key)"));
+        assertTrue(method.contains("ModuleServices.canLocateStart(engine, key)"));
         assertTrue(method.contains("ModuleServices.canLocateStructure(engine, key)"));
         assertTrue(method.contains("reachableNativeKeys.contains(normalizeKey(key))"));
         assertTrue(method.contains("nativeGenerationEnabled"));
         assertTrue(method.contains("eligibleUnregisteredEditableKeys("));
-        assertTrue(method.contains("IrisStructureLocator.hasNativePlacement(engine, candidate)"));
+        assertTrue(method.contains("ModuleServices.startsStructure(engine, candidate)"));
         assertFalse(method.contains("NativeStructureGenerationKeys.active(level)"));
         assertFalse(method.contains("getPlacementsForStructure"));
     }
@@ -219,7 +219,7 @@ public class IrisModdedStructureCommandTest {
         String method = source.substring(methodStart, methodEnd);
         int registryLookup = method.indexOf("level.registryAccess().lookupOrThrow(Registries.STRUCTURE)");
         int placedCheck = method.indexOf(
-                "if (!IrisStructureLocator.hasNativePlacement(current, structureId))");
+                "if (!ModuleServices.startsStructure(current, structureId))");
         int irisLocate = method.indexOf("NativeStructureLocatePersistence.search(", placedCheck);
         int nearestSelection = method.indexOf(
                 "NativeStructureLocateResults.nearest(pos, predicted, nativeLocated)", irisLocate);
@@ -235,7 +235,7 @@ public class IrisModdedStructureCommandTest {
         assertTrue(selectedReference > selectedVerification);
         assertTrue(method.contains("NativeStructureLocatePersistence.probe("));
         assertTrue(method.contains("findUnexplored"));
-        assertTrue(method.contains("LocateStatus.SEARCH_LIMIT_REACHED"));
+        assertTrue(method.contains("Outcome.SEARCH_LIMIT_REACHED"));
         assertTrue(method.contains("verified.ownership().locatorY()"));
         assertTrue(method.contains("selectedSearch.search().reference(selectedStart)"));
         assertTrue(method.contains("NativeStructureLocateResults.selectAndReference("));
@@ -271,12 +271,12 @@ public class IrisModdedStructureCommandTest {
         assertTrue(eligibilityCheck > policyResolution);
         assertTrue(replacementLocate > eligibilityCheck);
         assertTrue(nativeLocate > replacementLocate);
-        assertTrue(method.contains("IrisStructureLocator.hasLocatableNativePlacement(engine, target.key())"));
+        assertTrue(method.contains("ModuleServices.canLocateStart(engine, target.key())"));
         assertTrue(method.contains("ModuleServices.canLocateStructure(engine, target.key())"));
-        assertTrue(method.contains("!IrisStructureLocator.hasNativePlacement(engine, key)"));
+        assertTrue(method.contains("!ModuleServices.startsStructure(engine, key)"));
         assertTrue(method.contains("StructureReachability.isReachable(engine, target.key())"));
         assertTrue(method.contains("getWorldGenSettings().options().generateStructures()"));
-        assertFalse(method.contains("IrisStructureLocator.isPlaced(engine, key)"));
+        assertFalse(method.contains("ModuleServices.placesStructure(engine, key)"));
     }
 
     @Test
@@ -287,7 +287,7 @@ public class IrisModdedStructureCommandTest {
                 methodStart);
         String method = source.substring(methodStart, methodEnd);
         int nativeResolution = method.indexOf("resolveNativeStructure(source, level, engine, key)");
-        int genericIrisLookup = method.indexOf("IrisStructureLocator.isPlaced(engine, key)", nativeResolution);
+        int genericIrisLookup = method.indexOf("ModuleServices.placesStructure(engine, key)", nativeResolution);
 
         assertTrue(nativeResolution >= 0);
         assertTrue(genericIrisLookup > nativeResolution);

@@ -7,10 +7,10 @@ import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
 import com.volmit.vanilla.StartMemo;
 import com.volmit.vanilla.StructureFit;
-import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.world.BlockAccess;
@@ -241,11 +241,11 @@ final class FitFixture {
     }
 
     /** A start of the structure fit, with the terrain fit JSON a memo would carry and no stilts. */
-    static FitStart start(String terrainJson, TerrainAdaptation adaptation, StructureStep step, Piece... pieces) {
+    static FitStart start(String terrainJson, TerrainAdaptation adaptation, DecorationStep step, Piece... pieces) {
         return start(terrainJson, "null", adaptation, step, pieces);
     }
 
-    static FitStart start(String terrainJson, String stiltsJson, TerrainAdaptation adaptation, StructureStep step,
+    static FitStart start(String terrainJson, String stiltsJson, TerrainAdaptation adaptation, DecorationStep step,
                           Piece... pieces) {
         StartMemo memo = new StartMemo(terrainJson, stiltsJson);
         StructureFit.Start start = new StructureFit.Start() {
@@ -267,7 +267,7 @@ final class FitFixture {
             }
 
             @Override
-            public StructureStep step() {
+            public DecorationStep step() {
                 return step;
             }
 

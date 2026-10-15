@@ -31,9 +31,9 @@ public class IrisChunkGeneratorMonumentLocateContractTest {
         String irisHelper = source.substring(irisHelperStart, filterStart);
         int registryLookup = irisHelper.indexOf("level.registryAccess().lookupOrThrow(Registries.STRUCTURE)");
         int placedCheck = irisHelper.indexOf(
-                "if (!IrisStructureLocator.hasNativePlacement(engine, structureId))");
+                "if (!ModuleServices.startsStructure(engine, structureId))");
         int irisLocate = irisHelper.indexOf("NativeStructureLocatePersistence.search(", placedCheck);
-        int searchLimit = irisHelper.indexOf("LocateStatus.SEARCH_LIMIT_REACHED", irisLocate);
+        int searchLimit = irisHelper.indexOf("Outcome.SEARCH_LIMIT_REACHED", irisLocate);
         int nativeFilter = outerMethod.indexOf("filterReachableStructures(level, holders)");
         int nativePrediction = outerMethod.indexOf("NativeStructureVanillaLocator.predict(", nativeFilter);
         int irisResolution = outerMethod.indexOf("return findNearestIrisStructure(", nativePrediction);

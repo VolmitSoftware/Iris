@@ -2,12 +2,12 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
-import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.builtin.structure.StructureStilts;
 import art.arcane.iris.builtin.structure.StructureTerrain;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.StructureDistribution;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.nativeSource;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.declaring;
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.withAdded;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -107,7 +110,7 @@ public class NativeStructureStartsTest {
 
     @Test
     public void startsMatchThePlannersForAFixedSeed() throws IOException {
-        KList<IrisStructurePlacement> placements = new KList<>();
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(placement("villages", false, -64, 320, 0.2D, source("minecraft:village_plains", 3),
                 source("minecraft:pillager_outpost", 1)));
         placements.add(placement("cities", true, -50, -10, 0.15D, source("minecraft:ancient_city", 1)));
@@ -136,9 +139,9 @@ public class NativeStructureStartsTest {
                 + "\"palette\":{\"palette\":[{\"block\":\"minecraft:stone_bricks\"}]}}", StructureStilts.class);
         JigsawOverrides jigsaw = JigsawOverrides.none().withStartPool("minecraft:village/plains/town_centers")
                 .withMaxDepth(5).withHeightmap(JigsawOverrides.Heightmap.OCEAN_FLOOR_WG).withExpansionHack(false);
-        IrisStructurePlacement fitted = placement("fitted", true, -40, -20, 1D, source("minecraft:ancient_city", 1)
-                .setJigsaw(jigsaw)).setTerrain(terrain).setStilt(stilt);
-        KList<IrisStructurePlacement> placements = new KList<>();
+        StructurePlacement fitted = TestSettings.with(placement("fitted", true, -40, -20, 1D,
+                TestSettings.with(source("minecraft:ancient_city", 1), "jigsaw", jigsaw)), "terrain", terrain, "stilt", stilt);
+        KList<StructurePlacement> placements = new KList<>();
         placements.add(fitted);
         Engine engine = engine(placements);
 
@@ -151,28 +154,26 @@ public class NativeStructureStartsTest {
         assertNull(NativeStructureStarts.matchingPlan(engine, "minecraft:stronghold", 0, 0));
     }
 
-    private static IrisNativeStructure source(String structure, int weight) {
-        return new IrisNativeStructure().setStructure(structure).setWeight(weight);
+    private static NativeStructureSource source(String structure, int weight) {
+        return nativeSource(structure, weight);
     }
 
-    private static IrisStructurePlacement placement(String id, boolean underground, int minHeight, int maxHeight, double density,
-                                                    IrisNativeStructure... sources) {
-        IrisStructurePlacement placement = new IrisStructurePlacement().setPlacementId(id)
-                .setDistribution(StructureDistribution.DENSITY).setDensity(density)
-                .setUnderground(underground).setMinHeight(minHeight).setMaxHeight(maxHeight);
-        for (IrisNativeStructure source : sources) {
-            placement.getNativeStructures().add(source);
+    private static StructurePlacement placement(String id, boolean underground, int minHeight, int maxHeight, double density,
+                                                NativeStructureSource... sources) {
+        StructurePlacement placement = StructurePlacementFixtures.placement("placementId", id, "distribution", StructureDistribution.DENSITY, "density", density, "underground", underground, "minHeight", minHeight, "maxHeight", maxHeight);
+        for (NativeStructureSource source : sources) {
+            withAdded(placement, "nativeStructures", source);
         }
         return placement;
     }
 
-    private static String placementId(KList<IrisStructurePlacement> placements, long identity) {
+    private static String placementId(KList<StructurePlacement> placements, long identity) {
         return placements.stream().filter(placement -> StructurePlacementGrid.placementIdentity(placement) == identity)
-                .findFirst().orElseThrow().getPlacementId();
+                .findFirst().orElseThrow().placementId();
     }
 
     /** An engine whose pack serves the built-in modules, with terrain heights that vary per column and a high sea. */
-    private Engine engine(KList<IrisStructurePlacement> placements) throws IOException {
+    private Engine engine(KList<StructurePlacement> placements) throws IOException {
         IrisData data = mock(IrisData.class);
         Engine engine = mock(Engine.class);
         IrisDimension dimension = mock(IrisDimension.class);
@@ -190,8 +191,7 @@ public class NativeStructureStartsTest {
         });
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getFluidHeight()).thenReturn(127);
-        when(dimension.getModuleSettings()).thenReturn(ModuleSettings.NONE);
-        when(dimension.getStructures()).thenReturn(placements);
+        when(dimension.getModuleSettings()).thenReturn(declaring(placements));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<>());
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
         return engine;

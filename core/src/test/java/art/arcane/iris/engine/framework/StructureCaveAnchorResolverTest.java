@@ -1,10 +1,16 @@
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -12,6 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.IntPredicate;
 
+import static art.arcane.iris.engine.framework.StructurePlacementFixtures.placement;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -19,6 +26,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -27,16 +35,32 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StructureCaveAnchorResolverTest {
+    @Before
+    public void bindPlatform() {
+        IrisPlatforms.unbind();
+        PlatformBlockState block = mock(PlatformBlockState.class);
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.block(anyString())).thenReturn(block);
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.registries()).thenReturn(registries);
+        IrisPlatforms.bind(platform);
+    }
+
+    @After
+    public void unbindPlatform() {
+        IrisPlatforms.unbind();
+    }
+
     @Test
     public void floorRequiresSolidBoundaryAndUpwardClearance() {
         IntPredicate carved = carvedAt(10, 11, 12, 13);
 
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_FLOOR, 10, 3));
+                carved, StructureAnchorMode.CAVE_FLOOR, 10, 3));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_FLOOR, 11, 3));
+                carved, StructureAnchorMode.CAVE_FLOOR, 11, 3));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_FLOOR, 10, 5));
+                carved, StructureAnchorMode.CAVE_FLOOR, 10, 5));
     }
 
     @Test
@@ -44,9 +68,9 @@ public class StructureCaveAnchorResolverTest {
         IntPredicate carved = carvedAt(20, 21, 22, 23);
 
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CEILING, 23, 4));
+                carved, StructureAnchorMode.CAVE_CEILING, 23, 4));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CEILING, 22, 4));
+                carved, StructureAnchorMode.CAVE_CEILING, 22, 4));
     }
 
     @Test
@@ -54,13 +78,13 @@ public class StructureCaveAnchorResolverTest {
         IntPredicate carved = carvedAt(30, 31, 32, 33, 34);
 
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CENTER, 32, 5));
+                carved, StructureAnchorMode.CAVE_CENTER, 32, 5));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CENTER, 31, 3));
+                carved, StructureAnchorMode.CAVE_CENTER, 31, 3));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CENTER, 33, 3));
+                carved, StructureAnchorMode.CAVE_CENTER, 33, 3));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carvedAt(32, 33, 34), IrisStructureAnchorMode.CAVE_CENTER, 32, 3));
+                carvedAt(32, 33, 34), StructureAnchorMode.CAVE_CENTER, 32, 3));
     }
 
     @Test
@@ -68,21 +92,21 @@ public class StructureCaveAnchorResolverTest {
         IntPredicate carved = carvedAt(30, 31, 32, 33);
 
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CENTER, 31, 4));
+                carved, StructureAnchorMode.CAVE_CENTER, 31, 4));
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CENTER, 32, 4));
+                carved, StructureAnchorMode.CAVE_CENTER, 32, 4));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carved, IrisStructureAnchorMode.CAVE_CENTER, 30, 4));
+                carved, StructureAnchorMode.CAVE_CENTER, 30, 4));
     }
 
     @Test
     public void anyRequiresClearanceAroundTheAlignedCenter() {
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carvedAt(39, 40, 41), IrisStructureAnchorMode.CAVE_ANY, 40, 3));
+                carvedAt(39, 40, 41), StructureAnchorMode.CAVE_ANY, 40, 3));
         assertTrue(StructureCaveAnchorResolver.matchesGeometry(
-                carvedAt(48, 49, 50, 51), IrisStructureAnchorMode.CAVE_ANY, 49, 4));
+                carvedAt(48, 49, 50, 51), StructureAnchorMode.CAVE_ANY, 49, 4));
         assertFalse(StructureCaveAnchorResolver.matchesGeometry(
-                carvedAt(60, 61, 62), IrisStructureAnchorMode.CAVE_ANY, 60, 3));
+                carvedAt(60, 61, 62), StructureAnchorMode.CAVE_ANY, 60, 3));
     }
 
     @Test
@@ -177,15 +201,8 @@ public class StructureCaveAnchorResolverTest {
         return engine;
     }
 
-    private static IrisStructurePlacement floorPlacement(boolean underwater) {
-        return new IrisStructurePlacement()
-                .setAnchor(IrisStructureAnchorMode.CAVE_FLOOR)
-                .setMinHeight(-54)
-                .setMaxHeight(-54)
-                .setCaveAnchorAttempts(1)
-                .setCaveAnchorScanStep(1)
-                .setCaveMinimumClearance(3)
-                .setUnderwater(underwater);
+    private static StructurePlacement floorPlacement(boolean underwater) {
+        return placement("anchor", StructureAnchorMode.CAVE_FLOOR, "minHeight", -54, "maxHeight", -54, "caveAnchorAttempts", 1, "caveAnchorScanStep", 1, "caveMinimumClearance", 3, "underwater", underwater);
     }
 
     private static IntPredicate carvedAt(Integer... values) {

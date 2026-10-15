@@ -35,7 +35,7 @@ public class IrisStructureLocateCommandContractTest {
         int nativeResolution = method.indexOf("resolveNativeStructure(structureKey)");
         int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(", nativeResolution);
         int nativeLocatableCheck = method.indexOf(
-                "IrisStructureLocator.hasLocatableNativePlacement(e, structureKey)", policyResolution);
+                "ModuleServices.canLocateStart(e, structureKey)", policyResolution);
         int editableLocatableCheck = method.indexOf(
                 "ModuleServices.canLocateStructure(e, structureKey)", nativeLocatableCheck);
         int worldGenerationCheck = method.indexOf("targetWorld.canGenerateStructures()", editableLocatableCheck);
@@ -49,7 +49,7 @@ public class IrisStructureLocateCommandContractTest {
         assertTrue(worldGenerationCheck > editableLocatableCheck);
         assertTrue(routeResolution > editableLocatableCheck);
         assertTrue(nativeLocate > routeResolution);
-        assertFalse(method.contains("IrisStructureLocator.isPlaced(e, structureKey)"));
+        assertFalse(method.contains("ModuleServices.placesStructure(e, structureKey)"));
         assertFalse(method.contains("NativeStructureLocateCapability"));
     }
 
@@ -232,7 +232,7 @@ public class IrisStructureLocateCommandContractTest {
 
         assertTrue(source.contains("[iris-search-limit]"));
         assertTrue(source.contains("density searches safety-limited"));
-        assertTrue(source.contains("result.originX() + \",\" + result.baseY() + \",\" + result.originZ()"));
+        assertTrue(source.contains("result.x() + \",\" + result.y() + \",\" + result.z()"));
         assertFalse(source.contains("at[0] + 8"));
         assertFalse(source.contains("at[2] + 8"));
     }
@@ -282,7 +282,7 @@ public class IrisStructureLocateCommandContractTest {
         String method = source.substring(methodStart, methodEnd);
         int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(engine, keyName)");
         int nativeRequirement = method.indexOf(
-                "requiresNativeReachability |= !IrisStructureLocator.isPlaced", policyResolution);
+                "requiresNativeReachability |= !ModuleServices.placesStructure", policyResolution);
         int reachabilityGuard = method.indexOf("if (requiresNativeReachability)", nativeRequirement);
         int reachabilityLookup = method.indexOf("StructureReachability.reachableKeys(engine)", reachabilityGuard);
 

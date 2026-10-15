@@ -28,7 +28,7 @@ import art.arcane.iris.core.structure.StructureCaptureImporter;
 import art.arcane.iris.core.structure.StructureImporter;
 import art.arcane.iris.core.structure.StructureIndexService;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.NativeStructureGenerationPolicy;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructureAssembler;
@@ -156,7 +156,7 @@ public class CommandStructure implements DirectorExecutor {
                 }
             }
         }
-        for (String placedKey : IrisStructureLocator.placedKeys(engine)) {
+        for (String placedKey : ModuleServices.placedStructures(engine)) {
             if (!structureKeys.contains(placedKey)) {
                 structureKeys.add(placedKey);
             }
@@ -177,7 +177,7 @@ public class CommandStructure implements DirectorExecutor {
         for (String keyName : structureKeys) {
             NativeStructureGenerationStatus status = NativeStructureGenerationPolicy.resolve(engine, keyName);
             statuses.put(keyName, status);
-            requiresNativeReachability |= !IrisStructureLocator.isPlaced(engine, keyName)
+            requiresNativeReachability |= !ModuleServices.placesStructure(engine, keyName)
                     && status == NativeStructureGenerationStatus.GENERATE_NATIVE;
         }
         Set<String> reachable = Set.of();
@@ -199,11 +199,11 @@ public class CommandStructure implements DirectorExecutor {
         int errors = 0;
         for (String keyName : structureKeys) {
             NativeStructureGenerationStatus status = statuses.get(keyName);
-            if (IrisStructureLocator.isPlaced(engine, keyName)) {
+            if (ModuleServices.placesStructure(engine, keyName)) {
                 try {
-                    IrisStructureLocator.LocateResult result =
-                            IrisStructureLocator.locate(engine, keyName, centerX, centerZ, searchRadius);
-                    if (result.status() == IrisStructureLocator.LocateStatus.SEARCH_LIMIT_REACHED) {
+                    ModuleServices.StructureSearch result =
+                            ModuleServices.locateStructure(engine, keyName, centerX, centerZ, searchRadius);
+                    if (result.outcome() == ModuleServices.StructureSearch.Outcome.SEARCH_LIMIT_REACHED) {
                         searchLimited++;
                         messages.add(C.YELLOW + "[iris-search-limit] " + C.WHITE + keyName + C.YELLOW
                                 + ": unable to complete the density search before its safety limit was reached");
@@ -215,7 +215,7 @@ public class CommandStructure implements DirectorExecutor {
                     }
                     located++;
                     messages.add(C.AQUA + "[iris-planned] " + C.WHITE + keyName + C.GREEN + " @ "
-                            + result.originX() + "," + result.baseY() + "," + result.originZ());
+                            + result.x() + "," + result.y() + "," + result.z());
                 } catch (Throwable error) {
                     errors++;
                     messages.add(C.RED + "[error] " + C.WHITE + keyName + C.RED + ": "

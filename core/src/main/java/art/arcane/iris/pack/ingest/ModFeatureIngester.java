@@ -41,6 +41,7 @@ final class ModFeatureIngester {
     private final IngestPackModel model;
     private final WorldgenCatalogIndex index;
     private final TreeFeatures trees;
+    private final CanopyEstimate canopy;
     private final Map<String, FeaturePlan> plans = new TreeMap<>();
     private final Set<String> nativeKeys = new TreeSet<>();
     private final Set<String> vanillaScopedKeys = new TreeSet<>();
@@ -49,6 +50,7 @@ final class ModFeatureIngester {
         this.model = model;
         this.index = index;
         this.trees = new TreeFeatures(index);
+        this.canopy = new CanopyEstimate(index);
         Map<String, Set<String>> declaring = new TreeMap<>();
         Map<String, Set<Integer>> steps = new TreeMap<>();
         for (CatalogBiome biome : index.catalog().biomes()) {
@@ -151,7 +153,8 @@ final class ModFeatureIngester {
                 return new FeaturePlan(key, declaring, steps, deposits, null, "");
             }
             if (PatchDecoratorConverter.handles(placed)) {
-                return new FeaturePlan(key, declaring, steps, null, PatchDecoratorConverter.convert(placed, index), "");
+                return new FeaturePlan(key, declaring, steps, null,
+                        PatchDecoratorConverter.convert(placed, index, canopy.occlusion(key, declaring)), "");
             }
         } catch (IngestConversionException e) {
             return FeaturePlan.passthrough(key, declaring, steps, "generated natively: " + e.getMessage());

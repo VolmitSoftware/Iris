@@ -27,12 +27,14 @@ import java.util.Set;
 
 final class VanillaPlacementChain {
     private static final Set<String> SURFACE_HEIGHTMAPS = Set.of("MOTION_BLOCKING", "MOTION_BLOCKING_NO_LEAVES", "WORLD_SURFACE", "WORLD_SURFACE_WG");
+    private static final Set<String> LEAF_BLOCKED_HEIGHTMAPS = Set.of("MOTION_BLOCKING", "WORLD_SURFACE", "WORLD_SURFACE_WG");
     private static final int NOISE_SAMPLES = 201;
 
     private final Set<String> whitelist = new LinkedHashSet<>();
     private double expectedPlacements = 1D;
     private double surfaceHitChance = 1D;
     private boolean surface;
+    private boolean leafBlocked;
 
     private VanillaPlacementChain() {
     }
@@ -67,6 +69,28 @@ final class VanillaPlacementChain {
         return surfaceHitChance;
     }
 
+    boolean leafBlocked() {
+        return leafBlocked;
+    }
+
+    static double expectedCount(JsonArray placement) throws IngestConversionException {
+        double expected = 1D;
+        for (JsonElement modifier : placement) {
+            JsonObject object = VanillaJson.object(modifier, "placement modifier");
+            switch (VanillaJson.type(object, "type")) {
+                case "minecraft:count", "minecraft:count_on_every_layer" -> expected *= Math.max(0D, VanillaIntProviders.stats(object.get("count")).mean());
+                case "minecraft:rarity_filter" -> expected /= Math.max(1D, VanillaJson.number(object.get("chance"), "rarity_filter.chance"));
+                case "minecraft:random_chance" -> expected *= clampProbability(VanillaJson.number(object.get("chance"), "random_chance.chance"));
+                case "minecraft:noise_threshold_count" -> expected *= (VanillaJson.number(object.get("below_noise"), "noise_threshold_count.below_noise")
+                        + VanillaJson.number(object.get("above_noise"), "noise_threshold_count.above_noise")) / 2D;
+                case "minecraft:noise_based_count" -> expected *= noiseBasedMean(object);
+                default -> {
+                }
+            }
+        }
+        return expected;
+    }
+
     Set<String> whitelist() {
         return whitelist;
     }
@@ -99,6 +123,7 @@ final class VanillaPlacementChain {
             throw new IngestConversionException("heightmap " + heightmap + " is not a dry surface placement");
         }
         surface = true;
+        leafBlocked = LEAF_BLOCKED_HEIGHTMAPS.contains(heightmap);
     }
 
     private void readVerticalOffset(JsonElement provider) throws IngestConversionException {

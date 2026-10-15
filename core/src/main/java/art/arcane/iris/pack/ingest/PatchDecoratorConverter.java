@@ -45,7 +45,7 @@ final class PatchDecoratorConverter {
         return type.equals(SIMPLE_BLOCK) || LEGACY_PATCH_TYPES.contains(type);
     }
 
-    static JsonObject convert(CatalogPlacedFeature feature, WorldgenCatalogIndex index) throws IngestConversionException {
+    static JsonObject convert(CatalogPlacedFeature feature, WorldgenCatalogIndex index, double canopy) throws IngestConversionException {
         String type = VanillaJson.namespaced(feature.featureType());
         JsonObject config = VanillaJson.featureConfig(feature.config());
         VanillaPlacementChain outer = VanillaPlacementChain.surfaceChain(VanillaJson.placement(feature.placement()));
@@ -66,6 +66,9 @@ final class PatchDecoratorConverter {
         }
         if (expected <= 0D) {
             throw new IngestConversionException("patch placement never places");
+        }
+        if (outer.leafBlocked()) {
+            expected *= 1D - Math.max(0D, Math.min(1D, canopy));
         }
         List<JsonObject> palette = VanillaBlockStates.palette(provider);
         JsonObject decorator = new JsonObject();

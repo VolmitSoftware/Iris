@@ -123,7 +123,9 @@ public class ModIngesterFeatureTest {
         assertNotNull(mapleFlowers);
         assertNotNull(forestFlowers);
         assertEquals(2, forest.getAsJsonArray("decorators").size());
-        assertEquals(1.0D - Math.exp(-(1.0D / 4.0D * 32.0D * 0.25D) / 256.0D), forestFlowers.get("chance").getAsDouble(), 0.000001D);
+        double mapleCanopy = 1.0D - Math.exp(-CanopyEstimate.CROWN_COLUMNS / 256.0D);
+        double openShare = 1.0D - mapleCanopy / 2.0D;
+        assertEquals(1.0D - Math.exp(-(1.0D / 4.0D * 32.0D * 0.25D * openShare) / 256.0D), forestFlowers.get("chance").getAsDouble(), 0.000001D);
         JsonArray palette = forestFlowers.getAsJsonArray("palette");
         assertEquals(3, palette.get(0).getAsJsonObject().get("weight").getAsInt());
         assertEquals("examplemod:glowbell", palette.get(1).getAsJsonObject().get("block").getAsString());

@@ -11,7 +11,6 @@ art/arcane/iris/engine/framework/IrisStructureLocator.java
 art/arcane/iris/engine/framework/StructureCaveAnchorResolver.java
 art/arcane/iris/engine/framework/StructurePlacementScope.java
 art/arcane/iris/engine/framework/StructurePlacementGrid.java
-art/arcane/iris/engine/framework/StructurePlacementMarker.java
 art/arcane/iris/engine/framework/StructureVerticalBounds.java
 art/arcane/iris/engine/framework/PlacedObject.java
 art/arcane/iris/engine/framework/PlacedStructurePiece.java

@@ -19,10 +19,10 @@
 package art.arcane.iris.builtin.placement;
 
 import art.arcane.iris.builtin.prepare.ObjectRotation;
-import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.resource.PackResources;
 import com.volmit.world.BlockPosition;
 
 import java.util.Optional;
@@ -94,8 +94,8 @@ public interface ObjectPlacement {
      */
     boolean hasTrait(BlockState state, BlockTrait trait);
 
-    /** The marker of the pack named {@code key}, if the pack has one. */
-    Optional<SpawnMarker> marker(String key);
+    /** The resources of the object's pack, where the placement's markers are found. */
+    PackResources resources();
 
     /** Reports a buffered write as one of the object's own blocks, which Iris's placement listener hears after the commit. */
     void objectBlockWritten(BlockPosition position);

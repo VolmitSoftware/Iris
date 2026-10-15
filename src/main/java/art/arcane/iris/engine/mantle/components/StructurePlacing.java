@@ -27,7 +27,7 @@ import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
-import art.arcane.iris.engine.framework.StructurePlacementMarker;
+import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;

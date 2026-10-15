@@ -29,6 +29,7 @@ import art.arcane.iris.builtin.placement.PlacementSettings;
 import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
@@ -205,7 +206,7 @@ public final class BlocksModule implements IrisModule {
         RNG markerRandom = new RNG(context.random().nextLong());
         int salt = 0;
         for (MarkerRule rule : settings.markers()) {
-            Optional<SpawnMarker> marker = placement.marker(rule.marker());
+            Optional<SpawnMarker> marker = Optional.ofNullable(SpawnResources.marker(placement.resources(), rule.marker()));
             int markerSalt = salt++;
             if (marker.isEmpty()) {
                 continue;

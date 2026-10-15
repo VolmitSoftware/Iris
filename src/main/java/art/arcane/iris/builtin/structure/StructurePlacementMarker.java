@@ -1,4 +1,4 @@
-package art.arcane.iris.engine.framework;
+package art.arcane.iris.builtin.structure;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

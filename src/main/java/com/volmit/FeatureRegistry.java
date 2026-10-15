@@ -40,8 +40,9 @@ public interface FeatureRegistry {
     void registerSettings(Class<? extends IrisFeature> settingsType);
 
     /** Describes a class that Iris's own classes hold, such as the clamp of an object placement, so studio shows
-     * its fields as this class declares them. Only built-in modules may register one: the host classes that hold
-     * the class are Iris's, so a pack module's class could never be a field of one. The host reads the class
+     * its fields as this class declares them. The class must be one the host loads: a built-in module's class, or a
+     * class of a package the host exposes to pack modules (a pack module's own classes could never be a field of
+     * one of the host's classes, so registering one fails the load). The host reads the class
      * with its fields in pack JSON, and the class follows the rules of settings classes. Registering a class twice
      * changes nothing.
      */

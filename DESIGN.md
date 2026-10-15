@@ -650,9 +650,11 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
   inlined copy, so a class used in many places is described once, and a class that contains itself,
   directly or through others, ends the walk at its own name. Two different classes with one name fail
   the load; only a built-in class and a pack class can collide that way.
-- Built-in modules may also register a class that Iris's own classes hold (`registerHeldType`, `FeatureCatalog.heldTypes()`):
+- Modules may also register a class that Iris's own classes hold (`registerHeldType`, `FeatureCatalog.heldTypes()`):
   it is described like any settings class reachable from a feature, but no `FeatureSchema` names it. This is for
-  settings that live in a host class until their feature owns them, such as the clamp of an object placement.
+  settings that live in a host class until their feature owns them, such as the clamp of an object placement. The class
+  must be loaded by the host: a built-in module's, or one of a package the host exposes (the built-ins jar's modules
+  register the classes of `art.arcane.iris.builtin`); a class from the registering pack module's own jar fails the load.
 - A `SchemaOption` per field that `OptionsMetadata` selects, which means instance fields that are
   not transient, inherited ones included, in declaration order. Each has its name, `ValueKind`,
   `@Desc`, `@Required`, `@MinNumber`/`@MaxNumber`, `@MinItems` and the default value.

@@ -178,7 +178,9 @@ List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in
 ```
 
 - A file's key is its path below the folder without `.json` (`towers/north`), and its id is
-  `<pack namespace>:<key>`, like every pack resource. JSON keys inside the file are the class's field names.
+  `<pack namespace>:<key>`, like every pack resource (`resources.idOf("towers/north")` makes it, in lower case with
+  characters outside `[a-z0-9_./-]` replaced by `_`: `ResourceId.ofPackKey`). JSON keys inside the file are the class's
+  field names.
 - The kind's id follows the module id. The folder is one folder name directly below the pack root; the module
   chooses it, so a kind that replaces one of Iris's own keeps the folder and file format packs already have.
 - One folder holds one kind and one class backs one kind: `PackResources` finds resources by type. Two kinds
@@ -453,7 +455,7 @@ public final class FloraSettings implements IrisFeature {
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
-  `POTION_EFFECT`, `ENCHANTMENT` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
+  `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
   styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION` or `PACK_IMAGE_MAP` of the pack.
   The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.

@@ -35,6 +35,15 @@ public interface PackResources {
      */
     List<ResourceId> ids(Class<?> type);
 
+    /** The id of the resource the pack's files name by {@code key} (the file path inside the kind's folder, without
+     * {@code .json}), such as {@code overworld:dungeon/chest} for {@code dungeon/chest}; see
+     * {@link ResourceId#ofPackKey}. Settings that name a resource, such as a {@link com.volmit.config.ResourceRef},
+     * hold such a key.
+     */
+    default ResourceId idOf(String key) {
+        return ResourceId.ofPackKey(packId().namespace(), key);
+    }
+
     default <T> T require(ResourceKey<T> key) {
         return find(key).orElseThrow(() -> new NoSuchElementException("Missing resource: " + key.id()));
     }

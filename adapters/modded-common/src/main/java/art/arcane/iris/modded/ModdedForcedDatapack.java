@@ -324,7 +324,7 @@ public final class ModdedForcedDatapack {
                 false
         );
         digest.update(inputFingerprint.getBytes(StandardCharsets.UTF_8));
-        digest.update(ModdedDimensionTakeovers.fingerprint(ModdedDimensionTakeovers.configured())
+        digest.update(ModdedDimensionReplacements.fingerprint(ModdedDimensionReplacements.configured())
                 .getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(digest.digest());
     }
@@ -335,7 +335,7 @@ public final class ModdedForcedDatapack {
 
         int packCount = 0;
         KList<String> presetIds = new KList<>();
-        ModdedDimensionTakeovers.StagedTypes stagedDimensionTypes = ModdedDimensionTakeovers.StagedTypes.create();
+        ModdedDimensionReplacements.StagedTypes stagedDimensionTypes = ModdedDimensionReplacements.StagedTypes.create();
         Path worldRoot = worldRootOrNull();
         Set<PackSelection> legacySelections = unadoptedSelections(worldRoot);
         List<File> packRoots = compilationPackRoots(worldRoot);
@@ -346,8 +346,8 @@ public final class ModdedForcedDatapack {
             }
         }
         if (!ModdedEngineBootstrap.loader().clientEnvironment()) {
-            ModdedDimensionTakeovers.writeLevelStems(stagingDirectory,
-                    ModdedDimensionTakeovers.configured(), stagedDimensionTypes, worldRoot);
+            ModdedDimensionReplacements.writeLevelStems(stagingDirectory,
+                    ModdedDimensionReplacements.configured(), stagedDimensionTypes, worldRoot);
         }
 
         IrisDatapackCompiler.installRetainedRegistrySources(packRoots, List.of(stagingDirectory.toFile()), fixer);
@@ -370,7 +370,7 @@ public final class ModdedForcedDatapack {
     private static boolean stagePack(PackStageContext context, IDataFixer fixer, Path stagingDirectory,
                                      Map<String, KSet<String>> seenBiomes,
                                      KList<String> presetIds,
-                                     ModdedDimensionTakeovers.StagedTypes stagedDimensionTypes) throws IOException {
+                                     ModdedDimensionReplacements.StagedTypes stagedDimensionTypes) throws IOException {
         File sourcePack = context.packRoot().toFile();
         PackValidationResult validation;
         try {
@@ -400,7 +400,7 @@ public final class ModdedForcedDatapack {
                 stagingDirectory.getParent(), PACK_FOLDER + ".pack-" + sourcePack.getName() + "-");
         Map<String, KSet<String>> packBiomes = new LinkedHashMap<>();
         KList<String> packPresetIds = new KList<>();
-        ModdedDimensionTakeovers.StagedTypes packDimensionTypes = ModdedDimensionTakeovers.StagedTypes.create();
+        ModdedDimensionReplacements.StagedTypes packDimensionTypes = ModdedDimensionReplacements.StagedTypes.create();
         KList<File> packFolders = new KList<>();
         packFolders.add(packStagingDirectory.toFile());
         boolean installed;
@@ -484,7 +484,7 @@ public final class ModdedForcedDatapack {
     private static boolean installPack(PackStageContext context, IDataFixer fixer, KList<File> folders,
                                        Map<String, KSet<String>> seenBiomes,
                                        KList<String> presetIds,
-                                       ModdedDimensionTakeovers.StagedTypes dimensionTypes) throws IOException {
+                                       ModdedDimensionReplacements.StagedTypes dimensionTypes) throws IOException {
         File packFolder = context.packRoot().toFile();
         String packName = context.packName();
         File dimensionsDirectory = new File(packFolder, "dimensions");

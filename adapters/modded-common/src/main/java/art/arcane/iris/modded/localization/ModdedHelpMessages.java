@@ -390,10 +390,6 @@ public final class ModdedHelpMessages {
             "iris.modded.help.entry.command.mainworld",
             "Configure or clear the Iris primary-world preset used on restart"
     );
-    public static final TextKey COMMAND_TAKEOVER_REPLACE_AN_EXISTING_DIMENSION_WITH_AN_IRIS_PACK = TextKey.of(
-            "iris.modded.help.entry.command.takeover",
-            "Take over an existing dimension with an Iris pack on the next restart, or turn it off"
-    );
     public static final TextKey COMMAND_OBJECT_WE_BUKKIT_ONLY = TextKey.of(
             "iris.modded.help.entry.command.object.we",
             "Explain why WorldEdit selection import requires the Bukkit plugin"
@@ -520,7 +516,6 @@ public final class ModdedHelpMessages {
             COMMAND_HEIGHT_PRINT_WORLD_HEIGHT,
             COMMAND_WORLDS_LIST_WORLD_ACCESS,
             COMMAND_MAINWORLD_CONFIGURE_PRIMARY_WORLD_PRESET,
-            COMMAND_TAKEOVER_REPLACE_AN_EXISTING_DIMENSION_WITH_AN_IRIS_PACK,
             COMMAND_OBJECT_WE_BUKKIT_ONLY,
             COMMAND_OBJECT_STUDIO_BUKKIT_ONLY,
             COMMAND_OBJECT_CONVERT_BUKKIT_ONLY,

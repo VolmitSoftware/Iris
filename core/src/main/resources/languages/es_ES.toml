@@ -449,7 +449,6 @@ operator_instruction = "Ejecuta {command} desde la consola (o activa los trucos 
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
-"entry.command.takeover" = "Tomar el control de una dimensión existente con un pack de Iris en el próximo reinicio, o desactivarlo"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1112,10 +1111,6 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "No hay dimension
 loaded_iris_dimensions = "Dimensiones de Iris cargadas: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Usa /iris world create <name> <pack> para inyectar una sin reiniciar."
-takeover_set = "Toma de control de Iris de {dimensionId} asignada al pack '{pack}', dimensión '{packDimension}'."
-takeover_cleared = "Toma de control de Iris de {dimensionId} desactivada; el generador propio de la dimensión vuelve en el próximo reinicio."
-takeover_not_configured = "No hay ninguna toma de control de Iris configurada para {dimensionId}."
-takeover_restart_required = "Se requiere reiniciar: en el próximo inicio, los datos de chunks, entidades, POI e Iris Mantle de la dimensión se mueven a una carpeta de recuperación y se regeneran. Los datos de los jugadores se conservan."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Descargar y gestionar importaciones externas de datapacks (Modrinth)"

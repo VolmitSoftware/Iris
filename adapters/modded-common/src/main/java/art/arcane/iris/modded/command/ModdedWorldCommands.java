@@ -26,9 +26,6 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 import art.arcane.iris.modded.MainWorldService;
-import art.arcane.iris.modded.ModdedDimensionTakeover;
-import art.arcane.iris.modded.ModdedDimensionTakeovers;
-import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedModConfig;
@@ -47,7 +44,6 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +59,6 @@ public final class ModdedWorldCommands {
     private static final String DEFAULT_NAMESPACE = "irisworldgen";
     private static final long DEFAULT_SEED = 1337L;
     private static final SuggestionProvider<NativeCommandSource> LOADED_DIMENSIONS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> NativeCommandRegistration.suggest(loadedIrisDimensions(context.getSource().server()), builder);
-    private static final SuggestionProvider<NativeCommandSource> ALL_DIMENSIONS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> NativeCommandRegistration.suggest(allDimensions(context.getSource().server()), builder);
 
     private ModdedWorldCommands() {
     }
@@ -85,7 +80,6 @@ public final class ModdedWorldCommands {
         root.then(updateTree());
         root.then(replaceOverworldTree());
         root.then(mainWorldTree());
-        root.then(takeoverTree());
 
         root.then(disableTree());
         root.then(deleteTree("delete"));
@@ -160,18 +154,6 @@ public final class ModdedWorldCommands {
                                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> mainWorld(context.getSource(),
                                         StringArgumentType.getString(context, "pack"),
                                         StringArgumentType.getString(context, "seed"))))));
-    }
-
-    private static LiteralArgumentBuilder<NativeCommandSource> takeoverTree() {
-        return NativeCommandRegistration.literal("takeover")
-                .then(NativeCommandRegistration.argument("dimension", NativeCommandArguments.identifier()).suggests(ALL_DIMENSIONS)
-                        .then(NativeCommandRegistration.literal("off")
-                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> clearTakeover(context.getSource(),
-                                        dimensionArgument(context)))))
-                        .then(NativeCommandRegistration.argument("pack", StringArgumentType.greedyString()).suggests(IrisModdedCommands.PACK_NAMES)
-                                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> takeover(context.getSource(),
-                                        dimensionArgument(context),
-                                        StringArgumentType.getString(context, "pack"))))));
     }
 
     public static int createWorld(NativeCommandSource source, String name, String pack, long seed) {
@@ -304,62 +286,6 @@ public final class ModdedWorldCommands {
         return 1;
     }
 
-    private static int takeover(NativeCommandSource source, String targetDimension, String packRaw) {
-        ModdedDimensionTakeover takeover;
-        try {
-            takeover = ModdedDimensionTakeover.parse(normalizeDimensionId(targetDimension), packRaw);
-        } catch (IllegalArgumentException invalid) {
-            IrisModdedCommands.fail(source, invalid.getMessage());
-            return 0;
-        }
-        String pack = takeover.pack();
-        if (!new File(ModdedPackCommands.packsRoot(), pack).isDirectory()) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(
-                    ModdedCommandMessages.MODDED_WORLD_COMMANDS_REQUIRED_PACK_IS_NOT_INSTALLED_INSTALL_THEN_RESTART,
-                    MessageArgument.untrusted("pack", pack)));
-            return 0;
-        }
-        if (blockIfPackBroken(source, takeover.levelKey(), pack) || !loadPackDimension(source, pack, takeover.packDimension())) {
-            return 0;
-        }
-        ModdedDimensionTakeover canonical;
-        try {
-            canonical = ModdedDimensionTakeovers.canonical(takeover, ModdedPackCommands.packsRoot().toPath());
-        } catch (IOException unreadable) {
-            ModdedIrisLog.error("Iris could not resolve the takeover pack {} for {}", takeover.packRef(), takeover.levelKey(), unreadable);
-            IrisModdedCommands.fail(source, IrisLanguage.errorDetail(unreadable));
-            return 0;
-        }
-        ModdedModConfig.setDimensionTakeover(canonical);
-        ModdedForcedDatapack.scheduleRegeneration("dimension takeover of " + canonical.levelKey());
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_SET,
-                MessageArgument.untrusted("dimensionId", canonical.levelKey()),
-                MessageArgument.untrusted("pack", canonical.pack()),
-                MessageArgument.untrusted("packDimension", canonical.packDimension())));
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_RESTART_REQUIRED));
-        return 1;
-    }
-
-    private static int clearTakeover(NativeCommandSource source, String targetDimension) {
-        String dimensionId;
-        try {
-            dimensionId = normalizeDimensionId(targetDimension);
-        } catch (IllegalArgumentException invalid) {
-            IrisModdedCommands.fail(source, invalid.getMessage());
-            return 0;
-        }
-        if (!ModdedModConfig.clearDimensionTakeover(dimensionId)) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_NOT_CONFIGURED,
-                    MessageArgument.untrusted("dimensionId", dimensionId)));
-            return 0;
-        }
-        ModdedForcedDatapack.scheduleRegeneration("dimension takeover of " + dimensionId + " turned off");
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_CLEARED,
-                MessageArgument.untrusted("dimensionId", dimensionId)));
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_RESTART_REQUIRED));
-        return 1;
-    }
-
     private static int clearMainWorld(NativeCommandSource source) {
         ModdedModConfig.setMainWorld("", 0L);
         MainWorldService.clearOverride();
@@ -437,7 +363,7 @@ public final class ModdedWorldCommands {
         return 1;
     }
 
-    private static boolean blockIfPackBroken(NativeCommandSource source, String dimensionId, String pack) {
+    static boolean blockIfPackBroken(NativeCommandSource source, String dimensionId, String pack) {
         try {
             ModdedStartup.requirePackForWorldCreation(pack);
             return false;
@@ -568,15 +494,6 @@ public final class ModdedWorldCommands {
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_USE_IRIS_WORLD_CREATE_NAME_PACK_INJECT_ONE_WITHOUT_RESTARTING));
         }
         return 1;
-    }
-
-    private static List<String> allDimensions(NativeModdedServer server) {
-        List<String> dimensions = new ArrayList<>();
-        for (NativeWorld level : server.worlds()) {
-            dimensions.add(level.name());
-        }
-        dimensions.addAll(ModdedModConfig.get().dimensionTakeovers().keySet());
-        return dimensions.stream().distinct().sorted().toList();
     }
 
     private static List<String> loadedIrisDimensions(NativeModdedServer server) {

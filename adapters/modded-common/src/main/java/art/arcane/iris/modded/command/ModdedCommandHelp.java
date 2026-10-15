@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.localization.DirectorCommandMessages;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.IrisMessages;
 import art.arcane.iris.modded.localization.ModdedCatalogMessages;
@@ -79,6 +80,7 @@ final class ModdedCommandHelp {
                 Entry.group("object", ModdedHelpMessages.GROUP_OBJECT_OBJECT_WAND_SAVE_PASTE_ANALYZE_AND_UNDO_TOOLS, "o"),
                 Entry.group("edit", ModdedHelpMessages.GROUP_EDIT_OPEN_PACK_BIOME_REGION_AND_DIMENSION_JSON_FILES_IN_YOUR_DESKTOP_EDITOR),
                 Entry.command("create", "<name> [pack|pack:dimensionKey] [seed]", ModdedHelpMessages.COMMAND_CREATE_CREATE_AND_INJECT_A_PERSISTENT_IRIS_DIMENSION_QUOTE_PACK_DIMENSIONKEY_TO_PICK, "c"),
+                Entry.command("replace", "<target> [type=<pack|pack:dimensionKey|off>] [seed=<seed>]", DirectorCommandMessages.COMMAND_IRIS_PARAM_REPLACE_EXACT_EXISTING_WORLD_SLOT_NEXT_RESTART, "override", "overwrite"),
                 Entry.command("height", "", ModdedHelpMessages.COMMAND_HEIGHT_PRINT_WORLD_HEIGHT),
                 Entry.command("worlds", "", ModdedHelpMessages.COMMAND_WORLDS_LIST_WORLD_ACCESS, "accesslist"),
                 Entry.group("studio", ModdedHelpMessages.GROUP_STUDIO_PACK_PROJECT_CREATION_PACKAGING_AND_REPORTS, "std", "s"),
@@ -175,7 +177,6 @@ final class ModdedCommandHelp {
                 Entry.command("enable", "<dimension> <pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_ENABLE_CREATE_AND_INJECT_A_PERSISTENT_IRIS_DIMENSION_AT_RUNTIME_DOWNLOADS_THE_PACK, "create"),
                 Entry.command("replace-overworld", "<pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_REPLACE_OVERWORLD_INJECT_AN_IRIS_PRIMARY_WORLD_AND_ROUTE_PLAYERS_THERE_INSTEAD_OF_THE),
                 Entry.command("mainworld", "<pack|pack:dimensionKey|off> [seed|random]", ModdedHelpMessages.COMMAND_MAINWORLD_CONFIGURE_PRIMARY_WORLD_PRESET),
-                Entry.command("takeover", "<dimension> <pack|pack:dimensionKey|off>", ModdedHelpMessages.COMMAND_TAKEOVER_REPLACE_AN_EXISTING_DIMENSION_WITH_AN_IRIS_PACK),
                 Entry.command("disable", "<dimension>", ModdedHelpMessages.COMMAND_DISABLE_EVACUATE_AND_UNLOAD_AN_IRIS_DIMENSION_WORLD_DATA_ON_DISK_IS_KEPT),
                 Entry.command("delete", "<dimension>", ModdedHelpMessages.COMMAND_DELETE_DISABLE_AN_IRIS_DIMENSION_AND_WIPE_ITS_CHUNK_AND_MANTLE_DATA_FROM, "remove", "rm"),
                 Entry.command("list", "", ModdedHelpMessages.COMMAND_LIST_LIST_LOADED_IRIS_DIMENSIONS, "ls"),

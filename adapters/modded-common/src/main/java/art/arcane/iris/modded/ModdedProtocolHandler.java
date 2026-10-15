@@ -127,6 +127,7 @@ public final class ModdedProtocolHandler {
         if (player == null || ModdedPrimaryWorldRouter.refuseIfUnavailable(player)) {
             return;
         }
+        ModdedReplacementEntry.onPlayerJoin(ModdedEngineBootstrap.currentServer(), player);
         String sessionId = sessionId(player);
         ModdedStartup.warnStartupFailuresTo(player);
         ModdedPackUpdateService packUpdates = ModdedEngineBootstrap.services().service(ModdedPackUpdateService.class);

@@ -452,7 +452,6 @@ operator_instruction = "Chạy {command} từ bàn giao tiếp (hoặc kích ho�
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
-"entry.command.takeover" = "Tiếp quản một chiều không gian hiện có bằng gói Iris ở lần khởi động lại tiếp theo, hoặc tắt việc tiếp quản"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1115,10 +1114,6 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Không Iris Kíc
 loaded_iris_dimensions = "Đã nạp Iris Kích thước: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Dùng /iris world create <name> <pack> tiêm một mũi mà không khởi động lại."
-takeover_set = "Đã đặt Iris tiếp quản {dimensionId} bằng gói '{pack}', chiều không gian '{packDimension}'."
-takeover_cleared = "Đã tắt Iris tiếp quản {dimensionId}; bộ tạo riêng của chiều không gian sẽ trở lại ở lần khởi động lại tiếp theo."
-takeover_not_configured = "Không có Iris tiếp quản nào được cấu hình cho {dimensionId}."
-takeover_restart_required = "Cần khởi động lại: ở lần khởi động tiếp theo, dữ liệu chunk, thực thể, POI và Iris Mantle của chiều không gian sẽ được chuyển vào thư mục khôi phục và tạo lại. Dữ liệu người chơi được giữ nguyên."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Tải về & Quản lý các tập dữ liệu bên ngoài (Modrinth)"

@@ -26,64 +26,72 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ModdedModConfigTest {
     @Test
-    public void validTakeoversLoadWithoutProblems() throws IOException {
-        Path file = config("{\"dimensionTakeovers\": {\"aether:the_aether\": \"overworld:sky\"}}");
+    public void validReplacementsLoadWithoutProblems() throws IOException {
+        Path file = config("{\"dimensionReplacements\": {\"aether:the_aether\": {\"type\": \"overworld:sky\"},"
+                + " \"minecraft:overworld\": {\"type\": \"overworld\", \"seed\": -42}}}");
         try {
             ModdedModConfig config = ModdedModConfig.read(file);
 
-            assertEquals(Map.of("aether:the_aether", "overworld:sky"), config.dimensionTakeovers());
-            assertEquals(List.of(), config.takeoverProblems());
+            assertEquals(Map.of(
+                    "aether:the_aether", ModdedDimensionReplacement.parse("aether:the_aether", "overworld:sky", OptionalLong.empty()),
+                    "minecraft:overworld", ModdedDimensionReplacement.parse("minecraft:overworld", "overworld", OptionalLong.of(-42L))),
+                    config.dimensionReplacements());
+            assertEquals(List.of(), config.replacementProblems());
         } finally {
-            ModdedTakeoverReconcilerTest.deleteTree(file.getParent());
+            ModdedReplacementReconcilerTest.deleteTree(file.getParent());
         }
     }
 
     @Test
     public void unparseableConfigReportsAProblemNamingTheFile() throws IOException {
-        Path file = config("{\"dimensionTakeovers\": {\"aether:the_aether\": ");
+        Path file = config("{\"dimensionReplacements\": {\"aether:the_aether\": ");
         try {
             ModdedModConfig config = ModdedModConfig.read(file);
 
-            assertEquals(Map.of(), config.dimensionTakeovers());
-            assertEquals(1, config.takeoverProblems().size());
-            assertTrue(config.takeoverProblems().getFirst(), config.takeoverProblems().getFirst().contains(file.toString()));
+            assertEquals(Map.of(), config.dimensionReplacements());
+            assertEquals(1, config.replacementProblems().size());
+            assertTrue(config.replacementProblems().getFirst(), config.replacementProblems().getFirst().contains(file.toString()));
         } finally {
-            ModdedTakeoverReconcilerTest.deleteTree(file.getParent());
+            ModdedReplacementReconcilerTest.deleteTree(file.getParent());
         }
     }
 
     @Test
-    public void invalidTakeoverEntryIsReportedInsteadOfSilentlyDropped() throws IOException {
-        Path file = config("{\"dimensionTakeovers\": {\"aether:the_aether\": \"overworld\", \"Broken Key\": \"overworld\"}}");
+    public void invalidReplacementEntriesAreReportedInsteadOfSilentlyDropped() throws IOException {
+        Path file = config("{\"dimensionReplacements\": {\"aether:the_aether\": {\"type\": \"overworld\"},"
+                + " \"Broken Key\": {\"type\": \"overworld\"}, \"aether:plain\": \"overworld\"}}");
         try {
             ModdedModConfig config = ModdedModConfig.read(file);
 
-            assertEquals(Map.of("aether:the_aether", "overworld"), config.dimensionTakeovers());
-            assertEquals(1, config.takeoverProblems().size());
-            assertTrue(config.takeoverProblems().getFirst(), config.takeoverProblems().getFirst().contains("Broken Key"));
-            assertTrue(config.takeoverProblems().getFirst(), config.takeoverProblems().getFirst().contains(file.toString()));
+            assertEquals(Map.of("aether:the_aether", ModdedDimensionReplacement.parse("aether:the_aether", "overworld",
+                    OptionalLong.empty())), config.dimensionReplacements());
+            assertEquals(2, config.replacementProblems().size());
+            assertTrue(config.replacementProblems().toString(), config.replacementProblems().get(0).contains("Broken Key"));
+            assertTrue(config.replacementProblems().toString(), config.replacementProblems().get(1).contains("aether:plain"));
+            assertTrue(config.replacementProblems().getFirst(), config.replacementProblems().getFirst().contains(file.toString()));
         } finally {
-            ModdedTakeoverReconcilerTest.deleteTree(file.getParent());
+            ModdedReplacementReconcilerTest.deleteTree(file.getParent());
         }
     }
 
     @Test
-    public void takeoverSectionThatIsNotAnObjectIsReported() throws IOException {
-        Path file = config("{\"dimensionTakeovers\": [\"aether:the_aether\"]}");
+    public void replacementSectionThatIsNotAnObjectIsReported() throws IOException {
+        Path file = config("{\"dimensionReplacements\": [\"aether:the_aether\"]}");
         try {
             ModdedModConfig config = ModdedModConfig.read(file);
 
-            assertEquals(Map.of(), config.dimensionTakeovers());
-            assertEquals(1, config.takeoverProblems().size());
-            assertTrue(config.takeoverProblems().getFirst(), config.takeoverProblems().getFirst().contains("dimensionTakeovers"));
+            assertEquals(Map.of(), config.dimensionReplacements());
+            assertEquals(1, config.replacementProblems().size());
+            assertTrue(config.replacementProblems().getFirst(), config.replacementProblems().getFirst().contains("dimensionReplacements"));
         } finally {
-            ModdedTakeoverReconcilerTest.deleteTree(file.getParent());
+            ModdedReplacementReconcilerTest.deleteTree(file.getParent());
         }
     }
 

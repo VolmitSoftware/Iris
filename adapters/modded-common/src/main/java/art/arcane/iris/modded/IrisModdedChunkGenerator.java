@@ -100,6 +100,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -477,6 +478,7 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
                 return existing;
             }
             try {
+                applyReplacementSeed(level);
                 Engine created = ModdedWorldEngines.get(
                         level,
                         activePack,
@@ -508,6 +510,16 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
                 }
                 throw new IllegalStateException("Iris generator '" + dimensionKey + "' failed to bind", error);
             }
+        }
+    }
+
+    private void applyReplacementSeed(NativeWorld level) {
+        if (seedOverride != Long.MIN_VALUE) {
+            return;
+        }
+        OptionalLong replacementSeed = ModdedDimensionReplacements.loadedSeed(level.name());
+        if (replacementSeed.isPresent()) {
+            seedOverride = replacementSeed.getAsLong();
         }
     }
 

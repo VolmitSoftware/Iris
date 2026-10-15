@@ -7,6 +7,7 @@ import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,8 +32,18 @@ public class ModdedPackValidationPublicationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private final AtomicReference<String> context = new AtomicReference<>("context");
+    private MockedStatic<PackValidationCache> cache;
+
+    @Before
+    public void pinValidationContext() {
+        cache = mockStatic(PackValidationCache.class);
+        cache.when(PackValidationCache::contextFingerprint).thenAnswer(ignored -> context.get());
+    }
+
     @After
     public void clearValidation() {
+        cache.close();
         PackValidationRegistry.clear();
     }
 
@@ -71,12 +82,10 @@ public class ModdedPackValidationPublicationTest {
     @Test
     public void snapshotValidationReparsesChangedRegistryContext() throws Exception {
         File root = temporaryFolder.newFolder("snapshot");
-        AtomicReference<String> context = new AtomicReference<>("first");
+        context.set("first");
         PackValidationResult first = loadable(root);
         PackValidationResult second = loadable(root);
-        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class);
-             MockedStatic<PackValidationCache> cache = mockStatic(PackValidationCache.class)) {
-            cache.when(PackValidationCache::contextFingerprint).thenAnswer(ignored -> context.get());
+        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
             validator.when(() -> PackValidator.validate(root)).thenReturn(first, second);
             assertSame(first, ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
             context.set("second");

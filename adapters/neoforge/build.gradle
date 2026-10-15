@@ -248,6 +248,7 @@ tasks.named('compileJava', JavaCompile).configure {
 tasks.named('test').configure {
     useJUnitPlatform()
     classpath = classpath.minus(developmentModLibraries).plus(sourceSets.modLibraries.output)
+    exclude('art/arcane/volmlib/nativelib/minecraft26_2/modded/mixin/**')
 }
 
 processResources {

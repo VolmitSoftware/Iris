@@ -475,6 +475,7 @@ ingest_invalid = "Ongeldige argumenten: {reason}. Gebruik: /iris ingest mods <so
 ingest_pack_missing = "Pack '{pack}' is niet gevonden in {path}."
 ingest_started = "Wereldgeneratie van mods wordt overgenomen van '{source}' naar '{target}' (dimensie {dimension})..."
 ingest_failed = "Overnemen van mods mislukt: {reason}"
+ingest_target_exists = "Doelpack '{target}' bestaat al. Voeg replace=true toe om het te overschrijven."
 ingest_line = "  {summary}"
 ingest_complete = "Overnemen van mods voltooid: {path}"
 

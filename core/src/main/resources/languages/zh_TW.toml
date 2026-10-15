@@ -478,6 +478,7 @@ ingest_invalid = "參數無效：{reason}。用法：/iris ingest mods <source> 
 ingest_pack_missing = "在 {path} 下找不到包 '{pack}'。"
 ingest_started = "正在將模組世界生成從 '{source}' 匯入 '{target}'（維度 {dimension}）..."
 ingest_failed = "模組匯入失敗：{reason}"
+ingest_target_exists = "目標包 '{target}' 已存在。加入 replace=true 以覆寫它。"
 ingest_line = "  {summary}"
 ingest_complete = "模組匯入完成：{path}"
 

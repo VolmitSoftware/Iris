@@ -478,6 +478,7 @@ ingest_invalid = "引数が無効です: {reason}。使い方: /iris ingest mods
 ingest_pack_missing = "パック '{pack}' が {path} に見つかりません。"
 ingest_started = "'{source}' から '{target}' へ Mod のワールド生成を取り込んでいます (ディメンション {dimension})..."
 ingest_failed = "Mod の取り込みに失敗しました: {reason}"
+ingest_target_exists = "出力先パック '{target}' はすでに存在します。上書きするには replace=true を追加してください。"
 ingest_line = "  {summary}"
 ingest_complete = "Mod の取り込みが完了しました: {path}"
 

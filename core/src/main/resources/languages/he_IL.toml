@@ -480,6 +480,7 @@ ingest_invalid = "ארגומנטים לא תקינים: {reason}. שימוש: /i
 ingest_pack_missing = "החבילה '{pack}' לא נמצאה תחת {path}."
 ingest_started = "מייבא את יצירת העולם של המודים מ-'{source}' אל '{target}' (ממד {dimension})..."
 ingest_failed = "ייבוא המודים נכשל: {reason}"
+ingest_target_exists = "חבילת היעד '{target}' כבר קיימת. הוסף replace=true כדי לדרוס אותה."
 ingest_line = "  {summary}"
 ingest_complete = "ייבוא המודים הסתיים: {path}"
 

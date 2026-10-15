@@ -475,6 +475,7 @@ ingest_invalid = "Ungültige Argumente: {reason}. Verwendung: /iris ingest mods 
 ingest_pack_missing = "Pack '{pack}' wurde unter {path} nicht gefunden."
 ingest_started = "Übernehme Mod-Worldgen aus '{source}' in '{target}' (Dimension {dimension})..."
 ingest_failed = "Mod-Übernahme fehlgeschlagen: {reason}"
+ingest_target_exists = "Ziel-Pack '{target}' existiert bereits. Füge replace=true hinzu, um es zu überschreiben."
 ingest_line = "  {summary}"
 ingest_complete = "Mod-Übernahme abgeschlossen: {path}"
 

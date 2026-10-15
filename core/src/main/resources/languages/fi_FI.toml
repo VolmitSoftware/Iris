@@ -480,6 +480,7 @@ ingest_invalid = "Virheelliset argumentit: {reason}. Käyttö: /iris ingest mods
 ingest_pack_missing = "Pakettia '{pack}' ei löytynyt kohteesta {path}."
 ingest_started = "Tuodaan modien maailmangenerointi paketista '{source}' pakettiin '{target}' (ulottuvuus {dimension})..."
 ingest_failed = "Modien tuonti epäonnistui: {reason}"
+ingest_target_exists = "Kohdepaketti '{target}' on jo olemassa. Lisää replace=true korvataksesi sen."
 ingest_line = "  {summary}"
 ingest_complete = "Modien tuonti valmis: {path}"
 

@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 record ModIngestArguments(String sourcePack, String targetPack, String dimension, Set<String> namespaces, boolean replace) {
     static final List<String> OPTION_SUGGESTIONS = List.of("dimension=", "namespaces=", "replace=true");
     private static final Pattern PACK = Pattern.compile("[A-Za-z0-9_.-]+");
+    private static final Pattern TARGET_PACK = Pattern.compile("[A-Za-z0-9_-]+");
     private static final Pattern DIMENSION = Pattern.compile("[A-Za-z0-9_/.-]+");
     private static final Pattern NAMESPACE = Pattern.compile("[a-z0-9_.-]+");
     private static final String DIMENSION_KEY = "dimension";
@@ -76,6 +77,9 @@ record ModIngestArguments(String sourcePack, String targetPack, String dimension
         }
         requirePack(source);
         requirePack(target);
+        if (!TARGET_PACK.matcher(target).matches()) {
+            throw new IllegalArgumentException("invalid target pack name '" + target + "'");
+        }
         if (source.equals(target)) {
             throw new IllegalArgumentException("source and target must be different packs");
         }

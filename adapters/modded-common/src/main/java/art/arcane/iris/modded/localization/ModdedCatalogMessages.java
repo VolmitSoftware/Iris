@@ -91,6 +91,10 @@ public final class ModdedCatalogMessages {
             "iris.modded.catalog.ingest_failed",
             "Mod ingest failed: {reason}"
     );
+    public static final TextKey INGEST_TARGET_EXISTS = TextKey.of(
+            "iris.modded.catalog.ingest_target_exists",
+            "Target pack '{target}' already exists. Add replace=true to overwrite it."
+    );
     public static final TextKey INGEST_LINE = TextKey.of(
             "iris.modded.catalog.ingest_line",
             "  {summary}"
@@ -129,6 +133,7 @@ public final class ModdedCatalogMessages {
             INGEST_PACK_MISSING,
             INGEST_STARTED,
             INGEST_FAILED,
+            INGEST_TARGET_EXISTS,
             INGEST_LINE,
             INGEST_COMPLETE,
             HELP_CATALOG,

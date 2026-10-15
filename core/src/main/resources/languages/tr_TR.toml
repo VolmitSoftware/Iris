@@ -480,6 +480,7 @@ ingest_invalid = "Geçersiz argümanlar: {reason}. Kullanım: /iris ingest mods 
 ingest_pack_missing = "'{pack}' paketi {path} altında bulunamadı."
 ingest_started = "Mod dünya oluşturması '{source}' paketinden '{target}' paketine aktarılıyor (boyut {dimension})..."
 ingest_failed = "Mod aktarımı başarısız oldu: {reason}"
+ingest_target_exists = "Hedef paket '{target}' zaten var. Üzerine yazmak için replace=true ekleyin."
 ingest_line = "  {summary}"
 ingest_complete = "Mod aktarımı tamamlandı: {path}"
 

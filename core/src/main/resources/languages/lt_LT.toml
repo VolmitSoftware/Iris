@@ -480,6 +480,7 @@ ingest_invalid = "Netinkami argumentai: {reason}. Naudojimas: /iris ingest mods 
 ingest_pack_missing = "Paketas '{pack}' nerastas {path}."
 ingest_started = "Perkeliamas modų pasaulio generavimas iš '{source}' į '{target}' (dimensija {dimension})..."
 ingest_failed = "Modų perkėlimas nepavyko: {reason}"
+ingest_target_exists = "Paskirties paketas '{target}' jau egzistuoja. Pridėk replace=true, kad jį perrašytum."
 ingest_line = "  {summary}"
 ingest_complete = "Modų perkėlimas baigtas: {path}"
 

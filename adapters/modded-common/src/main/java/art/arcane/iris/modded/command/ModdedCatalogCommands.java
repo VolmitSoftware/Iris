@@ -43,6 +43,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -211,6 +212,9 @@ final class ModdedCatalogCommands {
         try {
             ModIngestReport report = ModIngester.ingest(request);
             source.execute(() -> reportIngest(source, report));
+        } catch (FileAlreadyExistsException exists) {
+            source.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCatalogMessages.INGEST_TARGET_EXISTS,
+                    MessageArgument.untrusted("target", request.targetPack().getFileName().toString()))));
         } catch (IOException | RuntimeException failure) {
             ModdedIrisLog.error("Iris mod ingest into " + request.targetPack() + " failed", failure);
             String reason = reason(failure);

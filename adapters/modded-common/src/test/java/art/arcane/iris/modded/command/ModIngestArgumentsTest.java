@@ -68,6 +68,7 @@ public class ModIngestArgumentsTest {
     public void valuesAreValidated() {
         assertEquals("replace must be true or false", reason("overworld modded replace=yes"));
         assertEquals("invalid pack name '../evil'", reason("../evil modded"));
+        assertEquals("invalid target pack name 'modded.v2'", reason("overworld modded.v2"));
         assertEquals("invalid dimension key 'a..b'", reason("overworld modded dimension=a..b"));
         assertEquals("invalid namespace 'Bad'", reason("overworld modded namespaces=ok,Bad"));
         assertEquals("namespaces must not be empty", reason("overworld modded namespaces=,"));

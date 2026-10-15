@@ -475,6 +475,7 @@ ingest_invalid = "Argumentos inválidos: {reason}. Utilização: /iris ingest mo
 ingest_pack_missing = "O pack '{pack}' não foi encontrado em {path}."
 ingest_started = "A importar a geração de mods de '{source}' para '{target}' (dimensão {dimension})..."
 ingest_failed = "A importação de mods falhou: {reason}"
+ingest_target_exists = "O pack de destino '{target}' já existe. Adiciona replace=true para o substituir."
 ingest_line = "  {summary}"
 ingest_complete = "Importação de mods concluída: {path}"
 

@@ -478,6 +478,7 @@ ingest_invalid = "잘못된 인수: {reason}. 사용법: /iris ingest mods <sour
 ingest_pack_missing = "{path}에서 팩 '{pack}'을(를) 찾을 수 없습니다."
 ingest_started = "'{source}'에서 '{target}'(으)로 모드 월드 생성을 가져오는 중 (차원 {dimension})..."
 ingest_failed = "모드 가져오기에 실패했습니다: {reason}"
+ingest_target_exists = "대상 팩 '{target}'이(가) 이미 있습니다. 덮어쓰려면 replace=true를 추가하세요."
 ingest_line = "  {summary}"
 ingest_complete = "모드 가져오기 완료: {path}"
 

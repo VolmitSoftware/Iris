@@ -478,6 +478,7 @@ ingest_invalid = "Đối số không hợp lệ: {reason}. Cách dùng: /iris in
 ingest_pack_missing = "Không tìm thấy gói '{pack}' trong {path}."
 ingest_started = "Đang đưa phần tạo thế giới của mod từ '{source}' vào '{target}' (chiều {dimension})..."
 ingest_failed = "Đưa mod vào thất bại: {reason}"
+ingest_target_exists = "Gói đích '{target}' đã tồn tại. Thêm replace=true để ghi đè."
 ingest_line = "  {summary}"
 ingest_complete = "Đã đưa mod vào xong: {path}"
 

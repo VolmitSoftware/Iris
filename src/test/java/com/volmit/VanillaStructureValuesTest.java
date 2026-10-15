@@ -2,22 +2,28 @@ package com.volmit;
 
 import com.volmit.block.BlockState;
 import com.volmit.config.OptionsMetadata;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.service.LocateResult;
+import com.volmit.service.StructureLocator;
+import com.volmit.service.VanillaFeatures;
 import com.volmit.service.VanillaStructures;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.JigsawOverrides;
 import com.volmit.vanilla.StartMemo;
 import com.volmit.vanilla.StartReach;
-import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.VanillaStructureContext;
 import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.vanilla.VanillaStructureSetup;
 import com.volmit.vanilla.VanillaStructureStart;
+import com.volmit.world.PackWorld;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** The values a vanilla structures provider answers with and how the host combines several modules' answers. */
@@ -69,8 +75,8 @@ class VanillaStructureValuesTest {
 
     @Test
     void onlyTheUndergroundStepsAreUnderground() {
-        assertEquals(List.of(StructureStep.UNDERGROUND_STRUCTURES, StructureStep.STRONGHOLDS, StructureStep.UNDERGROUND_DECORATION),
-                java.util.Arrays.stream(StructureStep.values()).filter(StructureStep::isUnderground).toList());
+        assertEquals(List.of(DecorationStep.UNDERGROUND_STRUCTURES, DecorationStep.STRONGHOLDS, DecorationStep.UNDERGROUND_DECORATION),
+                java.util.Arrays.stream(DecorationStep.values()).filter(DecorationStep::isUnderground).toList());
     }
 
     @Test
@@ -122,6 +128,49 @@ class VanillaStructureValuesTest {
         assertEquals(StartReach.PLATFORM, provider.reach(CITY, true, Optional.empty(), null));
         assertEquals(VanillaStructureSetup.UNCHANGED, provider.setup(null));
         assertEquals(VanillaStructureRule.GENERATE, new VanillaStructures() { }.rule(CITY, null));
+        assertEquals(Set.of(), provider.startedStructures(null));
+        assertEquals(Set.of(), provider.locatableStarts(null));
+        assertEquals(LocateResult.NOT_FOUND, provider.locateStart(null, CITY, 0, 0, 8, (chunkX, chunkZ) -> true));
+    }
+
+    @Test
+    public void aLocatorPlacesWhatItCanLocateUnlessItSaysMore() {
+        StructureLocator locator = new StructureLocator() {
+            @Override
+            public Set<String> structures(PackResources pack) {
+                return Set.of("castle", "tower");
+            }
+
+            @Override
+            public Set<String> locatable(PackWorld world) {
+                return Set.of("castle");
+            }
+
+            @Override
+            public LocateResult locate(PackWorld world, String key, int fromX, int fromZ, int maxRadiusChunks) {
+                return LocateResult.NOT_FOUND;
+            }
+        };
+
+        assertEquals(Set.of("castle"), locator.placed(null));
+    }
+
+    @Test
+    void aFeatureProviderThatSaysNothingLeavesThePlatformsFeaturesOff() {
+        VanillaFeatures silent = new VanillaFeatures() { };
+
+        assertFalse(silent.generates(null));
+        assertTrue(silent.generatesStep(null, Optional.of(DecorationStep.UNDERGROUND_ORES)));
+        assertTrue(silent.generatesStep(null, Optional.empty()));
+        assertTrue(silent.generatesFeature(null, ResourceId.parse("minecraft:ore_diamond")));
+    }
+
+    @Test
+    void everyDecorationStepDescribesItselfForStudio() throws NoSuchFieldException {
+        assertNotNull(DecorationStep.class.getAnnotation(com.volmit.config.Desc.class));
+        for (DecorationStep step : DecorationStep.values()) {
+            assertNotNull(DecorationStep.class.getField(step.name()).getAnnotation(com.volmit.config.Desc.class), step.name());
+        }
     }
 
     private static List<String> names(Class<?> type) {

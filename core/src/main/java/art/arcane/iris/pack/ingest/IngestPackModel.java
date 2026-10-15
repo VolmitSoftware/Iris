@@ -29,6 +29,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +41,9 @@ final class IngestPackModel {
     private static final int DEFAULT_MIN_Y = -64;
     private static final int DEFAULT_MAX_Y = 320;
     private static final String DEFAULT_DERIVATIVE = "minecraft:the_void";
+    private static final Set<String> PLANTABLE_BLOCKS = Set.of("minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt",
+            "minecraft:podzol", "minecraft:rooted_dirt", "minecraft:mycelium", "minecraft:moss_block", "minecraft:pale_moss_block",
+            "minecraft:mud", "minecraft:muddy_mangrove_roots", "minecraft:farmland");
 
     private final IngestPack pack;
     private final WorldgenCatalogIndex index;
@@ -50,6 +54,7 @@ final class IngestPackModel {
     private final int packMaxY;
     private final List<RegionProfile> regions;
     private final Map<String, String> reachableBiomes;
+    private final Map<String, Double> plantableShares = new HashMap<>();
 
     private IngestPackModel(IngestPack pack, WorldgenCatalogIndex index, String dimensionPath, JsonObject dimension,
                             int[] heightRange, List<RegionProfile> regions, Map<String, String> reachableBiomes) {
@@ -113,6 +118,42 @@ final class IngestPackModel {
 
     IngestClimate biomeClimate(String biomeKey) {
         return climateReference(index, reachableBiomes.get(biomeKey)).map(IngestClimate::of).orElse(null);
+    }
+
+    double plantableShare(String biomeKey) throws IOException {
+        Double cached = plantableShares.get(biomeKey);
+        if (cached != null) {
+            return cached;
+        }
+        double share = topLayerPlantableShare(biomeKey);
+        plantableShares.put(biomeKey, share);
+        return share;
+    }
+
+    private double topLayerPlantableShare(String biomeKey) throws IOException {
+        Optional<JsonObject> biome = pack.find(IngestPack.biomePath(biomeKey));
+        JsonElement layers = biome.map((JsonObject value) -> value.get("layers")).orElse(null);
+        if (layers == null || !layers.isJsonArray() || layers.getAsJsonArray().isEmpty()) {
+            return 1D;
+        }
+        JsonObject top = pack.snippet(layers.getAsJsonArray().get(0), "biome-palette");
+        JsonElement palette = top == null ? null : top.get("palette");
+        if (palette == null || !palette.isJsonArray() || palette.getAsJsonArray().isEmpty()) {
+            return 1D;
+        }
+        double total = 0D;
+        double plantable = 0D;
+        for (JsonElement entry : palette.getAsJsonArray()) {
+            if (!entry.isJsonObject() || !entry.getAsJsonObject().has("block")) {
+                continue;
+            }
+            double weight = Math.max(0D, number(entry.getAsJsonObject().get("weight"), 1D));
+            total += weight;
+            if (PLANTABLE_BLOCKS.contains(VanillaJson.namespaced(entry.getAsJsonObject().get("block").getAsString()))) {
+                plantable += weight;
+            }
+        }
+        return total <= 0D ? 1D : plantable / total;
     }
 
     Set<String> biomeCategories(String biomeKey) {

@@ -44,6 +44,7 @@ final class ModBiomeAdopter {
     private static final double REGION_CLIMATE_WEIGHT = 0.25D;
     private static final double REUSE_WEIGHT = 0.05D;
     private static final double THEMED_REGION_PENALTY = 0.6D;
+    private static final double BARE_SURFACE_PENALTY = 3D;
     private static final int THEMED_RARITY_FACTOR = 5;
 
     private final IngestPackModel model;
@@ -71,7 +72,8 @@ final class ModBiomeAdopter {
                 continue;
             }
             BiomeRole role = classification.role();
-            Placement placement = place(role, IngestClimate.of(biome), BiomeCategories.of(biome.tags()));
+            boolean ownsVegetation = ownsVegetation(biome, namespace);
+            Placement placement = place(role, IngestClimate.of(biome), BiomeCategories.of(biome.tags()), ownsVegetation);
             if (placement == null) {
                 items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.SKIPPED, "",
                         "no region in this dimension accepts a " + role.label() + " biome"));
@@ -82,7 +84,7 @@ final class ModBiomeAdopter {
             templateUses.merge(template, 1, Integer::sum);
             String irisKey = irisKey(biome.key());
             JsonObject json = model.pack().require(IngestPack.biomePath(template)).deepCopy();
-            transform(json, biome, ownsVegetation(biome, namespace));
+            transform(json, biome, ownsVegetation);
             model.pack().create(IngestPack.biomePath(irisKey), json);
             appendToPool(region.key(), role, irisKey);
             adopted.put(biome.key(), new AdoptedBiome(biome.key(), irisKey, role, region.key()));
@@ -98,7 +100,7 @@ final class ModBiomeAdopter {
         return INGEST_BIOME_FOLDER + namespace + "/" + modBiomeKey.substring(colon + 1);
     }
 
-    private Placement place(BiomeRole role, IngestClimate climate, Set<String> categories) {
+    private Placement place(BiomeRole role, IngestClimate climate, Set<String> categories, boolean ownsVegetation) throws IOException {
         Placement best = null;
         double bestScore = Double.POSITIVE_INFINITY;
         for (IngestPackModel.RegionProfile region : model.regions()) {
@@ -112,6 +114,7 @@ final class ModBiomeAdopter {
                 double score = climate.distance(templateClimate == null ? region.climate() : templateClimate)
                         + CATEGORY_WEIGHT * BiomeCategories.distance(categories, model.biomeCategories(template))
                         + REUSE_WEIGHT * templateUses.getOrDefault(template, 0)
+                        + (ownsVegetation ? BARE_SURFACE_PENALTY * (1D - model.plantableShare(template)) : 0D)
                         + regionPenalty;
                 if (best == null || score < bestScore) {
                     best = new Placement(region, template);

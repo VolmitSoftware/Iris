@@ -23,6 +23,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.block.BlockState;
 import com.volmit.host.MantleRegistration;
+import art.arcane.iris.builtin.MatterMantle;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleCodec;
@@ -53,7 +54,7 @@ import java.util.stream.Collectors;
  * lose each other's layers. {@link #edit()} buffers changes across layers until they are committed; while an
  * edit is open, the view itself only reads.
  */
-final class IrisModuleMantle implements Mantle {
+final class IrisModuleMantle implements Mantle, MatterMantle {
     private static final int CHUNK_SHIFT = 4;
     private static final int SECTION_SHIFT = 4;
     private static final int LOCAL_MASK = 15;
@@ -65,6 +66,11 @@ final class IrisModuleMantle implements Mantle {
     /** The mantle chunk at chunk coordinates, or null when it is outside what the invocation prepared. */
     interface Chunks {
         MantleChunk<Matter> chunk(int chunkX, int chunkZ);
+
+        /** The chunk if the world holds it in memory, whether or not the invocation reaches it; never loads one. */
+        default MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
+            return null;
+        }
     }
 
     private final BlockBox bounds;
@@ -83,6 +89,16 @@ final class IrisModuleMantle implements Mantle {
     @Override
     public BlockBox bounds() {
         return bounds;
+    }
+
+    @Override
+    public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
+        return chunks.chunk(chunkX, chunkZ);
+    }
+
+    @Override
+    public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
+        return chunks.loadedChunk(chunkX, chunkZ);
     }
 
     @Override

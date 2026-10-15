@@ -22,6 +22,7 @@ import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import com.volmit.mantle.BlockBox;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.TerrainSampler;
@@ -85,6 +86,12 @@ final class IrisTerrainSampler implements TerrainSampler {
                 ids.of(engine.getRegion(worldX, worldZ).getLoadKey()),
                 ids.of(surface.getLoadKey()),
                 cave.map(biome -> ids.of(biome.getLoadKey())));
+    }
+
+    @Override
+    public Optional<ResourceId> caveBiome(int worldX, int y, int worldZ) {
+        requireInside(worldX, y, worldZ);
+        return Optional.ofNullable(engine.getCaveBiome(worldX, y, worldZ)).map(biome -> ids.of(biome.getLoadKey()));
     }
 
     @Override

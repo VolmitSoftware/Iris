@@ -38,6 +38,16 @@ final class BlockStateHunk implements Hunk<BlockState> {
         this.states = states;
     }
 
+    /** Iris's own hunk behind this view, which the built-ins that decorate with Iris's decorators write to. */
+    art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> platform() {
+        return blocks;
+    }
+
+    /** The conversions this chunk's views share. */
+    PlatformBlockStates states() {
+        return states;
+    }
+
     @Override
     public int getWidth() {
         return blocks.getWidth();

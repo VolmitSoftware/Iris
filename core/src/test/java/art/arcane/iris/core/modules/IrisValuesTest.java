@@ -129,6 +129,36 @@ public class IrisValuesTest {
     }
 
     @Test
+    public void signedNoiseIsTheSignedFastReadOfTheIrisGeneratorsNoise() {
+        String json = "{\"style\": \"SIMPLEX\", \"zoom\": 4, \"exponent\": 1.5, \"fracture\": {\"style\": \"PERLIN\", \"zoom\": 2, \"multiplier\": 3}}";
+        IrisData data = packWithoutCustomBlocks();
+        CNG iris = new Gson().fromJson(json, IrisGeneratorStyle.class).create(new RNG(1337), data);
+        NoiseSampler sampler = new IrisNoiseFactory(data).sampler(new Gson().fromJson(json, NoiseStyle.class), 1337);
+
+        for (double[] column : COLUMNS) {
+            assertEquals(iris.noiseFastSigned2D(column[0], column[1]), sampler.signed(column[0], column[1]), 0);
+            assertEquals(iris.noiseFastSigned3D(column[0], 64, column[1]), sampler.signed(column[0], 64, column[1]), 0);
+            assertEquals(iris.noiseFastSigned3D(column[0], 64, column[1]), sampler.signed(column[0], 64, column[1]), 0);
+        }
+    }
+
+    @Test
+    public void scaledNoiseIsTheGeneratorWithTheScaleBakedIn() {
+        String json = "{\"style\": \"CELLULAR_IRIS_DOUBLE\", \"zoom\": 1}";
+        IrisData data = packWithoutCustomBlocks();
+        double scale = 1.5D;
+        CNG baked = new Gson().fromJson(json, IrisGeneratorStyle.class).createNoCache(new RNG(4242), data).bake().scale(scale).bake();
+        NoiseSampler plain = new IrisNoiseFactory(data).sampler(new Gson().fromJson(json, NoiseStyle.class), 4242);
+        NoiseSampler scaled = plain.scaled(scale);
+
+        for (int x = -30; x <= 30; x += 3) {
+            assertEquals(baked.noiseFast2D(x, 7), scaled.sample(x, 7), 0);
+        }
+        assertEquals("the sampler it was made from is left as it was", new Gson().fromJson(json, IrisGeneratorStyle.class)
+                .createNoCache(new RNG(4242), data).noise(9, 4), plain.sample(9, 4), 0);
+    }
+
+    @Test
     public void aStyleNameIrisDoesNotKnowIsFlat() {
         IrisData data = packWithoutCustomBlocks();
         IrisNoiseFactory noise = new IrisNoiseFactory(data);

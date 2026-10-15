@@ -214,8 +214,8 @@ public class DimensionBottomTest {
     }
 
     private void assertSamplesAndBoundsAgree() {
-        assertEquals(List.of(WHOLE_HEIGHT_OF_ONE_CHUNK), terrainBounds);
-        assertEquals("the mantle view covers the same heights as the terrain", terrainBounds, viewBounds);
+        assertEquals("a mantle stage sees the terrain around its chunk, as a chunk stage does", List.of(WHOLE_HEIGHT_AROUND_ONE_CHUNK), terrainBounds);
+        assertEquals(List.of(WHOLE_HEIGHT_OF_ONE_CHUNK), viewBounds);
         assertEquals("the terrain samples count from the same bottom", List.of(Double.valueOf(SURFACE_HEIGHT)), surfaces);
         assertTrue(terrainBounds.getFirst().contains(0, SURFACE_HEIGHT, 0));
     }

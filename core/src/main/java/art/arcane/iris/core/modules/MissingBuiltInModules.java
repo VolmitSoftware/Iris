@@ -43,8 +43,8 @@ final class MissingBuiltInModules {
             return Optional.empty();
         }
         return Optional.of("Pack " + packFolder.getName() + " loads without the built-in modules (" + JAR_NAME + "): its chunks get"
-                + " no objects or structures, no surface smoothing and no clean-up of floating decorations, and its world has no loot,"
-                + " block drops, entity spawns or ambient effects. Copy " + JAR_NAME
+                + " no caves, no objects or structures, no surface smoothing and no clean-up of floating decorations, and its world"
+                + " has no loot, block drops, entity spawns or ambient effects. Copy " + JAR_NAME
                 + " into " + new File(packFolder, PackModuleSet.MODULES_FOLDER).getPath() + " to fix it.");
     }
 }

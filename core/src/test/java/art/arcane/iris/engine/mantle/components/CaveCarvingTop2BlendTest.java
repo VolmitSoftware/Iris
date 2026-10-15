@@ -2,7 +2,6 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.engine.object.value.IrisRange;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -25,7 +24,7 @@ public class CaveCarvingTop2BlendTest {
     @BeforeClass
     public static void setup() throws Exception {
         Class<?> weightedProfileClass = Class.forName("art.arcane.iris.engine.mantle.components.CaveCarving$WeightedProfile");
-        weightedProfileConstructor = weightedProfileClass.getDeclaredConstructor(CaveProfile.class, double[].class, double.class, Class.forName("art.arcane.iris.engine.object.value.IrisRange"), int.class);
+        weightedProfileConstructor = weightedProfileClass.getDeclaredConstructor(CaveProfile.class, double[].class, double.class, com.volmit.config.Range.class, int.class);
         weightedProfileConstructor.setAccessible(true);
         limitMethod = CaveCarving.class.getDeclaredMethod("limitAndMergeBlendedProfiles", List.class, int.class, int.class);
         limitMethod.setAccessible(true);

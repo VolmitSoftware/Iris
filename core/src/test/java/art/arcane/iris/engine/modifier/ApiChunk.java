@@ -18,6 +18,11 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.CaveDressing;
+import art.arcane.iris.builtin.MatterMantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
+import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
@@ -82,6 +87,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
+import static org.mockito.Mockito.mock;
 
 /**
  * One chunk as IrisApi shows it to a chunk stage, held in memory, so the ported built-ins are tested through the surface
@@ -96,6 +102,7 @@ public final class ApiChunk implements GenerationContext {
     private static final ResourceId DIMENSION = ResourceId.parse("test:dimension/overworld");
     private static final ResourceId BIOME = ResourceId.parse("test:biome/plains");
     private static final int TERRAIN_MARGIN = 16;
+    private static final double FLAT_NOISE = 0.5D;
     private static final Set<String> AIRS = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
     private static final Set<String> FLUIDS = Set.of("minecraft:water", "minecraft:lava");
     private static final Set<String> DECORATIONS = Set.of("minecraft:short_grass", "minecraft:poppy", "minecraft:tall_grass",
@@ -197,9 +204,9 @@ public final class ApiChunk implements GenerationContext {
         return TestSettings.with(new PaletteLayer(), "palette", List.of(BlockSpec.of(block.key())), "slopeCondition", slope);
     }
 
-    /** Empty stand-ins for the built-in stages the ported modules order after: carving and floating islands. */
+    /** Empty stand-ins for the built-in stages the ported modules order after or require: terrain and floating islands. */
     public static List<IrisModule> standIns() {
-        return List.of(new CarveStandIn(), new FloatingStandIn());
+        return List.of(new TerrainStandIn(), new FloatingStandIn());
     }
 
     /** Runs {@code modules} as a pack's chunk graph, with the {@link #standIns()}. */
@@ -323,7 +330,20 @@ public final class ApiChunk implements GenerationContext {
         }
     }
 
-    private final class ChunkMantle implements Mantle {
+    private final class ChunkMantle implements Mantle, MatterMantle {
+        private final MantleChunk<Matter> noCaves = mock(MantleChunk.class);
+
+        /** The matter of the chunk: none; a test of caves brings its own mantle. */
+        @Override
+        public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
+            return noCaves;
+        }
+
+        @Override
+        public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
+            return null;
+        }
+
         @Override
         public BlockBox bounds() {
             return chunkColumns();
@@ -382,7 +402,7 @@ public final class ApiChunk implements GenerationContext {
     }
 
     /** A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. */
-    private static final class World implements PackWorld, IrisSeed.Source {
+    private static final class World implements PackWorld, IrisSeed.Source, CaveDressing.Source {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
 
@@ -398,7 +418,17 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public PackSettings settings() {
-            throw new UnsupportedOperationException("No pack settings here");
+            return new PackSettings() {
+                @Override
+                public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+                    return List.of();
+                }
+            };
+        }
+
+        @Override
+        public CaveDressing caveDressing() {
+            return new RecordingCaveDressing();
         }
 
         @Override
@@ -452,7 +482,17 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public NoiseFactory noise() {
-            throw new UnsupportedOperationException("No noise here");
+            return (style, seed) -> new NoiseSampler() {
+                @Override
+                public double sample(double worldX, double worldZ) {
+                    return FLAT_NOISE;
+                }
+
+                @Override
+                public double sample(double worldX, double y, double worldZ) {
+                    return FLAT_NOISE;
+                }
+            };
         }
 
         @Override
@@ -535,15 +575,15 @@ public final class ApiChunk implements GenerationContext {
         }
     }
 
-    private static final class CarveStandIn implements IrisModule {
+    private static final class TerrainStandIn implements IrisModule {
         @Override
         public ModuleInfo info() {
-            return ModuleInfo.of("iris:carve", "Carving stand-in", "test");
+            return ModuleInfo.of("iris:terrain", "Terrain stand-in", "test");
         }
 
         @Override
         public void install(StageGraph graph) {
-            graph.define(IrisStages.Carve.APPLY).run(context -> {
+            graph.define(IrisStages.Terrain.SHAPE).run(context -> {
             });
         }
     }

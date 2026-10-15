@@ -23,7 +23,6 @@ import art.arcane.iris.engine.actuator.DecorantModule;
 import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
-import art.arcane.iris.engine.modifier.CarveModule;
 import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.FloatingModule;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -62,7 +61,7 @@ public final class IrisModuleHost {
      */
     public static final List<String> JAR_MODULE_IDS = List.of("iris:post", "iris:perfection", "iris:matter", "iris:loot",
             "iris:spawn", "iris:prepare", "iris:anchor", "iris:validate", "iris:bore", "iris:blocks", "iris:stilt", "iris:vacuum",
-            "iris:snow", "iris:vanilla-features");
+            "iris:snow", "iris:vanilla-features", "iris:carve");
     /** Iris's pack object model: built-in settings may hold these classes, which Iris reads and describes itself. */
     public static final String HOST_TYPE_PACKAGE = "art.arcane.iris.engine.object";
     private static final String[] JAR_COPY_FOLDER = {"cache", "module-jars"};
@@ -86,7 +85,7 @@ public final class IrisModuleHost {
     }
 
     private static List<IrisModule> generationModules() {
-        return List.of(new TerrainModule(), new CarveModule(), new ObjectModule(), new StructureModule(),
+        return List.of(new TerrainModule(), new ObjectModule(), new StructureModule(),
                 new FloatingModule(), new DepositModule(), new DecorantModule());
     }
 

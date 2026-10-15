@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.CaveDressing;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.engine.framework.Engine;
@@ -36,7 +37,7 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source {
+public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source, CaveDressing.Source {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
@@ -82,6 +83,11 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
     }
 
     @Override
+    public int minHeight() {
+        return engine.getWorld().minHeight();
+    }
+
+    @Override
     public PackSettings settings() {
         return new IrisPackSettings(engine);
     }
@@ -105,6 +111,11 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
     @Override
     public LiveWorld liveWorld() {
         return liveWorld;
+    }
+
+    @Override
+    public CaveDressing caveDressing() {
+        return state(IrisCaveDressing.class, world -> new IrisCaveDressing(engine, resources, log));
     }
 
     @Override

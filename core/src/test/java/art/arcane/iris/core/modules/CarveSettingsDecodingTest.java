@@ -24,7 +24,9 @@ import art.arcane.iris.builtin.carve.CarvingEnabledSettings;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveDepthSettings;
+import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.builtin.carve.UpperDimensionCarvingSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.FeatureAttachment.Target;
@@ -189,8 +191,20 @@ public class CarveSettingsDecodingTest {
     }
 
     @Test
+    public void theOverworldReadsItsUpperDimensionCarvingAndANumberIsTheCaveLavaHeight() throws IOException {
+        ModuleSettings overworld = decoder.decode(Target.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
+        assertFalse(overworld.find(UpperDimensionCarvingSettings.class).orElseThrow().enabled());
+        assertTrue("the overworld writes no cave lava height", overworld.find(CaveLavaHeightSettings.class).isEmpty());
+
+        ModuleSettings written = decoder.decode(Target.DIMENSION, new JSONObject("{\"caveLavaHeight\": 18, \"upperDimensionCarving\": true}"), "dimension test");
+        assertEquals(18, written.find(CaveLavaHeightSettings.class).orElseThrow().height());
+        assertTrue(written.find(UpperDimensionCarvingSettings.class).orElseThrow().enabled());
+        assertEquals(8, CaveLavaHeightSettings.DEFAULT_HEIGHT);
+    }
+
+    @Test
     public void everyKeyIsOnlyReadAtTheLevelsTheOldFieldExistedAt() {
-        assertTrue(decoder.keys(Target.DIMENSION).containsAll(List.of("caveProfile", "carving", "carvingEnabled")));
+        assertTrue(decoder.keys(Target.DIMENSION).containsAll(List.of("caveProfile", "carving", "carvingEnabled", "caveLavaHeight", "upperDimensionCarving")));
         assertTrue(decoder.keys(Target.REGION).contains("caveProfile"));
         assertTrue(decoder.keys(Target.BIOME).containsAll(List.of("caveProfile", "carvingBiome", "caveMinDepthBelowSurface")));
         assertFalse(decoder.keys(Target.REGION).contains("carving"));

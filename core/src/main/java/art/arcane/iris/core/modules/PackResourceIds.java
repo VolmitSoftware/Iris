@@ -22,6 +22,8 @@ import com.volmit.resource.ResourceId;
 
 import java.io.File;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -37,11 +39,16 @@ final class PackResourceIds {
     private static final String UNNAMED_PACK = "pack";
     private static final String PACK_PATH = "pack";
 
+    /** Stages ask per column, so each key is turned into its id once, however many invocations ask. A pack has a few thousand keys at most. */
+    private static final Map<String, Map<String, ResourceId>> BY_NAMESPACE_AND_KEY = new ConcurrentHashMap<>();
+
     private final String namespace;
+    private final Map<String, ResourceId> byKey;
 
     PackResourceIds(File packFolder) {
         String name = NOT_NAMESPACE.matcher(packFolder.getName().toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT);
         this.namespace = name.isEmpty() ? UNNAMED_PACK : name;
+        this.byKey = BY_NAMESPACE_AND_KEY.computeIfAbsent(namespace, ignored -> new ConcurrentHashMap<>());
     }
 
     /** The namespace of every id this pack's resources have. */
@@ -56,7 +63,8 @@ final class PackResourceIds {
 
     /** {@code key} of a resource whose type its use makes clear, such as a biome in a biome sample. */
     ResourceId of(String key) {
-        return new ResourceId(namespace, NOT_PATH.matcher(key.toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT));
+        return byKey.computeIfAbsent(key,
+                known -> new ResourceId(namespace, NOT_PATH.matcher(known.toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT)));
     }
 
     /** {@code key} of a resource of {@code type}, such as {@code overworld:biome/desert/dunes}. */

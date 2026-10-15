@@ -61,6 +61,10 @@ public final class ModdedMixinAudit {
                     NativeMixinTarget.STRUCTURE_PALETTE,
                     "iris$installConcurrentBlockCache",
                     false, NativeMixinFlags::structureTemplatePaletteRan),
+            new ExpectedMixin(ENTITY_CONFIG, "PackRepositorySelectionMixin",
+                    NativeMixinTarget.PACK_REPOSITORY,
+                    "volmlib$keepNativeDatapacksLast",
+                    false, NativeMixinFlags::packSelectionRan),
             new ExpectedMixin(CLIENT_CONFIG, "NativeWorldOpenFlowsMixin",
                     NativeMixinTarget.WORLD_OPEN_FLOWS,
                     "volmlib$openWorldCheckWorldStemCompatibility",
@@ -111,7 +115,7 @@ public final class ModdedMixinAudit {
             ModdedIrisLog.error("  missing: {}", entry);
         }
         ModdedIrisLog.error("The mixin config was not registered for this loader (fabric.mod.json mixins, neoforge.mods.toml [[mixins]], forge MixinConfigs manifest attribute).");
-        ModdedIrisLog.error("Entity persistence, custom mob loot, parallel structure safety, readable biome identifiers, or Iris world-type labels are disabled until this is fixed.");
+        ModdedIrisLog.error("Entity persistence, custom mob loot, parallel structure safety, Iris datapack priority, readable biome identifiers, or Iris world-type labels are disabled until this is fixed.");
         ModdedIrisLog.error("===============================================================");
     }
 

@@ -264,7 +264,22 @@ List<String> irisPackagesLeftOut = [
 ]
 
 List<String> irisClassesLeftOut = [
-
+    'art/arcane/iris/core/pack/IrisPack',
+    'art/arcane/iris/core/pack/IrisPackRepository',
+    'art/arcane/iris/core/jobs/DownloadJob',
+    'art/arcane/iris/core/jobs/JobCollection',
+    'art/arcane/iris/core/jobs/ParallelQueueJob',
+    'art/arcane/iris/core/jobs/QueueJob',
+    'art/arcane/iris/engine/framework/placer/WorldObjectPlacer',
+    'art/arcane/iris/engine/object/placement/IPostBlockAccess',
+    'art/arcane/iris/engine/object/entity/IrisPotionEffect',
+    'art/arcane/iris/engine/platform/DummyChunkGenerator',
+    'art/arcane/iris/util/common/math/VectorMath',
+    'art/arcane/iris/util/common/parallel/GridLock',
+    'art/arcane/iris/util/common/reflect/W',
+    'art/arcane/iris/util/slimjar/BuildConstants',
+    'art/arcane/iris/util/slimjar/relocation/meta/AttributeMetaMediator',
+    'art/arcane/iris/util/slimjar/relocation/meta/AttributeMetaMediatorFactory'
 ]
 
 // The VolmLib classes the jar leaves out are listed in a file the built-in modules jar check reads too (IrisModule), so a

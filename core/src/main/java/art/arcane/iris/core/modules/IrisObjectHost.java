@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.objects.ObjectChunk;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -92,7 +93,8 @@ final class IrisObjectHost implements ObjectHost {
 
     @Override
     public int caveLavaHeight() {
-        return engine.getDimension().getCaveLavaHeight();
+        return engine.getDimension().getModuleSettings().find(CaveLavaHeightSettings.class).map(CaveLavaHeightSettings::height)
+                .orElse(CaveLavaHeightSettings.DEFAULT_HEIGHT);
     }
 
     @Override

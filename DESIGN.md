@@ -502,6 +502,8 @@ that `column` works out). The sampler also gives the dimension's
 above it. The mantle's `blocks()` are the blocks placements wrote into the mantle for chunks to take over (objects,
 structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` does. They are the host's layer, so they
 need no registration, and stages only read them; placements keep writing blocks through `PlacementAccess.set`.
+A mantle stage's `TerrainSampler` covers the same margin (at least 16 blocks, more when its reach is larger): a carver blends
+the profiles of the columns around its chunk, so it reads their heights and biomes though it writes only the mantle.
 `ChunkRunner.generate(inputs, seed, timings)` reports how long each stage that ran took, so the host times modules
 instead of modules timing themselves.
 
@@ -800,6 +802,25 @@ Why these lines:
   the module's: noise lines up across chunks only when it comes from `worldSeed()`, not a stage's stream.
 - **`NoiseSampler` moved to `com.volmit.noise`** and gained a two-dimensional `sample(x, z)`: Iris's noise
   gives different fields in two and three dimensions, and most features sample columns.
+- **`NoiseSampler.scaled(factor)`** is a style with an extra coordinate scale that the host folds into its generator: a cave
+  biome band splits into child bands with noise shrunk by a factor, and a module that multiplied the coordinates itself would
+  round differently from the generator Iris has always built, moving a cell border here and there. A default method
+  (multiply the coordinates) keeps every other sampler valid.
+- **`PackResources.idOf(packKey)`**: a pack names its biomes, regions and objects by key (`desert/dunes`) in its own settings; the
+  host's ids for them hold the pack's namespace and replace characters an id cannot hold. A module that turns a key into an id would
+  have to know that rule, so the resources say it; a default method (namespace and key) serves a host without such characters.
+- **`TerrainSampler.caveBiome(x, y, z)`** is `biome(...).caveBiome()` without the region and the surface biome: a cave wall asks for the
+  cave biome around it five times per block, and the other two lookups were most of the cost. A default method keeps every sampler valid.
+- **`ReadOnlyMantle.host()`** hands a host's own extension back the mantle behind a chunk stage's read-only view. A chunk stage may not
+  write the mantle, but Iris's cave stage stamps markers into the matter that the platform reads, through a built-in facade, so the
+  facade has to reach past the view. Not for pack modules: writing through it breaks the promise the view makes.
+- **`PackWorld.minHeight()`**: all heights are above the dimension's bottom, but packs write some settings as absolute
+  world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with the
+  platform's Y of the bottom, a default method (0) so a fixture without negative Y needs nothing.
+- **`NoiseSampler.signed(...)`** is the sample mapped to -1..1 that a host may answer from a per-thread memo of the
+  coordinates it was just asked: a carver adds several fields and tests the sum around zero, and reads the same points
+  of one field again and again, so the memo is the difference between caves that cost what they always did and caves that
+  do not. A default method (`sample * 2 - 1`) keeps every other sampler valid.
 - **Style names are text with `@Ref(NOISE_STYLE)`**, not an enum: the host owns the list, and an API enum would
   pin it. An unknown name samples flat, as Iris has always read one.
 - **`isFlat()` is stricter than Iris's**: a flat base style with an expression or image map is not flat.

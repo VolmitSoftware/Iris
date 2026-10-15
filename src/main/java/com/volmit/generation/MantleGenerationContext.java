@@ -12,6 +12,10 @@ public interface MantleGenerationContext extends InvocationContext {
     /** The chunk's first block along Z, in world coordinates. */
     int originZ();
 
+    /** The terrain of the chunk and of the larger of the stage's reach and 16 blocks around it on every side, at full
+     * height: a mantle stage writes only the mantle, but may look at the terrain around its chunk, such as the heights
+     * a cave blends over its borders.
+     */
     TerrainSampler terrain();
 
     FeatureSettings settings();

@@ -89,7 +89,9 @@ X and Z are world coordinates. Y is always the height above the dimension's bott
 of the dimension, whatever its minimum height is in the platform, so Y is never negative. This holds for
 every API value that carries a height: terrain and biome samples, `BlockBox` bounds of the terrain
 sampler, block views, placement edits and the mantle, hunks, block palettes and noise samplers. The host
-converts to and from the platform's own Y at its boundary; modules never see it.
+converts to and from the platform's own Y at its boundary. The one place a module meets the platform's Y is a
+setting that names an absolute world Y, as packs write them (a cave biome band between Y -64 and 320): it converts
+with `world.minHeight()`, the platform's Y of the dimension's bottom.
 
 ## Random streams
 
@@ -123,7 +125,7 @@ graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and
 A chunk stage writes only its own chunk but may look around it: `ctx.terrain()` covers the chunk and the 16 blocks
 around it, gives the dimension's `fluidHeight()` and, per column, `upperDimensionY(x, z)` where a dimension stacked above
 begins (write nothing there). `surfaceY(x, z)` is a column's height alone, cheaper than `column(x, z)` when a stage needs
-no slope. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
+no slope. A mantle stage's `ctx.terrain()` covers the chunk and the larger of its reach and 16 blocks around it. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
 take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). Stages only read them.
 
 ```java
@@ -173,7 +175,7 @@ public void register(FeatureRegistry registry) {
 }
 
 // anywhere the pack's resources are at hand, such as a stage or a validator
-Keep keep = resources.require(KEEPS.key(new ResourceId(resources.packId().namespace(), "towers/north")));
+Keep keep = resources.require(KEEPS.key(resources.idOf("towers/north")));
 List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in id order
 ```
 
@@ -548,6 +550,10 @@ have; resolving it never fails: the backup, then air, stands in. A `PaletteSpec`
 by noise (each block counts as often as its weight, the style's noise at x, y, z over `zoom` chooses); a palette of
 one block is that block everywhere, and one without a block to pick (an empty list, or only weights of zero) is an
 `IllegalArgumentException` when the sampler is asked for. Seed it like noise.
+
+`NoiseSampler.signed(...)` is `sample * 2 - 1`, which a host may answer from a per-thread memo of the coordinates it was just asked (read it
+where one field is sampled at the same points again and again, as a carver does). `scaled(factor)` is the same noise with the coordinates
+multiplied by `factor`, folded into the host's generator, not a multiplication in front of it.
 
 The types are values the host creates with their no-argument constructors and reads the JSON into, like settings,
 so an omitted option keeps the default the type declares (a `Range` is 16 to 32 unless the pack or the field's

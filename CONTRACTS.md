@@ -127,7 +127,7 @@ running Iris is the pack publisher's responsibility.
   every chunk within that stage's reach plus the reach of every later stage of a chunk, each chunk once,
   before the next stage and before that chunk generates, with the mantle widened by the stage's reach.
   Give chunk stages that chunk's mantle; `ChunkRunner` makes it read-only. Give chunk stages a `TerrainSampler` over the
-  chunk and the 16 blocks around it.
+  chunk and the 16 blocks around it, and mantle stages one over the chunk and the larger of their reach and 16 blocks.
 - Serve `Mantle.blocks()` in every invocation: the blocks placements wrote into the mantle, read-only, none where the
   dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
   the host's own identity of it (a custom block of a content plugin stays one).
@@ -207,6 +207,13 @@ running Iris is the pack publisher's responsibility.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
   the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat, a missing
   expression falls back to the base style, and a missing image map fails.
+  Answer `NoiseSampler.signed(...)` with the generator's own signed read (and its per-thread coordinate memo) when it
+  has one; the default is `sample * 2 - 1`.
+  Answer `NoiseSampler.scaled(factor)` by building the generator again with the factor folded into its scale, leaving the sampler it
+  is called on untouched (the default multiplies the coordinates, which may round differently).
+- Answer `PackWorld.minHeight()` (the platform's Y of the dimension's bottom), `PackResources.idOf(key)` (the ids the host gives
+  its own resources, characters an id cannot hold replaced) and `TerrainSampler.caveBiome(x, y, z)` (the cave biome of a block,
+  without the work of the rest of the sample) when the defaults do not fit the host.
 - Answer `BlockRegistry.hasTrait` (`VINE` included) and `canPlaceOn` (the support rule decorations need) as the platform
   does; stages ask per block, so answer from memory once a state was seen.
 - Resolve `BlockSpec`s in `BlockRegistry` as packs expect (pack block, platform block, backup, air) and turn their

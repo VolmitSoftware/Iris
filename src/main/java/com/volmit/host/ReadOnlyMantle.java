@@ -11,7 +11,7 @@ import com.volmit.mantle.MantleVisitor;
 /** The mantle as chunk stages see it: reads pass through, every write throws. The mantle pipeline has
  * finished around the chunk by then, and its neighbors may already be generated.
  */
-final class ReadOnlyMantle implements Mantle {
+public final class ReadOnlyMantle implements Mantle {
     private static final String READ_ONLY = "Chunk stages read the mantle but do not write it;"
             + " write it from a mantle stage (Stage.mantle), which runs before the chunks it reaches";
 
@@ -19,6 +19,13 @@ final class ReadOnlyMantle implements Mantle {
 
     ReadOnlyMantle(Mantle mantle) {
         this.mantle = mantle;
+    }
+
+    /** The host's mantle behind this view: for a host's own extensions of {@link Mantle}, such as a built-in facade that
+     * reaches the platform's storage. A module that writes through it breaks the promise this view makes to chunk stages.
+     */
+    public Mantle host() {
+        return mantle;
     }
 
     @Override

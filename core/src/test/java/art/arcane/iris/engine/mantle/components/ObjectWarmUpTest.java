@@ -16,6 +16,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,8 +37,8 @@ public class ObjectWarmUpTest {
         ProceduralObjectSettings regionProceduralSettings = new ProceduralObjectSettings();
         ProceduralPlacement biomeTree = mock(ProceduralPlacement.class);
         ProceduralPlacement regionTree = mock(ProceduralPlacement.class);
-        when(host.procedural(biomeProceduralSettings)).thenReturn(List.of(biomeTree));
-        when(host.procedural(regionProceduralSettings)).thenReturn(List.of(regionTree));
+        when(host.procedural(eq(biomeProceduralSettings), any())).thenReturn(List.of(biomeTree));
+        when(host.procedural(eq(regionProceduralSettings), any())).thenReturn(List.of(regionTree));
         when(host.declarations(ObjectSettings.class)).thenReturn(List.of(
                 new Declaration<>(Target.REGION, "region", objects(regionPlacement)),
                 new Declaration<>(Target.BIOME, "biome", objects(biomePlacement))));
@@ -47,8 +48,8 @@ public class ObjectWarmUpTest {
 
         new ObjectWarmUp(world).warm();
 
-        verify(host).warm(org.mockito.ArgumentMatchers.eq(biomePlacement), any(RNG.class));
-        verify(host).warm(org.mockito.ArgumentMatchers.eq(regionPlacement), any(RNG.class));
+        verify(host).warm(eq(biomePlacement), any(RNG.class));
+        verify(host).warm(eq(regionPlacement), any(RNG.class));
         verify(biomeTree).variant(any(RNG.class));
         verify(regionTree).variant(any(RNG.class));
     }

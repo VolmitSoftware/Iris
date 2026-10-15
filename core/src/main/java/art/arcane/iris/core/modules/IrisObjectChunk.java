@@ -28,6 +28,7 @@ import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.PlacementChanges;
 import art.arcane.iris.builtin.objects.PlacementSource;
 import art.arcane.iris.builtin.objects.PlacementTags;
+import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
@@ -50,6 +51,7 @@ import com.volmit.ModuleLog;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /** The chunk whose mantle {@code iris:objects} is placing into: Iris's mantle writer around it and the engine it belongs to. */
 final class IrisObjectChunk implements ObjectChunk {
@@ -59,11 +61,13 @@ final class IrisObjectChunk implements ObjectChunk {
     private final Engine engine;
     private final MantleWriter writer;
     private final ModuleLog log;
+    private final Function<ProceduralPlacement, IrisObjectPlacement> proceduralOptions;
 
-    IrisObjectChunk(Engine engine, MantleWriter writer, ModuleLog log) {
+    IrisObjectChunk(Engine engine, MantleWriter writer, ModuleLog log, Function<ProceduralPlacement, IrisObjectPlacement> proceduralOptions) {
         this.engine = engine;
         this.writer = writer;
         this.log = log;
+        this.proceduralOptions = proceduralOptions;
     }
 
     @Override
@@ -99,10 +103,10 @@ final class IrisObjectChunk implements ObjectChunk {
     public int placeOnSurface(PlaceableObject object, int x, int z, PlacementSource placement, PlacementChanges changes,
                               PlacementTags tags, RNG rng, String goldenTag) {
         IrisObjectPlacement effective = effective(placement, changes);
-        IObjectPlacer base = placement instanceof IrisProceduralPlacementView procedural && procedural.plausible()
+        IObjectPlacer base = placement instanceof ProceduralPlacement procedural && procedural.plausible()
                 ? new DecayControlPlacer(writer) : writer;
         IObjectPlacer placer = goldenTag == null ? base : new GoldenDebugObjectPlacer(base, goldenTag, log);
-        IObjectPlacer written = placement instanceof IrisProceduralPlacementView ? placer : writer;
+        IObjectPlacer written = placement instanceof ProceduralPlacement ? placer : writer;
         return ((IrisObject) object).place(x, -1, z, placer, effective, rng, taggedBlocks(written, tags), null, engine.getData());
     }
 
@@ -133,7 +137,7 @@ final class IrisObjectChunk implements ObjectChunk {
     }
 
     private IObjectPlacer caveBase(PlacementSource placement, String goldenTag) {
-        if (!(placement instanceof IrisProceduralPlacementView procedural)) {
+        if (!(placement instanceof ProceduralPlacement procedural)) {
             return writer;
         }
         IObjectPlacer base = procedural.plausible() ? new DecayControlPlacer(writer) : writer;
@@ -167,7 +171,7 @@ final class IrisObjectChunk implements ObjectChunk {
     private IrisObjectPlacement effective(PlacementSource placement, PlacementChanges changes) {
         IrisObjectPlacement base = placement instanceof ObjectPlacement settings
                 ? ObjectPlacements.host(settings, engine.getData())
-                : ((IrisProceduralPlacementView) placement).options();
+                : proceduralOptions.apply((ProceduralPlacement) placement);
         return withChanges(base, changes);
     }
 

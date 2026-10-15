@@ -18,10 +18,15 @@
 
 package art.arcane.iris.engine.object.procedural;
 
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.IrisObjectBuilder;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.PlatformBlockStates;
+import art.arcane.iris.core.modules.ProceduralOptions;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.util.common.data.B;
@@ -170,10 +175,12 @@ public class ProceduralObjectsGoldenTest {
     private static String bake(ProceduralObjectSettings settings, IrisData data) throws NoSuchAlgorithmException {
         Gson plain = new Gson();
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        for (IrisProceduralPlacement placement : new ResolvedProceduralObjects(settings).getAllPlacements()) {
-            update(digest, placement.getName() + '|' + placement.getChance() + '|' + placement.getDensity() + '|'
-                    + placement.isPlausible() + '|' + plain.toJson(placement.asPlacement()) + '\n');
-            for (IrisObject object : ((ResolvedProceduralPlacement) placement).bake(data)) {
+        IrisObjectBuilder builder = new IrisObjectBuilder(data);
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, mock(ObjectHost.class))) {
+            update(digest, placement.name() + '|' + placement.chance() + '|' + placement.density() + '|'
+                    + placement.plausible() + '|' + plain.toJson(ProceduralOptions.of(placement)) + '\n');
+            for (PlaceableObject variant : ((ResolvedProceduralPlacement) placement).bake(builder)) {
+                IrisObject object = (IrisObject) variant;
                 update(digest, object.getLoadKey() + ' ' + object.getW() + 'x' + object.getH() + 'x' + object.getD() + ':');
                 object.getBlocks().forEach((position, state) -> update(digest, position.getBlockX() + "," + position.getBlockY()
                         + "," + position.getBlockZ() + "=" + state.key() + ";"));

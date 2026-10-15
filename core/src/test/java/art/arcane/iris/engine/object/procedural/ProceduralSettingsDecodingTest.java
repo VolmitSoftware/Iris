@@ -20,7 +20,9 @@ package art.arcane.iris.engine.object.procedural;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.objects.coral.Coral;
 import art.arcane.iris.builtin.objects.coral.CoralForm;
 import art.arcane.iris.builtin.objects.crystal.Crystal;
@@ -31,6 +33,7 @@ import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.builtin.objects.ruin.Ruin;
 import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ProceduralOptions;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -46,7 +49,6 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
@@ -147,28 +149,26 @@ public class ProceduralSettingsDecodingTest {
         assertEquals(1, objects.formations().size());
         assertEquals(1, objects.crystals().size());
         assertEquals("glacial-iceberg", objects.formations().get(0).name());
-        assertFalse(new ResolvedProceduralObjects(objects).isEmpty());
+        assertFalse(ResolvedProceduralObjects.resolve(objects, mock(ObjectHost.class)).isEmpty());
     }
 
     @Test
-    public void everyKindPlacesWithItsSettingsAndMakesTheSamePlacementEachTime() {
-        ResolvedProceduralObjects objects = new ResolvedProceduralObjects(gson.fromJson("{\"coral\": [{}], \"fungi\": [{}], \"ruins\": [{}], "
-                + "\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}", ProceduralObjectSettings.class));
+    public void everyKindPlacesWithItsSettings() {
+        List<ProceduralPlacement> placements = ResolvedProceduralObjects.resolve(gson.fromJson("{\"coral\": [{}], \"fungi\": [{}], \"ruins\": [{}], "
+                + "\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}", ProceduralObjectSettings.class), mock(ObjectHost.class));
 
-        List<IrisProceduralPlacement> placements = objects.getAllPlacements();
         assertEquals(5, placements.size());
-        assertSame("one placeable per settings, kept", placements.get(0), objects.getAllPlacements().get(0));
 
-        IrisProceduralPlacement iceberg = placements.get(1);
-        assertEquals("glacial-iceberg", iceberg.getName());
-        assertEquals(0.08, iceberg.getChance(), 0);
-        IrisObjectPlacement placement = iceberg.asPlacement();
+        ProceduralPlacement iceberg = placements.get(1);
+        assertEquals("glacial-iceberg", iceberg.name());
+        assertEquals(0.08, iceberg.chance(), 0);
+        IrisObjectPlacement placement = ProceduralOptions.of(iceberg);
         assertEquals(ObjectPlaceMode.CENTER_HEIGHT, placement.getMode());
         assertEquals(1, placement.getSurfaceSupportBuffer());
         assertEquals(-4, placement.getTranslate().getY());
         assertEquals(45, placement.getRotation().getYAxis().interval(), 0);
         assertTrue(placement.getRotation().isEnabled());
-        assertFalse(iceberg.isPlausible());
+        assertFalse(iceberg.plausible());
     }
 
     @Test

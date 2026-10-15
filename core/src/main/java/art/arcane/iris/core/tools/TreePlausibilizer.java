@@ -19,7 +19,6 @@
 package art.arcane.iris.core.tools;
 
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.data.VectorMap;
 import art.arcane.volmlib.util.math.IrisBlockVector;
@@ -176,7 +175,7 @@ public final class TreePlausibilizer {
         }
         Map<String, Integer> materialCounts = new HashMap<>();
         for (long key : wood) {
-            materialCounts.merge(IrisProceduralBlocks.materialKey(positions.get(key)), 1, Integer::sum);
+            materialCounts.merge(materialKey(positions.get(key)), 1, Integer::sum);
         }
         String dominant = null;
         int dominantCount = -1;
@@ -191,7 +190,7 @@ public final class TreePlausibilizer {
         Map<String, PlatformBlockState> statesByKey = new HashMap<>();
         for (long key : wood) {
             PlatformBlockState state = positions.get(key);
-            if (!IrisProceduralBlocks.materialKey(state).equals(dominant)) {
+            if (!materialKey(state).equals(dominant)) {
                 continue;
             }
             stateCounts.merge(state.key(), 1, Integer::sum);
@@ -357,7 +356,7 @@ public final class TreePlausibilizer {
     }
 
     private static boolean isWood(PlatformBlockState state) {
-        String material = IrisProceduralBlocks.materialKey(state);
+        String material = materialKey(state);
         return material.endsWith("_log")
                 || material.endsWith("_wood")
                 || material.endsWith("_hyphae")
@@ -365,12 +364,12 @@ public final class TreePlausibilizer {
     }
 
     private static boolean isDecayableLeaf(PlatformBlockState state) {
-        return IrisProceduralBlocks.hasProperty(state, "distance")
-                && IrisProceduralBlocks.hasProperty(state, "persistent");
+        return hasProperty(state, "distance")
+                && hasProperty(state, "persistent");
     }
 
     private static PlatformBlockState axisVariant(PlatformBlockState template, int dx, int dy, int dz) {
-        if (!IrisProceduralBlocks.hasProperty(template, "axis")) {
+        if (!hasProperty(template, "axis")) {
             return template;
         }
         double weightedY = Math.abs(dy) * 1.8D;
@@ -718,5 +717,26 @@ public final class TreePlausibilizer {
         private static int clamp(int value, int min, int max) {
             return Math.max(min, Math.min(max, value));
         }
+    }
+
+    private static String materialKey(PlatformBlockState state) {
+        String memoized = state.materialKey();
+        if (memoized != null) {
+            return memoized;
+        }
+        String key = state.key();
+        int bracket = key.indexOf('[');
+        return bracket < 0 ? key : key.substring(0, bracket);
+    }
+
+    /** Whether the state's key lists {@code property}, as {@code [property=} or {@code ,property=}. */
+    private static boolean hasProperty(PlatformBlockState state, String property) {
+        String key = state.key();
+        int bracket = key.indexOf('[');
+        if (bracket < 0) {
+            return false;
+        }
+        String properties = key.substring(bracket);
+        return properties.contains("[" + property + "=") || properties.contains("," + property + "=");
     }
 }

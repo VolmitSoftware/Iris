@@ -29,7 +29,6 @@ public class ObjectPlacementsTest {
         IrisBiome biome = new IrisBiome();
 
         assertTrue(ObjectPlacements.all(biome).isEmpty());
-        assertTrue(ObjectPlacements.procedural(biome).isEmpty());
     }
 
     @Test

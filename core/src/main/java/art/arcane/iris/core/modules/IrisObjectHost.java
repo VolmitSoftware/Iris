@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
 import art.arcane.iris.builtin.objects.ObjectChunk;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -37,7 +38,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.noise.CNG;
@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * What {@code iris:objects} asks of Iris, answered from the world's engine: the pack's objects, how Iris scales and places
@@ -69,6 +70,7 @@ final class IrisObjectHost implements ObjectHost {
     private final ModuleLog log;
     private volatile PackResourceIds ids;
     private final Map<ProceduralObjectSettings, List<ProceduralPlacement>> procedural = new ConcurrentHashMap<>();
+    private final Map<ProceduralPlacement, IrisObjectPlacement> proceduralOptions = new ConcurrentHashMap<>();
     private volatile Map<ResourceId, String> biomeKeys;
     private volatile Map<ResourceId, String> regionKeys;
 
@@ -117,7 +119,7 @@ final class IrisObjectHost implements ObjectHost {
     @Override
     public ObjectChunk chunk() {
         IrisMantleChunk chunk = IrisMantleChunk.current();
-        return new IrisObjectChunk(chunk.engine(), chunk.writer(), log);
+        return new IrisObjectChunk(chunk.engine(), chunk.writer(), log, this::options);
     }
 
     @Override
@@ -159,14 +161,19 @@ final class IrisObjectHost implements ObjectHost {
     }
 
     @Override
-    public List<ProceduralPlacement> procedural(ProceduralObjectSettings settings) {
-        return procedural.computeIfAbsent(settings, declared -> {
-            List<ProceduralPlacement> placements = new ArrayList<>();
-            for (IrisProceduralPlacement placement : ObjectPlacements.procedural(declared).getAllPlacements()) {
-                placements.add(new IrisProceduralPlacementView(placement, engine.getData()));
-            }
-            return List.copyOf(placements);
-        });
+    public List<ProceduralPlacement> procedural(ProceduralObjectSettings settings,
+                                                Function<ProceduralObjectSettings, List<ProceduralPlacement>> resolve) {
+        return procedural.computeIfAbsent(settings, resolve);
+    }
+
+    @Override
+    public ObjectBuilder builder() {
+        return new IrisObjectBuilder(engine.getData());
+    }
+
+    /** The options {@code placement} is scattered with, as Iris's own placement, made once per placement. */
+    IrisObjectPlacement options(ProceduralPlacement placement) {
+        return proceduralOptions.computeIfAbsent(placement, ProceduralOptions::of);
     }
 
     @Override

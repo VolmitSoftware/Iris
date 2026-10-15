@@ -37,6 +37,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -77,7 +78,7 @@ public class PlacementReachTest {
         when(procedural.vacuumSettings()).thenReturn(Optional.empty());
         ObjectHost host = mock(ObjectHost.class);
         ProceduralObjectSettings settings = new ProceduralObjectSettings();
-        when(host.procedural(settings)).thenReturn(List.of(procedural));
+        when(host.procedural(eq(settings), any())).thenReturn(List.of(procedural));
 
         assertEquals(53, new PlacementReach(host, ModuleLogs.discarding()).ofPack(declaring(ProceduralObjectSettings.class, settings)));
     }

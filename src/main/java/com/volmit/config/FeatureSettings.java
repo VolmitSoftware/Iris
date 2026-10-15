@@ -5,6 +5,7 @@ import com.volmit.IrisFeature;
 import com.volmit.resource.ResourceId;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Invocation-scoped lookup of the settings that apply at one world column.
  *
@@ -21,6 +22,15 @@ import java.util.Objects;
  */
 public interface FeatureSettings {
     <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ);
+
+    /** The settings {@code biome} declares itself, whichever column it is found at: for a biome that is not a column's
+     * surface biome, such as the cave biome of {@link com.volmit.world.BiomeSample#caveBiome()}, which is no level of
+     * {@link #at}. {@code biome} is an id as a {@code BiomeSample} gives it. Empty when the biome declares none, or the
+     * host knows no such biome.
+     */
+    default <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+        return Optional.empty();
+    }
 
     /** One level's declaration of the settings.
      *

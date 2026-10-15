@@ -131,6 +131,11 @@ running Iris is the pack publisher's responsibility.
 - Serve `Mantle.blocks()` in every invocation: the blocks placements wrote into the mantle, read-only, none where the
   dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
   the host's own identity of it (a custom block of a content plugin stays one).
+- Serve `Mantle.caverns()` in every invocation (read-only, none where the dimension keeps no mantle) and cover the chunk and the 16 blocks
+  around it in a chunk stage's mantle, as the sampler does.
+- Answer `TerrainSampler.surfaceBiome(x, z)` (the id `biome(x, y, z).surfaceBiome()` gives), `surfaceKind`, `minWorldY()`, `surfaceBlock` (empty
+  where no image map gives one) and `upperDimension()` (empty when nothing sits above); `FeatureSettings.declaredBy(biome, type)` answers the
+  settings the biome declares itself (empty when it declares none or is unknown); `BlockRegistry.oreFor` answers from the platform.
 - Answer `TerrainSampler.fluidHeight()` (the height the host fills with fluid below) and `upperDimensionY(x, z)` (where a
   dimension stacked above begins; empty when none does). `surfaceY(x, z)` equals `column(x, z).surfaceY()`; a host
   overrides it when the height costs less than the whole column.

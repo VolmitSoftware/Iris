@@ -186,6 +186,34 @@ class ChunkPipelineTest {
     }
 
     @Test
+    void chunkStagesReadWhereTheMantleCarvedVoidsButCannotCarveAny() {
+        var mantle = new MemoryMantle();
+        mantle.carve(6, 9, 2);
+        var chunkArea = new BlockBox(0, BOTTOM, 0, CHUNK, TOP, CHUNK);
+        var carved = new ArrayList<String>();
+        var probe = Stage.chunk("test:caves/probe");
+        IrisModule module = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:caves", "Caves", "1"); }
+            public void install(StageGraph graph) {
+                graph.define(probe).run(context -> {
+                    var caverns = context.mantle().caverns();
+                    carved.add(String.valueOf(caverns.get(6, 9, 2)));
+                    carved.add(String.valueOf(caverns.get(6, 10, 2)));
+                });
+            }
+        };
+        var builder = new StageGraphBuilder();
+        builder.install(DiscoveredModule.builtIn(module));
+        var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, AIR);
+
+        new ChunkRunner(builder.resolve(Pipeline.CHUNK)).generate(
+                TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED);
+
+        assertEquals(List.of("true", "null"), carved);
+        assertThrows(UnsupportedOperationException.class, () -> mantle.within(chunkArea).caverns().set(0, 0, 0, true));
+    }
+
+    @Test
     void theRunnerReportsHowLongEachStageThatRanTook() {
         var timed = new ArrayList<String>();
         var blocks = new ArrayHunk<>(BlockState.class, SIZE, HEIGHT, SIZE, AIR);

@@ -507,6 +507,16 @@ the profiles of the columns around its chunk, so it reads their heights and biom
 `ChunkRunner.generate(inputs, seed, timings)` reports how long each stage that ran took, so the host times modules
 instead of modules timing themselves.
 
+The ground a chunk stage fills in needs more of the host than heights. `surfaceBiome(x, z)` answers the biome id of a column without working out the
+cave biome; `surfaceKind` says what that biome was generated as (land, sea or shore; a cave biome is always `CAVE`), `surfaceBlock` the block an image
+map gives the ground, `minWorldY` the world Y of the dimension's bottom (settings that name world heights, such as a deposit variant's band, are in it), and
+`upperDimension()` the dimension stacked above, whose own settings (`UpperDimension.settings()`), resources and image-map blocks decide what its ground is
+made of. A biome that is no column's surface biome, such as the cave biome of a `BiomeSample`, has its settings through `FeatureSettings.declaredBy`.
+The chunk stage's mantle covers the chunk and the 16 blocks around it like the sampler, so a decoration that attaches to a neighbor sees the blocks
+placements planned there; `Mantle.caverns()` is the host's read-only layer of carved voids, as `blocks()` is of planned blocks: a void the planner
+marked need not show in the chunk (under a dimension above, the cave stage leaves it solid), and a stage that places something solid asks it.
+`BlockRegistry.oreFor(rock, ore)` is the platform's answer to which variant of an ore belongs in a rock.
+
 ## Mantle invocations
 
 Some work writes beyond its chunk: a carver whose tunnels cross chunk borders, a vein running on into

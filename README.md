@@ -125,8 +125,14 @@ graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and
 A chunk stage writes only its own chunk but may look around it: `ctx.terrain()` covers the chunk and the 16 blocks
 around it, gives the dimension's `fluidHeight()` and, per column, `upperDimensionY(x, z)` where a dimension stacked above
 begins (write nothing there). `surfaceY(x, z)` is a column's height alone, cheaper than `column(x, z)` when a stage needs
-no slope. A mantle stage's `ctx.terrain()` covers the chunk and the larger of its reach and 16 blocks around it. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
-take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). Stages only read them.
+no slope. `surfaceBiome(x, z)` is the id of a column's surface biome alone and `surfaceKind(x, z)` what it was generated as (`BiomeKind`: land, sea,
+shore); `surfaceBlock(x, z)` is the block an image map gives the ground there, `minWorldY()` the world Y of the dimension's bottom, and
+`upperDimension()` the dimension stacked above (`UpperDimension`: its own settings, resources and image-map blocks), for a stage that fills in its ground.
+`ctx.settings().declaredBy(biomeId, Type.class)` reads what a biome declares itself, such as a cave biome of a `BiomeSample`, which is no level of
+`at(...)`. A mantle stage's `ctx.terrain()` covers the chunk and the larger of its reach and 16 blocks around it; a chunk stage's `ctx.mantle()` covers the same area as its terrain. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
+take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). `ctx.mantle().caverns()` holds `true` where the cave planner
+carved a void, whatever the chunk's blocks show there. Stages only read both. `blocks().oreFor(rock, ore)` gives the ore variant that suits the rock
+(deepslate ores in deepslate), which the platform decides, and `PackBiome.vanillaBiome()` the biome vanilla's rules see a pack biome as.
 
 ```java
 graph.define(INSERT).run(ctx -> {

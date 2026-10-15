@@ -34,6 +34,14 @@ public interface BlockRegistry {
      */
     PaletteSampler palette(PaletteSpec spec, long seed);
 
+    /** The ore that suits the {@code rock} it is placed in, which the platform decides: an ore placed in deepslate is its
+     * deepslate variant, one placed in other rock its ordinary one. {@code ore} itself when it has no variant, and by
+     * default for a registry that knows none.
+     */
+    default BlockState oreFor(BlockState rock, BlockState ore) {
+        return ore;
+    }
+
     boolean hasTrait(BlockState state, BlockTrait trait);
     boolean inTag(BlockState state, ResourceId tag);
     /** Whether state can attach to the specified face of support, ignoring other neighbors. */

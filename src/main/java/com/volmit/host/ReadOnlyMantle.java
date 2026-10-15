@@ -44,6 +44,11 @@ public final class ReadOnlyMantle implements Mantle {
     }
 
     @Override
+    public MantleLayer<Boolean> caverns() {
+        return new ReadOnlyLayer<>(mantle.caverns());
+    }
+
+    @Override
     public MantleEdit edit() {
         throw new UnsupportedOperationException(READ_ONLY);
     }

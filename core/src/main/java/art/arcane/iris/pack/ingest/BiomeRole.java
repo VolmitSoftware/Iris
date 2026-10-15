@@ -19,17 +19,19 @@
 package art.arcane.iris.pack.ingest;
 
 enum BiomeRole {
-    LAND("landBiomes", "land"),
-    SEA("seaBiomes", "sea"),
-    SHORE("shoreBiomes", "shore"),
-    CAVE("caveBiomes", "cave");
+    LAND("landBiomes", "land", 5),
+    SEA("seaBiomes", "sea", 3),
+    SHORE("shoreBiomes", "shore", 3),
+    CAVE("caveBiomes", "cave", 3);
 
     private final String poolField;
     private final String label;
+    private final int templateCap;
 
-    BiomeRole(String poolField, String label) {
+    BiomeRole(String poolField, String label, int templateCap) {
         this.poolField = poolField;
         this.label = label;
+        this.templateCap = templateCap;
     }
 
     String poolField() {
@@ -38,5 +40,9 @@ enum BiomeRole {
 
     String label() {
         return label;
+    }
+
+    int templateCap() {
+        return templateCap;
     }
 }

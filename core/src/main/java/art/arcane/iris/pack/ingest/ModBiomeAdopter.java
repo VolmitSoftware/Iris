@@ -77,8 +77,7 @@ final class ModBiomeAdopter {
             boolean ownsVegetation = ownsVegetation(biome, namespace);
             Placement placement = place(role, IngestClimate.of(biome), BiomeCategories.of(biome.tags()), ownsVegetation);
             if (placement == null) {
-                items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.SKIPPED, "",
-                        "no region in this dimension accepts a " + role.label() + " biome"));
+                items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.SKIPPED, "", unplacedReason(role)));
                 continue;
             }
             IngestPackModel.RegionProfile region = placement.region();
@@ -114,10 +113,14 @@ final class ModBiomeAdopter {
                     + (regionClimate == null ? 0D : REGION_CLIMATE_WEIGHT * climate.distance(regionClimate))
                     + REGION_CATEGORY_WEIGHT * (1D - regionAffinity(region, role, categories));
             for (String template : region.pool(role)) {
+                int uses = templateUses.getOrDefault(template, 0);
+                if (uses >= role.templateCap()) {
+                    continue;
+                }
                 IngestClimate templateClimate = model.biomeClimate(template);
                 double score = climate.distance(templateClimate == null ? region.climate() : templateClimate)
                         + CATEGORY_WEIGHT * BiomeCategories.distance(categories, model.biomeCategories(template))
-                        + REUSE_WEIGHT * templateUses.getOrDefault(template, 0)
+                        + REUSE_WEIGHT * uses
                         + (ownsVegetation ? BARE_SURFACE_PENALTY * (1D - model.plantableShare(template)) : 0D)
                         + regionPenalty;
                 if (best == null || score < bestScore) {
@@ -127,6 +130,15 @@ final class ModBiomeAdopter {
             }
         }
         return best;
+    }
+
+    private String unplacedReason(BiomeRole role) {
+        for (IngestPackModel.RegionProfile region : model.regions()) {
+            if (!excludedRegions.contains(region.key()) && !region.pool(role).isEmpty()) {
+                return "every " + role.label() + " template already hosts " + role.templateCap() + " adopted biomes";
+            }
+        }
+        return "no region in this dimension accepts a " + role.label() + " biome";
     }
 
     private IngestClimate regionClimate(IngestPackModel.RegionProfile region, BiomeRole role, Set<String> categories) {

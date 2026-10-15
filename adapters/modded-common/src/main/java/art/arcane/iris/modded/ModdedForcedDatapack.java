@@ -324,7 +324,9 @@ public final class ModdedForcedDatapack {
                 false
         );
         digest.update(inputFingerprint.getBytes(StandardCharsets.UTF_8));
-        digest.update(ModdedDimensionReplacements.fingerprint(ModdedDimensionReplacements.configured())
+        Map<String, ModdedDimensionReplacement> replacements = ModdedDimensionReplacements.configured();
+        digest.update(ModdedDimensionReplacements.fingerprint(ModdedDimensionReplacements.stageable(replacements,
+                        ModdedDimensionReplacements.replaceableLevels(worldRootOrNull(), replacements)))
                 .getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(digest.digest());
     }
@@ -346,8 +348,9 @@ public final class ModdedForcedDatapack {
             }
         }
         if (!ModdedEngineBootstrap.loader().clientEnvironment()) {
-            ModdedDimensionReplacements.writeLevelStems(stagingDirectory,
-                    ModdedDimensionReplacements.configured(), stagedDimensionTypes, worldRoot);
+            Map<String, ModdedDimensionReplacement> replacements = ModdedDimensionReplacements.configured();
+            ModdedDimensionReplacements.writeLevelStems(stagingDirectory, replacements, stagedDimensionTypes, worldRoot,
+                    ModdedDimensionReplacements.replaceableLevels(worldRoot, replacements));
         }
 
         IrisDatapackCompiler.installRetainedRegistrySources(packRoots, List.of(stagingDirectory.toFile()), fixer);

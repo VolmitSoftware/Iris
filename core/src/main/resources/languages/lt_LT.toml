@@ -1116,6 +1116,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Ne Iris šiuo me
 loaded_iris_dimensions = "Įkelta Iris matmenys: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Naudojimas /iris world create <name> <pack> švirkšti vieną nepradedant iš naujo."
+replace_runtime_level = "{dimensionId} kuria modas serveriui veikiant, ir ji neapibrėžta kaip dimensija, todėl Iris negali jos pakeisti."
+replace_registry_not_ready = "Iris vis dar skaito šio serverio dimensijas. Bandykite dar kartą po akimirkos."
+replace_installed_types = "Įdiegti paketai: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Parsisiųsti & valdyti išorės importą (Modrinth)"

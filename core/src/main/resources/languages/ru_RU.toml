@@ -1116,6 +1116,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Нет. Iris В 
 loaded_iris_dimensions = "загруженный Iris размеры: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Использовать /iris world create <name> <pack> Вводить один без перезапуска."
+replace_runtime_level = "{dimensionId} создаётся модом во время работы сервера и не определено как измерение, поэтому Iris не может его заменить."
+replace_registry_not_ready = "Iris ещё считывает измерения этого сервера. Повторите попытку чуть позже."
+replace_installed_types = "Установленные паки: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "& управляет внешним импортом пакетов данных (Modrinth)"

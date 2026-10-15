@@ -1114,6 +1114,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Không Iris Kíc
 loaded_iris_dimensions = "Đã nạp Iris Kích thước: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Dùng /iris world create <name> <pack> tiêm một mũi mà không khởi động lại."
+replace_runtime_level = "{dimensionId} được một mod tạo ra khi máy chủ đang chạy và không được định nghĩa là chiều không gian, nên Iris không thể thay thế nó."
+replace_registry_not_ready = "Iris vẫn đang đọc các chiều không gian của máy chủ này. Hãy thử lại sau giây lát."
+replace_installed_types = "Các gói đã cài đặt: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Tải về & Quản lý các tập dữ liệu bên ngoài (Modrinth)"

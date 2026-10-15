@@ -1114,6 +1114,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "現在読み込�
 loaded_iris_dimensions = "読み込み済み Iris ディメンション: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "再起動せずに注入するには /iris world create <name> <pack> を使用してください。"
+replace_runtime_level = "{dimensionId} はサーバー実行中に Mod が作成するもので、ディメンションとして定義されていないため、Iris は置き換えられません。"
+replace_registry_not_ready = "Iris はまだこのサーバーのディメンションを読み込んでいます。しばらくしてから再試行してください。"
+replace_installed_types = "インストール済みのパック: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "外部データパックのインポートをダウンロードして管理します（Modrinth）"

@@ -1260,6 +1260,18 @@ public final class ModdedCommandMessages {
             "iris.modded.moddedworldcommands.use_iris_world_create_name_pack_inject_one_without_restarting",
             "Use /iris world create <name> <pack> to inject one without restarting."
     );
+    public static final TextKey MODDED_WORLD_COMMANDS_REPLACE_RUNTIME_LEVEL = TextKey.of(
+            "iris.modded.moddedworldcommands.replace_runtime_level",
+            "{dimensionId}" + " is created by a mod while the server runs and is not defined as a dimension, so Iris cannot replace it."
+    );
+    public static final TextKey MODDED_WORLD_COMMANDS_REPLACE_REGISTRY_NOT_READY = TextKey.of(
+            "iris.modded.moddedworldcommands.replace_registry_not_ready",
+            "Iris is still reading this server's dimensions. Try again in a moment."
+    );
+    public static final TextKey MODDED_WORLD_COMMANDS_REPLACE_INSTALLED_TYPES = TextKey.of(
+            "iris.modded.moddedworldcommands.replace_installed_types",
+            "Installed packs: " + "{value}"
+    );
 
     private static final List<MessageKey> KEYS = List.of(
             IRIS_MODDED_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS,
@@ -1574,7 +1586,10 @@ public final class ModdedCommandMessages {
             MODDED_WORLD_COMMANDS_NO_IRIS_DIMENSIONS_ARE_CURRENTLY_LOADED_CREATE_ONE_WITH_IRIS,
             MODDED_WORLD_COMMANDS_LOADED_IRIS_DIMENSIONS,
             MODDED_WORLD_COMMANDS_MESSAGE_2,
-            MODDED_WORLD_COMMANDS_USE_IRIS_WORLD_CREATE_NAME_PACK_INJECT_ONE_WITHOUT_RESTARTING
+            MODDED_WORLD_COMMANDS_USE_IRIS_WORLD_CREATE_NAME_PACK_INJECT_ONE_WITHOUT_RESTARTING,
+            MODDED_WORLD_COMMANDS_REPLACE_RUNTIME_LEVEL,
+            MODDED_WORLD_COMMANDS_REPLACE_REGISTRY_NOT_READY,
+            MODDED_WORLD_COMMANDS_REPLACE_INSTALLED_TYPES
     );
 
     private ModdedCommandMessages() {

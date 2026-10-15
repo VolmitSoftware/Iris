@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeDimensionRuntime;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldDimensions;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
@@ -49,8 +50,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ModdedWorldEngines {
@@ -90,6 +93,19 @@ public final class ModdedWorldEngines {
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris engine evict close failed for {}", level.name(), e);
         }
+    }
+
+    static List<String> evictUnpublished(NativeModdedServer server, Set<String> levelKeys) {
+        List<String> evicted = new ArrayList<>();
+        for (NativeWorld level : new ArrayList<>(ENGINES.keySet())) {
+            if (!levelKeys.contains(level.name())
+                    || NativeDimensionRuntime.sameWorld(server.world(level.name()), level)) {
+                continue;
+            }
+            evict(level);
+            evicted.add(level.name());
+        }
+        return evicted;
     }
 
     static void evictOrThrow(NativeWorld level) {

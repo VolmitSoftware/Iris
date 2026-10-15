@@ -1116,6 +1116,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Ei Iris mitat ov
 loaded_iris_dimensions = "Ladattu Iris mitat: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Käyttö /iris world create <name> <pack> pistääksesi yhden ilman, että aloitat alusta."
+replace_runtime_level = "{dimensionId} on modin palvelimen ajon aikana luoma eikä sitä ole määritelty ulottuvuudeksi, joten Iris ei voi korvata sitä."
+replace_registry_not_ready = "Iris lukee vielä tämän palvelimen ulottuvuuksia. Yritä hetken päästä uudelleen."
+replace_installed_types = "Asennetut paketit: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Lataa & Hallinnoidaan ulkoisen datapaketin tuontia (Modrinth)"

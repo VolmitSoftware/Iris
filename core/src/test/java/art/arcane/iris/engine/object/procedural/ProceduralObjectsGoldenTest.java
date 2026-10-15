@@ -1,0 +1,221 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.engine.object.procedural;
+
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.IrisPackResources;
+import art.arcane.iris.core.modules.PlatformBlockStates;
+import art.arcane.iris.engine.UsableBlockPlatform;
+import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.util.common.data.B;
+
+import com.volmit.block.BlockFace;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockSpec;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.block.PaletteSampler;
+import com.volmit.block.PaletteSpec;
+import com.volmit.object.BlockEntityData;
+import com.volmit.resource.ResourceId;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.stream.Stream;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.when;
+
+/**
+ * Every procedural object of the overworld pack (its biomes' and regions' {@code proceduralObjects}, with the pack's
+ * snippets) bakes the same variants it did before the generators moved onto IrisApi block states: same load keys,
+ * sizes, blocks in the same order, and the same placement options.
+ */
+public class ProceduralObjectsGoldenTest {
+    private static final String FIXTURE = "/procedural-golden";
+    private static final Map<String, String> EXPECTED = Map.ofEntries(
+            Map.entry("biomes-carving-frost-shards", "954613b558bd0e8b"),
+            Map.entry("biomes-estranged-baobab-grove", "3232037f828a9107"),
+            Map.entry("biomes-estranged-birchglass-heath", "a55859aa6a343b2a"),
+            Map.entry("biomes-estranged-bloomspire-orchard", "4f293781cb8a3096"),
+            Map.entry("biomes-estranged-bonsai", "a5f3bfca48d9765e"),
+            Map.entry("biomes-estranged-candlewood-grove", "54edc65fd907b0f0"),
+            Map.entry("biomes-estranged-emberbark-woods", "aef11a05b3736872"),
+            Map.entry("biomes-estranged-mistveil-swamp", "13465ade8e5ffb63"),
+            Map.entry("biomes-estranged-pallid-necropolis", "d084420689990166"),
+            Map.entry("biomes-estranged-skyreach-pines", "0ae4e50672f7b69c"),
+            Map.entry("biomes-estranged-slinky-spires", "5e206ec07f334985"),
+            Map.entry("biomes-estranged-snarlwood-thicket", "08121289e05d4828"),
+            Map.entry("biomes-estranged-spindlewood", "e5e8b64cfb12fd28"),
+            Map.entry("biomes-estranged-stiltroot-shallows", "eb83972fb116f254"),
+            Map.entry("biomes-estranged-taxodium", "48a648d2f4f2715e"),
+            Map.entry("biomes-estranged-weeping-mire", "d6ac39f8c2ffde66"),
+            Map.entry("biomes-frozen-fields-hilly-plains", "170d6ed6174f8e40"),
+            Map.entry("biomes-frozen-ice-spikes", "7ac324754cb82ff1"),
+            Map.entry("biomes-frozen-sea-frozen-parent-river", "1d9f74d9713e1a4d"),
+            Map.entry("biomes-magnetics-glass", "3f30c7fa5aa07410"),
+            Map.entry("biomes-magnetics-glass-shard", "5e9834cd11338a4a"),
+            Map.entry("biomes-ocean-warm", "606e256ae6242124"),
+            Map.entry("biomes-temperate-sea-ocean", "ebd0960ae22f4fc6"),
+            Map.entry("regions-estranged", "a806532a68e8c232"),
+            Map.entry("regions-mushroom", "f08c6663543ac201"));
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    @Before
+    public void bindPlatform() {
+        UsableBlockPlatform.bind();
+    }
+
+    @After
+    public void unbindPlatform() {
+        UsableBlockPlatform.unbind();
+    }
+
+    @Test
+    public void everyProceduralObjectOfTheOverworldPackBakesAsBefore() throws Exception {
+        copyFixtureInto(folder.getRoot().toPath());
+        IrisData data = mock(IrisData.class, withSettings().stubOnly().defaultAnswer(CALLS_REAL_METHODS));
+        IrisPackResources resources = mock(IrisPackResources.class, withSettings().stubOnly());
+        doReturn(folder.getRoot()).when(data).getDataFolder();
+        doReturn(resources).when(data).getPackResources();
+        when(resources.blocks()).thenReturn(new HashedPalettes());
+        Gson gson = new GsonBuilder().registerTypeAdapterFactory(data).create();
+        JsonObject sets = JsonParser.parseString(Files.readString(folder.getRoot().toPath().resolve("sets.json"))).getAsJsonObject();
+
+        Map<String, String> actual = new TreeMap<>();
+        for (String name : sets.keySet()) {
+            ProceduralObjectSettings settings = gson.fromJson(sets.get(name), ProceduralObjectSettings.class);
+            actual.put(name, bake(settings, data));
+        }
+
+        assertEquals(new TreeMap<>(EXPECTED), actual);
+    }
+
+    private static String bake(ProceduralObjectSettings settings, IrisData data) throws NoSuchAlgorithmException {
+        Gson plain = new Gson();
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (IrisProceduralPlacement placement : new ResolvedProceduralObjects(settings).getAllPlacements()) {
+            update(digest, placement.getName() + '|' + placement.getChance() + '|' + placement.getDensity() + '|'
+                    + placement.isPlausible() + '|' + plain.toJson(placement.asPlacement()) + '\n');
+            for (IrisObject object : ((ResolvedProceduralPlacement) placement).bake(data)) {
+                update(digest, object.getLoadKey() + ' ' + object.getW() + 'x' + object.getH() + 'x' + object.getD() + ':');
+                object.getBlocks().forEach((position, state) -> update(digest, position.getBlockX() + "," + position.getBlockY()
+                        + "," + position.getBlockZ() + "=" + state.key() + ";"));
+                update(digest, "\n");
+            }
+        }
+        return HexFormat.of().formatHex(digest.digest(), 0, 8);
+    }
+
+    private static void update(MessageDigest digest, String text) {
+        digest.update(text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Blocks as the host resolves them, and palettes that pick a block from a hash of their seed and the position, so a
+     * generator asking with another seed or position gives another digest. Iris's real palette noise needs a platform the
+     * test does not have; it is the host's, unchanged by the port.
+     */
+    private static final class HashedPalettes implements BlockRegistry {
+        @Override
+        public BlockState resolve(String key) {
+            return BlockState.parse(PlatformBlockStates.namespaced(B.getState(key).key()));
+        }
+
+        @Override
+        public BlockState resolve(BlockSpec spec) {
+            return resolve(spec.block());
+        }
+
+        @Override
+        public PaletteSampler palette(PaletteSpec spec, long seed) {
+            List<BlockSpec> blocks = spec.palette();
+            return (x, y, z) -> {
+                long hash = seed * 31 + Double.hashCode(x) * 961L + Double.hashCode(y) * 29791L + Double.hashCode(z);
+                return resolve(blocks.get(Math.floorMod(Long.hashCode(hash), blocks.size())));
+            };
+        }
+
+        @Override
+        public Optional<BlockEntityData> blockEntity(BlockSpec spec) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean hasTrait(BlockState state, BlockTrait trait) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean inTag(BlockState state, ResourceId tag) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canAttach(BlockState state, BlockState support, BlockFace face) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canPlaceOn(BlockState state, BlockState below) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private static void copyFixtureInto(Path target) throws IOException, URISyntaxException {
+        Path source = Path.of(ProceduralObjectsGoldenTest.class.getResource(FIXTURE).toURI());
+        try (Stream<Path> files = Files.walk(source)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                Path copy = target.resolve(source.relativize(file).toString());
+                Files.createDirectories(copy.getParent());
+                try (InputStream in = Files.newInputStream(file)) {
+                    Files.copy(in, copy, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+    }
+}

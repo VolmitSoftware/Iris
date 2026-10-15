@@ -1,0 +1,268 @@
+{
+    "formations": [
+        {
+            "name": "glacial-cave-iceberg",
+            "chance": 0.045,
+            "density": 1,
+            "variants": 12,
+            "seed": 5055101,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "ICEBERG",
+            "translate": {
+                "y": -1
+            },
+            "heightMin": 5,
+            "heightMax": 10,
+            "baseWidthMin": 2,
+            "baseWidthMax": 3,
+            "icebergPeaks": 3,
+            "roughness": 0.3,
+            "jitter": 0.08
+        },
+        {
+            "name": "glacial-cave-fissure",
+            "chance": 0.04,
+            "density": 1,
+            "variants": 12,
+            "seed": 5055102,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "FISSURE",
+            "translate": {
+                "y": -1
+            },
+            "heightMin": 8,
+            "heightMax": 16,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "fractureCount": 3,
+            "fractureSeparation": 2,
+            "roughness": 0.2,
+            "jitter": 0.04
+        },
+        {
+            "name": "glacial-cave-spiral",
+            "chance": 0.035,
+            "density": 1,
+            "variants": 12,
+            "seed": 5055103,
+            "mode": "CEILING_HANG",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRAL",
+            "heightMin": 8,
+            "heightMax": 16,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "spiralTurns": 1.3,
+            "spiralRadius": 3,
+            "spiralThickness": 1,
+            "roughness": 0.14,
+            "jitter": 0.02
+        },
+        {
+            "name": "glacial-cave-overhang",
+            "chance": 0.03,
+            "density": 1,
+            "variants": 12,
+            "seed": 5055104,
+            "mode": "CEILING_HANG",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "OVERHANG",
+            "heightMin": 8,
+            "heightMax": 16,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "overhangReach": 7,
+            "overhangDrop": 3,
+            "roughness": 0.18,
+            "jitter": 0.03
+        },
+        {
+            "name": "glacial-cave-arch",
+            "chance": 0.03,
+            "density": 1,
+            "variants": 12,
+            "seed": 5055105,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "ARCH",
+            "translate": {
+                "y": -1
+            },
+            "heightMin": 7,
+            "heightMax": 13,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "archSpan": 6,
+            "archThickness": 2,
+            "archAsymmetry": 0.8,
+            "roughness": 0.18,
+            "jitter": 0.03
+        },
+        {
+            "name": "glacial-cave-needle",
+            "chance": 0.24,
+            "density": 4,
+            "variants": 16,
+            "seed": 5055121,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRE",
+            "translate": {
+                "y": -1
+            },
+            "heightMin": 9,
+            "heightMax": 18,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "topWidth": 0,
+            "profile": "LINEAR",
+            "roughness": 0.1,
+            "jitter": 0.01
+        },
+        {
+            "name": "glacial-cave-shard-fan",
+            "chance": 0.18,
+            "density": 4,
+            "variants": 16,
+            "seed": 5055122,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "FISSURE",
+            "translate": {
+                "y": -1
+            },
+            "heightMin": 8,
+            "heightMax": 17,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "fractureCount": 3,
+            "fractureSeparation": 2,
+            "roughness": 0.16,
+            "jitter": 0.03
+        },
+        {
+            "name": "glacial-cave-hanging-needle",
+            "chance": 0.16,
+            "density": 3,
+            "variants": 16,
+            "seed": 5055123,
+            "mode": "CEILING_HANG",
+            "carvingSupport": "CARVING_ONLY",
+            "surfaceSupportBuffer": 0,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRE",
+            "heightMin": 10,
+            "heightMax": 20,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "topWidth": 0,
+            "profile": "LINEAR",
+            "roughness": 0.1,
+            "jitter": 0.01
+        }
+    ]
+}

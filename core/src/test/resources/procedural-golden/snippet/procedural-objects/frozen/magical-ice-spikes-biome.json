@@ -1,0 +1,357 @@
+{
+    "formations": [
+        {
+            "name": "glacial-iceberg",
+            "chance": 0.08,
+            "density": 1,
+            "variants": 24,
+            "seed": 5055001,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "ICEBERG",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 12,
+            "heightMax": 22,
+            "baseWidthMin": 5,
+            "baseWidthMax": 8,
+            "icebergPeaks": 4,
+            "roughness": 0.42,
+            "jitter": 0.14
+        },
+        {
+            "name": "glacial-fissure",
+            "chance": 0.12,
+            "density": 1,
+            "variants": 24,
+            "seed": 5055002,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "FISSURE",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 13,
+            "heightMax": 23,
+            "baseWidthMin": 6,
+            "baseWidthMax": 9,
+            "fractureCount": 3,
+            "fractureSeparation": 3,
+            "roughness": 0.3,
+            "jitter": 0.08
+        },
+        {
+            "name": "glacial-spiral",
+            "chance": 0.15,
+            "density": 1,
+            "variants": 24,
+            "seed": 5055003,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRAL",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 15,
+            "heightMax": 24,
+            "baseWidthMin": 5,
+            "baseWidthMax": 8,
+            "spiralTurns": 1.15,
+            "spiralRadius": 6,
+            "spiralThickness": 3,
+            "roughness": 0.24,
+            "jitter": 0.07
+        },
+        {
+            "name": "glacial-overhang",
+            "chance": 0.18,
+            "density": 1,
+            "variants": 24,
+            "seed": 5055004,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "OVERHANG",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 16,
+            "heightMax": 25,
+            "baseWidthMin": 5,
+            "baseWidthMax": 8,
+            "overhangReach": 13,
+            "overhangDrop": 6,
+            "roughness": 0.3,
+            "jitter": 0.08
+        },
+        {
+            "name": "glacial-arch",
+            "chance": 0.07,
+            "density": 1,
+            "variants": 24,
+            "seed": 5055005,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "ARCH",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 11,
+            "heightMax": 20,
+            "baseWidthMin": 4,
+            "baseWidthMax": 7,
+            "archSpan": 12,
+            "archThickness": 4,
+            "archAsymmetry": 1.0,
+            "roughness": 0.28,
+            "jitter": 0.07
+        },
+        {
+            "name": "glacial-crooked-spire",
+            "chance": 0.3,
+            "density": 1,
+            "variants": 32,
+            "seed": 5055021,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRE",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 14,
+            "heightMax": 24,
+            "baseWidthMin": 5,
+            "baseWidthMax": 8,
+            "topWidth": 0,
+            "profile": "PARABOLIC",
+            "profileWaist": 0.38,
+            "profileWaistFloor": 0.72,
+            "lean": 18,
+            "leanAzimuth": 18,
+            "roughness": 0.32,
+            "jitter": 0.09
+        },
+        {
+            "name": "glacial-drift",
+            "chance": 0.4,
+            "density": 2,
+            "variants": 24,
+            "seed": 5055041,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "BOULDER",
+            "translate": {
+                "y": -1
+            },
+            "heightMin": 3,
+            "heightMax": 5,
+            "baseWidthMin": 2,
+            "baseWidthMax": 4,
+            "roughness": 0.48,
+            "jitter": 0.12
+        },
+        {
+            "name": "glacial-shard-fan",
+            "chance": 0.16,
+            "density": 1,
+            "variants": 24,
+            "seed": 5055023,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "capBlock": "minecraft:blue_ice",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "FISSURE",
+            "translate": {
+                "y": -4
+            },
+            "heightMin": 12,
+            "heightMax": 21,
+            "baseWidthMin": 6,
+            "baseWidthMax": 9,
+            "fractureCount": 3,
+            "fractureSeparation": 3,
+            "roughness": 0.28,
+            "jitter": 0.08
+        }
+    ],
+    "crystals": [
+        {
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "growthSurface": "FLOOR",
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "tipBlock": "minecraft:blue_ice",
+            "baseBlock": "minecraft:blue_ice",
+            "tipChance": 0.65,
+            "name": "glacial-frost-bloom",
+            "chance": 0.28,
+            "density": 2,
+            "variants": 24,
+            "seed": 5055031,
+            "translate": {
+                "y": -1
+            },
+            "baseRadius": 1.8,
+            "baseNoise": 0.4,
+            "shardCountMin": 3,
+            "shardCountMax": 6,
+            "shardLengthMin": 2,
+            "shardLengthMax": 5,
+            "shardBaseRadius": 1.1,
+            "shardTaper": 1.0,
+            "spreadAngle": 68,
+            "distribution": "GOLDEN_ANGLE",
+            "jitter": 0.35
+        },
+        {
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "growthSurface": "FLOOR",
+            "block": "minecraft:packed_ice",
+            "blockPalette": "snippet/palette/frozen/magical-ice",
+            "tipBlock": "minecraft:blue_ice",
+            "baseBlock": "minecraft:blue_ice",
+            "tipChance": 0.55,
+            "name": "glacial-frost-sprigs",
+            "chance": 0.12,
+            "density": 2,
+            "variants": 24,
+            "seed": 5055032,
+            "translate": {
+                "y": -1
+            },
+            "baseRadius": 1.2,
+            "baseNoise": 0.5,
+            "shardCountMin": 2,
+            "shardCountMax": 5,
+            "shardLengthMin": 1,
+            "shardLengthMax": 3,
+            "shardBaseRadius": 1.0,
+            "shardTaper": 1.0,
+            "spreadAngle": 80,
+            "distribution": "RANDOM",
+            "jitter": 0.55
+        }
+    ]
+}

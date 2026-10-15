@@ -1,0 +1,2765 @@
+{
+ "biomes-carving-frost-shards": "snippet/procedural-objects/frozen/magical-ice-cave",
+ "biomes-estranged-baobab-grove": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "RANDOM",
+      "clusterDensity": 0.88,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 3,
+      "elevation": 8,
+      "lengthBase": 3,
+      "lengthCrown": 8,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 3,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.2,
+      "subBranches": {
+       "clusterDensity": 0.85,
+       "clusterMode": "DENSITY",
+       "clusterRadius": 2,
+       "count": 2,
+       "lengthScale": 0.5,
+       "pitchDelta": 12,
+       "sag": 0.2,
+       "yawDelta": 60
+      }
+     },
+     "leafDensity": 0.9,
+     "mode": "DENSITY",
+     "squish": 0.5,
+     "startAngle": 112
+    },
+    "chance": 0.22,
+    "density": 1,
+    "heightMax": 24,
+    "heightMin": 16,
+    "leaves": "minecraft:acacia_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:acacia_leaves",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.35
+     },
+     "zoom": 4
+    },
+    "name": "baobab-giant",
+    "profile": "DARK_OAK_FLAT_WIDE",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7001,
+    "shapeEnd": 0.4,
+    "shapeStart": 1.3,
+    "trunk": "minecraft:acacia_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:acacia_wood",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:jungle_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     },
+     "zoom": 2
+    },
+    "trunkShape": "LINEAR",
+    "trunkWidth": 4,
+    "variants": 6
+   },
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "RANDOM",
+      "clusterDensity": 0.85,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": 6,
+      "lengthBase": 2,
+      "lengthCrown": 5,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 2.5,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.2
+     },
+     "leafDensity": 0.9,
+     "mode": "DENSITY",
+     "squish": 0.5,
+     "startAngle": 108
+    },
+    "chance": 0.18,
+    "density": 1,
+    "heightMax": 14,
+    "heightMin": 10,
+    "leaves": "minecraft:acacia_leaves",
+    "name": "baobab-young",
+    "profile": "DARK_OAK_FLAT_WIDE",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7002,
+    "shapeEnd": 0.5,
+    "shapeStart": 1.2,
+    "trunk": "minecraft:acacia_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:acacia_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "trunkShape": "LINEAR",
+    "trunkWidth": 2,
+    "variants": 5
+   }
+  ]
+ },
+ "biomes-estranged-birchglass-heath": {
+  "trees": [
+   {
+    "azimuthScale": 1.3,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "branchDepth": 2,
+      "clusterDensity": 0.6,
+      "clusterMode": "CLUMPED",
+      "clusterRadius": 2,
+      "elevation": 18,
+      "lengthBase": 2,
+      "lengthCrown": 5,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 1.5,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.25,
+      "subBranches": {
+       "clusterDensity": 0.55,
+       "clusterMode": "NOISE",
+       "clusterRadius": 2,
+       "count": 2,
+       "lengthScale": 0.6,
+       "pitchDelta": 12,
+       "sag": 0.3,
+       "yawDelta": 80
+      }
+     },
+     "crownStretchX": 1.25,
+     "crownStretchZ": 0.85,
+     "leafDensity": 0.62,
+     "mode": "CLUMPED"
+    },
+    "chance": 0.55,
+    "density": 2,
+    "heightMax": 26,
+    "heightMin": 16,
+    "leanAngle": 7,
+    "leanAzimuthMode": "NOISE",
+    "leaves": "minecraft:birch_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:pale_oak_leaves",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC",
+      "zoom": 0.25
+     }
+    },
+    "name": "birchglass",
+    "profile": "OAK",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8101,
+    "trunk": "minecraft:birch_wood",
+    "trunkCurve": "LINEAR",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:birch_wood",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:stripped_birch_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:pale_oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.6
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 1,
+    "variants": 8
+   },
+   {
+    "azimuthScale": 1.6,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "branchDepth": 2,
+      "clusterDensity": 0.55,
+      "clusterMode": "CLUMPED",
+      "clusterRadius": 2,
+      "elevation": 14,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 1.4,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.3
+     },
+     "crownStretchX": 0.85,
+     "crownStretchZ": 1.3,
+     "leafDensity": 0.55,
+     "mode": "NOISE"
+    },
+    "chance": 0.3,
+    "density": 2,
+    "heightMax": 18,
+    "heightMin": 12,
+    "leanAngle": 9,
+    "leanAzimuthMode": "NOISE",
+    "leaves": "minecraft:pale_oak_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:pale_oak_leaves",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC",
+      "zoom": 0.25
+     }
+    },
+    "name": "birchglass-wide",
+    "profile": "OAK",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8102,
+    "trunk": "minecraft:pale_oak_wood",
+    "trunkCurve": "LINEAR",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:pale_oak_wood",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:birch_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:stripped_birch_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.6
+     }
+    },
+    "trunkWidth": 1,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-bloomspire-orchard": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "clusterDensity": 0.85,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": 10,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 2,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.2
+     },
+     "crownStretchX": 1.2,
+     "crownStretchZ": 1.2,
+     "leafDensity": 0.88,
+     "mode": "DENSITY"
+    },
+    "chance": 0.6,
+    "decorators": [
+     {
+      "block": "minecraft:pink_petals",
+      "chance": 0.12,
+      "target": "GROUND_SCATTER"
+     },
+     {
+      "block": "minecraft:cherry_leaves",
+      "chance": 0.04,
+      "target": "LEAF_SURFACE"
+     }
+    ],
+    "density": 2,
+    "heightMax": 16,
+    "heightMin": 10,
+    "leaves": "minecraft:cherry_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:cherry_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:flowering_azalea_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "bloomspire",
+    "profile": "CHERRY",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8501,
+    "shapeEnd": 0.8,
+    "shapeStart": 1.0,
+    "trunk": "minecraft:cherry_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:cherry_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkShape": "BELL",
+    "trunkWidth": 1,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-bonsai": {
+  "trees": [
+   {
+    "canopy": {
+     "leafDensity": 0.95,
+     "mode": "TRIMMED",
+     "squish": 0.3,
+     "startAngle": 100
+    },
+    "chance": 0.45,
+    "density": 2,
+    "forkAngle": 38,
+    "forkHeight": 0.4,
+    "heightMax": 10,
+    "heightMin": 6,
+    "leanAngle": 16,
+    "leanAzimuth": 0,
+    "leanAzimuthMode": "CONSTANT",
+    "leaves": "minecraft:azalea_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:azalea_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "bonsai-green",
+    "profile": "DARK_OAK_FLAT",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8801,
+    "shapeEnd": 0.8,
+    "shapeStart": 1.1,
+    "trunk": "minecraft:oak_wood",
+    "trunkCurve": "EXPONENTIAL",
+    "trunkForks": 3,
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:stripped_oak_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.5
+     },
+     "zoom": 1.5
+    },
+    "trunkShape": "BELL",
+    "trunkWidth": 2,
+    "variants": 8
+   },
+   {
+    "canopy": {
+     "crownStretchX": 1.15,
+     "crownStretchZ": 1.15,
+     "leafDensity": 0.95,
+     "mode": "TRIMMED",
+     "squish": 0.3,
+     "startAngle": 100
+    },
+    "chance": 0.35,
+    "decorators": [
+     {
+      "block": "minecraft:pink_petals",
+      "chance": 0.1,
+      "target": "GROUND_SCATTER"
+     }
+    ],
+    "density": 2,
+    "forkAngle": 32,
+    "forkHeight": 0.45,
+    "heightMax": 9,
+    "heightMin": 6,
+    "leanAngle": 18,
+    "leanAzimuth": 0,
+    "leanAzimuthMode": "CONSTANT",
+    "leaves": "minecraft:cherry_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:cherry_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:flowering_azalea_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "bonsai-blossom",
+    "profile": "DARK_OAK_FLAT",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8802,
+    "shapeEnd": 0.8,
+    "shapeStart": 1.1,
+    "trunk": "minecraft:cherry_wood",
+    "trunkCurve": "EXPONENTIAL",
+    "trunkForks": 2,
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:cherry_wood",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:stripped_oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.5
+     }
+    },
+    "trunkShape": "BELL",
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-candlewood-grove": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "branchDepth": 2,
+      "clusterDensity": 0.9,
+      "clusterMode": "FILLED",
+      "clusterRadius": 2,
+      "elevation": 25,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 2,
+      "probabilityFunction": "TOP_HEAVY",
+      "subBranches": {
+       "clusterMode": "FILLED",
+       "clusterRadius": 1,
+       "count": 2,
+       "lengthScale": 0.6,
+       "pitchDelta": 15,
+       "yawDelta": 60
+      }
+     },
+     "leafDensity": 0.9,
+     "mode": "FILLED"
+    },
+    "chance": 0.5,
+    "density": 1,
+    "forkAngle": 22,
+    "forkHeight": 0.4,
+    "heightMax": 19,
+    "heightMin": 13,
+    "leaves": "minecraft:azalea_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:azalea_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "candlewood",
+    "profile": "OAK",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8601,
+    "trunk": "minecraft:acacia_wood",
+    "trunkForks": 3,
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:acacia_wood",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-emberbark-woods": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "RANDOM",
+      "branchDepth": 2,
+      "clusterDensity": 0.82,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": 0,
+      "lengthBase": 2,
+      "lengthCrown": 5,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 2,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.3,
+      "subBranches": {
+       "clusterMode": "TRIMMED",
+       "clusterRadius": 1,
+       "count": 2,
+       "lengthScale": 0.5,
+       "pitchDelta": -8,
+       "yawDelta": 55
+      }
+     },
+     "leafDensity": 0.85,
+     "mode": "DENSITY"
+    },
+    "chance": 0.75,
+    "decorators": [
+     {
+      "block": "minecraft:vine",
+      "chance": 0.12,
+      "target": "TRUNK_SURFACE"
+     }
+    ],
+    "density": 2,
+    "heightMax": 15,
+    "heightMin": 9,
+    "leaves": "minecraft:oak_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:jungle_leaves",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:flowering_azalea_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     },
+     "zoom": 3.5
+    },
+    "name": "emberbark",
+    "profile": "OAK",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7301,
+    "shapeAmplitude": 0.25,
+    "shapePeriod": 0.5,
+    "trunk": "minecraft:oak_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:dark_oak_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:mangrove_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     },
+     "zoom": 1.5
+    },
+    "trunkShape": "SINE",
+    "trunkWidth": 1,
+    "variants": 8
+   },
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "RANDOM",
+      "clusterDensity": 0.8,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 3,
+      "lengthBase": 3,
+      "lengthCrown": 6,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 1.8,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.25
+     },
+     "leafDensity": 0.82,
+     "mode": "DENSITY"
+    },
+    "chance": 0.35,
+    "density": 1,
+    "heightMax": 19,
+    "heightMin": 15,
+    "leaves": "minecraft:jungle_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:jungle_leaves",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:flowering_azalea_leaves",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "emberbark-tall",
+    "profile": "OAK",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7302,
+    "shapeBase": 2.2,
+    "trunk": "minecraft:dark_oak_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:dark_oak_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "trunkShape": "LOG",
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-mistveil-swamp": {
+  "trees": [
+   {
+    "azimuthWhorlCount": 5,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "WHORL",
+      "clusterDensity": 0.6,
+      "clusterMode": "SPARSE",
+      "clusterRadius": 2,
+      "elevation": -14,
+      "lengthBase": 2,
+      "lengthCrown": 6,
+      "lengthFunction": "LINEAR",
+      "probabilityConstant": 0.95,
+      "probabilityFunction": "PERIODIC",
+      "probabilityPeriods": 6,
+      "sag": 0.4
+     },
+     "leafDensity": 0.8,
+     "mode": "TATTERED"
+    },
+    "chance": 0.5,
+    "decorators": [
+     {
+      "block": "minecraft:vine",
+      "chance": 0.4,
+      "length": 4,
+      "target": "CANOPY_HANG"
+     },
+     {
+      "block": "minecraft:vine",
+      "chance": 0.2,
+      "target": "TRUNK_SURFACE"
+     }
+    ],
+    "density": 2,
+    "heightMax": 30,
+    "heightMin": 20,
+    "leaves": "minecraft:spruce_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:spruce_leaves",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:dark_oak_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "mistveil-spire",
+    "profile": "MEGA_SPRUCE",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7601,
+    "trunk": "minecraft:spruce_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:dark_oak_wood",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   },
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "ALTERNATING",
+      "clusterDensity": 0.55,
+      "clusterMode": "SPARSE",
+      "clusterRadius": 1,
+      "elevation": -10,
+      "lengthBase": 1,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityConstant": 0.9,
+      "probabilityFunction": "PERIODIC",
+      "probabilityPeriods": 5,
+      "sag": 0.35
+     },
+     "leafDensity": 0.7,
+     "mode": "SPARSE"
+    },
+    "chance": 0.4,
+    "density": 2,
+    "heightMax": 20,
+    "heightMin": 14,
+    "leaves": "minecraft:spruce_leaves",
+    "name": "mistveil-young",
+    "profile": "SPRUCE",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7602,
+    "trunk": "minecraft:spruce_wood",
+    "trunkWidth": 1,
+    "variants": 5
+   }
+  ]
+ },
+ "biomes-estranged-pallid-necropolis": {
+  "formations": [
+   {
+    "baseWidthMax": 5,
+    "baseWidthMin": 2,
+    "block": "minecraft:calcite",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:calcite",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:diorite",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:bone_block",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     }
+    },
+    "chance": 0.08,
+    "density": 2,
+    "form": "SPIRE",
+    "heightMax": 19,
+    "heightMin": 8,
+    "jitter": 0.7,
+    "mode": "PAINT",
+    "name": "ossuary-spire",
+    "profile": "TAPER",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "roughness": 0.65,
+    "seed": 9411,
+    "topWidth": 1,
+    "variants": 7
+   }
+  ],
+  "ruins": [
+   {
+    "block": "minecraft:calcite",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:calcite",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:polished_diorite",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:bone_block",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "buriedFraction": 0.24,
+    "chance": 0.1,
+    "density": 2,
+    "erosion": 0.32,
+    "erosionScale": 0.5,
+    "form": "PILLAR",
+    "heightMax": 5,
+    "heightMin": 2,
+    "lengthMax": 2,
+    "lengthMin": 1,
+    "mode": "MIN_HEIGHT",
+    "mossiness": 0.35,
+    "name": "pallid-marker",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9421,
+    "variants": 8,
+    "weatheringPalette": {
+     "palette": [
+      {
+       "block": "minecraft:tuff",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:pale_moss_block",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "weatheringScale": 0.4,
+    "widthMax": 2,
+    "widthMin": 1
+   }
+  ],
+  "trees": [
+   {
+    "azimuthScale": 1.2,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "branchDepth": 2,
+      "clusterDensity": 0.82,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 3,
+      "elevation": -20,
+      "lengthBase": 3,
+      "lengthCrown": 7,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 1.5,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.55,
+      "subBranches": {
+       "clusterDensity": 0.84,
+       "clusterMode": "DENSITY",
+       "clusterRadius": 2,
+       "count": 1,
+       "lengthScale": 0.6,
+       "pitchDelta": -10,
+       "sag": 0.5,
+       "yawDelta": 41
+      }
+     },
+     "crownStretchX": 1.25,
+     "crownStretchZ": 1.1,
+     "leafDensity": 0.8,
+     "mode": "DENSITY",
+     "squish": 0.48,
+     "startAngle": 55
+    },
+    "chance": 0.24,
+    "density": 1,
+    "forkAngle": 32,
+    "forkHeight": 0.48,
+    "heightMax": 31,
+    "heightMin": 18,
+    "leanAngle": 18,
+    "leanAzimuthMode": "NOISE",
+    "leaves": "minecraft:pale_oak_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:pale_oak_leaves"
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "pallid-willow",
+    "profile": "WILLOW",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9401,
+    "shapeAmplitude": 0.35,
+    "shapePeriod": 0.12,
+    "trunk": "minecraft:pale_oak_wood",
+    "trunkCurve": "SIGMOID",
+    "trunkForks": 2,
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:pale_oak_wood",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:stripped_pale_oak_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:bone_block",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.45
+     }
+    },
+    "trunkShape": "SINE",
+    "trunkWidth": 2,
+    "variants": 10
+   },
+   {
+    "azimuthScale": 1.4,
+    "azimuthWhorlCount": 5,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "WHORL",
+      "clusterDensity": 0.82,
+      "clusterMode": "CLUMPED",
+      "clusterRadius": 2,
+      "elevation": 12,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityConstant": 0.82,
+      "probabilityFunction": "PERIODIC",
+      "probabilityPeriods": 3,
+      "sag": 0.12
+     },
+     "crownStretchX": 0.65,
+     "crownStretchZ": 0.65,
+     "leafDensity": 0.72,
+     "mode": "CLUMPED"
+    },
+    "chance": 0.14,
+    "density": 1,
+    "forkAngle": 28,
+    "forkHeight": 0.62,
+    "heightMax": 24,
+    "heightMin": 14,
+    "leanAngle": 12,
+    "leanAzimuthMode": "NOISE",
+    "leaves": "minecraft:pale_oak_leaves",
+    "name": "pallid-spindle",
+    "profile": "COLUMNAR",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9402,
+    "shapeAmplitude": 0.3,
+    "shapePeriod": 0.11,
+    "trunk": "minecraft:pale_oak_wood",
+    "trunkCurve": "SIGMOID",
+    "trunkForks": 2,
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:pale_oak_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:bone_block",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "trunkShape": "SINE",
+    "trunkWidth": 2,
+    "variants": 8
+   }
+  ]
+ },
+ "biomes-estranged-skyreach-pines": {
+  "trees": [
+   {
+    "azimuthWhorlCount": 5,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "WHORL",
+      "clusterDensity": 0.8,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": -6,
+      "lengthBase": 2,
+      "lengthCrown": 6,
+      "lengthFunction": "LINEAR",
+      "probabilityConstant": 0.95,
+      "probabilityFunction": "PERIODIC",
+      "probabilityPeriods": 8,
+      "sag": 0.25
+     },
+     "leafDensity": 0.85,
+     "mode": "DENSITY"
+    },
+    "chance": 0.6,
+    "decorators": [
+     {
+      "block": "minecraft:snow",
+      "chance": 0.4,
+      "target": "CANOPY_TOP"
+     }
+    ],
+    "density": 2,
+    "heightMax": 34,
+    "heightMin": 22,
+    "leaves": "minecraft:spruce_leaves",
+    "name": "skyreach-pine",
+    "profile": "MEGA_SPRUCE",
+    "rootStyle": "TAPROOT",
+    "roots": true,
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8401,
+    "trunk": "minecraft:spruce_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 6
+      },
+      {
+       "block": "minecraft:dark_oak_wood",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-slinky-spires": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "clusterDensity": 0.92,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 5,
+      "elevation": -16,
+      "lengthBase": 4,
+      "lengthCrown": 5,
+      "lengthFunction": "LINEAR",
+      "probabilityFunction": "GAUSSIAN",
+      "probabilityMean": 0.95,
+      "probabilityStd": 0.08,
+      "sag": 0.4
+     },
+     "leafDensity": 0.95,
+     "mode": "DENSITY"
+    },
+    "chance": 0.28,
+    "curveSteepness": 4,
+    "density": 1,
+    "heightMax": 48,
+    "heightMin": 32,
+    "leanAngle": 26,
+    "leanAzimuth": 0,
+    "leanAzimuthMode": "CONSTANT",
+    "leaves": "minecraft:cherry_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:cherry_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:flowering_azalea_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 3
+    },
+    "name": "lollipop-pink",
+    "profile": "COLUMNAR",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8701,
+    "trunk": "minecraft:birch_wood",
+    "trunkCurve": "EXPONENTIAL",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:birch_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:stripped_birch_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:cherry_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.7
+     },
+     "zoom": 1.5
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   },
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "clusterDensity": 0.92,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 5,
+      "elevation": -14,
+      "lengthBase": 4,
+      "lengthCrown": 5,
+      "lengthFunction": "LINEAR",
+      "probabilityFunction": "GAUSSIAN",
+      "probabilityMean": 0.95,
+      "probabilityStd": 0.08,
+      "sag": 0.4
+     },
+     "leafDensity": 0.95,
+     "mode": "DENSITY"
+    },
+    "chance": 0.22,
+    "curveSteepness": 4,
+    "density": 1,
+    "heightMax": 44,
+    "heightMin": 30,
+    "leanAngle": 24,
+    "leanAzimuth": 0,
+    "leanAzimuthMode": "CONSTANT",
+    "leaves": "minecraft:azalea_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:azalea_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:jungle_leaves",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 3
+    },
+    "name": "lollipop-teal",
+    "profile": "COLUMNAR",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8702,
+    "trunk": "minecraft:birch_wood",
+    "trunkCurve": "EXPONENTIAL",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:stripped_birch_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:birch_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:stripped_oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.7
+     },
+     "zoom": 1.5
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-snarlwood-thicket": {
+  "trees": [
+   {
+    "azimuthScale": 2.0,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "ZIGZAG",
+      "branchDepth": 2,
+      "clusterDensity": 0.7,
+      "clusterMode": "TATTERED",
+      "clusterRadius": 2,
+      "elevation": -10,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 1.6,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.5,
+      "subBranches": {
+       "clusterMode": "TATTERED",
+       "clusterRadius": 1,
+       "count": 2,
+       "lengthScale": 0.6,
+       "pitchDelta": -12,
+       "sag": 0.4,
+       "yawDelta": 70
+      }
+     },
+     "crownStretchX": 1.4,
+     "crownStretchZ": 0.8,
+     "leafDensity": 0.8,
+     "mode": "TATTERED"
+    },
+    "chance": 0.8,
+    "decorators": [
+     {
+      "block": "minecraft:vine",
+      "chance": 0.3,
+      "target": "TRUNK_SURFACE"
+     },
+     {
+      "block": "minecraft:vine",
+      "chance": 0.4,
+      "length": 4,
+      "target": "CANOPY_HANG"
+     }
+    ],
+    "density": 2,
+    "heightMax": 13,
+    "heightMin": 8,
+    "leanAngle": 22,
+    "leanAzimuthMode": "NOISE",
+    "leaves": "minecraft:dark_oak_leaves",
+    "name": "snarlwood",
+    "profile": "OAK",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8201,
+    "shapeAmplitude": 0.3,
+    "shapePeriod": 0.4,
+    "trunk": "minecraft:dark_oak_wood",
+    "trunkCurve": "SIGMOID",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:dark_oak_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "trunkShape": "SINE",
+    "trunkWidth": 1,
+    "variants": 8
+   }
+  ]
+ },
+ "biomes-estranged-spindlewood": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "branchDepth": 3,
+      "clusterDensity": 0.75,
+      "clusterMode": "CLUMPED",
+      "clusterRadius": 2,
+      "elevation": 15,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityBase": 0.2,
+      "probabilityCrown": 0.9,
+      "probabilityFunction": "LINEAR",
+      "sag": 0.15,
+      "subBranches": {
+       "clusterMode": "CLUMPED",
+       "clusterRadius": 1,
+       "count": 2,
+       "lengthScale": 0.55,
+       "pitchDelta": 20,
+       "yawDelta": 80
+      }
+     },
+     "leafDensity": 0.7,
+     "mode": "CLUMPED"
+    },
+    "chance": 0.6,
+    "density": 2,
+    "heightMax": 13,
+    "heightMin": 8,
+    "leaves": "minecraft:birch_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:birch_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:azalea_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "spindle-golden",
+    "profile": "BUSH",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7501,
+    "trunk": "minecraft:birch_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:birch_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 1,
+    "variants": 8
+   },
+   {
+    "azimuthWhorlCount": 5,
+    "canopy": {
+     "branches": {
+      "azimuthMode": "WHORL",
+      "clusterDensity": 0.78,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": 8,
+      "lengthBase": 2,
+      "lengthCrown": 4,
+      "lengthFunction": "LINEAR",
+      "probabilityConstant": 0.9,
+      "probabilityFunction": "PERIODIC",
+      "probabilityPeriods": 4,
+      "sag": 0.1
+     },
+     "leafDensity": 0.78,
+     "mode": "DENSITY"
+    },
+    "chance": 0.4,
+    "density": 2,
+    "heightMax": 16,
+    "heightMin": 11,
+    "leaves": "minecraft:birch_leaves",
+    "name": "spindle-whorl",
+    "profile": "COLUMNAR",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7502,
+    "trunk": "minecraft:oak_wood",
+    "trunkWidth": 1,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-stiltroot-shallows": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "RANDOM",
+      "clusterDensity": 0.8,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": -14,
+      "lengthBase": 3,
+      "lengthCrown": 6,
+      "lengthFunction": "LINEAR",
+      "probabilityExponent": 1.8,
+      "probabilityFunction": "TOP_HEAVY",
+      "sag": 0.4
+     },
+     "leafDensity": 0.82,
+     "mode": "DENSITY",
+     "squish": 0.7,
+     "startAngle": 70
+    },
+    "chance": 0.55,
+    "decorators": [
+     {
+      "block": "minecraft:vine",
+      "chance": 0.4,
+      "length": 4,
+      "target": "CANOPY_HANG"
+     }
+    ],
+    "density": 2,
+    "heightMax": 18,
+    "heightMin": 12,
+    "leaves": "minecraft:mangrove_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:mangrove_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "name": "stiltroot",
+    "profile": "WILLOW",
+    "rootFlare": 6,
+    "rootStyle": "STILT",
+    "roots": true,
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8301,
+    "trunk": "minecraft:mangrove_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:mangrove_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-estranged-taxodium": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "GOLDEN_ANGLE",
+      "branchDepth": 4,
+      "clusterDensity": 0.2,
+      "clusterMode": "SPARSE",
+      "clusterRadius": 1,
+      "elevation": 32,
+      "lengthBase": 2,
+      "lengthCrown": 5,
+      "lengthFunction": "LINEAR",
+      "probabilityBase": 0.5,
+      "probabilityCrown": 0.95,
+      "probabilityFunction": "LINEAR",
+      "subBranches": {
+       "clusterDensity": 0.15,
+       "clusterMode": "SPARSE",
+       "clusterRadius": 1,
+       "count": 2,
+       "lengthScale": 0.62,
+       "pitchDelta": 6,
+       "yawDelta": 65
+      }
+     },
+     "leafDensity": 0.15,
+     "mode": "SPARSE"
+    },
+    "chance": 0.4,
+    "density": 1,
+    "heightMax": 34,
+    "heightMin": 20,
+    "leaves": "minecraft:stripped_spruce_wood",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:stripped_spruce_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:stripped_birch_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:stripped_oak_wood",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:cherry_wood",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:mangrove_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.35
+     },
+     "zoom": 2
+    },
+    "name": "taxodium",
+    "profile": "OAK",
+    "rootFlare": 4,
+    "rootStyle": "STILT",
+    "roots": true,
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 45,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 8901,
+    "shapeEnd": 0.6,
+    "shapeStart": 1.1,
+    "trunk": "minecraft:spruce_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:spruce_wood",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:stripped_spruce_wood",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:dark_oak_wood",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:mangrove_wood",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:stripped_oak_wood",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.7
+     },
+     "zoom": 1.5
+    },
+    "trunkShape": "LINEAR",
+    "trunkWidth": 1,
+    "variants": 8
+   }
+  ]
+ },
+ "biomes-estranged-weeping-mire": {
+  "trees": [
+   {
+    "canopy": {
+     "branches": {
+      "azimuthMode": "RANDOM",
+      "branchDepth": 2,
+      "clusterDensity": 0.8,
+      "clusterMode": "DENSITY",
+      "clusterRadius": 2,
+      "elevation": -22,
+      "lengthBase": 4,
+      "lengthCrown": 7,
+      "lengthFunction": "LINEAR",
+      "probabilityFunction": "GAUSSIAN",
+      "probabilityMean": 0.8,
+      "probabilityStd": 0.2,
+      "sag": 0.6,
+      "subBranches": {
+       "clusterDensity": 0.8,
+       "clusterMode": "DENSITY",
+       "clusterRadius": 2,
+       "count": 1,
+       "lengthScale": 0.7,
+       "pitchDelta": -12,
+       "sag": 0.6,
+       "yawDelta": 25
+      }
+     },
+     "leafDensity": 0.82,
+     "mode": "DENSITY",
+     "squish": 0.5,
+     "startAngle": 55
+    },
+    "chance": 0.55,
+    "decorators": [
+     {
+      "block": "minecraft:vine",
+      "chance": 0.5,
+      "length": 5,
+      "target": "CANOPY_HANG"
+     },
+     {
+      "block": "minecraft:vine",
+      "chance": 0.25,
+      "target": "TRUNK_SURFACE"
+     }
+    ],
+    "density": 2,
+    "heightMax": 17,
+    "heightMin": 11,
+    "leaves": "minecraft:oak_leaves",
+    "leavesPalette": {
+     "palette": [
+      {
+       "block": "minecraft:oak_leaves",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:jungle_leaves",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     },
+     "zoom": 4
+    },
+    "name": "weeping-willow",
+    "profile": "WILLOW",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 7201,
+    "trunk": "minecraft:mangrove_wood",
+    "trunkPalette": {
+     "palette": [
+      {
+       "block": "minecraft:mangrove_wood",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:oak_wood",
+       "weight": 3
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     },
+     "zoom": 2
+    },
+    "trunkWidth": 2,
+    "variants": 6
+   }
+  ]
+ },
+ "biomes-frozen-fields-hilly-plains": "snippet/procedural-objects/frozen/magical-ice-surface",
+ "biomes-frozen-ice-spikes": "snippet/procedural-objects/frozen/magical-ice-spikes-biome",
+ "biomes-frozen-sea-frozen-parent-river": "snippet/procedural-objects/frozen/magical-ice-spikes-surface",
+ "biomes-magnetics-glass": "snippet/procedural-objects/magnetics/magical-glass-spikes-surface",
+ "biomes-magnetics-glass-shard": "snippet/procedural-objects/magnetics/magical-glass-spikes-dense",
+ "biomes-ocean-warm": {
+  "coral": [
+   {
+    "block": "minecraft:fire_coral_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:fire_coral_block",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:tube_coral_block",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:bubble_coral_block",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:horn_coral_block",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:brain_coral_block",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "branchAzimuth": "GOLDEN_ANGLE",
+    "branchCount": 6,
+    "branchElevation": 40,
+    "branchLength": 4,
+    "chance": 0.7,
+    "density": 4,
+    "form": "BRANCHING",
+    "heightMax": 8,
+    "heightMin": 4,
+    "name": "reef-branch",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9411,
+    "spread": 1.1,
+    "subBranchCount": 2,
+    "subBranchScale": 0.6,
+    "subBranches": true,
+    "sway": 0.45,
+    "tipBlock": "minecraft:sea_pickle",
+    "tipChance": 0.5,
+    "tipClusterRadius": 1,
+    "underwater": true,
+    "variants": 8,
+    "waterlogged": true
+   },
+   {
+    "block": "minecraft:brain_coral_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:brain_coral_block",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:bubble_coral_block",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.35
+     }
+    },
+    "brainRadius": 4,
+    "brainRoughness": 0.4,
+    "chance": 0.45,
+    "density": 3,
+    "form": "BRAIN",
+    "name": "reef-brain",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9412,
+    "underwater": true,
+    "variants": 5,
+    "waterlogged": true
+   },
+   {
+    "block": "minecraft:horn_coral_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:horn_coral_block",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:fire_coral_block",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "chance": 0.4,
+    "density": 3,
+    "fanWidth": 5,
+    "form": "FAN",
+    "heightMax": 6,
+    "heightMin": 3,
+    "name": "reef-fan",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9413,
+    "sway": 0.3,
+    "underwater": true,
+    "variants": 5,
+    "waterlogged": true
+   }
+  ]
+ },
+ "biomes-temperate-sea-ocean": {
+  "coral": [
+   {
+    "block": "minecraft:tube_coral_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:tube_coral_block",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:brain_coral_block",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:bubble_coral_block",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:horn_coral_block",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "branchAzimuth": "GOLDEN_ANGLE",
+    "branchCount": 5,
+    "branchElevation": 35,
+    "branchLength": 3,
+    "chance": 0.5,
+    "density": 3,
+    "form": "BRANCHING",
+    "heightMax": 6,
+    "heightMin": 3,
+    "name": "branch-coral",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9401,
+    "spread": 1.0,
+    "subBranchCount": 2,
+    "subBranchScale": 0.6,
+    "subBranches": true,
+    "sway": 0.4,
+    "tipBlock": "minecraft:sea_pickle",
+    "tipChance": 0.4,
+    "tipClusterRadius": 1,
+    "underwater": true,
+    "variants": 6,
+    "waterlogged": true
+   },
+   {
+    "block": "minecraft:brain_coral_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:brain_coral_block",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:bubble_coral_block",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.35
+     }
+    },
+    "brainRadius": 3,
+    "brainRoughness": 0.4,
+    "chance": 0.35,
+    "density": 2,
+    "form": "BRAIN",
+    "name": "brain-coral",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9402,
+    "underwater": true,
+    "variants": 5,
+    "waterlogged": true
+   }
+  ]
+ },
+ "regions-estranged": {
+  "crystals": [
+   {
+    "baseBlock": "minecraft:budding_amethyst",
+    "baseNoise": 0.4,
+    "baseRadius": 2.5,
+    "block": "minecraft:amethyst_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:amethyst_block",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:calcite",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "carvingSupport": "CARVING_ONLY",
+    "chance": 0.03,
+    "density": 2,
+    "distribution": "GOLDEN_ANGLE",
+    "growthSurface": "FLOOR",
+    "jitter": 0.3,
+    "mode": "PAINT",
+    "name": "amethyst-cluster",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9201,
+    "shardBaseRadius": 1.5,
+    "shardCountMax": 9,
+    "shardCountMin": 5,
+    "shardLengthMax": 6,
+    "shardLengthMin": 3,
+    "shardTaper": 0.8,
+    "spreadAngle": 55,
+    "tipBlock": "minecraft:amethyst_cluster",
+    "tipChance": 0.6,
+    "variants": 6
+   },
+   {
+    "baseBlock": "minecraft:calcite",
+    "baseNoise": 0.3,
+    "baseRadius": 2,
+    "block": "minecraft:quartz_block",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:quartz_block",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:tinted_glass",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:packed_ice",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.3
+     }
+    },
+    "carvingSupport": "CARVING_ONLY",
+    "chance": 0.2,
+    "density": 1,
+    "distribution": "RANDOM",
+    "glow": true,
+    "glowBlock": "minecraft:glowstone",
+    "growthSurface": "FLOOR",
+    "jitter": 0.35,
+    "mode": "PAINT",
+    "name": "frostspar",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9202,
+    "shardBaseRadius": 1.5,
+    "shardCountMax": 7,
+    "shardCountMin": 4,
+    "shardLengthMax": 8,
+    "shardLengthMin": 4,
+    "shardTaper": 0.85,
+    "spreadAngle": 40,
+    "variants": 5
+   }
+  ],
+  "formations": [
+   {
+    "baseWidthMax": 5,
+    "baseWidthMin": 3,
+    "block": "minecraft:stone",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:stone",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:andesite",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:tuff",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:deepslate",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.6
+     },
+     "zoom": 2
+    },
+    "chance": 0.04,
+    "density": 1,
+    "form": "SPIRE",
+    "heightMax": 26,
+    "heightMin": 14,
+    "jitter": 0.3,
+    "mode": "PAINT",
+    "name": "obelisk-spire",
+    "profile": "TAPER",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "roughness": 0.35,
+    "seed": 9001,
+    "strataPalette": {
+     "palette": [
+      {
+       "block": "minecraft:calcite"
+      },
+      {
+       "block": "minecraft:tuff"
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "strataThickness": 2,
+    "topWidth": 1,
+    "variants": 4
+   },
+   {
+    "baseWidthMax": 6,
+    "baseWidthMin": 3,
+    "block": "minecraft:mossy_cobblestone",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:stone",
+       "weight": 3
+      },
+      {
+       "block": "minecraft:mossy_cobblestone",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:andesite",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:cobblestone",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "CELLULAR",
+      "zoom": 0.4
+     }
+    },
+    "chance": 0.1,
+    "density": 2,
+    "form": "BOULDER",
+    "heightMax": 6,
+    "heightMin": 3,
+    "jitter": 0.4,
+    "mode": "PAINT",
+    "name": "boulder",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "roughness": 0.4,
+    "seed": 9003,
+    "translate": {
+     "y": -3
+    },
+    "variants": 6
+   }
+  ],
+  "ruins": [
+   {
+    "accents": [
+     {
+      "block": "minecraft:vine",
+      "chance": 0.3,
+      "scatterRadius": 1,
+      "target": "TOP"
+     }
+    ],
+    "block": "minecraft:stone_bricks",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:stone_bricks",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:cracked_stone_bricks",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:cobblestone",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "buriedFraction": 0.2,
+    "chance": 0.06,
+    "density": 1,
+    "erosion": 0.3,
+    "erosionScale": 0.6,
+    "form": "PILLAR",
+    "heightMax": 11,
+    "heightMin": 5,
+    "lengthMax": 2,
+    "lengthMin": 1,
+    "mode": "MIN_HEIGHT",
+    "mossiness": 0.4,
+    "name": "ruined-pillar",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9101,
+    "variants": 5,
+    "weatheringPalette": {
+     "palette": [
+      {
+       "block": "minecraft:mossy_stone_bricks"
+      },
+      {
+       "block": "minecraft:mossy_cobblestone"
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "weatheringScale": 0.5,
+    "widthMax": 2,
+    "widthMin": 1
+   },
+   {
+    "block": "minecraft:cobblestone",
+    "blockPalette": {
+     "palette": [
+      {
+       "block": "minecraft:cobblestone",
+       "weight": 4
+      },
+      {
+       "block": "minecraft:stone_bricks",
+       "weight": 2
+      },
+      {
+       "block": "minecraft:mossy_cobblestone",
+       "weight": 2
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "buriedFraction": 0.25,
+    "chance": 0.035,
+    "density": 1,
+    "erosion": 0.4,
+    "form": "WALL",
+    "heightMax": 6,
+    "heightMin": 3,
+    "lengthMax": 1,
+    "lengthMin": 1,
+    "mode": "MIN_HEIGHT",
+    "mossiness": 0.5,
+    "name": "ruined-wall",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9102,
+    "variants": 5,
+    "weatheringPalette": {
+     "palette": [
+      {
+       "block": "minecraft:mossy_cobblestone"
+      },
+      {
+       "block": "minecraft:mossy_stone_bricks"
+      }
+     ],
+     "style": {
+      "style": "STATIC"
+     }
+    },
+    "widthMax": 8,
+    "widthMin": 4
+   }
+  ]
+ },
+ "regions-mushroom": {
+  "fungi": [
+   {
+    "cap": "minecraft:red_mushroom_block",
+    "capDroop": 18,
+    "capOverhang": 2,
+    "capRadiusMax": 5,
+    "capRadiusMin": 3,
+    "capShape": "DOME",
+    "capSquish": 0.7,
+    "capThickness": 2,
+    "chance": 0.05,
+    "density": 2,
+    "gillBlock": "minecraft:mushroom_stem",
+    "gillChance": 0.7,
+    "name": "red-cap",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9301,
+    "stem": "minecraft:mushroom_stem",
+    "stemCurve": 6,
+    "stemHeightMax": 9,
+    "stemHeightMin": 4,
+    "stemWaveAmplitude": 0.4,
+    "stemWavePeriods": 1.5,
+    "stemWidth": 2,
+    "variants": 6
+   },
+   {
+    "cap": "minecraft:brown_mushroom_block",
+    "capDroop": 8,
+    "capOverhang": 3,
+    "capRadiusMax": 7,
+    "capRadiusMin": 4,
+    "capShape": "FLAT_WIDE",
+    "capSquish": 0.35,
+    "capThickness": 1,
+    "chance": 0.05,
+    "density": 2,
+    "gillBlock": "minecraft:shroomlight",
+    "gillChance": 0.5,
+    "name": "brown-table",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9302,
+    "stem": "minecraft:mushroom_stem",
+    "stemCurve": 4,
+    "stemHeightMax": 11,
+    "stemHeightMin": 5,
+    "stemWidth": 2,
+    "variants": 6
+   },
+   {
+    "cap": "minecraft:red_mushroom_block",
+    "capDroop": 22,
+    "capOverhang": 1,
+    "capRadiusMax": 4,
+    "capRadiusMin": 2,
+    "capShape": "CONICAL",
+    "capSquish": 0.9,
+    "capThickness": 2,
+    "chance": 0.35,
+    "density": 3,
+    "gillBlock": "minecraft:shroomlight",
+    "gillChance": 0.6,
+    "name": "spindle-toadstool",
+    "rotation": {
+     "enabled": true,
+     "yAxis": {
+      "enabled": true,
+      "interval": 90,
+      "max": 360,
+      "min": 0
+     }
+    },
+    "seed": 9303,
+    "spotBlock": "minecraft:brown_mushroom_block",
+    "spotChance": 0.25,
+    "stem": "minecraft:mushroom_stem",
+    "stemCurve": 10,
+    "stemHeightMax": 12,
+    "stemHeightMin": 6,
+    "stemPalette": {
+     "palette": [
+      {
+       "block": "minecraft:mushroom_stem",
+       "weight": 5
+      },
+      {
+       "block": "minecraft:pale_oak_wood",
+       "weight": 1
+      }
+     ],
+     "style": {
+      "style": "SIMPLEX",
+      "zoom": 0.6
+     }
+    },
+    "stemWaveAmplitude": 0.6,
+    "stemWavePeriods": 2,
+    "stemWidth": 1,
+    "variants": 6
+   }
+  ]
+ }
+}

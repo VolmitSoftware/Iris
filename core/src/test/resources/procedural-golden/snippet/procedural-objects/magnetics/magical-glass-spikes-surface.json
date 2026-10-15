@@ -1,0 +1,108 @@
+{
+    "formations": [
+        {
+            "name": "glacial-needle",
+            "chance": 0.24,
+            "density": 3,
+            "variants": 16,
+            "seed": 5055021,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:light_blue_stained_glass",
+            "blockPalette": "snippet/palette/magnetics/magical-glass",
+            "capBlock": "minecraft:tinted_glass",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRE",
+            "translate": {
+                "y": -2
+            },
+            "heightMin": 20,
+            "heightMax": 40,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "topWidth": 0,
+            "profile": "LINEAR",
+            "roughness": 0.12,
+            "jitter": 0.02
+        },
+        {
+            "name": "glacial-leaning-lance",
+            "chance": 0.16,
+            "density": 3,
+            "variants": 16,
+            "seed": 5055022,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:light_blue_stained_glass",
+            "blockPalette": "snippet/palette/magnetics/magical-glass",
+            "capBlock": "minecraft:tinted_glass",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "SPIRE",
+            "translate": {
+                "y": -2
+            },
+            "heightMin": 26,
+            "heightMax": 48,
+            "baseWidthMin": 1,
+            "baseWidthMax": 2,
+            "topWidth": 0,
+            "profile": "TAPER",
+            "lean": 10,
+            "leanAzimuth": 18,
+            "roughness": 0.14,
+            "jitter": 0.02
+        },
+        {
+            "name": "glacial-shard-fan",
+            "chance": 0.13,
+            "density": 2,
+            "variants": 16,
+            "seed": 5055023,
+            "mode": "CENTER_HEIGHT",
+            "carvingSupport": "SURFACE_ONLY",
+            "surfaceSupportBuffer": 1,
+            "block": "minecraft:light_blue_stained_glass",
+            "blockPalette": "snippet/palette/magnetics/magical-glass",
+            "capBlock": "minecraft:tinted_glass",
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 45
+                }
+            },
+            "form": "FISSURE",
+            "translate": {
+                "y": -2
+            },
+            "heightMin": 20,
+            "heightMax": 38,
+            "baseWidthMin": 2,
+            "baseWidthMax": 3,
+            "fractureCount": 4,
+            "fractureSeparation": 3,
+            "roughness": 0.18,
+            "jitter": 0.04
+        }
+    ]
+}

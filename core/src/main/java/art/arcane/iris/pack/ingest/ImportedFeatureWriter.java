@@ -19,9 +19,11 @@
 package art.arcane.iris.pack.ingest;
 
 import art.arcane.iris.generation.decoration.IrisDecorationStep;
+import art.arcane.iris.structure.nativegen.IrisImportedFeatureBiomeRule;
 import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
 import art.arcane.iris.structure.nativegen.NativeFeatureGenerationStatus;
 import art.arcane.volmlib.util.collection.KList;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -37,7 +39,8 @@ final class ImportedFeatureWriter {
     private ImportedFeatureWriter() {
     }
 
-    static IrisImportedFeatureControl write(JsonObject dimension, Set<String> nativeKeys, Set<String> unselectedNamespaces) {
+    static IrisImportedFeatureControl write(JsonObject dimension, Set<String> nativeKeys, Set<String> unselectedNamespaces,
+                                            Set<String> vanillaScopedKeys) {
         JsonElement existing = dimension.get("importedFeatures");
         JsonObject imported = existing != null && existing.isJsonObject() ? existing.getAsJsonObject() : new JsonObject();
         Set<String> disabled = new LinkedHashSet<>(IngestJson.strings(imported.get("disabled")));
@@ -52,11 +55,23 @@ final class ImportedFeatureWriter {
         imported.addProperty("enabled", true);
         imported.add("disabled", IngestJson.stringArray(disabled));
         imported.add("disabledExact", IngestJson.stringArray(disabledExact));
+        JsonElement existingRules = imported.get("biomeRules");
+        JsonArray rules = existingRules != null && existingRules.isJsonArray() ? existingRules.getAsJsonArray() : new JsonArray();
+        if (!vanillaScopedKeys.isEmpty()) {
+            JsonObject rule = new JsonObject();
+            rule.add("biomes", IngestJson.stringArray(List.of(VANILLA_PREFIX)));
+            rule.add("disabledExact", IngestJson.stringArray(vanillaScopedKeys));
+            rules.add(rule);
+        }
+        if (!rules.isEmpty()) {
+            imported.add("biomeRules", rules);
+        }
         dimension.add("importedFeatures", imported);
         IrisImportedFeatureControl control = new IrisImportedFeatureControl();
         control.setEnabled(true);
         control.setDisabled(new KList<>(disabled));
         control.setDisabledExact(new KList<>(disabledExact));
+        control.setBiomeRules(biomeRules(rules));
         control.setSteps(steps(imported.get("steps")));
         control.setDisabledSteps(steps(imported.get("disabledSteps")));
         return control;
@@ -104,6 +119,21 @@ final class ImportedFeatureWriter {
             }
         }
         return "suppressed by importedFeatures";
+    }
+
+    private static KList<IrisImportedFeatureBiomeRule> biomeRules(JsonArray rules) {
+        KList<IrisImportedFeatureBiomeRule> parsed = new KList<>();
+        for (JsonElement entry : rules) {
+            if (!entry.isJsonObject()) {
+                continue;
+            }
+            JsonObject rule = entry.getAsJsonObject();
+            parsed.add(new IrisImportedFeatureBiomeRule()
+                    .setBiomes(new KList<>(IngestJson.strings(rule.get("biomes"))))
+                    .setDisabled(new KList<>(IngestJson.strings(rule.get("disabled"))))
+                    .setDisabledExact(new KList<>(IngestJson.strings(rule.get("disabledExact")))));
+        }
+        return parsed;
     }
 
     private static boolean enabled(JsonObject imported) {

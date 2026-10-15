@@ -35,7 +35,7 @@ public class ImportedFeatureWriterTest {
     public void sourceThatAlreadyRanImportedFeaturesKeepsVanillaAndOtherModsGenerating() {
         JsonObject dimension = dimension("{\"importedFeatures\": {\"enabled\": true, \"disabled\": [\"minecraft:ore_diamond\"]}}");
 
-        IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, Set.of("examplemod:ore_tin"), Set.of("othermod"));
+        IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, Set.of("examplemod:ore_tin"), Set.of("othermod"), Set.of());
 
         JsonObject imported = dimension.getAsJsonObject("importedFeatures");
         assertEquals(List.of("minecraft:ore_diamond"), ModIngestFixture.strings(imported.get("disabled")));
@@ -50,7 +50,7 @@ public class ImportedFeatureWriterTest {
     public void sourceWithoutImportedFeaturesOnlyRunsTheSelectedModsPassthrough() {
         JsonObject dimension = dimension("{}");
 
-        IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, Set.of("examplemod:ore_tin"), Set.of("othermod"));
+        IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, Set.of("examplemod:ore_tin"), Set.of("othermod"), Set.of());
 
         JsonObject imported = dimension.getAsJsonObject("importedFeatures");
         assertTrue(imported.get("enabled").getAsBoolean());
@@ -66,7 +66,7 @@ public class ImportedFeatureWriterTest {
     public void existingExactEntriesAreKept() {
         JsonObject dimension = dimension("{\"importedFeatures\": {\"enabled\": false, \"disabledExact\": [\"examplemod:old\"]}}");
 
-        ImportedFeatureWriter.write(dimension, Set.of("examplemod:ore_tin"), Set.of());
+        ImportedFeatureWriter.write(dimension, Set.of("examplemod:ore_tin"), Set.of(), Set.of());
 
         assertEquals(List.of("examplemod:old", "examplemod:ore_tin"),
                 ModIngestFixture.strings(dimension.getAsJsonObject("importedFeatures").get("disabledExact")));

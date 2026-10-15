@@ -36,14 +36,19 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 final class ModFeatureIngester {
+    private static final String VANILLA_NAMESPACE = "minecraft";
+
     private final IngestPackModel model;
     private final WorldgenCatalogIndex index;
+    private final TreeFeatures trees;
     private final Map<String, FeaturePlan> plans = new TreeMap<>();
     private final Set<String> nativeKeys = new TreeSet<>();
+    private final Set<String> vanillaScopedKeys = new TreeSet<>();
 
     ModFeatureIngester(IngestPackModel model, WorldgenCatalogIndex index, Set<String> namespaces) {
         this.model = model;
         this.index = index;
+        this.trees = new TreeFeatures(index);
         Map<String, Set<String>> declaring = new TreeMap<>();
         Map<String, Set<Integer>> steps = new TreeMap<>();
         for (CatalogBiome biome : index.catalog().biomes()) {
@@ -76,6 +81,10 @@ final class ModFeatureIngester {
         return nativeKeys;
     }
 
+    Set<String> vanillaScopedKeys() {
+        return vanillaScopedKeys;
+    }
+
     Map<String, FeaturePlan> plans() {
         return plans;
     }
@@ -106,9 +115,28 @@ final class ModFeatureIngester {
                 nativeKeys.add(plan.key());
                 continue;
             }
+            if (treeInPackVanillaBiomes(plan)) {
+                vanillaScopedKeys.add(plan.key());
+                items.add(new ModIngestItem(namespace, plan.key(), "feature", ModIngestTier.PASSTHROUGH, "importedFeatures",
+                        plan.reason() + "; denied in minecraft biomes the pack already decorates, so its own trees are not doubled"));
+                continue;
+            }
             items.add(new ModIngestItem(namespace, plan.key(), "feature", ModIngestTier.PASSTHROUGH, "importedFeatures", plan.reason()));
         }
         return items;
+    }
+
+    private boolean treeInPackVanillaBiomes(FeaturePlan plan) {
+        Optional<CatalogPlacedFeature> feature = index.placedFeature(plan.key());
+        if (feature.isEmpty() || !trees.isTree(feature.get())) {
+            return false;
+        }
+        for (String biome : plan.declaring()) {
+            if (WorldgenCatalogIndex.namespaceOf(biome).equals(VANILLA_NAMESPACE) && model.reachableBiomes().containsValue(biome)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private FeaturePlan plan(String key, Set<String> declaring, Set<Integer> steps) {

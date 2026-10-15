@@ -23,6 +23,8 @@ import art.arcane.iris.generation.decoration.IrisDecorationStep;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
+import java.util.Set;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -109,6 +111,45 @@ public class IrisImportedFeatureControlTest {
                 .setDisabledExact(null);
 
         assertThrows(NullPointerException.class, () -> control.shouldGenerate("examplemod:ore_tin"));
+    }
+
+    @Test
+    public void biomeRulesDenyFeaturesOnlyInMatchingBiomes() {
+        IrisImportedFeatureBiomeRule rule = new IrisImportedFeatureBiomeRule()
+                .setBiomes(keys("minecraft:"))
+                .setDisabledExact(keys("terralith:trees/oak"))
+                .setDisabled(keys("terralith:bush"));
+        IrisImportedFeatureControl control = new IrisImportedFeatureControl()
+                .setEnabled(true)
+                .setBiomeRules(new KList<>(rule));
+
+        assertTrue(control.hasBiomeFeatureRules());
+        assertFalse(control.shouldGenerateInBiome("minecraft:forest", Set.of(), "terralith:trees/oak"));
+        assertFalse(control.shouldGenerateInBiome("minecraft:forest", Set.of(), "terralith:bush/small"));
+        assertTrue(control.shouldGenerateInBiome("minecraft:forest", Set.of(), "terralith:trees/oak_large"));
+        assertTrue(control.shouldGenerateInBiome("minecraft:forest", Set.of(), "terralith:flowers/lavender"));
+        assertTrue(control.shouldGenerateInBiome("terralith:lavender_forest", Set.of(), "terralith:trees/oak"));
+        assertTrue(control.shouldGenerate("terralith:trees/oak"));
+    }
+
+    @Test
+    public void biomeRulesMatchExactKeysAndTags() {
+        IrisImportedFeatureBiomeRule rule = new IrisImportedFeatureBiomeRule()
+                .setBiomes(keys("minecraft:forest", "#minecraft:is_taiga"))
+                .setDisabledExact(keys("terralith:trees/oak"));
+        IrisImportedFeatureControl control = new IrisImportedFeatureControl()
+                .setEnabled(true)
+                .setBiomeRules(new KList<>(rule));
+
+        assertFalse(control.shouldGenerateInBiome("minecraft:forest", Set.of(), "terralith:trees/oak"));
+        assertTrue(control.shouldGenerateInBiome("minecraft:forest_hills", Set.of(), "terralith:trees/oak"));
+        assertFalse(control.shouldGenerateInBiome("minecraft:taiga", Set.of("minecraft:is_taiga"), "terralith:trees/oak"));
+        assertTrue(control.shouldGenerateInBiome("minecraft:plains", Set.of("minecraft:is_overworld"), "terralith:trees/oak"));
+    }
+
+    @Test
+    public void controlWithoutBiomeRulesReportsNone() {
+        assertFalse(new IrisImportedFeatureControl().setEnabled(true).hasBiomeFeatureRules());
     }
 
     @Test

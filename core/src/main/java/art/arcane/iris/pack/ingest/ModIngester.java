@@ -89,7 +89,7 @@ public final class ModIngester {
         List<ModIngestItem> featureItems = features.apply(adopted);
         JsonObject dimension = pack.edit(model.dimensionPath());
         IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, features.nativeKeys(),
-                unselectedFeatureNamespaces(request.catalog(), namespaces));
+                unselectedFeatureNamespaces(request.catalog(), namespaces), features.vanillaScopedKeys());
         featureItems = ImportedFeatureWriter.applySuppression(featureItems, features.plans(), control);
         Set<String> hostBiomes = new TreeSet<>(adopted.keySet());
         hostBiomes.addAll(model.reachableBiomes().values());

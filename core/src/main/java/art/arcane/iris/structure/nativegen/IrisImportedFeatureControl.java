@@ -31,6 +31,7 @@ import lombok.experimental.Accessors;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -48,6 +49,10 @@ public class IrisImportedFeatureControl implements NativeImportedFeatureControl 
     @ArrayType(type = String.class, min = 1)
     @Description("Exact placed feature keys to deny after trimming and case normalization. Unlike 'disabled', entries never match key families, so 'minecraft:ore_iron' does not disable 'minecraft:ore_iron_small'.")
     private KList<String> disabledExact = new KList<>();
+
+    @ArrayType(type = IrisImportedFeatureBiomeRule.class, min = 1)
+    @Description("Per-biome denials applied on top of 'disabled' and 'disabledExact'. Each rule names registry biomes and the placed features it denies in those biomes only, so a mod tree injected into vanilla forests can be denied there while the mod's own biomes keep it.")
+    private KList<IrisImportedFeatureBiomeRule> biomeRules = new KList<>();
 
     @ArrayType(type = IrisDecorationStep.class, min = 1)
     @Description("Restrict feature generation to these decoration steps only. Empty (the default) means every step is eligible. Use this to import ores without importing vegetation: set it to UNDERGROUND_ORES.")
@@ -122,6 +127,22 @@ public class IrisImportedFeatureControl implements NativeImportedFeatureControl 
     @Override
     public boolean shouldGenerateStepOrdinal(int step) {
         return shouldGenerateStep(IrisDecorationStep.byOrdinal(step));
+    }
+
+    @Override
+    public boolean hasBiomeFeatureRules() {
+        return biomeRules != null && !biomeRules.isEmpty();
+    }
+
+    @Override
+    public boolean shouldGenerateInBiome(String biomeKey, Set<String> biomeTags, String featureKey) {
+        for (IrisImportedFeatureBiomeRule rule : Objects.requireNonNull(
+                biomeRules, "importedFeatures.biomeRules must not be null")) {
+            if (rule != null && rule.appliesTo(biomeKey, biomeTags) && rule.denies(featureKey)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

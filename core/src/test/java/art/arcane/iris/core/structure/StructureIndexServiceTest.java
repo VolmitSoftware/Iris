@@ -3,6 +3,7 @@ package art.arcane.iris.core.structure;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.core.modules.StructureModelModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.spi.IrisPlatform;
@@ -105,7 +106,7 @@ public class StructureIndexServiceTest {
         IrisData data = mock(IrisData.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks structureHooks = mock(PlatformStructureHooks.class);
-        ModuleResourceFixture.serveModules(data, new StructureModule());
+        ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
         when(data.getDataFolder()).thenReturn(pack);
         ModuleResourceFixture.serve(data)
                 .resource(StructureResources.STRUCTURES, "castle", new IrisStructure())

@@ -19,6 +19,7 @@
 package art.arcane.iris.core.project;
 
 import art.arcane.iris.builtin.structure.StructureSettings;
+import art.arcane.iris.core.modules.StructureModelModule;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
@@ -512,7 +513,7 @@ public class SchemaBuilderParityTest {
         LoadedPack pack = mock(LoadedPack.class);
         PackModuleSet moduleSet = mock(PackModuleSet.class);
         when(pack.schema()).thenReturn(modules);
-        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new StructureModule()));
+        when(pack.catalog()).thenReturn(ModuleResourceFixture.catalogOf(new StructureModelModule(), new StructureModule()));
         when(moduleSet.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(moduleSet);
         ModuleResourceFixture.serve(data);

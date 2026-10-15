@@ -32,6 +32,7 @@ import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.framework.ListFunction;
@@ -457,6 +458,7 @@ public class SchemaBuilder {
             case NOISE_STYLE -> addEnum(NoiseStyle.class, property, new KList<>(), enumNames(NoiseStyle.class), Function.identity());
             case PACK_EXPRESSION -> putPackResourceRef(property, IrisExpression.class);
             case PACK_IMAGE_MAP -> putPackResourceRef(property, IrisImageMap.class);
+            case PACK_STRUCTURE -> putPackResourceRef(property, IrisStructure.class);
         }
     }
 

@@ -92,7 +92,6 @@ art/arcane/iris/engine/WorldEntitySpawner.java
 art/arcane/iris/engine/WorldTeleportWarmup.java
 art/arcane/iris/engine/data/chunk/LinkedTerrainChunk.java
 art/arcane/iris/engine/data/chunk/TerrainChunk.java
-art/arcane/iris/engine/decorator/DecoratorCore.java
 art/arcane/iris/engine/framework/BukkitEngineWorldManager.java
 art/arcane/iris/engine/framework/EngineAssignedWorldManager.java
 art/arcane/iris/engine/framework/EnginePlayer.java

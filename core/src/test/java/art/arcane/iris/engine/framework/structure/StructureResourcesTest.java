@@ -45,8 +45,8 @@ public class StructureResourcesTest {
             var catalog = data.getModules().pack().catalog();
 
             var kinds = catalog.resourceKinds().stream().map(ResourceKindRegistration::kind)
-                    .filter(kind -> kind.id().toString().startsWith("iris:structure/")).toList();
-            assertEquals(List.of("iris:structure/piece", "iris:structure/pool", "iris:structure/structure"),
+                    .filter(kind -> kind.id().toString().startsWith("iris:structure-model/")).toList();
+            assertEquals(List.of("iris:structure-model/piece", "iris:structure-model/pool", "iris:structure-model/structure"),
                     kinds.stream().map(kind -> kind.id().toString()).toList());
             assertEquals(List.of("jigsaw-pieces", "jigsaw-pools", "structures"), kinds.stream().map(kind -> kind.folder()).toList());
             assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(StructureValidator.class::isInstance));

@@ -22,9 +22,12 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.object.annotations.RegistryListResource;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
 import com.volmit.config.ResourceRef;
 import com.volmit.host.ResourceKindRegistration;
 import com.volmit.resource.ResourceKind;
@@ -170,6 +173,10 @@ public final class ModuleResourceClosure {
         ResourceRef reference = field.getAnnotation(ResourceRef.class);
         if (reference != null) {
             return reference.value();
+        }
+        Ref packReference = field.getAnnotation(Ref.class);
+        if (packReference != null && packReference.value() == Reference.PACK_STRUCTURE) {
+            return IrisStructure.class;
         }
         RegistryListResource registry = field.getAnnotation(RegistryListResource.class);
         return registry == null ? null : registry.value();

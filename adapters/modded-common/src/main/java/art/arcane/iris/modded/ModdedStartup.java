@@ -27,6 +27,7 @@ import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationCache;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.command.ModdedPackCommands;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
@@ -39,19 +40,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class ModdedStartup {
     private static final int COMPAT_BOOT_KEY_CAP = 3;
     private static final AtomicBoolean PREPARED = new AtomicBoolean(false);
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);
+    private static final AtomicBoolean RESTORE_BEGUN = new AtomicBoolean(false);
+    private static final AtomicReference<ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine>> RESTORE =
+            new AtomicReference<>();
     private static final List<String> DIMENSION_FAILURES = new CopyOnWriteArrayList<>();
 
     private ModdedStartup() {
     }
 
     public static void reset() {
+        ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> restore =
+                RESTORE.getAndSet(null);
+        if (restore != null) {
+            restore.close();
+        }
         PREPARED.set(false);
         STARTED.set(false);
+        RESTORE_BEGUN.set(false);
         DIMENSION_FAILURES.clear();
     }
 
@@ -60,6 +71,24 @@ public final class ModdedStartup {
             return;
         }
         validateAllPacks();
+    }
+
+    public static void prepareDimensionRestore(NativeModdedServer server) {
+        if (server == null || !RESTORE_BEGUN.compareAndSet(false, true)) {
+            return;
+        }
+        List<ModdedDimensionRegistryStore.PersistentDimension> dimensions =
+                ModdedDimensionRegistryStore.loadForStartup(server);
+        if (dimensions.isEmpty()) {
+            return;
+        }
+        long startedAt = System.currentTimeMillis();
+        ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> restore =
+                ModdedDimensionRestore.start(dimensions, new PersistentRestoreSteps(server));
+        RESTORE.set(restore);
+        restore.awaitPreparations();
+        ModdedIrisLog.info("Iris prepared {} persistent dimension(s) during world load in {}ms",
+                dimensions.size(), System.currentTimeMillis() - startedAt);
     }
 
     /**
@@ -219,38 +248,46 @@ public final class ModdedStartup {
     }
 
     static void reinjectPersistentDimensions(NativeModdedServer server) {
-        List<ModdedDimensionRegistryStore.PersistentDimension> dimensions =
-                ModdedDimensionRegistryStore.loadForStartup(server);
-        if (dimensions.isEmpty()) {
+        prepareDimensionRestore(server);
+        ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> restore =
+                RESTORE.getAndSet(null);
+        if (restore == null) {
             return;
         }
+        finishDimensionRestore(restore);
+    }
+
+    static void finishDimensionRestore(ModdedDimensionRestore<?, ?, ?> restore) {
+        long startedAt = System.currentTimeMillis();
+        List<ModdedDimensionRestore.Result> results;
+        try (restore) {
+            results = restore.finish();
+        }
+        long waited = System.currentTimeMillis() - startedAt;
         int injected = 0;
         int index = 0;
-        long startedAt = System.currentTimeMillis();
-        for (ModdedDimensionRegistryStore.PersistentDimension dimension : dimensions) {
+        OutOfMemoryError outOfMemory = null;
+        for (ModdedDimensionRestore.Result result : results) {
             index++;
-            long dimensionStartedAt = System.currentTimeMillis();
-            try {
-                ModdedDimensionManager.restorePersistent(
-                        server,
-                        dimension.id(),
-                        dimension.pack(),
-                        dimension.dimension(),
-                        dimension.seed()
-                );
+            ModdedDimensionRegistryStore.PersistentDimension dimension = result.dimension();
+            Throwable failure = result.failure();
+            if (failure == null) {
                 injected++;
-                ModdedIrisLog.info("Iris re-injected {}/{} '{}' (pack={} dim={}) in {}ms",
-                        index, dimensions.size(), dimension.id(), dimension.pack(), dimension.dimension(),
-                        System.currentTimeMillis() - dimensionStartedAt);
-            } catch (Throwable e) {
-                reportDimensionFailure(dimension, e);
-                if (e instanceof OutOfMemoryError outOfMemory) {
-                    throw outOfMemory;
-                }
+                ModdedIrisLog.info("Iris re-injected {}/{} '{}' (pack={} dim={}): prepared {}ms, engine {}ms",
+                        index, results.size(), dimension.id(), dimension.pack(), dimension.dimension(),
+                        result.preparedMillis(), result.builtMillis());
+                continue;
+            }
+            reportDimensionFailure(dimension, failure);
+            if (failure instanceof OutOfMemoryError fatal && outOfMemory == null) {
+                outOfMemory = fatal;
             }
         }
-        ModdedIrisLog.info("Iris re-injected {}/{} persistent dimension(s) at startup in {}ms",
-                injected, dimensions.size(), System.currentTimeMillis() - startedAt);
+        ModdedIrisLog.info("Iris re-injected {}/{} persistent dimension(s) at startup; server thread waited {}ms",
+                injected, results.size(), waited);
+        if (outOfMemory != null) {
+            throw outOfMemory;
+        }
     }
 
     private static void reportDimensionFailure(ModdedDimensionRegistryStore.PersistentDimension dimension, Throwable failure) {
@@ -304,4 +341,43 @@ public final class ModdedStartup {
         }
     }
 
+    private record PersistentRestoreSteps(NativeModdedServer server)
+            implements ModdedDimensionRestore.Steps<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> {
+        @Override
+        public ModdedWorldEngines.PreparedPack prepare(ModdedDimensionRegistryStore.PersistentDimension dimension) {
+            return ModdedWorldEngines.preparePersistent(server, dimension);
+        }
+
+        @Override
+        public ModdedDimensionManager.RestoringLevel begin(
+                ModdedDimensionRegistryStore.PersistentDimension dimension,
+                ModdedWorldEngines.PreparedPack prepared
+        ) {
+            return ModdedDimensionManager.beginRestore(server, dimension, prepared.active());
+        }
+
+        @Override
+        public Engine build(ModdedDimensionManager.RestoringLevel level, ModdedWorldEngines.PreparedPack prepared) {
+            if (level.present()) {
+                prepared.close();
+                return null;
+            }
+            return ModdedWorldEngines.createPrepared(level.handle().level(), level.handle().seed(), prepared);
+        }
+
+        @Override
+        public void complete(ModdedDimensionManager.RestoringLevel level, Engine engine) {
+            ModdedDimensionManager.completeRestore(server, level, engine);
+        }
+
+        @Override
+        public void abandon(ModdedDimensionManager.RestoringLevel level, Throwable failure) {
+            ModdedDimensionManager.abandonRestore(server, level, failure);
+        }
+
+        @Override
+        public void discard(ModdedWorldEngines.PreparedPack prepared) {
+            prepared.close();
+        }
+    }
 }

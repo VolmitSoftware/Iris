@@ -1,7 +1,6 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.pack.PackValidationRegistry;
-import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 import org.junit.After;
 import org.junit.Test;
@@ -32,19 +31,12 @@ public class ModdedStartupReinjectFailureTest {
 
     @Test
     public void aDimensionThatFailsToReinjectIsBanneredAndReportedToOperatorsOnJoin() {
-        NativeModdedServer server = mock(NativeModdedServer.class);
         ModdedDimensionRegistryStore.PersistentDimension moon =
                 new ModdedDimensionRegistryStore.PersistentDimension("iris:moon", "overworld", "overworld", 1337L);
         IllegalStateException failure = new IllegalStateException("Iris generation history is unusable for 'iris:moon'");
 
-        try (MockedStatic<ModdedDimensionRegistryStore> store = mockStatic(ModdedDimensionRegistryStore.class);
-             MockedStatic<ModdedDimensionManager> manager = mockStatic(ModdedDimensionManager.class);
-             MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
-            store.when(() -> ModdedDimensionRegistryStore.loadForStartup(server)).thenReturn(List.of(moon));
-            manager.when(() -> ModdedDimensionManager.restorePersistent(server, "iris:moon", "overworld", "overworld", 1337L))
-                    .thenThrow(failure);
-
-            ModdedStartup.reinjectPersistentDimensions(server);
+        try (MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
+            ModdedStartup.finishDimensionRestore(ModdedDimensionRestore.start(List.of(moon), new FailingSteps(failure)));
 
             log.verify(() -> ModdedIrisLog.error(argThat((String line) -> line != null && line.contains("iris:moon")
                     && line.startsWith("Iris refused"))), times(1));
@@ -72,5 +64,36 @@ public class ModdedStartupReinjectFailureTest {
         when(laterOperator.isGameMaster()).thenReturn(true);
         ModdedStartup.warnStartupFailuresTo(laterOperator);
         verify(laterOperator, never()).sendMessage(any());
+    }
+
+    private record FailingSteps(RuntimeException failure) implements ModdedDimensionRestore.Steps<String, String, String> {
+        @Override
+        public String prepare(ModdedDimensionRegistryStore.PersistentDimension dimension) {
+            throw failure;
+        }
+
+        @Override
+        public String begin(ModdedDimensionRegistryStore.PersistentDimension dimension, String prepared) {
+            throw new AssertionError("A failed preparation must not create a level");
+        }
+
+        @Override
+        public String build(String level, String prepared) {
+            throw new AssertionError("A failed preparation must not build an engine");
+        }
+
+        @Override
+        public void complete(String level, String engine) {
+            throw new AssertionError("A failed preparation must not publish a level");
+        }
+
+        @Override
+        public void abandon(String level, Throwable failure) {
+            throw new AssertionError("A failed preparation has no level to abandon");
+        }
+
+        @Override
+        public void discard(String prepared) {
+        }
     }
 }

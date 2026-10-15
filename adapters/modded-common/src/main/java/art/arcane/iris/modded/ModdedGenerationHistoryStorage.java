@@ -9,6 +9,7 @@ import art.arcane.iris.pack.BrokenPackException;
 import art.arcane.iris.pack.PackFingerprints;
 import art.arcane.iris.pack.PackValidationRegistry;
 import art.arcane.iris.pack.PackValidationResult;
+import art.arcane.iris.world.history.GenerationAdmission;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
@@ -53,7 +54,7 @@ final class ModdedGenerationHistoryStorage {
                     ModdedGenerationHistoryStorage::requireRegistryDefinitions,
                     IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks()
             );
-            return resolveActive(history);
+            return resolveActive(history, source);
         } catch (IOException failure) {
             throw historyFailure(levelKey, failure);
         }
@@ -68,23 +69,55 @@ final class ModdedGenerationHistoryStorage {
     ) {
         Path dimensionRoot = dimensionRoot(server, levelKey);
         try {
-            GenerationHistory history = restoreOrAdopt(
-                    dimensionRoot,
-                    worldSeed,
-                    () -> {
-                        Path source = selectedPackSource(selectedPack, selectedDimensionKey);
-                        return new AdoptionSource(source, captureCandidate(
-                                source,
-                                selectedDimensionKey,
-                                adoptionAliasPolicy(dimensionRoot)
-                        ));
-                    },
-                    ModdedGenerationHistoryStorage::requireRegistryDefinitions
-            );
-            return resolveActive(history);
+            GenerationHistory history = openForRestore(dimensionRoot, selectedPack, selectedDimensionKey, worldSeed);
+            return resolveActive(history, installedPackSource(selectedPack));
         } catch (IOException failure) {
             throw historyFailure(levelKey, failure);
         }
+    }
+
+    static PreparedHistory prepareRestore(
+            NativeModdedServer server,
+            String levelKey,
+            String selectedPack,
+            String selectedDimensionKey,
+            long worldSeed
+    ) {
+        Path dimensionRoot = dimensionRoot(server, levelKey);
+        try {
+            GenerationHistory history = openForRestore(dimensionRoot, selectedPack, selectedDimensionKey, worldSeed);
+            GenerationAdmission.RuntimeLease lease = history.retainRuntime();
+            try {
+                history.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
+                return new PreparedHistory(resolveActive(history, installedPackSource(selectedPack)), lease);
+            } catch (IOException | RuntimeException | Error failure) {
+                lease.close();
+                throw failure;
+            }
+        } catch (IOException failure) {
+            throw historyFailure(levelKey, failure);
+        }
+    }
+
+    private static GenerationHistory openForRestore(
+            Path dimensionRoot,
+            String selectedPack,
+            String selectedDimensionKey,
+            long worldSeed
+    ) throws IOException {
+        return restoreOrAdopt(
+                dimensionRoot,
+                worldSeed,
+                () -> {
+                    Path source = selectedPackSource(selectedPack, selectedDimensionKey);
+                    return new AdoptionSource(source, captureCandidate(
+                            source,
+                            selectedDimensionKey,
+                            adoptionAliasPolicy(dimensionRoot)
+                    ));
+                },
+                ModdedGenerationHistoryStorage::requireRegistryDefinitions
+        );
     }
 
     static ActivePack openOrAdopt(
@@ -184,10 +217,10 @@ final class ModdedGenerationHistoryStorage {
         }
     }
 
-    static ActivePack resolveActive(GenerationHistory history) throws IOException {
+    static ActivePack resolveActive(GenerationHistory history, Path validatedSource) throws IOException {
         GenerationEpoch epoch = history.activeEpoch();
         Path packRoot = normalize(history.activePackRoot());
-        validatePack(packRoot);
+        validatePack(packRoot, validatedSource);
         validateDimension(packRoot, epoch);
         return new ActivePack(
                 packRoot,
@@ -197,9 +230,12 @@ final class ModdedGenerationHistoryStorage {
         );
     }
 
-    static PackValidationResult validatePack(Path packRoot) {
-        PackValidationResult validation = PackValidationRegistry.getMatching(
-                packRoot, PackFingerprints.computePackTreeFingerprint(packRoot.toFile()));
+    static PackValidationResult validatePack(Path packRoot, Path validatedSource) {
+        String contentFingerprint = PackFingerprints.computePackTreeFingerprint(packRoot.toFile());
+        PackValidationResult validation = PackValidationRegistry.getMatching(packRoot, contentFingerprint);
+        if (validation == null && validatedSource != null) {
+            validation = PackValidationRegistry.publishMatchingCopy(validatedSource, packRoot, contentFingerprint);
+        }
         if (validation == null) {
             validation = ModdedStartup.validatePack(packRoot.toFile());
         }
@@ -286,6 +322,11 @@ final class ModdedGenerationHistoryStorage {
         return normalize(ModdedWorldEngines.resolvePack(pack, dimensionKey).toPath());
     }
 
+    private static Path installedPackSource(String pack) {
+        File folder = ModdedWorldEngines.packFolder(pack);
+        return folder.isDirectory() ? normalize(folder.toPath()) : null;
+    }
+
     private static GenerationRegistryContract requireRegistryDefinitions(
             Collection<GenerationRegistryContract> contracts
     )
@@ -343,6 +384,13 @@ final class ModdedGenerationHistoryStorage {
             dimensionKey = Objects.requireNonNull(dimensionKey, "dimensionKey");
             dimensionContract = Objects.requireNonNull(dimensionContract, "dimensionContract");
             history = Objects.requireNonNull(history, "history");
+        }
+    }
+
+    record PreparedHistory(ActivePack active, GenerationAdmission.RuntimeLease lease) {
+        PreparedHistory {
+            active = Objects.requireNonNull(active, "active");
+            lease = Objects.requireNonNull(lease, "lease");
         }
     }
 

@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.world.history.GenerationKernelRegistry;
+import art.arcane.iris.world.history.GenerationPackFingerprint;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import org.junit.Test;
 import org.junit.Rule;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.mockStatic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -121,6 +123,8 @@ public class PreparedHydrologyCacheIdentityTest {
         IrisData data = mock(IrisData.class);
         when(data.getDataFolder()).thenReturn(path.toFile());
         when(data.hasGenerationRegistryContract()).thenReturn(true);
+        when(data.generationPackFingerprint()).thenAnswer(invocation ->
+                GenerationPackFingerprint.compute(path, GenerationPackFingerprint.CURRENT_VERSION));
         IrisWorld world = mock(IrisWorld.class);
         when(world.minHeight()).thenReturn(-64);
         when(world.maxHeight()).thenReturn(320);
@@ -131,6 +135,23 @@ public class PreparedHydrologyCacheIdentityTest {
         when(target.getData()).thenReturn(data);
         when(target.getWorld()).thenReturn(world);
         return target;
+    }
+
+    @Test
+    public void immutableGenerationPackUsesTheDataFingerprintWithoutRereadingThePack() throws Exception {
+        Path missing = folder.getRoot().toPath().resolve("immutable-epoch-pack");
+        EngineTarget target = target(missing);
+        IrisData data = target.getData();
+        doReturn("verified-epoch").when(data).generationPackFingerprint();
+        GenerationKernelRegistry.RuntimeKernel kernel = kernel("implementation");
+        try (MockedStatic<PackValidationCache> validation = mockStatic(PackValidationCache.class)) {
+            validation.when(PackValidationCache::contextFingerprint).thenReturn("platform");
+
+            PreparedHydrologyCacheIdentity captured = PreparedHydrologyCacheIdentity.capture(target, kernel, null, false);
+
+            assertEquals(PreparedHydrologyCacheIdentity.fromInputs(
+                    "verified-epoch", "closed", "platform", kernel, null, -64, 320, 0), captured);
+        }
     }
 
     @Test

@@ -30,9 +30,12 @@ record PreparedHydrologyCacheIdentity(String fingerprint) {
             if (context.isBlank()) {
                 return null;
             }
-            String content = GenerationPackFingerprint.compute(
-                    target.getData().getDataFolder().toPath(), GenerationPackFingerprint.CURRENT_VERSION);
-            String dependencies = target.getData().hasGenerationRegistryContract() ? "closed"
+            boolean immutable = target.getData().hasGenerationRegistryContract();
+            String content = immutable
+                    ? target.getData().generationPackFingerprint()
+                    : GenerationPackFingerprint.compute(
+                            target.getData().getDataFolder().toPath(), GenerationPackFingerprint.CURRENT_VERSION);
+            String dependencies = immutable ? "closed"
                     : dependencyFingerprint(IrisPlatforms.get().packsFolderNoCreate());
             if (dependencies.isBlank()) {
                 return null;

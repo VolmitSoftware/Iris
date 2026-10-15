@@ -33,6 +33,7 @@ final class OreDepositConverter {
     static final Set<String> ORE_TYPES = Set.of("minecraft:ore", "minecraft:scattered_ore");
     private static final int MAX_PER_CHUNK = 2048;
     private static final int MAX_SIZE = 8192;
+    private static final String FULL_HEIGHT = "FULL_HEIGHT";
 
     private OreDepositConverter() {
     }
@@ -57,6 +58,7 @@ final class OreDepositConverter {
             deposit.addProperty("maxHeight", placement.band().max() - packMinY);
             deposit.addProperty("heightDistribution", placement.band().distribution());
             deposit.addProperty("surfaceClearance", 0);
+            deposit.addProperty("placementScope", FULL_HEIGHT);
             deposit.addProperty("minPerChunk", placement.minPerChunk());
             deposit.addProperty("maxPerChunk", placement.maxPerChunk());
             if (placement.spawnChance() < 1D) {

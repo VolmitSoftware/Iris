@@ -77,6 +77,25 @@ public class FeatureConverterFormatTest {
     }
 
     @Test
+    public void convertedOresPlaceInTheirHostsRegardlessOfTheTerrainSurface() throws IngestConversionException {
+        CatalogPlacedFeature clay = new CatalogPlacedFeature("examplemod:alpha/clay_patch", "examplemod:alpha/clay_patch",
+                "minecraft:ore", JsonParser.parseString("""
+                {"discard_chance_on_air_exposure": 0.0, "size": 20,
+                 "targets": [{"state": {"Name": "minecraft:clay"}, "target": {"predicate_type": "minecraft:block_match", "block": "minecraft:sand"}}]}
+                """), JsonParser.parseString("""
+                [{"type": "minecraft:count", "count": 6}, {"type": "minecraft:in_square"},
+                 {"type": "minecraft:height_range", "height": {"type": "minecraft:uniform", "min_inclusive": {"absolute": 57}, "max_inclusive": {"absolute": 62}}},
+                 {"type": "minecraft:biome"}]
+                """));
+
+        List<JsonObject> deposits = OreDepositConverter.convert(clay, OVERWORLD, -64);
+
+        assertEquals(1, deposits.size());
+        assertEquals("FULL_HEIGHT", deposits.getFirst().get("placementScope").getAsString());
+        assertEquals(List.of("minecraft:sand"), IngestJson.strings(deposits.getFirst().get("replaceableBlocks")));
+    }
+
+    @Test
     public void environmentScanOrePassesThroughWithTheModifierNamed() {
         CatalogPlacedFeature buried = feature("minecraft:ore",
                 "{\"size\": 4, \"targets\": [{\"state\": \"minecraft:stone\", \"target\": {\"predicate_type\": \"minecraft:always_true\"}}]}",

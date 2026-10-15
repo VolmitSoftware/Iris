@@ -212,7 +212,7 @@ public class PregeneratorJob implements PregenListener {
     public void open() {
         J.a(() -> {
             try {
-                frame = new JFrame("Pregen View");
+                frame = GuiHost.createFrame("Pregen View");
                 renderer = new PregenRenderer();
                 frame.addKeyListener(renderer);
                 renderer.l = new ReentrantLock();

@@ -20,6 +20,7 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.gui.GuiHost;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.loader.IrisData;
@@ -40,7 +41,6 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.io.IO;
@@ -79,7 +79,6 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
@@ -272,16 +271,7 @@ public class CommandStudio implements DecreeExecutor {
     ) {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
-
-        Supplier<Function2<Double, Double, Double>> l = () -> {
-
-            if (generator == null) {
-                return (x, z) -> 0D;
-            }
-
-            return (x, z) -> generator.getHeight(x, z, new RNG(seed).nextParallelRNG(3245).lmax());
-        };
-        NoiseExplorerGUI.launch(l, "Custom Generator");
+        NoiseExplorerGUI.launchGeneratorKey(generator == null ? null : generator.getLoadKey(), generator, seed);
     }
 
     @Decree(description = "Hotload a studio", aliases = {"reload", "h"})
@@ -456,7 +446,7 @@ public class CommandStudio implements DecreeExecutor {
             return;
         }
 
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), 0);
+        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), sender().isPlayer() ? player().getUniqueId() : null);
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 
@@ -875,6 +865,10 @@ public class CommandStudio implements DecreeExecutor {
     private boolean noGUI() {
         if (!IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             sender().sendMessage(C.RED + "You must have server launched GUIs enabled in the settings!");
+            return true;
+        }
+        if (!GuiHost.isAvailable()) {
+            sender().sendMessage(C.RED + "This server runs without a desktop, so it cannot open windows!");
             return true;
         }
         return false;

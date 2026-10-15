@@ -31,6 +31,7 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.world.history.GenerationActivation;
+import art.arcane.iris.world.history.GenerationAdmission;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
@@ -128,6 +129,43 @@ public final class ModdedWorldEngines {
         });
     }
 
+    static PreparedPack preparePersistent(
+            NativeModdedServer server,
+            ModdedDimensionRegistryStore.PersistentDimension dimension
+    ) {
+        ModdedEngineBootstrap.bind();
+        ModdedGenerationHistoryStorage.PreparedHistory prepared = ModdedGenerationHistoryStorage.prepareRestore(
+                server,
+                dimension.id(),
+                dimension.pack(),
+                dimension.dimension(),
+                dimension.seed()
+        );
+        try {
+            ModdedDimensionMetadata.warmConfiguredPack(prepared.active().packRoot().toFile(), prepared.active().dimensionKey());
+            return new PreparedPack(prepared.active(), prepared.lease(), loadPack(prepared.active()));
+        } catch (RuntimeException | Error failure) {
+            prepared.lease().close();
+            throw failure;
+        }
+    }
+
+    static Engine createPrepared(NativeWorld level, long seedOverride, PreparedPack prepared) {
+        ModdedEngineBootstrap.bind();
+        long seed = seedOverride == Long.MIN_VALUE ? level.seed() : seedOverride;
+        try (prepared) {
+            return attachHistoryEngine(level, seed, prepared.active(), prepared.take());
+        } catch (IOException failure) {
+            throw new IllegalStateException("Iris generation history could not initialize runtime routing for '"
+                    + level.name() + "'.", failure);
+        }
+    }
+
+    static void installPrepared(NativeWorld level, Engine engine) {
+        applyWorldBoundary(level, engine);
+        installReplacement(level, engine);
+    }
+
     static void closeUnregistered(Engine engine) {
         close(engine);
         ENGINES.entrySet().removeIf((Map.Entry<NativeWorld, Engine> entry) -> entry.getValue() == engine);
@@ -142,9 +180,13 @@ public final class ModdedWorldEngines {
             ModdedGenerationMode generationMode
     ) {
         Engine engine = create(level, pack, dimensionKey, seedOverride, generationMode);
+        applyWorldBoundary(level, engine);
+        return engine;
+    }
+
+    private static void applyWorldBoundary(NativeWorld level, Engine engine) {
         try {
             engine.getPlatformHooks().applyWorldBoundary(engine);
-            return engine;
         } catch (Throwable failure) {
             try {
                 close(engine);
@@ -197,57 +239,63 @@ public final class ModdedWorldEngines {
         GenerationHistory history = opened.history();
         try (GenerationAdmission.RuntimeLease startupAdmission = history.retainRuntime()) {
             history.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-            opened = ModdedGenerationHistoryStorage.resolveActive(history);
-            long openedActivationId = history.activeActivation().activationId();
-            IrisEngine candidate = buildEngine(level, seed, opened);
-            boolean ready = false;
-            try {
-                GenerationHistoryRuntimeRouter router = candidate.attachGenerationHistory(
+            ModdedGenerationHistoryStorage.ActivePack active = ModdedGenerationHistoryStorage.resolveActive(history, null);
+            return attachHistoryEngine(level, seed, active, loadPack(active));
+        }
+    }
+
+    private static IrisEngine attachHistoryEngine(
+            NativeWorld level,
+            long seed,
+            ModdedGenerationHistoryStorage.ActivePack active,
+            LoadedPack loaded
+    ) throws IOException {
+        GenerationHistory history = active.history();
+        long openedActivationId = history.activeActivation().activationId();
+        IrisEngine candidate = buildEngine(level, seed, active, loaded);
+        boolean ready = false;
+        try {
+            GenerationHistoryRuntimeRouter router = candidate.attachGenerationHistory(
+                    history,
+                    IrisBoundarySignatureSampler.INSTANCE,
+                    IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks()
+            );
+            router.preloadActiveRuntimes();
+            if (history.activeActivation().activationId() != openedActivationId) {
+                close(candidate);
+                ModdedGenerationHistoryStorage.ActivePack promoted =
+                        ModdedGenerationHistoryStorage.resolveActive(history, null);
+                candidate = buildEngine(level, seed, promoted, loadPack(promoted));
+                router = GenerationHistoryRuntimeRouter.attach(
+                        candidate,
                         history,
-                        IrisBoundarySignatureSampler.INSTANCE,
-                        IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks()
+                        IrisBoundarySignatureSampler.INSTANCE
                 );
                 router.preloadActiveRuntimes();
-                if (history.activeActivation().activationId() != openedActivationId) {
-                    close(candidate);
-                    ModdedGenerationHistoryStorage.ActivePack promoted =
-                            ModdedGenerationHistoryStorage.resolveActive(history);
-                    candidate = buildEngine(level, seed, promoted);
-                    router = GenerationHistoryRuntimeRouter.attach(
-                            candidate,
-                            history,
-                            IrisBoundarySignatureSampler.INSTANCE
-                    );
-                    router.preloadActiveRuntimes();
-                }
-                requireReady(candidate, level, ModdedGenerationMode.PERSISTENT_RESTORE);
-                ready = true;
-                ModdedIrisLog.info("Iris engine up for {}: pack={} dim={} seed={} height={}..{} activation={}",
-                        level.name(),
-                        candidate.getData().getDataFolder().getAbsolutePath(),
-                        candidate.getDimension().getLoadKey(),
-                        seed,
-                        candidate.getDimension().getMinHeight(),
-                        candidate.getDimension().getMaxHeight(),
-                        history.activeActivation().activationId());
-                return candidate;
-            } finally {
-                if (!ready) {
-                    close(candidate);
-                }
+            }
+            requireReady(candidate, level, ModdedGenerationMode.PERSISTENT_RESTORE);
+            ready = true;
+            ModdedIrisLog.info("Iris engine up for {}: pack={} dim={} seed={} height={}..{} activation={}",
+                    level.name(),
+                    candidate.getData().getDataFolder().getAbsolutePath(),
+                    candidate.getDimension().getLoadKey(),
+                    seed,
+                    candidate.getDimension().getMinHeight(),
+                    candidate.getDimension().getMaxHeight(),
+                    history.activeActivation().activationId());
+            return candidate;
+        } finally {
+            if (!ready) {
+                close(candidate);
             }
         }
     }
 
-    private static IrisEngine buildEngine(
-            NativeWorld level,
-            long seed,
-            ModdedGenerationHistoryStorage.ActivePack active
-    ) throws IOException {
+    private static LoadedPack loadPack(ModdedGenerationHistoryStorage.ActivePack active) {
         File packDir = active.packRoot().toFile();
         PackValidationRegistry.requireLoadable(active.packRoot());
         IrisData data = IrisData.openRuntime(packDir);
-        boolean runtimeOwnsData = false;
+        boolean loaded = false;
         try {
             IrisDimension dimension = data.getDimensionLoader().load(active.dimensionKey());
             if (dimension == null) {
@@ -256,7 +304,26 @@ public final class ModdedWorldEngines {
                 throw new IllegalStateException("Iris dimension '" + active.dimensionKey()
                         + "' missing from immutable pack " + packDir.getAbsolutePath());
             }
+            data.generationPackFingerprint();
+            loaded = true;
+            return new LoadedPack(data, dimension);
+        } finally {
+            if (!loaded) {
+                data.close();
+            }
+        }
+    }
 
+    private static IrisEngine buildEngine(
+            NativeWorld level,
+            long seed,
+            ModdedGenerationHistoryStorage.ActivePack active,
+            LoadedPack loaded
+    ) throws IOException {
+        IrisData data = loaded.data();
+        IrisDimension dimension = loaded.dimension();
+        boolean runtimeOwnsData = false;
+        try {
             validateDimensionContract(active.dimensionContract(), dimension, level);
             File worldFolder = NativeModdedServer.forWorld(level).dimensionFolder(level.name()).toFile();
             IrisWorld world = buildWorld(level, seed, dimension, worldFolder);
@@ -425,6 +492,55 @@ public final class ModdedWorldEngines {
     private static void close(Engine engine) {
         if (engine != null && !engine.isClosed()) {
             engine.close();
+        }
+    }
+
+    private record LoadedPack(IrisData data, IrisDimension dimension) {
+        private LoadedPack {
+            data = Objects.requireNonNull(data, "data");
+            dimension = Objects.requireNonNull(dimension, "dimension");
+        }
+    }
+
+    static final class PreparedPack implements AutoCloseable {
+        private final ModdedGenerationHistoryStorage.ActivePack active;
+        private final GenerationAdmission.RuntimeLease lease;
+        private LoadedPack loaded;
+
+        private PreparedPack(
+                ModdedGenerationHistoryStorage.ActivePack active,
+                GenerationAdmission.RuntimeLease lease,
+                LoadedPack loaded
+        ) {
+            this.active = Objects.requireNonNull(active, "active");
+            this.lease = Objects.requireNonNull(lease, "lease");
+            this.loaded = Objects.requireNonNull(loaded, "loaded");
+        }
+
+        ModdedGenerationHistoryStorage.ActivePack active() {
+            return active;
+        }
+
+        private synchronized LoadedPack take() {
+            LoadedPack taken = loaded;
+            if (taken == null) {
+                throw new IllegalStateException("Iris prepared pack for " + active.packRoot() + " was already used");
+            }
+            loaded = null;
+            return taken;
+        }
+
+        @Override
+        public synchronized void close() {
+            LoadedPack unused = loaded;
+            loaded = null;
+            try {
+                if (unused != null) {
+                    unused.data().close();
+                }
+            } finally {
+                lease.close();
+            }
         }
     }
 

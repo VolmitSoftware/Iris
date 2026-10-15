@@ -145,6 +145,7 @@ public final class ModdedEngineBootstrap {
         }
         IrisModdedCommands.openDownloadAdmission();
         ModdedStartup.prepareForStartup();
+        ModdedStartup.prepareDimensionRestore(server);
         IrisModdedChunkGenerator.startGenPool();
         bindWorldGenerators(server);
         services().enableAll();
@@ -164,6 +165,7 @@ public final class ModdedEngineBootstrap {
         finishPreviousServer("server start");
         captureInitialSpawn(server);
         ModdedStartup.prepareForStartup();
+        ModdedStartup.prepareDimensionRestore(server);
     }
 
     public static void serverStarted(NativeModdedServer server) {

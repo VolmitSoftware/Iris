@@ -107,102 +107,107 @@ public final class ModdedDimensionManager {
     ) {
         return create(
                 server,
-                dimensionId,
-                pack,
-                packDimensionKey,
-                seed,
-                ModdedGenerationMode.TRANSIENT_STUDIO
+                new DimensionRequest(dimensionId, pack, packDimensionKey, seed),
+                () -> transientStudioPack(pack, packDimensionKey)
         );
     }
 
-    static Handle restorePersistent(
+    static RestoringLevel beginRestore(
             NativeModdedServer server,
-            String dimensionId,
-            String pack,
-            String packDimensionKey,
-            long seed
-    ) {
-        return create(
-                server,
-                dimensionId,
-                pack,
-                packDimensionKey,
-                seed,
-                ModdedGenerationMode.PERSISTENT_RESTORE
-        );
-    }
-
-    private static Handle create(
-            NativeModdedServer server,
-            String dimensionId,
-            String pack,
-            String packDimensionKey,
-            long seed,
-            ModdedGenerationMode generationMode
+            ModdedDimensionRegistryStore.PersistentDimension dimension,
+            ModdedGenerationHistoryStorage.ActivePack active
     ) {
         NativeDimensionRuntime serverAccess = requireAccess();
+        DimensionRequest requested = new DimensionRequest(dimension.id(), dimension.pack(), dimension.dimension(), dimension.seed());
         synchronized (LOCK) {
-            String key = dimensionId;
-            RuntimePack runtimePack = switch (generationMode) {
-                case TRANSIENT_STUDIO -> transientStudioPack(pack, packDimensionKey);
-                case PERSISTENT_CREATE -> persistentRuntimePack(
-                        ModdedGenerationHistoryStorage.createOrStage(
-                                server,
-                                key,
-                                pack,
-                                packDimensionKey,
-                                seed
-                        ),
-                        generationMode
-                );
-                case PERSISTENT_RESTORE -> persistentRuntimePack(
-                        ModdedGenerationHistoryStorage.restoreOrAdopt(
-                                server,
-                                key,
-                                pack,
-                                packDimensionKey,
-                                seed
-                        ),
-                        generationMode
-                );
-            };
-            Handle existing = HANDLES.get(dimensionId);
-            if (existing != null && serverAccess.hasLevel(server, key)) {
-                Handle refreshed = new Handle(dimensionId, pack, packDimensionKey, seed, existing.level(), existing.generator());
-                HANDLES.put(dimensionId, refreshed);
-                return refreshed;
+            Handle present = presentHandle(server, serverAccess, requested);
+            if (present != null) {
+                return new RestoringLevel(present, true);
             }
-            if (serverAccess.hasLevel(server, key)) {
-                NativeWorld present = level(server, dimensionId);
-                IrisModdedChunkGenerator generator = NativeWorldGenerators.find(present, IrisModdedChunkGenerator.class);
-                if (generator == null) {
-                    throw new IllegalStateException("Iris cannot inject dimension '" + dimensionId + "': a non-Iris level with that id is already loaded");
-                }
-                ModdedIrisLog.warn("Iris dimension '{}' is already present in the running server; reusing it", dimensionId);
-                Handle handle = new Handle(dimensionId, pack, packDimensionKey, seed, present, generator);
-                HANDLES.put(dimensionId, handle);
-                return handle;
-            }
-
             try {
-                Handle handle = inject(
-                        server,
-                        serverAccess,
-                        dimensionId,
-                        key,
-                        pack,
-                        packDimensionKey,
-                        seed,
-                        runtimePack
-                );
-                HANDLES.put(dimensionId, handle);
-                ModdedIrisLog.info("Iris injected runtime dimension '{}' (pack={} dim={} seed={})", dimensionId, pack, packDimensionKey, seed);
-                return handle;
+                RuntimePack runtimePack = persistentRuntimePack(active, ModdedGenerationMode.PERSISTENT_RESTORE);
+                return new RestoringLevel(createLevel(server, serverAccess, requested, runtimePack), false);
             } catch (Throwable e) {
-                ModdedIrisLog.error("Iris failed to inject runtime dimension '{}' (pack={} dim={} seed={})", dimensionId, pack, packDimensionKey, seed, e);
-                throw new IllegalStateException("Iris runtime dimension injection failed for " + dimensionId, e);
+                throw injectionFailure(requested, e);
             }
         }
+    }
+
+    static Handle completeRestore(NativeModdedServer server, RestoringLevel restoring, Engine engine) {
+        if (restoring.present()) {
+            return restoring.handle();
+        }
+        NativeDimensionRuntime serverAccess = requireAccess();
+        synchronized (LOCK) {
+            try {
+                return register(publishLevel(server, serverAccess, restoring.handle(), engine));
+            } catch (Throwable e) {
+                throw injectionFailure(DimensionRequest.of(restoring.handle()), e);
+            }
+        }
+    }
+
+    static void abandonRestore(NativeModdedServer server, RestoringLevel restoring, Throwable failure) {
+        if (restoring.present()) {
+            return;
+        }
+        NativeDimensionRuntime serverAccess = requireAccess();
+        Handle handle = restoring.handle();
+        synchronized (LOCK) {
+            rollbackInjection(server, serverAccess, handle.dimensionId(), handle.level(), handle.generator(), false, failure);
+        }
+    }
+
+    private static Handle create(NativeModdedServer server, DimensionRequest requested, RuntimePackSource source) {
+        NativeDimensionRuntime serverAccess = requireAccess();
+        synchronized (LOCK) {
+            RuntimePack runtimePack = source.open();
+            Handle present = presentHandle(server, serverAccess, requested);
+            if (present != null) {
+                return present;
+            }
+            try {
+                return register(publishLevel(server, serverAccess,
+                        createLevel(server, serverAccess, requested, runtimePack), null));
+            } catch (Throwable e) {
+                throw injectionFailure(requested, e);
+            }
+        }
+    }
+
+    private static Handle presentHandle(NativeModdedServer server, NativeDimensionRuntime serverAccess, DimensionRequest requested) {
+        String dimensionId = requested.dimensionId();
+        Handle existing = HANDLES.get(dimensionId);
+        if (existing != null && serverAccess.hasLevel(server, dimensionId)) {
+            Handle refreshed = requested.bind(existing.level(), existing.generator());
+            HANDLES.put(dimensionId, refreshed);
+            return refreshed;
+        }
+        if (!serverAccess.hasLevel(server, dimensionId)) {
+            return null;
+        }
+        NativeWorld present = level(server, dimensionId);
+        IrisModdedChunkGenerator generator = NativeWorldGenerators.find(present, IrisModdedChunkGenerator.class);
+        if (generator == null) {
+            throw new IllegalStateException("Iris cannot inject dimension '" + dimensionId + "': a non-Iris level with that id is already loaded");
+        }
+        ModdedIrisLog.warn("Iris dimension '{}' is already present in the running server; reusing it", dimensionId);
+        Handle handle = requested.bind(present, generator);
+        HANDLES.put(dimensionId, handle);
+        return handle;
+    }
+
+    private static Handle register(Handle handle) {
+        HANDLES.put(handle.dimensionId(), handle);
+        ModdedIrisLog.info("Iris injected runtime dimension '{}' (pack={} dim={} seed={})",
+                handle.dimensionId(), handle.pack(), handle.packDimensionKey(), handle.seed());
+        return handle;
+    }
+
+    private static IllegalStateException injectionFailure(DimensionRequest requested, Throwable failure) {
+        ModdedIrisLog.error("Iris failed to inject runtime dimension '{}' (pack={} dim={} seed={})",
+                requested.dimensionId(), requested.pack(), requested.packDimensionKey(), requested.seed(), failure);
+        return new IllegalStateException("Iris runtime dimension injection failed for " + requested.dimensionId(), failure);
     }
 
     public static Handle createPersistent(NativeModdedServer server, String dimensionId, String pack, String packDimensionKey, long seed) {
@@ -222,11 +227,17 @@ public final class ModdedDimensionManager {
             try {
                 return create(
                         server,
-                        dimensionId,
-                        pack,
-                        packDimensionKey,
-                        seed,
-                        ModdedGenerationMode.PERSISTENT_CREATE
+                        new DimensionRequest(dimensionId, pack, packDimensionKey, seed),
+                        () -> persistentRuntimePack(
+                                ModdedGenerationHistoryStorage.createOrStage(
+                                        server,
+                                        dimensionId,
+                                        pack,
+                                        packDimensionKey,
+                                        seed
+                                ),
+                                ModdedGenerationMode.PERSISTENT_CREATE
+                        )
                 );
             } catch (Throwable e) {
                 try {
@@ -392,16 +403,16 @@ public final class ModdedDimensionManager {
         }
     }
 
-    private static Handle inject(
+    private static Handle createLevel(
             NativeModdedServer server,
             NativeDimensionRuntime serverAccess,
-            String dimensionId,
-            String key,
-            String pack,
-            String packDimensionKey,
-            long seed,
+            DimensionRequest requested,
             RuntimePack runtimePack
     ) {
+        String dimensionId = requested.dimensionId();
+        String pack = requested.pack();
+        String packDimensionKey = requested.packDimensionKey();
+        long seed = requested.seed();
         String typeRef = runtimePack.dimensionTypeKey();
         ModdedForcedDatapack.requireRegisteredDimensionType(typeRef,
                 serverAccess.hasDimensionType(server, typeRef) ? Optional.of(Boolean.TRUE) : Optional.empty(),
@@ -414,33 +425,52 @@ public final class ModdedDimensionManager {
                             runtimePack.generationMode());
                     return generator;
                 }));
-        NativeWorld level = created.world();
-        IrisModdedChunkGenerator generator = created.generator();
+        try {
+            serverAccess.initialize(server, created.world());
+            return requested.bind(created.world(), created.generator());
+        } catch (Throwable error) {
+            rollbackInjection(server, serverAccess, dimensionId, created.world(), created.generator(), false, error);
+            throw rethrow(dimensionId, error);
+        }
+    }
 
+    private static Handle publishLevel(
+            NativeModdedServer server,
+            NativeDimensionRuntime serverAccess,
+            Handle created,
+            Engine prepared
+    ) {
+        NativeWorld level = created.level();
+        IrisModdedChunkGenerator generator = created.generator();
         boolean loadEventStarted = false;
         try {
-            serverAccess.initialize(server, level);
+            if (prepared != null) {
+                ModdedWorldEngines.installPrepared(level, prepared);
+            }
             generator.bindLevel(level);
-            Handle handle = new Handle(dimensionId, pack, packDimensionKey, seed, level, generator);
             NativeWorld previous = serverAccess.publish(server, level);
             if (previous != null) {
-                throw new IllegalStateException("Iris cannot inject dimension '" + dimensionId
+                throw new IllegalStateException("Iris cannot inject dimension '" + created.dimensionId()
                         + "': the level was registered concurrently");
             }
             serverAccess.addWorldBorderListener(server, level);
             loadEventStarted = true;
             ModdedEngineBootstrap.loader().fireDynamicLevelLoad(level);
-            return handle;
+            return created;
         } catch (Throwable error) {
-            rollbackInjection(server, serverAccess, key, level, generator, loadEventStarted, error);
-            if (error instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            if (error instanceof Error fatalError) {
-                throw fatalError;
-            }
-            throw new IllegalStateException("Iris runtime dimension injection failed for " + dimensionId, error);
+            rollbackInjection(server, serverAccess, created.dimensionId(), level, generator, loadEventStarted, error);
+            throw rethrow(created.dimensionId(), error);
         }
+    }
+
+    private static RuntimeException rethrow(String dimensionId, Throwable error) {
+        if (error instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+        if (error instanceof Error fatalError) {
+            throw fatalError;
+        }
+        return new IllegalStateException("Iris runtime dimension injection failed for " + dimensionId, error);
     }
 
     private static void rollbackInjection(NativeModdedServer server, NativeDimensionRuntime serverAccess,
@@ -544,7 +574,28 @@ public final class ModdedDimensionManager {
         }
     }
 
+    @FunctionalInterface
+    private interface RuntimePackSource {
+        RuntimePack open();
+    }
+
+    private record DimensionRequest(String dimensionId, String pack, String packDimensionKey, long seed) {
+        private static DimensionRequest of(Handle handle) {
+            return new DimensionRequest(handle.dimensionId(), handle.pack(), handle.packDimensionKey(), handle.seed());
+        }
+
+        private Handle bind(NativeWorld level, IrisModdedChunkGenerator generator) {
+            return new Handle(dimensionId, pack, packDimensionKey, seed, level, generator);
+        }
+    }
+
     public record Handle(String dimensionId, String pack, String packDimensionKey, long seed, NativeWorld level, IrisModdedChunkGenerator generator) {
+    }
+
+    record RestoringLevel(Handle handle, boolean present) {
+        RestoringLevel {
+            handle = Objects.requireNonNull(handle, "handle");
+        }
     }
 
     public record UpdateResult(

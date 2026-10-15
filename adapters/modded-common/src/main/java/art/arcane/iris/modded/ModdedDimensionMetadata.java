@@ -28,6 +28,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeResourceKeys;
 
+import java.io.File;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -126,6 +127,20 @@ final class ModdedDimensionMetadata {
         }
     }
 
+    static void warmConfiguredPack(File packDirectory, String dimensionKey) {
+        ConfiguredPack configured = ConfiguredPack.load(packDirectory, dimensionKey);
+        collectConfiguredBiomeKeys(configured.dimension(), configured.data());
+    }
+
     record ConfiguredPack(IrisData data, IrisDimension dimension, DimensionMetadata metadata) {
+        static ConfiguredPack load(File packDirectory, String dimensionKey) {
+            IrisData data = IrisData.get(packDirectory);
+            IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+            if (dimension == null) {
+                throw new IllegalStateException("Iris dimension '" + dimensionKey
+                        + "' missing from pack " + packDirectory.getAbsolutePath());
+            }
+            return new ConfiguredPack(data, dimension, dimensionMetadata(dimension));
+        }
     }
 }

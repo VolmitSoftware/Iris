@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 public class ModdedPackValidationPublicationTest {
@@ -41,8 +42,8 @@ public class ModdedPackValidationPublicationTest {
         PackValidationResult result = loadable(root);
         try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
             validator.when(() -> PackValidator.validate(root)).thenReturn(result);
-            assertSame(result, ModdedGenerationHistoryStorage.validatePack(root.toPath()));
-            assertSame(result, ModdedGenerationHistoryStorage.validatePack(root.toPath()));
+            assertSame(result, ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
+            assertSame(result, ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
             validator.verify(() -> PackValidator.validate(root), times(1));
         }
     }
@@ -56,13 +57,13 @@ public class ModdedPackValidationPublicationTest {
         PackValidationResult broken = new PackValidationResult(root.getName(), List.of("invalid"), List.of(), 1L);
         try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
             validator.when(() -> PackValidator.validate(root)).thenReturn(loadable(root), broken);
-            ModdedGenerationHistoryStorage.validatePack(root.toPath());
+            ModdedGenerationHistoryStorage.validatePack(root.toPath(), null);
             Files.writeString(content.toPath(), "wrong");
             Files.setLastModifiedTime(content.toPath(), timestamp);
             assertThrows(BrokenPackException.class,
-                    () -> ModdedGenerationHistoryStorage.validatePack(root.toPath()));
+                    () -> ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
             assertThrows(BrokenPackException.class,
-                    () -> ModdedGenerationHistoryStorage.validatePack(root.toPath()));
+                    () -> ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
             validator.verify(() -> PackValidator.validate(root), times(2));
         }
     }
@@ -77,9 +78,9 @@ public class ModdedPackValidationPublicationTest {
              MockedStatic<PackValidationCache> cache = mockStatic(PackValidationCache.class)) {
             cache.when(PackValidationCache::contextFingerprint).thenAnswer(ignored -> context.get());
             validator.when(() -> PackValidator.validate(root)).thenReturn(first, second);
-            assertSame(first, ModdedGenerationHistoryStorage.validatePack(root.toPath()));
+            assertSame(first, ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
             context.set("second");
-            assertSame(second, ModdedGenerationHistoryStorage.validatePack(root.toPath()));
+            assertSame(second, ModdedGenerationHistoryStorage.validatePack(root.toPath(), null));
             validator.verify(() -> PackValidator.validate(root), times(2));
         }
     }
@@ -186,6 +187,42 @@ public class ModdedPackValidationPublicationTest {
             assertFalse(result.isLoadable());
             assertSame(result, PackValidationRegistry.get(root.toPath()));
             assertSame(result, PackValidationRegistry.get(root.getName()));
+        }
+    }
+
+    @Test
+    public void snapshotReusesTheValidationOfAnIdenticalValidatedSource() throws Exception {
+        File source = temporaryFolder.newFolder("overworld");
+        Files.writeString(new File(source, "dimension.json").toPath(), "terrain");
+        File snapshot = temporaryFolder.newFolder("epoch", "pack");
+        Files.writeString(new File(snapshot, "dimension.json").toPath(), "terrain");
+        PackValidationResult sourceResult = loadable(source);
+        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
+            validator.when(() -> PackValidator.validate(source)).thenReturn(sourceResult);
+            ModdedStartup.validatePack(source);
+
+            assertSame(sourceResult, ModdedGenerationHistoryStorage.validatePack(snapshot.toPath(), source.toPath()));
+
+            validator.verify(() -> PackValidator.validate(snapshot), never());
+            assertSame(sourceResult, PackValidationRegistry.requireLoadable(snapshot.toPath()));
+        }
+    }
+
+    @Test
+    public void snapshotThatDiffersFromItsSourceIsValidatedOnItsOwn() throws Exception {
+        File source = temporaryFolder.newFolder("overworld");
+        Files.writeString(new File(source, "dimension.json").toPath(), "terrain");
+        File snapshot = temporaryFolder.newFolder("epoch", "pack");
+        Files.writeString(new File(snapshot, "dimension.json").toPath(), "older terrain");
+        PackValidationResult snapshotResult = loadable(snapshot);
+        try (MockedStatic<PackValidator> validator = mockStatic(PackValidator.class)) {
+            validator.when(() -> PackValidator.validate(source)).thenReturn(loadable(source));
+            validator.when(() -> PackValidator.validate(snapshot)).thenReturn(snapshotResult);
+            ModdedStartup.validatePack(source);
+
+            assertSame(snapshotResult, ModdedGenerationHistoryStorage.validatePack(snapshot.toPath(), source.toPath()));
+
+            validator.verify(() -> PackValidator.validate(snapshot), times(1));
         }
     }
 

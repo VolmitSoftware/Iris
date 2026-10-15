@@ -743,14 +743,8 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
                 PackValidationRegistry.requireLoadable(packRoot);
                 packDirectory = packRoot.toFile();
             }
-            IrisData data = IrisData.get(packDirectory);
-            IrisDimension dimension = data.getDimensionLoader().load(activeDimensionKey);
-            if (dimension == null) {
-                throw new IllegalStateException("Iris dimension '" + activeDimensionKey
-                        + "' missing from pack " + packDirectory.getAbsolutePath());
-            }
-            ModdedDimensionMetadata.ConfiguredPack resolved = new ModdedDimensionMetadata.ConfiguredPack(
-                    data, dimension, ModdedDimensionMetadata.dimensionMetadata(dimension));
+            ModdedDimensionMetadata.ConfiguredPack resolved =
+                    ModdedDimensionMetadata.ConfiguredPack.load(packDirectory, activeDimensionKey);
             configuredPack = resolved;
             heightMetadata = resolved.metadata();
             return resolved;

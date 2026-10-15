@@ -42,5 +42,7 @@ public enum Reference {
     /** An expression of the pack. */
     PACK_EXPRESSION,
     /** An image map of the pack. */
-    PACK_IMAGE_MAP
+    PACK_IMAGE_MAP,
+    /** A jigsaw structure of the pack. */
+    PACK_STRUCTURE
 }

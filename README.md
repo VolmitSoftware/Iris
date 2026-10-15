@@ -465,7 +465,7 @@ public final class FloraSettings implements IrisFeature {
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
   `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
-  styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION` or `PACK_IMAGE_MAP` of the pack.
+  styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP` or `PACK_STRUCTURE` (a jigsaw structure) of the pack.
   The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.
 - `@ResourceRef(Keep.class)` says that a `String`, or a list, set or array of them, names a resource of the

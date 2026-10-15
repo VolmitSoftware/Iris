@@ -47,7 +47,7 @@ final class ValueKinds {
     private static final Set<Class<?>> DECIMALS = Set.of(float.class, double.class, Float.class, Double.class);
     private static final String DECLARE_COLLECTION = "declare it as List<...>, Set<...> or Map<String, ...>";
     private static final Set<Reference> PACK_REFERENCES = EnumSet.of(Reference.PACK_BIOME, Reference.PACK_REGION, Reference.PACK_OBJECT,
-            Reference.PACK_EXPRESSION, Reference.PACK_IMAGE_MAP);
+            Reference.PACK_EXPRESSION, Reference.PACK_IMAGE_MAP, Reference.PACK_STRUCTURE);
 
     private final Function<Class<?>, ObjectKind> objects;
     private final HostTypes hostTypes;

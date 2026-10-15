@@ -728,7 +728,7 @@ biomes, regions, objects, expressions and image maps of the pack, the resource f
 refer to most. More kinds come when a
 module needs one and the host can serve it. `@Ref` fits `String` and `ResourceId` and lists, sets and
 arrays of them, where it applies to the elements. On any other field, a map included, it fails the
-load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP`) fit `String` only: packs name their
+load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP`, `PACK_STRUCTURE`) fit `String` only: packs name their
 biomes, regions and objects by path without a namespace, such as `desert/dunes`, which a `ResourceId`
 cannot hold. `BlockState` always names a block, so its fields are block references without `@Ref`;
 `@Ref(BLOCK)` there is accepted, any other kind fails.

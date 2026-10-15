@@ -830,7 +830,7 @@ public final class ModdedForcedDatapack {
             GenerationEpoch.DimensionContract contract = retained.epoch().dimensionContract();
             Optional<ModdedWorldgenIds.ScopedDimension> scoped = ModdedWorldgenIds.scopedDimensionType(contract.dimensionTypeKey());
             if (scoped.isEmpty()) {
-                return PackStageContext.retained(normalizedRoot, contract.dimensionKey(), retained.epoch());
+                return PackStageContext.retained(normalizedRoot, retainedPackName(retained.epoch(), normalizedRoot), retained.epoch());
             }
             ModdedWorldgenIds.ScopedDimension identity = scoped.get();
             if (!identity.dimension().equals(contract.dimensionKey())) {
@@ -847,6 +847,16 @@ public final class ModdedForcedDatapack {
             }
         }
         return PackStageContext.installed(normalizedRoot, packName, legacyDimensions);
+    }
+
+    static String retainedPackName(GenerationEpoch epoch, Path packRoot) throws IOException {
+        String dimensionKey = epoch.dimensionContract().dimensionKey();
+        Set<String> packs = ModdedWorldgenIds.aliasPacks(epoch.registryContract(), dimensionKey);
+        if (packs.size() > 1) {
+            throw new IOException("Retained Iris generation pack at " + packRoot
+                    + " records scoped biome aliases from several packs " + packs + ".");
+        }
+        return packs.isEmpty() ? dimensionKey : packs.iterator().next();
     }
 
     private static RetainedPack retainedPack(Path packRoot) throws IOException {

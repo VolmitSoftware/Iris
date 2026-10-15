@@ -2,12 +2,17 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.world.history.GenerationRegistryContract;
+import art.arcane.iris.world.history.GenerationRegistryContract.PhysicalResourceKey;
+import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 public final class ModdedWorldgenIds {
     private static final String NAMESPACE = "irisworldgen";
@@ -58,6 +63,41 @@ public final class ModdedWorldgenIds {
                 || !"packs".equals(parts[0])
                 || !"dimensions".equals(parts[2])
                 || !"dimension_type".equals(parts[4])) {
+            return Optional.empty();
+        }
+        String pack = decode(parts[1]);
+        String dimension = decode(parts[3]);
+        if (pack == null || dimension == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new ScopedDimension(pack, dimension));
+    }
+
+    static Set<String> aliasPacks(GenerationRegistryContract contract, String dimension) {
+        Set<String> packs = new TreeSet<>();
+        for (PhysicalResourceKey key : contract.definitions().keySet()) {
+            if (!GenerationRegistryContractFactory.BIOME_REGISTRY.equals(key.registryKey())) {
+                continue;
+            }
+            Optional<ScopedDimension> scoped = scopedBiome(key.resourceKey());
+            if (scoped.isPresent() && scoped.get().dimension().equals(dimension)) {
+                packs.add(scoped.get().pack());
+            }
+        }
+        return packs;
+    }
+
+    static Optional<ScopedDimension> scopedBiome(String biomeRef) {
+        String prefix = NAMESPACE + ":";
+        if (biomeRef == null || !biomeRef.startsWith(prefix)) {
+            return Optional.empty();
+        }
+        String[] parts = biomeRef.substring(prefix.length()).split("/", 6);
+        if (parts.length != 6
+                || !"packs".equals(parts[0])
+                || !"dimensions".equals(parts[2])
+                || !"biomes".equals(parts[4])
+                || parts[5].isEmpty()) {
             return Optional.empty();
         }
         String pack = decode(parts[1]);

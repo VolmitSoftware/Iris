@@ -49,6 +49,7 @@ import lombok.Getter;
 import org.bukkit.Chunk;
 
 import java.io.*;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -63,6 +64,7 @@ import java.util.function.Supplier;
 
 public class Mantle {
     private static final int LOCK_SIZE = Short.MAX_VALUE;
+    private static final long MINIMUM_IDLE_DURATION_MS = 500L;
 
     private final File dataFolder;
     @Getter
@@ -487,7 +489,7 @@ public class Mantle {
         }
 
         double idleDuration = baseIdleDuration;
-        double minimumIdleDuration = Math.max(500D, Math.min(baseIdleDuration, 4000D));
+        double minimumIdleDuration = Math.max(MINIMUM_IDLE_DURATION_MS, Math.min(baseIdleDuration, 4000D));
         if (loadedRegions.size() > tectonicLimit) {
             // todo update this correctly and maybe do something when its above a 100%
             idleDuration = Math.max(idleDuration - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), minimumIdleDuration);
@@ -514,6 +516,35 @@ public class Mantle {
         } finally {
             ioTrim.release(LOCK_SIZE);
         }
+    }
+
+    /**
+     * Unlike {@link #trim}, keeps the plates around the chunks being generated, so they are not saved only to be
+     * loaded again.
+     */
+    public synchronized int unloadLeastRecentlyUsed(int tectonicLimit) {
+        if (closed.get()) {
+            throw new RuntimeException("The Mantle is closed");
+        }
+
+        int excess = loadedRegions.size() - tectonicLimit;
+        if (excess <= 0) {
+            return 0;
+        }
+
+        ioTrim.acquireUninterruptibly(LOCK_SIZE);
+        try {
+            long idleSince = M.ms() - MINIMUM_IDLE_DURATION_MS;
+            lastUse.entrySet().stream()
+                    .filter(entry -> entry.getValue() < idleSince)
+                    .sorted(Map.Entry.comparingByValue())
+                    .limit(excess)
+                    .forEach(entry -> toUnload.add(entry.getKey()));
+            adjustedIdleDuration.set(MINIMUM_IDLE_DURATION_MS);
+        } finally {
+            ioTrim.release(LOCK_SIZE);
+        }
+        return unloadTectonicPlate(tectonicLimit);
     }
 
     public synchronized int unloadTectonicPlate(int tectonicLimit) {

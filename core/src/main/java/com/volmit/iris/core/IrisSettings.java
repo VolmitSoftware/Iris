@@ -147,10 +147,10 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPregen {
-        private static final int REFERENCE_WORLD_HEIGHT = 384;
         private static final int MIN_RESIDENT_TECTONIC_PLATES = 16;
         private static final double MANTLE_HEAP_FRACTION = 0.6D;
-        private static final int REFERENCE_PLATE_MEGABYTES = 48;
+        private static final int MEASURED_PLATE_MEGABYTES = 38;
+        private static final int MEASURED_WORLD_HEIGHT = 1088;
 
         public boolean useCacheByDefault = true;
         public boolean useHighPriority = false;
@@ -162,12 +162,11 @@ public class IrisSettings {
         public int mantleBackpressureTimeoutMs = 60_000;
 
         public int getEffectiveResidentTectonicPlates(int worldHeight) {
-            int normalizedHeight = Math.max(1, worldHeight);
-            int heightScaledCap = (int) Math.round((double) maxResidentTectonicPlates * REFERENCE_WORLD_HEIGHT / normalizedHeight);
-            double plateMegabytes = (double) REFERENCE_PLATE_MEGABYTES * normalizedHeight / REFERENCE_WORLD_HEIGHT;
-            int heapBudgetCap = (int) Math.floor(MANTLE_HEAP_FRACTION * getHardware.getProcessMemory() / plateMegabytes);
-            int effective = Math.min(heightScaledCap, heapBudgetCap);
-            return Math.max(MIN_RESIDENT_TECTONIC_PLATES, Math.min(maxResidentTectonicPlates, effective));
+            // Mantle chunks only hold the sections something was written to, so shorter worlds keep the measured size.
+            double heightScale = Math.max(1D, (double) worldHeight / MEASURED_WORLD_HEIGHT);
+            double plateMegabytes = MEASURED_PLATE_MEGABYTES * heightScale;
+            int heapBudget = (int) Math.floor(MANTLE_HEAP_FRACTION * getHardware.getProcessMemory() / plateMegabytes);
+            return Math.max(MIN_RESIDENT_TECTONIC_PLATES, Math.min(maxResidentTectonicPlates, heapBudget));
         }
 
         public int getMantleBackpressureWaitMs() {

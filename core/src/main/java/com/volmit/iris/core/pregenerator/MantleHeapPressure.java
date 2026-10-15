@@ -5,7 +5,10 @@ import com.volmit.iris.Iris;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.LongSupplier;
@@ -15,6 +18,9 @@ public final class MantleHeapPressure {
     private static final double LOW_WATER = 0.82D;
     private static final long MAXIMUM_HYSTERESIS_MS = 60_000L;
     private static final ObjectName DIAGNOSTIC_COMMAND = diagnosticCommandName();
+    private static final List<MemoryPoolMXBean> HEAP_POOLS = ManagementFactory.getMemoryPoolMXBeans().stream()
+            .filter(pool -> pool.getType() == MemoryType.HEAP)
+            .toList();
     private static final PanicGcReclaimer PANIC_RECLAIMER = new PanicGcReclaimer(
             new PanicGcPolicy(10_000L, 60_000L, 60_000L, 15 * 60_000L),
             new PanicGcActions(
@@ -37,19 +43,19 @@ public final class MantleHeapPressure {
     private MantleHeapPressure() {
     }
 
+    // Usage between collections includes garbage, which G1 lets climb close to the maximum on a healthy heap.
     public static double usedFraction() {
-        MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-        long max = heap.getMax();
-        if (max > 0L) {
-            return (double) heap.getUsed() / (double) max;
-        }
-
-        Runtime runtime = Runtime.getRuntime();
-        long runtimeMax = runtime.maxMemory();
-        if (runtimeMax <= 0L) {
+        long max = Runtime.getRuntime().maxMemory();
+        if (max <= 0L || max == Long.MAX_VALUE) {
             return 0.0D;
         }
-        return (double) (runtime.totalMemory() - runtime.freeMemory()) / (double) runtimeMax;
+
+        long usedAfterGc = 0L;
+        for (MemoryPoolMXBean pool : HEAP_POOLS) {
+            MemoryUsage afterGc = pool.getCollectionUsage();
+            usedAfterGc += afterGc == null ? pool.getUsage().getUsed() : afterGc.getUsed();
+        }
+        return (double) usedAfterGc / (double) max;
     }
 
     public static boolean overHighWater() {

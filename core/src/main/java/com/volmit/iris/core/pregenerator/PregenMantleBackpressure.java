@@ -36,27 +36,26 @@ public final class PregenMantleBackpressure {
     }
 
     private void enforcePlateBudget(Mantle mantle, int plateBudget) {
-        int hardCap = plateBudget * 2;
         long waitStart = M.ms();
         long lastLog = waitStart;
-        while (mantle.getLoadedRegionCount() > hardCap && !isCancelled()) {
-            int freed = evictIdlePlates(mantle);
+        while (mantle.getLoadedRegionCount() > plateBudget && !isCancelled()) {
+            int freed = evictOldestPlates(mantle, plateBudget);
             int resident = mantle.getLoadedRegionCount();
-            if (resident <= hardCap) {
+            if (resident <= plateBudget) {
                 return;
             }
 
             long elapsed = M.ms() - waitStart;
             if (elapsed >= timeoutMs) {
-                Iris.warn("Pregen mantle backpressure waited %dms with %d tectonic plates resident (hard cap %d); "
+                Iris.warn("Pregen mantle backpressure waited %dms with %d tectonic plates resident (budget %d); "
                         + "continuing to avoid a deadlock. Raise pregen.maxResidentTectonicPlates if this keeps happening.",
-                        timeoutMs, resident, hardCap);
+                        timeoutMs, resident, plateBudget);
                 return;
             }
             if (M.ms() - lastLog >= PROGRESS_LOG_INTERVAL_MS) {
                 lastLog = M.ms();
-                Iris.info("Pregen mantle backpressure: %d tectonic plates resident (hard cap %d), freed %d last pass, waited %dms.",
-                        resident, hardCap, freed, elapsed);
+                Iris.info("Pregen mantle backpressure: %d tectonic plates resident (budget %d), freed %d last pass, waited %dms.",
+                        resident, plateBudget, freed, elapsed);
             }
             if (!pause()) {
                 return;
@@ -68,20 +67,18 @@ public final class PregenMantleBackpressure {
         long waitStart = M.ms();
         long lastLog = waitStart;
         while (MantleHeapPressure.overHighWater() && !isCancelled()) {
-            if (mantle.getLoadedRegionCount() > plateBudget) {
-                evictIdlePlates(mantle);
-            }
+            evictOldestPlates(mantle, plateBudget);
             MantleHeapPressure.requestPanicReclaim();
 
             long elapsed = M.ms() - waitStart;
             if (elapsed >= timeoutMs) {
-                Iris.warn("Pregen heap pressure wait exceeded %dms at %d%% heap; continuing to avoid a deadlock. "
+                Iris.warn("Pregen heap pressure wait exceeded %dms at %d%% heap after GC; continuing to avoid a deadlock. "
                         + "Give the server more memory if this keeps happening.", timeoutMs, heapPercent());
                 return;
             }
             if (M.ms() - lastLog >= PROGRESS_LOG_INTERVAL_MS) {
                 lastLog = M.ms();
-                Iris.info("Pregen heap pressure: paused at %d%% heap with %d tectonic plates resident, waiting for headroom.",
+                Iris.info("Pregen heap pressure: paused at %d%% heap after GC with %d tectonic plates resident, waiting for headroom.",
                         heapPercent(), mantle.getLoadedRegionCount());
             }
             if (!pause()) {
@@ -90,10 +87,9 @@ public final class PregenMantleBackpressure {
         }
     }
 
-    private int evictIdlePlates(Mantle mantle) {
+    private int evictOldestPlates(Mantle mantle, int plateBudget) {
         try {
-            mantle.trim(0L, 0);
-            return mantle.unloadTectonicPlate(0);
+            return mantle.unloadLeastRecentlyUsed(plateBudget);
         } catch (Throwable e) {
             Iris.reportError(e);
             return 0;

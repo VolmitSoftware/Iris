@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-final class CanopyEstimate {
+final class VegetationOcclusion {
     static final double CROWN_COLUMNS = 20D;
     private static final double UNKNOWN_TREE_COUNT = 1D;
     private static final double COLUMNS_PER_CHUNK = 256D;
@@ -36,39 +36,55 @@ final class CanopyEstimate {
     private final WorldgenCatalogIndex index;
     private final TreeFeatures trees;
 
-    CanopyEstimate(WorldgenCatalogIndex index) {
+    VegetationOcclusion(WorldgenCatalogIndex index) {
         this.index = index;
         this.trees = new TreeFeatures(index);
     }
 
-    double occlusion(String featureKey, Set<String> declaringBiomes) {
+    Occlusion occlusion(String featureKey, Set<String> declaringBiomes) {
         if (declaringBiomes.isEmpty()) {
-            return 0D;
+            return Occlusion.NONE;
         }
-        double total = 0D;
+        double canopy = 0D;
+        double occupancy = 0D;
         for (String biomeKey : declaringBiomes) {
             Optional<CatalogBiome> biome = index.biome(biomeKey);
-            total += biome.map((CatalogBiome value) -> canopyBefore(value, featureKey)).orElse(0D);
+            if (biome.isEmpty() || biome.get().featureSteps().size() <= VEGETAL_STEP) {
+                continue;
+            }
+            Occlusion before = before(biome.get().featureSteps().get(VEGETAL_STEP), featureKey);
+            canopy += before.canopy();
+            occupancy += before.occupancy();
         }
-        return total / declaringBiomes.size();
+        return new Occlusion(canopy / declaringBiomes.size(), occupancy / declaringBiomes.size());
     }
 
-    private double canopyBefore(CatalogBiome biome, String featureKey) {
-        if (biome.featureSteps().size() <= VEGETAL_STEP) {
-            return 0D;
-        }
-        List<String> vegetal = biome.featureSteps().get(VEGETAL_STEP);
+    private Occlusion before(List<String> vegetal, String featureKey) {
         double treesPerChunk = 0D;
+        double open = 1D;
         for (String candidate : vegetal) {
             if (candidate.equals(featureKey)) {
                 break;
             }
             Optional<CatalogPlacedFeature> feature = index.placedFeature(candidate);
-            if (feature.isPresent() && trees.isTree(feature.get())) {
+            if (feature.isEmpty()) {
+                continue;
+            }
+            if (trees.isTree(feature.get())) {
                 treesPerChunk += treesPerChunk(feature.get());
+            } else if (PatchDecoratorConverter.handles(feature.get())) {
+                open *= 1D - surfaceCoverage(feature.get());
             }
         }
-        return 1D - Math.exp(-treesPerChunk * CROWN_COLUMNS / COLUMNS_PER_CHUNK);
+        return new Occlusion(1D - Math.exp(-treesPerChunk * CROWN_COLUMNS / COLUMNS_PER_CHUNK), 1D - open);
+    }
+
+    private double surfaceCoverage(CatalogPlacedFeature patch) {
+        try {
+            return PatchDecoratorConverter.columnCoverage(PatchDecoratorConverter.expectedPlacements(patch, index));
+        } catch (IngestConversionException unknownDensity) {
+            return 0D;
+        }
     }
 
     private static double treesPerChunk(CatalogPlacedFeature tree) {
@@ -77,5 +93,9 @@ final class CanopyEstimate {
         } catch (IngestConversionException unknownCount) {
             return UNKNOWN_TREE_COUNT;
         }
+    }
+
+    record Occlusion(double canopy, double occupancy) {
+        static final Occlusion NONE = new Occlusion(0D, 0D);
     }
 }

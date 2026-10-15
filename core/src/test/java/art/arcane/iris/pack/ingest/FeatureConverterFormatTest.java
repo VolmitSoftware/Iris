@@ -115,7 +115,7 @@ public class FeatureConverterFormatTest {
                         + "{\"type\": \"minecraft:heightmap\", \"heightmap\": \"WORLD_SURFACE_WG\"}, {\"type\": \"minecraft:biome\"},"
                         + "{\"type\": \"minecraft:count\", \"count\": 96}," + PATCH_TAIL + "]");
 
-        JsonObject decorator = PatchDecoratorConverter.convert(lavender, index(), 0D);
+        JsonObject decorator = PatchDecoratorConverter.convert(lavender, index(), VegetationOcclusion.Occlusion.NONE);
 
         assertEquals(1.0D - Math.exp(-(15.0D * 96.0D * 0.25D) / 256.0D), decorator.get("chance").getAsDouble(), 0.000001D);
         assertTrue(decorator.get("chance").getAsDouble() < 1.0D);
@@ -133,9 +133,11 @@ public class FeatureConverterFormatTest {
                         + "{\"type\": \"minecraft:heightmap\", \"heightmap\": \"MOTION_BLOCKING_NO_LEAVES\"}, {\"type\": \"minecraft:biome\"}]");
 
         assertEquals(1.0D - Math.exp(-(4.0D * 0.5D) / 256.0D),
-                PatchDecoratorConverter.convert(lavender, index(), 0.5D).get("chance").getAsDouble(), 0.000001D);
+                PatchDecoratorConverter.convert(lavender, index(), new VegetationOcclusion.Occlusion(0.5D, 0D)).get("chance").getAsDouble(), 0.000001D);
         assertEquals(1.0D - Math.exp(-4.0D / 256.0D),
-                PatchDecoratorConverter.convert(underLeaves, index(), 0.5D).get("chance").getAsDouble(), 0.000001D);
+                PatchDecoratorConverter.convert(underLeaves, index(), new VegetationOcclusion.Occlusion(0.5D, 0D)).get("chance").getAsDouble(), 0.000001D);
+        assertEquals(1.0D - Math.exp(-(4.0D * 0.25D) / 256.0D),
+                PatchDecoratorConverter.convert(underLeaves, index(), new VegetationOcclusion.Occlusion(0D, 0.75D)).get("chance").getAsDouble(), 0.000001D);
     }
 
     @Test
@@ -152,7 +154,7 @@ public class FeatureConverterFormatTest {
                  {"type": "minecraft:biome"}]
                 """);
 
-        JsonObject decorator = PatchDecoratorConverter.convert(flowers, index(), 0D);
+        JsonObject decorator = PatchDecoratorConverter.convert(flowers, index(), VegetationOcclusion.Occlusion.NONE);
 
         assertEquals(1.0D - Math.exp(-(0.5D * 0.2D * 0.25D) / 256.0D), decorator.get("chance").getAsDouble(), 0.000001D);
         assertEquals("minecraft:grass_block", decorator.getAsJsonArray("whitelist").get(0).getAsJsonObject().get("block").getAsString());
@@ -167,8 +169,8 @@ public class FeatureConverterFormatTest {
                 "{\"type\": \"minecraft:simple_block\", \"to_place\": \"minecraft:flower_plain\"}",
                 "[{\"type\": \"minecraft:heightmap\", \"heightmap\": \"MOTION_BLOCKING\"}]");
 
-        assertThrows(IngestConversionException.class, () -> PatchDecoratorConverter.convert(seagrass, index(), 0D));
-        IngestConversionException reference = assertThrows(IngestConversionException.class, () -> PatchDecoratorConverter.convert(plains, index(), 0D));
+        assertThrows(IngestConversionException.class, () -> PatchDecoratorConverter.convert(seagrass, index(), VegetationOcclusion.Occlusion.NONE));
+        IngestConversionException reference = assertThrows(IngestConversionException.class, () -> PatchDecoratorConverter.convert(plains, index(), VegetationOcclusion.Occlusion.NONE));
         assertTrue(reference.getMessage(), reference.getMessage().contains("minecraft:flower_plain"));
     }
 

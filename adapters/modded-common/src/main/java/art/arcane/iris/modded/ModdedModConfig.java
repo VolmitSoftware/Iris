@@ -24,8 +24,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 public final class ModdedModConfig {
     private static final Object LOCK = new Object();
@@ -39,17 +42,19 @@ public final class ModdedModConfig {
     private final long mainWorldSeed;
     private final boolean mainWorldAutoRestart;
     private final Map<String, String> dimensionTakeovers;
+    private final List<String> takeoverProblems;
 
     private ModdedModConfig(String defaultPack, String primaryWorld, boolean routePlayersToPrimaryWorld,
                            String mainWorldPack, long mainWorldSeed, boolean mainWorldAutoRestart,
-                           Map<String, String> dimensionTakeovers) {
+                           Takeovers takeovers) {
         this.defaultPack = defaultPack;
         this.primaryWorld = primaryWorld == null ? "" : primaryWorld.trim();
         this.routePlayersToPrimaryWorld = routePlayersToPrimaryWorld;
         this.mainWorldPack = mainWorldPack == null ? "" : mainWorldPack.trim();
         this.mainWorldSeed = mainWorldSeed;
         this.mainWorldAutoRestart = mainWorldAutoRestart;
-        this.dimensionTakeovers = Map.copyOf(dimensionTakeovers);
+        this.dimensionTakeovers = Map.copyOf(takeovers.entries());
+        this.takeoverProblems = List.copyOf(takeovers.problems());
     }
 
     public static ModdedModConfig get() {
@@ -68,9 +73,9 @@ public final class ModdedModConfig {
 
     public static void setPrimaryWorld(String dimensionId) {
         synchronized (LOCK) {
-            ModdedModConfig current = get();
+            ModdedModConfig current = writable();
             ModdedModConfig updated = new ModdedModConfig(current.defaultPack, dimensionId, current.routePlayersToPrimaryWorld,
-                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, current.dimensionTakeovers);
+                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, current.takeovers());
             instance = updated;
             write(configFile(), updated);
         }
@@ -78,9 +83,9 @@ public final class ModdedModConfig {
 
     public static void setMainWorld(String packRef, long seed) {
         synchronized (LOCK) {
-            ModdedModConfig current = get();
+            ModdedModConfig current = writable();
             ModdedModConfig updated = new ModdedModConfig(current.defaultPack, current.primaryWorld, current.routePlayersToPrimaryWorld,
-                    packRef == null ? "" : packRef.trim(), seed, current.mainWorldAutoRestart, current.dimensionTakeovers);
+                    packRef == null ? "" : packRef.trim(), seed, current.mainWorldAutoRestart, current.takeovers());
             instance = updated;
             write(configFile(), updated);
         }
@@ -122,16 +127,59 @@ public final class ModdedModConfig {
         return dimensionTakeovers;
     }
 
+    public List<String> takeoverProblems() {
+        return takeoverProblems;
+    }
+
+    static ModdedModConfig read(Path file) {
+        ModdedModConfig defaults = defaults();
+        JSONObject json;
+        try {
+            json = new JSONObject(Files.readString(file, StandardCharsets.UTF_8));
+        } catch (RuntimeException | IOException unreadable) {
+            ModdedIrisLog.error("Iris modded config at {} is unreadable; using defaults", file, unreadable);
+            return new ModdedModConfig(defaults.defaultPack, defaults.primaryWorld, defaults.routePlayersToPrimaryWorld,
+                    defaults.mainWorldPack, defaults.mainWorldSeed, defaults.mainWorldAutoRestart,
+                    new Takeovers(Map.of(), List.of("Iris could not read " + file + ": " + unreadable.getMessage())));
+        }
+        return new ModdedModConfig(
+                json.optString("defaultPack", defaults.defaultPack),
+                json.optString("primaryWorld", defaults.primaryWorld),
+                json.optBoolean("routePlayersToPrimaryWorld", defaults.routePlayersToPrimaryWorld),
+                json.optString("mainWorldPack", defaults.mainWorldPack),
+                json.optLong("mainWorldSeed", defaults.mainWorldSeed),
+                json.optBoolean("mainWorldAutoRestart", defaults.mainWorldAutoRestart),
+                readDimensionTakeovers(json, file));
+    }
+
+    private Takeovers takeovers() {
+        return new Takeovers(dimensionTakeovers, takeoverProblems);
+    }
+
+    private static ModdedModConfig writable() {
+        ModdedModConfig current = get();
+        if (!current.takeoverProblems.isEmpty()) {
+            throw new IllegalStateException("Iris will not rewrite " + configFile()
+                    + " while its dimension takeovers are unreadable: " + String.join("; ", current.takeoverProblems)
+                    + ". Fix the file and restart first.");
+        }
+        return current;
+    }
+
+    private static ModdedModConfig defaults() {
+        return new ModdedModConfig("overworld", "", true, "", 0L, false, new Takeovers(Map.of(), List.of()));
+    }
+
     private static boolean updateDimensionTakeover(String levelKey, String packRef) {
         synchronized (LOCK) {
-            ModdedModConfig current = get();
+            ModdedModConfig current = writable();
             Map<String, String> takeovers = new TreeMap<>(current.dimensionTakeovers);
             String previous = packRef == null ? takeovers.remove(levelKey) : takeovers.put(levelKey, packRef);
             if (packRef == null ? previous == null : packRef.equals(previous)) {
                 return false;
             }
             ModdedModConfig updated = new ModdedModConfig(current.defaultPack, current.primaryWorld, current.routePlayersToPrimaryWorld,
-                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, takeovers);
+                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, new Takeovers(takeovers, List.of()));
             instance = updated;
             write(configFile(), updated);
             return true;
@@ -144,41 +192,41 @@ public final class ModdedModConfig {
 
     private static ModdedModConfig load() {
         Path file = configFile();
-        ModdedModConfig defaults = new ModdedModConfig("overworld", "", true, "", 0L, false, Map.of());
         if (!Files.isRegularFile(file)) {
+            ModdedModConfig defaults = defaults();
             write(file, defaults);
             return defaults;
         }
-        try {
-            JSONObject json = new JSONObject(Files.readString(file, StandardCharsets.UTF_8));
-            return new ModdedModConfig(
-                    json.optString("defaultPack", defaults.defaultPack),
-                    json.optString("primaryWorld", defaults.primaryWorld),
-                    json.optBoolean("routePlayersToPrimaryWorld", defaults.routePlayersToPrimaryWorld),
-                    json.optString("mainWorldPack", defaults.mainWorldPack),
-                    json.optLong("mainWorldSeed", defaults.mainWorldSeed),
-                    json.optBoolean("mainWorldAutoRestart", defaults.mainWorldAutoRestart),
-                    readDimensionTakeovers(json.optJSONObject(DIMENSION_TAKEOVERS), file));
-        } catch (RuntimeException | IOException e) {
-            ModdedIrisLog.error("Iris modded config at {} is invalid; using defaults", file, e);
-            return defaults;
-        }
+        return read(file);
     }
 
-    private static Map<String, String> readDimensionTakeovers(JSONObject json, Path file) {
-        if (json == null) {
-            return Map.of();
+    private static Takeovers readDimensionTakeovers(JSONObject json, Path file) {
+        if (!json.has(DIMENSION_TAKEOVERS) || json.isNull(DIMENSION_TAKEOVERS)) {
+            return new Takeovers(Map.of(), List.of());
+        }
+        JSONObject section = json.optJSONObject(DIMENSION_TAKEOVERS);
+        if (section == null) {
+            return new Takeovers(Map.of(), List.of("Iris could not read " + DIMENSION_TAKEOVERS + " in " + file
+                    + ": it must be an object mapping dimension keys to pack references"));
         }
         Map<String, String> takeovers = new TreeMap<>();
-        for (String levelKey : json.keySet()) {
+        List<String> problems = new ArrayList<>();
+        for (String levelKey : new TreeSet<>(section.keySet())) {
+            Object value = section.opt(levelKey);
             try {
-                ModdedDimensionTakeover takeover = ModdedDimensionTakeover.parse(levelKey, json.optString(levelKey, ""));
+                if (!(value instanceof String packRef)) {
+                    throw new IllegalArgumentException("the pack reference must be a string");
+                }
+                ModdedDimensionTakeover takeover = ModdedDimensionTakeover.parse(levelKey, packRef);
                 takeovers.put(takeover.levelKey(), takeover.packRef());
             } catch (IllegalArgumentException invalid) {
-                ModdedIrisLog.error("Iris ignored dimension takeover '{}' in {}: {}", levelKey, file, invalid.getMessage());
+                problems.add("Iris could not read dimension takeover '" + levelKey + "' in " + file + ": " + invalid.getMessage());
             }
         }
-        return takeovers;
+        for (String problem : problems) {
+            ModdedIrisLog.error(problem);
+        }
+        return new Takeovers(takeovers, problems);
     }
 
     private static void write(Path file, ModdedModConfig config) {
@@ -200,5 +248,8 @@ public final class ModdedModConfig {
         } catch (IOException e) {
             ModdedIrisLog.error("Iris failed to write modded config at {}", file, e);
         }
+    }
+
+    private record Takeovers(Map<String, String> entries, List<String> problems) {
     }
 }

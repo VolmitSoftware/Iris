@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ModdedTakeoverReconcilerTest {
@@ -64,7 +65,7 @@ public class ModdedTakeoverReconcilerTest {
             touch(worldRoot.resolve("players/data/player.dat"));
 
             ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
-                    worldRoot, Map.of("iristest:skylands", "overworld"), recoveryParent);
+                    worldRoot, Map.of("iristest:skylands", "overworld"), List.of(), recoveryParent);
 
             assertEquals(Set.of("iristest:skylands"), result.changedLevels());
             for (String folder : List.of("region", "entities", "poi", "mantle-hydrology", "iris")) {
@@ -92,14 +93,14 @@ public class ModdedTakeoverReconcilerTest {
             touch(region);
 
             ModdedTakeoverReconciler.Result unchanged = ModdedTakeoverReconciler.reconcile(
-                    worldRoot, Map.of("iristest:skylands", "overworld"), recoveryParent);
+                    worldRoot, Map.of("iristest:skylands", "overworld"), List.of(), recoveryParent);
 
             assertEquals(Set.of(), unchanged.changedLevels());
             assertNull(unchanged.recovery());
             assertTrue(Files.isRegularFile(region));
 
             ModdedTakeoverReconciler.Result removed = ModdedTakeoverReconciler.reconcile(
-                    worldRoot, Map.of(), recoveryParent);
+                    worldRoot, Map.of(), List.of(), recoveryParent);
 
             assertEquals(Set.of("iristest:skylands"), removed.changedLevels());
             assertFalse(Files.exists(region));
@@ -119,12 +120,65 @@ public class ModdedTakeoverReconcilerTest {
             Files.createDirectories(worldRoot);
 
             ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
-                    worldRoot, Map.of("aether:the_aether", "overworld"), recoveryParent);
+                    worldRoot, Map.of("aether:the_aether", "overworld"), List.of(), recoveryParent);
 
             assertEquals(Set.of("aether:the_aether"), result.changedLevels());
             assertNull(result.recovery());
             assertFalse(Files.exists(recoveryParent));
             assertEquals(Map.of("aether:the_aether", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void unreadableConfigWithRecordedTakeoversRefusesWithoutMovingAnything() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-unreadable");
+        Path worldRoot = temporary.resolve("world");
+        Path recoveryParent = temporary.resolve("config");
+        try {
+            Path region = worldRoot.resolve("dimensions/iristest/skylands/region/r.0.0.mca");
+            ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of("iristest:skylands", "overworld"));
+            touch(region);
+            List<String> problems = List.of("Iris could not read /srv/config/irisworldgen/modded.json: Unterminated object");
+
+            IOException refused = assertThrows(IOException.class, () -> ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of(), problems, recoveryParent));
+
+            assertTrue(refused.getMessage(), refused.getMessage().contains("modded.json"));
+            assertTrue(Files.isRegularFile(region));
+            assertFalse(Files.exists(recoveryParent));
+            assertEquals(Map.of("iristest:skylands", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void unreadableConfigWithAnEmptyStateFileStillRefuses() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-unreadable-empty");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of());
+
+            assertThrows(IOException.class, () -> ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of(), List.of("invalid takeover entry"), temporary.resolve("config")));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void unreadableConfigWithoutRecordedStateProceeds() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-unreadable-fresh");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Files.createDirectories(worldRoot);
+
+            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of(), List.of("invalid takeover entry"), temporary.resolve("config"));
+
+            assertEquals(Set.of(), result.changedLevels());
         } finally {
             deleteTree(temporary);
         }

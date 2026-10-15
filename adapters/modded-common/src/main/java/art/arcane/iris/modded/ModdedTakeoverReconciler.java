@@ -44,7 +44,8 @@ public final class ModdedTakeoverReconciler {
 
     public static void reconcileEarly() {
         try {
-            Map<String, String> configured = ModdedModConfig.get().dimensionTakeovers();
+            ModdedModConfig config = ModdedModConfig.get();
+            Map<String, String> configured = config.dimensionTakeovers();
             Path worldRoot = MainWorldService.configuredWorldRootIfPresent();
             if (worldRoot == null) {
                 if (!configured.isEmpty()) {
@@ -54,7 +55,7 @@ public final class ModdedTakeoverReconciler {
                 return;
             }
             Path recoveryParent = ModdedEngineBootstrap.loader().configDir().resolve("irisworldgen");
-            Result result = reconcile(worldRoot, configured, recoveryParent);
+            Result result = reconcile(worldRoot, configured, config.takeoverProblems(), recoveryParent);
             if (result.changedLevels().isEmpty()) {
                 return;
             }
@@ -85,7 +86,9 @@ public final class ModdedTakeoverReconciler {
         }
     }
 
-    static Result reconcile(Path worldRoot, Map<String, String> configured, Path recoveryParent) throws IOException {
+    static Result reconcile(Path worldRoot, Map<String, String> configured, List<String> configProblems,
+                            Path recoveryParent) throws IOException {
+        requireReadableConfig(worldRoot, configProblems);
         Map<String, String> applied = readApplied(worldRoot);
         Set<String> changed = ModdedDimensionTakeovers.changedLevels(applied, configured);
         if (changed.isEmpty()) {
@@ -102,6 +105,19 @@ public final class ModdedTakeoverReconciler {
         List<Path> moved = ModdedWorldQuarantine.move(worldRoot, sources, recovery);
         writeApplied(worldRoot, configured);
         return new Result(changed, moved.isEmpty() ? null : recovery);
+    }
+
+    private static void requireReadableConfig(Path worldRoot, List<String> configProblems) throws IOException {
+        if (configProblems.isEmpty()) {
+            return;
+        }
+        Path state = worldRoot.resolve(STATE_FILE);
+        if (!Files.exists(state)) {
+            return;
+        }
+        throw new IOException("Iris refused to reconcile dimension takeovers because the configured takeovers are unreadable while "
+                + state + " records applied takeovers: " + String.join("; ", configProblems)
+                + ". Fix the modded config so every takeover entry is valid; Iris never treats an unreadable takeover as removed.");
     }
 
     static Map<String, String> readApplied(Path worldRoot) throws IOException {

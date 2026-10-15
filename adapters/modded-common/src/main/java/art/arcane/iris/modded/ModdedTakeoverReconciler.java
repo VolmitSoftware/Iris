@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.world.history.GenerationEpoch;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryPaths;
@@ -42,6 +43,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public final class ModdedTakeoverReconciler {
     private static final String STATE_FILE = "data/irisworldgen/dimension-takeovers.json";
@@ -53,7 +55,7 @@ public final class ModdedTakeoverReconciler {
     public static void reconcileEarly() {
         try {
             ModdedModConfig config = ModdedModConfig.get();
-            Map<String, String> configured = config.dimensionTakeovers();
+            Map<String, String> configured = ModdedDimensionTakeovers.configured();
             Path worldRoot = MainWorldService.configuredWorldRootIfPresent();
             if (worldRoot == null) {
                 if (!configured.isEmpty()) {
@@ -63,17 +65,17 @@ public final class ModdedTakeoverReconciler {
                 return;
             }
             Path recoveryParent = ModdedEngineBootstrap.loader().configDir().resolve("irisworldgen");
-            Result result = reconcile(worldRoot, configured, config.takeoverProblems(), recoveryParent);
+            Path packsRoot = IrisPlatforms.get().packsFolderNoCreate().toPath();
+            Result result = reconcile(new Request(worldRoot, configured, config.takeoverProblems(),
+                    (ModdedDimensionTakeover takeover) -> ModdedDimensionTakeovers.installed(takeover, packsRoot), recoveryParent));
             if (!result.adoptedLevels().isEmpty()) {
                 ModdedIrisLog.info("Iris dimension takeover recorded for {}: their existing Iris generation history already uses the configured pack",
                         result.adoptedLevels());
             }
-            Set<String> quarantined = new TreeSet<>(result.changedLevels());
-            quarantined.removeAll(result.adoptedLevels());
-            if (quarantined.isEmpty()) {
+            if (result.quarantinedLevels().isEmpty()) {
                 return;
             }
-            ModdedIrisLog.warn("Iris dimension takeover changed for {}: {}", quarantined,
+            ModdedIrisLog.warn("Iris dimension takeover changed for {}: {}", result.quarantinedLevels(),
                     result.recovery() == null
                             ? "no existing chunk data to quarantine"
                             : "moved their chunk, entity, POI, and Iris Mantle data to " + result.recovery()
@@ -89,9 +91,8 @@ public final class ModdedTakeoverReconciler {
         if (worldRoot.isEmpty()) {
             return;
         }
-        Map<String, String> configured = ModdedModConfig.get().dimensionTakeovers();
         try {
-            recordApplied(worldRoot.get(), configured,
+            recordApplied(worldRoot.get(), ModdedDimensionTakeovers.configured(),
                     (String levelKey, String packRef) -> generatesFrom(server, levelKey, packRef));
         } catch (IOException | RuntimeException failure) {
             ModdedIrisLog.error("Iris is stopping the server because it could not record the applied dimension takeovers under {}; an unrecorded takeover would be quarantined on the next start",
@@ -118,42 +119,69 @@ public final class ModdedTakeoverReconciler {
         return Map.copyOf(recorded);
     }
 
-    static Result reconcile(Path worldRoot, Map<String, String> configured, List<String> configProblems,
-                            Path recoveryParent) throws IOException {
-        requireReadableConfig(worldRoot, configProblems);
+    static Result reconcile(Request request) throws IOException {
+        Path worldRoot = request.worldRoot();
+        requireReadableConfig(worldRoot, request.configProblems());
         Map<String, String> applied = readApplied(worldRoot);
-        Set<String> changed = ModdedDimensionTakeovers.changedLevels(applied, configured);
-        if (changed.isEmpty()) {
-            return new Result(changed, Set.of(), null);
-        }
+        Set<String> changed = ModdedDimensionTakeovers.changedLevels(applied, request.configured());
         Map<String, String> state = new TreeMap<>(applied);
+        Set<String> quarantined = new TreeSet<>();
         Set<String> adopted = new TreeSet<>();
-        List<Path> sources = new ArrayList<>();
         for (String level : changed) {
-            Path storage = ModdedDimensionTakeover.storageFolder(worldRoot, level);
-            String packRef = configured.get(level);
-            if (packRef != null && historyMatches(storage, ModdedDimensionTakeover.parse(level, packRef))) {
-                state.put(level, packRef);
-                adopted.add(level);
-                continue;
-            }
+            String packRef = request.configured().get(level);
             if (packRef == null) {
                 state.remove(level);
+                quarantined.add(level);
+                continue;
             }
+            ModdedDimensionTakeover takeover = ModdedDimensionTakeover.parse(level, packRef);
+            Path storage = takeover.storageFolder(worldRoot);
+            if (historyMatches(storage, takeover)) {
+                state.put(level, packRef);
+                adopted.add(level);
+            } else if (request.installed().test(takeover)) {
+                quarantined.add(level);
+            } else {
+                refuseOrSkipUninstalled(worldRoot, applied, takeover);
+            }
+        }
+        List<Path> sources = new ArrayList<>();
+        for (String level : quarantined) {
+            Path storage = ModdedDimensionTakeover.storageFolder(worldRoot, level);
             for (String folder : ModdedDimensionStorage.chunkDataFolders()) {
                 sources.add(storage.resolve(folder));
             }
         }
-        Path recovery = recoveryParent.resolve("takeover-recovery-" + UUID.randomUUID());
-        List<Path> moved = ModdedWorldQuarantine.move(worldRoot, sources, recovery);
+        Path recovery = request.recoveryParent().resolve("takeover-recovery-" + UUID.randomUUID());
+        List<Path> moved = sources.isEmpty() ? List.of() : ModdedWorldQuarantine.move(worldRoot, sources, recovery);
         if (!state.equals(applied)) {
             writeApplied(worldRoot, state);
         }
-        return new Result(changed, Set.copyOf(adopted), moved.isEmpty() ? null : recovery);
+        return new Result(Set.copyOf(quarantined), Set.copyOf(adopted), moved.isEmpty() ? null : recovery);
+    }
+
+    static boolean hasTakeoverRecord(Path worldRoot, String levelKey) throws IOException {
+        return readApplied(worldRoot).containsKey(levelKey) || hasGenerationHistory(
+                ModdedDimensionTakeover.storageFolder(worldRoot, levelKey));
+    }
+
+    private static void refuseOrSkipUninstalled(Path worldRoot, Map<String, String> applied,
+                                                ModdedDimensionTakeover takeover) throws IOException {
+        if (applied.containsKey(takeover.levelKey()) || hasGenerationHistory(takeover.storageFolder(worldRoot))) {
+            throw new IOException("Iris refused to switch the dimension takeover of " + takeover.levelKey() + " to "
+                    + takeover.packRef() + ": pack '" + takeover.pack() + "' dimension '" + takeover.packDimension()
+                    + "' is not installed, and the level already has an applied takeover or Iris generation history. Install the pack or restore the previous takeover.");
+        }
+        ModdedIrisLog.error("Iris left {} untouched: its takeover pack '{}' dimension '{}' is not installed",
+                takeover.levelKey(), takeover.pack(), takeover.packDimension());
+    }
+
+    private static boolean hasGenerationHistory(Path storage) {
+        return Files.exists(GenerationHistoryPaths.forDimension(storage).generationRoot(), LinkOption.NOFOLLOW_LINKS);
     }
 
     static boolean historyMatches(Path storage, ModdedDimensionTakeover takeover) throws IOException {
-        if (!Files.exists(GenerationHistoryPaths.forDimension(storage).generationRoot(), LinkOption.NOFOLLOW_LINKS)) {
+        if (!hasGenerationHistory(storage)) {
             return false;
         }
         GenerationEpoch epoch = GenerationHistory.inspectPacks(storage).manifest().activeEpoch();
@@ -225,6 +253,10 @@ public final class ModdedTakeoverReconciler {
         }
     }
 
-    record Result(Set<String> changedLevels, Set<String> adoptedLevels, Path recovery) {
+    record Request(Path worldRoot, Map<String, String> configured, List<String> configProblems,
+                   Predicate<ModdedDimensionTakeover> installed, Path recoveryParent) {
+    }
+
+    record Result(Set<String> quarantinedLevels, Set<String> adoptedLevels, Path recovery) {
     }
 }

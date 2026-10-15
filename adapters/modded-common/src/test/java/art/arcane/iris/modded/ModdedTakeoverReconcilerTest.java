@@ -67,10 +67,10 @@ public class ModdedTakeoverReconcilerTest {
             touch(worldRoot.resolve("dimensions/minecraft/overworld/region/r.0.0.mca"));
             touch(worldRoot.resolve("players/data/player.dat"));
 
-            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result result = reconcile(
                     worldRoot, Map.of("iristest:skylands", "overworld"), List.of(), recoveryParent);
 
-            assertEquals(Set.of("iristest:skylands"), result.changedLevels());
+            assertEquals(Set.of("iristest:skylands"), result.quarantinedLevels());
             for (String folder : List.of("region", "entities", "poi", "mantle-hydrology", "iris")) {
                 assertFalse(folder, Files.exists(skylands.resolve(folder)));
                 assertTrue(folder, Files.isRegularFile(result.recovery()
@@ -95,17 +95,17 @@ public class ModdedTakeoverReconcilerTest {
             ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of("iristest:skylands", "overworld"));
             touch(region);
 
-            ModdedTakeoverReconciler.Result unchanged = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result unchanged = reconcile(
                     worldRoot, Map.of("iristest:skylands", "overworld"), List.of(), recoveryParent);
 
-            assertEquals(Set.of(), unchanged.changedLevels());
+            assertEquals(Set.of(), unchanged.quarantinedLevels());
             assertNull(unchanged.recovery());
             assertTrue(Files.isRegularFile(region));
 
-            ModdedTakeoverReconciler.Result removed = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result removed = reconcile(
                     worldRoot, Map.of(), List.of(), recoveryParent);
 
-            assertEquals(Set.of("iristest:skylands"), removed.changedLevels());
+            assertEquals(Set.of("iristest:skylands"), removed.quarantinedLevels());
             assertFalse(Files.exists(region));
             assertTrue(Files.isRegularFile(removed.recovery().resolve("dimensions/iristest/skylands/region/r.0.0.mca")));
             assertEquals(Map.of(), ModdedTakeoverReconciler.readApplied(worldRoot));
@@ -122,10 +122,10 @@ public class ModdedTakeoverReconcilerTest {
         try {
             Files.createDirectories(worldRoot);
 
-            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result result = reconcile(
                     worldRoot, Map.of("aether:the_aether", "overworld"), List.of(), recoveryParent);
 
-            assertEquals(Set.of("aether:the_aether"), result.changedLevels());
+            assertEquals(Set.of("aether:the_aether"), result.quarantinedLevels());
             assertNull(result.recovery());
             assertFalse(Files.exists(recoveryParent));
             assertEquals(Map.of(), ModdedTakeoverReconciler.readApplied(worldRoot));
@@ -145,7 +145,7 @@ public class ModdedTakeoverReconcilerTest {
             touch(region);
             List<String> problems = List.of("Iris could not read /srv/config/irisworldgen/modded.json: Unterminated object");
 
-            IOException refused = assertThrows(IOException.class, () -> ModdedTakeoverReconciler.reconcile(
+            IOException refused = assertThrows(IOException.class, () -> reconcile(
                     worldRoot, Map.of(), problems, recoveryParent));
 
             assertTrue(refused.getMessage(), refused.getMessage().contains("modded.json"));
@@ -164,7 +164,7 @@ public class ModdedTakeoverReconcilerTest {
         try {
             ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of());
 
-            assertThrows(IOException.class, () -> ModdedTakeoverReconciler.reconcile(
+            assertThrows(IOException.class, () -> reconcile(
                     worldRoot, Map.of(), List.of("invalid takeover entry"), temporary.resolve("config")));
         } finally {
             deleteTree(temporary);
@@ -178,10 +178,10 @@ public class ModdedTakeoverReconcilerTest {
         try {
             Files.createDirectories(worldRoot);
 
-            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result result = reconcile(
                     worldRoot, Map.of(), List.of("invalid takeover entry"), temporary.resolve("config"));
 
-            assertEquals(Set.of(), result.changedLevels());
+            assertEquals(Set.of(), result.quarantinedLevels());
         } finally {
             deleteTree(temporary);
         }
@@ -196,10 +196,10 @@ public class ModdedTakeoverReconcilerTest {
             ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of("iristest:skylands", "overworld"));
             touch(region);
 
-            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result result = reconcile(
                     worldRoot, Map.of("iristest:skylands", "skypack"), List.of(), temporary.resolve("config"));
 
-            assertEquals(Set.of("iristest:skylands"), result.changedLevels());
+            assertEquals(Set.of("iristest:skylands"), result.quarantinedLevels());
             assertFalse(Files.exists(region));
             assertEquals(Map.of("iristest:skylands", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
         } finally {
@@ -216,7 +216,7 @@ public class ModdedTakeoverReconcilerTest {
             createHistory(temporary, skylands, ModdedWorldgenIds.dimensionTypeRef("skypack", "sky"), "sky", List.of());
             touch(skylands.resolve("region/r.0.0.mca"));
 
-            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result result = reconcile(
                     worldRoot, Map.of("iristest:skylands", "skypack:sky"), List.of(), temporary.resolve("config"));
 
             assertEquals(Set.of("iristest:skylands"), result.adoptedLevels());
@@ -237,7 +237,7 @@ public class ModdedTakeoverReconcilerTest {
             createHistory(temporary, skylands, ModdedWorldgenIds.dimensionTypeRef("otherpack", "sky"), "sky", List.of());
             touch(skylands.resolve("region/r.0.0.mca"));
 
-            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result result = reconcile(
                     worldRoot, Map.of("iristest:skylands", "skypack:sky"), List.of(), temporary.resolve("config"));
 
             assertEquals(Set.of(), result.adoptedLevels());
@@ -259,7 +259,7 @@ public class ModdedTakeoverReconcilerTest {
                     List.of(ModdedWorldgenIds.biomeRef("skypack", "sky", "meadow")));
             touch(aether.resolve("region/r.0.0.mca"));
 
-            ModdedTakeoverReconciler.Result other = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result other = reconcile(
                     worldRoot, Map.of("aether:the_aether", "otherpack:sky"), List.of(), temporary.resolve("config"));
 
             assertEquals(Set.of(), other.adoptedLevels());
@@ -267,7 +267,7 @@ public class ModdedTakeoverReconcilerTest {
 
             createHistory(temporary, aether, "aether:the_aether", "sky",
                     List.of(ModdedWorldgenIds.biomeRef("skypack", "sky", "meadow")));
-            ModdedTakeoverReconciler.Result matching = ModdedTakeoverReconciler.reconcile(
+            ModdedTakeoverReconciler.Result matching = reconcile(
                     worldRoot, Map.of("aether:the_aether", "skypack:sky"), List.of(), temporary.resolve("config"));
 
             assertEquals(Set.of("aether:the_aether"), matching.adoptedLevels());
@@ -308,6 +308,53 @@ public class ModdedTakeoverReconcilerTest {
         } finally {
             deleteTree(temporary);
         }
+    }
+
+    @Test
+    public void switchingAnAppliedLevelToAnUninstalledPackRefusesBeforeMovingAnything() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-uninstalled-applied");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path region = worldRoot.resolve("dimensions/iristest/skylands/region/r.0.0.mca");
+            ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of("iristest:skylands", "overworld"));
+            touch(region);
+
+            IOException refused = assertThrows(IOException.class, () -> ModdedTakeoverReconciler.reconcile(
+                    new ModdedTakeoverReconciler.Request(worldRoot, Map.of("iristest:skylands", "missing"), List.of(),
+                            (ModdedDimensionTakeover takeover) -> false, temporary.resolve("config"))));
+
+            assertTrue(refused.getMessage(), refused.getMessage().contains("missing"));
+            assertTrue(Files.isRegularFile(region));
+            assertEquals(Map.of("iristest:skylands", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void newTakeoverOfAnUninstalledPackLeavesTheLevelAlone() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-uninstalled-new");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path region = worldRoot.resolve("dimensions/aether/the_aether/region/r.0.0.mca");
+            touch(region);
+
+            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+                    new ModdedTakeoverReconciler.Request(worldRoot, Map.of("aether:the_aether", "missing"), List.of(),
+                            (ModdedDimensionTakeover takeover) -> false, temporary.resolve("config")));
+
+            assertEquals(Set.of(), result.quarantinedLevels());
+            assertTrue(Files.isRegularFile(region));
+            assertEquals(Map.of(), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    private static ModdedTakeoverReconciler.Result reconcile(Path worldRoot, Map<String, String> configured,
+                                                             List<String> problems, Path recoveryParent) throws IOException {
+        return ModdedTakeoverReconciler.reconcile(new ModdedTakeoverReconciler.Request(
+                worldRoot, configured, problems, (ModdedDimensionTakeover takeover) -> true, recoveryParent));
     }
 
     private static void createHistory(Path temporary, Path dimensionRoot, String dimensionTypeKey, String dimensionKey,

@@ -18,13 +18,16 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +39,8 @@ public final class ModdedDimensionTakeovers {
     private static final String GENERATOR_TYPE = "irisworldgen:iris";
     private static final String PLACEHOLDER_BIOME_SOURCE = "minecraft:fixed";
     private static final String PLACEHOLDER_BIOME = "minecraft:plains";
+    private static final String DIMENSIONS = "dimensions";
+    private static final String JSON = ".json";
 
     private ModdedDimensionTakeovers() {
     }
@@ -80,19 +85,52 @@ public final class ModdedDimensionTakeovers {
         return output;
     }
 
-    public static void writeLevelStems(Path datapackRoot, Map<String, String> configured,
-                                       Map<String, String> stagedDimensionTypes) throws IOException {
+    public static void writeLevelStems(Path datapackRoot, Map<String, String> configured, StagedTypes staged,
+                                       Path worldRoot) throws IOException {
         for (ModdedDimensionTakeover takeover : parseAll(configured)) {
-            String typeRef = stagedDimensionTypes.get(takeover.pack() + ":" + takeover.packDimension());
+            String typeRef = staged.typeRef(takeover, worldRoot);
             if (typeRef == null) {
-                ModdedIrisLog.error("Iris skipped the dimension takeover of {}: pack '{}' dimension '{}' is not installed or failed validation, so the dimension keeps its own generator",
-                        takeover.levelKey(), takeover.pack(), takeover.packDimension());
+                skipUnstaged(takeover, staged, worldRoot);
                 continue;
             }
             writeLevelStem(datapackRoot, takeover, typeRef);
             ModdedIrisLog.info("Iris dimension takeover staged: {} generates from {} with dimension type {}",
                     takeover.levelKey(), takeover.packRef(), typeRef);
         }
+    }
+
+    public static Map<String, String> configured() throws IOException {
+        return canonical(ModdedModConfig.get().dimensionTakeovers(), IrisPlatforms.get().packsFolderNoCreate().toPath());
+    }
+
+    static Map<String, String> canonical(Map<String, String> configured, Path packsRoot) throws IOException {
+        Map<String, String> canonical = new TreeMap<>();
+        for (ModdedDimensionTakeover takeover : parseAll(configured)) {
+            canonical.put(takeover.levelKey(), canonical(takeover, packsRoot).packRef());
+        }
+        return Map.copyOf(canonical);
+    }
+
+    public static ModdedDimensionTakeover canonical(ModdedDimensionTakeover takeover, Path packsRoot) throws IOException {
+        Path pack = packsRoot.resolve(takeover.pack());
+        if (!Files.isDirectory(pack)) {
+            return takeover;
+        }
+        String packName = sameIgnoringCase(pack.toRealPath().getFileName().toString(), takeover.pack());
+        Path dimensions = pack.resolve(DIMENSIONS);
+        Path dimensionFile = dimensions.resolve(takeover.packDimension() + JSON);
+        String dimension = takeover.packDimension();
+        if (Files.isRegularFile(dimensionFile)) {
+            String relative = dimensions.toRealPath().relativize(dimensionFile.toRealPath()).toString()
+                    .replace(File.separatorChar, '/');
+            dimension = sameIgnoringCase(relative.substring(0, relative.length() - JSON.length()), takeover.packDimension());
+        }
+        return new ModdedDimensionTakeover(takeover.levelKey(), packName, dimension);
+    }
+
+    public static boolean installed(ModdedDimensionTakeover takeover, Path packsRoot) {
+        return Files.isRegularFile(packsRoot.resolve(takeover.pack()).resolve(DIMENSIONS)
+                .resolve(takeover.packDimension() + JSON));
     }
 
     public static Set<String> changedLevels(Map<String, String> applied, Map<String, String> configured) {
@@ -107,11 +145,53 @@ public final class ModdedDimensionTakeovers {
         return changed;
     }
 
+    private static void skipUnstaged(ModdedDimensionTakeover takeover, StagedTypes staged, Path worldRoot) throws IOException {
+        String reason = "pack '" + takeover.pack() + "' dimension '" + takeover.packDimension()
+                + "' is not installed or failed validation" + caseHint(takeover, staged);
+        if (worldRoot != null && ModdedTakeoverReconciler.hasTakeoverRecord(worldRoot, takeover.levelKey())) {
+            throw new IOException("Iris refused to stage the dimension takeover of " + takeover.levelKey() + ": " + reason
+                    + ", and the level already has an applied takeover or Iris generation history. Restore the pack, or run /iris world takeover "
+                    + takeover.levelKey() + " off to hand the level back to its own generator.");
+        }
+        ModdedIrisLog.error("Iris skipped the dimension takeover of {}: {}, so the dimension keeps its own generator and the takeover stays unapplied",
+                takeover.levelKey(), reason);
+    }
+
+    private static String caseHint(ModdedDimensionTakeover takeover, StagedTypes staged) {
+        String wanted = takeover.pack() + ":" + takeover.packDimension();
+        for (String installed : staged.installed().keySet()) {
+            if (installed.equalsIgnoreCase(wanted)) {
+                return "; pack names and dimension keys are case-sensitive, the installed dimension is " + installed;
+            }
+        }
+        return "";
+    }
+
+    private static String sameIgnoringCase(String actual, String configured) {
+        return actual.equalsIgnoreCase(configured) ? actual : configured;
+    }
+
     public static String fingerprint(Map<String, String> configured) {
         StringBuilder canonical = new StringBuilder();
         for (Map.Entry<String, String> entry : new TreeMap<>(configured).entrySet()) {
             canonical.append(entry.getKey()).append('=').append(entry.getValue()).append('\n');
         }
         return canonical.toString();
+    }
+
+    public record StagedTypes(Map<String, String> installed, Map<Path, String> retained) {
+        public static StagedTypes create() {
+            return new StagedTypes(new LinkedHashMap<>(), new LinkedHashMap<>());
+        }
+
+        String typeRef(ModdedDimensionTakeover takeover, Path worldRoot) {
+            if (worldRoot != null) {
+                String retainedType = retained.get(takeover.storageFolder(worldRoot).toAbsolutePath().normalize());
+                if (retainedType != null) {
+                    return retainedType;
+                }
+            }
+            return installed.get(takeover.pack() + ":" + takeover.packDimension());
+        }
     }
 }

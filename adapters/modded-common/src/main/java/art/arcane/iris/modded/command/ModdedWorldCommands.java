@@ -27,6 +27,7 @@ import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldGenerators;
 import art.arcane.iris.modded.MainWorldService;
 import art.arcane.iris.modded.ModdedDimensionTakeover;
+import art.arcane.iris.modded.ModdedDimensionTakeovers;
 import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
@@ -46,6 +47,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -320,12 +322,20 @@ public final class ModdedWorldCommands {
         if (blockIfPackBroken(source, takeover.levelKey(), pack) || !loadPackDimension(source, pack, takeover.packDimension())) {
             return 0;
         }
-        ModdedModConfig.setDimensionTakeover(takeover);
-        ModdedForcedDatapack.scheduleRegeneration("dimension takeover of " + takeover.levelKey());
+        ModdedDimensionTakeover canonical;
+        try {
+            canonical = ModdedDimensionTakeovers.canonical(takeover, ModdedPackCommands.packsRoot().toPath());
+        } catch (IOException unreadable) {
+            ModdedIrisLog.error("Iris could not resolve the takeover pack {} for {}", takeover.packRef(), takeover.levelKey(), unreadable);
+            IrisModdedCommands.fail(source, IrisLanguage.errorDetail(unreadable));
+            return 0;
+        }
+        ModdedModConfig.setDimensionTakeover(canonical);
+        ModdedForcedDatapack.scheduleRegeneration("dimension takeover of " + canonical.levelKey());
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_SET,
-                MessageArgument.untrusted("dimensionId", takeover.levelKey()),
-                MessageArgument.untrusted("pack", pack),
-                MessageArgument.untrusted("packDimension", takeover.packDimension())));
+                MessageArgument.untrusted("dimensionId", canonical.levelKey()),
+                MessageArgument.untrusted("pack", canonical.pack()),
+                MessageArgument.untrusted("packDimension", canonical.packDimension())));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_WORLD_COMMANDS_TAKEOVER_RESTART_REQUIRED));
         return 1;
     }

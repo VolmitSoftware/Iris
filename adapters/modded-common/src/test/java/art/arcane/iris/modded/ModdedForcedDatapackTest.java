@@ -111,10 +111,10 @@ public class ModdedForcedDatapackTest {
                 Map.of(key, saved));
         Class<?> stageType = Class.forName(ModdedForcedDatapack.class.getName() + "$PackStageContext");
         Constructor<?> constructor = stageType.getDeclaredConstructor(Path.class, String.class, String.class,
-                String.class, boolean.class, boolean.class, boolean.class, Set.class, GenerationRegistryContract.class);
+                String.class, boolean.class, boolean.class, boolean.class, Set.class, GenerationRegistryContract.class, Path.class);
         constructor.setAccessible(true);
         IrisCustomBiomeAliasResolver resolver = (IrisCustomBiomeAliasResolver) constructor.newInstance(
-                Path.of("retained"), "test", "test", "iris:test_type", false, false, true, Set.of(), contract);
+                Path.of("retained"), "test", "test", "iris:test_type", false, false, true, Set.of(), contract, Path.of("dimension"));
         assertEquals(source, resolver.generatedSource(key.registryKey(), key.resourceKey(), "{}", fixer));
         assertThrows(IOException.class, () -> resolver.generatedSource(
                 key.registryKey(), "iris:missing_type", "{}", fixer));

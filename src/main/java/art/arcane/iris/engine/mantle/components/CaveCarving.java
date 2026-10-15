@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.CaveDressing;
 import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
@@ -63,7 +62,7 @@ public class CaveCarving {
     private final CarveWorld world;
     private final DeclaredCaveProfiles declaredProfiles;
     private final CarvingResolver resolver;
-    private final CaveDressing dressing;
+    private final FluidColumns fluidColumns;
     private final boolean upperDimensionCarving;
     private final Object profileCarverLock = new Object();
     private volatile Map<CaveProfile, IrisCaveCarver3D> profileCarvers = new IdentityHashMap<>();
@@ -81,11 +80,17 @@ public class CaveCarving {
         }
     }
 
-    public CaveCarving(PackWorld packWorld, CarveWorld world, boolean upperDimensionCarving) {
+    /** Whether the dimension's fluid palette gives a column a fluid, which caves near it blend towards. */
+    @FunctionalInterface
+    public interface FluidColumns {
+        boolean hasFluid(int worldX, int worldZ);
+    }
+
+    public CaveCarving(PackWorld packWorld, CarveWorld world, boolean upperDimensionCarving, FluidColumns fluidColumns) {
         this.world = world;
         this.declaredProfiles = DeclaredCaveProfiles.of(packWorld);
         this.resolver = CarvingResolver.of(packWorld);
-        this.dressing = CaveDressing.of(packWorld);
+        this.fluidColumns = fluidColumns;
         this.upperDimensionCarving = upperDimensionCarving;
     }
 
@@ -430,7 +435,7 @@ public class CaveCarving {
                 int worldZ = startZ + fieldZ;
                 int fieldIndex = (fieldX * FIELD_SIZE) + fieldZ;
                 blendScratch.fieldSurfaceHeights[fieldIndex] = terrain.surfaceY(worldX, worldZ);
-                blendScratch.fieldHasFluid[fieldIndex] = dressing.fluidPresentAt(worldX, worldZ);
+                blendScratch.fieldHasFluid[fieldIndex] = fluidColumns.hasFluid(worldX, worldZ);
             }
         }
     }

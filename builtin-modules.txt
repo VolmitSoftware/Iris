@@ -41,6 +41,8 @@ module art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule
 include art/arcane/iris/engine/framework/vanillafeatures/**
 module art.arcane.iris.engine.modifier.CarveModule
 include art/arcane/iris/engine/modifier/CaveApplying*.class
+include art/arcane/iris/engine/modifier/CaveDressing.class
+include art/arcane/iris/engine/modifier/BuiltInCaveDressing.class
 include art/arcane/iris/engine/modifier/CaveBiomeBands*.class
 include art/arcane/iris/engine/modifier/CaveBiomeCache.class
 include art/arcane/iris/engine/modifier/CaveBlockClasses.class

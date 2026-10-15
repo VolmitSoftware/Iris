@@ -28,6 +28,7 @@ import art.arcane.iris.builtin.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.carve.UpperDimensionCarvingSettings;
+import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.iris.engine.mantle.components.CarveWorld;
 import art.arcane.iris.engine.mantle.components.CaveCarving;
 import com.volmit.FeatureRegistry;
@@ -38,7 +39,9 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.hunk.Hunk;
+import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 import com.volmit.service.CaveBiomes;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStageContext;
@@ -99,17 +102,27 @@ public final class CarveModule implements IrisModule {
         MatterMantle mantle = MatterMantle.of(context.mantle());
         Hunk<BlockState> blocks = context.hunk(BlockState.class);
         caveApplying(context.world(), context.terrain(), context.settings(), context.originX(), context.originZ())
-                .apply(mantle, context.terrain(), context.originX() >> CHUNK_SHIFT, context.originZ() >> CHUNK_SHIFT, blocks);
+                .apply(mantle, context.terrain(), context.originX() >> CHUNK_SHIFT, context.originZ() >> CHUNK_SHIFT, blocks, CaveDressing.of(context));
     }
 
     private static CaveCarving caveCarving(PackWorld world, TerrainSampler terrain, FeatureSettings settings, int originX, int originZ) {
         return world.state(CaveCarving.class, generating -> new CaveCarving(generating, carveWorld(generating, terrain),
-                upperDimensionCarving(settings, originX, originZ)));
+                upperDimensionCarving(settings, originX, originZ), fluidColumns(generating)));
     }
 
     private static CaveApplying caveApplying(PackWorld world, TerrainSampler terrain, FeatureSettings settings, int originX, int originZ) {
         return world.state(CaveApplying.class, generating -> new CaveApplying(generating, carveWorld(generating, terrain),
                 upperDimensionCarving(settings, originX, originZ)));
+    }
+
+    /** The columns the dimension's fluid palette fills with a fluid. */
+    private static CaveCarving.FluidColumns fluidColumns(PackWorld world) {
+        TerrainPalettes palettes = TerrainPalettes.of(world);
+        BlockRegistry blocks = world.resources().blocks();
+        return (worldX, worldZ) -> {
+            BlockState fluid = palettes.fluidAt(worldX, worldZ);
+            return fluid != null && blocks.hasTrait(fluid, BlockTrait.FLUID);
+        };
     }
 
     /** What the carvers need of the world, from the dimension's settings and the first terrain they see (constant for the world). */

@@ -184,9 +184,9 @@ placement's own states). Its types answer with IrisApi, VolmLib and built-in val
 (`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.
 
 `iris:carve` also reads the mantle's matter slices through `MatterMantle` (a facade Iris's mantle implements: the chunk of
-`MatterCavern`s and markers it plans and applies, which the platform and the rest of Iris read as slices, not as module layers) and asks
-`CaveDressing` for what the biome layers, decorators and fluid palette give a cave's walls, floor and ceiling. `CaveDressing` is
-transitional: it goes when `iris:terrain` and `iris:decorant` are modules of the same jar and carve asks their classes directly.
+`MatterCavern`s and markers it plans and applies, which the platform and the rest of Iris read as slices, not as module layers). What a
+cave's walls, floor and ceiling get comes from the terrain and decorant built-ins of the same jar (`terrain.BiomeLayers`,
+`terrain.TerrainPalettes`, the biome decorators), through carve's own `CaveDressing`, which tests replace with fixed blocks.
 A cave's dimension, region and biome settings are found by the id the layout's biome samples carry (`DeclaredByLevel`), its
 absolute world Y bands convert with `PackWorld.minHeight()`, and its noise reads `NoiseSampler.signed(...)` (Iris's memoised signed read)
 and `scaled(...)`. `caveLavaHeight` and `upperDimensionCarving` are its dimension settings.

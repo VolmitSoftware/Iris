@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.CaveDressing;
 import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -66,7 +65,6 @@ public class CaveApplying {
     private final CarveWorld world;
     private final PackResources resources;
     private final BlockRegistry blocks;
-    private final CaveDressing dressing;
     private final boolean upperDimensionCarving;
     private final RNG rng;
     private final BlockState caveAir;
@@ -77,7 +75,6 @@ public class CaveApplying {
         this.world = world;
         this.resources = packWorld.resources();
         this.blocks = resources.blocks();
-        this.dressing = CaveDressing.of(packWorld);
         this.upperDimensionCarving = upperDimensionCarving;
         this.rng = new RNG(world.carveSeed());
         this.caveAir = blocks.resolve("minecraft:cave_air");
@@ -87,14 +84,15 @@ public class CaveApplying {
 
     /**
      * Applies the caves to the chunk at chunk coordinates {@code x}, {@code z}, whose blocks are {@code output}; the caves are in
-     * {@code mantle}, and {@code terrain} gives the heights and cave biomes around the chunk.
+     * {@code mantle}, {@code terrain} gives the heights and cave biomes around the chunk and {@code dressing} what its caves' walls,
+     * floors and ceilings get.
      */
-    public void apply(MatterMantle mantle, TerrainSampler terrain, int x, int z, Hunk<BlockState> output) {
+    public void apply(MatterMantle mantle, TerrainSampler terrain, int x, int z, Hunk<BlockState> output, CaveDressing dressing) {
         MantleChunk<Matter> mantleChunk = mantle.chunk(x, z);
         if (mantleChunk == null) {
             return;
         }
-        new Application(mantle, mantleChunk, terrain, x, z, output).run();
+        new Application(mantle, mantleChunk, terrain, x, z, output, dressing).run();
     }
 
     static boolean hasExplicitCarveIntent(MatterCavern cavern) {
@@ -153,17 +151,20 @@ public class CaveApplying {
         private final int chunkX;
         private final int chunkZ;
         private final Hunk<BlockState> output;
+        private final CaveDressing dressing;
         private final CaveBlockClasses classes = new CaveBlockClasses(blocks);
         private final CaveBiomeCache caveBiomeCache = new CaveBiomeCache(CAVE_BIOME_CACHE_SIZE);
         private final IrisCarveScratch scratch = SCRATCH.get();
 
-        Application(MatterMantle mantle, MantleChunk<Matter> mantleChunk, TerrainSampler terrain, int chunkX, int chunkZ, Hunk<BlockState> output) {
+        Application(MatterMantle mantle, MantleChunk<Matter> mantleChunk, TerrainSampler terrain, int chunkX, int chunkZ, Hunk<BlockState> output,
+                    CaveDressing dressing) {
             this.mantle = mantle;
             this.mantleChunk = mantleChunk;
             this.terrain = terrain;
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
             this.output = output;
+            this.dressing = dressing;
         }
 
         void run() {
@@ -226,7 +227,7 @@ public class CaveApplying {
 
                 if (explicitCarveIntent) {
                     // Only a fluid cavern consumes the fluid sample, so never take it per voxel.
-                    BlockState fluid = isFluidIntent(cavern) ? dressing.fluidAt(output, chunkBlockX + rx, chunkBlockZ + rz) : null;
+                    BlockState fluid = isFluidIntent(cavern) ? dressing.fluidAt(chunkBlockX + rx, chunkBlockZ + rz) : null;
                     BlockState carved = resolveExplicitCarveState(cavern, fluid, lava, caveAir);
                     output.set(rx, yy, rz, carved == null ? plainAir : carved);
                 } else if (usesDefaultLava(caveLavaHeight, yy)) {
@@ -251,7 +252,7 @@ public class CaveApplying {
                         : resolveCustomBiome(customBiomeCache, customBiome);
 
                 if (biome != null) {
-                    BlockState data = dressing.wall(output, biome, rng, worldX, yy, worldZ);
+                    BlockState data = dressing.wall(biome, rng, worldX, yy, worldZ);
                     int columnIndex = PowerOfTwoCoordinates.packLocal16(rx, rz);
 
                     if (data != null && classes.isSolid(output.get(rx, yy, rz)) && yy < surfaceHeights[columnIndex]) {
@@ -496,7 +497,7 @@ public class CaveApplying {
 
         /** Replaces the solid blocks under {@code floorY} with the layers of {@code floorBiome}. */
         private void paintFloorLayers(ResourceId floorBiome, int rx, int rz, int worldX, int worldZ, int floorY) {
-            List<BlockState> floorLayers = dressing.floorLayers(output, floorBiome, worldX, worldZ, rng, LAYER_DEPTH, floorY);
+            List<BlockState> floorLayers = dressing.floorLayers(floorBiome, worldX, worldZ, rng, LAYER_DEPTH, floorY);
             for (int i = 0; i < floorY - 1; i++) {
                 if (i >= floorLayers.size()) {
                     break;
@@ -507,13 +508,13 @@ public class CaveApplying {
                 if (layer == null || !classes.isSolid(existing) || !canReplaceCaveFloorLayer(output, rx, y, rz, layer, classes)) {
                     continue;
                 }
-                output.set(rx, y, rz, classes.isOre(existing) ? dressing.deepSlateOre(output, existing, layer) : layer);
+                output.set(rx, y, rz, classes.isOre(existing) ? dressing.oreFor(existing, layer) : layer);
             }
         }
 
         /** Replaces the solid blocks over {@code ceilingY} with the cave ceiling layers of {@code ceilingBiome}, below {@code maxY}. */
         private void paintCeilingLayers(ResourceId ceilingBiome, int rx, int rz, int worldX, int worldZ, int ceilingY, int maxY) {
-            List<BlockState> ceilingLayers = dressing.ceilingLayers(output, ceilingBiome, worldX, worldZ, rng, LAYER_DEPTH, ceilingY);
+            List<BlockState> ceilingLayers = dressing.ceilingLayers(ceilingBiome, worldX, worldZ, rng, LAYER_DEPTH);
             for (int i = 0; i < ceilingLayers.size(); i++) {
                 int y = ceilingY + i + 1;
                 if (y >= maxY) {
@@ -524,7 +525,7 @@ public class CaveApplying {
                 if (layer == null || !classes.isSolid(existing)) {
                     continue;
                 }
-                output.set(rx, y, rz, classes.isOre(existing) ? dressing.deepSlateOre(output, existing, layer) : layer);
+                output.set(rx, y, rz, classes.isOre(existing) ? dressing.oreFor(existing, layer) : layer);
             }
         }
 
@@ -578,12 +579,12 @@ public class CaveApplying {
 
             if (floorBiome != null && dressing.hasDecorators(floorBiome, DecorationPart.NONE)
                     && hasStableCaveFloorSupport(output, rx, zone.getFloor(), rz, classes)) {
-                dressing.decorateFloor(output, rx, rz, xx, zz, floorBiome, zone.getFloor() - 1, zone.airThickness());
+                dressing.decorateFloor(rx, rz, xx, zz, floorBiome, zone.getFloor() - 1, zone.airThickness());
             }
 
             if (ceilingBiome != null && dressing.hasDecorators(ceilingBiome, DecorationPart.CEILING) && zone.getCeiling() + 1 < maxY
                     && classes.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
-                dressing.decorateCeiling(output, rx, rz, xx, zz, ceilingBiome, zone.getCeiling(), zone.airThickness());
+                dressing.decorateCeiling(rx, rz, xx, zz, ceilingBiome, zone.getCeiling(), zone.airThickness());
             }
         }
 

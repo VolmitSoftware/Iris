@@ -19,14 +19,11 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.structure.StructurePlacementSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import art.arcane.iris.builtin.structure.StructureStilts;
-import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
-import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
@@ -34,15 +31,12 @@ import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
-import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.StageGraph;
-import com.volmit.vanilla.JigsawOverrides;
-import com.volmit.world.PackWorld;
 
 /**
  * Module {@code iris:structure}: Iris structures, written into the mantle after objects, whose trees they clear
@@ -52,16 +46,16 @@ import com.volmit.world.PackWorld;
  * The module owns the pack's structures, jigsaw pools and jigsaw pieces as resource kinds
  * ({@link StructureResources}), read from the folders packs have always used, and checks them with
  * {@link StructureValidator} wherever Iris validates a pack. It lets Iris find its structures through
- * {@link StructureLocating}, and forgets a world's structure index when the world stops, which includes every reload of
- * the pack's structure files.
+ * {@link StructureLocating}; a world's structure index lives in the world's state, so a reload of the pack's structure
+ * files, which starts a new world, builds it again.
  * <p>
  * It decides over the platform's own structures through its {@link VanillaStructures} provider
  * ({@link StructureVanillaStructures}): the dimension's {@code importedStructures} settings disable, move, fit and set
  * them up, and the pack's structure placements replace them, place them alongside, start them where their
- * {@code nativeStructures} grids say and fit them into the terrain. It describes the fit settings Iris's structure
- * placements hold.
+ * {@code nativeStructures} grids say and fit them into the terrain. The pack's structure placements are its
+ * {@code "structures"} settings ({@link StructurePlacementSettings}) of the dimension, its regions and biomes.
  */
-public final class StructureModule implements IrisModule, ModuleLifecycle {
+public final class StructureModule implements IrisModule {
     private static final String VERSION = "built-in";
 
     private ModuleLog log;
@@ -81,20 +75,11 @@ public final class StructureModule implements IrisModule, ModuleLifecycle {
     public void register(FeatureRegistry registry) {
         log = registry.log();
         registry.registerSettings(StructureSettings.class);
+        registry.registerSettings(StructurePlacementSettings.class);
         StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
-        registry.registerLifecycle(this);
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
-        registry.registerHeldType(StructureTerrain.class);
-        registry.registerHeldType(StructureStilts.class);
-        registry.registerHeldType(JigsawOverrides.class);
-    }
-
-    /** The structure index is still kept per engine rather than in the world's state, so a stopping world drops it. */
-    @Override
-    public void worldStopped(PackWorld world) {
-        IrisStructureLocator.invalidate(IrisPackWorld.of(world).engine());
     }
 
     private static void place(MantleStageContext context) {

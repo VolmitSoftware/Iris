@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.Locale;
@@ -33,16 +33,16 @@ public final class StructurePlacementGrid {
     private StructurePlacementGrid() {
     }
 
-    public static boolean startsInChunk(IrisStructurePlacement placement, int cx, int cz, long seed) {
-        return switch (placement.getDistribution()) {
-            case RANDOM_SPREAD -> randomSpreadStart(cx, cz, placement.getSpacing(), placement.getSeparation(),
+    public static boolean startsInChunk(StructurePlacement placement, int cx, int cz, long seed) {
+        return switch (placement.distribution()) {
+            case RANDOM_SPREAD -> randomSpreadStart(cx, cz, placement.spacing(), placement.separation(),
                     placementSalt(placement), seed);
             case DENSITY -> densityStart(placement, cx, cz, seed);
             case CONCENTRIC_RINGS -> concentricRingsStart(cx, cz, placement, seed);
         };
     }
 
-    public static RNG placementRng(IrisStructurePlacement placement, int cx, int cz, long seed) {
+    public static RNG placementRng(StructurePlacement placement, int cx, int cz, long seed) {
         return new RNG(placementSeed(placement, cx, cz, seed));
     }
 
@@ -69,13 +69,13 @@ public final class StructurePlacementGrid {
         return new int[]{startCx, startCz};
     }
 
-    public static int[] concentricRingChunk(IrisStructurePlacement placement, int placementIndex, long seed) {
-        int count = Math.max(1, placement.getRingCount());
+    public static int[] concentricRingChunk(StructurePlacement placement, int placementIndex, long seed) {
+        int count = Math.max(1, placement.ringCount());
         if (placementIndex < 0 || placementIndex >= count) {
             return null;
         }
-        int distance = Math.max(1, placement.getRingDistance());
-        int spread = Math.max(1, placement.getRingSpread());
+        int distance = Math.max(1, placement.ringDistance());
+        int spread = Math.max(1, placement.ringSpread());
         int ring = Math.floorDiv(placementIndex, spread) + 1;
         int firstIndex = (ring - 1) * spread;
         int slots = Math.min(spread, count - firstIndex);
@@ -94,13 +94,13 @@ public final class StructurePlacementGrid {
         };
     }
 
-    private static boolean concentricRingsStart(int cx, int cz, IrisStructurePlacement placement, long seed) {
+    private static boolean concentricRingsStart(int cx, int cz, StructurePlacement placement, long seed) {
         if (cx == 0 && cz == 0) {
             return false;
         }
-        int distance = Math.max(1, placement.getRingDistance());
-        int count = Math.max(1, placement.getRingCount());
-        int spread = Math.max(1, placement.getRingSpread());
+        int distance = Math.max(1, placement.ringDistance());
+        int count = Math.max(1, placement.ringCount());
+        int spread = Math.max(1, placement.ringSpread());
         double dist = Math.sqrt((double) cx * cx + (double) cz * cz);
         int estimatedRing = (int) Math.round(dist / distance);
         int ringCount = Math.ceilDiv(count, spread);
@@ -127,8 +127,8 @@ public final class StructurePlacementGrid {
         return false;
     }
 
-    private static boolean densityStart(IrisStructurePlacement placement, int cx, int cz, long seed) {
-        double density = placement.getDensity();
+    private static boolean densityStart(StructurePlacement placement, int cx, int cz, long seed) {
+        double density = placement.density();
         if (density <= 0.0) {
             return false;
         }
@@ -139,33 +139,33 @@ public final class StructurePlacementGrid {
         return rng.chance(density);
     }
 
-    public static long placementIdentity(IrisStructurePlacement placement) {
+    public static long placementIdentity(StructurePlacement placement) {
         long signature = 1469598103934665603L;
-        signature = appendLong(signature, placement.getDistribution().ordinal());
-        signature = appendLong(signature, placement.getSalt());
-        String placementId = placement.getPlacementId();
+        signature = appendLong(signature, placement.distribution().ordinal());
+        signature = appendLong(signature, placement.salt());
+        String placementId = placement.placementId();
         if (placementId != null && !placementId.isBlank()) {
             signature = appendLong(signature, 1L);
             signature = appendSignature(signature, placementId.trim());
         } else {
             signature = appendLong(signature, 0L);
-            signature = appendLong(signature, placement.getSpacing());
-            signature = appendLong(signature, placement.getSeparation());
-            signature = appendLong(signature, Double.doubleToLongBits(placement.getDensity()));
-            signature = appendLong(signature, placement.getRingCount());
-            signature = appendLong(signature, placement.getRingDistance());
-            signature = appendLong(signature, placement.getRingSpread());
-            signature = appendLong(signature, placement.getMinHeight());
-            signature = appendLong(signature, placement.getMaxHeight());
-            signature = appendLong(signature, placement.isUnderground() ? 1L : 0L);
-            signature = appendLong(signature, placement.isUnderwater() ? 1L : 0L);
+            signature = appendLong(signature, placement.spacing());
+            signature = appendLong(signature, placement.separation());
+            signature = appendLong(signature, Double.doubleToLongBits(placement.density()));
+            signature = appendLong(signature, placement.ringCount());
+            signature = appendLong(signature, placement.ringDistance());
+            signature = appendLong(signature, placement.ringSpread());
+            signature = appendLong(signature, placement.minHeight());
+            signature = appendLong(signature, placement.maxHeight());
+            signature = appendLong(signature, placement.underground() ? 1L : 0L);
+            signature = appendLong(signature, placement.underwater() ? 1L : 0L);
             signature = appendSources(signature, placement);
             signature = appendAnchor(signature, placement);
         }
         return signature;
     }
 
-    private static long placementSeed(IrisStructurePlacement placement, int cx, int cz, long seed) {
+    private static long placementSeed(StructurePlacement placement, int cx, int cz, long seed) {
         long signature = placementIdentity(placement);
         int identitySalt = (int) (signature ^ (signature >>> 32));
         return mix(seed ^ signature, cx, cz, placementSalt(placement) ^ identitySalt);
@@ -189,37 +189,34 @@ public final class StructurePlacementGrid {
         return result;
     }
 
-    private static long appendSources(long signature, IrisStructurePlacement placement) {
+    private static long appendSources(long signature, StructurePlacement placement) {
         long result = signature;
         if (placement.hasIrisStructures()) {
             result = appendLong(result, 1L);
-            result = appendLong(result, placement.getStructures().size());
-            for (String key : placement.getStructures()) {
+            result = appendLong(result, placement.structures().size());
+            for (String key : placement.structures()) {
                 result = appendSignature(result, key == null ? "" : key);
             }
             return result;
         }
         result = appendLong(result, 2L);
-        if (placement.getNativeStructures() == null) {
-            return appendLong(result, 0L);
-        }
-        result = appendLong(result, placement.getNativeStructures().size());
-        for (IrisNativeStructure source : placement.getNativeStructures()) {
+        result = appendLong(result, placement.nativeStructures().size());
+        for (NativeStructureSource source : placement.nativeStructures()) {
             if (source == null) {
                 result = appendSignature(result, "");
                 result = appendLong(result, 0L);
                 continue;
             }
             result = appendSignature(result,
-                    source.getStructure() == null ? "" : source.getStructure());
-            result = appendLong(result, source.getWeight());
+                    source.structure() == null ? "" : source.structure());
+            result = appendLong(result, source.weight());
         }
         return result;
     }
 
-    private static long appendAnchor(long signature, IrisStructurePlacement placement) {
-        IrisStructureAnchorMode anchor = placement.getAnchor();
-        if (anchor == null || anchor == IrisStructureAnchorMode.LEGACY) {
+    private static long appendAnchor(long signature, StructurePlacement placement) {
+        StructureAnchorMode anchor = placement.anchor();
+        if (anchor == StructureAnchorMode.LEGACY) {
             return signature;
         }
         long result = appendLong(signature, 0x4A49475341574C41L);
@@ -227,14 +224,11 @@ public final class StructurePlacementGrid {
         if (!anchor.isCave()) {
             return result;
         }
-        result = appendLong(result, placement.getCaveAnchorAttempts());
-        result = appendLong(result, placement.getCaveAnchorScanStep());
-        result = appendLong(result, placement.getCaveMinimumClearance());
-        if (placement.getCaveBiomes() == null) {
-            return appendLong(result, 0L);
-        }
+        result = appendLong(result, placement.caveAnchorAttempts());
+        result = appendLong(result, placement.caveAnchorScanStep());
+        result = appendLong(result, placement.caveMinimumClearance());
         Set<String> biomes = new TreeSet<>();
-        for (String biome : placement.getCaveBiomes()) {
+        for (String biome : placement.caveBiomes()) {
             if (biome != null && !biome.isBlank()) {
                 biomes.add(biome.trim().toLowerCase(Locale.ROOT));
             }
@@ -246,28 +240,28 @@ public final class StructurePlacementGrid {
         return result;
     }
 
-    static int placementSalt(IrisStructurePlacement placement) {
-        String placementId = placement.getPlacementId();
+    static int placementSalt(StructurePlacement placement) {
+        String placementId = placement.placementId();
         long identity;
         if (placementId != null && !placementId.isBlank()) {
             identity = appendSignature(1469598103934665603L, placementId.trim());
         } else {
             identity = 1469598103934665603L;
-            identity = appendLong(identity, placement.getDistribution().ordinal());
-            identity = appendLong(identity, placement.getSpacing());
-            identity = appendLong(identity, placement.getSeparation());
-            identity = appendLong(identity, Double.doubleToLongBits(placement.getDensity()));
-            identity = appendLong(identity, placement.getRingCount());
-            identity = appendLong(identity, placement.getRingDistance());
-            identity = appendLong(identity, placement.getRingSpread());
-            identity = appendLong(identity, placement.getMinHeight());
-            identity = appendLong(identity, placement.getMaxHeight());
-            identity = appendLong(identity, placement.isUnderground() ? 1L : 0L);
-            identity = appendLong(identity, placement.isUnderwater() ? 1L : 0L);
+            identity = appendLong(identity, placement.distribution().ordinal());
+            identity = appendLong(identity, placement.spacing());
+            identity = appendLong(identity, placement.separation());
+            identity = appendLong(identity, Double.doubleToLongBits(placement.density()));
+            identity = appendLong(identity, placement.ringCount());
+            identity = appendLong(identity, placement.ringDistance());
+            identity = appendLong(identity, placement.ringSpread());
+            identity = appendLong(identity, placement.minHeight());
+            identity = appendLong(identity, placement.maxHeight());
+            identity = appendLong(identity, placement.underground() ? 1L : 0L);
+            identity = appendLong(identity, placement.underwater() ? 1L : 0L);
             identity = appendSources(identity, placement);
             identity = appendAnchor(identity, placement);
         }
-        return placement.getSalt() ^ (int) (identity ^ (identity >>> 32));
+        return placement.salt() ^ (int) (identity ^ (identity >>> 32));
     }
 
     private static double unitDouble(long value) {

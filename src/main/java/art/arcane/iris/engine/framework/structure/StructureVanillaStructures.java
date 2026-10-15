@@ -25,9 +25,10 @@ import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.framework.structure.fit.StartLayouts;
 import art.arcane.iris.engine.framework.structure.fit.StructureFitting;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
+import art.arcane.iris.builtin.structure.StructurePlacement;
+import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import com.volmit.resource.ResourceId;
+import com.volmit.service.LocateResult;
 import com.volmit.service.VanillaStructures;
 import com.volmit.vanilla.PlatformStart;
 import com.volmit.vanilla.StartMemo;
@@ -38,16 +39,22 @@ import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.vanilla.VanillaStructureSetup;
 import com.volmit.vanilla.VanillaStructureStart;
 import com.volmit.vanilla.VanillaStructureStartContext;
+import com.volmit.world.BlockPosition;
+import com.volmit.world.PackWorld;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * What {@code iris:structure} says about the platform's own structures. The dimension's {@code importedStructures}
  * settings ({@link ImportedStructures}) disable, move, fit and set them up; the pack's structure placements replace
  * them ({@code vanillaSource} with native suppression), place them alongside ({@link IrisStructureLocator#isPlaced}),
  * start them where their {@code nativeStructures} grids say ({@link NativeStartPlanner}) and fit those starts the way
- * the placement says, which their memo carries to every chunk they reach ({@link StructureFitting}).
+ * the placement says, which their memo carries to every chunk they reach ({@link StructureFitting}). It names the
+ * structures its native placements start and finds their starts for the platform's own locate.
  */
 public final class StructureVanillaStructures implements VanillaStructures {
     /**
@@ -68,7 +75,7 @@ public final class StructureVanillaStructures implements VanillaStructures {
 
     @Override
     public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructureStartContext context) {
-        Engine engine = IrisPackWorld.of(context.world()).engine();
+        Engine engine = engine(context.world());
         return NativeStartPlanner.plansAt(engine, chunkX, chunkZ).stream()
                 .map(plan -> start(plan, engine.getMinHeight()))
                 .toList();
@@ -103,23 +110,56 @@ public final class StructureVanillaStructures implements VanillaStructures {
         return ImportedStructures.of(context.settings()).setup();
     }
 
+    @Override
+    public Set<ResourceId> startedStructures(PackWorld world) {
+        return structureIds(IrisStructureLocator.nativeKeys(engine(world)));
+    }
+
+    @Override
+    public Set<ResourceId> locatableStarts(PackWorld world) {
+        return structureIds(IrisStructureLocator.locatableNativeKeys(engine(world)));
+    }
+
+    /** Searches the rings of the placements that start {@code structure} natively, as the platform's own locate does. */
+    @Override
+    public LocateResult locateStart(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRings,
+                                    ChunkFilter accepts) {
+        Engine engine = engine(world);
+        IrisStructureLocator.LocateResult result = IrisStructureLocator.locateInPlacementRings(
+                engine, structure.toString(), fromX, fromZ, maxRings, accepts::accepts);
+        return switch (result.status()) {
+            case FOUND -> LocateResult.found(new BlockPosition(result.originX(), result.baseY() - engine.getMinHeight(), result.originZ()));
+            case NOT_FOUND -> LocateResult.NOT_FOUND;
+            case SEARCH_LIMIT_REACHED -> LocateResult.SEARCH_LIMIT_REACHED;
+        };
+    }
+
+    private static Engine engine(PackWorld world) {
+        return IrisPackWorld.of(world).engine();
+    }
+
+    private static Set<ResourceId> structureIds(Set<String> keys) {
+        Set<ResourceId> ids = new LinkedHashSet<>();
+        for (String key : keys) {
+            ids.add(ResourceId.parse(key.toLowerCase(Locale.ROOT)));
+        }
+        return ids;
+    }
+
     /** {@code plan} as the start the platform generates: heights above the bottom, the placement's identity and fit. */
     static VanillaStructureStart start(NativeStartPlanner.Plan plan, int minHeight) {
-        IrisStructurePlacement placement = plan.placement();
-        NativeStructureFit fit = new NativeStructureFit(0, null, false, placement.getStilt(), placement.resolvedTerrain());
-        VanillaStructureStart start = VanillaStructureStart.at(ResourceId.parse(plan.source().getStructure()),
+        StructurePlacement placement = plan.placement();
+        NativeStructureFit fit = new NativeStructureFit(0, null, false, placement.stilt().orElse(null), placement.resolvedTerrain());
+        VanillaStructureStart start = VanillaStructureStart.at(ResourceId.parse(plan.source().structure()),
                         plan.chunkX(), plan.chunkZ(), plan.baseY() - minHeight)
                 .withIdentity(StructurePlacementGrid.placementIdentity(placement))
                 .withMemo(fit.memo());
-        if (placement.isUnderground()) {
+        if (placement.underground()) {
             start = start.underground();
         }
-        if (placement.getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
+        if (placement.nativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
             start = start.replacingPlatformStart();
         }
-        if (plan.source().getJigsaw() != null) {
-            start = start.withJigsaw(plan.source().getJigsaw());
-        }
-        return start;
+        return plan.source().jigsaw().map(start::withJigsaw).orElse(start);
     }
 }

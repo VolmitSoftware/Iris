@@ -16,13 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.decoration;
+package art.arcane.iris.builtin.structure;
 
-public enum NativeFeatureGenerationStatus {
-    GENERATE_NATIVE,
-    FEATURES_DISABLED,
-    STEP_DISABLED,
-    DISABLED_BY_PACK,
-    CYCLE_DEGRADED,
-    INVALID_REGISTRY_KEY
+import com.volmit.config.Desc;
+
+/** Whether a structure placement replaces the platform structure its structures stand in for. */
+@Desc("Controls whether an Iris structure placement suppresses its imported native source.")
+public enum NativeStructureSuppression {
+    @Desc("Leaves native generation enabled alongside this Iris structure placement.")
+    NONE,
+
+    @Desc("Suppresses the structure's vanillaSource when used by a validated dimension-level replacement placement.")
+    REPLACE_SOURCE
 }

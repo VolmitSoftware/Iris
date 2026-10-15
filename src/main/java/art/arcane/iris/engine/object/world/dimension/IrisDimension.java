@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.object.world.dimension;
 
-import art.arcane.iris.engine.object.decoration.IrisImportedFeatureControl;
 import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.image.IrisImageMapApplication;
 import art.arcane.iris.engine.object.image.IrisImageMapBinding;
@@ -27,7 +26,6 @@ import art.arcane.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
 import art.arcane.iris.engine.object.runtime.StudioMode;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.value.IrisRange;
 import art.arcane.iris.engine.object.world.IrisEnvironment;
 import art.arcane.iris.engine.object.world.IrisWorldBoundary;
@@ -237,11 +235,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
-    @Desc("Dimension-wide Iris structure placements, independent of biome/region placements")
-    @ArrayType(type = IrisStructurePlacement.class, min = 1)
-    private KList<IrisStructurePlacement> structures = new KList<>();
-    @Desc("Controls native vanilla, mod, and ingested datapack PLACED FEATURE generation (ores, trees, plants, springs, geodes) for this dimension. Disabled by default: leaving this out generates exactly the terrain Iris always has. Set 'enabled' true to run the vanilla decoration feature pass over Iris terrain. Carvers are never imported.")
-    private IrisImportedFeatureControl importedFeatures = new IrisImportedFeatureControl();
     @ArrayType(type = String.class, min = 1)
     @Desc("External datapack sources owned by this dimension. Bukkit registers their resources server-wide, but Iris excludes their structure sets and definitions from generation and locate state in vanilla worlds and Iris dimensions that do not declare the same source. Editable auto-import is limited to resources supplied by the URLs declared by each Iris pack. Any registered datapack structure can be placed directly through nativeStructures without conversion. Replacing native generation requires a dimension-level structure placement with nativeSuppression set to REPLACE_SOURCE; provenance alone never disables native structures.")
     private KList<String> datapackImports = new KList<>();

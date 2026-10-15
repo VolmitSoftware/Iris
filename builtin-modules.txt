@@ -37,3 +37,5 @@ include art/arcane/iris/engine/object/placement/ObjectEdits*.class
 include art/arcane/iris/engine/object/placement/ResolvedReplace*.class
 include art/arcane/iris/engine/object/placement/IrisSurfaceSupport*.class
 include art/arcane/iris/engine/object/placement/IrisObjectVacuum.class
+module art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule
+include art/arcane/iris/engine/framework/vanillafeatures/**

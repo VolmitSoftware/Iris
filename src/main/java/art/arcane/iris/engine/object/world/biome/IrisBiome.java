@@ -22,7 +22,6 @@ import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -146,9 +145,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private KList<IrisObjectPlacement> objects = new KList<>();
     @Desc("Procedural objects (such as trees) iris generates from scratch and places in this biome, instead of loading them from iob files")
     private IrisProceduralObjects proceduralObjects = new IrisProceduralObjects();
-    @ArrayType(min = 1, type = IrisStructurePlacement.class)
-    @Desc("Structures define jigsaw or vanilla/datapack structures iris will place in this biome")
-    private KList<IrisStructurePlacement> structures = new KList<>();
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());

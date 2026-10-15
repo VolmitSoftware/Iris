@@ -26,22 +26,20 @@ import art.arcane.iris.engine.framework.structure.StructureGraphCatalog;
 import art.arcane.iris.engine.framework.structure.StructureGraphCompilation;
 import art.arcane.iris.engine.framework.structure.StructureAssemblyResult;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.structure.vanilla.IrisNativeStructure;
+import art.arcane.iris.builtin.structure.NativeStructureSource;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.structure.IrisStructure;
-import art.arcane.iris.engine.object.structure.IrisStructureAnchorMode;
+import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructureCarveShape;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
+import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
-import art.arcane.iris.engine.object.structure.vanilla.NativeStructureSuppression;
-import art.arcane.iris.engine.object.structure.StructureDistribution;
+import art.arcane.iris.builtin.structure.NativeStructureSuppression;
+import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.core.modules.IrisModuleHost;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.volmit.ModuleLog;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
@@ -59,7 +57,7 @@ import java.util.regex.Pattern;
  * Finds where Iris assembly and native jigsaw placements generate. A structure key matches
  * an Iris structure load key, its {@code vanillaSource}, or a configured native registry key.
  *
- * A per-engine index of placed keys is cached so {@code /locate} and {@code /iris goto} skip
+ * Each world keeps an index of placed keys in its state, so {@code /locate} and {@code /iris goto} skip
  * the grid scan entirely for keys that are not placed (keeping them as fast as vanilla).
  *
  * For RANDOM_SPREAD placements (the common, vanilla-style spaced grid) the locator jumps
@@ -75,9 +73,6 @@ public final class IrisStructureLocator {
     private static final long CAVE_ANCHOR_DOMAIN = 0x43415645414E4348L;
     private static final Pattern NAMESPACED_RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
 
-    private static final Cache<Engine, PlacementIndex> INDEX_CACHE = Caffeine.newBuilder().weakKeys().build();
-    private static final Cache<Engine, LocatableIndex> LOCATABLE_INDEX_CACHE =
-            Caffeine.newBuilder().weakKeys().build();
     private static final PlacementIndex EMPTY_INDEX = new PlacementIndex(
             Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
             Collections.emptySet(), Collections.emptyList());
@@ -97,6 +92,28 @@ public final class IrisStructureLocator {
             return Collections.emptySet();
         }
         return index(engine).loadKeys;
+    }
+
+    /**
+     * Every key under which a structure the engine's placements place can be found: the placed keys and the platform
+     * structures Iris structures stand in for ({@code vanillaSource}), the latter in lower case.
+     */
+    public static Set<String> placedKeysAndAliases(Engine engine) {
+        if (engine == null) {
+            return Collections.emptySet();
+        }
+        PlacementIndex placementIndex = index(engine);
+        Set<String> keys = new LinkedHashSet<>(placementIndex.loadKeys);
+        keys.addAll(placementIndex.vanillaAliases);
+        return Collections.unmodifiableSet(keys);
+    }
+
+    /** The platform structures the engine's placements start natively ({@code nativeStructures}), in lower case. */
+    public static Set<String> nativeKeys(Engine engine) {
+        if (engine == null) {
+            return Collections.emptySet();
+        }
+        return index(engine).nativeKeys;
     }
 
     public static boolean isPlaced(Engine engine, String key) {
@@ -153,7 +170,7 @@ public final class IrisStructureLocator {
         if (engine == null || key == null || key.isBlank()) {
             return false;
         }
-        for (IrisStructurePlacement placement : index(engine).placements) {
+        for (StructurePlacement placement : index(engine).placements) {
             if (placement.hasIrisStructures() && matches(placement, key, engine.getData())) {
                 return true;
             }
@@ -166,13 +183,6 @@ public final class IrisStructureLocator {
             return false;
         }
         return index(engine).suppressedVanillaSources.contains(normalize(vanillaKey));
-    }
-
-    public static void invalidate(Engine engine) {
-        if (engine != null) {
-            INDEX_CACHE.invalidate(engine);
-            LOCATABLE_INDEX_CACHE.invalidate(engine);
-        }
     }
 
     public static boolean startsInChunk(Engine engine, String key, int cx, int cz) {
@@ -272,8 +282,8 @@ public final class IrisStructureLocator {
             CandidateBudget candidateBudget) {
         LocatedCandidate best = null;
         Set<Long> checkedChunks = new LinkedHashSet<>();
-        for (IrisStructurePlacement placement : catalog.concentricRings()) {
-            int count = Math.max(1, placement.getRingCount());
+        for (StructurePlacement placement : catalog.concentricRings()) {
+            int count = Math.max(1, placement.ringCount());
             for (int placementIndex = 0; placementIndex < count; placementIndex++) {
                 candidateBudget.claim();
                 int[] candidate = StructurePlacementGrid.concentricRingChunk(
@@ -411,8 +421,8 @@ public final class IrisStructureLocator {
         }
 
         Set<Long> checkedRingChunks = new LinkedHashSet<>();
-        for (IrisStructurePlacement placement : catalog.concentricRings) {
-            int count = Math.max(1, placement.getRingCount());
+        for (StructurePlacement placement : catalog.concentricRings) {
+            int count = Math.max(1, placement.ringCount());
             for (int placementIndex = 0; placementIndex < count; placementIndex++) {
                 candidateBudget.claim();
                 int[] candidate = StructurePlacementGrid.concentricRingChunk(placement, placementIndex, seed);
@@ -478,13 +488,13 @@ public final class IrisStructureLocator {
                 && Math.abs((long) chunkZ - centerChunkZ) <= radius;
     }
 
-    public static ResolvedPlacement resolvePlacement(Engine engine, IrisStructurePlacement placement, int cx, int cz) {
+    public static ResolvedPlacement resolvePlacement(Engine engine, StructurePlacement placement, int cx, int cz) {
         if (engine == null || engine.getData() == null || engine.getSeedManager() == null) {
             throw new IllegalStateException("Iris structure placement requires a fully bound engine");
         }
         NativeStartPlanner.validateBackend(placement);
-        if (!placement.hasIrisStructures() || placement.getDistribution() == null) {
-            throw new IllegalStateException("Iris structure placement is missing its distribution or structure list");
+        if (!placement.hasIrisStructures()) {
+            throw new IllegalStateException("Iris structure placement is missing its structure list");
         }
         long seed = engine.getSeedManager().getMantle();
         if (!StructurePlacementGrid.startsInChunk(placement, cx, cz, seed)) {
@@ -570,18 +580,18 @@ public final class IrisStructureLocator {
         return new ResolvedPlacement(placement, selectedKey, structure, pieces, rng, originX, baseY, originZ, exactY);
     }
 
-    public static boolean requirePlacementOutput(IrisStructurePlacement placement, String structureKey,
+    public static boolean requirePlacementOutput(StructurePlacement placement, String structureKey,
                                                  int chunkX, int chunkZ, boolean outputPresent,
                                                  String failureReason) {
         if (outputPresent) {
             return true;
         }
         if (placement == null
-                || NativeStructureSuppression.REPLACE_SOURCE != placement.getNativeSuppression()) {
+                || NativeStructureSuppression.REPLACE_SOURCE != placement.nativeSuppression()) {
             return false;
         }
         String key = structureKey == null || structureKey.isBlank()
-                ? String.valueOf(placement.getStructures()) : structureKey;
+                ? String.valueOf(placement.structures()) : structureKey;
         String reason = failureReason == null || failureReason.isBlank()
                 ? "placement produced no output" : failureReason;
         throw new IllegalStateException("REPLACE_SOURCE placement for Iris structure '" + key
@@ -604,13 +614,13 @@ public final class IrisStructureLocator {
         String normalizedKey = normalize(key);
         if (hasNativePlacement(engine, key)) {
             for (NativeStartPlanner.Plan plan : NativeStartPlanner.plansAt(engine, cx, cz)) {
-                if (normalize(plan.source().getStructure()).equals(normalizedKey)) {
+                if (normalize(plan.source().structure()).equals(normalizedKey)) {
                     return new ResolvedStart(cx << 4, plan.baseY(), cz << 4);
                 }
             }
         }
-        KList<IrisStructurePlacement> placements = StructurePlacementScope.placementsAt(engine, cx, cz);
-        for (IrisStructurePlacement placement : placements) {
+        KList<StructurePlacement> placements = StructurePlacementScope.placementsAt(engine, cx, cz);
+        for (StructurePlacement placement : placements) {
             if (!matches(placement, key, data)) {
                 continue;
             }
@@ -628,7 +638,7 @@ public final class IrisStructureLocator {
 
     private static PlacementAnchor resolveAnchor(
             Engine engine,
-            IrisStructurePlacement placement,
+            StructurePlacement placement,
             int chunkX,
             int chunkZ,
             int originX,
@@ -644,29 +654,29 @@ public final class IrisStructureLocator {
         return baseY == null ? null : new PlacementAnchor(originX, baseY, originZ);
     }
 
-    private static Integer resolveBaseY(Engine engine, IrisStructurePlacement placement, int originX, int originZ, RNG rng) {
+    private static Integer resolveBaseY(Engine engine, StructurePlacement placement, int originX, int originZ, RNG rng) {
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         if (worldMin > worldMax) {
             return null;
         }
-        if (!placement.isUnderwater()
+        if (!placement.underwater()
                 && NativeStartPlanner.isSubmerged(engine, originX, originZ)) {
             return null;
         }
-        if (placement.resolvedAnchor() == IrisStructureAnchorMode.SURFACE) {
+        if (placement.resolvedAnchor() == StructureAnchorMode.SURFACE) {
             int surfaceY = engine.getHeight(originX, originZ, true) + engine.getMinHeight();
-            return surfaceY < placement.getMinHeight() || surfaceY > placement.getMaxHeight() ? null : surfaceY;
+            return surfaceY < placement.minHeight() || surfaceY > placement.maxHeight() ? null : surfaceY;
         }
-        int bandMin = Math.max(worldMin, Math.min(placement.getMinHeight(), placement.getMaxHeight()));
-        int bandMax = Math.min(worldMax, Math.max(placement.getMinHeight(), placement.getMaxHeight()));
+        int bandMin = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
+        int bandMax = Math.min(worldMax, Math.max(placement.minHeight(), placement.maxHeight()));
         if (bandMin > bandMax) {
             return null;
         }
         return randomInclusive(rng, bandMin, bandMax);
     }
 
-    static Integer resolveVerticalShift(KList<PlacedStructurePiece> pieces, IrisStructurePlacement placement,
+    static Integer resolveVerticalShift(KList<PlacedStructurePiece> pieces, StructurePlacement placement,
                                         int baseY, int worldMin, int worldMax) {
         int[] bounds = computeBounds(pieces);
         if (bounds == null) {
@@ -675,8 +685,8 @@ public final class IrisStructureLocator {
         if (!placement.isAnchoredUnderground() || placement.resolvedAnchor().isCave()) {
             return bounds[1] >= worldMin && bounds[4] <= worldMax ? 0 : null;
         }
-        int bandMin = Math.max(worldMin, Math.min(placement.getMinHeight(), placement.getMaxHeight()));
-        int bandMax = Math.min(worldMax, Math.max(placement.getMinHeight(), placement.getMaxHeight()));
+        int bandMin = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
+        int bandMax = Math.min(worldMax, Math.max(placement.minHeight(), placement.maxHeight()));
         int minimumShift = Math.max(worldMin - bounds[1], bandMin - baseY);
         int maximumShift = Math.min(worldMax - bounds[4], bandMax - baseY);
         if (minimumShift > maximumShift) {
@@ -692,7 +702,7 @@ public final class IrisStructureLocator {
     }
 
     static Integer resolveUndergroundBurialShift(Engine engine, KList<PlacedStructurePiece> pieces,
-                                                  IrisStructurePlacement placement, int baseY,
+                                                  StructurePlacement placement, int baseY,
                                                   int worldMin, int worldMax) {
         int[] bounds = computeBounds(pieces);
         if (engine == null || bounds == null || placement == null || !placement.isAnchoredUnderground()
@@ -711,8 +721,8 @@ public final class IrisStructureLocator {
                         terrain.ceilingPadding(), terrain.resolvedErosionStrength())
                 : bore ? Math.max(0, terrain.ceilingPadding()) : 0;
         int bottomExtension = forceCarve || bore ? Math.max(0, terrain.floorPadding()) : 0;
-        int bandMin = Math.max(worldMin, Math.min(placement.getMinHeight(), placement.getMaxHeight()));
-        int bandMax = Math.min(worldMax, Math.max(placement.getMinHeight(), placement.getMaxHeight()));
+        int bandMin = Math.max(worldMin, Math.min(placement.minHeight(), placement.maxHeight()));
+        int bandMax = Math.min(worldMax, Math.max(placement.minHeight(), placement.maxHeight()));
         int minimumShift = Math.max(worldMin - (bounds[1] - bottomExtension), bandMin - baseY);
         int maximumShift = Math.min(0, Math.min(worldMax - (bounds[4] + topExtension), bandMax - baseY));
         if (minimumShift > maximumShift) {
@@ -776,19 +786,19 @@ public final class IrisStructureLocator {
         return maximumShift;
     }
 
-    static String selectStructureKey(IrisStructurePlacement placement, RNG rng) {
-        if (placement == null || placement.getStructures() == null || placement.getStructures().isEmpty()) {
+    static String selectStructureKey(StructurePlacement placement, RNG rng) {
+        if (placement == null || placement.structures().isEmpty()) {
             return null;
         }
-        return placement.getStructures().get(rng.nextInt(placement.getStructures().size()));
+        return placement.structures().get(rng.nextInt(placement.structures().size()));
     }
 
     static KList<PlacedStructurePiece> alignCavePieces(
             KList<PlacedStructurePiece> pieces,
-            IrisStructurePlacement placement,
+            StructurePlacement placement,
             int anchorY
     ) {
-        IrisStructureAnchorMode mode = placement.resolvedAnchor();
+        StructureAnchorMode mode = placement.resolvedAnchor();
         if (!mode.isCave()) {
             return pieces;
         }
@@ -806,7 +816,7 @@ public final class IrisStructureLocator {
     }
 
     private static KList<PlacedStructurePiece> alignSurfacePieces(KList<PlacedStructurePiece> pieces,
-                                                                  IrisStructurePlacement placement,
+                                                                  StructurePlacement placement,
                                                                   IrisStructure structure, int baseY) {
         if (placement.isAnchoredUnderground() || pieces.size() <= 1
                 || structure.getPlaceMode().placeMode().has(PlaceTrait.FREE_HEIGHT)) {
@@ -816,7 +826,7 @@ public final class IrisStructureLocator {
         return bounds == null ? pieces : shiftPieces(pieces, baseY - bounds[1]);
     }
 
-    static boolean hasExactY(IrisStructurePlacement placement, IrisStructure structure,
+    static boolean hasExactY(StructurePlacement placement, IrisStructure structure,
                              KList<PlacedStructurePiece> pieces) {
         return placement.isAnchoredUnderground() || pieces.size() > 1
                 || structure.getPlaceMode().placeMode().has(PlaceTrait.FREE_HEIGHT);
@@ -883,39 +893,38 @@ public final class IrisStructureLocator {
 
     private static PlacementCatalog collectPlacementCatalog(Engine engine, String key) {
         Set<RandomSpreadParameters> randomSpread = new LinkedHashSet<>();
-        List<IrisStructurePlacement> concentricRings = new ArrayList<>();
+        List<StructurePlacement> concentricRings = new ArrayList<>();
         boolean hasDensity = false;
-        for (IrisStructurePlacement placement : index(engine).placements) {
+        for (StructurePlacement placement : index(engine).placements) {
             if (!isSearchablePlacement(engine, placement)
                     || !matches(placement, key, engine.getData())) {
                 continue;
             }
-            if (placement.getDistribution() == StructureDistribution.RANDOM_SPREAD) {
+            if (placement.distribution() == StructureDistribution.RANDOM_SPREAD) {
                 randomSpread.add(new RandomSpreadParameters(
-                        Math.max(1, placement.getSpacing()), placement.getSeparation(),
+                        Math.max(1, placement.spacing()), placement.separation(),
                         StructurePlacementGrid.placementSalt(placement)));
-            } else if (placement.getDistribution() == StructureDistribution.CONCENTRIC_RINGS) {
+            } else if (placement.distribution() == StructureDistribution.CONCENTRIC_RINGS) {
                 concentricRings.add(placement);
-            } else if (placement.getDistribution() == StructureDistribution.DENSITY) {
+            } else if (placement.distribution() == StructureDistribution.DENSITY) {
                 hasDensity = true;
             }
         }
         return new PlacementCatalog(List.copyOf(randomSpread), List.copyOf(concentricRings), hasDensity);
     }
 
-    static boolean isSearchableDensityPlacement(Engine engine, IrisStructurePlacement placement) {
+    static boolean isSearchableDensityPlacement(Engine engine, StructurePlacement placement) {
         return placement != null
-                && placement.getDistribution() == StructureDistribution.DENSITY
+                && placement.distribution() == StructureDistribution.DENSITY
                 && isSearchablePlacement(engine, placement);
     }
 
-    static boolean isSearchablePlacement(Engine engine, IrisStructurePlacement placement) {
-        if (engine == null || placement == null || placement.getDistribution() == null
-                || engine.getHeight() <= 0) {
+    static boolean isSearchablePlacement(Engine engine, StructurePlacement placement) {
+        if (engine == null || placement == null || engine.getHeight() <= 0) {
             return false;
         }
-        if (placement.getDistribution() == StructureDistribution.DENSITY
-                && !(placement.getDensity() > 0.0)) {
+        if (placement.distribution() == StructureDistribution.DENSITY
+                && !(placement.density() > 0.0)) {
             return false;
         }
         long worldMin = (long) engine.getMinHeight() + (placement.isAnchoredUnderground() ? 1L : 0L);
@@ -925,11 +934,11 @@ public final class IrisStructureLocator {
             return false;
         }
         long configuredMin = placement.isAnchoredUnderground()
-                ? Math.min(placement.getMinHeight(), placement.getMaxHeight())
-                : placement.getMinHeight();
+                ? Math.min(placement.minHeight(), placement.maxHeight())
+                : placement.minHeight();
         long configuredMax = placement.isAnchoredUnderground()
-                ? Math.max(placement.getMinHeight(), placement.getMaxHeight())
-                : placement.getMaxHeight();
+                ? Math.max(placement.minHeight(), placement.maxHeight())
+                : placement.maxHeight();
         return configuredMin <= configuredMax && configuredMin <= worldMax && configuredMax >= worldMin;
     }
 
@@ -1007,22 +1016,17 @@ public final class IrisStructureLocator {
     private record PlacementAnchor(int x, int y, int z) {
     }
 
-    private static boolean matches(IrisStructurePlacement placement, String key, IrisData data) {
+    private static boolean matches(StructurePlacement placement, String key, IrisData data) {
         if (placement == null || key == null || data == null) {
             return false;
         }
         String normalizedKey = normalize(key);
-        if (placement.getNativeStructures() != null) {
-            for (IrisNativeStructure source : placement.getNativeStructures()) {
-                if (source != null && normalize(source.getStructure()).equals(normalizedKey)) {
-                    return true;
-                }
+        for (NativeStructureSource source : placement.nativeStructures()) {
+            if (source != null && normalize(source.structure()).equals(normalizedKey)) {
+                return true;
             }
         }
-        if (placement.getStructures() == null) {
-            return false;
-        }
-        for (String structureKey : placement.getStructures()) {
+        for (String structureKey : placement.structures()) {
             if (structureKey == null || structureKey.isBlank()) {
                 continue;
             }
@@ -1057,14 +1061,14 @@ public final class IrisStructureLocator {
         if (engine.getData() == null || engine.getDimension() == null) {
             throw new IllegalStateException("Iris structure index requires a fully bound engine and dimension");
         }
-        return INDEX_CACHE.get(engine, ignored -> build(engine));
+        return engine.getGeneration().state(PlacementIndex.class, IrisStructureLocator::build);
     }
 
     private static LocatableIndex locatableIndex(Engine engine) {
         if (engine == null) {
             return EMPTY_LOCATABLE_INDEX;
         }
-        return LOCATABLE_INDEX_CACHE.get(engine, ignored -> buildLocatableIndex(engine));
+        return engine.getGeneration().state(LocatableIndex.class, IrisStructureLocator::buildLocatableIndex);
     }
 
     private static LocatableIndex buildLocatableIndex(Engine engine) {
@@ -1075,18 +1079,18 @@ public final class IrisStructureLocator {
         Set<String> normalizedEditableKeys = new LinkedHashSet<>();
         Set<String> nativeKeys = new LinkedHashSet<>();
         Set<String> normalizedNativeKeys = new LinkedHashSet<>();
-        for (IrisStructurePlacement placement : index(engine).placements) {
+        for (StructurePlacement placement : index(engine).placements) {
             if (!isSearchablePlacement(engine, placement)) {
                 continue;
             }
             if (placement.hasNativeStructures()) {
-                for (IrisNativeStructure source : placement.getNativeStructures()) {
-                    addLocatableKey(source.getStructure(), keys, normalizedKeys);
-                    addLocatableKey(source.getStructure(), nativeKeys, normalizedNativeKeys);
+                for (NativeStructureSource source : placement.nativeStructures()) {
+                    addLocatableKey(source.structure(), keys, normalizedKeys);
+                    addLocatableKey(source.structure(), nativeKeys, normalizedNativeKeys);
                 }
                 continue;
             }
-            for (String structureKey : placement.getStructures()) {
+            for (String structureKey : placement.structures()) {
                 IrisStructure structure = StructureResources.structure(data, structureKey);
                 if (structure == null) {
                     throw new IllegalStateException(
@@ -1125,13 +1129,13 @@ public final class IrisStructureLocator {
         Set<String> normalizedLoadKeys = new LinkedHashSet<>();
         Set<String> vanillaAliases = new LinkedHashSet<>();
         Set<String> suppressedVanillaSources = new LinkedHashSet<>();
-        List<IrisStructurePlacement> placements = new ArrayList<>();
-        collect(engine.getDimension().getStructures(), data, log, loadKeys, normalizedLoadKeys, vanillaAliases,
+        List<StructurePlacement> placements = new ArrayList<>();
+        collect(StructurePlacementScope.placementsOf(engine.getDimension()), data, log, loadKeys, normalizedLoadKeys, vanillaAliases,
                 suppressedVanillaSources, placements, true);
         KList<IrisRegion> regions = engine.getDimension().getAllRegions(engine);
         if (regions != null) {
             for (IrisRegion region : regions) {
-                collect(region == null ? null : region.getStructures(), data, log,
+                collect(StructurePlacementScope.placementsOf(region), data, log,
                         loadKeys, normalizedLoadKeys, vanillaAliases,
                         suppressedVanillaSources, placements, false);
             }
@@ -1139,7 +1143,7 @@ public final class IrisStructureLocator {
         KList<IrisBiome> biomes = engine.getDimension().getReachableBiomes(engine);
         if (biomes != null) {
             for (IrisBiome biome : biomes) {
-                collect(biome == null ? null : biome.getStructures(), data, log,
+                collect(StructurePlacementScope.placementsOf(biome), data, log,
                         loadKeys, normalizedLoadKeys, vanillaAliases,
                         suppressedVanillaSources, placements, false);
             }
@@ -1153,48 +1157,42 @@ public final class IrisStructureLocator {
                 List.copyOf(placements));
     }
 
-    private static Set<String> nativeKeys(List<IrisStructurePlacement> placements) {
+    private static Set<String> nativeKeys(List<StructurePlacement> placements) {
         Set<String> nativeKeys = new LinkedHashSet<>();
-        for (IrisStructurePlacement placement : placements) {
+        for (StructurePlacement placement : placements) {
             if (!placement.hasNativeStructures()) {
                 continue;
             }
-            for (IrisNativeStructure source : placement.getNativeStructures()) {
+            for (NativeStructureSource source : placement.nativeStructures()) {
                 if (source != null) {
-                    nativeKeys.add(normalize(source.getStructure()));
+                    nativeKeys.add(normalize(source.structure()));
                 }
             }
         }
         return Collections.unmodifiableSet(nativeKeys);
     }
 
-    private static void collect(KList<IrisStructurePlacement> source, IrisData data, ModuleLog log, Set<String> loadKeys,
+    private static void collect(List<StructurePlacement> source, IrisData data, ModuleLog log, Set<String> loadKeys,
                                 Set<String> normalizedLoadKeys, Set<String> vanillaAliases,
                                 Set<String> suppressedVanillaSources,
-                                List<IrisStructurePlacement> placements, boolean allowNativeSuppression) {
-        if (source == null) {
-            return;
-        }
-        for (IrisStructurePlacement placement : source) {
+                                List<StructurePlacement> placements, boolean allowNativeSuppression) {
+        for (StructurePlacement placement : source) {
             if (placement == null) {
                 throw new IllegalStateException("Iris structure placement list contains a null placement");
             }
-            if (placement.getDistribution() == null) {
-                throw new IllegalStateException("Iris structure placement is missing its distribution");
-            }
             NativeStartPlanner.validateBackend(placement);
-            boolean replacesNative = NativeStructureSuppression.REPLACE_SOURCE == placement.getNativeSuppression();
+            boolean replacesNative = NativeStructureSuppression.REPLACE_SOURCE == placement.nativeSuppression();
             if (replacesNative && !allowNativeSuppression) {
                 throw new IllegalStateException("REPLACE_SOURCE is only valid on dimension-level structure placements");
             }
             if (placement.hasNativeStructures()) {
-                for (IrisNativeStructure nativeStructure : placement.getNativeStructures()) {
+                for (NativeStructureSource nativeStructure : placement.nativeStructures()) {
                     if (nativeStructure == null
-                            || nativeStructure.getStructure() == null
-                            || !NAMESPACED_RESOURCE_KEY.matcher(nativeStructure.getStructure()).matches()) {
+                            || nativeStructure.structure() == null
+                            || !NAMESPACED_RESOURCE_KEY.matcher(nativeStructure.structure()).matches()) {
                         throw new IllegalStateException("Native structure placement contains an invalid structure key");
                     }
-                    String sourceKey = nativeStructure.getStructure();
+                    String sourceKey = nativeStructure.structure();
                     loadKeys.add(sourceKey);
                     normalizedLoadKeys.add(normalize(sourceKey));
                     vanillaAliases.add(normalize(sourceKey));
@@ -1205,7 +1203,7 @@ public final class IrisStructureLocator {
                 placements.add(placement);
                 continue;
             }
-            for (String structureKey : placement.getStructures()) {
+            for (String structureKey : placement.structures()) {
                 if (structureKey == null || structureKey.isBlank()) {
                     throw new IllegalStateException(replacesNative
                             ? "REPLACE_SOURCE contains a blank Iris structure reference"
@@ -1244,7 +1242,7 @@ public final class IrisStructureLocator {
         }
     }
 
-    public record ResolvedPlacement(IrisStructurePlacement placement, String structureKey, IrisStructure structure,
+    public record ResolvedPlacement(StructurePlacement placement, String structureKey, IrisStructure structure,
                                     KList<PlacedStructurePiece> pieces, RNG rng,
                                     int originX, int baseY, int originZ, boolean exactY) {
     }
@@ -1276,7 +1274,7 @@ public final class IrisStructureLocator {
     }
 
     private record PlacementCatalog(List<RandomSpreadParameters> randomSpread,
-                                    List<IrisStructurePlacement> concentricRings, boolean hasDensity) {
+                                    List<StructurePlacement> concentricRings, boolean hasDensity) {
     }
 
     private record LocatableIndex(Set<String> keys, Set<String> normalizedKeys,
@@ -1307,12 +1305,12 @@ public final class IrisStructureLocator {
         private final Set<String> vanillaAliases;
         private final Set<String> suppressedVanillaSources;
         private final Set<String> nativeKeys;
-        private final List<IrisStructurePlacement> placements;
+        private final List<StructurePlacement> placements;
 
         private PlacementIndex(Set<String> loadKeys, Set<String> normalizedLoadKeys,
                                Set<String> vanillaAliases, Set<String> suppressedVanillaSources,
                                Set<String> nativeKeys,
-                               List<IrisStructurePlacement> placements) {
+                               List<StructurePlacement> placements) {
             this.loadKeys = loadKeys;
             this.normalizedLoadKeys = normalizedLoadKeys;
             this.vanillaAliases = vanillaAliases;

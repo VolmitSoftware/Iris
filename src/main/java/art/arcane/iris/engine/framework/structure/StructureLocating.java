@@ -32,8 +32,9 @@ import java.util.Set;
 /**
  * How {@code iris:structure} lets Iris find its structures: the structures of the pack's {@code structures} folder,
  * the ones the world's placements assemble from jigsaw pools, and their nearest start, searched with
- * {@link IrisStructureLocator}. Vanilla structures that Iris places through native placements are not among them; the
- * host's vanilla structure handling finds those.
+ * {@link IrisStructureLocator}. The keys it places also name the platform structures its native placements start and
+ * the ones its structures stand in for; it locates those too. The platform's own locate of a natively started
+ * structure goes through {@link StructureVanillaStructures#locateStart} instead.
  */
 public final class StructureLocating implements StructureLocator {
     @Override
@@ -44,6 +45,11 @@ public final class StructureLocating implements StructureLocator {
     @Override
     public Set<String> locatable(PackWorld world) {
         return IrisStructureLocator.locatableEditableKeys(engine(world));
+    }
+
+    @Override
+    public Set<String> placed(PackWorld world) {
+        return IrisStructureLocator.placedKeysAndAliases(engine(world));
     }
 
     @Override

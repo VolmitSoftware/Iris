@@ -20,8 +20,8 @@ package art.arcane.iris.engine.framework.structure.fit;
 
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.engine.framework.structure.NativeStructureFit;
+import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.StructureFit;
-import com.volmit.vanilla.StructureStep;
 import com.volmit.vanilla.TerrainAdaptation;
 
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ final class FitStart {
         return start.adaptation();
     }
 
-    StructureStep step() {
+    DecorationStep step() {
         return start.step();
     }
 

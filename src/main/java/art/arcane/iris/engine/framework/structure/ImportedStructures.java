@@ -18,6 +18,7 @@
 
 package art.arcane.iris.engine.framework.structure;
 
+import art.arcane.iris.builtin.RegistryKeyFamily;
 import art.arcane.iris.builtin.structure.StructureAdjustment;
 import art.arcane.iris.builtin.structure.StructureSetFrequency;
 import art.arcane.iris.builtin.structure.StructureSettings;
@@ -34,7 +35,7 @@ import java.util.Optional;
  * What a dimension's {@link StructureSettings} say about the platform's own structures: which ones it disables, how
  * the starts of the others are adjusted, and how the platform sets them up. Keys match ignoring case and surrounding
  * space; a family pattern also matches the keys it starts at a namespace, slash or underscore boundary
- * ({@link #matchesKey}).
+ * ({@link RegistryKeyFamily}).
  */
 public final class ImportedStructures {
     private final StructureSettings settings;
@@ -55,7 +56,7 @@ public final class ImportedStructures {
         if (normalizedKey.isEmpty()) {
             return false;
         }
-        return settings.disabled().stream().anyMatch(pattern -> matchesKey(pattern, key))
+        return settings.disabled().stream().anyMatch(pattern -> RegistryKeyFamily.matches(pattern, key))
                 || settings.disabledExact().stream().map(ImportedStructures::normalize)
                 .anyMatch(exact -> !exact.isEmpty() && exact.equals(normalizedKey));
     }
@@ -99,33 +100,8 @@ public final class ImportedStructures {
         }
     }
 
-    /**
-     * Whether the family pattern {@code pattern} matches the structure {@code key}: equal keys, or a pattern the key
-     * starts with that ends in, or is followed in the key by, {@code :}, {@code /} or {@code _}. So
-     * {@code minecraft:village} matches {@code minecraft:village_plains} and {@code nova_structures:} a whole namespace.
-     */
-    public static boolean matchesKey(String pattern, String key) {
-        if (pattern == null || key == null) {
-            return false;
-        }
-        String normalizedPattern = normalize(pattern);
-        String normalizedKey = normalize(key);
-        if (normalizedPattern.isEmpty() || !normalizedKey.startsWith(normalizedPattern)) {
-            return false;
-        }
-        if (normalizedKey.length() == normalizedPattern.length()) {
-            return true;
-        }
-        char patternEnd = normalizedPattern.charAt(normalizedPattern.length() - 1);
-        if (patternEnd == ':' || patternEnd == '/' || patternEnd == '_') {
-            return true;
-        }
-        char boundary = normalizedKey.charAt(normalizedPattern.length());
-        return boundary == '/' || boundary == '_';
-    }
-
     private static boolean matchesAny(List<String> patterns, String key) {
-        return patterns.stream().anyMatch(pattern -> matchesKey(pattern, key));
+        return patterns.stream().anyMatch(pattern -> RegistryKeyFamily.matches(pattern, key));
     }
 
     private static NativeStructureFit asAdjustment(StructureAdjustment entry) {

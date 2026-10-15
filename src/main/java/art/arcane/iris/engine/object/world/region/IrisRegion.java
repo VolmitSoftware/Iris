@@ -20,7 +20,6 @@ package art.arcane.iris.engine.object.world.region;
 
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.structure.IrisStructurePlacement;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -81,9 +80,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private KList<IrisObjectPlacement> objects = new KList<>();
     @Desc("Procedural objects (trees, ruins, formations, coral, fungi, crystals) iris generates from scratch and places across this region")
     private IrisProceduralObjects proceduralObjects = new IrisProceduralObjects();
-    @ArrayType(min = 1, type = IrisStructurePlacement.class)
-    @Desc("Structures define jigsaw or vanilla/datapack structures iris will place in this region")
-    private KList<IrisStructurePlacement> structures = new KList<>();
     @MinNumber(0)
     @Desc("The min shore height")
     private double shoreHeightMin = 1.2;

@@ -37,6 +37,58 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ModdedDimensionReplacementsTest {
+    private static final ModdedDimensionReplacements.ReplaceableLevels STEMS = stems("aether:the_aether");
+
+    @Test
+    public void onlyLevelStemsTheServerCreatesItselfAreReplaceable() {
+        ModdedDimensionReplacements.ReplaceableLevels levels = new ModdedDimensionReplacements.ReplaceableLevels(true,
+                Map.of("minecraft:overworld", "minecraft:noise",
+                        "examplemod:skylands", "examplemod:sky_generator",
+                        "examplemod:applied", ModdedDimensionReplacements.IRIS_GENERATOR,
+                        "ae2:spatial_storage", ModdedDimensionReplacements.IRIS_GENERATOR),
+                Set.of("examplemod:applied"));
+
+        assertTrue(levels.replaceable("minecraft:overworld"));
+        assertTrue(levels.replaceable("minecraft:the_end"));
+        assertTrue(levels.replaceable("examplemod:skylands"));
+        assertTrue(levels.replaceable("examplemod:applied"));
+        assertFalse(levels.replaceable("ae2:spatial_storage"));
+        assertFalse(levels.replaceable("ae2:runtime_only"));
+    }
+
+    @Test
+    public void withoutARecordedRegistryOnlyTheVanillaDimensionsAreReplaceable() {
+        ModdedDimensionReplacements.ReplaceableLevels unknown = ModdedDimensionReplacements.ReplaceableLevels.unknown();
+
+        assertFalse(unknown.known());
+        assertTrue(unknown.replaceable("minecraft:overworld"));
+        assertTrue(unknown.replaceable("minecraft:the_nether"));
+        assertFalse(unknown.replaceable("examplemod:skylands"));
+    }
+
+    @Test
+    public void unreplaceableLevelsGetNoLevelStemOverride() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-replace-stage-runtime");
+        try {
+            Path datapack = temporary.resolve("datapack");
+            ModdedDimensionReplacements.StagedTypes staged = ModdedDimensionReplacements.StagedTypes.create();
+            staged.installed().put("overworld:overworld", "irisworldgen:packs/x/dimensions/y/dimension_type");
+
+            ModdedDimensionReplacements.writeLevelStems(datapack, Map.of(
+                    "ae2:spatial_storage", replacement("ae2:spatial_storage", "overworld"),
+                    "minecraft:the_end", replacement("minecraft:the_end", "overworld")), staged,
+                    temporary.resolve("world"), STEMS);
+
+            assertFalse(Files.exists(datapack.resolve("data/ae2/dimension/spatial_storage.json")));
+            assertTrue(Files.isRegularFile(datapack.resolve("data/minecraft/dimension/the_end.json")));
+            assertEquals(Set.of("minecraft:the_end"), ModdedDimensionReplacements.stageable(Map.of(
+                    "ae2:spatial_storage", replacement("ae2:spatial_storage", "overworld"),
+                    "minecraft:the_end", replacement("minecraft:the_end", "overworld")), STEMS).keySet());
+        } finally {
+            ModdedReplacementReconcilerTest.deleteTree(temporary);
+        }
+    }
+
     @Test
     public void parsesPackAndPackDimensionReferences() {
         ModdedDimensionReplacement samePack = replacement("iristest:skylands", "skypack");
@@ -170,7 +222,7 @@ public class ModdedDimensionReplacementsTest {
 
             ModdedDimensionReplacements.writeLevelStems(datapack,
                     Map.of("aether:the_aether", replacement("aether:the_aether", "skypack:sky")), staged,
-                    temporary.resolve("world"));
+                    temporary.resolve("world"), STEMS);
 
             JSONObject stem = new JSONObject(Files.readString(datapack.resolve("data/aether/dimension/the_aether.json")));
             assertEquals("irisworldgen:packs/x/dimensions/y/dimension_type", stem.getString("type"));
@@ -191,7 +243,7 @@ public class ModdedDimensionReplacementsTest {
                     "aether:the_aether");
 
             ModdedDimensionReplacements.writeLevelStems(datapack,
-                    Map.of("aether:the_aether", replacement("aether:the_aether", "skypack:sky")), staged, worldRoot);
+                    Map.of("aether:the_aether", replacement("aether:the_aether", "skypack:sky")), staged, worldRoot, STEMS);
 
             JSONObject stem = new JSONObject(Files.readString(datapack.resolve("data/aether/dimension/the_aether.json")));
             assertEquals("aether:the_aether", stem.getString("type"));
@@ -211,9 +263,9 @@ public class ModdedDimensionReplacementsTest {
                     Map.of("aether:the_aether", replacement("aether:the_aether", "skypack:sky"));
 
             ModdedDimensionReplacements.writeLevelStems(datapack, configured,
-                    ModdedDimensionReplacements.StagedTypes.create(), worldRoot);
+                    ModdedDimensionReplacements.StagedTypes.create(), worldRoot, STEMS);
             ModdedDimensionReplacements.writeLevelStems(datapack, configured,
-                    ModdedDimensionReplacements.StagedTypes.create(), null);
+                    ModdedDimensionReplacements.StagedTypes.create(), null, STEMS);
 
             assertFalse(Files.exists(datapack.resolve("data/aether/dimension/the_aether.json")));
         } finally {
@@ -232,7 +284,7 @@ public class ModdedDimensionReplacementsTest {
             IOException refused = assertThrows(IOException.class, () -> ModdedDimensionReplacements.writeLevelStems(
                     temporary.resolve("datapack"),
                     Map.of("aether:the_aether", replacement("aether:the_aether", "skypack:sky")),
-                    ModdedDimensionReplacements.StagedTypes.create(), worldRoot));
+                    ModdedDimensionReplacements.StagedTypes.create(), worldRoot, STEMS));
 
             assertTrue(refused.getMessage(), refused.getMessage().contains("aether:the_aether"));
             assertTrue(refused.getMessage(), refused.getMessage().contains("skypack"));
@@ -252,7 +304,7 @@ public class ModdedDimensionReplacementsTest {
             assertThrows(IOException.class, () -> ModdedDimensionReplacements.writeLevelStems(
                     temporary.resolve("datapack"),
                     Map.of("aether:the_aether", replacement("aether:the_aether", "skypack:sky")),
-                    ModdedDimensionReplacements.StagedTypes.create(), worldRoot));
+                    ModdedDimensionReplacements.StagedTypes.create(), worldRoot, STEMS));
         } finally {
             ModdedReplacementReconcilerTest.deleteTree(temporary);
         }
@@ -278,6 +330,14 @@ public class ModdedDimensionReplacementsTest {
         } finally {
             ModdedReplacementReconcilerTest.deleteTree(packsRoot);
         }
+    }
+
+    static ModdedDimensionReplacements.ReplaceableLevels stems(String... levelKeys) {
+        Map<String, String> generators = new LinkedHashMap<>();
+        for (String levelKey : levelKeys) {
+            generators.put(levelKey, "minecraft:noise");
+        }
+        return new ModdedDimensionReplacements.ReplaceableLevels(true, generators, Set.of());
     }
 
     static ModdedDimensionReplacement replacement(String levelKey, String type) {

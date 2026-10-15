@@ -1111,6 +1111,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Derzeit sind kei
 loaded_iris_dimensions = "Geladene Iris-Dimensionen: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Verwende /iris world create <name> <pack>, um eine Dimension ohne Neustart einzubinden."
+replace_runtime_level = "{dimensionId} wird während der Laufzeit von einer Mod erstellt und ist nicht als Dimension definiert, daher kann Iris sie nicht ersetzen."
+replace_registry_not_ready = "Iris liest noch die Dimensionen dieses Servers. Versuche es gleich noch einmal."
+replace_installed_types = "Installierte Packs: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Externe Datapack-Importe von Modrinth herunterladen und verwalten"

@@ -1114,6 +1114,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "현재 로드된
 loaded_iris_dimensions = "로드 중 ... Iris 크기: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "재시작하지 않고 주입하려면 /iris world create <name> <pack>을(를) 사용하세요."
+replace_runtime_level = "{dimensionId}은(는) 서버 실행 중에 모드가 만드는 것이며 차원으로 정의되어 있지 않으므로 Iris가 교체할 수 없습니다."
+replace_registry_not_ready = "Iris가 아직 이 서버의 차원을 읽는 중입니다. 잠시 후 다시 시도하세요."
+replace_installed_types = "설치된 팩: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "외부 데이터 팩 가져오기를 다운로드하고 관리합니다(Modrinth)"

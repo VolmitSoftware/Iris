@@ -32,7 +32,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -46,6 +45,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ModdedReplacementReconcilerTest {
+    private static final ModdedDimensionReplacements.ReplaceableLevels STEMS = ModdedDimensionReplacementsTest.stems(
+            "iristest:skylands", "iristest:unconfigured", "aether:the_aether");
+
     @Test
     public void stateRoundTripsAppliedAndPendingEntriesAndDefaultsToEmpty() throws IOException {
         Path worldRoot = Files.createTempDirectory("iris-replace-state");
@@ -260,8 +262,7 @@ public class ModdedReplacementReconcilerTest {
             assertEquals(Set.of("iristest:skylands"), result.adoptedLevels());
             assertNull(result.recovery());
             assertTrue(Files.isRegularFile(skylands.resolve("region/r.0.0.mca")));
-            assertEquals(Map.of("iristest:skylands", seeded("iristest:skylands", "skypack:sky", 5L)),
-                    ModdedReplacementReconciler.readState(worldRoot).applied());
+            assertEquals(Map.of(), ModdedReplacementReconciler.readState(worldRoot).applied());
         } finally {
             deleteTree(temporary);
         }
@@ -433,29 +434,38 @@ public class ModdedReplacementReconcilerTest {
     }
 
     @Test
-    public void recordAppliedStoresOnlyReplacementsThatGenerateFromTheirPackAndSeed() throws IOException {
+    public void recordAppliedStoresOnlyLevelsThatLiveGenerateFromTheirPackAndSeed() throws IOException {
         Path temporary = Files.createTempDirectory("iris-replace-record");
         Path worldRoot = temporary.resolve("world");
         try {
-            writeApplied(worldRoot, seeded("iristest:kept", "overworld", 5L));
+            ModdedReplacementReconciler.writeState(worldRoot, new ModdedReplacementReconciler.State(Map.of(
+                    "iristest:kept", seeded("iristest:kept", "overworld", 5L),
+                    "ae2:spatial_storage", seeded("ae2:spatial_storage", "overworld", 5L),
+                    "iristest:removed", seeded("iristest:removed", "overworld", 5L)), Map.of()));
 
             Map<String, ModdedDimensionReplacement> recorded = ModdedReplacementReconciler.recordApplied(worldRoot,
                     Map.of("iristest:kept", replacement("iristest:kept", "overworld"),
                             "iristest:live", replacement("iristest:live", "skypack"),
                             "iristest:seeded", seeded("iristest:seeded", "skypack", 8L),
                             "iristest:wrongseed", seeded("iristest:wrongseed", "skypack", 8L),
-                            "iristest:skipped", replacement("iristest:skipped", "skypack")),
-                    (String level, String packRef) -> switch (level) {
-                        case "iristest:skipped" -> OptionalLong.empty();
-                        case "iristest:wrongseed" -> OptionalLong.of(9L);
-                        case "iristest:seeded" -> OptionalLong.of(8L);
-                        default -> OptionalLong.of(5L);
+                            "iristest:wrongpack", replacement("iristest:wrongpack", "skypack"),
+                            "iristest:absent", replacement("iristest:absent", "skypack"),
+                            "ae2:spatial_storage", replacement("ae2:spatial_storage", "overworld")),
+                    (String level) -> switch (level) {
+                        case "iristest:kept" -> Optional.of(iris("overworld", 5L));
+                        case "iristest:live" -> Optional.of(iris("skypack", 5L));
+                        case "iristest:seeded" -> Optional.of(iris("skypack", 8L));
+                        case "iristest:wrongseed" -> Optional.of(iris("skypack", 9L));
+                        case "iristest:wrongpack" -> Optional.of(iris("otherpack", 5L));
+                        case "ae2:spatial_storage" -> Optional.of(new ModdedReplacementReconciler.LiveLevel(false, "", 0L));
+                        default -> Optional.empty();
                     });
 
             Map<String, ModdedDimensionReplacement> expected = Map.of(
                     "iristest:kept", seeded("iristest:kept", "overworld", 5L),
                     "iristest:live", seeded("iristest:live", "skypack", 5L),
-                    "iristest:seeded", seeded("iristest:seeded", "skypack", 8L));
+                    "iristest:seeded", seeded("iristest:seeded", "skypack", 8L),
+                    "iristest:removed", seeded("iristest:removed", "overworld", 5L));
             assertEquals(expected, recorded);
             assertEquals(expected, ModdedReplacementReconciler.readState(worldRoot).applied());
         } finally {
@@ -472,7 +482,55 @@ public class ModdedReplacementReconcilerTest {
 
             assertThrows(IOException.class, () -> ModdedReplacementReconciler.recordApplied(worldRoot,
                     Map.of("iristest:live", replacement("iristest:live", "skypack")),
-                    (String level, String packRef) -> OptionalLong.of(1L)));
+                    (String level) -> Optional.of(iris("skypack", 1L))));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void runtimeCreatedLevelIsNeverMovedRecordedOrAdopted() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-replace-runtime-level");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path spatial = worldRoot.resolve("dimensions/ae2/spatial_storage");
+            touch(spatial.resolve("region/r.0.0.mca"));
+            createHistory(temporary, spatial, ModdedWorldgenIds.dimensionTypeRef("overworld", "overworld"), "overworld",
+                    List.of());
+            ModdedDimensionReplacement staged = seeded("ae2:spatial_storage", "overworld", 5L);
+            ModdedReplacementReconciler.stagePending(worldRoot, staged);
+
+            ModdedReplacementReconciler.Result result = reconcile(worldRoot,
+                    Map.of("ae2:spatial_storage", staged), List.of(), temporary.resolve("config"));
+
+            assertEquals(Set.of("ae2:spatial_storage"), result.unreplaceableLevels());
+            assertEquals(Set.of(), result.quarantinedLevels());
+            assertEquals(Set.of(), result.adoptedLevels());
+            assertNull(result.recovery());
+            assertTrue(Files.isRegularFile(spatial.resolve("region/r.0.0.mca")));
+            assertEquals(ModdedReplacementReconciler.State.EMPTY, ModdedReplacementReconciler.readState(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void levelStemOnlyDefinedByAnUnappliedIrisOverrideIsNotReplaceable() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-replace-stale-override");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path spatial = worldRoot.resolve("dimensions/ae2/spatial_storage");
+            touch(spatial.resolve("region/r.0.0.mca"));
+            ModdedDimensionReplacements.ReplaceableLevels levels = new ModdedDimensionReplacements.ReplaceableLevels(
+                    true, Map.of("ae2:spatial_storage", ModdedDimensionReplacements.IRIS_GENERATOR), Set.of());
+
+            ModdedReplacementReconciler.Result result = ModdedReplacementReconciler.reconcile(
+                    new ModdedReplacementReconciler.Request(worldRoot,
+                            Map.of("ae2:spatial_storage", replacement("ae2:spatial_storage", "overworld")), List.of(),
+                            (ModdedDimensionReplacement replacement) -> true, temporary.resolve("config"), levels));
+
+            assertEquals(Set.of("ae2:spatial_storage"), result.unreplaceableLevels());
+            assertTrue(Files.isRegularFile(spatial.resolve("region/r.0.0.mca")));
         } finally {
             deleteTree(temporary);
         }
@@ -490,7 +548,7 @@ public class ModdedReplacementReconcilerTest {
             IOException refused = assertThrows(IOException.class, () -> ModdedReplacementReconciler.reconcile(
                     new ModdedReplacementReconciler.Request(worldRoot,
                             Map.of("iristest:skylands", replacement("iristest:skylands", "missing")), List.of(),
-                            (ModdedDimensionReplacement replacement) -> false, temporary.resolve("config"))));
+                            (ModdedDimensionReplacement replacement) -> false, temporary.resolve("config"), STEMS)));
 
             assertTrue(refused.getMessage(), refused.getMessage().contains("missing"));
             assertTrue(Files.isRegularFile(region));
@@ -511,7 +569,7 @@ public class ModdedReplacementReconcilerTest {
             ModdedReplacementReconciler.Result result = ModdedReplacementReconciler.reconcile(
                     new ModdedReplacementReconciler.Request(worldRoot,
                             Map.of("aether:the_aether", replacement("aether:the_aether", "missing")), List.of(),
-                            (ModdedDimensionReplacement replacement) -> false, temporary.resolve("config")));
+                            (ModdedDimensionReplacement replacement) -> false, temporary.resolve("config"), STEMS));
 
             assertEquals(Set.of(), result.quarantinedLevels());
             assertTrue(Files.isRegularFile(region));
@@ -543,7 +601,11 @@ public class ModdedReplacementReconcilerTest {
     private static ModdedReplacementReconciler.Result reconcile(Path worldRoot, Map<String, ModdedDimensionReplacement> configured,
                                                                 List<String> problems, Path recoveryParent) throws IOException {
         return ModdedReplacementReconciler.reconcile(new ModdedReplacementReconciler.Request(
-                worldRoot, configured, problems, (ModdedDimensionReplacement replacement) -> true, recoveryParent));
+                worldRoot, configured, problems, (ModdedDimensionReplacement replacement) -> true, recoveryParent, STEMS));
+    }
+
+    private static ModdedReplacementReconciler.LiveLevel iris(String packRef, long seed) {
+        return new ModdedReplacementReconciler.LiveLevel(true, packRef, seed);
     }
 
     private static void writeApplied(Path worldRoot, ModdedDimensionReplacement applied) throws IOException {

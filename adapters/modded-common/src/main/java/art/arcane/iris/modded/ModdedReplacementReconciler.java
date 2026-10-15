@@ -38,6 +38,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -72,9 +73,9 @@ public final class ModdedReplacementReconciler {
             Path packsRoot = IrisPlatforms.get().packsFolderNoCreate().toPath();
             Result result = reconcile(new Request(worldRoot, configured, config.replacementProblems(),
                     (ModdedDimensionReplacement replacement) -> ModdedDimensionReplacements.installed(replacement, packsRoot),
-                    recoveryParent));
+                    recoveryParent, ModdedDimensionReplacements.replaceableLevels(worldRoot, configured)));
             if (!result.adoptedLevels().isEmpty()) {
-                ModdedIrisLog.info("Iris dimension replacement recorded for {}: their existing Iris generation history already uses the configured pack and seed",
+                ModdedIrisLog.info("Iris kept the existing terrain of {}: its Iris generation history already uses the configured pack and seed; the replacement is recorded once the level generates from it",
                         result.adoptedLevels());
             }
             if (!result.replacedWorlds().isEmpty()) {
@@ -101,7 +102,7 @@ public final class ModdedReplacementReconciler {
         }
         try {
             recordApplied(worldRoot.get(), ModdedDimensionReplacements.configured(),
-                    (String levelKey, String packRef) -> generatedSeed(server, levelKey, packRef));
+                    (String levelKey) -> liveLevel(server, levelKey));
         } catch (IOException | RuntimeException failure) {
             ModdedIrisLog.error("Iris is stopping the server because it could not record the applied dimension replacements under {}; an unrecorded replacement would be moved aside again on the next start",
                     worldRoot.get(), failure);
@@ -109,15 +110,29 @@ public final class ModdedReplacementReconciler {
         }
     }
 
-    static Map<String, ModdedDimensionReplacement> recordApplied(Path worldRoot,
+    public static void stopUnpublishedEngines(NativeModdedServer server) {
+        for (String levelKey : ModdedWorldEngines.evictUnpublished(server,
+                ModdedModConfig.get().dimensionReplacements().keySet())) {
+            ModdedIrisLog.error("Iris stopped the engine it started for {}: a mod replaced that level with its own chunk generator while the server started",
+                    levelKey);
+        }
+    }
+
+    static synchronized Map<String, ModdedDimensionReplacement> recordApplied(Path worldRoot,
                                                                 Map<String, ModdedDimensionReplacement> configured,
-                                                                GeneratedSeed generating) throws IOException {
+                                                                LiveLevels levels) throws IOException {
         State state = readState(worldRoot);
         Map<String, ModdedDimensionReplacement> recorded = new TreeMap<>(state.applied());
         for (ModdedDimensionReplacement replacement : new TreeMap<>(configured).values()) {
-            OptionalLong seed = generating.seed(replacement.levelKey(), replacement.packRef());
-            if (seed.isPresent() && (replacement.seed().isEmpty() || replacement.seed().equals(seed))) {
-                recorded.put(replacement.levelKey(), replacement.withSeed(seed.getAsLong()));
+            Optional<LiveLevel> live = levels.level(replacement.levelKey());
+            if (live.isPresent() && live.get().generates(replacement)) {
+                recorded.put(replacement.levelKey(), replacement.withSeed(live.get().seed()));
+                continue;
+            }
+            if (live.isPresent() && !live.get().iris()) {
+                recorded.remove(replacement.levelKey());
+                ModdedIrisLog.error("Iris replacement of {} is configured but the loaded level uses another chunk generator; a mod creates that level while the server runs, so Iris cannot replace it. Remove its dimensionReplacements entry from modded.json",
+                        replacement.levelKey());
                 continue;
             }
             ModdedIrisLog.warn("Iris replacement of {} is configured but the level does not generate from {}{}; it stays unapplied",
@@ -130,7 +145,7 @@ public final class ModdedReplacementReconciler {
         return Map.copyOf(recorded);
     }
 
-    static Result reconcile(Request request) throws IOException {
+    static synchronized Result reconcile(Request request) throws IOException {
         Path worldRoot = request.worldRoot();
         requireReadableConfig(worldRoot, request.configProblems());
         State state = readState(worldRoot);
@@ -149,6 +164,7 @@ public final class ModdedReplacementReconciler {
         Map<String, ModdedDimensionReplacement> recorded = new TreeMap<>(applied);
         Set<String> quarantined = new TreeSet<>();
         Set<String> adopted = new TreeSet<>();
+        Set<String> unreplaceable = new TreeSet<>();
         for (String level : changed) {
             ModdedDimensionReplacement replacement = request.configured().get(level);
             if (replacement == null) {
@@ -156,12 +172,15 @@ public final class ModdedReplacementReconciler {
                 quarantined.add(level);
                 continue;
             }
+            if (!request.levels().replaceable(level)) {
+                unreplaceable.add(level);
+                ModdedIrisLog.error(ModdedDimensionReplacements.unreplaceableReason(level, request.levels())
+                        + " Remove its dimensionReplacements entry from modded.json.");
+                continue;
+            }
             Path storage = replacement.storageFolder(worldRoot);
-            OptionalLong historySeed = refreshed.contains(level)
-                    ? OptionalLong.empty()
-                    : matchingHistorySeed(storage, replacement);
-            if (historySeed.isPresent()) {
-                recorded.put(level, replacement.withSeed(historySeed.getAsLong()));
+            boolean keepHistory = !refreshed.contains(level) && matchingHistorySeed(storage, replacement).isPresent();
+            if (keepHistory) {
                 adopted.add(level);
             } else if (request.installed().test(replacement)) {
                 quarantined.add(level);
@@ -205,7 +224,7 @@ public final class ModdedReplacementReconciler {
             writeState(worldRoot, reconciled);
         }
         return new Result(Set.copyOf(quarantined), Set.copyOf(adopted), Set.copyOf(replacedWorlds.keySet()),
-                moved.isEmpty() ? null : recovery);
+                Set.copyOf(unreplaceable), moved.isEmpty() ? null : recovery);
     }
 
     public static boolean pending(Path worldRoot, String levelKey, Map<String, ModdedDimensionReplacement> configured)
@@ -320,16 +339,16 @@ public final class ModdedReplacementReconciler {
         return packs.isEmpty() || packs.contains(replacement.pack());
     }
 
-    private static OptionalLong generatedSeed(NativeModdedServer server, String levelKey, String packRef) {
+    private static Optional<LiveLevel> liveLevel(NativeModdedServer server, String levelKey) {
         NativeWorld world = server.world(levelKey);
         if (world == null) {
-            return OptionalLong.empty();
+            return Optional.empty();
         }
         IrisModdedChunkGenerator generator = NativeWorldGenerators.find(world, IrisModdedChunkGenerator.class);
-        if (generator == null || !packRef.equals(generator.dimensionKey())) {
-            return OptionalLong.empty();
+        if (generator == null) {
+            return Optional.of(new LiveLevel(false, "", 0L));
         }
-        return OptionalLong.of(generator.visibleBiomeSeed());
+        return Optional.of(new LiveLevel(true, generator.dimensionKey(), generator.visibleBiomeSeed()));
     }
 
     private static void requireReadableConfig(Path worldRoot, List<String> configProblems) throws IOException {
@@ -395,8 +414,19 @@ public final class ModdedReplacementReconciler {
         return section;
     }
 
-    interface GeneratedSeed {
-        OptionalLong seed(String levelKey, String packRef);
+    interface LiveLevels {
+        Optional<LiveLevel> level(String levelKey);
+    }
+
+    record LiveLevel(boolean iris, String packRef, long seed) {
+        LiveLevel {
+            Objects.requireNonNull(packRef, "packRef");
+        }
+
+        boolean generates(ModdedDimensionReplacement replacement) {
+            return iris && packRef.equals(replacement.packRef())
+                    && (replacement.seed().isEmpty() || replacement.seed().getAsLong() == seed);
+        }
     }
 
     record State(Map<String, ModdedDimensionReplacement> applied, Map<String, ModdedDimensionReplacement> pending) {
@@ -409,9 +439,11 @@ public final class ModdedReplacementReconciler {
     }
 
     record Request(Path worldRoot, Map<String, ModdedDimensionReplacement> configured, List<String> configProblems,
-                   Predicate<ModdedDimensionReplacement> installed, Path recoveryParent) {
+                   Predicate<ModdedDimensionReplacement> installed, Path recoveryParent,
+                   ModdedDimensionReplacements.ReplaceableLevels levels) {
     }
 
-    record Result(Set<String> quarantinedLevels, Set<String> adoptedLevels, Set<String> replacedWorlds, Path recovery) {
+    record Result(Set<String> quarantinedLevels, Set<String> adoptedLevels, Set<String> replacedWorlds,
+                  Set<String> unreplaceableLevels, Path recovery) {
     }
 }

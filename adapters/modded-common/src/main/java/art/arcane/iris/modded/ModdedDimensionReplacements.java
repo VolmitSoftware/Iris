@@ -18,6 +18,10 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.modded.catalog.ModdedWorldgenCatalogs;
+import art.arcane.iris.pack.ingest.catalog.CatalogLevelStem;
+import art.arcane.iris.pack.ingest.catalog.WorldgenCatalog;
+import art.arcane.iris.pack.ingest.catalog.WorldgenCatalogStore;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.json.JSONObject;
 
@@ -27,15 +31,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
 public final class ModdedDimensionReplacements {
-    private static final String GENERATOR_TYPE = "irisworldgen:iris";
+    public static final String IRIS_GENERATOR = "irisworldgen:iris";
+    private static final Set<String> VANILLA_LEVELS = Set.of("minecraft:overworld", "minecraft:the_nether",
+            "minecraft:the_end");
+    private static volatile RecordedCatalog recordedCatalog;
     private static final String PLACEHOLDER_BIOME_SOURCE = "minecraft:fixed";
     private static final String PLACEHOLDER_BIOME = "minecraft:plains";
     private static final String DIMENSIONS = "dimensions";
@@ -49,7 +58,7 @@ public final class ModdedDimensionReplacements {
         biomeSource.put("type", PLACEHOLDER_BIOME_SOURCE);
         biomeSource.put("biome", PLACEHOLDER_BIOME);
         JSONObject generator = new JSONObject();
-        generator.put("type", GENERATOR_TYPE);
+        generator.put("type", IRIS_GENERATOR);
         generator.put("biome_source", biomeSource);
         generator.put("dimension", replacement.packRef());
         JSONObject stem = new JSONObject();
@@ -72,8 +81,13 @@ public final class ModdedDimensionReplacements {
     }
 
     public static void writeLevelStems(Path datapackRoot, Map<String, ModdedDimensionReplacement> configured,
-                                       StagedTypes staged, Path worldRoot) throws IOException {
+                                       StagedTypes staged, Path worldRoot, ReplaceableLevels levels) throws IOException {
         for (ModdedDimensionReplacement replacement : new TreeMap<>(configured).values()) {
+            if (!levels.replaceable(replacement.levelKey())) {
+                ModdedIrisLog.error(unreplaceableReason(replacement.levelKey(), levels)
+                        + " Iris writes no dimension override for it.");
+                continue;
+            }
             String typeRef = staged.typeRef(replacement, worldRoot);
             if (typeRef == null) {
                 skipUnstaged(replacement, staged, worldRoot);
@@ -87,6 +101,68 @@ public final class ModdedDimensionReplacements {
 
     public static Map<String, ModdedDimensionReplacement> configured() throws IOException {
         return canonical(ModdedModConfig.get().dimensionReplacements(), IrisPlatforms.get().packsFolderNoCreate().toPath());
+    }
+
+    public static Map<String, ModdedDimensionReplacement> stageable(Map<String, ModdedDimensionReplacement> configured,
+                                                                   ReplaceableLevels levels) {
+        Map<String, ModdedDimensionReplacement> stageable = new TreeMap<>();
+        for (ModdedDimensionReplacement replacement : configured.values()) {
+            if (levels.replaceable(replacement.levelKey())) {
+                stageable.put(replacement.levelKey(), replacement);
+            }
+        }
+        return Map.copyOf(stageable);
+    }
+
+    public static ReplaceableLevels replaceableLevels(Path worldRoot, Map<String, ModdedDimensionReplacement> configured)
+            throws IOException {
+        if (configured.isEmpty()) {
+            return ReplaceableLevels.unknown();
+        }
+        return replaceableLevels(worldRoot);
+    }
+
+    public static ReplaceableLevels replaceableLevels(Path worldRoot) throws IOException {
+        Set<String> applied = worldRoot == null
+                ? Set.of()
+                : ModdedReplacementReconciler.readState(worldRoot).applied().keySet();
+        Optional<WorldgenCatalog> catalog = ModdedWorldgenCatalogs.latest();
+        if (catalog.isEmpty()) {
+            catalog = recordedCatalog();
+        }
+        return catalog.isEmpty()
+                ? ReplaceableLevels.unknown()
+                : ReplaceableLevels.of(catalog.get().levelStems(), applied);
+    }
+
+    public static String unreplaceableReason(String levelKey, ReplaceableLevels levels) {
+        if (!levels.known()) {
+            return "Iris refuses to replace " + levelKey + ": it has no record of which dimensions this server loads"
+                    + " from level stems yet. Start the server once so Iris can read the dimension registry.";
+        }
+        return "Iris refuses to replace " + levelKey + ": it is not a dimension the server loads from a level stem;"
+                + " a mod creates it while the server runs, so its data stays untouched.";
+    }
+
+    private static Optional<WorldgenCatalog> recordedCatalog() {
+        Path file = ModdedWorldgenCatalogs.catalogFile();
+        if (!Files.isRegularFile(file)) {
+            return Optional.empty();
+        }
+        try {
+            long modified = Files.getLastModifiedTime(file).toMillis();
+            RecordedCatalog cached = recordedCatalog;
+            if (cached != null && cached.file().equals(file) && cached.modified() == modified) {
+                return Optional.of(cached.catalog());
+            }
+            WorldgenCatalog catalog = WorldgenCatalogStore.read(file);
+            recordedCatalog = new RecordedCatalog(file, modified, catalog);
+            return Optional.of(catalog);
+        } catch (IOException | RuntimeException unreadable) {
+            ModdedIrisLog.error("Iris could not read the recorded worldgen catalog at {}; only the vanilla dimensions are replaceable until the next start records it",
+                    file, unreadable);
+            return Optional.empty();
+        }
     }
 
     public static OptionalLong loadedSeed(String levelKey) {
@@ -186,6 +262,39 @@ public final class ModdedDimensionReplacements {
             canonical.append(entry.getKey()).append('=').append(entry.getValue().packRef()).append('\n');
         }
         return canonical.toString();
+    }
+
+    private record RecordedCatalog(Path file, long modified, WorldgenCatalog catalog) {
+    }
+
+    public record ReplaceableLevels(boolean known, Map<String, String> stemGenerators, Set<String> applied) {
+        public ReplaceableLevels {
+            stemGenerators = Map.copyOf(stemGenerators);
+            applied = Set.copyOf(applied);
+        }
+
+        public static ReplaceableLevels unknown() {
+            return new ReplaceableLevels(false, Map.of(), Set.of());
+        }
+
+        public static ReplaceableLevels of(List<CatalogLevelStem> stems, Set<String> applied) {
+            Map<String, String> generators = new TreeMap<>();
+            for (CatalogLevelStem stem : stems) {
+                generators.put(stem.key(), stem.generatorType());
+            }
+            return new ReplaceableLevels(true, generators, applied);
+        }
+
+        public boolean replaceable(String levelKey) {
+            if (VANILLA_LEVELS.contains(levelKey)) {
+                return true;
+            }
+            String generator = stemGenerators.get(levelKey);
+            if (generator == null) {
+                return false;
+            }
+            return !IRIS_GENERATOR.equals(generator) || applied.contains(levelKey);
+        }
     }
 
     public record StagedTypes(Map<String, String> installed, Map<Path, String> retained) {

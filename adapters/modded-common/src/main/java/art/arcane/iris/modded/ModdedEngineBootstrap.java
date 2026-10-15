@@ -178,6 +178,7 @@ public final class ModdedEngineBootstrap {
         reconcileSpawn(server, replacedOverworld);
         if (!loader().clientEnvironment()) {
             ModdedReplacementReconciler.recordApplied(server);
+            ModdedReplacementReconciler.stopUnpublishedEngines(server);
             ModdedReplacementEntry.retireIfComplete();
         }
         ModdedWorldCheck.serverStarted(server);

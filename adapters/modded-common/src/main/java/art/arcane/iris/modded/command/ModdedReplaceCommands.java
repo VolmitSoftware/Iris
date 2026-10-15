@@ -30,7 +30,11 @@ import art.arcane.iris.modded.ModdedForcedDatapack;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.modded.ModdedModConfig;
 import art.arcane.iris.modded.ModdedReplacementReconciler;
+import art.arcane.iris.modded.catalog.ModdedWorldgenCatalogs;
+import art.arcane.iris.modded.localization.ModdedCommandMessages;
+import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.PackDownloader;
+import art.arcane.iris.pack.ingest.catalog.WorldgenCatalog;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
@@ -46,10 +50,15 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
@@ -135,6 +144,7 @@ final class ModdedReplaceCommands {
             throw new IllegalArgumentException(MISSING_TARGET);
         }
         Path worldRoot = server.root();
+        requireReplaceableLevel(worldRoot, requested.levelKey());
         requireNothingPending(worldRoot, requested.levelKey());
         long seed = requested.seed().orElse(ModdedReplacementReconciler.applied(worldRoot, requested.levelKey())
                 .map((ModdedDimensionReplacement applied) -> applied.seed().getAsLong())
@@ -164,6 +174,26 @@ final class ModdedReplaceCommands {
         ModdedDimensionReplacement staged = requested.withSeed(requested.seed().orElse(registered.seed()));
         ModdedReplacementReconciler.stagePending(worldRoot, staged);
         return staged;
+    }
+
+    private static void requireReplaceableLevel(Path worldRoot, String levelKey) throws IOException {
+        Optional<WorldgenCatalog> catalog = ModdedWorldgenCatalogs.latest();
+        Set<String> applied = ModdedReplacementReconciler.applied(worldRoot, levelKey).isPresent()
+                ? Set.of(levelKey)
+                : Set.of();
+        ModdedDimensionReplacements.ReplaceableLevels levels = catalog.isEmpty()
+                ? ModdedDimensionReplacements.ReplaceableLevels.unknown()
+                : ModdedDimensionReplacements.ReplaceableLevels.of(catalog.get().levelStems(), applied);
+        if (levels.replaceable(levelKey)) {
+            return;
+        }
+        if (!levels.known()) {
+            throw new IllegalArgumentException(IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_WORLD_COMMANDS_REPLACE_REGISTRY_NOT_READY));
+        }
+        throw new IllegalArgumentException(IrisLanguage.plain(
+                ModdedCommandMessages.MODDED_WORLD_COMMANDS_REPLACE_RUNTIME_LEVEL,
+                MessageArgument.untrusted("dimensionId", levelKey)));
     }
 
     private static void requireNothingPending(Path worldRoot, String levelKey) throws IOException {
@@ -230,11 +260,50 @@ final class ModdedReplaceCommands {
         IrisModdedCommands.fail(source, IrisLanguage.plain(
                 BukkitCommandMessagesExtended.COMMAND_IRIS_DIMENSION_NOT_FOUND,
                 MessageArgument.untrusted("dimension", resolvedType)));
-        IrisModdedCommands.fail(source, IrisLanguage.plain(
-                BukkitCommandMessagesExtended.COMMAND_IRIS_TRY_ONE_OVERWORLD_VANILLA_FLAT_THEEND));
+        List<String> installed = installedTypes(ModdedPackCommands.packsRoot());
+        if (!installed.isEmpty()) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_WORLD_COMMANDS_REPLACE_INSTALLED_TYPES,
+                    MessageArgument.untrusted("value", String.join(", ", installed))));
+        }
         IrisModdedCommands.fail(source, IrisLanguage.plain(
                 BukkitCommandMessagesExtended.COMMAND_IRIS_INSTALL_PACK_AND_RESTART,
                 MessageArgument.untrusted("command", PackDownloader.downloadCommandFor(packOf(resolvedType)))));
+    }
+
+    static List<String> installedTypes(File packsRoot) {
+        Set<String> types = new TreeSet<>();
+        for (File pack : PackDirectoryResolver.listVisiblePackDirectories(packsRoot)) {
+            List<String> dimensionKeys = dimensionKeys(pack.toPath().resolve("dimensions"));
+            if (dimensionKeys.isEmpty()) {
+                continue;
+            }
+            types.add(pack.getName());
+            for (String dimensionKey : dimensionKeys) {
+                if (!dimensionKey.equals(pack.getName())) {
+                    types.add(pack.getName() + ":" + dimensionKey);
+                }
+            }
+        }
+        return List.copyOf(types);
+    }
+
+    private static List<String> dimensionKeys(Path dimensions) {
+        if (!Files.isDirectory(dimensions)) {
+            return List.of();
+        }
+        List<String> keys = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(dimensions)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                String relative = dimensions.relativize(file).toString().replace(File.separatorChar, '/');
+                if (relative.endsWith(".json")) {
+                    keys.add(relative.substring(0, relative.length() - ".json".length()));
+                }
+            }
+        } catch (IOException | RuntimeException unreadable) {
+            ModdedIrisLog.warn("Iris could not list the dimensions of pack folder {}", dimensions.getParent(), unreadable);
+        }
+        return keys;
     }
 
     private static String packOf(String type) {

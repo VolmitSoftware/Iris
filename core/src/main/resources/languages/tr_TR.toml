@@ -1116,6 +1116,9 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Hayır Iris Boyu
 loaded_iris_dimensions = "Yüklendi Iris Boyut: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Kullanım Kullanımı /iris world create <name> <pack> Yeniden başlatmadan birini enjekte etmek."
+replace_runtime_level = "{dimensionId} sunucu çalışırken bir mod tarafından oluşturuluyor ve boyut olarak tanımlı değil, bu yüzden Iris onu değiştiremez."
+replace_registry_not_ready = "Iris bu sunucunun boyutlarını hâlâ okuyor. Birazdan tekrar deneyin."
+replace_installed_types = "Yüklü paketler: {value}"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Download indir & Dış veri paketi ithalatını yönetin (Modrinth)"

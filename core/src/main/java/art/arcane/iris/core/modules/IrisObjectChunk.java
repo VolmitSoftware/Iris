@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.objects.CarvedSpace;
 import art.arcane.iris.builtin.objects.Cavern;
@@ -169,6 +168,11 @@ final class IrisObjectChunk implements ObjectChunk {
         IrisObjectPlacement base = placement instanceof ObjectPlacement settings
                 ? ObjectPlacements.host(settings, engine.getData())
                 : ((IrisProceduralPlacementView) placement).options();
+        return withChanges(base, changes);
+    }
+
+    /** {@code base} with {@code changes} made to a copy of it; {@code base} itself when there are none. */
+    static IrisObjectPlacement withChanges(IrisObjectPlacement base, PlacementChanges changes) {
         if (changes.isNone()) {
             return base;
         }

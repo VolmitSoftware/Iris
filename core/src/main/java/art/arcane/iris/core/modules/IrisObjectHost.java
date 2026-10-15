@@ -58,7 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
  * What {@code iris:objects} asks of Iris, answered from the world's engine: the pack's objects, how Iris scales and places

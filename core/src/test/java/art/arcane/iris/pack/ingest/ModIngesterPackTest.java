@@ -111,6 +111,54 @@ public class ModIngesterPackTest {
         ModIngester.ingest(ModIngestFixture.request(source, target, Set.of(ModIngestFixture.MOD), true));
 
         assertEquals(first, snapshot(target));
+        assertEquals(List.of("modded"), directoryNames(root.resolve("packs")));
+    }
+
+    @Test
+    public void replaceRefusesAPackThatWasNotWrittenByIngest() throws Exception {
+        Path root = folder.getRoot().toPath();
+        Path source = ModIngestFixture.writeSourcePack(root);
+        Path handmade = root.resolve("packs").resolve("handmade");
+        ModIngestFixture.write(handmade, "dimensions/handmade.json", "{\"name\": \"Handmade\"}");
+
+        IOException refused = assertThrows(IOException.class, () -> ModIngester.ingest(
+                ModIngestFixture.request(source, handmade, Set.of(ModIngestFixture.MOD), true)));
+
+        assertTrue(refused.getMessage(), refused.getMessage().contains("ingest/manifest.json"));
+        assertEquals(Map.of("dimensions/handmade.json", "{\"name\": \"Handmade\"}"), snapshot(handmade));
+    }
+
+    @Test
+    public void replaceNeverDeletesTheSourcePackThroughAnotherSpelling() throws Exception {
+        Path root = folder.getRoot().toPath();
+        Path source = ModIngestFixture.writeSourcePack(root);
+        Map<String, String> before = snapshot(source);
+        Path respelled = root.resolve("SOURCE");
+        boolean caseInsensitive = Files.isDirectory(respelled);
+
+        if (caseInsensitive) {
+            assertThrows(IOException.class, () -> ModIngester.ingest(
+                    ModIngestFixture.request(source, respelled, Set.of(ModIngestFixture.MOD), true)));
+        } else {
+            ModIngester.ingest(ModIngestFixture.request(source, respelled, Set.of(ModIngestFixture.MOD), true));
+        }
+
+        assertEquals(before, snapshot(source));
+    }
+
+    @Test
+    public void failedReplaceKeepsThePreviousOutput() throws Exception {
+        Path root = folder.getRoot().toPath();
+        Path source = ModIngestFixture.writeSourcePack(root);
+        Path target = root.resolve("packs").resolve("modded");
+        ModIngester.ingest(ModIngestFixture.request(source, target, Set.of(ModIngestFixture.MOD), false));
+        Map<String, String> first = snapshot(target);
+
+        assertThrows(IOException.class, () -> ModIngester.ingest(new ModIngestRequest(
+                source, target, "missing", ModIngestFixture.catalog(), Set.of(ModIngestFixture.MOD), true)));
+
+        assertEquals(first, snapshot(target));
+        assertEquals(List.of("modded"), directoryNames(root.resolve("packs")));
     }
 
     @Test
@@ -153,6 +201,12 @@ public class ModIngesterPackTest {
         assertEquals(List.of("examplemod", "othermod"),
                 ModIngestFixture.strings(ModIngestFixture.readJson(target.resolve("ingest/manifest.json")).get("namespaces")));
         assertTrue(report.items().stream().noneMatch(item -> item.namespace().equals("minecraft")));
+    }
+
+    private static List<String> directoryNames(Path root) throws IOException {
+        try (Stream<Path> entries = Files.list(root)) {
+            return entries.map((Path entry) -> entry.getFileName().toString()).sorted().toList();
+        }
     }
 
     private static Map<String, String> snapshot(Path root) throws IOException {

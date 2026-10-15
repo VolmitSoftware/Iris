@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
 public final class ModIngester {
     private static final Set<String> RESERVED_NAMESPACES = Set.of("minecraft", "c", "iris");
@@ -58,18 +59,17 @@ public final class ModIngester {
             throw new IOException("Source pack " + source + " was written by mod ingest; ingest from its original pack instead.");
         }
         Set<String> namespaces = selectNamespaces(request);
-        prepareTarget(target, request.replaceTarget());
+        requireReplaceableTarget(target, request.replaceTarget());
         String targetKey = target.getFileName().toString();
-        IrisProjectCopier.copyProject(source.toFile(), target.getParent().toFile(), request.dimensionKey(), targetKey);
+        Files.createDirectories(target.getParent());
+        Path workspace = Files.createTempDirectory(target.getParent(), "." + targetKey + ".ingest-");
         try {
-            return populate(request, target, targetKey, namespaces);
-        } catch (IOException | RuntimeException e) {
-            try {
-                AtomicDirectoryPublisher.deleteTree(target);
-            } catch (IOException cleanupFailure) {
-                e.addSuppressed(cleanupFailure);
-            }
-            throw e;
+            IrisProjectCopier.copyProject(source.toFile(), workspace.toFile(), request.dimensionKey(), targetKey);
+            ModIngestReport built = populate(request, workspace.resolve(targetKey), targetKey, namespaces);
+            publish(workspace.resolve(targetKey), target, request.replaceTarget());
+            return new ModIngestReport(target, built.items(), built.summaryLines());
+        } finally {
+            AtomicDirectoryPublisher.deleteTree(workspace);
         }
     }
 
@@ -134,24 +134,53 @@ public final class ModIngester {
     }
 
     private static void requireSeparate(Path source, Path target) throws IOException {
-        Path realSource = Files.exists(source) ? source.toRealPath() : source;
         if (target.getParent() == null) {
             throw new IOException("Target pack needs a parent directory: " + target);
         }
+        Path realSource = Files.exists(source) ? source.toRealPath() : source;
+        List<Path> targets = new ArrayList<>(List.of(target));
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            targets.add(target.toRealPath());
+            if (Files.exists(source) && Files.isSameFile(source, target)) {
+                throw new IOException("Target pack " + target + " is the source pack " + realSource);
+            }
+        } else if (Files.exists(target.getParent())) {
+            targets.add(target.getParent().toRealPath().resolve(target.getFileName()));
+        }
         for (Path candidate : List.of(source, realSource)) {
-            if (candidate.equals(target) || target.startsWith(candidate) || candidate.startsWith(target)) {
-                throw new IOException("Target pack " + target + " overlaps the source pack " + candidate);
+            for (Path resolvedTarget : targets) {
+                if (candidate.equals(resolvedTarget) || resolvedTarget.startsWith(candidate) || candidate.startsWith(resolvedTarget)) {
+                    throw new IOException("Target pack " + target + " overlaps the source pack " + candidate);
+                }
             }
         }
     }
 
-    private static void prepareTarget(Path target, boolean replace) throws IOException {
-        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(target)) {
-            if (!replace) {
-                throw new FileAlreadyExistsException(target.toString());
-            }
-            AtomicDirectoryPublisher.deleteTree(target);
+    private static void requireReplaceableTarget(Path target, boolean replace) throws IOException {
+        if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(target)) {
+            return;
         }
-        Files.createDirectories(target.getParent());
+        if (!replace) {
+            throw new FileAlreadyExistsException(target.toString());
+        }
+        if (Files.isSymbolicLink(target)
+                || !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)
+                || !Files.isRegularFile(target.resolve(IngestManifest.PATH), LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Iris only replaces packs written by mod ingest, and " + target + " has no "
+                    + IngestManifest.PATH + "; choose another target pack name.");
+        }
+    }
+
+    private static void publish(Path built, Path target, boolean replace) throws IOException {
+        Path staged = target.resolveSibling("." + target.getFileName() + ".staged-" + UUID.randomUUID());
+        Files.move(built, staged);
+        try (AtomicDirectoryPublisher.Publication publication = replace
+                ? AtomicDirectoryPublisher.publish(staged, target)
+                : AtomicDirectoryPublisher.publishAbsent(staged, target)) {
+            publication.commit();
+            publication.cleanupBackup();
+        } finally {
+            AtomicDirectoryPublisher.deleteTree(staged);
+        }
     }
 }

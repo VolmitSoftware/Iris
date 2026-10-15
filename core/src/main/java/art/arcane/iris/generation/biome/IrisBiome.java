@@ -669,6 +669,10 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeDerivatives.getGroundBiomeKey(this, rng, engine, x, y, z);
     }
 
+    public KList<String> getVisibleBiomeKeys(Engine engine) {
+        return IrisBiomeDerivatives.getVisibleBiomeKeys(this, engine);
+    }
+
     public Color getColor(Engine engine, RenderType type) {
         return IrisBiomeColorRenderer.getColor(this, engine, type);
     }

@@ -42,6 +42,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeCustom;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.context.IrisContext;
+import art.arcane.iris.generation.locator.BiomeSearchFilter;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.io.IOException;
@@ -300,10 +301,6 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
             if (!isReady(engine)) {
                 throw new IllegalStateException("Iris visible biome search has no active engine runtime");
             }
-            DimensionStackContext stackContext = engine.getDimensionStackContext();
-            if (stackContext == null) {
-                return query.defaultFallback().get();
-            }
             Set<H> candidates = new HashSet<>();
             for (H biome : collectVisibleBiomeHolders()) {
                 if (query.allowed().test(biome)) {
@@ -313,14 +310,84 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
             if (candidates.isEmpty()) {
                 return null;
             }
+            DimensionStackContext stackContext = engine.getDimensionStackContext();
+            if (stackContext != null) {
+                return query.search().search(candidates, (blockX, blockZ) -> {
+                    int quartX = blockX >> 2;
+                    int quartZ = blockZ >> 2;
+                    DimensionStackLayout stackLayout = stackContext.sample(quartX << 2, quartZ << 2);
+                    return blockY -> resolveVisibleBiome(engine, quartX, blockY >> 2, quartZ,
+                            query.sampler(), stackLayout);
+                });
+            }
+            BiomeSearchFilter filter = BiomeSearchFilter.of(engine, searchBiomeKeys(engine, candidates));
+            int minHeight = engine.getMinHeight();
             return query.search().search(candidates, (blockX, blockZ) -> {
                 int quartX = blockX >> 2;
                 int quartZ = blockZ >> 2;
-                DimensionStackLayout stackLayout = stackContext.sample(quartX << 2, quartZ << 2);
-                return blockY -> resolveVisibleBiome(engine, quartX, blockY >> 2, quartZ,
-                        query.sampler(), stackLayout);
+                BiomeSearchFilter.Column column = filter.column(quartX << 2, quartZ << 2);
+                return blockY -> column.admits(((blockY >> 2) << 2) - minHeight)
+                        ? locateVisibleBiome(engine, quartX, blockY >> 2, quartZ, query.sampler())
+                        : null;
             });
         }
+    }
+
+    private H locateVisibleBiome(Engine engine, int quartX, int quartY, int quartZ, S sampler) {
+        try (GenerationHistoryRuntimeRouter.CoordinateScope ignored = openHistoryCoordinateScope(
+                engine, quartX << 2, quartZ << 2, "modded_locate_visible_biome")) {
+            return resolveVisibleBiome(engine, quartX, quartY, quartZ, sampler, null);
+        }
+    }
+
+    private Set<String> searchBiomeKeys(Engine engine, Set<H> candidates) {
+        NativeBiomeSourceAccess.RegistryView<H> registry = biomeRegistry();
+        if (registry == null) {
+            throw new IllegalStateException("Iris visible biome search has no biome registry");
+        }
+        H plains = resolveHolder(registry, "minecraft:plains");
+        boolean fallbackCandidate = plains != null && candidates.contains(plains);
+        Set<String> keys = new HashSet<>();
+        for (OwnedBiome ownedBiome : getOwnedBiomes(engine)) {
+            if (emitsCandidate(engine, ownedBiome, registry, candidates, fallbackCandidate)) {
+                keys.add(ownedBiome.biome().getLoadKey());
+            }
+        }
+        return keys;
+    }
+
+    private boolean emitsCandidate(Engine engine, OwnedBiome ownedBiome, NativeBiomeSourceAccess.RegistryView<H> registry,
+                                   Set<H> candidates, boolean fallbackCandidate) {
+        IrisBiome irisBiome = ownedBiome.biome();
+        if (irisBiome.isCustom()) {
+            for (IrisBiomeCustom customBiome : irisBiome.getCustomDerivitives()) {
+                if (customBiome == null) {
+                    if (fallbackCandidate) {
+                        return true;
+                    }
+                    continue;
+                }
+                String key = ownedBiome.dimension() == engine.getDimension() && ownedBiome.data() == engine.getData()
+                        ? ModdedWorldgenIds.biomeRef(engine, customBiome.getId())
+                        : ownedBiome.data().customBiomeResourceKey(ownedBiome.dimension(), customBiome);
+                if (emits(registry, key, candidates, fallbackCandidate)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        for (String key : irisBiome.getVisibleBiomeKeys(engine)) {
+            if (emits(registry, key, candidates, fallbackCandidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static <H> boolean emits(NativeBiomeSourceAccess.RegistryView<H> registry, String key,
+                                     Set<H> candidates, boolean fallbackCandidate) {
+        H holder = key == null ? null : resolveHolder(registry, key);
+        return holder == null ? fallbackCandidate : candidates.contains(holder);
     }
 
     private H getNoiseBiome(Engine engine, int quartX, int quartY, int quartZ,

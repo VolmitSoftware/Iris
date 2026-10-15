@@ -41,6 +41,7 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
 import java.util.ArrayDeque;
 import java.util.Comparator;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -377,56 +378,16 @@ public final class HintedLocator<T> implements Locator<T> {
         }
 
         IrisComplex complex = engine.getComplex();
-        BiomeSource source = new BiomeSource(engine);
-        KSet<String> landHosts = new KSet<>();
-        KSet<String> seaHosts = new KSet<>();
-        KSet<String> shoreHosts = new KSet<>();
-        KSet<String> surfaceRegions = new KSet<>();
-        KSet<String> caveRegions = new KSet<>();
-
-        for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            if (region == null) {
-                continue;
-            }
-
-            boolean hosted = false;
-
-            for (String root : region.getLandBiomes()) {
-                if (source.closureContains(root, biomeKey)) {
-                    landHosts.add(root);
-                    hosted = true;
-                }
-            }
-
-            for (String root : region.getSeaBiomes()) {
-                if (source.closureContains(root, biomeKey)) {
-                    seaHosts.add(root);
-                    hosted = true;
-                }
-            }
-
-            for (String root : region.getShoreBiomes()) {
-                if (source.closureContains(root, biomeKey)) {
-                    shoreHosts.add(root);
-                    hosted = true;
-                }
-            }
-
-            if (hosted) {
-                surfaceRegions.add(region.getLoadKey());
-            }
-
-            if (region.getCaveBiomes().contains(biomeKey)) {
-                caveRegions.add(region.getLoadKey());
-            }
+        CoarseSample surface = surfaceCoarse(engine, Set.of(biomeKey));
+        if (surface != null) {
+            return SearchPlan.of(surface, BIOME_STRIDE_CHUNKS, null);
         }
 
-        if (!surfaceRegions.isEmpty()) {
-            return SearchPlan.of(
-                    surfaceCoarse(complex, surfaceRegions, landHosts, seaHosts, shoreHosts),
-                    BIOME_STRIDE_CHUNKS,
-                    null
-            );
+        KSet<String> caveRegions = new KSet<>();
+        for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
+            if (region != null && region.getCaveBiomes().contains(biomeKey)) {
+                caveRegions.add(region.getLoadKey());
+            }
         }
 
         if (!caveRegions.isEmpty()) {
@@ -567,6 +528,54 @@ public final class HintedLocator<T> implements Locator<T> {
         return SearchPlan.of(coarse, 1, null);
     }
 
+    static boolean closureContains(Engine engine, String rootKey, Set<String> biomeKeys) {
+        return new BiomeSource(engine).closureContains(rootKey, biomeKeys);
+    }
+
+    static CoarseSample surfaceCoarse(Engine engine, Set<String> biomeKeys) {
+        BiomeSource source = new BiomeSource(engine);
+        KSet<String> landHosts = new KSet<>();
+        KSet<String> seaHosts = new KSet<>();
+        KSet<String> shoreHosts = new KSet<>();
+        KSet<String> surfaceRegions = new KSet<>();
+
+        for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
+            if (region == null) {
+                continue;
+            }
+
+            boolean hosted = false;
+
+            for (String root : region.getLandBiomes()) {
+                if (source.closureContains(root, biomeKeys)) {
+                    landHosts.add(root);
+                    hosted = true;
+                }
+            }
+
+            for (String root : region.getSeaBiomes()) {
+                if (source.closureContains(root, biomeKeys)) {
+                    seaHosts.add(root);
+                    hosted = true;
+                }
+            }
+
+            for (String root : region.getShoreBiomes()) {
+                if (source.closureContains(root, biomeKeys)) {
+                    shoreHosts.add(root);
+                    hosted = true;
+                }
+            }
+
+            if (hosted) {
+                surfaceRegions.add(region.getLoadKey());
+            }
+        }
+
+        return surfaceRegions.isEmpty() ? null
+                : surfaceCoarse(engine.getComplex(), surfaceRegions, landHosts, seaHosts, shoreHosts);
+    }
+
     private static CoarseSample surfaceCoarse(IrisComplex complex, KSet<String> regions, KSet<String> landHosts, KSet<String> seaHosts, KSet<String> shoreHosts) {
         return (x, z) -> {
             IrisRegion region = complex.getRegionStream().get(x, z);
@@ -654,8 +663,8 @@ public final class HintedLocator<T> implements Locator<T> {
             return loaded;
         }
 
-        private boolean closureContains(String rootKey, String targetKey) {
-            if (rootKey == null || targetKey == null) {
+        private boolean closureContains(String rootKey, Set<String> targetKeys) {
+            if (rootKey == null) {
                 return false;
             }
 
@@ -670,7 +679,7 @@ public final class HintedLocator<T> implements Locator<T> {
                     continue;
                 }
 
-                if (key.equals(targetKey)) {
+                if (targetKeys.contains(key)) {
                     return true;
                 }
 

@@ -144,6 +144,20 @@ final class IrisBiomeDerivatives {
         return physicalBiomeKey(engine, logicalKey);
     }
 
+    static KList<String> getVisibleBiomeKeys(IrisBiome biome, Engine engine) {
+        KList<String> keys = new KList<>();
+        if (biome.getBiomeScatter().isEmpty()) {
+            keys.add(physicalBiomeKey(engine, biome.getDerivativeKey()));
+        }
+        for (String scatter : biome.getBiomeScatter()) {
+            keys.add(physicalBiomeKey(engine, namespacedBiomeKey(scatter)));
+        }
+        for (String scatter : biome.getBiomeSkyScatter()) {
+            keys.add(physicalBiomeKey(engine, namespacedBiomeKey(scatter)));
+        }
+        return keys;
+    }
+
     static IrisBiomeCustom getCustomBiome(IrisBiome biome, RNG rng, Engine engine, double x, double y, double z) {
         KList<IrisBiomeCustom> customDerivitives = biome.getCustomDerivitives();
 

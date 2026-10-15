@@ -25,12 +25,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 final class ModdedDatapackTagMerge {
     private static final String REPLACE = "replace";
     private static final String VALUES = "values";
+    private static final String REMOVE = "remove";
 
     private ModdedDatapackTagMerge() {
     }
@@ -45,17 +46,25 @@ final class ModdedDatapackTagMerge {
     static void merge(Path source, Path destination) throws IOException {
         JSONObject incoming = read(source);
         JSONObject existing = read(destination);
-        Map<String, Object> values = new TreeMap<>();
-        collect(existing, values, destination);
-        collect(incoming, values, source);
-        JSONArray merged = new JSONArray();
-        for (Object value : values.values()) {
-            merged.put(value);
-        }
         JSONObject tag = new JSONObject();
         tag.put(REPLACE, existing.optBoolean(REPLACE, false) || incoming.optBoolean(REPLACE, false));
-        tag.put(VALUES, merged);
+        tag.put(VALUES, union(existing, incoming, VALUES, source, destination));
+        if (existing.has(REMOVE) || incoming.has(REMOVE)) {
+            tag.put(REMOVE, union(existing, incoming, REMOVE, source, destination));
+        }
         Files.writeString(destination, tag.toString(4), StandardCharsets.UTF_8);
+    }
+
+    private static JSONArray union(JSONObject existing, JSONObject incoming, String field, Path source, Path destination)
+            throws IOException {
+        Map<String, Object> entries = new LinkedHashMap<>();
+        collect(existing, field, entries, destination);
+        collect(incoming, field, entries, source);
+        JSONArray merged = new JSONArray();
+        for (Object entry : entries.values()) {
+            merged.put(entry);
+        }
+        return merged;
     }
 
     private static JSONObject read(Path tag) throws IOException {
@@ -66,18 +75,18 @@ final class ModdedDatapackTagMerge {
         }
     }
 
-    private static void collect(JSONObject tag, Map<String, Object> values, Path origin) throws IOException {
-        JSONArray entries = tag.optJSONArray(VALUES);
-        if (entries == null) {
+    private static void collect(JSONObject tag, String field, Map<String, Object> entries, Path origin) throws IOException {
+        JSONArray values = tag.optJSONArray(field);
+        if (values == null) {
             return;
         }
-        for (int index = 0; index < entries.length(); index++) {
-            Object entry = entries.get(index);
+        for (int index = 0; index < values.length(); index++) {
+            Object entry = values.get(index);
             String key = entry instanceof JSONObject object ? object.optString("id", "") : entry.toString();
             if (key.isBlank()) {
-                throw new IOException("Iris cannot merge datapack tag " + origin + ": entry " + index + " has no id.");
+                throw new IOException("Iris cannot merge datapack tag " + origin + ": " + field + " entry " + index + " has no id.");
             }
-            values.putIfAbsent(key, entry);
+            entries.putIfAbsent(key, entry);
         }
     }
 }

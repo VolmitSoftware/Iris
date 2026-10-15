@@ -19,6 +19,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.volmlib.util.collection.KSet;
+import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.v1217.DataFixerV1217;
@@ -289,6 +290,60 @@ public class ModdedForcedDatapackTest {
         } finally {
             deleteTree(root);
         }
+    }
+
+    @Test
+    public void tagMergeKeepsFirstSeenOrderAndUnionsRemoveLists() throws IOException {
+        Path root = Files.createTempDirectory("iris-forced-pack-tag-order");
+        try {
+            Path tag = Path.of("data/minecraft/tags/worldgen/world_preset/normal.json");
+            Path source = root.resolve("source");
+            Path destination = root.resolve("destination");
+            Files.createDirectories(source.resolve(tag).getParent());
+            Files.createDirectories(destination.resolve(tag).getParent());
+            Files.writeString(destination.resolve(tag),
+                    "{\"replace\":false,\"values\":[\"irisworldgen:z\",\"irisworldgen:a\"],\"remove\":[\"minecraft:large_biomes\"]}",
+                    StandardCharsets.UTF_8);
+            Files.writeString(source.resolve(tag),
+                    "{\"replace\":false,\"values\":[\"irisworldgen:m\",\"irisworldgen:a\"],\"remove\":[\"minecraft:amplified\",\"minecraft:large_biomes\"]}",
+                    StandardCharsets.UTF_8);
+
+            ModdedForcedDatapack.mergeDirectory(source, destination);
+
+            JSONObject merged = new JSONObject(Files.readString(destination.resolve(tag), StandardCharsets.UTF_8));
+            assertEquals(List.of("irisworldgen:z", "irisworldgen:a", "irisworldgen:m"), strings(merged.getJSONArray("values")));
+            assertEquals(List.of("minecraft:large_biomes", "minecraft:amplified"), strings(merged.getJSONArray("remove")));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    public void tagMergeWithoutRemoveListsWritesNone() throws IOException {
+        Path root = Files.createTempDirectory("iris-forced-pack-tag-no-remove");
+        try {
+            Path tag = Path.of("data/minecraft/tags/worldgen/biome/is_overworld.json");
+            for (String side : List.of("source", "destination")) {
+                Files.createDirectories(root.resolve(side).resolve(tag).getParent());
+                Files.writeString(root.resolve(side).resolve(tag),
+                        "{\"replace\":false,\"values\":[\"iris:biomes/" + side + "\"]}", StandardCharsets.UTF_8);
+            }
+
+            ModdedForcedDatapack.mergeDirectory(root.resolve("source"), root.resolve("destination"));
+
+            JSONObject merged = new JSONObject(Files.readString(root.resolve("destination").resolve(tag), StandardCharsets.UTF_8));
+            assertFalse(merged.has("remove"));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    private static List<String> strings(JSONArray array) {
+        List<String> values = new ArrayList<>();
+        for (int index = 0; index < array.length(); index++) {
+            values.add(array.get(index).toString());
+        }
+        return values;
     }
 
     @Test

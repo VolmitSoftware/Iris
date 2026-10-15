@@ -52,6 +52,9 @@ public class IrisModdedCommandParityTest {
         child(iris, "worlds");
         child(iris, "accesslist");
         child(child(iris, "goto"), "unregistered");
+        for (String replace : new String[]{"replace", "override", "overwrite"}) {
+            assertTrue(replace, child(child(iris, replace), "arguments").getChildren().isEmpty());
+        }
 
         CommandNode<CommandSourceStack> edit = child(iris, "edit");
         child(edit, "b");
@@ -173,7 +176,9 @@ public class IrisModdedCommandParityTest {
         assertTrue(ModdedCommandHelp.documents("studio", "pkg"));
         assertTrue(ModdedCommandHelp.documents("object", "we"));
         assertTrue(ModdedCommandHelp.documents("world", "mainworld"));
-        assertTrue(ModdedCommandHelp.documents("world", "takeover"));
+        assertTrue(ModdedCommandHelp.documents("", "replace"));
+        assertTrue(ModdedCommandHelp.documents("", "override"));
+        assertTrue(ModdedCommandHelp.documents("", "overwrite"));
         assertTrue(ModdedCommandHelp.documents("goto", "unregistered"));
         assertTrue(ModdedCommandHelp.documents("pack", "compat"));
         assertTrue(ModdedCommandHelp.documents("pack", "cp"));

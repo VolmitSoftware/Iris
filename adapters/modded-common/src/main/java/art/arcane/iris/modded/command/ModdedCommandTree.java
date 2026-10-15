@@ -138,6 +138,9 @@ final class ModdedCommandTree {
 
         root.then(createTree("create"));
         root.then(createTree("c"));
+        root.then(ModdedReplaceCommands.tree("replace"));
+        root.then(ModdedReplaceCommands.tree("override"));
+        root.then(ModdedReplaceCommands.tree("overwrite"));
 
         root.then(ModdedStudioCommands.tree("studio"));
         root.then(ModdedStudioCommands.tree("std"));

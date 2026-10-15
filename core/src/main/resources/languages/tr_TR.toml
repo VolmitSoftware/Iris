@@ -454,7 +454,6 @@ operator_instruction = "{command} komutunu konsoldan çalıştırın (veya tek o
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
-"entry.command.takeover" = "Bir sonraki yeniden başlatmada mevcut bir boyutu bir Iris paketiyle devral veya devralmayı kapat"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1117,10 +1116,6 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Hayır Iris Boyu
 loaded_iris_dimensions = "Yüklendi Iris Boyut: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Kullanım Kullanımı /iris world create <name> <pack> Yeniden başlatmadan birini enjekte etmek."
-takeover_set = "{dimensionId} için Iris devralması '{pack}' paketine, '{packDimension}' boyutuna ayarlandı."
-takeover_cleared = "{dimensionId} için Iris devralması kapatıldı; boyutun kendi üreticisi bir sonraki yeniden başlatmada geri gelir."
-takeover_not_configured = "{dimensionId} için yapılandırılmış bir Iris devralması yok."
-takeover_restart_required = "Yeniden başlatma gerekli: bir sonraki başlatmada boyutun chunk, varlık, POI ve Iris Mantle verileri bir kurtarma klasörüne taşınır ve yeniden oluşturulur. Oyuncu verileri korunur."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Download indir & Dış veri paketi ithalatını yönetin (Modrinth)"

@@ -194,6 +194,11 @@ public final class ModdedDimensionRegistryStore {
         write(file, dimensions, List.of());
     }
 
+    static synchronized void writeWorldRoot(Path worldRoot, List<PersistentDimension> dimensions) {
+        Path file = storeFile(worldRoot);
+        write(file, dimensions, contents(file).unparsed());
+    }
+
     private static void write(Path file, List<PersistentDimension> dimensions, List<Object> unparsed) {
         JSONArray entries = new JSONArray();
         for (PersistentDimension dimension : dimensions) {

@@ -454,7 +454,6 @@ operator_instruction = "לרוץ {command} מן הקונסולה (או לאפש�
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
-"entry.command.takeover" = "השתלטות על ממד קיים עם חבילת Iris בהפעלה מחדש הבאה, או כיבוי ההשתלטות"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1117,10 +1116,6 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "לא Iris המי
 loaded_iris_dimensions = "טעון Iris ממדים: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "שימוש בשימוש /iris world create <name> <pack> להזריק אחד מבלי להתחיל מחדש."
-takeover_set = "השתלטות Iris על {dimensionId} הוגדרה לחבילה '{pack}', ממד '{packDimension}'."
-takeover_cleared = "השתלטות Iris על {dimensionId} כובתה; המחולל המקורי של הממד יחזור בהפעלה מחדש הבאה."
-takeover_not_configured = "לא מוגדרת השתלטות Iris עבור {dimensionId}."
-takeover_restart_required = "נדרשת הפעלה מחדש: בהפעלה הבאה נתוני ה-chunk, הישויות, ה-POI וה-Iris Mantle של הממד יועברו לתיקיית שחזור וייווצרו מחדש. נתוני השחקנים נשמרים."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "הורד הורדה & ניהול יבוא נתונים חיצוני (Modrinth)"

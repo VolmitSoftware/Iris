@@ -174,9 +174,11 @@ public final class ModdedEngineBootstrap {
         server.refreshWorlds();
         bindWorldGenerators(server);
         ModdedStartup.runOnce(server);
-        reconcileSpawn(server);
+        boolean replacedOverworld = !loader().clientEnvironment() && ModdedReplacementEntry.prepare(server);
+        reconcileSpawn(server, replacedOverworld);
         if (!loader().clientEnvironment()) {
-            ModdedTakeoverReconciler.recordApplied(server);
+            ModdedReplacementReconciler.recordApplied(server);
+            ModdedReplacementEntry.retireIfComplete();
         }
         ModdedWorldCheck.serverStarted(server);
         ModdedWorldgenCatalogs.capture(server);
@@ -277,6 +279,7 @@ public final class ModdedEngineBootstrap {
         Throwable failure = null;
         failure = runStopStage(failure, "world engines", ModdedWorldEngines::shutdown);
         failure = runStopStage(failure, "primary world router", ModdedPrimaryWorldRouter::clear);
+        failure = runStopStage(failure, "replacement entry guard", ModdedReplacementEntry::clear);
         failure = runStopStage(failure, "dimension manager", ModdedDimensionManager::clear);
         ModdedScheduler scheduler = schedulerOrNull();
         if (scheduler != null) {
@@ -332,7 +335,7 @@ public final class ModdedEngineBootstrap {
         spawnCaptureServer = server;
     }
 
-    private static void reconcileSpawn(NativeModdedServer server) {
+    private static void reconcileSpawn(NativeModdedServer server, boolean replacedOverworld) {
         NativeServerSpawn spawn = new NativeServerSpawn(server);
         NativeServerSpawn.Respawn current = spawn.current();
         if (current == null || current.world() == null) {
@@ -344,7 +347,8 @@ public final class ModdedEngineBootstrap {
         }
         String dimensionId = level.name();
         boolean studio = dimensionId.startsWith("irisworldgen:studio_");
-        if (!shouldReconcileSpawn(initialSpawnWasDefault, studio, current.position().x(), current.position().z())) {
+        if (!shouldReconcileSpawn(initialSpawnWasDefault || replacedOverworld, studio,
+                current.position().x(), current.position().z())) {
             return;
         }
         int surfaceY = spawn.surfaceAtOrigin(level);
@@ -375,7 +379,7 @@ public final class ModdedEngineBootstrap {
         bind();
         IrisLanguage.initialize();
         if (!moddedLoader.clientEnvironment()) {
-            ModdedTakeoverReconciler.reconcileEarly();
+            ModdedReplacementReconciler.reconcileEarly();
         }
         ModdedStartup.prefetchStartupDatapack();
         if (!moddedLoader.clientEnvironment()) {

@@ -32,7 +32,7 @@ import java.util.TreeSet;
 
 public final class ModdedModConfig {
     private static final Object LOCK = new Object();
-    private static final String DIMENSION_TAKEOVERS = "dimensionTakeovers";
+    private static final String DIMENSION_REPLACEMENTS = "dimensionReplacements";
     private static volatile ModdedModConfig instance;
 
     private final String defaultPack;
@@ -41,20 +41,20 @@ public final class ModdedModConfig {
     private final String mainWorldPack;
     private final long mainWorldSeed;
     private final boolean mainWorldAutoRestart;
-    private final Map<String, String> dimensionTakeovers;
-    private final List<String> takeoverProblems;
+    private final Map<String, ModdedDimensionReplacement> dimensionReplacements;
+    private final List<String> replacementProblems;
 
     private ModdedModConfig(String defaultPack, String primaryWorld, boolean routePlayersToPrimaryWorld,
                            String mainWorldPack, long mainWorldSeed, boolean mainWorldAutoRestart,
-                           Takeovers takeovers) {
+                           Replacements replacements) {
         this.defaultPack = defaultPack;
         this.primaryWorld = primaryWorld == null ? "" : primaryWorld.trim();
         this.routePlayersToPrimaryWorld = routePlayersToPrimaryWorld;
         this.mainWorldPack = mainWorldPack == null ? "" : mainWorldPack.trim();
         this.mainWorldSeed = mainWorldSeed;
         this.mainWorldAutoRestart = mainWorldAutoRestart;
-        this.dimensionTakeovers = Map.copyOf(takeovers.entries());
-        this.takeoverProblems = List.copyOf(takeovers.problems());
+        this.dimensionReplacements = Map.copyOf(replacements.entries());
+        this.replacementProblems = List.copyOf(replacements.problems());
     }
 
     public static ModdedModConfig get() {
@@ -71,11 +71,15 @@ public final class ModdedModConfig {
         }
     }
 
+    public static ModdedModConfig loaded() {
+        return instance;
+    }
+
     public static void setPrimaryWorld(String dimensionId) {
         synchronized (LOCK) {
             ModdedModConfig current = writable();
             ModdedModConfig updated = new ModdedModConfig(current.defaultPack, dimensionId, current.routePlayersToPrimaryWorld,
-                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, current.takeovers());
+                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, current.replacements());
             instance = updated;
             write(configFile(), updated);
         }
@@ -85,18 +89,18 @@ public final class ModdedModConfig {
         synchronized (LOCK) {
             ModdedModConfig current = writable();
             ModdedModConfig updated = new ModdedModConfig(current.defaultPack, current.primaryWorld, current.routePlayersToPrimaryWorld,
-                    packRef == null ? "" : packRef.trim(), seed, current.mainWorldAutoRestart, current.takeovers());
+                    packRef == null ? "" : packRef.trim(), seed, current.mainWorldAutoRestart, current.replacements());
             instance = updated;
             write(configFile(), updated);
         }
     }
 
-    public static boolean setDimensionTakeover(ModdedDimensionTakeover takeover) {
-        return updateDimensionTakeover(takeover.levelKey(), takeover.packRef());
+    public static boolean setDimensionReplacement(ModdedDimensionReplacement replacement) {
+        return updateDimensionReplacement(replacement.levelKey(), replacement);
     }
 
-    public static boolean clearDimensionTakeover(String levelKey) {
-        return updateDimensionTakeover(levelKey, null);
+    public static boolean clearDimensionReplacement(String levelKey) {
+        return updateDimensionReplacement(levelKey, null);
     }
 
     public String defaultPack() {
@@ -123,12 +127,12 @@ public final class ModdedModConfig {
         return mainWorldAutoRestart;
     }
 
-    public Map<String, String> dimensionTakeovers() {
-        return dimensionTakeovers;
+    public Map<String, ModdedDimensionReplacement> dimensionReplacements() {
+        return dimensionReplacements;
     }
 
-    public List<String> takeoverProblems() {
-        return takeoverProblems;
+    public List<String> replacementProblems() {
+        return replacementProblems;
     }
 
     static ModdedModConfig read(Path file) {
@@ -140,7 +144,7 @@ public final class ModdedModConfig {
             ModdedIrisLog.error("Iris modded config at {} is unreadable; using defaults", file, unreadable);
             return new ModdedModConfig(defaults.defaultPack, defaults.primaryWorld, defaults.routePlayersToPrimaryWorld,
                     defaults.mainWorldPack, defaults.mainWorldSeed, defaults.mainWorldAutoRestart,
-                    new Takeovers(Map.of(), List.of("Iris could not read " + file + ": " + unreadable.getMessage())));
+                    new Replacements(Map.of(), List.of("Iris could not read " + file + ": " + unreadable.getMessage())));
         }
         return new ModdedModConfig(
                 json.optString("defaultPack", defaults.defaultPack),
@@ -149,37 +153,39 @@ public final class ModdedModConfig {
                 json.optString("mainWorldPack", defaults.mainWorldPack),
                 json.optLong("mainWorldSeed", defaults.mainWorldSeed),
                 json.optBoolean("mainWorldAutoRestart", defaults.mainWorldAutoRestart),
-                readDimensionTakeovers(json, file));
+                readDimensionReplacements(json, file));
     }
 
-    private Takeovers takeovers() {
-        return new Takeovers(dimensionTakeovers, takeoverProblems);
+    private Replacements replacements() {
+        return new Replacements(dimensionReplacements, replacementProblems);
     }
 
     private static ModdedModConfig writable() {
         ModdedModConfig current = get();
-        if (!current.takeoverProblems.isEmpty()) {
+        if (!current.replacementProblems.isEmpty()) {
             throw new IllegalStateException("Iris will not rewrite " + configFile()
-                    + " while its dimension takeovers are unreadable: " + String.join("; ", current.takeoverProblems)
+                    + " while its dimension replacements are unreadable: " + String.join("; ", current.replacementProblems)
                     + ". Fix the file and restart first.");
         }
         return current;
     }
 
     private static ModdedModConfig defaults() {
-        return new ModdedModConfig("overworld", "", true, "", 0L, false, new Takeovers(Map.of(), List.of()));
+        return new ModdedModConfig("overworld", "", true, "", 0L, false, new Replacements(Map.of(), List.of()));
     }
 
-    private static boolean updateDimensionTakeover(String levelKey, String packRef) {
+    private static boolean updateDimensionReplacement(String levelKey, ModdedDimensionReplacement replacement) {
         synchronized (LOCK) {
             ModdedModConfig current = writable();
-            Map<String, String> takeovers = new TreeMap<>(current.dimensionTakeovers);
-            String previous = packRef == null ? takeovers.remove(levelKey) : takeovers.put(levelKey, packRef);
-            if (packRef == null ? previous == null : packRef.equals(previous)) {
+            Map<String, ModdedDimensionReplacement> replacements = new TreeMap<>(current.dimensionReplacements);
+            ModdedDimensionReplacement previous = replacement == null
+                    ? replacements.remove(levelKey)
+                    : replacements.put(levelKey, replacement);
+            if (replacement == null ? previous == null : replacement.equals(previous)) {
                 return false;
             }
             ModdedModConfig updated = new ModdedModConfig(current.defaultPack, current.primaryWorld, current.routePlayersToPrimaryWorld,
-                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, new Takeovers(takeovers, List.of()));
+                    current.mainWorldPack, current.mainWorldSeed, current.mainWorldAutoRestart, new Replacements(replacements, List.of()));
             instance = updated;
             write(configFile(), updated);
             return true;
@@ -200,33 +206,29 @@ public final class ModdedModConfig {
         return read(file);
     }
 
-    private static Takeovers readDimensionTakeovers(JSONObject json, Path file) {
-        if (!json.has(DIMENSION_TAKEOVERS) || json.isNull(DIMENSION_TAKEOVERS)) {
-            return new Takeovers(Map.of(), List.of());
+    private static Replacements readDimensionReplacements(JSONObject json, Path file) {
+        if (!json.has(DIMENSION_REPLACEMENTS) || json.isNull(DIMENSION_REPLACEMENTS)) {
+            return new Replacements(Map.of(), List.of());
         }
-        JSONObject section = json.optJSONObject(DIMENSION_TAKEOVERS);
+        JSONObject section = json.optJSONObject(DIMENSION_REPLACEMENTS);
         if (section == null) {
-            return new Takeovers(Map.of(), List.of("Iris could not read " + DIMENSION_TAKEOVERS + " in " + file
-                    + ": it must be an object mapping dimension keys to pack references"));
+            return new Replacements(Map.of(), List.of("Iris could not read " + DIMENSION_REPLACEMENTS + " in " + file
+                    + ": it must be an object mapping dimension keys to replacements"));
         }
-        Map<String, String> takeovers = new TreeMap<>();
+        Map<String, ModdedDimensionReplacement> replacements = new TreeMap<>();
         List<String> problems = new ArrayList<>();
         for (String levelKey : new TreeSet<>(section.keySet())) {
-            Object value = section.opt(levelKey);
             try {
-                if (!(value instanceof String packRef)) {
-                    throw new IllegalArgumentException("the pack reference must be a string");
-                }
-                ModdedDimensionTakeover takeover = ModdedDimensionTakeover.parse(levelKey, packRef);
-                takeovers.put(takeover.levelKey(), takeover.packRef());
+                ModdedDimensionReplacement replacement = ModdedDimensionReplacement.fromJson(levelKey, section.opt(levelKey));
+                replacements.put(replacement.levelKey(), replacement);
             } catch (IllegalArgumentException invalid) {
-                problems.add("Iris could not read dimension takeover '" + levelKey + "' in " + file + ": " + invalid.getMessage());
+                problems.add("Iris could not read dimension replacement '" + levelKey + "' in " + file + ": " + invalid.getMessage());
             }
         }
         for (String problem : problems) {
             ModdedIrisLog.error(problem);
         }
-        return new Takeovers(takeovers, problems);
+        return new Replacements(replacements, problems);
     }
 
     private static void write(Path file, ModdedModConfig config) {
@@ -237,11 +239,11 @@ public final class ModdedModConfig {
         json.put("mainWorldPack", config.mainWorldPack);
         json.put("mainWorldSeed", config.mainWorldSeed);
         json.put("mainWorldAutoRestart", config.mainWorldAutoRestart);
-        JSONObject takeovers = new JSONObject();
-        for (Map.Entry<String, String> entry : new TreeMap<>(config.dimensionTakeovers).entrySet()) {
-            takeovers.put(entry.getKey(), entry.getValue());
+        JSONObject replacements = new JSONObject();
+        for (Map.Entry<String, ModdedDimensionReplacement> entry : new TreeMap<>(config.dimensionReplacements).entrySet()) {
+            replacements.put(entry.getKey(), entry.getValue().toJson());
         }
-        json.put(DIMENSION_TAKEOVERS, takeovers);
+        json.put(DIMENSION_REPLACEMENTS, replacements);
         try {
             Files.createDirectories(file.getParent());
             Files.writeString(file, json.toString(4), StandardCharsets.UTF_8);
@@ -250,6 +252,6 @@ public final class ModdedModConfig {
         }
     }
 
-    private record Takeovers(Map<String, String> entries, List<String> problems) {
+    private record Replacements(Map<String, ModdedDimensionReplacement> entries, List<String> problems) {
     }
 }

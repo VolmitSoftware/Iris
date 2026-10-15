@@ -67,14 +67,47 @@ public class IrisModdedWorldListingTest {
             assertEquals(1, IrisModdedCommands.info(source, null));
         }
 
-        String alphaRow = row(output, "world=iris:alpha");
-        String betaRow = row(output, "world=iris:beta");
+        String alphaRow = row(output, "iris:alpha");
+        String betaRow = row(output, "iris:beta");
         assertTrue(alphaRow, alphaRow.contains(" seed=424242 "));
         assertTrue(alphaRow, alphaRow.contains(" generated=1089 "));
         assertTrue(betaRow, betaRow.contains(" seed=-77 "));
         assertTrue(betaRow, betaRow.contains(" generated=0 "));
         for (String line : output) {
             assertFalse(line, line.contains("seed=" + SERVER_SEED));
+        }
+    }
+
+    @Test
+    public void worldsLabelsEachRowWithItsOwnWorldKey() {
+        NativeWorld alpha = level("iris:alpha");
+        NativeWorld beta = level("iris:beta");
+        NativeWorld gamma = level("iris:gamma");
+        NativeModdedServer server = mock(NativeModdedServer.class);
+        when(server.worlds()).thenReturn(List.of(alpha, beta, gamma));
+        List<String> output = new ArrayList<>();
+        NativeCommandSource source = source(server, null, true, output);
+        IrisModdedChunkGenerator alphaGenerator = generator("overworld:overworld", engine(424242L, 1089));
+        IrisModdedChunkGenerator betaGenerator = generator("overworld:overworld", engine(-77L, 0));
+        IrisModdedChunkGenerator gammaGenerator = generator("overworld:overworld", null);
+
+        try (MockedStatic<NativeWorldGenerators> generators = mockStatic(NativeWorldGenerators.class)) {
+            generators.when(() -> NativeWorldGenerators.find(alpha, IrisModdedChunkGenerator.class))
+                    .thenReturn(alphaGenerator);
+            generators.when(() -> NativeWorldGenerators.find(beta, IrisModdedChunkGenerator.class))
+                    .thenReturn(betaGenerator);
+            generators.when(() -> NativeWorldGenerators.find(gamma, IrisModdedChunkGenerator.class))
+                    .thenReturn(gammaGenerator);
+
+            assertEquals(1, IrisModdedCommands.info(source, null));
+        }
+
+        assertTrue(row(output, "iris:alpha").startsWith("iris:alpha: pack=overworld "));
+        assertTrue(row(output, "iris:beta").startsWith("iris:beta: pack=overworld "));
+        assertEquals("iris:gamma: pack=overworld:overworld (engine not started yet)", row(output, "iris:gamma"));
+        for (String line : output) {
+            assertFalse(line, line.startsWith("iris:overworld"));
+            assertFalse(line, line.contains(" world="));
         }
     }
 
@@ -94,7 +127,7 @@ public class IrisModdedWorldListingTest {
             assertEquals(1, IrisModdedCommands.info(source, null));
         }
 
-        String alphaRow = row(output, "world=iris:alpha");
+        String alphaRow = row(output, "iris:alpha");
         assertFalse(alphaRow, alphaRow.contains("seed="));
         assertTrue(alphaRow, alphaRow.contains(" generated=1089 "));
     }
@@ -170,12 +203,12 @@ public class IrisModdedWorldListingTest {
         return engine;
     }
 
-    private static String row(List<String> output, String marker) {
+    private static String row(List<String> output, String label) {
         for (String line : output) {
-            if (line.contains(marker + " ")) {
+            if (line.startsWith(label + ": ")) {
                 return line;
             }
         }
-        throw new AssertionError("No row containing '" + marker + "' in " + output);
+        throw new AssertionError("No row labeled '" + label + "' in " + output);
     }
 }

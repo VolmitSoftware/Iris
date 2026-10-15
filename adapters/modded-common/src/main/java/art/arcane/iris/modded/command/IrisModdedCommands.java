@@ -294,13 +294,11 @@ public final class IrisModdedCommands {
             }
             Engine engine = irisGenerator.engineIfBound();
             if (engine == null) {
-                lines.add(irisIdentity + ": pack=" + irisGenerator.dimensionKey()
-                        + " world=" + dimensionId + " (engine not started yet)");
+                lines.add(dimensionId + ": pack=" + irisGenerator.dimensionKey() + " (engine not started yet)");
                 continue;
             }
             String featureStatus = irisGenerator.importedFeaturesStatus();
-            lines.add(irisIdentity + ": pack=" + engine.getDimension().getLoadKey()
-                    + " world=" + dimensionId
+            lines.add(dimensionId + ": pack=" + engine.getDimension().getLoadKey()
                     + (showSeed ? " seed=" + engine.getWorld().getRawWorldSeed() : "")
                     + " height=" + engine.getMinHeight() + ".." + engine.getMaxHeight()
                     + " generated=" + engine.getEngineData().getStatistics().getChunksGenerated()

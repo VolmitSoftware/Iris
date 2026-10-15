@@ -1082,6 +1082,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "Wymagany pakiet '{pack}' nie jest zainstalowany. Zainstaluj go poleceniem /iris download, a następnie uruchom serwer ponownie."
 failed_inject_iris_world = "Nie można wykonać wstrzyknięcia Iris Świat \"{dimensionId}': {value}{errorMessage}"
+creating_iris_world_in_background = "Tworzenie świata Iris {dimensionId} z paczki '{pack}', wymiar '{packDimension}' (ziarno {seed}) w tle. Otrzymasz powiadomienie, gdy będzie gotowy."
 created_iris_world_from_pack_dimension_seed = "Stworzony Iris świat {dimensionId} od opakowania \"{pack}\"wymiar\"{packDimension}\"(nasiona {seed})."
 it_is_live_now_re_injected_on_every_startup_teleport = "To jest teraz na żywo i ponownie wstrzyknięte na każdym startup.  Teleport /iris world status lub portalu; nie jest wymagane ponowne uruchomienie."
 failed_inject_iris_primary_world = "Nie można wykonać wstrzyknięcia Iris świat pierwotny: {value}{errorMessage}"

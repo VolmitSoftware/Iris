@@ -86,16 +86,44 @@ final class ModdedGenerationHistoryStorage {
         Path dimensionRoot = dimensionRoot(server, levelKey);
         try {
             GenerationHistory history = openForRestore(dimensionRoot, selectedPack, selectedDimensionKey, worldSeed);
-            GenerationAdmission.RuntimeLease lease = history.retainRuntime();
-            try {
-                history.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
-                return new PreparedHistory(resolveActive(history, installedPackSource(selectedPack)), lease);
-            } catch (IOException | RuntimeException | Error failure) {
-                lease.close();
-                throw failure;
-            }
+            return prepare(history, installedPackSource(selectedPack));
         } catch (IOException failure) {
             throw historyFailure(levelKey, failure);
+        }
+    }
+
+    static PreparedHistory prepareCreate(
+            NativeModdedServer server,
+            String levelKey,
+            String selectedPack,
+            String selectedDimensionKey,
+            long worldSeed
+    ) {
+        Path dimensionRoot = dimensionRoot(server, levelKey);
+        try {
+            Path source = selectedPackSource(selectedPack, selectedDimensionKey);
+            GenerationHistory history = createOrStage(
+                    dimensionRoot,
+                    source,
+                    worldSeed,
+                    captureCandidate(source, selectedDimensionKey),
+                    ModdedGenerationHistoryStorage::requireRegistryDefinitions,
+                    IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks()
+            );
+            return prepare(history, source);
+        } catch (IOException failure) {
+            throw historyFailure(levelKey, failure);
+        }
+    }
+
+    private static PreparedHistory prepare(GenerationHistory history, Path validatedSource) throws IOException {
+        GenerationAdmission.RuntimeLease lease = history.retainRuntime();
+        try {
+            history.prepareCurrentGenerator(IrisSettings.get().getGenerator().getGenerationTransitionWidthBlocks());
+            return new PreparedHistory(resolveActive(history, validatedSource), lease);
+        } catch (IOException | RuntimeException | Error failure) {
+            lease.close();
+            throw failure;
         }
     }
 

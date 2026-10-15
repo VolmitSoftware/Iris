@@ -47,7 +47,7 @@ public final class ModdedStartup {
     private static final AtomicBoolean PREPARED = new AtomicBoolean(false);
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);
     private static final AtomicBoolean RESTORE_BEGUN = new AtomicBoolean(false);
-    private static final AtomicReference<ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine>> RESTORE =
+    private static final AtomicReference<ModdedDimensionInjection<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.PendingInjection, Engine>> RESTORE =
             new AtomicReference<>();
     private static final List<String> DIMENSION_FAILURES = new CopyOnWriteArrayList<>();
 
@@ -55,7 +55,7 @@ public final class ModdedStartup {
     }
 
     public static void reset() {
-        ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> restore =
+        ModdedDimensionInjection<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.PendingInjection, Engine> restore =
                 RESTORE.getAndSet(null);
         if (restore != null) {
             restore.close();
@@ -83,8 +83,8 @@ public final class ModdedStartup {
             return;
         }
         long startedAt = System.currentTimeMillis();
-        ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> restore =
-                ModdedDimensionRestore.start(dimensions, new PersistentRestoreSteps(server));
+        ModdedDimensionInjection<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.PendingInjection, Engine> restore =
+                ModdedDimensionInjection.start(dimensions, new PersistentRestoreSteps(server));
         RESTORE.set(restore);
         restore.awaitPreparations();
         ModdedIrisLog.info("Iris prepared {} persistent dimension(s) during world load in {}ms",
@@ -249,7 +249,7 @@ public final class ModdedStartup {
 
     static void reinjectPersistentDimensions(NativeModdedServer server) {
         prepareDimensionRestore(server);
-        ModdedDimensionRestore<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> restore =
+        ModdedDimensionInjection<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.PendingInjection, Engine> restore =
                 RESTORE.getAndSet(null);
         if (restore == null) {
             return;
@@ -257,9 +257,9 @@ public final class ModdedStartup {
         finishDimensionRestore(restore);
     }
 
-    static void finishDimensionRestore(ModdedDimensionRestore<?, ?, ?> restore) {
+    static void finishDimensionRestore(ModdedDimensionInjection<?, ?, ?> restore) {
         long startedAt = System.currentTimeMillis();
-        List<ModdedDimensionRestore.Result> results;
+        List<ModdedDimensionInjection.Result> results;
         try (restore) {
             results = restore.finish();
         }
@@ -267,7 +267,7 @@ public final class ModdedStartup {
         int injected = 0;
         int index = 0;
         OutOfMemoryError outOfMemory = null;
-        for (ModdedDimensionRestore.Result result : results) {
+        for (ModdedDimensionInjection.Result result : results) {
             index++;
             ModdedDimensionRegistryStore.PersistentDimension dimension = result.dimension();
             Throwable failure = result.failure();
@@ -342,22 +342,23 @@ public final class ModdedStartup {
     }
 
     private record PersistentRestoreSteps(NativeModdedServer server)
-            implements ModdedDimensionRestore.Steps<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.RestoringLevel, Engine> {
+            implements ModdedDimensionInjection.Steps<ModdedWorldEngines.PreparedPack, ModdedDimensionManager.PendingInjection, Engine> {
         @Override
         public ModdedWorldEngines.PreparedPack prepare(ModdedDimensionRegistryStore.PersistentDimension dimension) {
             return ModdedWorldEngines.preparePersistent(server, dimension);
         }
 
         @Override
-        public ModdedDimensionManager.RestoringLevel begin(
+        public ModdedDimensionManager.PendingInjection begin(
                 ModdedDimensionRegistryStore.PersistentDimension dimension,
                 ModdedWorldEngines.PreparedPack prepared
         ) {
-            return ModdedDimensionManager.beginRestore(server, dimension, prepared.active());
+            return ModdedDimensionManager.beginInjection(
+                    server, dimension, prepared.active(), ModdedGenerationMode.PERSISTENT_RESTORE);
         }
 
         @Override
-        public Engine build(ModdedDimensionManager.RestoringLevel level, ModdedWorldEngines.PreparedPack prepared) {
+        public Engine build(ModdedDimensionManager.PendingInjection level, ModdedWorldEngines.PreparedPack prepared) {
             if (level.present()) {
                 prepared.close();
                 return null;
@@ -366,13 +367,13 @@ public final class ModdedStartup {
         }
 
         @Override
-        public void complete(ModdedDimensionManager.RestoringLevel level, Engine engine) {
-            ModdedDimensionManager.completeRestore(server, level, engine);
+        public void complete(ModdedDimensionManager.PendingInjection level, Engine engine) {
+            ModdedDimensionManager.completeInjection(server, level, engine);
         }
 
         @Override
-        public void abandon(ModdedDimensionManager.RestoringLevel level, Throwable failure) {
-            ModdedDimensionManager.abandonRestore(server, level, failure);
+        public void abandon(ModdedDimensionManager.PendingInjection level, Engine engine, Throwable failure) {
+            ModdedDimensionManager.abandonInjection(server, level, engine, failure);
         }
 
         @Override

@@ -1124,6 +1124,10 @@ public final class ModdedCommandMessages {
             "iris.modded.moddedworldcommands.failed_inject_iris_world",
             "Failed to inject Iris world '" + "{dimensionId}" + "': " + "{value}" + "{errorMessage}"
     );
+    public static final TextKey MODDED_WORLD_COMMANDS_CREATING_IRIS_WORLD_IN_BACKGROUND = TextKey.of(
+            "iris.modded.moddedworldcommands.creating_iris_world_in_background",
+            "Creating Iris world " + "{dimensionId}" + " from pack '" + "{pack}" + "' dimension '" + "{packDimension}" + "' (seed " + "{seed}" + ") in the background. You will be told when it is live."
+    );
     public static final TextKey MODDED_WORLD_COMMANDS_CREATED_IRIS_WORLD_FROM_PACK_DIMENSION_SEED = TextKey.of(
             "iris.modded.moddedworldcommands.created_iris_world_from_pack_dimension_seed",
             "Created Iris world " + "{dimensionId}" + " from pack '" + "{pack}" + "' dimension '" + "{packDimension}" + "' (seed " + "{seed}" + ")."
@@ -1541,6 +1545,7 @@ public final class ModdedCommandMessages {
             MODDED_STUDIO_COMMANDS_REGION_SAMPLING_FAILED,
             MODDED_WORLD_COMMANDS_REQUIRED_PACK_IS_NOT_INSTALLED_INSTALL_THEN_RESTART,
             MODDED_WORLD_COMMANDS_FAILED_INJECT_IRIS_WORLD,
+            MODDED_WORLD_COMMANDS_CREATING_IRIS_WORLD_IN_BACKGROUND,
             MODDED_WORLD_COMMANDS_CREATED_IRIS_WORLD_FROM_PACK_DIMENSION_SEED,
             MODDED_WORLD_COMMANDS_IT_IS_LIVE_NOW_RE_INJECTED_ON_EVERY_STARTUP_TELEPORT,
             MODDED_WORLD_COMMANDS_FAILED_INJECT_IRIS_PRIMARY_WORLD,

@@ -1077,6 +1077,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "Das erforderliche Pack '{pack}' ist nicht installiert. Installiere es mit /iris download und starte den Server anschließend neu."
 failed_inject_iris_world = "Iris-Welt '{dimensionId}' konnte nicht eingebunden werden: {value}{errorMessage}"
+creating_iris_world_in_background = "Iris-Welt {dimensionId} wird aus Pack '{pack}', Dimension '{packDimension}' (Seed {seed}) im Hintergrund erstellt. Du wirst benachrichtigt, sobald sie bereit ist."
 created_iris_world_from_pack_dimension_seed = "Iris-Welt {dimensionId} aus Pack '{pack}', Dimension '{packDimension}', erstellt (Seed {seed})."
 it_is_live_now_re_injected_on_every_startup_teleport = "Sie ist jetzt aktiv und wird bei jedem Start erneut eingebunden. Teleportiere dich über /iris world status oder ein Portal hinein; ein Neustart ist nicht erforderlich."
 failed_inject_iris_primary_world = "Primäre Iris-Welt konnte nicht eingebunden werden: {value}{errorMessage}"

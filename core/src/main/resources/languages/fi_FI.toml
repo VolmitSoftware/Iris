@@ -1082,6 +1082,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "Vaadittua pakettia '{pack}' ei ole asennettu. Asenna se komennolla /iris download ja käynnistä palvelin sitten uudelleen."
 failed_inject_iris_world = "Injektio epäonnistui Iris maailma{dimensionId}': {value}{errorMessage}"
+creating_iris_world_in_background = "Luodaan Iris-maailmaa {dimensionId} pakkauksesta '{pack}', ulottuvuus '{packDimension}' (siemen {seed}), taustalla. Saat ilmoituksen, kun se on valmis."
 created_iris_world_from_pack_dimension_seed = "Luotu Iris maailma {dimensionId} pakkauksesta \"{pack}' ulottuvuudella'{packDimension}\" (siemen {seed})."
 it_is_live_now_re_injected_on_every_startup_teleport = "Se on nyt suorassa lähetyksessä.  Teleportata /iris world status tai portaali; uudelleenkäynnistystä ei tarvita."
 failed_inject_iris_primary_world = "Injektio epäonnistui Iris ensisijainen maailma: {value}{errorMessage}"

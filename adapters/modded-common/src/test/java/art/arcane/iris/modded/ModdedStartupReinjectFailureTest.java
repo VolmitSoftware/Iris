@@ -36,7 +36,7 @@ public class ModdedStartupReinjectFailureTest {
         IllegalStateException failure = new IllegalStateException("Iris generation history is unusable for 'iris:moon'");
 
         try (MockedStatic<ModdedIrisLog> log = mockStatic(ModdedIrisLog.class)) {
-            ModdedStartup.finishDimensionRestore(ModdedDimensionRestore.start(List.of(moon), new FailingSteps(failure)));
+            ModdedStartup.finishDimensionRestore(ModdedDimensionInjection.start(List.of(moon), new FailingSteps(failure)));
 
             log.verify(() -> ModdedIrisLog.error(argThat((String line) -> line != null && line.contains("iris:moon")
                     && line.startsWith("Iris refused"))), times(1));
@@ -66,7 +66,7 @@ public class ModdedStartupReinjectFailureTest {
         verify(laterOperator, never()).sendMessage(any());
     }
 
-    private record FailingSteps(RuntimeException failure) implements ModdedDimensionRestore.Steps<String, String, String> {
+    private record FailingSteps(RuntimeException failure) implements ModdedDimensionInjection.Steps<String, String, String> {
         @Override
         public String prepare(ModdedDimensionRegistryStore.PersistentDimension dimension) {
             throw failure;
@@ -88,7 +88,7 @@ public class ModdedStartupReinjectFailureTest {
         }
 
         @Override
-        public void abandon(String level, Throwable failure) {
+        public void abandon(String level, String engine, Throwable failure) {
             throw new AssertionError("A failed preparation has no level to abandon");
         }
 

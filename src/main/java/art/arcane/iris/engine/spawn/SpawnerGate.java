@@ -18,34 +18,36 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.LiveWorld.BiomeKind;
+import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.SpawnRate;
+import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.spawn.Spawner;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformWorld;
+
+import java.util.Optional;
 
 /**
  * Whether a spawner may fire: in a biome of the kind its group wants, in the time and weather it asks for, and not
- * more often than its rates allow. The rates count in the engine's persisted data, by the key the pack names the
- * spawner by.
+ * more often than its rates allow. The rates count in the world's data, by the key the pack names the spawner by.
  */
 final class SpawnerGate {
     private SpawnerGate() {
     }
 
-    /** Whether a spawner of this group fires in {@code biome}. */
-    static boolean suits(Spawner spawner, IrisBiome biome) {
+    /** Whether a spawner of this group fires in a biome of {@code kind}. */
+    static boolean suits(Spawner spawner, BiomeKind kind) {
         return switch (spawner.group()) {
-            case NORMAL -> switch (biome.getInferredType()) {
+            case NORMAL -> switch (kind) {
                 case SHORE, SEA, CAVE -> false;
                 case LAND -> true;
             };
             case CAVE -> true;
-            case UNDERWATER -> switch (biome.getInferredType()) {
+            case UNDERWATER -> switch (kind) {
                 case SHORE, LAND, CAVE -> false;
                 case SEA -> true;
             };
-            case BEACH -> switch (biome.getInferredType()) {
+            case BEACH -> switch (kind) {
                 case SHORE -> true;
                 case LAND, CAVE, SEA -> false;
             };
@@ -53,45 +55,45 @@ final class SpawnerGate {
     }
 
     /** Whether the world is in the time and weather the spawner asks for. */
-    static boolean suits(Spawner spawner, PlatformWorld world) {
-        return SpawnConditions.allow(spawner.timeBlock(), spawner.weather(), world);
+    static boolean suits(Spawner spawner, Sky sky) {
+        return SpawnConditions.allow(spawner.timeBlock(), spawner.weather(), sky);
     }
 
     /** Whether the spawner may fire in the chunk now. */
-    static boolean canSpawn(String key, Spawner spawner, Engine engine, int chunkX, int chunkZ) {
-        if (!canSpawn(key, spawner, engine)) {
+    static boolean canSpawn(String key, Spawner spawner, LiveWorld live, int chunkX, int chunkZ) {
+        if (!canSpawn(key, spawner, live)) {
             return false;
         }
 
         SpawnRate rate = spawner.maximumRatePerChunk();
-        return rate.isInfinite() || engine.getEngineData().getChunk(chunkX, chunkZ).getCooldown(key).canSpawn(rate.interval());
+        return rate.isInfinite() || live.spawnCooldowns().canSpawnInChunk(chunkX, chunkZ, key, rate.interval());
     }
 
     /** Counts a spawn of the spawner in the chunk against its rates. */
-    static void spawned(String key, Spawner spawner, Engine engine, int chunkX, int chunkZ) {
-        spawned(key, spawner, engine);
+    static void spawned(String key, Spawner spawner, LiveWorld live, int chunkX, int chunkZ) {
+        spawned(key, spawner, live);
         if (spawner.maximumRatePerChunk().isInfinite()) {
             return;
         }
 
-        engine.getEngineData().getChunk(chunkX, chunkZ).getCooldown(key).spawn();
+        live.spawnCooldowns().spawnedInChunk(chunkX, chunkZ, key);
     }
 
-    private static boolean canSpawn(String key, Spawner spawner, Engine engine) {
-        PlatformWorld world = engine.getWorld().platformWorld();
-        if (world == null || !suits(spawner, world)) {
+    private static boolean canSpawn(String key, Spawner spawner, LiveWorld live) {
+        Optional<Sky> sky = live.sky();
+        if (sky.isEmpty() || !suits(spawner, sky.get())) {
             return false;
         }
 
         SpawnRate rate = spawner.maximumRate();
-        return rate.isInfinite() || engine.getEngineData().getCooldown(key).canSpawn(rate.interval());
+        return rate.isInfinite() || live.spawnCooldowns().canSpawn(key, rate.interval());
     }
 
-    private static void spawned(String key, Spawner spawner, Engine engine) {
+    private static void spawned(String key, Spawner spawner, LiveWorld live) {
         if (spawner.maximumRate().isInfinite()) {
             return;
         }
 
-        engine.getEngineData().getCooldown(key).spawn();
+        live.spawnCooldowns().spawned(key);
     }
 }

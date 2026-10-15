@@ -18,14 +18,13 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.LiveWorld.Level;
+import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EffectCommands;
 import art.arcane.iris.builtin.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.entity.EntitySpec;
 import com.volmit.service.AmbientEffects;
@@ -34,6 +33,7 @@ import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * How {@code iris:spawn} plays the ambient effects of regions and biomes: the region's effects, then the biome's, each
@@ -42,32 +42,32 @@ import java.util.List;
 public final class AmbientEffecting implements AmbientEffects {
     @Override
     public List<Effect> due(PackWorld world, BlockPosition at) {
-        Engine engine = IrisPackWorld.of(world).engine();
+        LiveWorld live = LiveWorld.of(world);
         EffectTimers timers = world.state(EffectTimers.class, ignored -> new EffectTimers());
-        PlatformWorld platformWorld = engine.getWorld().platformWorld();
+        Optional<Sky> sky = live.sky();
 
         List<Effect> due = new ArrayList<>();
-        addDue(due, effectsOf(engine.getRegion(at.x(), at.z())), timers, platformWorld);
-        addDue(due, effectsOf(engine.getBiome(at.x(), at.y(), at.z())), timers, platformWorld);
+        addDue(due, effectsOf(live, Level.REGION, at), timers, sky);
+        addDue(due, effectsOf(live, Level.BIOME, at), timers, sky);
         return due;
     }
 
-    private static List<AmbientEffect> effectsOf(IrisRegistrant owner) {
-        return owner.getModuleSettings().find(EffectSettings.class).map(EffectSettings::effects).orElse(List.of());
+    private static List<AmbientEffect> effectsOf(LiveWorld live, Level level, BlockPosition at) {
+        return live.settings(EffectSettings.class, level, at.x(), at.y(), at.z()).map(EffectSettings::effects).orElse(List.of());
     }
 
-    private static void addDue(List<Effect> due, List<AmbientEffect> effects, EffectTimers timers, PlatformWorld world) {
+    private static void addDue(List<Effect> due, List<AmbientEffect> effects, EffectTimers timers, Optional<Sky> sky) {
         for (AmbientEffect effect : effects) {
             if (timers.shouldPlayNow(effect)) {
-                due.add(play(effect, world));
+                due.add(play(effect, sky));
             }
         }
     }
 
-    private static Effect play(AmbientEffect effect, PlatformWorld world) {
+    private static Effect play(AmbientEffect effect, Optional<Sky> sky) {
         Sound sound = effect.sound() == null ? null : soundOf(effect);
         Particles particles = effect.particleEffect() == null ? null : particlesOf(effect);
-        return new Effect(sound, particles, commandsOf(effect.commandRegistry(), world), potionOf(effect));
+        return new Effect(sound, particles, commandsOf(effect.commandRegistry(), sky), potionOf(effect));
     }
 
     private static Sound soundOf(AmbientEffect effect) {
@@ -92,7 +92,7 @@ public final class AmbientEffecting implements AmbientEffects {
                 altX, altY, altZ, effect.extra());
     }
 
-    private static List<Command> commandsOf(EffectCommands registry, PlatformWorld world) {
+    private static List<Command> commandsOf(EffectCommands registry, Optional<Sky> sky) {
         List<Command> commands = new ArrayList<>();
         if (registry == null) {
             return commands;
@@ -102,7 +102,7 @@ public final class AmbientEffecting implements AmbientEffects {
         double offsetY = commandOffset(registry.commandOffsetY(), registry.commandRandomAltY());
         double offsetZ = commandOffset(registry.commandOffsetZ(), registry.commandRandomAltZ());
         for (SpawnCommand command : registry.rawCommands()) {
-            if (SpawnConditions.allow(command.timeBlock(), command.weather(), world)) {
+            if (sky.isPresent() && SpawnConditions.allow(command.timeBlock(), command.weather(), sky.get())) {
                 commands.add(new Command(new EntitySpec.Command(command.commands(), command.delay(), command.repeat(),
                         command.repeatDelay()), offsetX, offsetY, offsetZ));
             }

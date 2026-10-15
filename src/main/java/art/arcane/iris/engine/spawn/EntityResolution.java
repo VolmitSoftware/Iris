@@ -18,14 +18,14 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.loot.ItemAttributeModifier;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
-import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
@@ -33,6 +33,7 @@ import com.volmit.item.ItemDrop;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Turns an entity of the pack into the {@link EntitySpec} the host spawns, making every random choice in the order Iris
@@ -43,13 +44,13 @@ final class EntityResolution {
     private static final long LEASH_HOLDER_STREAM = 234548L;
 
     private final LootItems items;
-    private final PlatformWorld world;
+    private final Optional<Sky> sky;
     private final EffectTimers timers;
 
-    /** @param world the world the entity appears in, whose time and weather decide which of its commands run */
-    EntityResolution(LootItems items, PlatformWorld world, EffectTimers timers) {
+    /** @param sky the sky of the world the entity appears in, whose time and weather decide which of its commands run; none while the world has no platform world */
+    EntityResolution(LootItems items, Optional<Sky> sky, EffectTimers timers) {
         this.items = items;
-        this.world = world;
+        this.sky = sky;
         this.timers = timers;
     }
 
@@ -121,7 +122,7 @@ final class EntityResolution {
     private List<EntitySpec.Command> commandsOf(EntityDefinition entity) {
         List<EntitySpec.Command> commands = new ArrayList<>();
         for (SpawnCommand command : entity.rawCommands()) {
-            if (SpawnConditions.allow(command.timeBlock(), command.weather(), world)) {
+            if (sky.isPresent() && SpawnConditions.allow(command.timeBlock(), command.weather(), sky.get())) {
                 commands.add(new EntitySpec.Command(command.commands(), command.delay(), command.repeat(), command.repeatDelay()));
             }
         }

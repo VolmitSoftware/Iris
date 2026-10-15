@@ -18,29 +18,25 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.LiveWorld.Level;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.EntitySpawn;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.SpawnSurface;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.builtin.spawn.SpawnerSettings;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
-import art.arcane.iris.engine.object.value.IRare;
-import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.spawn.SpawnResources.KeyedSpawner;
-import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.matter.slices.MarkerMatter;
+import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import com.volmit.config.Range;
 import com.volmit.entity.EntitySpec;
+import com.volmit.resource.PackResources;
 import com.volmit.service.EntitySpawns;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -63,13 +59,15 @@ public final class EntitySpawning implements EntitySpawns {
     private static final String CAVE_FLOOR_MARKER = "cave_floor";
     private static final String CAVE_CEILING_MARKER = "cave_ceiling";
     private static final int AIR_ABOVE_MARKER = 1;
+    private static final long COOLDOWN_CLEANUP_INTERVAL_MILLISECONDS = 60_000L;
+    private static final int LAYOUT_QUESTION_HEIGHT = 0;
 
     @Override
     public Optional<Plan> plan(PackWorld world, Site site) {
-        Engine engine = engine(world);
+        forgetExpiredCooldowns(world);
         return switch (site) {
-            case Chunk chunk -> planChunk(world, engine, chunk);
-            case Marker marker -> planMarker(world, engine, marker);
+            case Chunk chunk -> planChunk(world, chunk);
+            case Marker marker -> planMarker(world, marker);
         };
     }
 
@@ -78,19 +76,19 @@ public final class EntitySpawning implements EntitySpawns {
         if (count <= 0) {
             return;
         }
-        Spawner spawner = SpawnResources.spawner(engine(world).getData(), plan.spawner());
+        Spawner spawner = SpawnResources.spawner(world.resources(), plan.spawner());
         if (spawner != null) {
-            SpawnerGate.spawned(plan.spawner(), spawner, engine(world), plan.chunkX(), plan.chunkZ());
+            SpawnerGate.spawned(plan.spawner(), spawner, LiveWorld.of(world), plan.chunkX(), plan.chunkZ());
         }
     }
 
     @Override
     public Optional<EntitySpec> entity(PackWorld world, String key) {
-        EntityDefinition entity = SpawnResources.entity(engine(world).getData(), key);
+        EntityDefinition entity = SpawnResources.entity(world.resources(), key);
         if (entity == null) {
             return Optional.empty();
         }
-        return Optional.of(resolution(world, engine(world)).resolve(entity, entityRandom(world).rng()));
+        return Optional.of(resolution(world).resolve(entity, entityRandom(world).rng()));
     }
 
     @Override
@@ -98,15 +96,14 @@ public final class EntitySpawning implements EntitySpawns {
         if (tag.equals(CAVE_FLOOR_MARKER) || tag.equals(CAVE_CEILING_MARKER)) {
             return Optional.empty();
         }
-        Engine engine = engine(world);
-        SpawnMarker marker = SpawnResources.marker(engine.getData(), tag);
+        SpawnMarker marker = SpawnResources.marker(world.resources(), tag);
         if (marker == null) {
             return Optional.empty();
         }
 
         List<String> spawners = new ArrayList<>();
         for (String key : marker.spawners()) {
-            if (SpawnResources.spawner(engine.getData(), key) == null) {
+            if (SpawnResources.spawner(world.resources(), key) == null) {
                 world.log().error("Cannot load spawner: " + key + " for marker " + tag, null);
                 continue;
             }
@@ -115,69 +112,78 @@ public final class EntitySpawning implements EntitySpawns {
         return Optional.of(new MarkerRule(spawners, marker.emptyAbove(), marker.removeOnChange()));
     }
 
-    private Optional<Plan> planChunk(PackWorld world, Engine engine, Chunk chunk) {
-        Predicate<KeyedSpawner> canSpawn = keyed -> SpawnerGate.canSpawn(keyed.key(), keyed.spawner(), engine, chunk.chunkX(), chunk.chunkZ());
+    /** Drops the cooldowns that ran out, now and then: the world's data keeps them across restarts. */
+    private static void forgetExpiredCooldowns(PackWorld world) {
+        CooldownCleanup cleanup = world.state(CooldownCleanup.class, ignored -> new CooldownCleanup());
+        if (!cleanup.due()) {
+            return;
+        }
+        PackResources resources = world.resources();
+        LiveWorld.of(world).spawnCooldowns().forgetExpired(key -> {
+            Spawner spawner = SpawnResources.spawner(resources, key);
+            return spawner == null ? -1L : spawner.maximumRate().interval();
+        });
+    }
+
+    private Optional<Plan> planChunk(PackWorld world, Chunk chunk) {
+        LiveWorld live = LiveWorld.of(world);
+        Predicate<KeyedSpawner> canSpawn = keyed -> SpawnerGate.canSpawn(keyed.key(), keyed.spawner(), live, chunk.chunkX(), chunk.chunkZ());
         int blockX = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkX());
         int blockZ = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkZ());
-        IrisBiome centreBiome = engine.getSurfaceBiome(blockX + BLOCKS_TO_CHUNK_CENTRE, blockZ + BLOCKS_TO_CHUNK_CENTRE);
-        IrisRegion region = engine.getRegion(blockX, blockZ);
-        IrisBiome biome = engine.getSurfaceBiome(blockX, blockZ);
+        LiveWorld.BiomeKind centreKind = live.surfaceKind(blockX + BLOCKS_TO_CHUNK_CENTRE, blockZ + BLOCKS_TO_CHUNK_CENTRE);
 
         List<KeyedSpawner> candidates = Stream.concat(
-                        shuffled(engine, engine.getDimension()).stream()
-                                .filter(canSpawn).filter(keyed -> SpawnerGate.suits(keyed.spawner(), centreBiome)),
+                        shuffled(world, live, Level.DIMENSION, blockX, blockZ).stream()
+                                .filter(canSpawn).filter(keyed -> SpawnerGate.suits(keyed.spawner(), centreKind)),
                         Stream.concat(
-                                shuffled(engine, region).stream().filter(canSpawn),
-                                shuffled(engine, biome).stream().filter(canSpawn)))
+                                shuffled(world, live, Level.REGION, blockX, blockZ).stream().filter(canSpawn),
+                                shuffled(world, live, Level.SURFACE_BIOME, blockX, blockZ).stream().filter(canSpawn)))
                 .filter(keyed -> chunk.livingEntities() < keyed.spawner().maxEntitiesPerChunk())
                 .toList();
 
         List<Candidate> spawns = candidates.stream().flatMap(keyed -> spawnsOf(keyed, chunk.initial())).collect(Collectors.toList());
-        Candidate chosen = IRare.expandWeighted(spawns).getRandom();
+        Candidate chosen = RarityWeighting.expand(spawns, Candidate::rarity).getRandom();
         if (chosen == null) {
             return Optional.empty();
         }
-        return planChunkSpawn(world, engine, chunk, chosen);
+        return planChunkSpawn(world, live, chunk, chosen);
     }
 
-    private Optional<Plan> planChunkSpawn(PackWorld world, Engine engine, Chunk chunk, Candidate chosen) {
+    private Optional<Plan> planChunkSpawn(PackWorld world, LiveWorld live, Chunk chunk, Candidate chosen) {
         EntitySpawn spawn = chosen.spawn();
         int count = LootResolver.inclusive(RNG.r, spawn.minSpawns(), spawn.maxSpawns());
         List<Attempt> attempts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             int x = (chunk.chunkX() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
             int z = (chunk.chunkZ() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
-            BlockPosition at = spawnPosition(engine, chosen.spawner(), chunk.chunkX(), chunk.chunkZ(), x, z);
+            BlockPosition at = spawnPosition(live, chosen.spawner(), chunk.chunkX(), chunk.chunkZ(), x, z);
             if (at != null) {
-                addAttempt(attempts, world, engine, chosen, at, true);
+                addAttempt(attempts, world, chosen, at, true);
             }
         }
         return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(chosen.key(), chunk.chunkX(), chunk.chunkZ(), false, attempts));
     }
 
     /** Where a spawner of its group puts an entity at the column; null when it has no place for one. */
-    private static BlockPosition spawnPosition(Engine engine, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
-        int height = engine.getHeight(x, z, true);
-        int heightWithFluid = engine.getHeight(x, z, false);
+    private static BlockPosition spawnPosition(LiveWorld live, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
+        int height = live.highestBlock(x, z, true);
+        int heightWithFluid = live.highestBlock(x, z, false);
         return switch (spawner.group()) {
             case NORMAL -> new BlockPosition(x, heightWithFluid + 1, z);
-            case CAVE -> caveSpawnPosition(engine, chunkX, chunkZ);
+            case CAVE -> caveSpawnPosition(live, chunkX, chunkZ);
             case UNDERWATER, BEACH -> new BlockPosition(x, RNG.r.i(height + 1, heightWithFluid), z);
         };
     }
 
-    static BlockPosition caveSpawnPosition(Engine engine, int chunkX, int chunkZ) {
-        if (J.isFolia()) {
-            return null;
-        }
-        KList<IrisPosition> floors = engine.getMantle().findMarkers(chunkX, chunkZ, MarkerMatter.CAVE_FLOOR);
-        IrisPosition floor = floors.getRandom(RNG.r);
-        return floor == null ? null : new BlockPosition(floor.getX(), floor.getY() - engine.getMinHeight() + AIR_ABOVE_MARKER, floor.getZ());
+    static BlockPosition caveSpawnPosition(LiveWorld live, int chunkX, int chunkZ) {
+        KList<BlockPosition> floors = new KList<>(live.caveFloors(chunkX, chunkZ));
+        BlockPosition floor = floors.getRandom(RNG.r);
+        return floor == null ? null : new BlockPosition(floor.x(), floor.y() + AIR_ABOVE_MARKER, floor.z());
     }
 
-    private Optional<Plan> planMarker(PackWorld world, Engine engine, Marker marker) {
-        Spawner spawner = SpawnResources.spawner(engine.getData(), marker.spawner());
-        SpawnMarker spawnMarker = SpawnResources.marker(engine.getData(), marker.marker());
+    private Optional<Plan> planMarker(PackWorld world, Marker marker) {
+        Spawner spawner = SpawnResources.spawner(world.resources(), marker.spawner());
+        SpawnMarker spawnMarker = SpawnResources.marker(world.resources(), marker.marker());
         if (spawner == null) {
             return Optional.empty();
         }
@@ -186,12 +192,13 @@ public final class EntitySpawning implements EntitySpawns {
         if (candidates.isEmpty()) {
             return Optional.empty();
         }
-        EntitySpawn spawn = IRare.expandWeighted(candidates.stream().map(RareSpawn::new).toList()).getRandom().spawn();
+        EntitySpawn spawn = RarityWeighting.expand(candidates, EntitySpawn::rarity).getRandom();
 
         BlockPosition position = marker.position();
         int chunkX = PowerOfTwoCoordinates.blockToChunkFloor(position.x());
         int chunkZ = PowerOfTwoCoordinates.blockToChunkFloor(position.z());
-        if (!SpawnerGate.canSpawn(marker.spawner(), spawner, engine, chunkX, chunkZ)) {
+        LiveWorld live = LiveWorld.of(world);
+        if (!SpawnerGate.canSpawn(marker.spawner(), spawner, live, chunkX, chunkZ)) {
             return Optional.empty();
         }
 
@@ -203,7 +210,7 @@ public final class EntitySpawning implements EntitySpawns {
         List<Attempt> attempts = new ArrayList<>();
         BlockPosition above = new BlockPosition(position.x(), position.y() + AIR_ABOVE_MARKER, position.z());
         for (int i = 0; i < count; i++) {
-            addAttempt(attempts, world, engine, new Candidate(marker.spawner(), spawner, spawn), above, false);
+            addAttempt(attempts, world, new Candidate(marker.spawner(), spawner, spawn), above, false);
         }
         return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(marker.spawner(), chunkX, chunkZ, exhaustsMarker, attempts));
     }
@@ -212,22 +219,23 @@ public final class EntitySpawning implements EntitySpawns {
         return marker.exhaustionChance() > RNG.r.nextDouble();
     }
 
-    private void addAttempt(List<Attempt> attempts, PackWorld world, Engine engine, Candidate candidate, BlockPosition at, boolean checkSurface) {
-        EntityDefinition entity = SpawnResources.entity(engine.getData(), candidate.spawn().entity());
+    private void addAttempt(List<Attempt> attempts, PackWorld world, Candidate candidate, BlockPosition at, boolean checkSurface) {
+        EntityDefinition entity = SpawnResources.entity(world.resources(), candidate.spawn().entity());
         if (entity == null) {
             world.log().debug("      You are trying to spawn an entity that does not exist!");
             return;
         }
 
         Range light = candidate.spawner().allowedLightLevels();
-        EntitySpec spec = resolution(world, engine).resolve(entity, entityRandom(world).rng());
+        EntitySpec spec = resolution(world).resolve(entity, entityRandom(world).rng());
         attempts.add(new Attempt(at, spec, surfaceOf(entity.surface()),
                 (int) Math.ceil(light.min()), (int) Math.floor(light.max()), checkSurface));
     }
 
-    private static EntityResolution resolution(PackWorld world, Engine engine) {
-        LootItems items = new LootItems(world.resources().items(), engine.isStudio());
-        return new EntityResolution(items, engine.getWorld().platformWorld(), world.state(EffectTimers.class, ignored -> new EffectTimers()));
+    private static EntityResolution resolution(PackWorld world) {
+        LiveWorld live = LiveWorld.of(world);
+        LootItems items = new LootItems(world.resources().items(), live.studio());
+        return new EntityResolution(items, live.sky(), world.state(EffectTimers.class, ignored -> new EffectTimers()));
     }
 
     private static EntityRandom entityRandom(PackWorld world) {
@@ -238,10 +246,11 @@ public final class EntitySpawning implements EntitySpawns {
         return Surface.valueOf(surface.name());
     }
 
-    /** The spawners an area lists, in a random order. */
-    private static List<KeyedSpawner> shuffled(Engine engine, IrisRegistrant owner) {
-        List<String> keys = owner.getModuleSettings().find(SpawnerSettings.class).map(SpawnerSettings::spawners).orElse(List.of());
-        return new KList<>(SpawnResources.spawners(engine.getData(), keys)).shuffleCopy(RNG.r);
+    /** The spawners the dimension, region or surface biome at the column lists, in a random order. */
+    private static List<KeyedSpawner> shuffled(PackWorld world, LiveWorld live, Level level, int x, int z) {
+        List<String> keys = live.settings(SpawnerSettings.class, level, x, LAYOUT_QUESTION_HEIGHT, z)
+                .map(SpawnerSettings::spawners).orElse(List.of());
+        return new KList<>(SpawnResources.spawners(world.resources(), keys)).shuffleCopy(RNG.r);
     }
 
     private static Stream<Candidate> spawnsOf(KeyedSpawner keyed, boolean initial) {
@@ -250,23 +259,10 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     /** A spawn of a spawner, which picks as often as the spawn's rarity says. */
-    private record Candidate(String key, Spawner spawner, EntitySpawn spawn) implements IRare {
-        @Override
-        public int getRarity() {
+    private record Candidate(String key, Spawner spawner, EntitySpawn spawn) {
+        int rarity() {
             return spawn.rarity();
         }
-    }
-
-    /** A spawn that picks as often as its rarity says. */
-    private record RareSpawn(EntitySpawn spawn) implements IRare {
-        @Override
-        public int getRarity() {
-            return spawn.rarity();
-        }
-    }
-
-    private static Engine engine(PackWorld world) {
-        return IrisPackWorld.of(world).engine();
     }
 
     /** The random stream entities are made from, seeded from the world like Iris always seeded it; one per world. */
@@ -274,11 +270,20 @@ public final class EntitySpawning implements EntitySpawns {
         private final RNG rng;
 
         private EntityRandom(PackWorld world) {
-            this.rng = new RNG(IrisPackWorld.of(world).engine().getSeedManager().getEntity());
+            this.rng = new RNG(IrisSeed.ENTITY.of(world));
         }
 
         private RNG rng() {
             return rng;
+        }
+    }
+
+    /** When the world's spawner cooldowns were last tidied. */
+    private static final class CooldownCleanup {
+        private final ChronoLatch latch = new ChronoLatch(COOLDOWN_CLEANUP_INTERVAL_MILLISECONDS);
+
+        private boolean due() {
+            return latch.flip();
         }
     }
 }

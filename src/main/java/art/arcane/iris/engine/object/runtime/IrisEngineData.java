@@ -20,10 +20,11 @@ package art.arcane.iris.engine.object.runtime;
 
 import art.arcane.iris.engine.object.entity.spawn.IrisSpawnerCooldowns;
 import art.arcane.volmlib.util.cache.CacheKey;
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.function.ToLongFunction;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -40,11 +41,12 @@ public class IrisEngineData extends IrisSpawnerCooldowns {
         return chunks.computeIfAbsent(CacheKey.key(x, z), k -> new IrisSpawnerCooldowns());
     }
 
-    public void cleanup(Engine engine) {
-        super.cleanup(engine);
+    @Override
+    public void cleanup(ToLongFunction<String> intervalMilliseconds) {
+        super.cleanup(intervalMilliseconds);
 
         chunks.values().removeIf(chunk -> {
-            chunk.cleanup(engine);
+            chunk.cleanup(intervalMilliseconds);
             return chunk.isEmpty();
         });
     }

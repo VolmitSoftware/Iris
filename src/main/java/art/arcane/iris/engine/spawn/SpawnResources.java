@@ -21,8 +21,7 @@ package art.arcane.iris.engine.spawn;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisPackResources;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
@@ -57,23 +56,23 @@ public final class SpawnResources {
         return List.of(SPAWNERS, ENTITIES, MARKERS);
     }
 
-    public static Spawner spawner(IrisData data, String key) {
-        return find(data, SPAWNERS, key);
+    public static Spawner spawner(PackResources resources, String key) {
+        return find(resources, SPAWNERS, key);
     }
 
-    public static EntityDefinition entity(IrisData data, String key) {
-        return find(data, ENTITIES, key);
+    public static EntityDefinition entity(PackResources resources, String key) {
+        return find(resources, ENTITIES, key);
     }
 
-    public static SpawnMarker marker(IrisData data, String key) {
-        return find(data, MARKERS, key);
+    public static SpawnMarker marker(PackResources resources, String key) {
+        return find(resources, MARKERS, key);
     }
 
     /** The spawners of the pack named by {@code keys}, in order, without the ones the pack lacks. */
-    public static List<KeyedSpawner> spawners(IrisData data, List<String> keys) {
+    public static List<KeyedSpawner> spawners(PackResources resources, List<String> keys) {
         List<KeyedSpawner> spawners = new ArrayList<>();
         for (String key : keys) {
-            Spawner spawner = spawner(data, key);
+            Spawner spawner = spawner(resources, key);
             if (spawner != null) {
                 spawners.add(new KeyedSpawner(key, spawner));
             }
@@ -82,25 +81,24 @@ public final class SpawnResources {
     }
 
     /** The key of every entity of the pack, in key order. */
-    public static List<String> entityKeys(IrisData data) {
-        return keys(data, ENTITIES);
+    public static List<String> entityKeys(PackResources resources) {
+        return keys(resources, ENTITIES);
     }
 
     /** The key of every spawner of the pack, in key order. */
-    public static List<String> spawnerKeys(IrisData data) {
-        return keys(data, SPAWNERS);
+    public static List<String> spawnerKeys(PackResources resources) {
+        return keys(resources, SPAWNERS);
     }
 
     /** The key of every marker of the pack, in key order. */
-    public static List<String> markerKeys(IrisData data) {
-        return keys(data, MARKERS);
+    public static List<String> markerKeys(PackResources resources) {
+        return keys(resources, MARKERS);
     }
 
-    private static <T> T find(IrisData data, ResourceKind<T> kind, String key) {
+    private static <T> T find(PackResources resources, ResourceKind<T> kind, String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
-        IrisPackResources resources = data.getPackResources();
         try {
             return resources.find(kind.key(resources.idOf(key))).orElse(null);
         } catch (IllegalStateException failedToLoad) {
@@ -109,7 +107,7 @@ public final class SpawnResources {
     }
 
     /** A key's id has the key as its path, so the path names the resource again wherever a key is expected. */
-    private static List<String> keys(IrisData data, ResourceKind<?> kind) {
-        return data.getPackResources().ids(kind.type()).stream().map(ResourceId::path).toList();
+    private static List<String> keys(PackResources resources, ResourceKind<?> kind) {
+        return resources.ids(kind.type()).stream().map(ResourceId::path).toList();
     }
 }

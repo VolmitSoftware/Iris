@@ -1,11 +1,10 @@
 package art.arcane.iris.engine.object.entity.spawn;
 
-import art.arcane.iris.builtin.spawn.Spawner;
-import art.arcane.iris.engine.spawn.SpawnResources;
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+
+import java.util.function.ToLongFunction;
 
 @EqualsAndHashCode
 public class IrisSpawnerCooldowns {
@@ -19,10 +18,11 @@ public class IrisSpawnerCooldowns {
         });
     }
 
-    public void cleanup(Engine engine) {
+    /** Forgets the cooldowns that ran out and those of spawners {@code intervalMilliseconds} does not know (a negative interval). */
+    public void cleanup(ToLongFunction<String> intervalMilliseconds) {
         cooldowns.values().removeIf(cd -> {
-            Spawner spawner = SpawnResources.spawner(engine.getData(), cd.getSpawner());
-            return spawner == null || cd.canSpawn(spawner.maximumRate().interval());
+            long interval = intervalMilliseconds.applyAsLong(cd.getSpawner());
+            return interval < 0 || cd.canSpawn(interval);
         });
     }
 

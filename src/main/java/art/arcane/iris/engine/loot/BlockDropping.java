@@ -18,16 +18,12 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.LiveWorld.Level;
 import art.arcane.iris.builtin.loot.BlockDrop;
 import art.arcane.iris.builtin.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootEntry;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.BlockDrops;
@@ -45,19 +41,17 @@ import java.util.concurrent.ConcurrentMap;
 public final class BlockDropping implements BlockDrops {
     @Override
     public Result drops(PackWorld world, Broken broken) {
-        Engine engine = IrisPackWorld.of(world).engine();
+        LiveWorld live = LiveWorld.of(world);
         int x = broken.position().x();
         int y = broken.position().y();
         int z = broken.position().z();
-        String brokenKey = IrisPlatforms.get().registries().block(broken.block().key()).key();
+        String brokenKey = world.resources().blocks().resolve(broken.block()).key();
         ResolvedDrops resolved = world.state(ResolvedDrops.class, ignored -> new ResolvedDrops());
 
-        IrisBiome biome = engine.getBiome(x, y, z);
-        List<ResolvedBlockDrop> providers = dropsFor(biome, brokenKey, resolved, world);
+        List<ResolvedBlockDrop> providers = dropsFor(live, Level.BIOME, x, y, z, brokenKey, resolved, world);
         if (providers.stream().noneMatch(provider -> provider.drop().skipParents())) {
-            IrisRegion region = engine.getRegion(x, z);
-            providers.addAll(dropsFor(region, brokenKey, resolved, world));
-            providers.addAll(dropsFor(engine.getDimension(), brokenKey, resolved, world));
+            providers.addAll(dropsFor(live, Level.REGION, x, y, z, brokenKey, resolved, world));
+            providers.addAll(dropsFor(live, Level.DIMENSION, x, y, z, brokenKey, resolved, world));
         }
 
         LootItems items = new LootItems(world.resources().items(), false);
@@ -79,9 +73,10 @@ public final class BlockDropping implements BlockDrops {
         }
     }
 
-    private static List<ResolvedBlockDrop> dropsFor(IrisRegistrant owner, String brokenKey, ResolvedDrops resolved, PackWorld world) {
+    private static List<ResolvedBlockDrop> dropsFor(LiveWorld live, Level level, int x, int y, int z, String brokenKey,
+                                                   ResolvedDrops resolved, PackWorld world) {
         List<ResolvedBlockDrop> matching = new ArrayList<>();
-        for (BlockDrop drop : owner.getModuleSettings().find(BlockDropSettings.class).map(BlockDropSettings::drops).orElse(List.of())) {
+        for (BlockDrop drop : live.settings(BlockDropSettings.class, level, x, y, z).map(BlockDropSettings::drops).orElse(List.of())) {
             ResolvedBlockDrop candidate = resolved.of(drop, world);
             if (candidate.dropsFor(brokenKey)) {
                 matching.add(candidate);

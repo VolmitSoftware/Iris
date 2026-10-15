@@ -137,10 +137,12 @@ naming the class and what it uses. A VolmLib class that Iris's Bukkit jar strips
 `core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on that classpath but missing on a
 server, so the check treats it as missing and fails the task naming it. `check` runs the task.
 
-The jar holds `iris:post`, `iris:perfection` and `iris:matter`. They are written against IrisApi and
+The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot` and `iris:spawn`. They are written against IrisApi and
 `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and `canPlaceOn`, the terrain
-sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks.
-Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
+sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the mantle's planned blocks;
+the loot and spawn services, which have no chunk to ask, ask `LiveWorld` (below). Without the jar a pack's world has no
+loot, block drops, entity spawns or ambient effects, and its biomes' `loot`, `blockDrops`, `entitySpawners` and `effects` are
+not read. Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
 `iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
 `iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads. Iris warns once per pack folder
 when a pack loads none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps equal to
@@ -149,5 +151,10 @@ when a pack loads none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, wh
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class: `IrisSeed` (Iris's per-feature world seeds, a facade Iris's worlds implement, so existing worlds generate the
 same) and `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
-layers, and a layer's noise is built once per world by whichever asks first). `iris:post` reads its switches
+layers, and a layer's noise is built once per world by whichever asks first), `LiveWorld` (what the loot and spawn services ask a
+running world, outside any chunk stage: the layout and settings at a block, the platform's weather and loot tables, the
+objects' loot and the spawner cooldowns Iris saves with the world; values only, implemented by Iris's worlds like `IrisSeed`),
+`loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
+marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`, which the modules
+register as held types, because Iris's `IrisObjectPlacement` holds them). `iris:post` reads its switches
 (`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.

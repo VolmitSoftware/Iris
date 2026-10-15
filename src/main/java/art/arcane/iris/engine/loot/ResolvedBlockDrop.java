@@ -19,8 +19,6 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.builtin.loot.BlockDrop;
-import art.arcane.iris.spi.IrisPlatforms;
-import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 
@@ -45,10 +43,7 @@ final class ResolvedBlockDrop {
     static ResolvedBlockDrop of(BlockDrop drop, BlockRegistry blocks) {
         Set<String> keys = new LinkedHashSet<>();
         for (BlockSpec spec : drop.blocks()) {
-            PlatformBlockState state = IrisPlatforms.get().registries().block(blocks.resolve(spec).key());
-            if (state != null) {
-                keys.add(comparable(state.key(), drop.exactBlocks()));
-            }
+            keys.add(comparable(blocks.resolve(spec).key(), drop.exactBlocks()));
         }
         return new ResolvedBlockDrop(drop, keys);
     }

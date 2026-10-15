@@ -27,9 +27,9 @@ import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.iris.core.modules.ModuleSettings;
-import art.arcane.iris.engine.object.loot.IrisObjectLoot;
-import art.arcane.iris.engine.object.loot.IrisObjectVanillaLoot;
-import art.arcane.iris.engine.object.marker.IrisObjectMarker;
+import art.arcane.iris.builtin.loot.ObjectLoot;
+import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
+import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
@@ -117,9 +117,9 @@ public class IrisObjectPlacement {
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
     private int boreExtendMaxY = 0;
-    @ArrayType(min = 1, type = IrisObjectMarker.class)
+    @ArrayType(min = 1, type = PlacementMarker.class)
     @Desc("Add markers to blocks in this object")
-    private KList<IrisObjectMarker> markers = new KList<>();
+    private KList<PlacementMarker> markers = new KList<>();
     @MaxNumber(64)
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
@@ -167,12 +167,12 @@ public class IrisObjectPlacement {
     private IrisObjectTranslate translate = new IrisObjectTranslate();
     @Desc("Scale Objects")
     private IrisObjectScale scale = new IrisObjectScale();
-    @ArrayType(min = 1, type = IrisObjectLoot.class)
+    @ArrayType(min = 1, type = ObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
-    private KList<IrisObjectLoot> loot = new KList<>();
-    @ArrayType(min = 1, type = IrisObjectVanillaLoot.class)
+    private KList<ObjectLoot> loot = new KList<>();
+    @ArrayType(min = 1, type = ObjectVanillaLoot.class)
     @Desc("The vanilla loot tables to apply to these objects")
-    private KList<IrisObjectVanillaLoot> vanillaLoot = new KList<>();
+    private KList<ObjectVanillaLoot> vanillaLoot = new KList<>();
     @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
     private boolean overrideGlobalLoot = false;
     @Desc("This object / these objects override the following trees when they grow...")

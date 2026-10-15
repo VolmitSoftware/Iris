@@ -19,8 +19,7 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.builtin.loot.LootTable;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.IrisPackResources;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
@@ -46,11 +45,10 @@ public final class LootResources {
         return List.of(TABLES);
     }
 
-    public static LootTable table(IrisData data, String key) {
+    public static LootTable table(PackResources resources, String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
-        IrisPackResources resources = data.getPackResources();
         try {
             return resources.find(TABLES.key(resources.idOf(key))).orElse(null);
         } catch (IllegalStateException failedToLoad) {
@@ -59,7 +57,7 @@ public final class LootResources {
     }
 
     /** The key of every loot table of the pack, in key order. */
-    public static List<String> tableKeys(IrisData data) {
-        return data.getPackResources().ids(TABLES.type()).stream().map(ResourceId::path).toList();
+    public static List<String> tableKeys(PackResources resources) {
+        return resources.ids(TABLES.type()).stream().map(ResourceId::path).toList();
     }
 }

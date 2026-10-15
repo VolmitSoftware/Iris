@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.loot.LootEnchantment;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.loot.LootSlot;
 import art.arcane.iris.builtin.loot.LootTable;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;

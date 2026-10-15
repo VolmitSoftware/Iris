@@ -18,14 +18,13 @@
 
 package art.arcane.iris.engine.loot;
 
+import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.LiveWorld.Level;
 import art.arcane.iris.builtin.loot.LootMode;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.loot.LootSettings;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.LootResolver;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.world.PackWorld;
 
 import java.util.List;
 import java.util.Objects;
@@ -64,9 +63,9 @@ public final class LootTables {
         return LootResolver.spatialOneIn(lootSeed, identity, entryIndex, x, y, z, rarity);
     }
 
-    /** The loot settings a dimension, region or biome declares; the defaults, which add nothing, when it declares none. */
-    public static LootSettings settingsOf(IrisRegistrant owner) {
-        return owner.getModuleSettings().find(LootSettings.class).orElseGet(LootSettings::new);
+    /** The loot settings the level declares at the block; the defaults, which add nothing, when it declares none. */
+    private static LootSettings settingsAt(LiveWorld live, Level level, int x, int relativeY, int z) {
+        return live.settings(LootSettings.class, level, x, relativeY, z).orElseGet(LootSettings::new);
     }
 
     /**
@@ -76,7 +75,7 @@ public final class LootTables {
      */
     public static <T> void resolveEnvironmentSources(
             List<T> sources,
-            Engine engine,
+            PackWorld world,
             RNG rng,
             int x,
             int relativeY,
@@ -84,31 +83,25 @@ public final class LootTables {
             boolean objectLootDefined,
             Function<String, T> mapper
     ) {
-        IrisRegion region = engine.getComplex().getRegionStream().get(x, z);
-        IrisBiome surfaceBiome = engine.getComplex().getTrueBiomeStream().get(x, z);
-        double terrainHeight = engine.getComplex().getHeightStream().get(x, z);
-        IrisBiome contextualBiome = relativeY < terrainHeight
-                ? engine.getCaveBiome(x, relativeY, z)
-                : surfaceBiome;
-        if (contextualBiome == null) {
-            contextualBiome = surfaceBiome;
-        }
+        LiveWorld live = LiveWorld.of(world);
+        boolean belowSurface = relativeY < live.terrainHeight(x, z);
+        boolean distinctContextualBiome = belowSurface && !live.caveBiome(x, relativeY, z).equals(live.surfaceBiome(x, z));
 
-        LootSettings dimensionLoot = settingsOf(engine.getDimension());
-        LootSettings regionLoot = settingsOf(region);
-        LootSettings surfaceLoot = settingsOf(surfaceBiome);
-        boolean distinctContextualBiome = !sameBiome(surfaceBiome, contextualBiome);
+        LootSettings dimensionLoot = settingsAt(live, Level.DIMENSION, x, relativeY, z);
+        LootSettings regionLoot = settingsAt(live, Level.REGION, x, relativeY, z);
+        LootSettings surfaceLoot = settingsAt(live, Level.SURFACE_BIOME, x, relativeY, z);
         double multiplier = dimensionLoot.multiplier() * regionLoot.multiplier() * surfaceLoot.multiplier();
-        if (distinctContextualBiome) {
-            multiplier *= settingsOf(contextualBiome).multiplier();
+        LootSettings contextualLoot = distinctContextualBiome ? settingsAt(live, Level.CAVE_BIOME, x, relativeY, z) : null;
+        if (contextualLoot != null) {
+            multiplier *= contextualLoot.multiplier();
         }
 
         boolean fallback = !objectLootDefined;
-        injectReference(sources, dimensionLoot, engine, mapper, fallback);
-        injectReference(sources, regionLoot, engine, mapper, fallback);
-        injectReference(sources, surfaceLoot, engine, mapper, fallback);
-        if (distinctContextualBiome) {
-            injectReference(sources, settingsOf(contextualBiome), engine, mapper, fallback);
+        injectReference(sources, dimensionLoot, world, mapper, fallback);
+        injectReference(sources, regionLoot, world, mapper, fallback);
+        injectReference(sources, surfaceLoot, world, mapper, fallback);
+        if (contextualLoot != null) {
+            injectReference(sources, contextualLoot, world, mapper, fallback);
         }
         LootResolver.scaleSources(sources, multiplier, rng);
     }
@@ -133,25 +126,15 @@ public final class LootTables {
         sources.addAll(additions);
     }
 
-    static boolean sameBiome(IrisBiome first, IrisBiome second) {
-        if (first == second) {
-            return true;
-        }
-        if (first == null || second == null) {
-            return false;
-        }
-        return Objects.equals(first.getLoadKey(), second.getLoadKey());
-    }
-
     private static <T> void injectReference(
             List<T> sources,
             LootSettings loot,
-            Engine engine,
+            PackWorld world,
             Function<String, T> mapper,
             boolean fallback
     ) {
         List<T> additions = loot.tables().stream()
-                .filter(key -> LootResources.table(engine.getData(), key) != null)
+                .filter(key -> LootResources.table(world.resources(), key) != null)
                 .map(mapper)
                 .filter(Objects::nonNull)
                 .toList();

@@ -19,14 +19,16 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.anchor.AnchorSampling;
-import art.arcane.iris.core.modules.IrisPlacement;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.builtin.prepare.TransformedBounds;
 
 /**
  * The world blocks a placed object occupies, inclusive: its transformed bounds around the anchor. A painted
  * object follows the surface column by column, so its volume spans every surface height under it.
  */
 record WorldVolume(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-    static WorldVolume of(IrisPlacement placement, PreparedPlacement prepared, int anchorY) {
+    static WorldVolume of(ObjectPlacement placement, PreparedPlacement prepared, int anchorY) {
         TransformedBounds bounds = prepared.bounds();
         int minX = placement.x() + bounds.minX();
         int maxX = placement.x() + bounds.maxX();
@@ -39,18 +41,18 @@ record WorldVolume(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         int highestSurface = Integer.MIN_VALUE;
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int surface = prepared.terrain().getHighest(x, z, placement.object().getLoader(), prepared.config().isUnderwater());
+                int surface = prepared.terrain().highest(x, z, prepared.settings().underwater());
                 lowestSurface = Math.min(lowestSurface, surface);
                 highestSurface = Math.max(highestSurface, surface);
             }
         }
-        int paintOffset = Math.floorDiv(placement.object().h, 2);
+        int paintOffset = Math.floorDiv(placement.object().height(), 2);
         return new WorldVolume(minX, maxX, lowestSurface + bounds.minY() + paintOffset,
                 highestSurface + bounds.maxY() + paintOffset, minZ, maxZ);
     }
 
     /** Whether each block of the placement follows the surface of its own column. */
-    static boolean isPainted(IrisPlacement placement, PreparedPlacement prepared) {
+    static boolean isPainted(ObjectPlacement placement, PreparedPlacement prepared) {
         return placement.requestedY() < 0 && prepared.mode().anchor() == AnchorSampling.SURFACE;
     }
 }

@@ -18,20 +18,19 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.VacuumProfile;
-import com.volmit.FeatureRegistry;
-import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.anchor.VacuumProfile;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.terrain.TerrainPalettes;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.noise.SimplexNoise;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.placement.PlaneNoise;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.builtin.prepare.TransformedBounds;
+import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.StageGraph;
 
@@ -46,15 +45,12 @@ public final class VacuumModule implements IrisModule {
     private static final long HASH_Z = 132897987541L;
     private static final int HASH_BUCKETS = 1000;
     private static final double HALF = 0.5;
+    private static final BlockState STONE = new BlockState("minecraft:stone");
+    private static final BlockState AIR = new BlockState("minecraft:cave_air");
 
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:vacuum", "Vacuum", PlacementModules.VERSION);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(VacuumSettings.class);
     }
 
     @Override
@@ -68,47 +64,46 @@ public final class VacuumModule implements IrisModule {
     private static void bendTerrain(PlacementStageContext context) {
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
-        Engine engine = prepared.terrain().getEngine();
-        if (!prepared.mode().bendsTerrain() || written.isEmpty() || engine == null) {
+        if (!prepared.mode().bendsTerrain() || written.isEmpty() || !prepared.terrain().hasWorld()) {
             return;
         }
         int baseY = written.blocks().stream().mapToInt(block -> block.position().y()).min().orElseThrow();
         int topY = written.blocks().stream().mapToInt(block -> block.position().y()).max().orElseThrow();
-        new Bend(context, prepared, engine).apply(baseY, topY);
+        new Bend(context, prepared).apply(baseY, topY);
     }
 
     /** One placement's terrain bend over the columns within its radius of the object's footprint. */
     private static final class Bend {
-        private final IrisPlacement placement;
+        private final ObjectPlacement placement;
         private final PreparedPlacement prepared;
+        private final PlacementTerrain terrain;
         private final PlacementWorld world;
-        private final TerrainPalettes palettes;
         private final int radius;
         private final int step;
         private final double falloff;
         private final int jitter;
         private final double waveAmplitude;
         private final double waveScale;
-        private final SimplexNoise waves;
+        private final PlaneNoise waves;
         private final int lowestY;
         private final int highestY;
 
-        private Bend(PlacementStageContext context, PreparedPlacement prepared, Engine engine) {
+        private Bend(PlacementStageContext context, PreparedPlacement prepared) {
             VacuumProfile vacuum = prepared.mode().vacuum();
-            this.placement = IrisPlacement.current();
+            this.placement = ObjectPlacement.current();
             this.prepared = prepared;
-            this.world = new PlacementWorld(context.access(), placement.states());
-            this.palettes = engine.getComplex() == null ? null : TerrainPalettes.of(engine);
-            VacuumSettings settings = prepared.config().getVacuumSettings();
+            this.terrain = prepared.terrain();
+            this.world = new PlacementWorld(context.access(), prepared.traits());
+            VacuumSettings settings = prepared.settings().vacuum().orElse(null);
             this.radius = IrisObjectVacuum.resolveRadius(vacuum, settings);
             this.step = vacuum.columnStepBlocks();
             this.falloff = IrisObjectVacuum.resolveFalloff(settings);
             this.jitter = settings != null ? Math.max(0, settings.organicJitter()) : DEFAULT_ORGANIC_JITTER;
             this.waveAmplitude = IrisObjectVacuum.resolveWaveAmplitude(settings);
             this.waveScale = IrisObjectVacuum.resolveWaveScale(settings);
-            this.waves = vacuum.edge() == VacuumProfile.Edge.WAVY && waveAmplitude > 0 ? new SimplexNoise(WAVE_SEED) : null;
+            this.waves = vacuum.edge() == VacuumProfile.Edge.WAVY && waveAmplitude > 0 ? placement.simplex(WAVE_SEED) : null;
             this.lowestY = IrisObjectVacuum.LOWEST_TARGET_Y;
-            this.highestY = engine.getHeight() - 1;
+            this.highestY = terrain.worldHeight() - 1;
         }
 
         private void apply(int baseY, int topY) {
@@ -124,7 +119,7 @@ public final class VacuumModule implements IrisModule {
             int x = placement.x() + dx;
             int z = placement.z() + dz;
             double effectiveRadius = effectiveRadius(x, z);
-            int originalY = prepared.terrain().getHighest(x, z, placement.object().getLoader(), true);
+            int originalY = terrain.highest(x, z, true);
             int targetY = IrisObjectVacuum.columnTargetY(dx, dz, bounds.minX(), bounds.maxX(), bounds.minZ(), bounds.maxZ(),
                     effectiveRadius, falloff, originalY, meetY) + waveOffset(bounds, dx, dz, x, z, effectiveRadius);
             if (targetY == originalY) {
@@ -157,13 +152,13 @@ public final class VacuumModule implements IrisModule {
             int outX = IrisObjectVacuum.outset(dx, bounds.minX(), bounds.maxX());
             int outZ = IrisObjectVacuum.outset(dz, bounds.minZ(), bounds.maxZ());
             double distance = Math.sqrt((double) (outX * outX) + (double) (outZ * outZ));
-            return IrisObjectVacuum.waveOffset(distance, effectiveRadius, waves.noiseSigned(x * waveScale, z * waveScale), waveAmplitude);
+            return IrisObjectVacuum.waveOffset(distance, effectiveRadius, waves.signed(x * waveScale, z * waveScale), waveAmplitude);
         }
 
         private void raise(int x, int z, int fromY, int toY) {
-            PlatformBlockState fill = palettes != null ? palettes.rockAt(x, z) : null;
-            if (B.isAir(fill)) {
-                fill = IrisObject.States.STONE;
+            BlockState fill = terrain.rockAt(x, z);
+            if (world.has(fill, BlockTrait.AIR)) {
+                fill = STONE;
             }
             for (int y = fromY + 1; y <= toY; y++) {
                 world.set(x, y, z, fill);
@@ -172,7 +167,7 @@ public final class VacuumModule implements IrisModule {
 
         private void carve(int x, int z, int fromY, int floorY) {
             for (int y = fromY; y >= floorY; y--) {
-                world.set(x, y, z, IrisObject.States.AIR);
+                world.set(x, y, z, AIR);
             }
         }
     }

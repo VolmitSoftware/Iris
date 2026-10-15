@@ -18,46 +18,44 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.core.modules.BlockEntities;
-import art.arcane.iris.core.modules.PlatformBlockStates;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.builtin.placement.BlockTraits;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacementAccess;
 import com.volmit.world.BlockPosition;
 
 import java.util.Optional;
 
-/**
- * A placement stage's buffered world in Iris's block states: reads see the placement's earlier writes,
- * writes wait for the placement to commit.
- */
+/** A placement stage's buffered world: reads see the placement's earlier writes, writes wait for the placement to commit. */
 final class PlacementWorld {
     private final PlacementAccess access;
-    private final PlatformBlockStates states;
+    private final BlockTraits traits;
 
-    PlacementWorld(PlacementAccess access, PlatformBlockStates states) {
+    PlacementWorld(PlacementAccess access, BlockTraits traits) {
         this.access = access;
-        this.states = states;
+        this.traits = traits;
     }
 
-    PlatformBlockState get(int x, int y, int z) {
-        return states.toPlatform(access.get(x, y, z));
+    BlockState get(int x, int y, int z) {
+        return access.get(x, y, z);
+    }
+
+    boolean has(BlockState state, BlockTrait trait) {
+        return traits.has(state, trait);
     }
 
     boolean isSolid(int x, int y, int z) {
-        return B.isSolid(get(x, y, z));
+        return has(get(x, y, z), BlockTrait.SOLID);
     }
 
-    PlacedBlock set(int x, int y, int z, PlatformBlockState state) {
-        return set(x, y, z, state, null);
+    PlacedBlock set(int x, int y, int z, BlockState state) {
+        return set(x, y, z, state, Optional.empty());
     }
 
-    /** {@code tile} may be null for a block without tile data. */
-    PlacedBlock set(int x, int y, int z, PlatformBlockState state, TileData tile) {
-        PlacedBlock block = new PlacedBlock(new BlockPosition(x, y, z), states.toApi(state),
-                Optional.ofNullable(tile).map(BlockEntities::of));
+    PlacedBlock set(int x, int y, int z, BlockState state, Optional<BlockEntityData> blockEntity) {
+        PlacedBlock block = new PlacedBlock(new BlockPosition(x, y, z), state, blockEntity);
         access.set(block);
         return block;
     }

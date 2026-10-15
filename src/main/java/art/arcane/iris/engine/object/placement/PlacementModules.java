@@ -18,19 +18,10 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import com.volmit.IrisModule;
-
-import java.util.List;
-
-/** Iris's built-in object placement, as the IrisApi modules every pack's placement graph starts from. */
-public final class PlacementModules {
+/** What Iris's built-in object placement modules share: the version they report. The modules ship in the built-ins jar. */
+final class PlacementModules {
     static final String VERSION = "built-in";
 
     private PlacementModules() {
-    }
-
-    public static List<IrisModule> all() {
-        return List.of(new PrepareModule(), new AnchorModule(), new ValidateModule(), new BoreModule(),
-                new BlocksModule(), new StiltModule(), new VacuumModule(), new SnowModule());
     }
 }

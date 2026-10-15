@@ -1,31 +1,24 @@
-package art.arcane.iris.engine.object.placement;
+package art.arcane.iris.builtin.prepare;
 
-import art.arcane.iris.builtin.prepare.AxisRotationClamp;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 
 /**
  * Precomputed vector rotation for a single placement.
  * <p>
- * This mirrors {@link IrisObjectRotation#rotate(IrisBlockVector, int, int, int)} branch for branch, with two
- * differences: it mutates the vector handed to it instead of cloning, and the per-axis angle plus its cosine
- * and sine are resolved once instead of once per block. The angle is a pure function of the axis clamp and the
- * spin, both fixed for the placement, and Math.cos/Math.sin are pure, so every produced double is identical to
- * the value the per-call form would have produced.
+ * Turns vectors branch for branch as Iris's object rotation does, with two differences: it mutates the vector
+ * handed to it instead of cloning, and the per-axis angle plus its cosine and sine are resolved once instead of once
+ * per block. The angle is a pure function of the axis clamp and the spin, both fixed for the placement, and
+ * Math.cos/Math.sin are pure, so every produced double is identical to the value the per-call form would have produced.
  */
- final class ObjectSpinKernel {
+public final class ObjectSpinKernel {
     private static final int MODE_NONE = 0;
     private static final int MODE_FLIP = 1;
     private static final int MODE_QUARTER = 2;
     private static final int MODE_THREE_QUARTER = 3;
     private static final int MODE_ANGLE = 4;
 
-    IrisObjectRotation rotation;
+    private final ObjectRotation rotation;
 
-    private final int spinX ;
-    private final int spinY;
-    private final int spinZ;
     private final int xMode;
     private final int yMode;
     private final int zMode;
@@ -36,17 +29,14 @@ import art.arcane.volmlib.util.math.IrisBlockVector;
     private final double zCos;
     private final double zSin;
 
-    ObjectSpinKernel(IrisObjectRotation rotation, int spinX, int spinY, int spinZ) {
+    public ObjectSpinKernel(ObjectRotation rotation, int spinX, int spinY, int spinZ) {
         this.rotation = rotation;
-        xMode = rotation.canRotateX() ? modeOf(rotation.getXAxis()) : MODE_NONE;
-        zMode = rotation.canRotateZ() ? modeOf(rotation.getZAxis()) : MODE_NONE;
-        yMode = rotation.canRotateY() ? modeOf(rotation.getYAxis()) : MODE_NONE;
-        this.spinX = spinX;
-        this.spinY = spinY;
-        this.spinZ = spinZ;
-        double xAngle = xMode == MODE_ANGLE ? rotation.getXRotation(spinX) : 0;
-        double zAngle = zMode == MODE_ANGLE ? rotation.getZRotation(spinZ) : 0;
-        double yAngle = yMode == MODE_ANGLE ? rotation.getYRotation(spinY) : 0;
+        xMode = rotation.canRotateX() ? modeOf(rotation.xAxis()) : MODE_NONE;
+        zMode = rotation.canRotateZ() ? modeOf(rotation.zAxis()) : MODE_NONE;
+        yMode = rotation.canRotateY() ? modeOf(rotation.yAxis()) : MODE_NONE;
+        double xAngle = xMode == MODE_ANGLE ? rotation.radians(rotation.xAxis(), spinX) : 0;
+        double zAngle = zMode == MODE_ANGLE ? rotation.radians(rotation.zAxis(), spinZ) : 0;
+        double yAngle = yMode == MODE_ANGLE ? rotation.radians(rotation.yAxis(), spinY) : 0;
         xCos = Math.cos(xAngle);
         xSin = Math.sin(xAngle);
         zCos = Math.cos(zAngle);
@@ -75,14 +65,10 @@ import art.arcane.volmlib.util.math.IrisBlockVector;
         return MODE_ANGLE;
     }
 
-    PlatformBlockState rotate(PlatformBlockState state) {
-        return rotation.rotate(state, spinX, spinY, spinZ);
-    }
-
     /**
      * Rotates in place. Axis order (X, then Z, then Y) is load bearing.
      */
-    void rotate(IrisBlockVector v) {
+    public void rotate(IrisBlockVector v) {
         if (!rotation.canRotate()) {
             return;
         }

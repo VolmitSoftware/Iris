@@ -12,7 +12,7 @@
 # (art.arcane.iris.builtin), the JDK and the other classes of the jar. `./gradlew builtinModulesJar` checks
 # that with IrisApi's pack class checks and fails naming the class and what it uses.
 #
-# Moving a module here means removing it from IrisModuleHost.generationModules() or PlacementModules.all() in Iris.
+# Moving a module here means removing it from IrisModuleHost.generationModules() in Iris.
 
 module art.arcane.iris.engine.modifier.PostModule
 include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
@@ -22,3 +22,18 @@ module art.arcane.iris.engine.loot.LootModule
 include art/arcane/iris/engine/loot/**
 module art.arcane.iris.engine.spawn.SpawnModule
 include art/arcane/iris/engine/spawn/**
+module art.arcane.iris.engine.object.placement.PrepareModule
+module art.arcane.iris.engine.object.placement.AnchorModule
+module art.arcane.iris.engine.object.placement.ValidateModule
+module art.arcane.iris.engine.object.placement.BoreModule
+module art.arcane.iris.engine.object.placement.BlocksModule
+module art.arcane.iris.engine.object.placement.StiltModule
+module art.arcane.iris.engine.object.placement.VacuumModule
+module art.arcane.iris.engine.object.placement.SnowModule
+include art/arcane/iris/engine/object/placement/PlacementModules.class
+include art/arcane/iris/engine/object/placement/PlacementWorld.class
+include art/arcane/iris/engine/object/placement/WorldVolume.class
+include art/arcane/iris/engine/object/placement/ObjectEdits*.class
+include art/arcane/iris/engine/object/placement/ResolvedReplace*.class
+include art/arcane/iris/engine/object/placement/IrisSurfaceSupport*.class
+include art/arcane/iris/engine/object/placement/IrisObjectVacuum.class

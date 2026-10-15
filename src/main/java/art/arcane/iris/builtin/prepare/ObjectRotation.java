@@ -42,6 +42,16 @@ public final class ObjectRotation {
     public ObjectRotation() {
     }
 
+    /** A rotation with the given axes, as Iris's own rotation model hands them to the placement stages. */
+    public static ObjectRotation of(boolean enabled, AxisRotationClamp xAxis, AxisRotationClamp yAxis, AxisRotationClamp zAxis) {
+        ObjectRotation rotation = new ObjectRotation();
+        rotation.enabled = enabled;
+        rotation.xAxis = xAxis;
+        rotation.yAxis = yAxis;
+        rotation.zAxis = zAxis;
+        return rotation;
+    }
+
     public boolean enabled() {
         return enabled;
     }
@@ -56,5 +66,29 @@ public final class ObjectRotation {
 
     public AxisRotationClamp zAxis() {
         return zAxis;
+    }
+
+    public boolean canRotateX() {
+        return enabled && xAxis.enabled();
+    }
+
+    public boolean canRotateY() {
+        return enabled && yAxis.enabled();
+    }
+
+    public boolean canRotateZ() {
+        return enabled && zAxis.enabled();
+    }
+
+    public boolean canRotate() {
+        return canRotateX() || canRotateY() || canRotateZ();
+    }
+
+    /** The angle, in radians, the object turns around {@code axis} for the random {@code spin}; 0 when the rotation or the axis is off. */
+    public double radians(AxisRotationClamp axis, int spin) {
+        if (!enabled || !axis.enabled()) {
+            return 0;
+        }
+        return axis.getRadians(spin);
     }
 }

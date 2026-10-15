@@ -19,15 +19,19 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.PlacementSettings;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockState;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.StageGraph;
 
 /** Module {@code iris:bore}: fills the object's volume with air, extended up and down as configured. */
 public final class BoreModule implements IrisModule {
+    private static final BlockState AIR = new BlockState("minecraft:cave_air");
+
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:bore", "Bore", PlacementModules.VERSION);
@@ -42,17 +46,17 @@ public final class BoreModule implements IrisModule {
 
     private static void clear(PlacementStageContext context) {
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        IrisObjectPlacement config = prepared.config();
-        if (!config.isBore()) {
+        PlacementSettings settings = prepared.settings();
+        if (!settings.bore()) {
             return;
         }
-        IrisPlacement placement = IrisPlacement.current();
+        ObjectPlacement placement = ObjectPlacement.current();
         WorldVolume volume = WorldVolume.of(placement, prepared, context.output(IrisStages.Anchor.FINAL).y());
-        PlacementWorld world = new PlacementWorld(context.access(), placement.states());
+        PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
         for (int x = volume.minX(); x <= volume.maxX(); x++) {
-            for (int y = volume.minY() - config.getBoreExtendMinY(); y <= volume.maxY() + config.getBoreExtendMaxY(); y++) {
+            for (int y = volume.minY() - settings.boreExtendMinY(); y <= volume.maxY() + settings.boreExtendMaxY(); y++) {
                 for (int z = volume.minZ(); z <= volume.maxZ(); z++) {
-                    world.set(x, y, z, IrisObject.States.AIR);
+                    world.set(x, y, z, AIR);
                 }
             }
         }

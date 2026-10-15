@@ -20,11 +20,11 @@ package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockState;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.StageGraph;
@@ -32,6 +32,7 @@ import com.volmit.world.BlockPosition;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Module {@code iris:snow}: a random depth of snow on top of each column of the object, deeper the more
@@ -39,6 +40,9 @@ import java.util.Map;
  */
 public final class SnowModule implements IrisModule {
     private static final int LAYERS_PER_UNIT_OF_SNOW = 7;
+    private static final BlockState[] SNOW_LAYERS = IntStream.rangeClosed(1, 8)
+            .mapToObj(layers -> new BlockState("minecraft:snow").withProperty("layers", Integer.toString(layers)))
+            .toArray(BlockState[]::new);
 
     @Override
     public ModuleInfo info() {
@@ -54,17 +58,18 @@ public final class SnowModule implements IrisModule {
     }
 
     private static void cover(PlacementStageContext context) {
-        double snow = context.output(IrisStages.Prepare.TRANSFORMS).config().getSnow();
+        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        double snow = prepared.settings().snow();
         WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
         if (!(snow > 0) || written.isEmpty()) {
             return;
         }
-        PlacementWorld world = new PlacementWorld(context.access(), IrisPlacement.current().states());
+        PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
         RNG rng = new RNG(context.random().nextLong());
-        int maxLayer = IrisObject.States.SNOW_LAYERS.length - 1;
+        int maxLayer = SNOW_LAYERS.length - 1;
         for (BlockPosition top : columnTops(written).values()) {
             int layer = rng.i(0, (int) (snow * LAYERS_PER_UNIT_OF_SNOW));
-            world.set(top.x(), top.y() + 1, top.z(), IrisObject.States.SNOW_LAYERS[Math.max(Math.min(layer, maxLayer), 0)]);
+            world.set(top.x(), top.y() + 1, top.z(), SNOW_LAYERS[Math.max(Math.min(layer, maxLayer), 0)]);
         }
     }
 

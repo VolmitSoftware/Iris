@@ -18,16 +18,23 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.AnchorHeight;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.anchor.PlaceTrait;
+import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.placement.CaveSpace;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.ObjectShape;
+import art.arcane.iris.builtin.placement.PlacementSettings;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.builtin.prepare.TransformedBounds;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.StageGraph;
+
+import java.util.Optional;
 
 /**
  * Module {@code iris:anchor}: the height an object is placed at, requested by the caller, counted from the
@@ -54,24 +61,24 @@ public final class AnchorModule implements IrisModule {
     }
 
     private static AnchorHeight height(PlacementStageContext context) {
-        IrisPlacement placement = IrisPlacement.current();
+        ObjectPlacement placement = ObjectPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        IrisObjectPlacement config = prepared.config();
+        PlacementSettings settings = prepared.settings();
         boolean structurePiece = prepared.mode().has(PlaceTrait.RAW_STAMP);
-        if (!config.isFromBottom() && placement.requestedY() < 0) {
+        if (!settings.fromBottom() && placement.requestedY() < 0) {
             return new AnchorHeight(sampled(context, placement, prepared));
         }
-        IrisObject object = placement.object();
-        int y = config.isFromBottom() ? object.getH() + 1 + prepared.rotatedCenterY() : placement.requestedY();
-        if (!config.isForcePlace() && !structurePiece && rejectsCarvingAnchor(prepared, placement.x(), y, placement.z())) {
+        ObjectShape object = placement.object();
+        int y = settings.fromBottom() ? object.height() + 1 + prepared.rotatedCenterY() : placement.requestedY();
+        if (!settings.forcePlace() && !structurePiece && rejectsCarvingAnchor(prepared, placement.x(), y, placement.z())) {
             context.reject(CARVING_ANCHOR);
             return new AnchorHeight(y);
         }
-        if (placement.requestedY() < 0 || !config.isBottom() || structurePiece) {
+        if (placement.requestedY() < 0 || !settings.bottom() || structurePiece) {
             return new AnchorHeight(y);
         }
-        y += Math.floorDiv(object.h, 2);
-        if (!config.isForcePlace() && config.getCarvingSupport() != CarvingMode.CARVING_ONLY
+        y += Math.floorDiv(object.height(), 2);
+        if (!settings.forcePlace() && settings.carvingSupport() != CarvingMode.CARVING_ONLY
                 && rejectsCarvingAnchor(prepared, placement.x(), y, placement.z())) {
             context.reject(CARVING_ANCHOR);
         }
@@ -80,14 +87,14 @@ public final class AnchorModule implements IrisModule {
 
     private static AnchorHeight finalHeight(PlacementStageContext context) {
         int y = context.output(IrisStages.Anchor.HEIGHT).y() + context.output(IrisStages.Prepare.TRANSFORMS).randomY();
-        IrisPlacement.current().anchoredAt(y);
+        ObjectPlacement.current().anchoredAt(y);
         return new AnchorHeight(y);
     }
 
-    private static int sampled(PlacementStageContext context, IrisPlacement placement, PreparedPlacement prepared) {
+    private static int sampled(PlacementStageContext context, ObjectPlacement placement, PreparedPlacement prepared) {
         return switch (prepared.mode().anchor()) {
             case CENTER -> checked(context, prepared, placement.x(), centerSurface(placement, prepared), placement.z());
-            case SURFACE -> checked(context, prepared, placement.x(), surface(placement, prepared, placement.x(), placement.z()), placement.z());
+            case SURFACE -> checked(context, prepared, placement.x(), surface(prepared, placement.x(), placement.z()), placement.z());
             case HIGHEST -> extremeSurface(context, placement, prepared, true, false);
             case HIGHEST_CORNER -> extremeSurface(context, placement, prepared, true, true);
             case LOWEST -> extremeSurface(context, placement, prepared, false, false);
@@ -98,27 +105,27 @@ public final class AnchorModule implements IrisModule {
     }
 
     /** The floor of the cave the object is placed in, otherwise the surface at its center. */
-    private static int centerSurface(IrisPlacement placement, PreparedPlacement prepared) {
-        if (placement.cave() != null) {
-            return placement.cave().getSurface() + prepared.rotatedCenterY();
+    private static int centerSurface(ObjectPlacement placement, PreparedPlacement prepared) {
+        Optional<CaveSpace> cave = placement.cave();
+        if (cave.isPresent()) {
+            return cave.get().surface() + prepared.rotatedCenterY();
         }
-        return surface(placement, prepared, placement.x(), placement.z());
+        return surface(prepared, placement.x(), placement.z());
     }
 
-    private static int surface(IrisPlacement placement, PreparedPlacement prepared, int x, int z) {
-        return prepared.terrain().getHighest(x, z, placement.object().getLoader(), prepared.config().isUnderwater())
-                + prepared.rotatedCenterY();
+    private static int surface(PreparedPlacement prepared, int x, int z) {
+        return prepared.terrain().highest(x, z, prepared.settings().underwater()) + prepared.rotatedCenterY();
     }
 
     private static int checked(PlacementStageContext context, PreparedPlacement prepared, int x, int y, int z) {
-        if (!prepared.config().isForcePlace() && rejectsCarvingAnchor(prepared, x, y, z)) {
+        if (!prepared.settings().forcePlace() && rejectsCarvingAnchor(prepared, x, y, z)) {
             context.reject(CARVING_ANCHOR);
         }
         return y;
     }
 
     /** The highest or lowest surface under the object's columns, or under its four corners only. */
-    private static int extremeSurface(PlacementStageContext context, IrisPlacement placement, PreparedPlacement prepared,
+    private static int extremeSurface(PlacementStageContext context, ObjectPlacement placement, PreparedPlacement prepared,
                                       boolean highest, boolean cornersOnly) {
         TransformedBounds bounds = prepared.bounds();
         int minX = placement.x() + bounds.minX();
@@ -130,8 +137,8 @@ public final class AnchorModule implements IrisModule {
         int y = highest ? -1 : Integer.MAX_VALUE;
         for (int x = minX; x <= maxX; x += xStep) {
             for (int z = minZ; z <= maxZ; z += zStep) {
-                int column = surface(placement, prepared, x, z);
-                if (!prepared.config().isForcePlace() && rejectsCarvingAnchor(prepared, x, column, z)) {
+                int column = surface(prepared, x, z);
+                if (!prepared.settings().forcePlace() && rejectsCarvingAnchor(prepared, x, column, z)) {
                     context.reject(CARVING_ANCHOR);
                     return y;
                 }
@@ -143,15 +150,15 @@ public final class AnchorModule implements IrisModule {
 
     /** Whether the placement's carving support forbids anchoring at this block. */
     private static boolean rejectsCarvingAnchor(PreparedPlacement prepared, int x, int y, int z) {
-        IObjectPlacer terrain = prepared.terrain();
-        return switch (prepared.config().getCarvingSupport()) {
+        PlacementTerrain terrain = prepared.terrain();
+        return switch (prepared.settings().carvingSupport()) {
             case SURFACE_ONLY -> terrain.isCarved(x, y, z);
             case CARVING_ONLY -> !carvedWithin(terrain, x, y, z);
             case ANYWHERE -> false;
         };
     }
 
-    private static boolean carvedWithin(IObjectPlacer terrain, int x, int y, int z) {
+    private static boolean carvedWithin(PlacementTerrain terrain, int x, int y, int z) {
         for (int depth = 0; depth < CARVING_CLEARANCE_BLOCKS; depth++) {
             if (terrain.isCarved(x, y - depth, z)) {
                 return true;

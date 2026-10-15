@@ -19,12 +19,14 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.blocks.ObjectReplace;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
-import art.arcane.iris.engine.object.prefab.TileData;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.object.BlockEntityData;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * A placement's block replacements ({@code edit}): each replacement, by its chance, swaps the blocks it
@@ -35,42 +37,44 @@ final class ObjectEdits {
     private ObjectEdits() {
     }
 
-    /** {@code tile} may be null; the result's tile is the last replacement's tile, if it has one. */
-    static Edited apply(IrisObjectPlacement config, PlatformBlockState data, TileData tile, RNG rng,
-                        double x, double y, double z, IrisData rdata) {
-        ResolvedReplaces replaces = ResolvedReplaces.of(rdata);
-        PlatformBlockState edited = data;
-        TileData editedTile = tile;
-        for (ObjectReplace settings : config.getEdit()) {
+    /** The result's block entity is the last replacement's, if it has one. */
+    static Edited apply(List<ObjectReplace> edits, BlockState data, Optional<BlockEntityData> blockEntity, RNG rng,
+                        double x, double y, double z, ResolvedReplaces replaces, ObjectPlacement placement) {
+        BlockState edited = data;
+        Optional<BlockEntityData> editedEntity = blockEntity;
+        for (ObjectReplace settings : edits) {
             ResolvedReplace replace = replaces.of(settings);
             if (!rng.chance(replace.chance())) {
                 continue;
             }
-            for (PlatformBlockState find : replace.find()) {
-                if (!finds(replace, find, edited)) {
+            for (BlockState find : replace.find()) {
+                if (!finds(placement, replace, find, edited)) {
                     continue;
                 }
-                edited = replaced(edited, replace.replacement(rng, x, y, z));
-                editedTile = replace.tile(rng).orElse(editedTile);
+                edited = replaced(placement, edited, replace.replacement(rng, x, y, z));
+                Optional<BlockEntityData> picked = replace.tile(rng);
+                if (picked.isPresent()) {
+                    editedEntity = picked;
+                }
             }
         }
-        return new Edited(edited, editedTile);
+        return new Edited(edited, editedEntity);
     }
 
-    private static boolean finds(ResolvedReplace replace, PlatformBlockState find, PlatformBlockState data) {
+    private static boolean finds(ObjectPlacement placement, ResolvedReplace replace, BlockState find, BlockState data) {
         return replace.exact()
-                ? find.matches(data)
-                : IrisObjectShaping.materialKey(find).equals(IrisObjectShaping.materialKey(data));
+                ? placement.matches(find, data)
+                : find.material().equals(data.material());
     }
 
-    private static PlatformBlockState replaced(PlatformBlockState data, PlatformBlockState replacement) {
-        boolean sameMaterial = IrisObjectShaping.materialKey(replacement).equals(IrisObjectShaping.materialKey(data));
-        if (sameMaterial && !replacement.isCustom() && !data.isCustom()) {
-            return BlockDataMergeSupport.merge(data, replacement);
+    private static BlockState replaced(ObjectPlacement placement, BlockState data, BlockState replacement) {
+        boolean sameMaterial = replacement.material().equals(data.material());
+        if (sameMaterial && !placement.hasTrait(replacement, BlockTrait.CUSTOM) && !placement.hasTrait(data, BlockTrait.CUSTOM)) {
+            return placement.merge(data, replacement);
         }
         return replacement;
     }
 
-    record Edited(PlatformBlockState data, TileData tile) {
+    record Edited(BlockState data, Optional<BlockEntityData> blockEntity) {
     }
 }

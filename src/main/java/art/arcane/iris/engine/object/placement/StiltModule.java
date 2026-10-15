@@ -18,19 +18,18 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.anchor.StiltShape;
-import com.volmit.FeatureRegistry;
-import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.anchor.StiltShape;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.PlacementSettings;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.stilt.StiltLayers;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
@@ -38,6 +37,7 @@ import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -48,8 +48,9 @@ import java.util.Set;
 public final class StiltModule implements IrisModule {
     private static final Set<String> SOIL_MATERIALS = Set.of("minecraft:grass_block", "minecraft:mycelium",
             "minecraft:podzol", "minecraft:dirt_path");
-    private static final String SOIL_REPLACEMENT = "minecraft:dirt";
-    private static final String WATERLOGGED = "waterlogged";
+    private static final BlockState SOIL_REPLACEMENT = new BlockState("minecraft:dirt");
+    private static final Set<String> NO_STILT_SUFFIXES = Set.of("_stairs", "_slab");
+    private static final String PATH_MATERIAL = "minecraft:dirt_path";
     private static final long HASH_X = 341873128712L;
     private static final long HASH_Y = 132897987541L;
     private static final long HASH_Z = 735791245321L;
@@ -65,11 +66,6 @@ public final class StiltModule implements IrisModule {
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:stilt", "Stilts", PlacementModules.VERSION);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(StiltSettings.class);
     }
 
     @Override
@@ -90,10 +86,19 @@ public final class StiltModule implements IrisModule {
             return;
         }
         ObjectBlock block = context.block();
-        if (!IrisObjectShaping.shouldStilt(IrisPlacement.current().states().toPlatform(block.state()))) {
+        if (!shouldStilt(prepared, block.state())) {
             return;
         }
         layers.include(new ObjectBlock(prepared.transform(block.position()), block.state(), block.blockEntity()));
+    }
+
+    /** Whether the block is solid ground a stilt can repeat: not a stair, a slab or a path. */
+    private static boolean shouldStilt(PreparedPlacement prepared, BlockState state) {
+        if (!prepared.traits().has(state, BlockTrait.OCCLUDING)) {
+            return false;
+        }
+        String material = state.material().toString();
+        return NO_STILT_SUFFIXES.stream().noneMatch(material::endsWith) && !material.equals(PATH_MATERIAL);
     }
 
     private static void fill(PlacementStageContext context) {
@@ -112,25 +117,27 @@ public final class StiltModule implements IrisModule {
 
     /** One placement's stilt, grown column by column under (or above) the blocks of its repeated layer. */
     private static final class StiltColumns {
-        private final IrisPlacement placement;
+        private final ObjectPlacement placement;
         private final PreparedPlacement prepared;
-        private final IrisObjectPlacement config;
+        private final PlacementSettings config;
         private final StiltSettings settings;
-        private final PlatformBlockState palette;
+        private final BlockState palette;
         private final StiltShape shape;
         private final PlacementWorld world;
+        private final PlacementStageContext context;
         private final RNG rng;
         private final int anchorY;
         private final int layerY;
         private final ErodeShape erode;
 
         private StiltColumns(PlacementStageContext context, PreparedPlacement prepared, StiltLayers layers) {
-            this.placement = IrisPlacement.current();
+            this.placement = ObjectPlacement.current();
             this.prepared = prepared;
-            this.config = prepared.config();
-            this.settings = config.getStiltSettings();
+            this.context = context;
+            this.config = prepared.settings();
+            this.settings = config.stilt().orElse(null);
             this.shape = prepared.mode().stilt();
-            this.world = new PlacementWorld(context.access(), placement.states());
+            this.world = new PlacementWorld(context.access(), prepared.traits());
             this.rng = new RNG(context.random().nextLong());
             this.anchorY = context.output(IrisStages.Anchor.FINAL).y();
             this.palette = settings == null ? null : paletteBlock(settings);
@@ -139,17 +146,17 @@ public final class StiltModule implements IrisModule {
         }
 
         /** The block the settings' palette picks for this placement, the same for every column; null without a palette. */
-        private PlatformBlockState paletteBlock(StiltSettings stilt) {
+        private BlockState paletteBlock(StiltSettings stilt) {
             return stilt.palette()
-                    .map(spec -> placement.data().getPackResources().blocks().palette(spec, rng.getSeed()))
-                    .map(picker -> B.getState(picker.at(placement.x(), anchorY, placement.z()).key()))
+                    .map(spec -> context.resources().blocks().palette(spec, rng.getSeed()))
+                    .map(picker -> picker.at(placement.x(), anchorY, placement.z()))
                     .orElse(null);
         }
 
         private void grow(ObjectBlock block) {
             BlockPosition offset = block.position();
-            PlatformBlockState state = stiltState(block, offset);
-            if (state == null || !state.isOccluding()) {
+            BlockState state = stiltState(block, offset);
+            if (!world.has(state, BlockTrait.OCCLUDING)) {
                 return;
             }
             int x = placement.x() + offset.x();
@@ -168,27 +175,27 @@ public final class StiltModule implements IrisModule {
         }
 
         /** The block the stilt repeats: the palette's when the settings have one, soil turned to dirt, edited and turned with the object. */
-        private PlatformBlockState stiltState(ObjectBlock block, BlockPosition offset) {
-            PlatformBlockState state = placement.states().toPlatform(block.state());
+        private BlockState stiltState(ObjectBlock block, BlockPosition offset) {
+            BlockState state = block.state();
             if (palette != null) {
                 state = palette;
-            } else if (SOIL_MATERIALS.contains(IrisObjectShaping.materialKey(state))) {
-                state = B.getState(SOIL_REPLACEMENT);
+            } else if (SOIL_MATERIALS.contains(state.material().toString())) {
+                state = SOIL_REPLACEMENT;
             }
             state = prepared.rotate(state);
-            if (config.getEdit().isEmpty() || state == null) {
+            if (config.edit().isEmpty()) {
                 return state;
             }
-            return ObjectEdits.apply(config, state, null, rng, offset.x() + placement.x(), offset.y() + anchorY,
-                    offset.z() + placement.z(), placement.data()).data();
+            return ObjectEdits.apply(config.edit(), state, Optional.empty(), rng, offset.x() + placement.x(), offset.y() + anchorY,
+                    offset.z() + placement.z(), ResolvedReplaces.of(context, prepared.terrain()), placement).data();
         }
 
-        private void growToSurface(PlatformBlockState state, BlockPosition offset, int x, int z) {
+        private void growToSurface(BlockState state, BlockPosition offset, int x, int z) {
             int top = layerY + anchorY;
-            int highest = prepared.terrain().getHighest(x, z, placement.object().getLoader(), true);
-            if (IrisProceduralBlocks.hasProperty(state, WATERLOGGED)
+            int highest = prepared.terrain().highest(x, z, true);
+            if (state.properties().containsKey(BlocksModule.WATERLOGGED)
                     && BlocksModule.shouldWaterlog(world, config, placement.requestedY(), x, highest, z)) {
-                state = state.withProperty(WATERLOGGED, "true");
+                state = state.withProperty(BlocksModule.WATERLOGGED, BlocksModule.TRUE);
             }
             int lowerBound = highest - 1;
             if (settings != null) {
@@ -201,13 +208,13 @@ public final class StiltModule implements IrisModule {
                 lowerBound = top - erode.depth(offset, top - lowerBound);
             }
             for (int y = top; y > lowerBound; y--) {
-                if (B.isFluid(world.get(x, y, z))) {
+                if (world.has(world.get(x, y, z), BlockTrait.FLUID)) {
                     return;
                 }
                 if (erode != null && erode.breaksAt(x, y, z, top - y, top - lowerBound)) {
                     continue;
                 }
-                if (B.isVineBlock(state)) {
+                if (world.has(state, BlockTrait.VINE)) {
                     state = BlocksModule.attachVineFaces(world, state, x, y, z);
                 }
                 world.set(x, y, z, state);
@@ -215,7 +222,7 @@ public final class StiltModule implements IrisModule {
         }
 
         /** Grows from the layer toward the first solid block in {@code direction}, -1 down or 1 up. */
-        private void growOrganic(PlatformBlockState state, int x, int z, int direction) {
+        private void growOrganic(BlockState state, int x, int z, int direction) {
             int maxScan = settings != null ? Math.max(1, settings.organicMaxScan()) : DEFAULT_ORGANIC_MAX_SCAN;
             int jitterMax = settings != null ? Math.max(0, settings.organicJitter()) : DEFAULT_ORGANIC_JITTER;
             double scratch = settings != null ? Math.max(0, Math.min(1, settings.organicScratch())) : DEFAULT_ORGANIC_SCRATCH;

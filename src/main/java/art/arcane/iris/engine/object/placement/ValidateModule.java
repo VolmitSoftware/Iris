@@ -18,17 +18,16 @@
 
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CarvingMode;
-import art.arcane.iris.builtin.validate.ObjectLimit;
-import com.volmit.FeatureRegistry;
-import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisPlacement;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.NativeStructureVolume;
-import art.arcane.iris.engine.framework.PlacedObject;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.placement.CaveSpace;
+import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.placement.ObjectShape;
+import art.arcane.iris.builtin.placement.PlacementSettings;
+import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.builtin.placement.StructureVolumes;
+import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
@@ -38,6 +37,7 @@ import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,11 +57,6 @@ public final class ValidateModule implements IrisModule {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(ObjectLimit.class);
-    }
-
-    @Override
     public void install(StageGraph graph) {
         graph.define(IrisStages.Validate.SURFACE)
                 .requires(IrisStages.Anchor.HEIGHT)
@@ -78,59 +73,59 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void checkSurface(PlacementStageContext context) {
-        IrisPlacement placement = IrisPlacement.current();
+        ObjectPlacement placement = ObjectPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        IrisObjectPlacement config = prepared.config();
-        if (config.isForcePlace() || config.isFromBottom() || prepared.mode().has(PlaceTrait.FREE_HEIGHT)) {
+        PlacementSettings settings = prepared.settings();
+        if (settings.forcePlace() || settings.fromBottom() || prepared.mode().has(PlaceTrait.FREE_HEIGHT)) {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y();
         boolean sampled = placement.requestedY() < 0;
-        if (sampled && config.getCarvingSupport().supportsSurface() && isOnBedrock(prepared, y)) {
-            warnImplausibleBedrockPlacement(placement, config, y, context.log());
+        if (sampled && settings.carvingSupport().supportsSurface() && isOnBedrock(prepared, y)) {
+            warnImplausibleBedrockPlacement(placement, settings, y, context.log());
             context.reject("bedrock-anchor");
             return;
         }
-        boolean surfaceAnchored = sampled ? config.getCarvingSupport().supportsSurface()
-                : config.getCarvingSupport() == CarvingMode.SURFACE_ONLY;
-        if (surfaceAnchored && !config.isUnderwater() && !config.isOnwater() && config.isRequireSurfaceSupport()
+        boolean surfaceAnchored = sampled ? settings.carvingSupport().supportsSurface()
+                : settings.carvingSupport() == CarvingMode.SURFACE_ONLY;
+        if (surfaceAnchored && !settings.underwater() && !settings.onwater() && settings.requireSurfaceSupport()
                 && lacksSurfaceSupport(placement, prepared)) {
             context.reject("surface-support");
         }
     }
 
     private static boolean isOnBedrock(PreparedPlacement prepared, int y) {
-        Engine engine = prepared.terrain().getEngine();
-        return engine != null && engine.getDimension().isBedrock() && y <= BEDROCK_ROW;
+        PlacementTerrain terrain = prepared.terrain();
+        return terrain.hasWorld() && terrain.hasBedrock() && y <= BEDROCK_ROW;
     }
 
-    private static boolean lacksSurfaceSupport(IrisPlacement placement, PreparedPlacement prepared) {
-        IrisObjectPlacement config = prepared.config();
-        IrisObject object = placement.object();
-        return IrisSurfaceSupport.isUnsupported(placement.placer(), object.getLoader(), placement.x(), placement.z(),
-                config.getTranslate(), config.getRotation(), prepared.spinX(), prepared.spinY(), prepared.spinZ(),
-                object.getSurfaceSupportOffsets(), config.getSurfaceSupportBuffer(), config.getSurfaceSupportDepth());
+    private static boolean lacksSurfaceSupport(ObjectPlacement placement, PreparedPlacement prepared) {
+        PlacementSettings settings = prepared.settings();
+        return IrisSurfaceSupport.isUnsupported(prepared.terrain(), placement.x(), placement.z(), settings.translate(),
+                prepared.rotation(), prepared.spinX(), prepared.spinY(), prepared.spinZ(),
+                placement.object().surfaceSupportOffsets(), settings.surfaceSupportBuffer(), settings.surfaceSupportDepth());
     }
 
     private static void checkLimits(PlacementStageContext context) {
-        IrisPlacement placement = IrisPlacement.current();
+        ObjectPlacement placement = ObjectPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        IrisObjectPlacement config = prepared.config();
-        if (config.isForcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)) {
+        PlacementSettings settings = prepared.settings();
+        if (settings.forcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)) {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y();
         int rotated = prepared.rotatedCenterY();
         int translated = prepared.translatedCenterY();
-        if (placement.requestedY() < 0 && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !config.isUnderwater()
-                && !config.isOnwater() && prepared.terrain().isUnderwater(placement.x(), placement.z())) {
+        Optional<CaveSpace> cave = placement.cave();
+        if (placement.requestedY() < 0 && !prepared.mode().has(PlaceTrait.FREE_HEIGHT) && !settings.underwater()
+                && !settings.onwater() && prepared.terrain().isUnderwater(placement.x(), placement.z())) {
             context.reject("underwater-anchor");
-        } else if (placement.cave() != null
-                && Math.max(0, placement.object().h + prepared.randomY() + translated) + 1 >= placement.cave().getHeight()) {
+        } else if (cave.isPresent()
+                && Math.max(0, placement.object().height() + prepared.randomY() + translated) + 1 >= cave.get().height()) {
             context.reject("cave-clearance");
-        } else if (config.isUnderwater() && y + rotated + translated >= prepared.terrain().getFluidHeight()) {
+        } else if (settings.underwater() && y + rotated + translated >= prepared.terrain().fluidHeight()) {
             context.reject("fluid-height");
-        } else if (!config.getClamp().canPlace(y + rotated + translated, y - rotated + translated)) {
+        } else if (!settings.clamp().canPlace(y + rotated + translated, y - rotated + translated)) {
             context.reject("height-clamp");
         }
     }
@@ -141,31 +136,29 @@ public final class ValidateModule implements IrisModule {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y() + prepared.randomY();
-        if (meetsNativeStructure(context, IrisPlacement.current(), prepared, y)) {
+        if (meetsNativeStructure(context, ObjectPlacement.current(), prepared, y)) {
             context.reject("native-structure");
         }
     }
 
-    private static boolean meetsNativeStructure(PlacementStageContext context, IrisPlacement placement,
+    private static boolean meetsNativeStructure(PlacementStageContext context, ObjectPlacement placement,
                                                 PreparedPlacement prepared, int y) {
-        Engine engine = prepared.terrain().getEngine();
-        if (engine == null) {
+        PlacementTerrain terrain = prepared.terrain();
+        if (!terrain.hasWorld()) {
             return false;
         }
         int x = placement.x();
         int z = placement.z();
         int margin = nativeStructureMargin(placement.object(), prepared);
-        KList<NativeStructureVolume> volumes = engine.getNativeStructureVolumes(x - margin, z - margin, x + margin, z + margin);
-        if (volumes == null || volumes.isEmpty()) {
+        StructureVolumes volumes = terrain.structureVolumes(x - margin, z - margin, x + margin, z + margin);
+        if (volumes.isEmpty()) {
             return false;
         }
         boolean painted = WorldVolume.isPainted(placement, prepared);
-        int worldY = y + engine.getMinHeight();
+        int worldY = y + terrain.minHeight();
         int envelopeMinY = painted ? Integer.MIN_VALUE : worldY - margin;
         int envelopeMaxY = painted ? Integer.MAX_VALUE : worldY + margin;
-        boolean envelopeMeetsPiece = volumes.stream()
-                .anyMatch(volume -> volume.intersects(x - margin, envelopeMinY, z - margin, x + margin, envelopeMaxY, z + margin));
-        if (!envelopeMeetsPiece) {
+        if (!volumes.intersects(x - margin, envelopeMinY, z - margin, x + margin, envelopeMaxY, z + margin)) {
             return false;
         }
         for (ObjectBlock block : context.request().object().blocks()) {
@@ -176,22 +169,20 @@ public final class ValidateModule implements IrisModule {
             int blockX = x + offset.x();
             int blockZ = z + offset.z();
             int blockY = painted
-                    ? offset.y() + Math.floorDiv(placement.object().h, 2)
-                    + prepared.terrain().getHighest(blockX, blockZ, placement.object().getLoader(), prepared.config().isUnderwater())
+                    ? offset.y() + Math.floorDiv(placement.object().height(), 2)
+                    + terrain.highest(blockX, blockZ, prepared.settings().underwater())
                     : y + offset.y();
-            int worldBlockY = blockY + engine.getMinHeight();
-            for (NativeStructureVolume volume : volumes) {
-                if (volume.containsWithin(blockX, worldBlockY, blockZ, prepared.warpMargin())) {
-                    return true;
-                }
+            int worldBlockY = blockY + terrain.minHeight();
+            if (volumes.containsWithin(blockX, worldBlockY, blockZ, prepared.warpMargin())) {
+                return true;
             }
         }
         return false;
     }
 
     /** How far around the anchor any block of the transformed object can reach. */
-    private static int nativeStructureMargin(IrisObject object, PreparedPlacement prepared) {
-        int margin = (Math.max(object.getW(), Math.max(object.getH(), object.getD())) / 2) + 1 + prepared.warpMargin();
+    private static int nativeStructureMargin(ObjectShape object, PreparedPlacement prepared) {
+        int margin = (Math.max(object.width(), Math.max(object.height(), object.depth())) / 2) + 1 + prepared.warpMargin();
         if (prepared.translation() == null) {
             return margin;
         }
@@ -204,33 +195,25 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void checkCollisions(PlacementStageContext context) {
-        IrisPlacement placement = IrisPlacement.current();
+        ObjectPlacement placement = ObjectPlacement.current();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        IrisObjectPlacement config = prepared.config();
-        if (config.isForcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)
-                || (config.getAllowedCollisions().isEmpty() && config.getForbiddenCollisions().isEmpty())) {
+        PlacementSettings settings = prepared.settings();
+        if (settings.forcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)
+                || (settings.allowedCollisions().isEmpty() && settings.forbiddenCollisions().isEmpty())) {
             return;
         }
-        Engine engine = placement.data().getEngine();
-        if (engine == null) {
-            throw new IllegalStateException("Object placement requires active Iris data for collision settings.");
-        }
         WorldVolume volume = WorldVolume.of(placement, prepared, context.output(IrisStages.Anchor.HEIGHT).y() + prepared.randomY());
-        if (collidesWithForbiddenObject(engine, config, volume)) {
+        if (collidesWithForbiddenObject(prepared.terrain(), settings, volume)) {
             context.reject("object-collision");
         }
     }
 
-    private static boolean collidesWithForbiddenObject(Engine engine, IrisObjectPlacement config, WorldVolume volume) {
+    private static boolean collidesWithForbiddenObject(PlacementTerrain terrain, PlacementSettings settings, WorldVolume volume) {
         for (int x = volume.minX(); x <= volume.maxX(); x++) {
             for (int y = volume.minY(); y <= volume.maxY(); y++) {
                 for (int z = volume.minZ(); z <= volume.maxZ(); z++) {
-                    PlacedObject placed = engine.getObjectPlacement(x, y, z);
-                    if (placed == null || placed.getObject() == null) {
-                        continue;
-                    }
-                    String key = placed.getObject().getLoadKey();
-                    if (key != null && config.getForbiddenCollisions().contains(key) && !config.getAllowedCollisions().contains(key)) {
+                    String key = terrain.objectKeyAt(x, y, z);
+                    if (key != null && settings.forbiddenCollisions().contains(key) && !settings.allowedCollisions().contains(key)) {
                         return true;
                     }
                 }
@@ -239,9 +222,9 @@ public final class ValidateModule implements IrisModule {
         return false;
     }
 
-    private static void warnImplausibleBedrockPlacement(IrisPlacement placement, IrisObjectPlacement config, int y, ModuleLog log) {
-        String key = placement.object().getLoadKey();
-        String fingerprint = (key == null ? "<null>" : key) + "|" + config.getMode();
+    private static void warnImplausibleBedrockPlacement(ObjectPlacement placement, PlacementSettings settings, int y, ModuleLog log) {
+        String key = placement.object().key();
+        String fingerprint = (key == null ? "<null>" : key) + "|" + settings.mode();
         long now = System.currentTimeMillis();
         Long last = IMPLAUSIBLE_BEDROCK_WARNS.get(fingerprint);
         if (last != null && now - last < IMPLAUSIBLE_BEDROCK_WARN_THROTTLE_MS) {
@@ -250,8 +233,8 @@ public final class ValidateModule implements IrisModule {
         IMPLAUSIBLE_BEDROCK_WARNS.put(fingerprint, now);
         log.warn("Implausible object placement rejected: "
                 + (key == null ? "<no loadKey>" : key)
-                + " resolved anchorY=" + y + " at (" + placement.x() + "," + placement.z() + ") mode=" + config.getMode()
-                + " carving=" + config.getCarvingSupport()
+                + " resolved anchorY=" + y + " at (" + placement.x() + "," + placement.z() + ") mode=" + settings.mode()
+                + " carving=" + settings.carvingSupport()
                 + ". Surface-anchored placement should never land on the bedrock row. "
                 + "Height sampling returned a bogus value — not configured for floor placement "
                 + "(forcePlace=false, fromBottom=false, mode!=FLOATING). Skipping to protect bedrock.");

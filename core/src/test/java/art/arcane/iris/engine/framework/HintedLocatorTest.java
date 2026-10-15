@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.ObjectDeclarations;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
@@ -292,7 +293,7 @@ public class HintedLocatorTest {
         placement.setPlace(keys("trees/oak"));
         KList<IrisObjectPlacement> placements = new KList<>();
         placements.add(placement);
-        host.setObjects(placements);
+        ObjectDeclarations.declare(host, placements);
         stubBiome(host);
         stubReachableBiomes(host);
         stubRegions(regionA);
@@ -317,7 +318,7 @@ public class HintedLocatorTest {
         placement.setPlace(keys("ruins/tower"));
         KList<IrisObjectPlacement> placements = new KList<>();
         placements.add(placement);
-        regionA.setObjects(placements);
+        ObjectDeclarations.declare(regionA, placements);
         stubRegions(regionA);
 
         when(complex.getRegionStream()).thenReturn(constantStream(regionA));
@@ -425,7 +426,7 @@ public class HintedLocatorTest {
         placement.setPlace(keys("trees/oak"));
         KList<IrisObjectPlacement> placements = new KList<>();
         placements.add(placement);
-        host.setObjects(placements);
+        ObjectDeclarations.declare(host, placements);
         stubBiome(host);
         stubReachableBiomes(host);
         stubRegions(regionA);

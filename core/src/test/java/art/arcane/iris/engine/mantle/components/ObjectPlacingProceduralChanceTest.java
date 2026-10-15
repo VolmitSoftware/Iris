@@ -11,8 +11,8 @@ public class ObjectPlacingProceduralChanceTest {
     public void exactChanceBoundariesRemainExact() {
         for (int seed = 0; seed < 1000; seed++) {
             RNG rng = new RNG(seed);
-            assertFalse(ObjectPlacing.passesProceduralChance(rng, 0.0));
-            assertTrue(ObjectPlacing.passesProceduralChance(rng, 1.0));
+            assertFalse(ChunkObjectPlacing.passesProceduralChance(rng, 0.0));
+            assertTrue(ChunkObjectPlacing.passesProceduralChance(rng, 1.0));
         }
     }
 }

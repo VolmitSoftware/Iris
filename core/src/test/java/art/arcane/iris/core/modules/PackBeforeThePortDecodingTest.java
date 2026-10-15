@@ -23,9 +23,15 @@ import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
@@ -146,9 +152,41 @@ public class PackBeforeThePortDecodingTest {
     }
 
     @Test
+    public void aBiomeReadsItsObjectPlacementsAndKeepsTheJsonIrisReadsThemFrom() throws IOException {
+        JSONObject biome = file("biomes/temperate/roughplains.json");
+
+        List<ObjectPlacement> objects = decoder.decode(Target.BIOME, biome, "biome temperate/roughplains")
+                .find(ObjectSettings.class).orElseThrow().objects();
+
+        assertEquals(biome.getJSONArray("objects").length(), objects.size());
+        for (int index = 0; index < objects.size(); index++) {
+            JSONObject written = biome.getJSONArray("objects").getJSONObject(index);
+            JsonObject expected = JsonParser.parseString(written.toString()).getAsJsonObject();
+            assertEquals(expected.get("place").getAsJsonArray().size(), objects.get(index).place().size());
+            assertEquals(expected, JsonParser.parseString(objects.get(index).json()));
+        }
+    }
+
+    @Test
+    public void aBiomeReadsItsProceduralTreesWithTheirPalettes() throws IOException {
+        JSONObject biome = file("biomes/estranged/bloomspire-orchard.json");
+
+        ProceduralObjectSettings procedural = decoder.decode(Target.BIOME, biome, "biome estranged/bloomspire-orchard")
+                .find(ProceduralObjectSettings.class).orElseThrow();
+
+        assertEquals(biome.getJSONObject("proceduralObjects").getJSONArray("trees").length(), procedural.trees().size());
+        Tree tree = procedural.trees().getFirst();
+        assertEquals("bloomspire", tree.name());
+        assertEquals(8501L, tree.seed());
+        assertEquals("minecraft:cherry_wood", tree.trunk());
+        assertEquals(2, tree.trunkPalette().orElseThrow().palette().size());
+        assertEquals("minecraft:cherry_leaves", tree.leaves());
+    }
+
+    @Test
     public void everyTopLevelKeyOfTheseFilesIsAFieldOfIrisOrAKeyOfAModule() throws IOException {
         Map<String, Target> files = Map.of("biomes/mesa/red.json", Target.BIOME, "biomes/temperate/roughplains.json", Target.BIOME,
-                "regions/magnetics.json", Target.REGION, "dimensions/overworld.json", Target.DIMENSION);
+                "biomes/estranged/bloomspire-orchard.json", Target.BIOME, "regions/magnetics.json", Target.REGION, "dimensions/overworld.json", Target.DIMENSION);
 
         for (Map.Entry<String, Target> file : files.entrySet()) {
             Set<String> unknown = new TreeSet<>(file(file.getKey()).keySet());

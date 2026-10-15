@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.ModuleLog;
@@ -36,13 +37,14 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source {
+public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source, ObjectHost.Source {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
     private final ModuleLog log;
     private final Map<ModuleLog, IrisPackWorld> viewsByLog;
     private final LiveWorld liveWorld;
+    private volatile IrisObjectHost objectHost;
 
     IrisPackWorld(Engine engine) {
         this(engine, engine.getData().getPackResources(), new WorldStates(), IrisApiLogger.hostLog(), new ConcurrentHashMap<>());
@@ -128,6 +130,16 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
             case POST -> seeds.getPost();
             case TERRAIN -> seeds.getTerrain();
         };
+    }
+
+    @Override
+    public ObjectHost objects() {
+        IrisObjectHost host = objectHost;
+        if (host == null) {
+            host = new IrisObjectHost(engine, log);
+            objectHost = host;
+        }
+        return host;
     }
 
     /** Whether the pack's resources were reloaded since this world was made, so it generates with an old snapshot. */

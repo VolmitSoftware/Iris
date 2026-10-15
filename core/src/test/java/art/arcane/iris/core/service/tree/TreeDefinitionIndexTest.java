@@ -1,20 +1,24 @@
 package art.arcane.iris.core.service.tree;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.StructurePlacementMarker;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.procedural.tree.IrisProceduralTree;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.placement.IrisTree;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.mantle.components.ObjectModule;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.engine.object.TestSettings;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -29,17 +33,12 @@ public class TreeDefinitionIndexTest {
         IrisRegion region = new IrisRegion();
         IrisBiome biome = new IrisBiome();
 
-        IrisObjectPlacement explicit = new IrisObjectPlacement();
-        explicit.getPlace().add("custom/ancient_oak");
-        explicit.getTrees().add(new IrisTree());
-        region.getObjects().add(explicit);
+        ObjectPlacement explicit = TestSettings.of(ObjectPlacement.class,
+                "{\"place\":[\"custom/ancient_oak\"],\"trees\":[{\"treeTypes\":[\"TREE\"],\"sizes\":[{}]}]}");
+        region.setModuleSettings(BuiltInPack.settings(TestSettings.with(new ObjectSettings(), "objects", List.of(explicit))));
 
-        IrisProceduralTree proceduralTree = new IrisProceduralTree();
-        proceduralTree.setName("towering-oak");
-        proceduralTree.setVariants(2);
-        IrisProceduralObjects proceduralObjects = new IrisProceduralObjects();
-        proceduralObjects.getTrees().add(proceduralTree);
-        biome.setProceduralObjects(proceduralObjects);
+        Tree proceduralTree = TestSettings.of(Tree.class, "{\"name\":\"towering-oak\",\"variants\":2}");
+        biome.setModuleSettings(BuiltInPack.settings(TestSettings.with(new ProceduralObjectSettings(), "trees", List.of(proceduralTree))));
 
         when(engine.getDimension()).thenReturn(dimension);
         IrisData data = mock(IrisData.class);

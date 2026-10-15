@@ -111,7 +111,6 @@ art/arcane/iris/engine/object/value/IrisDirection.java
 art/arcane/iris/engine/object/prefab/IrisObject.java
 art/arcane/iris/engine/object/placement/IrisObjectPlacement.java
 art/arcane/iris/engine/object/prefab/IrisObjectRotation.java
-art/arcane/iris/engine/object/placement/IrisTree.java
 art/arcane/iris/engine/object/prefab/LegacyTileData.java
 art/arcane/iris/engine/object/prefab/TileData.java
 art/arcane/iris/engine/platform/BukkitChunkGenerator.java

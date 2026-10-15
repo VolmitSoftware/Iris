@@ -18,64 +18,74 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineGeneration;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.tree.IrisTreeSettings;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.TreeGrowthSettings;
+import art.arcane.iris.engine.object.TestSettings;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.FeatureSettings;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 /** Trees only replace the platform's growth when the dimension asks for it and a placement of the area grows that species. */
 public class TreeGrowingTest {
     private static final SaplingGrowth.Sapling OAK_SAPLING = new SaplingGrowth.Sapling(
             new BlockPosition(10, 70, 20), new BlockPosition(10, 70, 20), "TREE");
+    private static final ResourceId SOURCE = ResourceId.parse("test:dimension/overworld");
+    private static final ResourceId BIOME = ResourceId.parse("test:plains");
+    private static final ResourceId REGION = ResourceId.parse("test:overworld");
 
-    private Engine engine;
-    private IrisDimension dimension;
+    private ObjectHost host;
+    private FeatureSettings settings;
     private PackWorld world;
 
     @Before
     public void buildWorld() {
-        engine = mock(Engine.class);
-        dimension = mock(IrisDimension.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getData()).thenReturn(mock(IrisData.class));
-        world = new EngineGeneration(engine).world();
+        host = mock(ObjectHost.class);
+        settings = mock(FeatureSettings.class);
+        when(host.columnSettings()).thenReturn(settings);
+        world = mock(PackWorld.class, withSettings().extraInterfaces(ObjectHost.Source.class));
+        when(((ObjectHost.Source) world).objects()).thenReturn(host);
     }
 
     @Test
     public void aDimensionWithoutTreeOverridesLeavesTheGrowthToThePlatform() {
-        when(dimension.getTreeSettings()).thenReturn(new IrisTreeSettings());
+        when(settings.at(TreeGrowthSettings.class, 10, 20)).thenReturn(List.of());
 
         Optional<SaplingGrowth.Growth> growth = new TreeGrowing().grow(world, OAK_SAPLING, mock(SaplingGrowth.Surroundings.class));
 
         assertTrue(growth.isEmpty());
-        verify(engine, never()).getBiome(anyInt(), anyInt(), anyInt());
+        verify(host, never()).biomeAt(anyInt(), anyInt(), anyInt());
     }
 
     @Test
     public void withoutAPlacementThatGrowsTheSpeciesTheGrowthIsLeftToThePlatform() {
-        when(dimension.getTreeSettings()).thenReturn(new IrisTreeSettings().setEnabled(true));
-        IrisBiome biome = new IrisBiome();
-        biome.getObjects().add(new IrisObjectPlacement());
-        when(engine.getBiome(10, 70, 20)).thenReturn(biome);
-        when(engine.getRegion(10, 20)).thenReturn(new IrisRegion());
+        TreeGrowthSettings enabled = TestSettings.of(TreeGrowthSettings.class, "{\"enabled\":true}");
+        when(settings.at(TreeGrowthSettings.class, 10, 20)).thenReturn(List.of(new Entry<>(Target.DIMENSION, SOURCE, enabled)));
+        ObjectSettings objects = TestSettings.with(new ObjectSettings(), "objects",
+                List.of(TestSettings.of(ObjectPlacement.class, "{\"place\":[\"a\"]}")));
+        when(host.biomeAt(10, 70, 20)).thenReturn(BIOME);
+        when(host.regionAt(10, 20)).thenReturn(REGION);
+        when(host.biomeDeclaration(eq(BIOME), eq(ObjectSettings.class))).thenReturn(Optional.of(objects));
+        when(host.regionDeclaration(eq(REGION), eq(ObjectSettings.class))).thenReturn(Optional.empty());
 
         Optional<SaplingGrowth.Growth> growth = new TreeGrowing().grow(world, OAK_SAPLING, mock(SaplingGrowth.Surroundings.class));
 

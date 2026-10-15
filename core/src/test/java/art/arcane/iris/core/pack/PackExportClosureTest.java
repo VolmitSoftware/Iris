@@ -47,7 +47,7 @@ public class PackExportClosureTest {
         String bukkit = Files.readString(Path.of(
                 "src/main/java/art/arcane/iris/core/project/IrisPackageCompiler.java")).replace("\r\n", "\n");
         assertTrue("Bukkit packager must export region objects alongside biome objects",
-                bukkit.contains("regions.forEach((r) -> allPlacements.addAll(r.getObjects()))"));
+                bukkit.contains("regions.forEach((r) -> allPlacements.addAll(ObjectPlacements.all(r)))"));
         assertTrue("Bukkit packager must export the spawn and loot resources the settings reference",
                 bukkit.contains("moduleResources.writeTo(folder, minify)"));
         assertTrue("Bukkit packager must export the placements' references", bukkit.contains("moduleResources.follow(allPlacements)"));
@@ -61,8 +61,8 @@ public class PackExportClosureTest {
                 "../adapters/modded-common/src/main/java/art/arcane/iris/modded/command/ModdedStudioCommands.java")).replace("\r\n", "\n");
         assertTrue("modded packager must write the spawn and loot resources the settings reference",
                 modded.contains("moduleResources.writeTo(folder, true)"));
-        assertTrue("modded packager must export the placements' references", modded.contains("moduleResources.follow(region.getObjects())"));
-        assertTrue("modded packager must export region objects", modded.contains("region.getObjects()"));
+        assertTrue("modded packager must export the placements' references", modded.contains("moduleResources.follow(ObjectPlacements.all(region))"));
+        assertTrue("modded packager must export region objects", modded.contains("ObjectPlacements.all(region)"));
         int moddedValidation = modded.indexOf("PackValidator.validateForPackaging(packFolder)");
         assertTrue("modded packager must validate before mutating package state",
                 moddedValidation >= 0 && moddedValidation < modded.indexOf("IO.delete(folder)"));

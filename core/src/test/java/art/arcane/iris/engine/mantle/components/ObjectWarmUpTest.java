@@ -1,79 +1,63 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.procedural.IrisProceduralObjects;
-import art.arcane.iris.engine.object.procedural.IrisProceduralPlacement;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.volmlib.util.collection.KList;
+import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.builtin.objects.ProceduralPlacement;
+import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.world.PackWorld;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 /** Object placing builds its placements' noise and its procedural objects' variants before generation asks. */
 public class ObjectWarmUpTest {
     @Test
     public void everyPlacementAndProceduralObjectOfBiomesAndRegionsIsBuilt() {
-        IrisData data = mock(IrisData.class);
-        SeedManager seeds = mock(SeedManager.class);
-        IrisDimension dimension = mock(IrisDimension.class);
-        Engine engine = mock(Engine.class);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        when(engine.getData()).thenReturn(data);
-        when(engine.getDimension()).thenReturn(dimension);
-        IrisObjectPlacement biomePlacement = mock(IrisObjectPlacement.class);
-        IrisObjectPlacement regionPlacement = mock(IrisObjectPlacement.class);
-        IrisProceduralPlacement biomeTree = mock(IrisProceduralPlacement.class);
-        IrisProceduralPlacement regionTree = mock(IrisProceduralPlacement.class);
-        KList<IrisObjectPlacement> biomePlacements = list(biomePlacement, null);
-        KList<IrisObjectPlacement> regionPlacements = list(regionPlacement);
-        IrisProceduralObjects biomeProcedural = procedural(biomeTree);
-        IrisProceduralObjects regionProcedural = procedural(regionTree);
-        IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getLoadKey()).thenReturn("biome");
-        when(biome.getObjects()).thenReturn(biomePlacements);
-        when(biome.getProceduralObjects()).thenReturn(biomeProcedural);
-        IrisRegion region = mock(IrisRegion.class);
-        when(region.getLoadKey()).thenReturn("region");
-        when(region.getObjects()).thenReturn(regionPlacements);
-        when(region.getProceduralObjects()).thenReturn(regionProcedural);
-        when(engine.getAllBiomes()).thenReturn(new KList<>(List.of(biome)));
-        when(dimension.getAllRegions(engine)).thenReturn(new KList<>(List.of(region)));
+        ObjectHost host = mock(ObjectHost.class);
+        IrisSeed.Source seeds = mock(IrisSeed.Source.class);
+        PackWorld world = mock(PackWorld.class, withSettings().extraInterfaces(ObjectHost.Source.class, IrisSeed.Source.class));
+        when(((ObjectHost.Source) world).objects()).thenReturn(host);
+        when(((IrisSeed.Source) world).seed(IrisSeed.COMPONENT)).thenReturn(1337L);
+        ObjectPlacement biomePlacement = placement();
+        ObjectPlacement regionPlacement = placement();
+        ProceduralObjectSettings biomeProceduralSettings = new ProceduralObjectSettings();
+        ProceduralObjectSettings regionProceduralSettings = new ProceduralObjectSettings();
+        ProceduralPlacement biomeTree = mock(ProceduralPlacement.class);
+        ProceduralPlacement regionTree = mock(ProceduralPlacement.class);
+        when(host.procedural(biomeProceduralSettings)).thenReturn(List.of(biomeTree));
+        when(host.procedural(regionProceduralSettings)).thenReturn(List.of(regionTree));
+        when(host.declarations(ObjectSettings.class)).thenReturn(List.of(
+                new Declaration<>(Target.REGION, "region", objects(regionPlacement)),
+                new Declaration<>(Target.BIOME, "biome", objects(biomePlacement))));
+        when(host.declarations(ProceduralObjectSettings.class)).thenReturn(List.of(
+                new Declaration<>(Target.REGION, "region", regionProceduralSettings),
+                new Declaration<>(Target.BIOME, "biome", biomeProceduralSettings)));
 
-        new ObjectWarmUp(engine).warm();
+        new ObjectWarmUp(world).warm();
 
-        for (IrisObjectPlacement placement : List.of(biomePlacement, regionPlacement)) {
-            verify(placement).getSurfaceWarp(any(RNG.class), eq(data), eq(engine));
-            verify(placement).getDensity(any(RNG.class), anyDouble(), anyDouble(), eq(data));
-        }
-        verify(biomeTree).getVariantObject(eq(data), any(RNG.class));
-        verify(regionTree).getVariantObject(eq(data), any(RNG.class));
+        verify(host).warm(org.mockito.ArgumentMatchers.eq(biomePlacement), any(RNG.class));
+        verify(host).warm(org.mockito.ArgumentMatchers.eq(regionPlacement), any(RNG.class));
+        verify(biomeTree).variant(any(RNG.class));
+        verify(regionTree).variant(any(RNG.class));
     }
 
-    private static KList<IrisObjectPlacement> list(IrisObjectPlacement... placements) {
-        KList<IrisObjectPlacement> list = new KList<>();
-        for (IrisObjectPlacement placement : placements) {
-            list.add(placement);
-        }
-        return list;
+    private static ObjectPlacement placement() {
+        return TestSettings.of(ObjectPlacement.class, "{\"place\":[\"a\"]}");
     }
 
-    private static IrisProceduralObjects procedural(IrisProceduralPlacement placement) {
-        IrisProceduralObjects objects = mock(IrisProceduralObjects.class);
-        KList<IrisProceduralPlacement> placements = new KList<>(List.of(placement));
-        when(objects.getAllPlacements()).thenReturn(placements);
-        return objects;
+    private static ObjectSettings objects(ObjectPlacement placement) {
+        return TestSettings.with(new ObjectSettings(), "objects", List.of(placement));
     }
 }

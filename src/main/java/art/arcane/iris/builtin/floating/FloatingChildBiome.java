@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.floating;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
@@ -37,9 +37,7 @@ import java.util.OptionalInt;
 /**
  * A floating island above a biome's terrain, an entry of the biome's {@code floatingChildBiomes}: where its footprint
  * is, how high it floats, how its top, underside and walls are shaped, and which objects, decorators and water it
- * gets. Noise and options are IrisApi types; the object placements and palette layers the island hosts are
- * Iris's own classes, which the host describes itself, so this class leaves the pack module jar only when those
- * become settings of modules.
+ * gets.
  */
 @Snippet("floating-child-biome")
 @Desc("Declares a floating biome layer above this biome's terrain. A 2D footprint noise decides which columns are part of the island (threshold + style control blankets, swirls, scattered blobs). The top profile is driven by the target biome's own terrain generators (so a mountains biome produces real peaks, desert produces real dunes). The bottom tail hanging below is a separately configurable noise (pick VASCULAR for drippy roots, FRACTAL_RM_SIMPLEX for crystalline spikes, PERLIN for smooth rounded bowls).")
@@ -195,11 +193,11 @@ public final class FloatingChildBiome {
 
     @MinItems(1)
     @Desc("Additional object placements anchored to the island top.")
-    private List<IrisObjectPlacement> extraObjects = List.of();
+    private List<ObjectPlacement> extraObjects = List.of();
 
     @MinItems(1)
     @Desc("Additional object placements that float freely in air, independent of the island. Forced to ObjectPlaceMode.FLOATING.")
-    private List<IrisObjectPlacement> floatingObjects = List.of();
+    private List<ObjectPlacement> floatingObjects = List.of();
 
     @Desc("Visualization color for this floating child in Iris Studio.")
     private String color = null;
@@ -212,11 +210,11 @@ public final class FloatingChildBiome {
 
     @MinItems(1)
     @Desc("Object placements that override or supplement the inherited surface objects on the island TOP. Behaviour depends on topObjectMode. INHERIT_ONLY = this list is ignored. MERGE = appended after inherited. REPLACE = used instead of inherited.")
-    private List<IrisObjectPlacement> topObjectOverrides = List.of();
+    private List<ObjectPlacement> topObjectOverrides = List.of();
 
     @MinItems(1)
     @Desc("Object placements anchored to the island BOTTOM face. Each entry is auto-inverted 180 degrees around the X axis and placed flush against the lowest solid face of the island, so objects appear to hang upside-down from the underside. WARNING: directional blocks (stairs, doors, slabs) will not render correctly when flipped — use non-directional content (logs, leaves, stone, mycelium, ice, glass) for bottom placements.")
-    private List<IrisObjectPlacement> bottomObjectOverrides = List.of();
+    private List<ObjectPlacement> bottomObjectOverrides = List.of();
 
     public FloatingChildBiome() {
     }
@@ -366,11 +364,11 @@ public final class FloatingChildBiome {
         return objectShrinkFactor;
     }
 
-    public List<IrisObjectPlacement> extraObjects() {
+    public List<ObjectPlacement> extraObjects() {
         return extraObjects == null ? List.of() : Collections.unmodifiableList(extraObjects);
     }
 
-    public List<IrisObjectPlacement> floatingObjects() {
+    public List<ObjectPlacement> floatingObjects() {
         return floatingObjects == null ? List.of() : Collections.unmodifiableList(floatingObjects);
     }
 
@@ -386,11 +384,11 @@ public final class FloatingChildBiome {
         return bottomObjectMode == null ? OverrideMode.INHERIT_ONLY : bottomObjectMode;
     }
 
-    public List<IrisObjectPlacement> topObjectOverrides() {
+    public List<ObjectPlacement> topObjectOverrides() {
         return topObjectOverrides == null ? List.of() : Collections.unmodifiableList(topObjectOverrides);
     }
 
-    public List<IrisObjectPlacement> bottomObjectOverrides() {
+    public List<ObjectPlacement> bottomObjectOverrides() {
         return bottomObjectOverrides == null ? List.of() : Collections.unmodifiableList(bottomObjectOverrides);
     }
 }

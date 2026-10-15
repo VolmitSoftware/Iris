@@ -18,14 +18,13 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.engine.object.value.IRare;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.volmlib.util.cache.CacheKey;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
-import org.jetbrains.annotations.Nullable;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.ResourceId;
 
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,20 +46,20 @@ public final class FloatingIslandBoundarySampler {
         this.ownershipFields = new ConcurrentHashMap<>();
     }
 
-    public @Nullable IrisBiome parent(int x, int z) {
+    public ResourceId parent(int x, int z) {
         return parentField(x, z, EDGE_TAPER_WIDTH).parent(x, z);
     }
 
-    public double edgeFade(IrisBiome parent, int x, int z) {
+    public double edgeFade(ResourceId parent, int x, int z) {
         return edgeFade(parent, x, z, EDGE_TAPER_WIDTH);
     }
 
-    public double edgeFade(IrisBiome parent, int x, int z, int taperWidth) {
+    public double edgeFade(ResourceId parent, int x, int z, int taperWidth) {
         int boundaryDistance = edgeDistance(parent, x, z, taperWidth);
         return edgeFadeForDistance(boundaryDistance, taperWidth);
     }
 
-    public int edgeDistance(IrisBiome parent, int x, int z, int taperWidth) {
+    public int edgeDistance(ResourceId parent, int x, int z, int taperWidth) {
         if (parent == null) {
             return 0;
         }
@@ -68,11 +67,11 @@ public final class FloatingIslandBoundarySampler {
         return parentField(x, z, taperWidth).edgeDistance(parent, x, z);
     }
 
-    public FootprintSample footprint(CNG footprint, int x, int z, double signedCut) {
+    public FootprintSample footprint(NoiseSampler footprint, int x, int z, double signedCut) {
         return footprint(footprint, x, z, signedCut, EDGE_TAPER_WIDTH);
     }
 
-    public FootprintSample footprint(CNG footprint, int x, int z, double signedCut, int taperWidth) {
+    public FootprintSample footprint(NoiseSampler footprint, int x, int z, double signedCut, int taperWidth) {
         int width = FloatingIslandEdgeProfile.clampWidth(taperWidth);
         int chunkX = Math.floorDiv(x, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(z, CHUNK_SIZE);
@@ -83,11 +82,11 @@ public final class FloatingIslandBoundarySampler {
         return field.sample(x, z);
     }
 
-    public OwnershipSample ownership(KList<ResolvedFloatingChild> entries, CNG picker, int x, int z) {
+    public OwnershipSample ownership(KList<ResolvedFloatingChild> entries, NoiseSampler picker, int x, int z) {
         return ownership(entries, picker, x, z, EDGE_TAPER_WIDTH);
     }
 
-    public OwnershipSample ownership(KList<ResolvedFloatingChild> entries, CNG picker, int x, int z,
+    public OwnershipSample ownership(KList<ResolvedFloatingChild> entries, NoiseSampler picker, int x, int z,
                                      int taperWidth) {
         int width = FloatingIslandEdgeProfile.clampWidth(taperWidth);
         int chunkX = Math.floorDiv(x, CHUNK_SIZE);
@@ -117,14 +116,14 @@ public final class FloatingIslandBoundarySampler {
                 ignored -> new ParentBoundaryField(source, chunkX, chunkZ, width));
     }
 
-    private static boolean sameBiome(@Nullable IrisBiome expected, @Nullable IrisBiome actual) {
+    private static boolean sameBiome(ResourceId expected, ResourceId actual) {
         if (actual == expected) {
             return true;
         }
-        if (expected == null || actual == null || expected.getLoadKey() == null) {
+        if (expected == null || actual == null) {
             return false;
         }
-        return expected.getLoadKey().equals(actual.getLoadKey());
+        return expected.equals(actual);
     }
 
     public record FootprintSample(double signed, int cardinalSupport, int diagonalSupport, boolean accepted,
@@ -138,13 +137,13 @@ public final class FloatingIslandBoundarySampler {
     }
 
     private static final class FootprintFieldKey {
-        private final CNG footprint;
+        private final NoiseSampler footprint;
         private final int chunkX;
         private final int chunkZ;
         private final long signedCutBits;
         private final int taperWidth;
 
-        private FootprintFieldKey(CNG footprint, int chunkX, int chunkZ, long signedCutBits, int taperWidth) {
+        private FootprintFieldKey(NoiseSampler footprint, int chunkX, int chunkZ, long signedCutBits, int taperWidth) {
             this.footprint = footprint;
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
@@ -176,12 +175,12 @@ public final class FloatingIslandBoundarySampler {
 
     private static final class OwnershipFieldKey {
         private final KList<ResolvedFloatingChild> entries;
-        private final CNG picker;
+        private final NoiseSampler picker;
         private final int chunkX;
         private final int chunkZ;
         private final int taperWidth;
 
-        private OwnershipFieldKey(KList<ResolvedFloatingChild> entries, CNG picker, int chunkX, int chunkZ,
+        private OwnershipFieldKey(KList<ResolvedFloatingChild> entries, NoiseSampler picker, int chunkX, int chunkZ,
                                   int taperWidth) {
             this.entries = entries;
             this.picker = picker;
@@ -216,7 +215,7 @@ public final class FloatingIslandBoundarySampler {
         private final FieldGeometry geometry;
         private final int minX;
         private final int minZ;
-        private final IrisBiome[] parents;
+        private final ResourceId[] parents;
         private final byte[] distance;
         private final boolean[] viable;
 
@@ -224,17 +223,17 @@ public final class FloatingIslandBoundarySampler {
             this.geometry = FieldGeometry.forWidth(taperWidth);
             this.minX = (chunkX * CHUNK_SIZE) - geometry.fadeRadius();
             this.minZ = (chunkZ * CHUNK_SIZE) - geometry.fadeRadius();
-            this.parents = new IrisBiome[geometry.area()];
+            this.parents = new ResourceId[geometry.area()];
             this.distance = new byte[geometry.area()];
             this.viable = new boolean[geometry.area()];
             build(source);
         }
 
-        private @Nullable IrisBiome parent(int x, int z) {
+        private ResourceId parent(int x, int z) {
             return parents[geometry.index(x - minX, z - minZ)];
         }
 
-        private int edgeDistance(IrisBiome expected, int x, int z) {
+        private int edgeDistance(ResourceId expected, int x, int z) {
             int index = geometry.index(x - minX, z - minZ);
             if (!sameBiome(expected, parents[index]) || !viable[index]) {
                 return 0;
@@ -244,7 +243,7 @@ public final class FloatingIslandBoundarySampler {
 
         private void build(BiomeSampler source) {
             int rawSize = geometry.fieldSize() + 2;
-            IrisBiome[] raw = new IrisBiome[rawSize * rawSize];
+            ResourceId[] raw = new ResourceId[rawSize * rawSize];
             int rawMinX = minX - 1;
             int rawMinZ = minZ - 1;
             for (int z = 0; z < rawSize; z++) {
@@ -255,7 +254,7 @@ public final class FloatingIslandBoundarySampler {
             for (int z = 0; z < geometry.fieldSize(); z++) {
                 for (int x = 0; x < geometry.fieldSize(); x++) {
                     int index = geometry.index(x, z);
-                    IrisBiome parent = raw[rawIndex(x + 1, z + 1, rawSize)];
+                    ResourceId parent = raw[rawIndex(x + 1, z + 1, rawSize)];
                     parents[index] = parent;
                     distance[index] = (byte) (touchesDifferentBiome(raw, parent, x, z, rawSize)
                             ? 1
@@ -266,7 +265,7 @@ public final class FloatingIslandBoundarySampler {
             markLabelCoreSupported(parents, distance, viable, geometry);
         }
 
-        private static boolean touchesDifferentBiome(IrisBiome[] raw, @Nullable IrisBiome parent, int x, int z,
+        private static boolean touchesDifferentBiome(ResourceId[] raw, ResourceId parent, int x, int z,
                                                       int rawSize) {
             for (int dz = -1; dz <= 1; dz++) {
                 for (int dx = -1; dx <= 1; dx++) {
@@ -297,7 +296,7 @@ public final class FloatingIslandBoundarySampler {
         private final byte[] distance;
         private final boolean[] viable;
 
-        private FootprintField(CNG footprint, int chunkX, int chunkZ, double signedCut, int taperWidth) {
+        private FootprintField(NoiseSampler footprint, int chunkX, int chunkZ, double signedCut, int taperWidth) {
             this.geometry = FieldGeometry.forWidth(taperWidth);
             this.occupancyMinX = (chunkX * CHUNK_SIZE) - geometry.fadeRadius();
             this.occupancyMinZ = (chunkZ * CHUNK_SIZE) - geometry.fadeRadius();
@@ -322,20 +321,20 @@ public final class FloatingIslandBoundarySampler {
                     Byte.toUnsignedInt(diagonalSupport[index]), renderable, boundaryDistance, fade);
         }
 
-        private void build(CNG footprint, double signedCut) {
+        private void build(NoiseSampler footprint, double signedCut) {
             double[] rawSigned = sampleRawFootprint(footprint);
             buildOccupancy(rawSigned, signedCut);
             buildDistanceField();
         }
 
-        private double[] sampleRawFootprint(CNG footprint) {
+        private double[] sampleRawFootprint(NoiseSampler footprint) {
             int rawSize = geometry.fieldSize() + 2;
             double[] rawSigned = new double[rawSize * rawSize];
             int rawMinX = occupancyMinX - 1;
             int rawMinZ = occupancyMinZ - 1;
             for (int z = 0; z < rawSize; z++) {
                 for (int x = 0; x < rawSize; x++) {
-                    rawSigned[rawIndex(x, z, rawSize)] = signedFromUnit(footprint.noise(rawMinX + x, rawMinZ + z));
+                    rawSigned[rawIndex(x, z, rawSize)] = signedFromUnit(footprint.sample(rawMinX + x, rawMinZ + z));
                 }
             }
             return rawSigned;
@@ -397,7 +396,7 @@ public final class FloatingIslandBoundarySampler {
         private final ResolvedFloatingChild[] owners;
         private final IdentityHashMap<ResolvedFloatingChild, ComponentDistanceField> distances;
 
-        private OwnershipField(KList<ResolvedFloatingChild> entries, CNG picker, int chunkX, int chunkZ,
+        private OwnershipField(KList<ResolvedFloatingChild> entries, NoiseSampler picker, int chunkX, int chunkZ,
                                int taperWidth) {
             this.geometry = FieldGeometry.forWidth(taperWidth);
             this.minX = (chunkX * CHUNK_SIZE) - geometry.fadeRadius();
@@ -406,8 +405,8 @@ public final class FloatingIslandBoundarySampler {
             this.distances = new IdentityHashMap<>();
             for (int z = 0; z < geometry.fieldSize(); z++) {
                 for (int x = 0; x < geometry.fieldSize(); x++) {
-                    double value = Math.max(0.0D, Math.min(1.0D, picker.noise(minX + x, minZ + z)));
-                    owners[geometry.index(x, z)] = IRare.pick(entries, value);
+                    double value = Math.max(0.0D, Math.min(1.0D, picker.sample(minX + x, minZ + z)));
+                    owners[geometry.index(x, z)] = pickByRarity(entries, value);
                 }
             }
             for (ResolvedFloatingChild entry : entries) {
@@ -449,6 +448,35 @@ public final class FloatingIslandBoundarySampler {
     }
 
     private record ComponentDistanceField(byte[] distance, boolean[] viable) {
+    }
+
+    /** The entry {@code noiseValue} (0..1) lands on when each entry takes a share of the range inverse to its rarity. */
+    static ResolvedFloatingChild pickByRarity(List<ResolvedFloatingChild> entries, double noiseValue) {
+        if (entries.isEmpty()) {
+            return null;
+        }
+        if (entries.size() == 1) {
+            return entries.getFirst();
+        }
+
+        double total = 0;
+        for (ResolvedFloatingChild entry : entries) {
+            total += 1d / rarityOf(entry);
+        }
+
+        double threshold = total * noiseValue;
+        double buffer = 0;
+        for (ResolvedFloatingChild entry : entries) {
+            buffer += 1d / rarityOf(entry);
+            if (buffer >= threshold) {
+                return entry;
+            }
+        }
+        return entries.getLast();
+    }
+
+    private static int rarityOf(ResolvedFloatingChild entry) {
+        return Math.max(1, entry.rarity());
     }
 
     private record FieldGeometry(int taperWidth, int fadeRadius, int fieldSize, int maxDistance) {
@@ -546,7 +574,7 @@ public final class FloatingIslandBoundarySampler {
         }
     }
 
-    private static void markLabelCoreSupported(IrisBiome[] labels, byte[] distance, boolean[] viable,
+    private static void markLabelCoreSupported(ResourceId[] labels, byte[] distance, boolean[] viable,
                                                FieldGeometry geometry) {
         for (int z = 0; z < geometry.fieldSize(); z++) {
             for (int x = 0; x < geometry.fieldSize(); x++) {
@@ -559,8 +587,8 @@ public final class FloatingIslandBoundarySampler {
         }
     }
 
-    private static boolean hasCoreNeighbor(@Nullable boolean[] inside, byte[] distance,
-                                           @Nullable IrisBiome[] labels, int x, int z, FieldGeometry geometry) {
+    private static boolean hasCoreNeighbor(boolean[] inside, byte[] distance,
+                                           ResourceId[] labels, int x, int z, FieldGeometry geometry) {
         int index = geometry.index(x, z);
         for (int dz = -1; dz <= 1; dz++) {
             for (int dx = -1; dx <= 1; dx++) {
@@ -591,6 +619,6 @@ public final class FloatingIslandBoundarySampler {
 
     @FunctionalInterface
     public interface BiomeSampler {
-        @Nullable IrisBiome sample(int x, int z);
+        ResourceId sample(int x, int z);
     }
 }

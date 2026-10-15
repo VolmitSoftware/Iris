@@ -15,19 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.decorant.DecorantSettings;
-import art.arcane.iris.engine.decorator.DecoratedBiome;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import com.volmit.world.BiomeKind;
+package art.arcane.iris.builtin.floating;
 
-/** The decorators' view of a biome Iris's carving and floating islands hold as an {@link IrisBiome}. */
-final class IrisDecoratedBiomes {
-    private IrisDecoratedBiomes() {
+/**
+ * Where an object stands, in its own block positions: the columns holding a solid block ({@link #column} packs each), the
+ * tallest of them (most solid blocks, the lowest bottom on a tie) and the lowest solid block of that column.
+ */
+public record IslandFootprint(int tallestX, int tallestZ, int lowestSolidY, long[] columns) {
+    /** The column {@code x}, {@code z} packed as {@link #columns} holds it. */
+    public static long column(int x, int z) {
+        return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
-    static DecoratedBiome of(IrisBiome biome, BiomeKind kind) {
-        return new DecoratedBiome(biome.getLoadKey(), biome.getModuleSettings().find(DecorantSettings.class).orElse(null), kind);
+    public static int columnX(long column) {
+        return (int) (column >> 32);
+    }
+
+    public static int columnZ(long column) {
+        return (int) (column & 0xFFFFFFFFL);
     }
 }

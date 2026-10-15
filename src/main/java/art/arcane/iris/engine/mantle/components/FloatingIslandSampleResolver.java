@@ -1,5 +1,5 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
+ * Iris is a World Generator for Minecraft Servers
  * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,61 +18,51 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.volmlib.util.cache.CacheKey;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.modifier.FloatingIslands;
-import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
+import art.arcane.iris.engine.object.terrain.floating.Column;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.terrain.floating.FloatingWorld;
 import com.volmit.ModuleLog;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import org.jetbrains.annotations.Nullable;
+import com.volmit.resource.ResourceId;
 
-final class FloatingIslandSampleResolver implements IslandObjectPlacer.SampleProvider {
-    private final IrisData data;
-    private final Engine engine;
-    private final int chunkHeight;
-    private final long baseSeed;
+import java.util.HashMap;
+import java.util.Map;
+
+/** The island samples of the columns one chunk's floating objects ask about, each sampled once; null where no island is. */
+final class FloatingIslandSampleResolver implements IslandFace.SampleProvider {
+    private final FloatingWorld world;
+    private final int worldHeight;
     private final FloatingIslandBoundarySampler boundarySampler;
-    private final Long2ObjectOpenHashMap<FloatingIslandSample> sampleCache;
-    private final LongOpenHashSet resolvedSamples;
+    private final Map<Column, FloatingIslandSample> samples = new HashMap<>();
     private final ModuleLog log;
 
-    FloatingIslandSampleResolver(EngineMantle engineMantle, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
-        this.data = engineMantle.getData();
-        this.engine = engineMantle.getEngine();
-        this.chunkHeight = engine.getHeight();
-        this.baseSeed = engine.getSeedManager().getTerrain() ^ FloatingIslands.FLOATING_BASE_SEED_SALT;
+    FloatingIslandSampleResolver(FloatingWorld world, int worldHeight, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
+        this.world = world;
+        this.worldHeight = worldHeight;
         this.boundarySampler = boundarySampler;
         this.log = log;
-        this.sampleCache = new Long2ObjectOpenHashMap<>();
-        this.resolvedSamples = new LongOpenHashSet();
     }
 
     @Override
-    public @Nullable FloatingIslandSample sample(int x, int z) {
-        long key = CacheKey.key(x, z);
-        if (resolvedSamples.contains(key)) {
-            return sampleCache.get(key);
+    public FloatingIslandSample sample(int x, int z) {
+        Column key = new Column(x, z);
+        if (samples.containsKey(key)) {
+            return samples.get(key);
         }
-        IrisBiome parent = parent(x, z);
-        if (parent == null || FloatingChildren.declaredBy(parent).isEmpty()) {
-            resolvedSamples.add(key);
-            return null;
-        }
-        FloatingIslandSample sample = FloatingIslandSample.sample(parent, x, z, chunkHeight, baseSeed, data, engine, boundarySampler, log);
-        resolvedSamples.add(key);
-        if (sample != null) {
-            sampleCache.put(key, sample);
-        }
+        FloatingIslandSample sample = resolve(x, z);
+        samples.put(key, sample);
         return sample;
     }
 
-    @Nullable IrisBiome parent(int x, int z) {
+    private FloatingIslandSample resolve(int x, int z) {
+        ResourceId parent = parent(x, z);
+        if (parent == null || world.declaredBy(parent).isEmpty()) {
+            return null;
+        }
+        return FloatingIslandSample.sample(parent, x, z, worldHeight, world, boundarySampler, log);
+    }
+
+    ResourceId parent(int x, int z) {
         return boundarySampler.parent(x, z);
     }
 }

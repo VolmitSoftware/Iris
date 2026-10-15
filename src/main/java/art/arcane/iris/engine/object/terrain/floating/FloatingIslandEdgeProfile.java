@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.util.project.noise.CNG;
+import com.volmit.noise.NoiseSampler;
 
 public final class FloatingIslandEdgeProfile {
     public static final int DEFAULT_WIDTH = 10;
@@ -34,9 +34,9 @@ public final class FloatingIslandEdgeProfile {
     private final int width;
     private final double exponent;
     private final double variationAmplitude;
-    private final CNG variation;
+    private final NoiseSampler variation;
 
-    public FloatingIslandEdgeProfile(int width, double exponent, double variationAmplitude, CNG variation) {
+    public FloatingIslandEdgeProfile(int width, double exponent, double variationAmplitude, NoiseSampler variation) {
         this.width = clampWidth(width);
         this.exponent = clampExponent(exponent);
         this.variationAmplitude = clampVariationAmplitude(variationAmplitude, this.width);
@@ -65,7 +65,7 @@ public final class FloatingIslandEdgeProfile {
         }
         double localWidth = width;
         if (variation != null && variationAmplitude > 0.0D) {
-            double noise = Math.max(0.0D, Math.min(1.0D, variation.noise(x, z)));
+            double noise = Math.max(0.0D, Math.min(1.0D, variation.sample(x, z)));
             double signedNoise = (noise * 2.0D) - 1.0D;
             localWidth += signedNoise * variationAmplitude;
         }

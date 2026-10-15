@@ -30,19 +30,19 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-final class FloatingObjectPlacementTransaction implements IObjectPlacer {
-    private final IslandObjectPlacer delegate;
+public final class FloatingObjectPlacementTransaction implements IObjectPlacer {
+    private final IslandAnchorPlacer delegate;
     private final KList<BufferedMutation> mutations;
     private final Map<PositionKey, PlatformBlockState> bufferedBlocks;
     private int blockWrites;
 
-    FloatingObjectPlacementTransaction(IslandObjectPlacer delegate) {
+    public FloatingObjectPlacementTransaction(IslandAnchorPlacer delegate) {
         this.delegate = delegate;
         this.mutations = new KList<>();
         this.bufferedBlocks = new HashMap<>();
     }
 
-    CommitResult commit() {
+    public CommitResult commit() {
         if (blockWrites == 0) {
             discard();
             return CommitResult.EMPTY;
@@ -60,7 +60,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
         return CommitResult.COMMITTED;
     }
 
-    void discard() {
+    public void discard() {
         mutations.clear();
         bufferedBlocks.clear();
         blockWrites = 0;
@@ -167,7 +167,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
         return delegate.getEngine();
     }
 
-    enum CommitResult {
+    public enum CommitResult {
         COMMITTED,
         EMPTY,
         REJECTED_SUPPORT

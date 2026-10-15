@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,413 +18,311 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.terrain.floating.FloatingChildren;
+import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.volmlib.util.cache.CacheKey;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.mantle.MantleWriter;
+import art.arcane.iris.builtin.floating.FloatingChildSettings;
+import art.arcane.iris.builtin.floating.FloatingHost;
+import art.arcane.iris.builtin.floating.IslandFootprint;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSize;
+import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
-import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
-import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.iris.util.project.context.ChunkContext;
+import art.arcane.iris.engine.object.terrain.floating.FloatingWorld;
+import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
+import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-
+import com.volmit.FeatureAttachment.Target;
 import com.volmit.ModuleLog;
-import java.io.File;
+import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.PackSettings;
+import com.volmit.mantle.BlockBox;
+import com.volmit.resource.ResourceId;
+import com.volmit.stage.MantleStageContext;
+import com.volmit.world.BlockPosition;
+import com.volmit.world.PackWorld;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  * Places the objects of floating child biomes on and under their islands into the mantle for
- * {@link art.arcane.iris.engine.modifier.FloatingModule}. One per engine runtime. Its reach is the
- * largest placement reach of any floating object the dimension's biomes can place, at least 16 blocks.
+ * {@link art.arcane.iris.engine.modifier.FloatingModule}. One per world. Its reach is the largest placement reach of any
+ * floating object the dimension's biomes can place, at least 16 blocks.
  */
-public class FloatingObjectPlacing {
+public final class FloatingObjectPlacing {
     private static final int INVERTED_PICK_ATTEMPTS = 8;
-    private static final IrisObjectRotation ROTATION_NONE = IrisObjectRotation.of(0, 0, 0);
+    private static final long CHUNK_RANDOM_SALT = 0x0FA710BEL;
+    private static final int CHUNK_SHIFT = 4;
+    private static final int CHUNK_COLUMNS = 256;
+    private static final int MIN_REACH_BLOCKS = 16;
+    private static final int LARGE_REACH_WARNING_BLOCKS = 128;
+    private static final int FLAT_TOLERANCE_BLOCKS = 2;
+    private static final int LOOSE_FLAT_TOLERANCE_BLOCKS = 4;
+    private static final int QUARTER_TURN_DEGREES = 90;
+    private static final int QUARTER_TURNS = 4;
+    private static final double CHANCE_JITTER = 0.005;
+    private static final String BIOME_PATH_PREFIX = "biome/";
 
-    private final Engine engine;
+    private final FloatingWorld world;
+    private final FloatingHost host;
+    private final ObjectHost objects;
+    private final long mantleSeed;
     private final ModuleLog log;
 
-    public FloatingObjectPlacing(Engine engine, ModuleLog log) {
-        this.engine = engine;
+    FloatingObjectPlacing(FloatingWorld world, long mantleSeed, ModuleLog log) {
+        this.world = world;
+        this.host = world.host();
+        this.objects = world.objects();
+        this.mantleSeed = mantleSeed;
         this.log = log;
     }
 
-    /** Places what originates in the chunk at chunk coordinates {@code x}, {@code z} into {@code writer}. */
-    public void place(MantleWriter writer, int x, int z, ChunkContext context) {
-        IrisComplex complex = context.getComplex();
-        IrisData data = engine.getData();
-        int minX = x << 4;
-        int minZ = z << 4;
-        RNG chunkRng = new RNG(CacheKey.key(x, z) + engine.getSeedManager().getMantle() + 0x0FA710BEL);
-        FloatingIslandSampleResolver sampleResolver = new FloatingIslandSampleResolver(engine.getMantle(), context.getFloatingIslandBoundarySampler(), log);
+    /** The floating object placing of {@code world}. */
+    public static FloatingObjectPlacing of(PackWorld world, ModuleLog log) {
+        return world.state(FloatingObjectPlacing.class,
+                generating -> new FloatingObjectPlacing(FloatingWorld.of(generating), IrisSeed.MANTLE.of(generating), log));
+    }
+
+    /** Places what originates in the chunk of {@code context} into the mantle. */
+    public void place(MantleStageContext context) {
+        int minX = context.originX();
+        int minZ = context.originZ();
+        BlockBox bounds = context.terrain().bounds();
+        int worldHeight = bounds.maxY() - bounds.minY();
+        RNG chunkRng = new RNG(CacheKey.key(minX >> CHUNK_SHIFT, minZ >> CHUNK_SHIFT) + mantleSeed + CHUNK_RANDOM_SALT);
+        FloatingIslandSampleResolver samples = new FloatingIslandSampleResolver(world, worldHeight,
+                new FloatingIslandBoundarySampler(host::surfaceBiome), log);
 
         FloatingIslandSample.clearChunkMemo();
+        Chunk chunk = new Chunk(minX, minZ, worldHeight, chunkRng, samples, sampleColumns(samples, minX, minZ));
 
-        FloatingIslandSample[] samples = new FloatingIslandSample[256];
-        for (int xf = 0; xf < 16; xf++) {
-            for (int zf = 0; zf < 16; zf++) {
-                int wx = minX + xf;
-                int wz = minZ + zf;
-                FloatingIslandSample sample = sampleResolver.sample(wx, wz);
-                if (sample != null) {
-                    samples[(zf << 4) | xf] = sample;
-                }
-            }
-        }
-
-        // The IdentityHashMaps are lookup indices only. Iteration MUST follow the encounter
-        // order of the deterministic 0..255 column scan: identity-hash order changes per JVM
-        // run, and the shared chunkRng makes placement output depend on iteration order.
-        IdentityHashMap<ResolvedFloatingChild, KList<Integer>> entryColumns = new IdentityHashMap<>();
-        IdentityHashMap<ResolvedFloatingChild, KList<Integer>> bottomEntryColumns = new IdentityHashMap<>();
+        // The maps are lookup indices only. Iteration MUST follow the encounter order of the deterministic 0..255 column
+        // scan: identity-hash order changes per JVM run, and the shared chunk random makes placement output depend on order.
+        Map<ResolvedFloatingChild, KList<Integer>> entryColumns = new IdentityHashMap<>();
+        Map<ResolvedFloatingChild, KList<Integer>> bottomEntryColumns = new IdentityHashMap<>();
         KList<ResolvedFloatingChild> entryOrder = new KList<>();
         KList<ResolvedFloatingChild> bottomEntryOrder = new KList<>();
-        for (int i = 0; i < 256; i++) {
-            FloatingIslandSample s = samples[i];
-            if (s == null || s.entry == null) {
+        for (int i = 0; i < CHUNK_COLUMNS; i++) {
+            FloatingIslandSample sample = chunk.samples[i];
+            if (sample == null || sample.entry == null) {
                 continue;
             }
-            entryColumns.computeIfAbsent(s.entry, e -> {
-                entryOrder.add(e);
+            int column = i;
+            entryColumns.computeIfAbsent(sample.entry, entry -> {
+                entryOrder.add(entry);
                 return new KList<>();
-            }).add(i);
-            ResolvedFloatingChild bottomEntry = s.bottomEntry();
+            }).add(column);
+            ResolvedFloatingChild bottomEntry = sample.bottomEntry();
             if (bottomEntry != null) {
-                bottomEntryColumns.computeIfAbsent(bottomEntry, e -> {
-                    bottomEntryOrder.add(e);
+                bottomEntryColumns.computeIfAbsent(bottomEntry, entry -> {
+                    bottomEntryOrder.add(entry);
                     return new KList<>();
-                }).add(i);
+                }).add(column);
             }
         }
 
         for (ResolvedFloatingChild entry : entryOrder) {
-            KList<Integer> columns = entryColumns.get(entry);
-            if (columns.isEmpty()) {
-                continue;
-            }
-
-            int firstKey = columns.get(0);
-            IrisBiome parent = sampleResolver.parent(minX + (firstKey & 15), minZ + (firstKey >> 4));
-            IrisBiome target = entry.getRealBiome(parent, data);
-
-            KList<IrisObjectPlacement> floating = new KList<>(entry.settings().floatingObjects());
-            if (floating != null && !floating.isEmpty()) {
-                for (IrisObjectPlacement placement : floating) {
-                    tryPlaceFloatingChunk(writer, complex, chunkRng, data, placement, columns, minX, minZ, entry);
-                }
-            }
-
-            KList<IrisObjectPlacement> surface = target != null ? entry.resolveTopObjects(target) : null;
-            KList<IrisObjectPlacement> extras = new KList<>(entry.settings().extraObjects());
-            boolean hasSurface = surface != null && !surface.isEmpty();
-            boolean hasExtras = extras != null && !extras.isEmpty();
-            KList<Integer> interior = null;
-            if (hasSurface || hasExtras) {
-                interior = interiorColumns(sampleResolver, columns, minX, minZ, entry, IslandObjectPlacer.AnchorFace.TOP);
-                if (hasSurface) {
-                    for (IrisObjectPlacement placement : surface) {
-                        tryPlaceAnchoredChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry);
-                    }
-                }
-                if (hasExtras) {
-                    for (IrisObjectPlacement placement : extras) {
-                        tryPlaceAnchoredChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry);
-                    }
-                }
-            }
+            placeOnTop(chunk, entry, entryColumns.get(entry));
         }
-
         for (ResolvedFloatingChild entry : bottomEntryOrder) {
-            KList<Integer> columns = bottomEntryColumns.get(entry);
-            if (columns.isEmpty()) {
-                continue;
-            }
-
-            int firstKey = columns.get(0);
-            IrisBiome parent = sampleResolver.parent(minX + (firstKey & 15), minZ + (firstKey >> 4));
-            IrisBiome target = entry.getRealBiome(parent, data);
-            KList<IrisObjectPlacement> bottom = target != null ? entry.resolveBottomObjects(target) : null;
-            if (bottom != null && !bottom.isEmpty()) {
-                KList<Integer> interior = interiorColumns(sampleResolver, columns, minX, minZ, entry, IslandObjectPlacer.AnchorFace.BOTTOM);
-                for (IrisObjectPlacement placement : bottom) {
-                    tryPlaceInvertedChunk(writer, complex, chunkRng, data, placement, samples, sampleResolver, columns, interior, minX, minZ, entry);
-                }
-            }
+            placeUnder(chunk, entry, bottomEntryColumns.get(entry));
         }
     }
 
-    @ChunkCoordinates
-    private void tryPlaceFloatingChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, KList<Integer> columns, int minX, int minZ, ResolvedFloatingChild entry) {
-        if (placement == null || columns == null || columns.isEmpty()) {
+    private static FloatingIslandSample[] sampleColumns(FloatingIslandSampleResolver samples, int minX, int minZ) {
+        FloatingIslandSample[] sampled = new FloatingIslandSample[CHUNK_COLUMNS];
+        for (int xf = 0; xf < 16; xf++) {
+            for (int zf = 0; zf < 16; zf++) {
+                sampled[(zf << 4) | xf] = samples.sample(minX + xf, minZ + zf);
+            }
+        }
+        return sampled;
+    }
+
+    private void placeOnTop(Chunk chunk, ResolvedFloatingChild entry, KList<Integer> columns) {
+        if (columns.isEmpty()) {
             return;
         }
-        int density = placement.getDensity(rng, minX, minZ, data);
-        double perAttempt = placement.getChance();
-        for (int i = 0; i < density; i++) {
-            if (!rng.chance(perAttempt + rng.d(-0.005, 0.005))) {
-                continue;
-            }
-            IrisObject raw = placement.getObject(complex, rng);
-            if (raw == null) {
-                continue;
-            }
-            IrisObject obj0 = placement.getScale().get(rng, raw, engine);
-            if (obj0 == null) {
-                continue;
-            }
-            if (entry != null && entry.hasObjectShrink()) {
-                obj0 = entry.getShrinkScale().get(rng, obj0, engine);
-                if (obj0 == null) {
-                    continue;
-                }
-            }
-            final IrisObject obj = obj0;
+        ResourceId target = targetOf(chunk, entry, columns);
 
+        for (ObjectPlacement placement : entry.settings().floatingObjects()) {
+            placeFloating(chunk, placement, columns, entry);
+        }
+
+        KList<ObjectPlacement> surface = target != null ? entry.resolveTopObjects(target) : null;
+        List<ObjectPlacement> extras = entry.settings().extraObjects();
+        boolean hasSurface = surface != null && !surface.isEmpty();
+        if (!hasSurface && extras.isEmpty()) {
+            return;
+        }
+        KList<Integer> interior = interiorColumns(chunk, columns, entry, IslandFace.Side.TOP);
+        if (hasSurface) {
+            for (ObjectPlacement placement : surface) {
+                placeAnchored(chunk, placement, columns, interior, entry);
+            }
+        }
+        for (ObjectPlacement placement : extras) {
+            placeAnchored(chunk, placement, columns, interior, entry);
+        }
+    }
+
+    private void placeUnder(Chunk chunk, ResolvedFloatingChild entry, KList<Integer> columns) {
+        if (columns.isEmpty()) {
+            return;
+        }
+        ResourceId target = targetOf(chunk, entry, columns);
+        KList<ObjectPlacement> bottom = target != null ? entry.resolveBottomObjects() : null;
+        if (bottom == null || bottom.isEmpty()) {
+            return;
+        }
+        KList<Integer> interior = interiorColumns(chunk, columns, entry, IslandFace.Side.BOTTOM);
+        for (ObjectPlacement placement : bottom) {
+            placeInverted(chunk, placement, columns, interior, entry);
+        }
+    }
+
+    /** The biome the child's objects come from, its parent taken at the first of its columns. */
+    private ResourceId targetOf(Chunk chunk, ResolvedFloatingChild entry, KList<Integer> columns) {
+        int firstKey = columns.get(0);
+        ResourceId parent = chunk.resolver.parent(chunk.minX + (firstKey & 15), chunk.minZ + (firstKey >> 4));
+        return entry.realBiome(parent);
+    }
+
+    private void placeFloating(Chunk chunk, ObjectPlacement placement, KList<Integer> columns, ResolvedFloatingChild entry) {
+        RNG rng = chunk.rng;
+        int density = objects.density(placement, rng, chunk.minX, chunk.minZ);
+        for (int i = 0; i < density; i++) {
+            Optional<PlaceableObject> picked = pick(placement, entry, rng);
+            if (picked.isEmpty()) {
+                continue;
+            }
             int key = columns.get(rng.i(columns.size()));
-            int xx = minX + (key & 15);
-            int zz = minZ + (key >> 4);
-            IrisObjectPlacement floatingPlacement = placement.toPlacement(obj.getLoadKey());
-            int id = rng.i(0, Integer.MAX_VALUE);
-
-            try {
-                obj.place(xx, -1, zz, writer, floatingPlacement, rng, (b, bd) -> {
-                    String marker = placementMarker(obj, id);
-                    if (marker != null && shouldWritePlacementMarker(writer, bd, b.getX(), b.getY(), b.getZ())) {
-                        writer.setData(b.getX(), b.getY(), b.getZ(), marker);
-                    }
-                }, null, data);
-            } catch (Throwable e) {
-                log.error("Failed to place a floating object", e);
-            }
+            host.placeFloating(picked.get(), chunk.minX + (key & 15), chunk.minZ + (key >> 4), placement, rng);
         }
     }
 
-    @ChunkCoordinates
-    private void tryPlaceAnchoredChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, ResolvedFloatingChild entry) {
-        if (placement == null || columns.isEmpty()) {
-            return;
-        }
-        int density = placement.getDensity(rng, minX, minZ, data);
-        double perAttempt = placement.getChance();
-
+    private void placeAnchored(Chunk chunk, ObjectPlacement placement, KList<Integer> columns, KList<Integer> interior,
+                               ResolvedFloatingChild entry) {
+        RNG rng = chunk.rng;
+        int density = objects.density(placement, rng, chunk.minX, chunk.minZ);
         for (int i = 0; i < density; i++) {
-            if (!rng.chance(perAttempt + rng.d(-0.005, 0.005))) {
+            Optional<PlaceableObject> picked = pick(placement, entry, rng);
+            if (picked.isEmpty()) {
                 continue;
             }
-
-            IrisObject raw = placement.getObject(complex, rng);
-            if (raw == null) {
-                continue;
-            }
-            IrisObject obj0 = placement.getScale().get(rng, raw, engine);
-            if (obj0 == null) {
-                continue;
-            }
-            if (entry != null && entry.hasObjectShrink()) {
-                obj0 = entry.getShrinkScale().get(rng, obj0, engine);
-                if (obj0 == null) {
-                    continue;
-                }
-            }
-            final IrisObject obj = obj0;
-
-            FloatingObjectFootprint fp = FloatingObjectFootprint.compute(obj);
+            PlaceableObject object = picked.get();
+            IslandFootprint footprint = host.footprint(object);
 
             KList<Integer> pool = interior.isEmpty() ? columns : interior;
-
             int pickedKey = pool.get(rng.i(pool.size()));
             int pickedXf = pickedKey & 15;
             int pickedZf = pickedKey >> 4;
-            FloatingIslandSample pickedSample = samples[(pickedZf << 4) | pickedXf];
+            FloatingIslandSample pickedSample = chunk.samples[(pickedZf << 4) | pickedXf];
             if (pickedSample == null) {
                 continue;
             }
             int pickTopY = pickedSample.topY();
-
-            int pickedX = minX + pickedXf;
-            int pickedZ = minZ + pickedZf;
-            if (!isFootprintFlat(fp, pickedX, pickedZ, pickTopY, sampleProvider, entry, 2)) {
-                if (!isFootprintFlat(fp, pickedX, pickedZ, pickTopY, sampleProvider, entry, 4)) {
-                    continue;
-                }
+            int pickedX = chunk.minX + pickedXf;
+            int pickedZ = chunk.minZ + pickedZf;
+            if (!isFootprintFlat(footprint, pickedX, pickedZ, pickTopY, chunk.resolver, entry, FLAT_TOLERANCE_BLOCKS)
+                    && !isFootprintFlat(footprint, pickedX, pickedZ, pickTopY, chunk.resolver, entry, LOOSE_FLAT_TOLERANCE_BLOCKS)) {
+                continue;
             }
 
-            int wx = minX + pickedXf - fp.getTallestKx();
-            int wz = minZ + pickedZf - fp.getTallestKz();
-
-            IrisObjectPlacement anchored = placement.toPlacement(obj.getLoadKey());
-            anchored.setMode(anchored.getMode().onFloatingIsland());
-            anchored.setTranslate(new IrisObjectTranslate());
-            anchored.setRotation(ROTATION_NONE);
-            anchored.setForcePlace(true);
-            anchored.setBottom(false);
-
-            int yv = pickTopY + 1 - fp.getLowestSolidKeyY();
-
-            IslandObjectPlacer islandPlacer = IslandObjectPlacer.top(writer, sampleProvider, entry, pickTopY);
-            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer);
-            int id = rng.i(0, Integer.MAX_VALUE);
-
-            try {
-                int resultY = obj.place(wx, yv, wz, transaction, anchored, rng, (b, bd) -> {
-                    String marker = placementMarker(obj, id);
-                    if (marker != null && shouldWritePlacementMarker(transaction, bd, b.getX(), b.getY(), b.getZ())) {
-                        transaction.setData(b.getX(), b.getY(), b.getZ(), marker);
-                    }
-                }, null, data);
-                if (resultY < 0) {
-                    transaction.discard();
-                } else {
-                    transaction.commit();
-                }
-            } catch (Throwable e) {
-                transaction.discard();
-                log.error("Failed to place an anchored floating object", e);
-            }
+            int x = pickedX - footprint.tallestX();
+            int z = pickedZ - footprint.tallestZ();
+            int y = pickTopY + 1 - footprint.lowestSolidY();
+            host.placeOnTop(object, x, y, z, placement, IslandFace.top(chunk.resolver, entry, pickTopY, chunk.worldHeight), rng);
         }
     }
 
-    @ChunkCoordinates
-    private void tryPlaceInvertedChunk(MantleWriter writer, IrisComplex complex, RNG rng, IrisData data, IrisObjectPlacement placement, FloatingIslandSample[] samples, IslandObjectPlacer.SampleProvider sampleProvider, KList<Integer> columns, KList<Integer> interior, int minX, int minZ, ResolvedFloatingChild entry) {
-        if (placement == null || columns.isEmpty()) {
-            return;
-        }
-        int density = placement.getDensity(rng, minX, minZ, data);
-        double perAttempt = placement.getChance();
-
+    private void placeInverted(Chunk chunk, ObjectPlacement placement, KList<Integer> columns, KList<Integer> interior,
+                               ResolvedFloatingChild entry) {
+        RNG rng = chunk.rng;
+        int density = objects.density(placement, rng, chunk.minX, chunk.minZ);
         for (int i = 0; i < density; i++) {
-            if (!rng.chance(perAttempt + rng.d(-0.005, 0.005))) {
+            Optional<PlaceableObject> picked = pick(placement, entry, rng);
+            if (picked.isEmpty()) {
                 continue;
             }
+            PlaceableObject object = picked.get();
+            IslandFootprint footprint = host.footprint(object);
+            UndersideTurn turn = new UndersideTurn(rng.i(QUARTER_TURNS) * QUARTER_TURN_DEGREES);
 
-            IrisObject raw = placement.getObject(complex, rng);
-            if (raw == null) {
+            Optional<BottomAnchor> anchor = pickBottomAnchor(chunk, footprint, turn, interior.isEmpty() ? columns : interior, entry);
+            if (anchor.isEmpty()) {
                 continue;
             }
-            IrisObject obj0 = placement.getScale().get(rng, raw, engine);
-            if (obj0 == null) {
-                continue;
-            }
-            if (entry != null && entry.hasObjectShrink()) {
-                obj0 = entry.getShrinkScale().get(rng, obj0, engine);
-                if (obj0 == null) {
-                    continue;
-                }
-            }
-            final IrisObject obj = obj0;
-
-            FloatingObjectFootprint fp = FloatingObjectFootprint.compute(obj);
-            int invertedYRotation = rng.i(4) * 90;
-            IrisObjectRotation invertedRotation = IrisObjectRotation.xFlip180WithY(invertedYRotation);
-
-            KList<Integer> pool = interior.isEmpty() ? columns : interior;
-
-            int pickedXf = -1;
-            int pickedZf = -1;
-            int pickBottomY = -1;
-            boolean foundBottomAnchor = false;
-            for (int attempt = 0; attempt < INVERTED_PICK_ATTEMPTS; attempt++) {
-                int pickedKey = pool.get(rng.i(pool.size()));
-                int candidateXf = pickedKey & 15;
-                int candidateZf = pickedKey >> 4;
-                FloatingIslandSample candidateSample = samples[(candidateZf << 4) | candidateXf];
-                if (candidateSample == null) {
-                    continue;
-                }
-                int candidateBottomY = candidateSample.bottomY();
-                if (candidateBottomY < 0) {
-                    continue;
-                }
-                int candidateX = minX + candidateXf;
-                int candidateZ = minZ + candidateZf;
-                if (!isFootprintFlatBottom(fp, invertedRotation, candidateX, candidateZ, candidateBottomY, sampleProvider, entry, 2)
-                        && !isFootprintFlatBottom(fp, invertedRotation, candidateX, candidateZ, candidateBottomY, sampleProvider, entry, 4)) {
-                    continue;
-                }
-                pickedXf = candidateXf;
-                pickedZf = candidateZf;
-                pickBottomY = candidateBottomY;
-                foundBottomAnchor = true;
-                break;
-            }
-            if (!foundBottomAnchor) {
-                continue;
-            }
-
-            int wx = invertedBaseX(minX, pickedXf, fp, invertedRotation);
-            int wz = invertedBaseZ(minZ, pickedZf, fp, invertedRotation);
-
-            IrisObjectPlacement inverted = placement.toPlacement(obj.getLoadKey());
-            inverted.setMode(inverted.getMode().onFloatingIsland());
-            inverted.setTranslate(new IrisObjectTranslate());
-            inverted.setRotation(invertedRotation);
-            inverted.setForcePlace(true);
-            inverted.setBottom(false);
-
-            int yv = invertedBaseY(pickBottomY, fp, invertedRotation);
-
-            IslandObjectPlacer islandPlacer = IslandObjectPlacer.bottom(writer, sampleProvider, entry, pickBottomY);
-            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer);
-            int id = rng.i(0, Integer.MAX_VALUE);
-
-            try {
-                int resultY = obj.place(wx, yv, wz, transaction, inverted, rng, (b, bd) -> {
-                    String marker = placementMarker(obj, id);
-                    if (marker != null && shouldWritePlacementMarker(transaction, bd, b.getX(), b.getY(), b.getZ())) {
-                        transaction.setData(b.getX(), b.getY(), b.getZ(), marker);
-                    }
-                }, null, data);
-                if (resultY < 0) {
-                    transaction.discard();
-                } else {
-                    transaction.commit();
-                }
-            } catch (Throwable e) {
-                transaction.discard();
-                log.error("Failed to place an inverted floating object", e);
-            }
+            int pickedXf = anchor.get().xf();
+            int pickedZf = anchor.get().zf();
+            int pickBottomY = anchor.get().bottomY();
+            int x = invertedBaseX(chunk.minX, pickedXf, footprint, turn);
+            int z = invertedBaseZ(chunk.minZ, pickedZf, footprint, turn);
+            int y = invertedBaseY(pickBottomY, footprint, turn);
+            host.placeUnder(object, x, y, z, turn.yRotation(), placement,
+                    IslandFace.bottom(chunk.resolver, entry, pickBottomY, chunk.worldHeight), rng);
         }
     }
 
-    static boolean isFootprintFlatBottom(FloatingObjectFootprint fp, IrisObjectRotation rotation,
-                                         int pickedX, int pickedZ, int pickBottomY,
-                                         IslandObjectPlacer.SampleProvider samples,
-                                         ResolvedFloatingChild entry, int tolerance) {
-        IrisBlockVector anchor = invertedFootprintAnchor(fp, rotation);
-        long[] cells = fp.footprintXZ();
+    private Optional<BottomAnchor> pickBottomAnchor(Chunk chunk, IslandFootprint footprint, UndersideTurn turn, KList<Integer> pool,
+                                                    ResolvedFloatingChild entry) {
+        for (int attempt = 0; attempt < INVERTED_PICK_ATTEMPTS; attempt++) {
+            int pickedKey = pool.get(chunk.rng.i(pool.size()));
+            int candidateXf = pickedKey & 15;
+            int candidateZf = pickedKey >> 4;
+            FloatingIslandSample candidate = chunk.samples[(candidateZf << 4) | candidateXf];
+            if (candidate == null) {
+                continue;
+            }
+            int candidateBottomY = candidate.bottomY();
+            if (candidateBottomY < 0) {
+                continue;
+            }
+            int candidateX = chunk.minX + candidateXf;
+            int candidateZ = chunk.minZ + candidateZf;
+            if (!isFootprintFlatBottom(footprint, turn, candidateX, candidateZ, candidateBottomY, chunk.resolver, entry, FLAT_TOLERANCE_BLOCKS)
+                    && !isFootprintFlatBottom(footprint, turn, candidateX, candidateZ, candidateBottomY, chunk.resolver, entry,
+                    LOOSE_FLAT_TOLERANCE_BLOCKS)) {
+                continue;
+            }
+            return Optional.of(new BottomAnchor(candidateXf, candidateZf, candidateBottomY));
+        }
+        return Optional.empty();
+    }
+
+    /** One draw of the chance, then the object the placement picks, scaled, and shrunk as the island shrinks its objects. */
+    private Optional<PlaceableObject> pick(ObjectPlacement placement, ResolvedFloatingChild entry, RNG rng) {
+        if (!rng.chance(placement.chance() + rng.d(-CHANCE_JITTER, CHANCE_JITTER))) {
+            return Optional.empty();
+        }
+        Optional<PlaceableObject> scaled = objects.pickScaled(placement, rng);
+        if (scaled.isEmpty() || !entry.hasObjectShrink()) {
+            return scaled;
+        }
+        return host.shrink(scaled.get(), entry.shrinkFactor(), rng);
+    }
+
+    static boolean isFootprintFlatBottom(IslandFootprint footprint, UndersideTurn turn, int pickedX, int pickedZ, int pickBottomY,
+                                         IslandFace.SampleProvider samples, ResolvedFloatingChild entry, int tolerance) {
+        BlockPosition anchor = invertedFootprintAnchor(footprint, turn);
+        long[] cells = footprint.columns();
         if (cells.length == 0) {
             return false;
         }
-        for (int i = 0, n = cells.length; i < n; i++) {
-            long encoded = cells[i];
-            int kx = (int) (encoded >> 32);
-            int kz = (int) (encoded & 0xFFFFFFFFL);
-            IrisBlockVector cell = rotation.rotate(new IrisBlockVector(kx, 0, kz), 0, 0, 0);
-            int columnX = pickedX + cell.getBlockX() - anchor.getBlockX();
-            int columnZ = pickedZ + cell.getBlockZ() - anchor.getBlockZ();
+        for (long encoded : cells) {
+            BlockPosition cell = turn.turn(IslandFootprint.columnX(encoded), 0, IslandFootprint.columnZ(encoded));
+            int columnX = pickedX + cell.x() - anchor.x();
+            int columnZ = pickedZ + cell.z() - anchor.z();
             FloatingIslandSample sample = samples.sample(columnX, columnZ);
-            if (!IslandObjectPlacer.matchesAnchor(sample, entry, IslandObjectPlacer.AnchorFace.BOTTOM)) {
+            if (!IslandFace.matchesAnchor(sample, entry, IslandFace.Side.BOTTOM)) {
                 return false;
             }
             int bottomY = sample.bottomY();
@@ -435,135 +333,70 @@ public class FloatingObjectPlacing {
         return true;
     }
 
-    static int invertedBaseX(int minX, int pickedXf, FloatingObjectFootprint fp) {
-        return invertedBaseX(minX, pickedXf, fp, IrisObjectRotation.xFlip180());
+    static int invertedBaseX(int minX, int pickedXf, IslandFootprint footprint, UndersideTurn turn) {
+        return minX + pickedXf - invertedFootprintAnchor(footprint, turn).x();
     }
 
-    static int invertedBaseY(int pickBottomY, FloatingObjectFootprint fp) {
-        return invertedBaseY(pickBottomY, fp, IrisObjectRotation.xFlip180());
+    static int invertedBaseY(int pickBottomY, IslandFootprint footprint, UndersideTurn turn) {
+        return pickBottomY - 1 - invertedSolidAnchor(footprint, turn).y();
     }
 
-    static int invertedBaseZ(int minZ, int pickedZf, FloatingObjectFootprint fp) {
-        return invertedBaseZ(minZ, pickedZf, fp, IrisObjectRotation.xFlip180());
+    static int invertedBaseZ(int minZ, int pickedZf, IslandFootprint footprint, UndersideTurn turn) {
+        return minZ + pickedZf - invertedFootprintAnchor(footprint, turn).z();
     }
 
-    static int invertedBaseX(int minX, int pickedXf, FloatingObjectFootprint fp, IrisObjectRotation rotation) {
-        return minX + pickedXf - invertedFootprintAnchor(fp, rotation).getBlockX();
+    private static BlockPosition invertedFootprintAnchor(IslandFootprint footprint, UndersideTurn turn) {
+        return turn.turn(footprint.tallestX(), 0, footprint.tallestZ());
     }
 
-    static int invertedBaseY(int pickBottomY, FloatingObjectFootprint fp, IrisObjectRotation rotation) {
-        return pickBottomY - 1 - invertedSolidAnchor(fp, rotation).getBlockY();
+    private static BlockPosition invertedSolidAnchor(IslandFootprint footprint, UndersideTurn turn) {
+        return turn.turn(footprint.tallestX(), footprint.lowestSolidY(), footprint.tallestZ());
     }
 
-    static int invertedBaseZ(int minZ, int pickedZf, FloatingObjectFootprint fp, IrisObjectRotation rotation) {
-        return minZ + pickedZf - invertedFootprintAnchor(fp, rotation).getBlockZ();
-    }
-
-    private static IrisBlockVector invertedFootprintAnchor(FloatingObjectFootprint fp, IrisObjectRotation rotation) {
-        return rotation.rotate(new IrisBlockVector(fp.getTallestKx(), 0, fp.getTallestKz()), 0, 0, 0);
-    }
-
-    private static IrisBlockVector invertedSolidAnchor(FloatingObjectFootprint fp, IrisObjectRotation rotation) {
-        return rotation.rotate(new IrisBlockVector(fp.getTallestKx(), fp.getLowestSolidKeyY(), fp.getTallestKz()), 0, 0, 0);
-    }
-
-    private static boolean shouldWritePlacementMarker(IObjectPlacer placer, PlatformBlockState state, int x, int y, int z) {
-        if (state == null) {
-            return false;
-        }
-        PlatformBlockState existingState = placer.get(x, y, z);
-        boolean wouldReplace = B.isSolid(existingState) && B.isVineBlock(state);
-        String material = IrisObjectShaping.materialKey(state);
-        boolean placesBlock = !material.equals("minecraft:air") && !material.equals("minecraft:cave_air") && !wouldReplace;
-        return state.isCustom() || placesBlock;
-    }
-
-    static boolean isFootprintFlat(FloatingObjectFootprint fp, int pickedX, int pickedZ, int pickTopY,
-                                   IslandObjectPlacer.SampleProvider samples,
-                                   ResolvedFloatingChild entry, int tolerance) {
-        int tallestKx = fp.getTallestKx();
-        int tallestKz = fp.getTallestKz();
-        long[] cells = fp.footprintXZ();
+    static boolean isFootprintFlat(IslandFootprint footprint, int pickedX, int pickedZ, int pickTopY,
+                                   IslandFace.SampleProvider samples, ResolvedFloatingChild entry, int tolerance) {
+        long[] cells = footprint.columns();
         if (cells.length == 0) {
             return false;
         }
-        for (int i = 0, n = cells.length; i < n; i++) {
-            long encoded = cells[i];
-            int kx = (int) (encoded >> 32);
-            int kz = (int) (encoded & 0xFFFFFFFFL);
-            int columnX = pickedX + (kx - tallestKx);
-            int columnZ = pickedZ + (kz - tallestKz);
+        for (long encoded : cells) {
+            int columnX = pickedX + (IslandFootprint.columnX(encoded) - footprint.tallestX());
+            int columnZ = pickedZ + (IslandFootprint.columnZ(encoded) - footprint.tallestZ());
             FloatingIslandSample sample = samples.sample(columnX, columnZ);
-            if (!IslandObjectPlacer.matchesAnchor(sample, entry, IslandObjectPlacer.AnchorFace.TOP)
-                    || Math.abs(sample.topY() - pickTopY) > tolerance) {
+            if (!IslandFace.matchesAnchor(sample, entry, IslandFace.Side.TOP) || Math.abs(sample.topY() - pickTopY) > tolerance) {
                 return false;
             }
         }
         return true;
     }
 
-    private static KList<Integer> interiorColumns(IslandObjectPlacer.SampleProvider samples,
-                                                  KList<Integer> columns, int minX, int minZ,
-                                                  ResolvedFloatingChild entry,
-                                                  IslandObjectPlacer.AnchorFace face) {
+    private static KList<Integer> interiorColumns(Chunk chunk, KList<Integer> columns, ResolvedFloatingChild entry, IslandFace.Side side) {
         KList<Integer> interior = new KList<>();
         for (int key : columns) {
-            int x = minX + (key & 15);
-            int z = minZ + (key >> 4);
-            if (!IslandObjectPlacer.matchesAnchor(samples.sample(x + 1, z), entry, face)) {
-                continue;
+            int x = chunk.minX + (key & 15);
+            int z = chunk.minZ + (key >> 4);
+            if (IslandFace.matchesAnchor(chunk.resolver.sample(x + 1, z), entry, side)
+                    && IslandFace.matchesAnchor(chunk.resolver.sample(x - 1, z), entry, side)
+                    && IslandFace.matchesAnchor(chunk.resolver.sample(x, z + 1), entry, side)
+                    && IslandFace.matchesAnchor(chunk.resolver.sample(x, z - 1), entry, side)) {
+                interior.add(key);
             }
-            if (!IslandObjectPlacer.matchesAnchor(samples.sample(x - 1, z), entry, face)) {
-                continue;
-            }
-            if (!IslandObjectPlacer.matchesAnchor(samples.sample(x, z + 1), entry, face)) {
-                continue;
-            }
-            if (!IslandObjectPlacer.matchesAnchor(samples.sample(x, z - 1), entry, face)) {
-                continue;
-            }
-            interior.add(key);
         }
         return interior;
     }
 
-    private static String placementMarker(IrisObject object, int id) {
-        if (object == null) {
-            return null;
-        }
-        String key = object.getLoadKey();
-        if (key == null || key.isEmpty() || key.equals("null")) {
-            return null;
-        }
-        return key + "@" + id;
-    }
-
-    /** How far, in blocks along X and Z, placements may write beyond their chunk. */
-    public int reach() {
-        int maxObjectExtent = 16;
-        Map<String, IrisBlockVector> sizeCache = new HashMap<>();
-        Set<String> warnedLargeObjects = new HashSet<>();
+    /** How far, in blocks along X and Z, the floating objects of the pack {@code settings} describe may write beyond their chunk. */
+    public static int reach(PackSettings settings, ModuleLog log) {
+        Reach reach = new Reach(FloatingHost.of(settings), ObjectHost.of(settings), log);
+        int maxObjectExtent = MIN_REACH_BLOCKS;
         try {
-            IrisData data = engine.getData();
-            for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-                List<FloatingChildBiome> settings = FloatingChildren.declaredBy(biome);
-                if (settings.isEmpty()) {
+            for (Entry<FloatingChildSettings> declared : settings.declared(FloatingChildSettings.class)) {
+                if (declared.level() != Target.BIOME) {
                     continue;
                 }
-                for (ResolvedFloatingChild entry : FloatingChildren.of(engine).of(settings)) {
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().floatingObjects()), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().extraObjects()), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().topObjectOverrides()), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(new KList<>(entry.settings().bottomObjectOverrides()), data, sizeCache, warnedLargeObjects));
-                    try {
-                        IrisBiome target = entry.getRealBiome(biome, data);
-                        if (target != null) {
-                            maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveTopObjects(target), data, sizeCache, warnedLargeObjects));
-                            maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveBottomObjects(target), data, sizeCache, warnedLargeObjects));
-                        }
-                    } catch (Throwable e) {
-                        log.error("Failed to work out the reach of a floating biome's objects", e);
-                    }
+                ResourceId biome = biomeIdOf(declared.source());
+                for (FloatingChildBiome child : declared.value().children()) {
+                    maxObjectExtent = Math.max(maxObjectExtent, reach.of(child, biome));
                 }
             }
         } catch (Throwable e) {
@@ -572,87 +405,79 @@ public class FloatingObjectPlacing {
         return maxObjectExtent;
     }
 
-    private int computePlacementRadius(KList<IrisObjectPlacement> placements, IrisData data,
-                                       Map<String, IrisBlockVector> sizeCache,
-                                       Set<String> warnedLargeObjects) {
-        int radius = 0;
-        if (placements == null) {
-            return radius;
+    /** A settings entry's source names a biome as {@code biome/<key>}; the pack's resources name it by the key alone. */
+    private static ResourceId biomeIdOf(ResourceId source) {
+        String path = source.path();
+        return path.startsWith(BIOME_PATH_PREFIX) ? new ResourceId(source.namespace(), path.substring(BIOME_PATH_PREFIX.length())) : source;
+    }
+
+    /** The reach of floating children's objects, each object sized once. */
+    private static final class Reach {
+        private final FloatingHost host;
+        private final ObjectHost objects;
+        private final ModuleLog log;
+        private final Map<String, Optional<ObjectSize>> sizes = new HashMap<>();
+        private final Set<String> warnedLargeObjects = new HashSet<>();
+
+        private Reach(FloatingHost host, ObjectHost objects, ModuleLog log) {
+            this.host = host;
+            this.objects = objects;
+            this.log = log;
         }
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null || placement.getPlace() == null) {
-                continue;
+
+        int of(FloatingChildBiome child, ResourceId parent) {
+            int reach = 0;
+            reach = Math.max(reach, placementRadius(child.floatingObjects()));
+            reach = Math.max(reach, placementRadius(child.extraObjects()));
+            reach = Math.max(reach, placementRadius(child.topObjectOverrides()));
+            reach = Math.max(reach, placementRadius(child.bottomObjectOverrides()));
+            try {
+                ResourceId target = child.biome().isBlank() ? parent : host.biome(child.biome()).orElse(parent);
+                List<ObjectPlacement> surface = child.inheritObjects() ? FloatingWorld.surfaceObjects(objects, target) : List.of();
+                reach = Math.max(reach, placementRadius(ResolvedFloatingChild.topObjects(child, surface)));
+                reach = Math.max(reach, placementRadius(ResolvedFloatingChild.bottomObjects(child)));
+            } catch (Throwable e) {
+                log.error("Failed to work out the reach of a floating biome's objects", e);
             }
-            for (String objectKey : placement.getPlace()) {
-                try {
-                    IrisBlockVector size = sizeCache.get(objectKey);
-                    if (size == null) {
-                        File file = data.getObjectLoader().findFile(objectKey);
-                        if (file == null) {
-                            continue;
-                        }
-                        size = IrisObject.sampleSize(file);
-                        sizeCache.put(objectKey, size);
-                    }
-                    int reach = calculatePlacementReach(size, placement);
-                    if (reach > 128 && warnedLargeObjects.add(objectKey)) {
-                        log.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
-                    }
-                    radius = Math.max(radius, reach);
-                } catch (Throwable e) {
-                    log.error("Failed to size a floating object", e);
+            return reach;
+        }
+
+        private int placementRadius(List<ObjectPlacement> placements) {
+            int radius = 0;
+            for (ObjectPlacement placement : placements) {
+                if (placement == null) {
+                    continue;
+                }
+                for (String objectKey : placement.place()) {
+                    radius = Math.max(radius, objectReach(objectKey, placement));
                 }
             }
+            return radius;
         }
-        return radius;
+
+        private int objectReach(String objectKey, ObjectPlacement placement) {
+            try {
+                Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, objects::sizeOf);
+                if (size.isEmpty()) {
+                    return 0;
+                }
+                int reach = PlacementReach.of(size.get(), placement);
+                if (reach > LARGE_REACH_WARNING_BLOCKS && warnedLargeObjects.add(objectKey)) {
+                    log.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
+                }
+                return reach;
+            } catch (Throwable e) {
+                log.error("Failed to size a floating object", e);
+                return 0;
+            }
+        }
     }
 
-    static int calculatePlacementReach(IrisBlockVector size, IrisObjectPlacement placement) {
-        if (size == null) {
-            return 0;
-        }
-        if (placement == null) {
-            return Math.max(Math.abs(size.getBlockX()), Math.abs(size.getBlockZ()));
-        }
-
-        double scale = placement.getScale() != null ? Math.max(1D, placement.getScale().getMaxScale()) : 1D;
-        int width = scaledDimension(size.getBlockX(), scale);
-        int height = scaledDimension(size.getBlockY(), scale);
-        int depth = scaledDimension(size.getBlockZ(), scale);
-        IrisObjectRotation rotation = placement.getRotation();
-        boolean rotateX = rotation != null && rotation.isEnabled() && rotation.getXAxis() != null && rotation.getXAxis().enabled();
-        boolean rotateZ = rotation != null && rotation.isEnabled() && rotation.getZAxis() != null && rotation.getZAxis().enabled();
-        int footprint = rotateX || rotateZ ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
-        int translation = calculateTranslationReach(placement.getTranslate(), rotation, rotateX || rotateZ);
-        int warp = placement.getWarp() != null && !placement.getWarp().isFlat()
-                ? (int) Math.ceil(Math.abs(placement.getWarp().getMultiplier()) / 2D)
-                : 0;
-        int vacuum = placement.getMode().placeMode().bendsTerrain()
-                ? 2 * IrisObjectVacuum.resolveRadius(placement.getMode().placeMode().vacuum(), placement.getVacuumSettings())
-                : 0;
-        long reach = (long) footprint + translation + warp + vacuum;
-        return reach > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) reach;
+    private record BottomAnchor(int xf, int zf, int bottomY) {
     }
 
-    private static int scaledDimension(int dimension, double scale) {
-        int absoluteDimension = Math.abs(dimension);
-        if (scale <= 1D) {
-            return absoluteDimension;
-        }
-        return (int) Math.ceil((absoluteDimension * scale) + (scale * 2D));
-    }
-
-    private static int calculateTranslationReach(IrisObjectTranslate translate, IrisObjectRotation rotation, boolean rotateVertically) {
-        if (translate == null || !translate.canTranslate()) {
-            return 0;
-        }
-        double x = translate.getX();
-        double y = translate.getY();
-        double z = translate.getZ();
-        if (rotateVertically) {
-            return (int) Math.ceil(Math.sqrt((x * x) + (y * y) + (z * z)));
-        }
-        boolean rotateY = rotation != null && rotation.isEnabled() && rotation.getYAxis() != null && rotation.getYAxis().enabled();
-        return rotateY ? (int) Math.ceil(Math.hypot(x, z)) : (int) Math.max(Math.abs(x), Math.abs(z));
+    /** What one chunk's placements share: where it is, its random, and its columns' island samples. */
+    private record Chunk(int minX, int minZ, int worldHeight, RNG rng, FloatingIslandSampleResolver resolver,
+                         FloatingIslandSample[] samples) {
     }
 }

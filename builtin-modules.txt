@@ -84,3 +84,10 @@ include art/arcane/iris/engine/mantle/components/ObjectWarmUp*.class
 include art/arcane/iris/engine/mantle/components/ObjectLocating*.class
 include art/arcane/iris/engine/mantle/components/TreeGrowing*.class
 include art/arcane/iris/engine/object/procedural/**
+module art.arcane.iris.engine.modifier.FloatingModule
+include art/arcane/iris/engine/modifier/FloatingIslands*.class
+include art/arcane/iris/engine/object/terrain/floating/**
+include art/arcane/iris/engine/mantle/components/FloatingObjectPlacing*.class
+include art/arcane/iris/engine/mantle/components/FloatingIslandSampleResolver*.class
+include art/arcane/iris/engine/mantle/components/IslandFace*.class
+include art/arcane/iris/engine/mantle/components/UndersideTurn*.class

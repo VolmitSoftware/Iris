@@ -20,13 +20,10 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.ModuleLog;
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.ResourceId;
 
 import java.util.Arrays;
 import java.util.List;
@@ -54,8 +51,9 @@ public final class FloatingIslandSample {
     private static final double CARVE_MAX_VERTICAL_RUN_FRACTION = 0.18D;
     private static final ThreadLocal<int[]> LAST_REJECT = ThreadLocal.withInitial(() -> new int[1]);
     private static final ThreadLocal<double[]> LAST_DENSITY = ThreadLocal.withInitial(() -> new double[2]);
-    private static final ThreadLocal<HashMap<Long, FloatingIslandSample>> CHUNK_MEMO = ThreadLocal.withInitial(HashMap::new);
-    private static final ThreadLocal<IdentityHashMap<CNG, Long2DoubleOpenHashMap>> FOOTPRINT_MEMO = ThreadLocal.withInitial(IdentityHashMap::new);
+    private static final ThreadLocal<HashMap<Column, FloatingIslandSample>> CHUNK_MEMO = ThreadLocal.withInitial(HashMap::new);
+    private static final ThreadLocal<IdentityHashMap<NoiseSampler, HashMap<Column, Double>>> FOOTPRINT_MEMO = ThreadLocal.withInitial(IdentityHashMap::new);
+    private static final int FOOTPRINT_MEMO_CAPACITY = 512;
     private static final AtomicBoolean NULL_CNG_WARNED = new AtomicBoolean(false);
 
     public static int getLastReject() {
@@ -78,13 +76,13 @@ public final class FloatingIslandSample {
         FOOTPRINT_MEMO.get().clear();
     }
 
-    public static FloatingIslandSample sampleMemoized(IrisBiome parent, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
-        long key = (((long) wx) << 32) ^ (wz & 0xFFFFFFFFL);
-        HashMap<Long, FloatingIslandSample> memo = CHUNK_MEMO.get();
+    public static FloatingIslandSample sampleMemoized(ResourceId parent, int wx, int wz, int chunkHeight, FloatingWorld world, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
+        Column key = new Column(wx, wz);
+        HashMap<Column, FloatingIslandSample> memo = CHUNK_MEMO.get();
         if (memo.containsKey(key)) {
             return memo.get(key);
         }
-        FloatingIslandSample result = sample(parent, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler, log);
+        FloatingIslandSample result = sample(parent, wx, wz, chunkHeight, world, boundarySampler, log);
         memo.put(key, result);
         return result;
     }
@@ -94,11 +92,11 @@ public final class FloatingIslandSample {
         return null;
     }
 
-    private static void warnNullCng(String styleField, IrisBiome parent, ModuleLog log) {
+    private static void warnNullCng(String styleField, ResourceId parent, ModuleLog log) {
         if (NULL_CNG_WARNED.compareAndSet(false, true)) {
-            String biomeKey = parent == null ? "<unknown>" : parent.getLoadKey();
-            log.warn("Floating child biome on " + biomeKey + " has a null CNG for " + styleField
-                    + " (style factory returned null or AtomicCache swallowed an exception); skipping floating sampling until pack is fixed");
+            String biomeKey = parent == null ? "<unknown>" : parent.toString();
+            log.warn("Floating child biome on " + biomeKey + " has no noise for " + styleField
+                    + " (the noise factory failed or AtomicCache swallowed an exception); skipping floating sampling until pack is fixed");
         }
     }
 
@@ -175,19 +173,17 @@ public final class FloatingIslandSample {
         return baseSeed ^ ((long) wx * 341873128712L) ^ ((long) wz * 132897987541L);
     }
 
-    private static int maximumEdgeFieldWidth(KList<ResolvedFloatingChild> entries, long baseSeed,
-                                             IrisData data, IrisBiome parent, ModuleLog log) {
+    private static int maximumEdgeFieldWidth(KList<ResolvedFloatingChild> entries, ResourceId parent, ModuleLog log) {
         int maximumWidth = FloatingIslandEdgeProfile.MIN_WIDTH;
         for (ResolvedFloatingChild entry : entries) {
-            FloatingIslandEdgeProfile profile = resolveEdgeProfile(entry, baseSeed, data, parent, log);
+            FloatingIslandEdgeProfile profile = resolveEdgeProfile(entry, parent, log);
             maximumWidth = Math.max(maximumWidth, profile.fieldWidth());
         }
         return maximumWidth;
     }
 
-    private static FloatingIslandEdgeProfile resolveEdgeProfile(ResolvedFloatingChild entry, long baseSeed,
-                                                                IrisData data, IrisBiome parent, ModuleLog log) {
-        FloatingIslandEdgeProfile profile = entry.getEdgeTaperProfile(baseSeed, data);
+    private static FloatingIslandEdgeProfile resolveEdgeProfile(ResolvedFloatingChild entry, ResourceId parent, ModuleLog log) {
+        FloatingIslandEdgeProfile profile = entry.edgeTaperProfile();
         if (profile != null) {
             return profile;
         }
@@ -195,21 +191,21 @@ public final class FloatingIslandSample {
         return FloatingIslandEdgeProfile.DEFAULT;
     }
 
-    public static FloatingIslandSample sample(IrisBiome parent, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
-        List<FloatingChildBiome> settings = FloatingChildren.declaredBy(parent);
+    public static FloatingIslandSample sample(ResourceId parent, int wx, int wz, int chunkHeight, FloatingWorld world, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
+        List<FloatingChildBiome> settings = world.declaredBy(parent);
         if (settings.isEmpty()) {
             return reject(REJECT_NO_ENTRIES);
         }
-        KList<ResolvedFloatingChild> entries = new KList<>(FloatingChildren.of(data).of(settings));
-        return sample(parent, entries, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler, log);
+        KList<ResolvedFloatingChild> entries = new KList<>(world.resolve(settings));
+        return sample(parent, entries, wx, wz, chunkHeight, world, boundarySampler, log);
     }
 
-    static FloatingIslandSample sample(IrisBiome parent, KList<ResolvedFloatingChild> entries, int wx, int wz, int chunkHeight, long baseSeed, IrisData data, Engine engine, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
-        int boundaryFieldWidth = maximumEdgeFieldWidth(entries, baseSeed, data, parent, log);
+    static FloatingIslandSample sample(ResourceId parent, KList<ResolvedFloatingChild> entries, int wx, int wz, int chunkHeight, FloatingWorld world, FloatingIslandBoundarySampler boundarySampler, ModuleLog log) {
+        int boundaryFieldWidth = maximumEdgeFieldWidth(entries, parent, log);
         int parentBoundaryDistance = boundarySampler.edgeDistance(parent, wx, wz, boundaryFieldWidth);
 
-        if (FloatingChildren.merges(parent)) {
-            return sampleMerged(parent, entries, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler,
+        if (world.merges(parent)) {
+            return sampleMerged(parent, entries, wx, wz, chunkHeight, world, boundarySampler,
                     parentBoundaryDistance, boundaryFieldWidth, log);
         }
 
@@ -219,7 +215,7 @@ public final class FloatingIslandSample {
             entry = entries.getFirst();
         } else {
             ResolvedFloatingChild reference = entries.getFirst();
-            CNG picker = reference.getPickerCng(baseSeed, data);
+            NoiseSampler picker = reference.pickerNoise();
             if (picker == null) {
                 warnNullCng("pickerStyle", parent, log);
                 return reject(REJECT_NO_PICK);
@@ -233,20 +229,20 @@ public final class FloatingIslandSample {
             ownershipBoundaryDistance = ownership.boundaryDistance();
         }
 
-        return sampleEntry(parent, entry, wx, wz, chunkHeight, baseSeed, data, engine, boundarySampler,
+        return sampleEntry(parent, entry, wx, wz, chunkHeight, world, boundarySampler,
                 parentBoundaryDistance, ownershipBoundaryDistance, log);
     }
 
-    private static FloatingIslandSample sampleMerged(IrisBiome parent, KList<ResolvedFloatingChild> entries,
-                                                     int wx, int wz, int chunkHeight, long baseSeed, IrisData data,
-                                                     Engine engine, FloatingIslandBoundarySampler boundarySampler,
+    private static FloatingIslandSample sampleMerged(ResourceId parent, KList<ResolvedFloatingChild> entries,
+                                                     int wx, int wz, int chunkHeight, FloatingWorld world,
+                                                     FloatingIslandBoundarySampler boundarySampler,
                                                      int parentBoundaryDistance, int boundaryFieldWidth, ModuleLog log) {
         KList<FloatingIslandSample> samples = new KList<>();
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
 
         for (ResolvedFloatingChild entry : entries) {
-            FloatingIslandSample sample = sampleEntry(parent, entry, wx, wz, chunkHeight, baseSeed, data, engine,
+            FloatingIslandSample sample = sampleEntry(parent, entry, wx, wz, chunkHeight, world,
                     boundarySampler, parentBoundaryDistance, boundaryFieldWidth + 1, log);
             if (sample == null) {
                 continue;
@@ -308,12 +304,12 @@ public final class FloatingIslandSample {
         return new FloatingIslandSample(topEntry, minY, thickness, topIdx, solidCount, solidMask, entryMask);
     }
 
-    private static FloatingIslandSample sampleEntry(IrisBiome parent, ResolvedFloatingChild entry, int wx, int wz,
-                                                    int chunkHeight, long baseSeed, IrisData data, Engine engine,
+    private static FloatingIslandSample sampleEntry(ResourceId parent, ResolvedFloatingChild entry, int wx, int wz,
+                                                    int chunkHeight, FloatingWorld world,
                                                     FloatingIslandBoundarySampler boundarySampler,
                                                     int parentBoundaryDistance, int ownershipBoundaryDistance, ModuleLog log) {
-        FloatingIslandEdgeProfile edgeProfile = resolveEdgeProfile(entry, baseSeed, data, parent, log);
-        CNG footprintCng = entry.getFootprintCng(baseSeed, data);
+        FloatingIslandEdgeProfile edgeProfile = resolveEdgeProfile(entry, parent, log);
+        NoiseSampler footprintCng = entry.footprintNoise();
         if (footprintCng == null) {
             warnNullCng("footprintStyle", parent, log);
             return reject(REJECT_NO_SEED);
@@ -339,28 +335,28 @@ public final class FloatingIslandSample {
             return reject(REJECT_NO_THICKNESS);
         }
 
-        CNG altitudeCng = entry.getAltitudeCng(baseSeed, data);
+        NoiseSampler altitudeCng = entry.altitudeNoise();
         if (altitudeCng == null) {
             warnNullCng("altitudeStyle", parent, log);
             return reject(REJECT_NO_SEED);
         }
-        double altNoise = altitudeCng.noise(wx, wz);
+        double altNoise = altitudeCng.sample(wx, wz);
         double altClamped = Math.max(0, Math.min(1, altNoise));
-        int worldMin = engine.getWorld().minHeight();
+        int worldMin = world.minHeight();
         int minAlt = Math.max(0, entry.settings().minHeightAboveSurface() - worldMin);
         int maxAlt = Math.max(minAlt, entry.settings().maxHeightAboveSurface() - worldMin);
         int baseY = minAlt + (int) Math.round(altClamped * (maxAlt - minAlt));
 
-        IrisBiome target = entry.getRealBiome(parent, data);
-        int fullTopHeight = computeTopHeight(entry, target, engine, baseSeed, wx, wz, data, log);
+        ResourceId target = entry.realBiome(parent);
+        int fullTopHeight = computeTopHeight(entry, target, world, wx, wz, log);
         int topH = roundedEdgeHeight(fullTopHeight, edgeFade);
 
-        CNG bottomCng = entry.getBottomCng(baseSeed, data);
+        NoiseSampler bottomCng = entry.bottomNoise();
         if (bottomCng == null) {
             warnNullCng("bottomStyle", parent, log);
             return reject(REJECT_NO_SEED);
         }
-        double bottomNoise = bottomCng.noise(wx, wz);
+        double bottomNoise = bottomCng.sample(wx, wz);
         double bottomClamped = Math.max(0, Math.min(1, bottomNoise));
         double bottomShaped = Math.pow(bottomClamped, Math.max(0.1, entry.settings().bottomExponent()));
         int minDepth = Math.max(0, entry.settings().bottomDepthMin());
@@ -412,11 +408,11 @@ public final class FloatingIslandSample {
         }
 
         boolean[] solidMask = new boolean[thickness];
-        CNG wallWarp = entry.getWallWarpCng(baseSeed, data);
+        NoiseSampler wallWarp = entry.wallWarpNoise();
         double warpAmp = Math.max(0, entry.settings().wallWarpAmplitude());
         double effectiveWarpAmp = effectiveWallWarpAmplitude(warpAmp, edgeFade);
-        CaveProfileSampler carvingProfileSampler = entry.getCarvingProfileSampler(engine, data);
-        CNG carve = carvingProfileSampler == null && !entry.hasCarvingReference() ? entry.getCarveCng(baseSeed, data) : null;
+        CaveProfileSampler carvingProfileSampler = entry.carvingProfileSampler();
+        NoiseSampler carve = carvingProfileSampler == null && !entry.hasCarvingReference() ? entry.carveNoise() : null;
         double carveThreshold = entry.settings().carveThreshold();
         boolean useWarp = wallWarp != null && effectiveWarpAmp > 0;
         boolean useProfileCarve = carvingProfileSampler != null;
@@ -484,7 +480,7 @@ public final class FloatingIslandSample {
         return amplitude * fade;
     }
 
-    static boolean directCarveEnabled(ResolvedFloatingChild entry, CaveProfileSampler carvingProfileSampler, CNG carve, double carveThreshold) {
+    static boolean directCarveEnabled(ResolvedFloatingChild entry, CaveProfileSampler carvingProfileSampler, NoiseSampler carve, double carveThreshold) {
         return carvingProfileSampler == null && (entry == null || !entry.hasCarvingReference()) && carve != null && carveThreshold < 1.0;
     }
 
@@ -492,9 +488,9 @@ public final class FloatingIslandSample {
         return edgeFade >= 1.0 && support.isFullySurrounded();
     }
 
-    static int carveSolidInterior(boolean[] solidMask, boolean[] lateralCarveMask, int botY, int wx, int wz, CNG carve, double carveThreshold) {
+    static int carveSolidInterior(boolean[] solidMask, boolean[] lateralCarveMask, int botY, int wx, int wz, NoiseSampler carve, double carveThreshold) {
         return carveSolidInterior(solidMask, lateralCarveMask, botY, wx, wz, (x, y, z) -> {
-            double carveNoise = carve.noise(x, y, z);
+            double carveNoise = carve.sample(x, y, z);
             double carveClamped = Math.max(0, Math.min(1, carveNoise));
             return carveClamped > carveThreshold;
         });
@@ -612,7 +608,7 @@ public final class FloatingIslandSample {
         return cardinal >= CARVE_CARDINAL_SUPPORT && cardinal + diagonal >= CARVE_TOTAL_SUPPORT;
     }
 
-    static boolean hasFootprintNeighborSupport(CNG footprintCng, int wx, int wz, double signedCut) {
+    static boolean hasFootprintNeighborSupport(NoiseSampler footprintCng, int wx, int wz, double signedCut) {
         return footprintNeighborSupport(footprintCng, wx, wz, signedCut).hasSolidSupport();
     }
 
@@ -620,7 +616,7 @@ public final class FloatingIslandSample {
         return support.canFillPinhole();
     }
 
-    static NeighborSupport footprintNeighborSupport(CNG footprintCng, int wx, int wz, double signedCut) {
+    static NeighborSupport footprintNeighborSupport(NoiseSampler footprintCng, int wx, int wz, double signedCut) {
         int cardinal = 0;
         int diagonal = 0;
         for (int dx = -1; dx <= 1; dx++) {
@@ -642,7 +638,7 @@ public final class FloatingIslandSample {
         return new NeighborSupport(cardinal, diagonal);
     }
 
-    static NeighborSupport layerNeighborSupport(CNG footprintCng, CNG wallWarp, boolean useWarp, double warpAmp, int wx, int wy, int wz, double signedCut) {
+    static NeighborSupport layerNeighborSupport(NoiseSampler footprintCng, NoiseSampler wallWarp, boolean useWarp, double warpAmp, int wx, int wy, int wz, double signedCut) {
         int cardinal = 0;
         int diagonal = 0;
         for (int dx = -1; dx <= 1; dx++) {
@@ -663,43 +659,32 @@ public final class FloatingIslandSample {
         return new NeighborSupport(cardinal, diagonal);
     }
 
-    static boolean layerFootprintSolid(CNG footprintCng, CNG wallWarp, boolean useWarp, double warpAmp, int wx, int wy, int wz, double signedCut) {
+    static boolean layerFootprintSolid(NoiseSampler footprintCng, NoiseSampler wallWarp, boolean useWarp, double warpAmp, int wx, int wy, int wz, double signedCut) {
         double sx = wx;
         double sz = wz;
         if (useWarp) {
-            double wnX = wallWarp.noise(wx, wy, wz);
+            double wnX = wallWarp.sample(wx, wy, wz);
             double signedWarpX = signedFromUnit(wnX);
             sx = wx + signedWarpX * warpAmp;
-            double wnZ = wallWarp.noise(wx + 1987.3, wy, wz + 2341.1);
+            double wnZ = wallWarp.sample(wx + 1987.3, wy, wz + 2341.1);
             double signedWarpZ = signedFromUnit(wnZ);
             sz = wz + signedWarpZ * warpAmp;
         }
-        double layerFoot = footprintCng.noise(sx, sz);
+        double layerFoot = footprintCng.sample(sx, sz);
         return signedFromUnit(layerFoot) > signedCut;
     }
 
-    private static double footprintSigned(CNG footprintCng, int wx, int wz) {
-        IdentityHashMap<CNG, Long2DoubleOpenHashMap> memoByCng = FOOTPRINT_MEMO.get();
-        Long2DoubleOpenHashMap memo = memoByCng.get(footprintCng);
-        if (memo == null) {
-            memo = new Long2DoubleOpenHashMap(512);
-            memo.defaultReturnValue(Double.NaN);
-            memoByCng.put(footprintCng, memo);
-        }
-
-        long key = columnKey(wx, wz);
-        double cached = memo.get(key);
-        if (!Double.isNaN(cached)) {
+    private static double footprintSigned(NoiseSampler footprintCng, int wx, int wz) {
+        HashMap<Column, Double> memo = FOOTPRINT_MEMO.get().computeIfAbsent(footprintCng, ignored -> new HashMap<>(FOOTPRINT_MEMO_CAPACITY));
+        Column key = new Column(wx, wz);
+        Double cached = memo.get(key);
+        if (cached != null) {
             return cached;
         }
 
-        double signed = signedFromUnit(footprintCng.noise(wx, wz));
+        double signed = signedFromUnit(footprintCng.sample(wx, wz));
         memo.put(key, signed);
         return signed;
-    }
-
-    private static long columnKey(int wx, int wz) {
-        return ((long) wx << 32) ^ (wz & 0xFFFFFFFFL);
     }
 
     private static double signedFromUnit(double value) {
@@ -775,7 +760,7 @@ public final class FloatingIslandSample {
         }
     }
 
-    private static int computeTopHeight(ResolvedFloatingChild entry, IrisBiome target, Engine engine, long baseSeed, int wx, int wz, IrisData data, ModuleLog log) {
+    private static int computeTopHeight(ResolvedFloatingChild entry, ResourceId target, FloatingWorld world, int wx, int wz, ModuleLog log) {
         int maxTopHeight = Math.max(0, entry.settings().maxTopHeight());
         if (maxTopHeight == 0) {
             return 0;
@@ -783,12 +768,12 @@ public final class FloatingIslandSample {
         return switch (entry.settings().topShapeMode()) {
             case FLAT -> maxTopHeight;
             case NOISE -> {
-                CNG topCng = entry.getTopShapeCng(baseSeed, data);
+                NoiseSampler topCng = entry.topShapeNoise();
                 if (topCng == null) {
                     warnNullCng("topShapeStyle", null, log);
                     yield maxTopHeight / 2;
                 }
-                double n = topCng.noise(wx, wz);
+                double n = topCng.sample(wx, wz);
                 double clamped = Math.max(0, Math.min(1, n));
                 double amp = Math.max(0, Math.min(1, entry.settings().topShapeAmp()));
                 yield (int) Math.round(clamped * amp * maxTopHeight);
@@ -797,7 +782,7 @@ public final class FloatingIslandSample {
                 if (target == null) {
                     yield maxTopHeight / 2;
                 }
-                double h = target.getHeight(engine, wx, wz, baseSeed);
+                double h = world.host().biomeHeight(target, wx, wz, world.baseSeed());
                 int rounded = (int) Math.round(h);
                 if (rounded < 0) {
                     yield 0;

@@ -18,16 +18,11 @@
 
 package art.arcane.iris.engine.modifier;
 
+import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
-import com.volmit.FeatureRegistry;
-import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisChunk;
-import art.arcane.iris.engine.decorator.DecorationScene;
-import art.arcane.iris.core.modules.IrisMantleChunk;
-import art.arcane.iris.core.modules.IrisPackSettings;
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.components.FloatingObjectPlacing;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
@@ -39,9 +34,8 @@ import com.volmit.stage.StageGraph;
 /**
  * Module {@code iris:floating}: the islands of floating child biomes, their objects in the mantle after the
  * dimension's other objects, their solids after smoothing and their decoration after the chunk's own. The
- * mantle stage is a port of what was Iris's floating object mantle component, its work done by
- * {@link FloatingObjectPlacing}, whose reach is the pack's largest floating object placement. The chunk
- * stages' work is done by {@link FloatingIslands}.
+ * mantle stage's work is done by {@link FloatingObjectPlacing}, whose reach is the pack's largest floating object
+ * placement. The chunk stages' work is done by {@link FloatingIslands}.
  */
 public final class FloatingModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -71,30 +65,18 @@ public final class FloatingModule implements IrisModule {
     }
 
     private static void objects(MantleStageContext context) {
-        IrisMantleChunk chunk = IrisMantleChunk.current();
-        objectPlacing(chunk.engine(), context.log()).place(chunk.writer(), chunk.chunkX(), chunk.chunkZ(), chunk.context());
+        FloatingObjectPlacing.of(context.world(), context.log()).place(context);
     }
 
     private int objectReach(PackSettings settings) {
-        return objectPlacing(IrisPackSettings.of(settings).engine(), log).reach();
+        return FloatingObjectPlacing.reach(settings, log);
     }
 
     private static void solids(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
-        islands(chunk, context.log()).fillSolids(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
+        FloatingIslands.of(context.world(), context.log()).fillSolids(context);
     }
 
     private static void decorate(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
-        islands(chunk, context.log()).decorateColumns(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context(),
-                DecorationScene.of(context));
-    }
-
-    private static FloatingObjectPlacing objectPlacing(Engine engine, ModuleLog log) {
-        return engine.getGeneration().state(FloatingObjectPlacing.class, generating -> new FloatingObjectPlacing(generating, log));
-    }
-
-    private static FloatingIslands islands(IrisChunk chunk, ModuleLog log) {
-        return chunk.state(FloatingIslands.class, generating -> new FloatingIslands(generating, log));
+        FloatingIslands.of(context.world(), context.log()).decorateColumns(context);
     }
 }

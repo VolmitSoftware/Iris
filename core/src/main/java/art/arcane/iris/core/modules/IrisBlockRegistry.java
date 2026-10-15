@@ -102,7 +102,11 @@ final class IrisBlockRegistry implements BlockRegistry {
 
     @Override
     public boolean hasTrait(BlockState state, BlockTrait trait) {
-        PlatformBlockState platform = platformState(state);
+        return hasTrait(platformState(state), trait);
+    }
+
+    /** Whether the platform's {@code state} has {@code trait}. */
+    static boolean hasTrait(PlatformBlockState platform, BlockTrait trait) {
         return switch (trait) {
             case AIR -> platform.isAir();
             case SOLID -> platform.isSolid();

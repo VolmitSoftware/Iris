@@ -68,7 +68,7 @@ public class PackModuleJarNextToBuiltInsTest {
                 Map.of("pack.ported.Ported", module("ported", "Ported", FIRST_ID),
                         "pack.companion.Companion", module("companion", "Companion", SECOND_ID)));
 
-        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, packFolder, List.of())) {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, packFolder, BuiltInPack.jarModules())) {
             assertEquals(List.of(FIRST_ID, SECOND_ID), pack.packModules().stream().map(module -> module.info().id().toString()).toList());
             List<String> stages = pack.placement().stages().stream().map(stage -> stage.stage().id().toString()).toList();
             assertTrue(stages.toString(), stages.contains(PREPARE_STAGE));

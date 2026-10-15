@@ -78,7 +78,7 @@ final class EffectivePlacements {
         return key.toLowerCase(Locale.ROOT).contains(IMPORTS_FOLDER);
     }
 
-    /** The dimension acts as the floor: it can force support on and widen the buffer, never weaken either. */
+    /** The dimension widens the buffer of a placement, never narrows it, and its support requirement applies on top of the placement's own: both have to want it. */
     private PlacementChanges withDimensionSurfaceSupport(PlacementSource placement, PlacementChanges changes) {
         boolean require = placement.requireSurfaceSupport() && dimensionRequiresSurfaceSupport;
         int buffer = Math.max(placement.surfaceSupportBuffer(), dimensionSurfaceSupportBuffer);

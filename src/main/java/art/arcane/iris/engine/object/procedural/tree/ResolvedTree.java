@@ -20,7 +20,6 @@ package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
 import art.arcane.iris.spi.IrisLogging;
@@ -46,10 +45,6 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
 
     public String getVariantLoadKey(int index) {
         return Tree.variantLoadKey(settings.name(), index);
-    }
-
-    public Tree settings() {
-        return settings;
     }
 
     @Override

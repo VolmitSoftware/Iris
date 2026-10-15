@@ -45,6 +45,16 @@ chunk it reaches and every restart fits it the same way. Object place modes are 
 stilt, `VacuumProfile`, `PlaceTrait`s) that the placement stages ask; the pack JSON keeps the mode names.
 `iris:objects` also provides `SaplingGrowth` (`TreeGrowing`: the tree a sapling grows into, as placed blocks, and which
 objects are trees) and says which biomes and regions place an object (`ObjectLocating`, for the object search).
+`iris:objects` ships in the built-ins jar. It declares the settings `objects` (region, biome: the list of `ObjectPlacement`s),
+`proceduralObjects` (region, biome), `treeSettings` (dimension), `requireObjectSurfaceSupport`, `objectSurfaceSupportBuffer`,
+`upperDimensionObjects` and `upperObjectsForcePlace` (dimension), all written as they always were. `ObjectPlacement` describes
+the same JSON as Iris's `IrisObjectPlacement` and keeps the JSON it was read from, because Iris's placement stages still read
+a placement as their own class (`ObjectPlacements.host`). What a jar cannot do, Iris does through the facades `ObjectHost` and
+`ObjectChunk` in `art.arcane.iris.builtin.objects`: loading and scaling the pack's objects, placing one with the placement
+stages into the chunk's mantle (on the surface, in a cave inside the cave's bounds, or hung from the terrain above), reading the
+carved space the cave carver planned, and the layout around a position. `ObjectPlacing` and its helpers (`ChunkObjectPlacing`,
+`CaveAnchors`, `PlacementReach`) decide what to place and where. The procedural generators (`engine/object/procedural`) stay
+compiled in, behind `ProceduralPlacement`, until they build `GeneratedObject`s instead of Iris objects.
 `iris:loot` owns the loot table resource kind (`LootResources`, folder `loot`), checks the tables and the references to
 them (`LootValidator`), and provides `Loot` (`LootGiving`: which tables a container draws from and the `ItemDrop`s a
 table gives) and `BlockDrops` (`BlockDropping`). `iris:spawn` owns spawners, entities and markers (`SpawnResources`,

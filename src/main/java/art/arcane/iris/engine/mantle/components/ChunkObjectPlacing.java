@@ -461,7 +461,7 @@ final class ChunkObjectPlacing {
     private void placeProceduralVariant(ProceduralPlacement placement, PlaceableObject variant, String scope, CaveProfile caveProfile,
                                         CaveAnchors.Search search, CaveAnchors.Anchor anchor, int x, int z, int id) {
         String goldenTag = golden ? scope + "/" + placement.name() : null;
-        PlacementTags tags = tags(variant, id, "procedural", placement.tree(), placement, false);
+        PlacementTags tags = tags(variant, id, "procedural", placement.tree(), false);
         int resultY;
         String commit = "n/a";
         if (anchor != null) {
@@ -556,11 +556,10 @@ final class ChunkObjectPlacing {
     }
 
     private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, PlacementSource placement) {
-        return tags(object, id, context, treePlacement, placement, placement.isDolphinTarget() && placement.underwater());
+        return tags(object, id, context, treePlacement, placement.isDolphinTarget() && placement.underwater());
     }
 
-    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, PlacementSource placement,
-                               boolean buriedTreasure) {
+    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, boolean buriedTreasure) {
         return new PlacementTags(placementMarker(object, id, context), treePlacement, buriedTreasure);
     }
 
@@ -608,15 +607,15 @@ final class ChunkObjectPlacing {
     }
 
     private void logCaveDiagnostics(Column column) {
-        CarvedCount carved = new CarvedCount();
+        int carvedBlocks = 0;
         int maxY = Math.min(worldHeight - 1, column.surfaceY() - DIAGNOSTIC_SURFACE_MARGIN);
         for (int y = 1; y < maxY; y++) {
             if (chunk.carved().isCarved(centerX, y, centerZ)) {
-                carved.blocks++;
+                carvedBlocks++;
             }
         }
         log.debug("Cave object diag: chunk=" + chunkX + "," + chunkZ + " surfaceBiome=" + column.surface() + " caveBiome=" + column.cave()
-                + " surfaceY=" + column.surfaceY() + " maxAnchorY=" + maxY + " carvedAtCenter=" + carved.blocks
+                + " surfaceY=" + column.surfaceY() + " maxAnchorY=" + maxY + " carvedAtCenter=" + carvedBlocks
                 + " biomeCarvingObjects=" + carvingObjects(column.objects().cave()).size()
                 + " regionCarvingObjects=" + carvingObjects(column.objects().region()).size()
                 + " sameBiome=" + column.cave().equals(column.surface()));
@@ -647,10 +646,6 @@ final class ChunkObjectPlacing {
     }
 
     private record ColumnProfiles(CaveProfile surface, CaveProfile cave, CaveProfile region) {
-    }
-
-    private static final class CarvedCount {
-        private int blocks;
     }
 
     /** What placing the objects of a chunk came to. */

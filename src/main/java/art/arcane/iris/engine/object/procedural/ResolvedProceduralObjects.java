@@ -34,13 +34,10 @@ import java.util.function.Function;
 /** The procedural objects a region or biome declares, each made placeable once, in the order the settings list them. */
 public final class ResolvedProceduralObjects {
     private final KList<IrisProceduralPlacement> all = new KList<>();
-    private final KList<ResolvedTree> trees = new KList<>();
 
     public ResolvedProceduralObjects(ProceduralObjectSettings settings) {
         for (Tree tree : settings.trees()) {
-            ResolvedTree resolved = new ResolvedTree(tree);
-            trees.add(resolved);
-            all.add(resolved);
+            all.add(new ResolvedTree(tree));
         }
         addAll(settings.ruins(), ResolvedRuin::new);
         addAll(settings.formations(), ResolvedFormation::new);
@@ -57,10 +54,6 @@ public final class ResolvedProceduralObjects {
 
     public KList<IrisProceduralPlacement> getAllPlacements() {
         return all;
-    }
-
-    public KList<ResolvedTree> getTrees() {
-        return trees;
     }
 
     public boolean isEmpty() {

@@ -96,7 +96,7 @@ public final class ValidateModule implements IrisModule {
 
     private static boolean isOnBedrock(PreparedPlacement prepared, int y) {
         PlacementTerrain terrain = prepared.terrain();
-        return terrain.hasWorld() && terrain.hasBedrock() && y <= BEDROCK_ROW;
+        return y <= BEDROCK_ROW && terrain.hasWorld() && terrain.hasBedrock();
     }
 
     private static boolean lacksSurfaceSupport(ObjectPlacement placement, PreparedPlacement prepared) {

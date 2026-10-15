@@ -27,6 +27,7 @@ import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ final class ModBiomeAdopter {
     private static final int VEGETAL_STEP = IrisDecorationStep.VEGETAL_DECORATION.ordinal();
     private static final double CATEGORY_WEIGHT = 1D;
     private static final double REGION_CLIMATE_WEIGHT = 0.25D;
+    private static final double REGION_CATEGORY_WEIGHT = 0.25D;
     private static final double REUSE_WEIGHT = 0.05D;
     private static final double THEMED_REGION_PENALTY = 0.6D;
     private static final double BARE_SURFACE_PENALTY = 3D;
@@ -107,8 +109,10 @@ final class ModBiomeAdopter {
             if (excludedRegions.contains(region.key())) {
                 continue;
             }
+            IngestClimate regionClimate = regionClimate(region, role, categories);
             double regionPenalty = (themedRegions.contains(region.key()) ? THEMED_REGION_PENALTY : 0D)
-                    + (region.climate() == null ? 0D : REGION_CLIMATE_WEIGHT * climate.distance(region.climate()));
+                    + (regionClimate == null ? 0D : REGION_CLIMATE_WEIGHT * climate.distance(regionClimate))
+                    + REGION_CATEGORY_WEIGHT * (1D - regionAffinity(region, role, categories));
             for (String template : region.pool(role)) {
                 IngestClimate templateClimate = model.biomeClimate(template);
                 double score = climate.distance(templateClimate == null ? region.climate() : templateClimate)
@@ -123,6 +127,34 @@ final class ModBiomeAdopter {
             }
         }
         return best;
+    }
+
+    private IngestClimate regionClimate(IngestPackModel.RegionProfile region, BiomeRole role, Set<String> categories) {
+        if (role != BiomeRole.LAND || categories.isEmpty()) {
+            return region.climate();
+        }
+        List<IngestClimate> shared = new ArrayList<>();
+        for (String template : region.pool(BiomeRole.LAND)) {
+            IngestClimate templateClimate = model.biomeClimate(template);
+            if (templateClimate != null && !Collections.disjoint(model.biomeCategories(template), categories)) {
+                shared.add(templateClimate);
+            }
+        }
+        return shared.isEmpty() ? region.climate() : IngestClimate.average(shared);
+    }
+
+    private double regionAffinity(IngestPackModel.RegionProfile region, BiomeRole role, Set<String> categories) {
+        List<String> pool = region.pool(role);
+        if (categories.isEmpty() || pool.isEmpty()) {
+            return 1D;
+        }
+        int shared = 0;
+        for (String template : pool) {
+            if (!Collections.disjoint(model.biomeCategories(template), categories)) {
+                shared++;
+            }
+        }
+        return shared / (double) pool.size();
     }
 
     private static Set<String> themedRegions(List<IngestPackModel.RegionProfile> regions) {

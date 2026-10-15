@@ -55,54 +55,66 @@ public final class ModdedWorldgenCatalogs {
 
     public static CompletableFuture<CaptureResult> capture(NativeModdedServer server) {
         Objects.requireNonNull(server, "server");
+        return capture(() -> scan(server));
+    }
+
+    static CompletableFuture<CaptureResult> capture(CaptureScan scan) {
         CompletableFuture<CaptureResult> pending = new CompletableFuture<>();
         CompletableFuture<CaptureResult> running = RUNNING.compareAndExchange(null, pending);
         if (running != null) {
             return running;
         }
-        long startedAt = System.nanoTime();
-        NativeModdedLoader loader = ModdedEngineBootstrap.loader();
-        NativeWorldgenScan scan;
-        CatalogCaptureContext context;
+        CaptureWork work;
         try {
-            scan = NativeWorldgenScan.scan(server, loader);
-            context = new CatalogCaptureContext(loader.minecraftVersion(), loader.platformName(),
-                    System.currentTimeMillis(), loader.mods());
-        } catch (RuntimeException failure) {
+            work = scan.scan();
+        } catch (Throwable failure) {
             ModdedIrisLog.error("Iris could not read the worldgen registries for the catalog", failure);
             finish(pending, null, failure);
+            rethrowIfVirtualMachineError(failure);
             return pending;
         }
-        long scanMillis = elapsedMillis(startedAt);
-        Path file = catalogFile();
-        Thread worker = new Thread(() -> encodeAndWrite(new PendingCapture(scan, context, file, startedAt, scanMillis), pending),
-                "Iris Worldgen Catalog");
+        Thread worker = new Thread(() -> complete(work, pending), "Iris Worldgen Catalog");
         worker.setDaemon(true);
         worker.start();
         return pending;
     }
 
-    private static void encodeAndWrite(PendingCapture capture, CompletableFuture<CaptureResult> pending) {
+    private static CaptureWork scan(NativeModdedServer server) {
+        long startedAt = System.nanoTime();
+        NativeModdedLoader loader = ModdedEngineBootstrap.loader();
+        NativeWorldgenScan scan = NativeWorldgenScan.scan(server, loader);
+        CatalogCaptureContext context = new CatalogCaptureContext(loader.minecraftVersion(), loader.platformName(),
+                System.currentTimeMillis(), loader.mods());
+        PendingCapture capture = new PendingCapture(scan, context, catalogFile(), startedAt, elapsedMillis(startedAt));
+        return () -> encodeAndWrite(capture);
+    }
+
+    private static void complete(CaptureWork work, CompletableFuture<CaptureResult> pending) {
         try {
-            NativeWorldgenSnapshot snapshot = capture.scan().encode();
-            WorldgenCatalog catalog = WorldgenCatalogAssembler.assemble(snapshot, capture.context());
-            WorldgenCatalogStore.write(capture.file(), catalog);
-            LATEST.set(catalog);
-            CaptureResult result = new CaptureResult(catalog, capture.file(), elapsedMillis(capture.startedAt()));
-            ModdedIrisLog.info("Iris worldgen catalog: {} namespaces, {} biomes, {} placed features, {} structures, "
-                            + "{} dimension types, {} level stems -> {} ({}ms server thread, {}ms total)",
-                    catalog.namespaces().size(), catalog.biomes().size(), catalog.placedFeatures().size(),
-                    catalog.structures().size(), catalog.dimensionTypes().size(), catalog.levelStems().size(),
-                    capture.file(), capture.scanMillis(), result.millis());
-            reportEncodeFailures(snapshot.failures());
-            finish(pending, result, null);
+            finish(pending, work.run(), null);
         } catch (IOException failure) {
-            ModdedIrisLog.error("Iris could not write the worldgen catalog to " + capture.file(), failure);
+            ModdedIrisLog.error("Iris could not write the worldgen catalog", failure);
             finish(pending, null, new UncheckedIOException(failure));
-        } catch (RuntimeException failure) {
+        } catch (Throwable failure) {
             ModdedIrisLog.error("Iris could not build the worldgen catalog", failure);
             finish(pending, null, failure);
+            rethrowIfVirtualMachineError(failure);
         }
+    }
+
+    private static CaptureResult encodeAndWrite(PendingCapture capture) throws IOException {
+        NativeWorldgenSnapshot snapshot = capture.scan().encode();
+        WorldgenCatalog catalog = WorldgenCatalogAssembler.assemble(snapshot, capture.context());
+        WorldgenCatalogStore.write(capture.file(), catalog);
+        LATEST.set(catalog);
+        CaptureResult result = new CaptureResult(catalog, capture.file(), elapsedMillis(capture.startedAt()));
+        ModdedIrisLog.info("Iris worldgen catalog: {} namespaces, {} biomes, {} placed features, {} structures, "
+                        + "{} dimension types, {} level stems -> {} ({}ms server thread, {}ms total)",
+                catalog.namespaces().size(), catalog.biomes().size(), catalog.placedFeatures().size(),
+                catalog.structures().size(), catalog.dimensionTypes().size(), catalog.levelStems().size(),
+                capture.file(), capture.scanMillis(), result.millis());
+        reportEncodeFailures(snapshot.failures());
+        return result;
     }
 
     private static void reportEncodeFailures(EncodeFailures failures) {
@@ -118,7 +130,7 @@ public final class ModdedWorldgenCatalogs {
         ModdedIrisLog.warn("Iris worldgen catalog left {} entries without JSON; first: {}", failures.count(), first);
     }
 
-    private static void finish(CompletableFuture<CaptureResult> pending, CaptureResult result, RuntimeException failure) {
+    private static void finish(CompletableFuture<CaptureResult> pending, CaptureResult result, Throwable failure) {
         RUNNING.compareAndSet(pending, null);
         if (failure != null) {
             pending.completeExceptionally(failure);
@@ -127,11 +139,27 @@ public final class ModdedWorldgenCatalogs {
         pending.complete(result);
     }
 
+    private static void rethrowIfVirtualMachineError(Throwable failure) {
+        if (failure instanceof VirtualMachineError virtualMachineError) {
+            throw virtualMachineError;
+        }
+    }
+
     private static long elapsedMillis(long startedAt) {
         return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
     }
 
     public record CaptureResult(WorldgenCatalog catalog, Path file, long millis) {
+    }
+
+    @FunctionalInterface
+    interface CaptureScan {
+        CaptureWork scan();
+    }
+
+    @FunctionalInterface
+    interface CaptureWork {
+        CaptureResult run() throws IOException;
     }
 
     private record PendingCapture(NativeWorldgenScan scan, CatalogCaptureContext context, Path file, long startedAt, long scanMillis) {

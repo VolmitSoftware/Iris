@@ -26,7 +26,6 @@ import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.PlaneNoise;
 import art.arcane.iris.builtin.placement.SurfaceWarp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
-import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.placer.HeightmapObjectPlacer;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
@@ -35,12 +34,12 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
-import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.SimplexNoise;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.resource.PackResources;
 import com.volmit.world.BlockPosition;
 
 import java.util.Optional;
@@ -200,8 +199,8 @@ public final class IrisPlacement implements ObjectPlacement {
     }
 
     @Override
-    public Optional<SpawnMarker> marker(String key) {
-        return Optional.ofNullable(SpawnResources.marker(object.getLoader().getPackResources(), key));
+    public PackResources resources() {
+        return object.getLoader().getPackResources();
     }
 
     /** Reports a buffered write as one of the object's own blocks, which Iris's placement listener hears after the commit. */

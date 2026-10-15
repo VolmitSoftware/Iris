@@ -1,7 +1,7 @@
 package art.arcane.iris.core.service.tree;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.StructurePlacementMarker;
+import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;

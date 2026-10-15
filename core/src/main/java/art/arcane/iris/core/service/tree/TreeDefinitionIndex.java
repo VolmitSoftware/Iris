@@ -2,7 +2,7 @@ package art.arcane.iris.core.service.tree;
 
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.StructurePlacementMarker;
+import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import com.volmit.service.SaplingGrowth;
 
 import java.util.Set;

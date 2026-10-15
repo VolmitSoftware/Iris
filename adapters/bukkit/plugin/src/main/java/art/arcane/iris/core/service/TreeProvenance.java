@@ -8,7 +8,7 @@ import art.arcane.iris.core.service.tree.TreeDefinitionIndex;
 import art.arcane.iris.core.service.tree.TreeMarkerTraversal;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.StructurePlacementMarker;
+import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import org.bukkit.GameMode;

@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+
 
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.framework.structure.StructureResources;

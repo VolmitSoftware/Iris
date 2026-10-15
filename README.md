@@ -26,18 +26,22 @@ service or hook, `registry.log()` while registering), which labels each line wit
 use `IrisLogging`. Classes of the host's object model (the host-classes list) and code that only has an engine or pack
 data still log as Iris itself.
 
-Built-in modules also own pack resources and checks of their own. `iris:structure` reads structures, jigsaw
-pools and jigsaw pieces as resource kinds (`StructureResources`), from the folders and files packs have always
-used, and checks them with its validator (`StructureValidator`: assembly samples and vanilla structure
-replacement) wherever Iris validates a pack; Iris core has no loader or validator of its own for them any more.
+Modules also own pack resources and checks of their own. Iris's own module `iris:structure-model` (core
+`StructureModelModule`) reads structures, jigsaw pools and jigsaw pieces as resource kinds (`StructureResources`,
+`iris:structure-model/structure`, `/pool`, `/piece`), from the folders and files packs have always used, and checks
+them with its validator (`StructureValidator`: assembly samples and vanilla structure replacement) wherever Iris
+validates a pack. The structure model, assembler, locator, fitting and placing are host: the jigsaw studio, the
+structure importers and exporters read them too. `iris:structure` in the built-ins jar declares the structure
+placement settings and the mantle stage, and places through the `StructureHost` facade
+(`art.arcane.iris.builtin.structure`).
 
 Built-in modules answer Iris through IrisApi services instead of Iris reading their features: `iris:objects`
-provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure`
+provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure-model`
 provides `StructureLocator` (`StructureLocating`: the pack's structure keys for Iris's structure index, the ones a
 world places, and their nearest start for the find commands). A world's structure index lives in the world's state
 (`engine.getGeneration().state(...)`), so every reload of the pack's structure files, which starts a new world, builds
 it again.
-`iris:structure` also provides `VanillaStructures` (`StructureVanillaStructures`) for the platform's own structures:
+`iris:structure-model` also provides `VanillaStructures` (`StructureVanillaStructures`) for the platform's own structures:
 which ones its placements replace or the dimension's `importedStructures` disables, the starts its `nativeStructures`
 placements make (`startedStructures`, `locatableStarts`, `locateStart`), the shift and band of the platform's starts, and the whole terrain fit of every start (SOURCE,
 PRESERVE, VACUUM, ENCASE, BORE, FORCE_CARVE, stilts) in `engine/framework/structure/fit`, written against IrisApi's
@@ -125,6 +129,10 @@ workers: `ResolvedOre`/`ResolvedOres` (blocks and chance noise per world, `Terra
 (`carvingBiome`, a band's biome, a floating child's target and carving) implement `LinkedBiomes`, which is how Iris's biome tree and the biomes a
 dimension reaches learn of them without reading the settings classes; and `iris:carve` provides the `CaveBiomes` service
 (`CaveBiomeBands`), which Iris asks for the dimension's carving band at a position and for a biome's minimum cave depth.
+`iris:floating` ships in the built-ins jar: `FloatingWorld` holds a world's floating children, noise and seeds, and what a jar
+cannot do Iris does through `FloatingHost` (`art.arcane.iris.builtin.floating`): the surface biome of a column, a biome's
+height for the `BIOME` top shape, painting the sky biome, an object's footprint and shrinking, and placing an object
+floating, on an island's top or hung under it, where the jar's `IslandAnchor` says where the island face is.
 
 Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
 (biome; a list), `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest) and `structures`

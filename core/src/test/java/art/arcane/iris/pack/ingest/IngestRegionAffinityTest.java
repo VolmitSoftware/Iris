@@ -33,7 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class IngestRegionAffinityTest {
     private static final String MOD = "modisles";
@@ -43,18 +44,41 @@ public class IngestRegionAffinityTest {
 
     @Test
     public void modBiomeJoinsTheRegionWhoseTemplatesShareItsCategory() throws Exception {
-        Path root = folder.getRoot().toPath();
+        ModIngestReport report = ingest(1, false);
+
+        assertEquals("mushroom", region(report, "mirage_isles"));
+    }
+
+    @Test
+    public void rareThemedRegionNeverHostsAModBiomeWhileACommonRegionAcceptsIt() throws Exception {
+        ModIngestReport report = ingest(15, false);
+
+        String region = region(report, "mirage_isles");
+        assertNotEquals("mushroom", region);
+        assertNotEquals("magnetic", region);
+    }
+
+    @Test
+    public void themedRegionHostsAModBiomeWhenNoCommonRegionAcceptsItsRole() throws Exception {
+        ModIngestReport report = ingest(15, true);
+
+        assertEquals("mushroom", region(report, "spore_hollow"));
+    }
+
+    private ModIngestReport ingest(int themedRarity, boolean themedCaves) throws IOException {
+        Path root = folder.newFolder().toPath();
         Path source = root.resolve("source");
         ModIngestFixture.write(source, "dimensions/overworld.json", """
                 {"name": "Overworld", "environment": "NORMAL", "regions": ["temperate", "hot", "cold", "wet", "magnetic", "mushroom"],
                  "dimensionHeight": {"min": -64, "max": 320}}
                 """);
-        region(source, "temperate", 1, List.of("temperate/plains"));
-        region(source, "hot", 1, List.of("hot/desert"));
-        region(source, "cold", 1, List.of("cold/snow"));
-        region(source, "wet", 1, List.of("wet/swamp"));
-        region(source, "magnetic", 15, List.of("magnetic/mycelium", "magnetic/plains", "magnetic/frozen", "magnetic/marsh"));
-        region(source, "mushroom", 15, List.of("mushroom/fields", "mushroom/forest", "mushroom/crimson", "mushroom/warped"));
+        region(source, "temperate", 1, List.of("temperate/plains"), List.of());
+        region(source, "hot", 1, List.of("hot/desert"), List.of());
+        region(source, "cold", 1, List.of("cold/snow"), List.of());
+        region(source, "wet", 1, List.of("wet/swamp"), List.of());
+        region(source, "magnetic", themedRarity, List.of("magnetic/mycelium", "magnetic/plains", "magnetic/frozen", "magnetic/marsh"), List.of());
+        region(source, "mushroom", themedRarity, List.of("mushroom/fields", "mushroom/forest", "mushroom/crimson", "mushroom/warped"),
+                themedCaves ? List.of("mushroom/caves") : List.of());
         biome(source, "temperate/plains", "minecraft:plains");
         biome(source, "hot/desert", "minecraft:desert");
         biome(source, "cold/snow", "minecraft:snowy_plains");
@@ -67,20 +91,30 @@ public class IngestRegionAffinityTest {
         biome(source, "mushroom/forest", "minecraft:mushroom_fields");
         biome(source, "mushroom/crimson", "minecraft:crimson_forest");
         biome(source, "mushroom/warped", "minecraft:warped_forest");
+        biome(source, "mushroom/caves", "minecraft:lush_caves");
         Path target = root.resolve("packs").resolve("isles");
-
-        ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog(), Set.of(MOD), Set.of(), false));
-
-        String reason = ModIngestFixture.item(report, MOD + ":mirage_isles").reason();
-        assertTrue(reason, reason.contains("in region mushroom "));
+        return ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog(), Set.of(MOD), Set.of(), false));
     }
 
-    private static void region(Path pack, String key, int rarity, List<String> land) throws IOException {
-        StringBuilder pool = new StringBuilder();
-        for (String biome : land) {
-            pool.append(pool.isEmpty() ? "" : ", ").append('"').append(biome).append('"');
+    private static String region(ModIngestReport report, String biome) {
+        ModIngestItem item = ModIngestFixture.item(report, MOD + ":" + biome);
+        assertEquals(item.reason(), ModIngestTier.ADOPTED, item.tier());
+        String reason = item.reason();
+        int start = reason.indexOf("in region ") + "in region ".length();
+        return reason.substring(start, reason.indexOf(' ', start));
+    }
+
+    private static void region(Path pack, String key, int rarity, List<String> land, List<String> caves) throws IOException {
+        ModIngestFixture.write(pack, "regions/" + key + ".json", "{\"name\": \"" + key + "\", \"rarity\": " + rarity
+                + ", \"landBiomes\": " + quoted(land) + ", \"caveBiomes\": " + quoted(caves) + "}");
+    }
+
+    private static String quoted(List<String> keys) {
+        StringBuilder array = new StringBuilder("[");
+        for (String key : keys) {
+            array.append(array.length() == 1 ? "" : ", ").append('"').append(key).append('"');
         }
-        ModIngestFixture.write(pack, "regions/" + key + ".json", "{\"name\": \"" + key + "\", \"rarity\": " + rarity + ", \"landBiomes\": [" + pool + "]}");
+        return array.append(']').toString();
     }
 
     private static void biome(Path pack, String key, String derivative) throws IOException {
@@ -96,7 +130,9 @@ public class IngestRegionAffinityTest {
         biomes.add(biome("minecraft:mushroom_fields", 0.9F, 1.0F, "c:is_mushroom"));
         biomes.add(biome("minecraft:crimson_forest", 2.0F, 0.0F, "c:is_nether"));
         biomes.add(biome("minecraft:warped_forest", 2.0F, 0.0F, "c:is_nether"));
+        biomes.add(biome("minecraft:lush_caves", 0.5F, 0.5F, "c:is_cave"));
         biomes.add(biome(MOD + ":mirage_isles", 0.7F, 0.8F, "c:is_mushroom"));
+        biomes.add(biome(MOD + ":spore_hollow", 0.9F, 1.0F, "c:is_cave"));
         return new WorldgenCatalog(WorldgenCatalog.FORMAT, "26.3", "fabric", 1L, "affinity",
                 List.of(new CatalogNamespace(MOD, "Mod Isles", "1")), biomes, List.of(), List.of(),
                 List.of(new CatalogDimensionType("minecraft:overworld", -64, 384, 384, null)), List.of(), Map.of());

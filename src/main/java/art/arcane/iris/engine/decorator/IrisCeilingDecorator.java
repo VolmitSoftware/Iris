@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,35 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.InferredType;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
 
 public class IrisCeilingDecorator extends IrisEngineDecorator {
-    public IrisCeilingDecorator(Engine engine) {
-        super(engine, "Ceiling", DecorationPart.CEILING);
+    public IrisCeilingDecorator(DecorationScene scene) {
+        super(scene, DecorationPart.CEILING);
     }
 
-    @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
-        decorate(x, z, realX, realX1, realX_1, realZ, realZ1, realZ_1, data, biome, biome.getInferredType(), height, max);
-    }
-
-    @BlockCoordinates
-    public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, InferredType inferredType, int height, int max) {
-        boolean caveSkipFluid = IrisSurfaceDecorator.skipsFluid(inferredType);
+                         DecoratedBiome biome, int height, int max) {
+        boolean caveSkipFluid = IrisSurfaceDecorator.skipsFluid(biome.kind());
         RNG rng = getRNG(realX, realZ);
         ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ, decorators.log());
 
@@ -52,19 +37,16 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
         }
 
         if (!decorator.isStacking()) {
-            if (caveSkipFluid) {
-                PlatformBlockState state = data.get(x, height, z);
-                if (B.isFluid(state)) {
-                    return;
-                }
+            if (caveSkipFluid && scene.isFluid(scene.blocks().get(x, height, z))) {
+                return;
             }
-            DecoratorCore.placeSingleAt(decorator, x, z, realX, height, realZ, data, true, getEngine().getMantle());
+            DecoratorCore.placeSingleAt(decorator, scene, x, z, realX, height, realZ, true);
             return;
         }
 
         DecoratorCore.PlaceOpts opts = DecoratorCore.SCRATCH_OPTS.get();
         opts.reset();
         opts.caveSkipFluid = caveSkipFluid;
-        DecoratorCore.placeStackDown(decorator, x, z, realX, realZ, height, 0, data, max, opts, getEngine().getMantle());
+        DecoratorCore.placeStackDown(decorator, scene, x, z, realX, realZ, height, 0, max, opts);
     }
 }

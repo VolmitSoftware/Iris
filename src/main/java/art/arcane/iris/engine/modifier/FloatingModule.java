@@ -23,6 +23,7 @@ import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import com.volmit.FeatureRegistry;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.modules.IrisChunk;
+import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.core.modules.IrisMantleChunk;
 import art.arcane.iris.core.modules.IrisPackSettings;
 import art.arcane.iris.engine.framework.Engine;
@@ -65,7 +66,8 @@ public final class FloatingModule implements IrisModule {
                 .run(FloatingModule::objects);
         // Ordering only: iris:post ships in the built-ins jar, which a pack may not have.
         graph.define(IrisStages.Floating.SOLIDS).softAfter(IrisStages.Post.SMOOTH.ref()).run(FloatingModule::solids);
-        graph.define(IrisStages.Floating.DECORATE).requires(IrisStages.Decorant.DECORATE).run(FloatingModule::decorate);
+        // Ordering only: iris:decorant ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Floating.DECORATE).softAfter(IrisStages.Decorant.DECORATE.ref()).run(FloatingModule::decorate);
     }
 
     private static void objects(MantleStageContext context) {
@@ -84,7 +86,8 @@ public final class FloatingModule implements IrisModule {
 
     private static void decorate(ChunkStageContext context) {
         IrisChunk chunk = IrisChunk.current();
-        islands(chunk, context.log()).decorateColumns(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context());
+        islands(chunk, context.log()).decorateColumns(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.multicore(), chunk.context(),
+                DecorationScene.of(context));
     }
 
     private static FloatingObjectPlacing objectPlacing(Engine engine, ModuleLog log) {

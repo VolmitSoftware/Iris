@@ -15,42 +15,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-package art.arcane.iris.engine.terrain;
+package art.arcane.iris.builtin.terrain;
 
 import art.arcane.iris.builtin.prepare.SlopeClip;
-import art.arcane.iris.builtin.terrain.LayerBlocks;
-import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.BlockState;
+import com.volmit.noise.NoiseFactory;
+import com.volmit.noise.NoiseStyle;
 
 import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * One {@link PaletteLayer} made ready for one world: its blocks as the platform's, and the noise that decides how thick
- * it is here, built when first asked for. Which block it picks where is the world's {@link LayerBlocks}, shared with
- * every other module that picks from the layer.
+ * One {@link PaletteLayer} made ready for one world: its blocks, and the noise that decides how thick it is here, built when first
+ * asked for. Which block it picks where is the world's {@link LayerBlocks}, shared with every other module that picks from the layer.
  *
  * <p>The thickness noise is built once, from the random of whoever asks first, as the layers of a biome always were.
  */
 public final class ResolvedLayer {
+    /** The style of the noise that sets a layer's thickness: Iris's signature noise. */
+    private static final NoiseStyle THICKNESS_STYLE = NoiseStyle.of("IRIS");
+
     private final PaletteLayer settings;
     private final Supplier<LayerBlocks> layerBlocks;
-    private final AtomicCache<List<PlatformBlockState>> blocks = new AtomicCache<>();
-    private final AtomicCache<CNG> heightNoise = new AtomicCache<>();
+    private final Supplier<NoiseFactory> noise;
+    private final AtomicCache<List<BlockState>> blocks = new AtomicCache<>();
+    private final AtomicCache<LayerNoise> heightNoise = new AtomicCache<>();
 
-    private ResolvedLayer(PaletteLayer settings, Supplier<LayerBlocks> layerBlocks) {
+    private ResolvedLayer(PaletteLayer settings, Supplier<LayerBlocks> layerBlocks, Supplier<NoiseFactory> noise) {
         this.settings = settings;
         this.layerBlocks = layerBlocks;
+        this.noise = noise;
     }
 
     /** {@code settings} ready for the world whose layer blocks {@code layerBlocks} gives, asked for when first needed. */
-    static ResolvedLayer of(PaletteLayer settings, Supplier<LayerBlocks> layerBlocks) {
-        return new ResolvedLayer(settings, layerBlocks);
+    static ResolvedLayer of(PaletteLayer settings, Supplier<LayerBlocks> layerBlocks, Supplier<NoiseFactory> noise) {
+        return new ResolvedLayer(settings, layerBlocks, noise);
     }
 
     public PaletteLayer settings() {
@@ -79,32 +80,33 @@ public final class ResolvedLayer {
     }
 
     /** The noise that sets the layer's thickness, built from {@code rng} unless an earlier caller's is already kept. */
-    public CNG heightNoise(RNG rng) {
-        CNG cached = heightNoise.getIfPresent();
+    public LayerNoise heightNoise(RNG rng) {
+        LayerNoise cached = heightNoise.getIfPresent();
         if (cached != null) {
             return cached;
         }
 
-        return heightNoise.aquire(() -> CNG.signature(rng.nextParallelRNG(settings.minHeight() * settings.maxHeight() + blocks().size())));
+        return heightNoise.aquire(() -> new LayerNoise(noise.get().sampler(THICKNESS_STYLE,
+                rng.nextParallelRNG(settings.minHeight() * settings.maxHeight() + blocks().size()).getSeed())));
     }
 
     /** The layer's block at the position, picked as {@link LayerBlocks#pick} says, or null when the palette has no block. */
-    public PlatformBlockState get(RNG parent, int signature, double x, double y, double z) {
+    public BlockState get(RNG parent, int signature, double x, double y, double z) {
         int index = layerBlocks.get().pick(settings, parent, signature, x, y, z);
         return index == LayerBlocks.NONE ? null : blocks().get(index);
     }
 
     /** {@link #get(RNG, int, double, double, double)} for a layer asked once per column, such as a slab or a wall. */
-    public PlatformBlockState get(RNG rng, double x, double y, double z) {
+    public BlockState get(RNG rng, double x, double y, double z) {
         return get(rng, 0, x, y, z);
     }
 
-    private List<PlatformBlockState> blocks() {
-        List<PlatformBlockState> cached = blocks.getIfPresent();
+    private List<BlockState> blocks() {
+        List<BlockState> cached = blocks.getIfPresent();
         if (cached != null) {
             return cached;
         }
 
-        return blocks.aquire(() -> layerBlocks.get().blocks(settings).stream().map(block -> B.getState(block.key())).toList());
+        return blocks.aquire(() -> layerBlocks.get().blocks(settings));
     }
 }

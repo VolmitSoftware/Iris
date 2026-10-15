@@ -60,3 +60,13 @@ include art/arcane/iris/engine/object/terrain/carving/CaveProfileSampler*.class
 include art/arcane/iris/engine/object/terrain/carving/DeclaredByLevel.class
 include art/arcane/iris/engine/object/terrain/carving/DeclaredCaveProfiles.class
 include art/arcane/iris/engine/object/terrain/carving/ResolvedCarvingEntry.class
+module art.arcane.iris.engine.modifier.DepositModule
+include art/arcane/iris/engine/modifier/DepositPlacer*.class
+include art/arcane/iris/engine/modifier/DepositClump*.class
+include art/arcane/iris/engine/modifier/ResolvedDeposit*.class
+module art.arcane.iris.engine.actuator.DecorantModule
+include art/arcane/iris/engine/decorator/**
+module art.arcane.iris.engine.actuator.TerrainModule
+include art/arcane/iris/engine/actuator/Terrain*.class
+include art/arcane/iris/engine/actuator/ResolvedOre*.class
+include art/arcane/iris/engine/actuator/OreWarmUp*.class

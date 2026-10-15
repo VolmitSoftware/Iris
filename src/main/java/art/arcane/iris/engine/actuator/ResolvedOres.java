@@ -15,13 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.terrain.OreGenerator;
 import art.arcane.iris.builtin.terrain.OreSettings;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
+import com.volmit.resource.PackResources;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,12 +48,12 @@ final class ResolvedOres {
         this.undergroundBand = YBand.of(underground);
     }
 
-    /** {@code settings} ready for {@code engine}; generators the pack wrote as {@code null} are left out. */
-    static ResolvedOres of(OreSettings settings, Engine engine) {
+    /** {@code settings} ready for a world with {@code resources}; generators the pack wrote as {@code null} are left out. */
+    static ResolvedOres of(OreSettings settings, PackResources resources, long terrainSeed) {
         List<ResolvedOre> ores = new ArrayList<>();
         for (OreGenerator generator : settings.generators()) {
             if (generator != null) {
-                ores.add(ResolvedOre.of(generator, engine));
+                ores.add(ResolvedOre.of(generator, resources, terrainSeed));
             }
         }
         return ores.isEmpty() ? NONE : new ResolvedOres(ores);
@@ -77,17 +76,17 @@ final class ResolvedOres {
         }
     }
 
-    PlatformBlockState generateSurface(int x, int y, int z) {
+    BlockState generateSurface(int x, int y, int z) {
         return firstOre(surface, x, y, z);
     }
 
-    PlatformBlockState generateUnderground(int x, int y, int z) {
+    BlockState generateUnderground(int x, int y, int z) {
         return firstOre(underground, x, y, z);
     }
 
-    private static PlatformBlockState firstOre(List<ResolvedOre> ores, int x, int y, int z) {
+    private static BlockState firstOre(List<ResolvedOre> ores, int x, int y, int z) {
         for (int index = 0; index < ores.size(); index++) {
-            PlatformBlockState ore = ores.get(index).generate(x, y, z);
+            BlockState ore = ores.get(index).generate(x, y, z);
             if (ore != null) {
                 return ore;
             }

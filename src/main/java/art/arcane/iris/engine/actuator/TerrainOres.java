@@ -15,12 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.actuator;
 
+import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.terrain.OreSettings;
-import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.framework.Engine;
+import com.volmit.resource.PackResources;
+import com.volmit.world.PackWorld;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,24 +30,25 @@ import java.util.concurrent.ConcurrentHashMap;
  * ({@link ResolvedOres}), built from their {@link OreSettings} when first asked for or ahead of generation by {@link OreWarmUp}.
  */
 final class TerrainOres {
-    private final Engine engine;
+    private final PackResources resources;
+    private final long terrainSeed;
     private final Map<OreSettings, ResolvedOres> resolved = new ConcurrentHashMap<>();
 
-    TerrainOres(Engine engine) {
-        this.engine = engine;
+    TerrainOres(PackWorld world) {
+        this.resources = world.resources();
+        this.terrainSeed = IrisSeed.TERRAIN.of(world);
     }
 
-    /** The ores of the world {@code engine} generates now. */
-    static TerrainOres of(Engine engine) {
-        return engine.getGeneration().state(TerrainOres.class, TerrainOres::new);
+    /** The ores of {@code world}. */
+    static TerrainOres of(PackWorld world) {
+        return world.state(TerrainOres.class, TerrainOres::new);
     }
 
     /**
-     * The ore generators {@code owner}, a dimension, region or biome, declares; {@link ResolvedOres#NONE} when it declares none. The
-     * terrain asks this for two owners per column, so a resolved set is read without taking the map's lock.
+     * The ore generators {@code settings}, those a dimension, region or biome declares, make ready; {@link ResolvedOres#NONE} when it
+     * declares none. The terrain asks this for two owners per column, so a resolved set is read without taking the map's lock.
      */
-    ResolvedOres of(IrisRegistrant owner) {
-        OreSettings settings = owner.getModuleSettings().find(OreSettings.class).orElse(null);
+    ResolvedOres of(OreSettings settings) {
         if (settings == null) {
             return ResolvedOres.NONE;
         }
@@ -55,6 +56,6 @@ final class TerrainOres {
         if (existing != null) {
             return existing;
         }
-        return resolved.computeIfAbsent(settings, declared -> ResolvedOres.of(declared, engine));
+        return resolved.computeIfAbsent(settings, declared -> ResolvedOres.of(declared, resources, terrainSeed));
     }
 }

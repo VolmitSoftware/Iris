@@ -27,21 +27,23 @@ import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
+import art.arcane.iris.builtin.terrain.ExplodeBiomePaletteSizeSettings;
+import art.arcane.iris.builtin.terrain.ExplodeBiomePalettesSettings;
+import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.engine.decorator.FloatingDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineDecorator;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.terrain.BiomeLayers;
-import art.arcane.iris.engine.terrain.ResolvedLayer;
+import art.arcane.iris.builtin.terrain.BiomeLayers;
+import art.arcane.iris.builtin.terrain.LayerNoise;
+import art.arcane.iris.builtin.terrain.ResolvedLayer;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.context.ChunkContext;
 import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
@@ -51,6 +53,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 
 import com.volmit.ModuleLog;
+import com.volmit.world.BiomeKind;
 import java.util.IdentityHashMap;
 
 import static art.arcane.iris.engine.mantle.EngineMantle.AIR;
@@ -66,8 +69,8 @@ public class FloatingIslands {
     };
     private final Engine engine;
     private final RNG rng;
-    private final EngineDecorator seaSurfaceDecorator;
     private final BiomeLayers biomeLayers;
+    private final IrisLayers glue;
     private final ModuleLog log;
 
     private KList<PlatformBlockState> generateBottomPaletteLayers(ResolvedFloatingChild entry, IrisDimension dimension, double wx, double wz, RNG random, int paletteDepth, IrisData data, IrisComplex complex) {
@@ -86,7 +89,7 @@ public class FloatingIslands {
         int generatorSeed = 7235;
         for (int i = 0; i < layers.size(); i++) {
             ResolvedLayer layer = biomeLayers.resolve(layers.get(i));
-            CNG heightGenerator = layer.heightNoise(random.nextParallelRNG((generatorSeed++) * generatorSeed * generatorSeed * generatorSeed));
+            LayerNoise heightGenerator = layer.heightNoise(random.nextParallelRNG((generatorSeed++) * generatorSeed * generatorSeed * generatorSeed));
             if (heightGenerator == null) {
                 continue;
             }
@@ -107,7 +110,7 @@ public class FloatingIslands {
                 }
 
                 try {
-                    generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom()));
+                    generated.add(glue.platform(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.zoom(), j, (wz - j) / layer.zoom())));
                 } catch (Throwable e) {
                     log.error("Failed to pick a block of a floating island's palette", e);
                 }
@@ -117,9 +120,11 @@ public class FloatingIslands {
                 break;
             }
 
-            if (dimension != null && dimension.isExplodeBiomePalettes()) {
+            if (dimension != null && dimension.getModuleSettings().find(ExplodeBiomePalettesSettings.class).map(ExplodeBiomePalettesSettings::explode).orElse(false)) {
                 PlatformBlockState barrier = B.getState("minecraft:barrier");
-                for (int j = 0; j < dimension.getExplodeBiomePaletteSize(); j++) {
+                int gap = dimension.getModuleSettings().find(ExplodeBiomePaletteSizeSettings.class).map(ExplodeBiomePaletteSizeSettings::size)
+                        .orElse(ExplodeBiomePaletteSizeSettings.DEFAULT_SIZE);
+                for (int j = 0; j < gap; j++) {
                     generated.add(barrier);
 
                     if (generated.size() >= maxDepth) {
@@ -188,9 +193,9 @@ public class FloatingIslands {
         IrisBiome target = entry == null ? parent : entry.getRealBiome(parent, data);
         int entrySeed = entry == null || entry.settings().biome() == null ? 0 : entry.settings().biome().hashCode();
         RNG layerRng = rng.nextParallelRNG((int) (colSeed ^ 0x7A4E ^ entrySeed));
-        KList<PlatformBlockState> topBlocks = target == null ? null : biomeLayers.generateLayers(target, dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+        KList<PlatformBlockState> topBlocks = target == null ? null : glue.platform(biomeLayers.generateLayers(glue.biome(target), IrisLayers.explosionOf(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, glue.slope()));
         if (topBlocks == null || topBlocks.isEmpty()) {
-            topBlocks = biomeLayers.generateLayers(parent, dimension, wx, wz, layerRng, paletteDepth, paletteDepth, data, complex);
+            topBlocks = glue.platform(biomeLayers.generateLayers(glue.biome(parent), IrisLayers.explosionOf(dimension), wx, wz, layerRng, paletteDepth, paletteDepth, glue.slope()));
         }
         KList<PlatformBlockState> bottomBlocks = generateBottomPaletteLayers(entry, dimension, wx, wz, layerRng, paletteDepth, data, complex);
         return new PaletteContext(topBlocks, bottomBlocks, B.getState("minecraft:stone"));
@@ -212,8 +217,8 @@ public class FloatingIslands {
         this.engine = engine;
         this.log = log;
         rng = new RNG(engine.getSeedManager().getTerrain() ^ 0x7EB0A73F1DCE514DL);
-        seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
-        biomeLayers = BiomeLayers.of(engine, log);
+        biomeLayers = BiomeLayers.of(engine.getGeneration().world());
+        glue = new IrisLayers(engine);
     }
 
     /** Fills the islands' solids into the chunk whose first block is {@code x}, {@code z}. */
@@ -305,7 +310,7 @@ public class FloatingIslands {
     }
 
     /** Decorates the tops of the islands in the chunk whose first block is {@code x}, {@code z}. */
-    public void decorateColumns(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context) {
+    public void decorateColumns(int x, int z, Hunk<PlatformBlockState> output, boolean multicore, ChunkContext context, DecorationScene scene) {
         int chunkHeight = output.getHeight();
         IrisData data = engine.getData();
         IrisComplex complex = engine.getComplex();
@@ -338,7 +343,7 @@ public class FloatingIslands {
                     if (above == null || above.isAir()) {
                         try {
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
-                            FloatingDecorator.decorateColumn(engine, target, DecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
+                            FloatingDecorator.decorateColumn(scene, IrisDecoratedBiomes.of(target, BiomeKind.LAND), DecorationPart.NONE, xf, zf, wx, wz, topY, max, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
                             log.error("Failed to decorate the top of a floating island", e);
                         }
@@ -370,7 +375,7 @@ public class FloatingIslands {
                     }
                     if (fluidTopY > 0 && fluidTopY + 1 < chunkHeight && B.isAir(output.get(xf, fluidTopY + 1, zf))) {
                         try {
-                            seaSurfaceDecorator.decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, output, target, fluidTopY, chunkHeight);
+                            new IrisSeaSurfaceDecorator(scene).decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, IrisDecoratedBiomes.of(target, BiomeKind.LAND), fluidTopY, chunkHeight);
                         } catch (Throwable e) {
                             log.error("Failed to decorate the sea surface of a floating island", e);
                         }

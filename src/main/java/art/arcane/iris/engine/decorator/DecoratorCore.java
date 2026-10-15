@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,35 +15,41 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockSupport;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.MultipleFacing;
+import com.volmit.block.BlockFace;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.hunk.Hunk;
+import com.volmit.resource.ResourceId;
+
+import java.util.List;
+import java.util.Map;
 
 final class DecoratorCore {
 
     private static final long SEED_OFFSET = 29356788L;
     private static final long PART_FACTOR = 10439677L;
-    private static final String WEEPING_VINES = "minecraft:weeping_vines";
-    private static final String WEEPING_VINES_PLANT = "minecraft:weeping_vines_plant";
-    private static final String TWISTING_VINES = "minecraft:twisting_vines";
-    private static final String TWISTING_VINES_PLANT = "minecraft:twisting_vines_plant";
-    private static volatile PlatformBlockState weepingVines;
-    private static volatile PlatformBlockState weepingVinesPlant;
-    private static volatile PlatformBlockState twistingVines;
-    private static volatile PlatformBlockState twistingVinesPlant;
+    private static final String HALF = "half";
+    private static final ResourceId WEEPING_VINES = ResourceId.parse("minecraft:weeping_vines");
+    private static final ResourceId WEEPING_VINES_PLANT = ResourceId.parse("minecraft:weeping_vines_plant");
+    private static final ResourceId TWISTING_VINES = ResourceId.parse("minecraft:twisting_vines");
+    private static final ResourceId TWISTING_VINES_PLANT = ResourceId.parse("minecraft:twisting_vines_plant");
+    private static final ResourceId POINTED_DRIPSTONE = ResourceId.parse("minecraft:pointed_dripstone");
+    private static final String[] DRIPSTONE_THICKNESS = {"tip", "frustum", "base"};
+    private static final BlockState[] DRIPSTONE_UP = dripstones("up");
+    private static final BlockState[] DRIPSTONE_DOWN = dripstones("down");
+    private static final BlockState AIR = new BlockState("minecraft:air");
+    /** The faces a vine can grow on, in the order Iris looks at them, with the neighbour each faces. */
+    private static final List<Face> FACES = List.of(new Face(BlockFace.NORTH, "north", 0, 0, -1), new Face(BlockFace.EAST, "east", 1, 0, 0),
+            new Face(BlockFace.SOUTH, "south", 0, 0, 1), new Face(BlockFace.WEST, "west", -1, 0, 0), new Face(BlockFace.UP, "up", 0, 1, 0),
+            new Face(BlockFace.DOWN, "down", 0, -1, 0));
+    private static final Map<BlockFace, BlockFace> OPPOSITES = Map.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.SOUTH, BlockFace.NORTH,
+            BlockFace.EAST, BlockFace.WEST, BlockFace.WEST, BlockFace.EAST, BlockFace.UP, BlockFace.DOWN, BlockFace.DOWN, BlockFace.UP);
+    private static final int CHUNK_LAST = 15;
 
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
 
@@ -57,6 +63,9 @@ final class DecoratorCore {
             underwater = false;
             fluidHeight = 0;
         }
+    }
+
+    private record Face(BlockFace face, String property, int dx, int dy, int dz) {
     }
 
     static long partSeed(long baseSeed, int partOrdinal) {
@@ -96,77 +105,75 @@ final class DecoratorCore {
         return half.equals("upper") || half.equals("lower") ? "lower" : "bottom";
     }
 
-    static void placeSurfaceSingle(ResolvedDecorator decorator,
+    static void placeSurfaceSingle(ResolvedDecorator decorator, DecorationScene scene,
                                    int x, int z, int realX, int height, int realZ,
-                                   Hunk<PlatformBlockState> data,
-                                   boolean underwater, boolean caveSkipFluid, EngineMantle mantle, ModuleLog log) {
+                                   boolean underwater, boolean caveSkipFluid) {
+        Hunk<BlockState> data = scene.blocks();
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
 
-        PlatformBlockState bdx = data.get(x, height, z);
-        PlatformBlockState bd = decorator.pickBlock(realX, realZ);
+        BlockState bdx = data.get(x, height, z);
+        BlockState bd = decorator.pickBlock(realX, realZ);
 
-        if (!underwater && !canGoOn(bd, bdx)
+        if (!underwater && !canGoOn(scene, bd, bdx)
                 && !decorator.isForcePlace() && decorator.forceBlock() == null) {
             return;
         }
 
         if (decorator.forceBlock() != null) {
-            if (caveSkipFluid && B.isFluid(bdx)) {
+            if (caveSkipFluid && scene.isFluid(bdx)) {
                 return;
             }
-            data.set(x, height, z, fixFacesForHunk(
-                    decorator.forceBlock(), data, x, z, realX, height, realZ, mantle));
+            data.set(x, height, z, fixFacesForHunk(scene, decorator.forceBlock(), x, z, realX, height, realZ));
         }
 
         if (!decorator.isForcePlace() && decorator.rejectsSurface(bdx)) {
             return;
         }
 
-        String half = bd == null ? null : IrisProceduralBlocks.propertyValue(bd, "half");
+        String half = bd == null ? null : bd.properties().get(HALF);
         if (half != null) {
             int lowerY = height + 1;
             int upperY = height + 2;
-            if (!canPlaceTwoBlockPlant(data, x, z, lowerY, upperY, caveSkipFluid)) {
+            if (!canPlaceTwoBlockPlant(scene, x, z, lowerY, upperY, caveSkipFluid)) {
                 return;
             }
 
             try {
-                PlatformBlockState upper = bd.withProperty("half", topHalfValue(half));
-                PlatformBlockState lower = fixFacesForHunk(
-                        bd.withProperty("half", bottomHalfValue(half)),
-                        data, x, z, realX, lowerY, realZ, mantle);
+                BlockState upper = bd.withProperty(HALF, topHalfValue(half));
+                BlockState lower = fixFacesForHunk(scene,
+                        bd.withProperty(HALF, bottomHalfValue(half)),
+                        x, z, realX, lowerY, realZ);
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, upper);
             } catch (Throwable e) {
-                log.error("Failed to place a two-block plant", e);
+                scene.log().error("Failed to place a two-block plant", e);
             }
             return;
         }
 
         int targetY = height + 1;
-        if (targetY < data.getHeight() && B.isAir(data.get(x, targetY, z))) {
-            data.set(x, targetY, z, fixFacesForHunk(bd, data, x, z, realX, targetY, realZ, mantle));
+        if (bd != null && targetY < data.getHeight() && scene.isAir(data.get(x, targetY, z))) {
+            data.set(x, targetY, z, fixFacesForHunk(scene, bd, x, z, realX, targetY, realZ));
         }
     }
 
-    static void placeSingleAt(ResolvedDecorator decorator, int x, int z,
-                              int realX, int height, int realZ, Hunk<PlatformBlockState> data,
-                              boolean applyFixFaces, EngineMantle mantle) {
-        PlatformBlockState bd = decorator.pickBlock(realX, realZ);
+    static void placeSingleAt(ResolvedDecorator decorator, DecorationScene scene, int x, int z,
+                              int realX, int height, int realZ, boolean applyFixFaces) {
+        BlockState bd = decorator.pickBlock(realX, realZ);
         if (bd == null) {
             return;
         }
         if (applyFixFaces) {
-            bd = fixFacesForHunk(bd, data, x, z, realX, height, realZ, mantle);
+            bd = fixFacesForHunk(scene, bd, x, z, realX, height, realZ);
         }
-        data.set(x, height, z, bd);
+        scene.blocks().set(x, height, z, bd);
     }
 
-    static void placeStackUp(ResolvedDecorator decorator, int x, int z, int realX, int realZ,
-                             int height, int max, Hunk<PlatformBlockState> data,
-                             PlaceOpts opts) {
+    static void placeStackUp(ResolvedDecorator decorator, DecorationScene scene, int x, int z, int realX, int realZ,
+                             int height, int max, PlaceOpts opts) {
+        Hunk<BlockState> data = scene.blocks();
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
@@ -184,14 +191,14 @@ final class DecoratorCore {
                 return;
             }
 
-            PlatformBlockState existing = data.get(x, targetY, z);
-            if (!canReplaceStackTarget(existing, opts.underwater)
-                    || (opts.caveSkipFluid && B.isFluid(existing))) {
+            BlockState existing = data.get(x, targetY, z);
+            if (!canReplaceStackTarget(scene, existing, opts.underwater)
+                    || (opts.caveSkipFluid && scene.isFluid(existing))) {
                 return;
             }
 
-            PlatformBlockState block = decorator.pickTopBlock(realX, realZ);
-            if (block == null || (!opts.underwater && !canGoOn(block, data.get(x, height, z)))) {
+            BlockState block = decorator.pickTopBlock(realX, realZ);
+            if (block == null || (!opts.underwater && !canGoOn(scene, block, data.get(x, height, z)))) {
                 return;
             }
 
@@ -200,12 +207,11 @@ final class DecoratorCore {
             return;
         }
 
-        PlatformBlockState bdx = data.get(x, height, z);
+        BlockState bdx = data.get(x, height, z);
 
         for (int i = 0; i < stack; i++) {
-            int h = height + i;
             double threshold = ((double) i) / (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.topThreshold()
+            BlockState bd = threshold >= decorator.topThreshold()
                     ? decorator.pickTopBlock(realX, realZ)
                     : decorator.pickBlock(realX, realZ);
 
@@ -213,7 +219,7 @@ final class DecoratorCore {
                 break;
             }
 
-            if (i == 0 && !opts.underwater && !canGoOn(bd, bdx)) {
+            if (i == 0 && !opts.underwater && !canGoOn(scene, bd, bdx)) {
                 break;
             }
 
@@ -225,14 +231,14 @@ final class DecoratorCore {
                 break;
             }
 
-            PlatformBlockState existing = data.get(x, height + 1 + i, z);
-            if (!canReplaceStackTarget(existing, opts.underwater)
-                    || (opts.caveSkipFluid && B.isFluid(existing))) {
+            BlockState existing = data.get(x, height + 1 + i, z);
+            if (!canReplaceStackTarget(scene, existing, opts.underwater)
+                    || (opts.caveSkipFluid && scene.isFluid(existing))) {
                 break;
             }
 
-            if (IrisProceduralBlocks.materialKey(bd).equals("minecraft:pointed_dripstone")) {
-                bd = dripstoneBlock(stack, i, "up");
+            if (bd.material().equals(POINTED_DRIPSTONE)) {
+                bd = dripstoneBlock(stack, i, DRIPSTONE_UP);
             }
 
             bd = stackedVineBlock(bd, stack, i);
@@ -240,9 +246,9 @@ final class DecoratorCore {
         }
     }
 
-    static void placeStackDown(ResolvedDecorator decorator, int x, int z, int realX, int realZ,
-                               int height, int minHeight, Hunk<PlatformBlockState> data,
-                               int max, PlaceOpts opts, EngineMantle mantle) {
+    static void placeStackDown(ResolvedDecorator decorator, DecorationScene scene, int x, int z, int realX, int realZ,
+                               int height, int minHeight, int max, PlaceOpts opts) {
+        Hunk<BlockState> data = scene.blocks();
         if (height < 0 || height >= data.getHeight()) {
             return;
         }
@@ -250,15 +256,15 @@ final class DecoratorCore {
         int stack = computeStack(decorator, realX, realZ, max);
 
         if (stack == 1) {
-            if (opts.caveSkipFluid && B.isFluid(data.get(x, height, z))) {
+            if (opts.caveSkipFluid && scene.isFluid(data.get(x, height, z))) {
                 return;
             }
-            PlatformBlockState block = decorator.pickTopBlock(realX, realZ);
+            BlockState block = decorator.pickTopBlock(realX, realZ);
             if (block == null) {
                 return;
             }
             block = stackedVineBlock(block, stack, 0);
-            data.set(x, height, z, fixFacesForHunk(block, data, x, z, realX, height, realZ, mantle));
+            data.set(x, height, z, fixFacesForHunk(scene, block, x, z, realX, height, realZ));
             return;
         }
 
@@ -269,7 +275,7 @@ final class DecoratorCore {
             }
 
             double threshold = ((double) i) / (double) (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.topThreshold()
+            BlockState bd = threshold >= decorator.topThreshold()
                     ? decorator.pickTopBlock(realX, realZ)
                     : decorator.pickBlock(realX, realZ);
 
@@ -277,41 +283,42 @@ final class DecoratorCore {
                 break;
             }
 
-            if (IrisProceduralBlocks.materialKey(bd).equals("minecraft:pointed_dripstone")) {
-                bd = dripstoneBlock(stack, i, "down");
+            if (bd.material().equals(POINTED_DRIPSTONE)) {
+                bd = dripstoneBlock(stack, i, DRIPSTONE_DOWN);
             }
 
             bd = stackedVineBlock(bd, stack, i);
-            if (opts.caveSkipFluid && B.isFluid(data.get(x, h, z))) {
+            if (opts.caveSkipFluid && scene.isFluid(data.get(x, h, z))) {
                 break;
             }
-            data.set(x, h, z, fixFacesForHunk(bd, data, x, z, realX, h, realZ, mantle));
+            data.set(x, h, z, fixFacesForHunk(scene, bd, x, z, realX, h, realZ));
         }
     }
 
-    static void placeFloatingSimple(ResolvedDecorator decorator,
+    static void placeFloatingSimple(ResolvedDecorator decorator, DecorationScene scene,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data, ModuleLog log) {
-        PlatformBlockState bd = decorator.pickBlock(realX, realZ);
+                                    int height, int max) {
+        Hunk<BlockState> data = scene.blocks();
+        BlockState bd = decorator.pickBlock(realX, realZ);
         if (bd == null) {
             return;
         }
 
-        String half = IrisProceduralBlocks.propertyValue(bd, "half");
+        String half = bd.properties().get(HALF);
         if (half != null) {
             int lowerY = height + 1;
             int upperY = height + 2;
-            if (max <= 2 || !canPlaceTwoBlockPlant(data, xf, zf, lowerY, upperY, false)) {
+            if (max <= 2 || !canPlaceTwoBlockPlant(scene, xf, zf, lowerY, upperY, false)) {
                 return;
             }
 
             try {
-                PlatformBlockState upper = bd.withProperty("half", topHalfValue(half));
-                PlatformBlockState lower = bd.withProperty("half", bottomHalfValue(half));
+                BlockState upper = bd.withProperty(HALF, topHalfValue(half));
+                BlockState lower = bd.withProperty(HALF, bottomHalfValue(half));
                 data.set(xf, lowerY, zf, lower);
                 data.set(xf, upperY, zf, upper);
             } catch (Throwable e) {
-                log.error("Failed to place a two-block plant", e);
+                scene.log().error("Failed to place a two-block plant", e);
             }
             return;
         }
@@ -321,9 +328,10 @@ final class DecoratorCore {
         }
     }
 
-    static int placeFloatingStacked(ResolvedDecorator decorator,
+    static int placeFloatingStacked(ResolvedDecorator decorator, DecorationScene scene,
                                     int xf, int zf, int realX, int realZ,
-                                    int height, int max, Hunk<PlatformBlockState> data) {
+                                    int height, int max) {
+        Hunk<BlockState> data = scene.blocks();
         int stack = decorator.stackHeight(realX, realZ);
         if (decorator.isScaleStack()) {
             stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.absoluteMaxStack());
@@ -338,7 +346,7 @@ final class DecoratorCore {
                 break;
             }
             double threshold = stack == 1 ? 0.0 : ((double) i) / (stack - 1);
-            PlatformBlockState bd = threshold >= decorator.topThreshold()
+            BlockState bd = threshold >= decorator.topThreshold()
                     ? decorator.pickTopBlock(realX, realZ)
                     : decorator.pickBlock(realX, realZ);
             if (bd == null) {
@@ -351,94 +359,85 @@ final class DecoratorCore {
         return placed;
     }
 
-    static PlatformBlockState fixFacesForHunk(PlatformBlockState b, Hunk<PlatformBlockState> hunk, int rX, int rZ,
-                                              int x, int y, int z, EngineMantle mantle) {
-        if (!B.isVineBlock(b)) {
+    /**
+     * A vine placed at {@code x}, {@code y}, {@code z} (the chunk's local column {@code rX}, {@code rZ}) faces the neighbours that
+     * can hold it: the blocks the mantle planned there, else the chunk's own blocks. A vine with no such neighbour faces down,
+     * or up when it cannot face down. Any other block is returned as it is.
+     */
+    static BlockState fixFacesForHunk(DecorationScene scene, BlockState b, int rX, int rZ, int x, int y, int z) {
+        if (b == null || !scene.has(BlockTrait.VINE, b)) {
             return b;
         }
-        DecoratorPlatformHooks.FaceFixer fixer = DecoratorPlatformHooks.faceFixer();
-        if (fixer != null) {
-            return fixer.fixFaces(b, hunk, rX, rZ, x, y, z, mantle);
+        Hunk<BlockState> hunk = scene.blocks();
+        BlockState fixed = b;
+        for (Face face : FACES) {
+            if (b.properties().containsKey(face.property())) {
+                fixed = fixed.withProperty(face.property(), "false");
+            }
         }
-        BlockData rawB = (BlockData) b.nativeHandle();
-        BlockData cloned = rawB.clone();
-        MultipleFacing data = (MultipleFacing) cloned;
-        data.getFaces().forEach(f -> data.setFace(f, false));
 
         boolean found = false;
-        for (BlockFace f : BlockFace.values()) {
-            if (!f.isCartesian()) {
-                continue;
-            }
-            int yy = y + f.getModY();
+        for (Face face : FACES) {
+            int yy = y + face.dy();
+            BlockFace opposite = OPPOSITES.get(face.face());
 
-            PlatformBlockState rs = null;
-            if (mantle != null) {
-                rs = mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), PlatformBlockState.class);
-            }
-            BlockData r = rs == null ? (BlockData) EngineMantle.AIR.nativeHandle() : (BlockData) rs.nativeHandle();
-            if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
-                if (data.getAllowedFaces().contains(f)) {
+            BlockState planned = scene.plannedAt(x + face.dx(), yy, z + face.dz());
+            BlockState support = planned == null ? AIR : planned;
+            if (scene.registry().canAttach(b, support, opposite)) {
+                if (b.properties().containsKey(face.property())) {
                     found = true;
-                    data.setFace(f, true);
+                    fixed = fixed.withProperty(face.property(), "true");
                 }
                 continue;
             }
 
-            int xx = rX + f.getModX();
-            int zz = rZ + f.getModZ();
-            if (xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy >= hunk.getHeight()) {
+            int xx = rX + face.dx();
+            int zz = rZ + face.dz();
+            if (xx < 0 || xx > CHUNK_LAST || zz < 0 || zz > CHUNK_LAST || yy < 0 || yy >= hunk.getHeight()) {
                 continue;
             }
 
-            r = (BlockData) hunk.get(xx, yy, zz).nativeHandle();
-            if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
-                if (data.getAllowedFaces().contains(f)) {
+            if (scene.registry().canAttach(b, hunk.get(xx, yy, zz), opposite)) {
+                if (b.properties().containsKey(face.property())) {
                     found = true;
-                    data.setFace(f, true);
+                    fixed = fixed.withProperty(face.property(), "true");
                 }
             }
         }
         if (!found) {
-            BlockFace fallback = data.getAllowedFaces().contains(BlockFace.DOWN) ? BlockFace.DOWN : BlockFace.UP;
-            if (data.getAllowedFaces().contains(fallback)) {
-                data.setFace(fallback, true);
+            String fallback = b.properties().containsKey("down") ? "down" : "up";
+            if (b.properties().containsKey(fallback)) {
+                fixed = fixed.withProperty(fallback, "true");
             }
         }
-        return BukkitBlockState.of(cloned);
+        return fixed;
     }
 
-    static boolean canGoOn(PlatformBlockState decorator, PlatformBlockState surface) {
-        if (!B.canPlaceOnto(decorator, surface)) {
-            return false;
-        }
-        DecoratorPlatformHooks.SurfaceSturdiness sturdiness = DecoratorPlatformHooks.surfaceSturdiness();
-        if (sturdiness != null) {
-            return sturdiness.canGoOn(surface);
-        }
-        return ((BlockData) surface.nativeHandle()).isFaceSturdy(BlockFace.UP, BlockSupport.FULL);
+    static boolean canGoOn(DecorationScene scene, BlockState decorator, BlockState surface) {
+        return decorator != null && surface != null && scene.canGoOn(decorator, surface);
     }
 
-    static boolean isValidShorelineSupport(ResolvedDecorator decorator, PlatformBlockState decorant, PlatformBlockState surface) {
+    static boolean isValidShorelineSupport(DecorationScene scene, ResolvedDecorator decorator, BlockState decorant, BlockState surface) {
         return surface != null
-                && B.isSolid(surface)
-                && (decorator.isForcePlace() || canGoOn(decorant, surface));
+                && scene.isSolid(surface)
+                && (decorator.isForcePlace() || canGoOn(scene, decorant, surface));
     }
 
-    static boolean canReplaceStackTarget(PlatformBlockState state, boolean allowFluid) {
-        return B.isAir(state) || allowFluid && B.isFluid(state);
+    static boolean canReplaceStackTarget(DecorationScene scene, BlockState state, boolean allowFluid) {
+        return scene.isAir(state) || allowFluid && scene.isFluid(state);
     }
 
-    private static boolean canPlaceTwoBlockPlant(Hunk<PlatformBlockState> data, int x, int z,
+    private static boolean canPlaceTwoBlockPlant(DecorationScene scene, int x, int z,
                                                  int lowerY, int upperY, boolean caveSkipFluid) {
+        Hunk<BlockState> data = scene.blocks();
         if (lowerY < 0 || upperY >= data.getHeight()) {
             return false;
         }
 
-        PlatformBlockState lower = data.get(x, lowerY, z);
-        PlatformBlockState upper = data.get(x, upperY, z);
-        return B.isAir(lower) && B.isAir(upper)
-                && (!caveSkipFluid || !B.isFluid(lower) && !B.isFluid(upper));
+        BlockState lower = data.get(x, lowerY, z);
+        BlockState upper = data.get(x, upperY, z);
+        return scene.isAir(lower) && scene.isAir(upper)
+                && (!caveSkipFluid || !scene.isFluid(lower) && !scene.isFluid(upper));
     }
 
     private static int computeStack(ResolvedDecorator decorator, double realX, double realZ, int max) {
@@ -451,19 +450,15 @@ final class DecoratorCore {
         return stack;
     }
 
-    private static volatile PlatformBlockState[] dripstoneUp;
-    private static volatile PlatformBlockState[] dripstoneDown;
-
-    private static PlatformBlockState[] buildDripstoneArr(String direction) {
-        String[] order = {"tip", "frustum", "base"};
-        PlatformBlockState[] arr = new PlatformBlockState[3];
-        for (int k = 0; k < 3; k++) {
-            arr[k] = B.getState("minecraft:pointed_dripstone[thickness=" + order[k] + ",vertical_direction=" + direction + "]");
+    private static BlockState[] dripstones(String direction) {
+        BlockState[] arr = new BlockState[DRIPSTONE_THICKNESS.length];
+        for (int k = 0; k < arr.length; k++) {
+            arr[k] = BlockState.parse("minecraft:pointed_dripstone[thickness=" + DRIPSTONE_THICKNESS[k] + ",vertical_direction=" + direction + "]");
         }
         return arr;
     }
 
-    private static PlatformBlockState dripstoneBlock(int stack, int i, String direction) {
+    private static BlockState dripstoneBlock(int stack, int i, BlockState[] byThickness) {
         int thIdx;
         if (i == stack - 1) {
             thIdx = 0;
@@ -472,39 +467,24 @@ final class DecoratorCore {
         } else {
             thIdx = 2;
         }
-        if (direction.equals("up")) {
-            if (dripstoneUp == null) {
-                dripstoneUp = buildDripstoneArr("up");
-            }
-            return dripstoneUp[thIdx];
-        }
-        if (dripstoneDown == null) {
-            dripstoneDown = buildDripstoneArr("down");
-        }
-        return dripstoneDown[thIdx];
+        return byThickness[thIdx];
     }
 
-    static String stackedVineKey(PlatformBlockState state, int stack, int index) {
-        String material = IrisProceduralBlocks.materialKey(state);
+    /** The key of the vine block that fills a stack of vines at {@code index}: the tip at the end, the plant before it; null for other blocks. */
+    static ResourceId stackedVineMaterial(BlockState state, int stack, int index) {
+        ResourceId material = state.material();
         boolean tip = index == stack - 1;
-        return switch (material) {
-            case WEEPING_VINES, WEEPING_VINES_PLANT -> tip ? WEEPING_VINES : WEEPING_VINES_PLANT;
-            case TWISTING_VINES, TWISTING_VINES_PLANT -> tip ? TWISTING_VINES : TWISTING_VINES_PLANT;
-            default -> null;
-        };
+        if (material.equals(WEEPING_VINES) || material.equals(WEEPING_VINES_PLANT)) {
+            return tip ? WEEPING_VINES : WEEPING_VINES_PLANT;
+        }
+        if (material.equals(TWISTING_VINES) || material.equals(TWISTING_VINES_PLANT)) {
+            return tip ? TWISTING_VINES : TWISTING_VINES_PLANT;
+        }
+        return null;
     }
 
-    private static PlatformBlockState stackedVineBlock(PlatformBlockState state, int stack, int index) {
-        String key = stackedVineKey(state, stack, index);
-        if (key == null) {
-            return state;
-        }
-        return switch (key) {
-            case WEEPING_VINES -> weepingVines == null ? weepingVines = B.getState(key) : weepingVines;
-            case WEEPING_VINES_PLANT -> weepingVinesPlant == null ? weepingVinesPlant = B.getState(key) : weepingVinesPlant;
-            case TWISTING_VINES -> twistingVines == null ? twistingVines = B.getState(key) : twistingVines;
-            case TWISTING_VINES_PLANT -> twistingVinesPlant == null ? twistingVinesPlant = B.getState(key) : twistingVinesPlant;
-            default -> state;
-        };
+    private static BlockState stackedVineBlock(BlockState state, int stack, int index) {
+        ResourceId material = stackedVineMaterial(state, stack, index);
+        return material == null ? state : new BlockState(material.toString());
     }
 }

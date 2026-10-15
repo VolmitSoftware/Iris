@@ -15,18 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+package art.arcane.iris.engine.decorator;
 
-package art.arcane.iris.engine.actuator;
+import art.arcane.iris.builtin.decorant.DecorantSettings;
+import com.volmit.world.BiomeKind;
 
-import art.arcane.iris.builtin.terrain.HideOresSettings;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-
-/** Whether a dimension hides its ores ({@code hideOresForHiddenOre}): the terrain places none and the perfection pass turns the rest into their base blocks. */
-public final class HiddenOres {
-    private HiddenOres() {
-    }
-
-    public static boolean in(IrisDimension dimension) {
-        return dimension.getModuleSettings().find(HideOresSettings.class).map(HideOresSettings::hide).orElse(false);
-    }
+/**
+ * A biome as the decorators see it: the key the pack names it by, which seeds its decorators' noise, the decorators it declares
+ * (none when it declares no {@link DecorantSettings}) and what it was generated as.
+ */
+public record DecoratedBiome(String key, DecorantSettings settings, BiomeKind kind) {
 }

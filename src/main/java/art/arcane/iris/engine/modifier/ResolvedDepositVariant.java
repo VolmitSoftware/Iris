@@ -15,17 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositVariant;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
+import com.volmit.ModuleLog;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.resource.ResourceId;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * One {@link DepositVariant} made ready: its source and replacement block ids resolved to the platform's blocks, built once on
@@ -33,10 +34,14 @@ import java.util.Map;
  */
 final class ResolvedDepositVariant {
     private final DepositVariant settings;
-    private final AtomicCache<Map<String, PlatformBlockState>> remapped = new AtomicCache<>();
+    private final BlockRegistry registry;
+    private final ModuleLog log;
+    private final AtomicCache<Map<ResourceId, BlockState>> remapped = new AtomicCache<>();
 
-    ResolvedDepositVariant(DepositVariant settings) {
+    ResolvedDepositVariant(DepositVariant settings, BlockRegistry registry, ModuleLog log) {
         this.settings = settings;
+        this.registry = registry;
+        this.log = log;
     }
 
     boolean appliesAt(int worldY) {
@@ -44,23 +49,35 @@ final class ResolvedDepositVariant {
     }
 
     /** The block {@code ore} is rewritten to, or null when the rule does not remap its material. */
-    PlatformBlockState remapOrNull(PlatformBlockState ore) {
+    BlockState remapOrNull(BlockState ore) {
         if (ore == null || settings.remap().isEmpty()) {
             return null;
         }
-        return remapped.aquire(this::resolveRemap).get(IrisProceduralBlocks.materialKey(ore));
+        return remapped.aquire(this::resolveRemap).get(ore.material());
     }
 
-    private Map<String, PlatformBlockState> resolveRemap() {
-        Map<String, PlatformBlockState> resolved = new HashMap<>();
+    private Map<ResourceId, BlockState> resolveRemap() {
+        Map<ResourceId, BlockState> resolved = new HashMap<>();
         for (Map.Entry<String, String> entry : settings.remap().entrySet()) {
-            PlatformBlockState source = B.getStateOrNull(entry.getKey(), false);
-            PlatformBlockState target = B.getStateOrNull(entry.getValue(), true);
-            if (source == null || target == null) {
+            Optional<BlockState> source = known(entry.getKey(), false);
+            Optional<BlockState> target = known(entry.getValue(), true);
+            if (source.isEmpty() || target.isEmpty()) {
                 continue;
             }
-            resolved.put(IrisProceduralBlocks.materialKey(source), target);
+            resolved.put(source.get().material(), target.get());
         }
         return resolved;
+    }
+
+    /** The block the platform has under {@code key}; a replacement it lacks is reported once. */
+    private Optional<BlockState> known(String key, boolean reportMissing) {
+        try {
+            return Optional.of(registry.resolve(key));
+        } catch (IllegalArgumentException unknownBlock) {
+            if (reportMissing) {
+                log.warnOnce("deposit-variant-block:" + key, "Deposit variant replaces ores with " + key + ", which this server does not have");
+            }
+            return Optional.empty();
+        }
     }
 }

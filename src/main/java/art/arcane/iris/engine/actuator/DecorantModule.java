@@ -19,40 +19,36 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.core.modules.IrisChunk;
-import art.arcane.iris.core.modules.IrisPackWorld;
+import art.arcane.iris.builtin.decorant.DecorantSettings;
+import art.arcane.iris.builtin.decorant.DecorateSettings;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
+import art.arcane.iris.engine.decorator.DecoratedBiome;
+import art.arcane.iris.engine.decorator.DecorationScene;
 import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.decorator.IrisShoreLineDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineDecorator;
-import art.arcane.iris.builtin.decorant.DecorantSettings;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.documentation.BlockCoordinates;
-import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.block.BlockState;
+import com.volmit.config.FeatureSettings;
+import com.volmit.hunk.Hunk;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.StageGraph;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.PackWorld;
-
-import java.util.function.Predicate;
+import com.volmit.world.TerrainSampler;
 
 /**
  * Module {@code iris:decorant}: the biomes' decorators ({@link DecorantSettings}), placed on the surface the mantle's
  * blocks left: the surface itself, the sea surface and floor, and the shore line. A dimension turns decorating off with
- * {@code decorate}. The decorators' noise is built ahead of generation, in {@link #warmUp}.
+ * {@link DecorateSettings}. The decorators' noise is built ahead of generation, in {@link #warmUp}.
  */
 public final class DecorantModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
+    private static final int CHUNK_CENTRE = 7;
 
     @Override
     public ModuleInfo info() {
@@ -62,6 +58,7 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
     @Override
     public void register(FeatureRegistry registry) {
         registry.registerSettings(DecorantSettings.class);
+        registry.registerSettings(DecorateSettings.class);
         registry.registerLifecycle(this);
     }
 
@@ -77,87 +74,62 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
     }
 
     private static void decorate(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
-        decorating(context.world()).decorate(chunk.originX(), chunk.originZ(), chunk.blocks(), chunk.context());
+        if (!decorates(context)) {
+            return;
+        }
+        decorate(DecorationScene.of(context), context.settings(), context.originX(), context.originZ());
     }
 
-    /** The world's decorating, kept in its state store. */
-    static Decorating decorating(PackWorld world) {
-        return world.state(Decorating.class, Decorating::new);
+    /** A dimension decorates unless it says {@code decorate: false}. */
+    private static boolean decorates(ChunkStageContext context) {
+        return context.settings().at(DecorateSettings.class, context.originX() + CHUNK_CENTRE, context.originZ() + CHUNK_CENTRE).stream()
+                .allMatch(entry -> entry.value().decorate());
     }
 
-    /** What decorating keeps for one world: one decorator per kind of place. */
-    static final class Decorating {
-        private static final Predicate<PlatformBlockState> PREDICATE_SOLID = (s) -> s != null && !B.isAirOrFluid(s);
+    /** Decorates the 16 x 16 columns of the chunk whose first block is {@code x}, {@code z}, a biome's decorators on the surface its blocks left. */
+    static void decorate(DecorationScene scene, FeatureSettings settings, int x, int z) {
+        Hunk<BlockState> output = scene.blocks();
+        TerrainSampler terrain = scene.terrain();
+        BiomeDecorators decorators = scene.decorators();
+        IrisSurfaceDecorator surfaceDecorator = new IrisSurfaceDecorator(scene);
+        IrisSeaSurfaceDecorator seaSurfaceDecorator = new IrisSeaSurfaceDecorator(scene);
+        IrisSeaFloorDecorator seaFloorDecorator = new IrisSeaFloorDecorator(scene);
+        IrisShoreLineDecorator shoreLineDecorator = new IrisShoreLineDecorator(scene);
+        int fluidHeight = scene.fluidHeight();
+        int worldHeight = scene.worldHeight();
 
-        private final Engine engine;
-        private final BiomeDecorators decorators;
-        private final IrisSurfaceDecorator surfaceDecorator;
-        private final EngineDecorator seaSurfaceDecorator;
-        private final EngineDecorator seaFloorDecorator;
-        private final EngineDecorator shoreLineDecorator;
+        for (int i = 0; i < output.getWidth(); i++) {
+            int realX = Math.round(x + i);
+            for (int j = 0; j < output.getDepth(); j++) {
+                int realZ = Math.round(z + j);
+                DecoratedBiome biome = BiomeDecorators.biomeOf(settings, realX, realZ, terrain.surfaceKind(realX, realZ));
+                if (!decorators.hasDecorators(biome)) {
+                    continue;
+                }
+                int height = (int) Math.round(terrain.surfaceY(realX, realZ));
 
-        Decorating(PackWorld world) {
-            this(IrisPackWorld.of(world).engine());
-        }
+                if (height >= 0 && height < fluidHeight && scene.isSolid(output.get(i, height, j))
+                        && height + 1 < output.getHeight() && scene.isWater(output.get(i, height + 1, j))) {
+                    seaSurfaceDecorator.decorate(i, j,
+                            realX, Math.round(i + 1), Math.round(x + i - 1),
+                            realZ, Math.round(z + j + 1), Math.round(z + j - 1),
+                            biome, fluidHeight, worldHeight);
+                    seaFloorDecorator.decorate(i, j,
+                            realX, realZ, biome, height + 1,
+                            fluidHeight + 1);
+                }
 
-        Decorating(Engine engine) {
-            this.engine = engine;
-            decorators = BiomeDecorators.of(engine);
-            surfaceDecorator = new IrisSurfaceDecorator(engine);
-            seaSurfaceDecorator = new IrisSeaSurfaceDecorator(engine);
-            shoreLineDecorator = new IrisShoreLineDecorator(engine);
-            seaFloorDecorator = new IrisSeaFloorDecorator(engine);
-        }
+                if (height == fluidHeight) {
+                    shoreLineDecorator.decorate(i, j,
+                            realX, Math.round(x + i + 1), Math.round(x + i - 1),
+                            realZ, Math.round(z + j + 1), Math.round(z + j - 1),
+                            biome, height, worldHeight);
+                }
 
-        /** Decorates the 16 x 16 columns of the chunk whose first block is {@code x}, {@code z}, a biome's decorators on the surface its blocks left. */
-        @BlockCoordinates
-        void decorate(int x, int z, Hunk<PlatformBlockState> output, ChunkContext context) {
-            if (!engine.getDimension().isDecorate()) {
-                return;
-            }
-
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-
-            for (int i = 0; i < output.getWidth(); i++) {
-                int height;
-                int realX = Math.round(x + i);
-                int realZ;
-                IrisBiome biome;
-                for (int j = 0; j < output.getDepth(); j++) {
-                    realZ = Math.round(z + j);
-                    height = context.getRoundedHeight(i, j);
-                    biome = context.getBiome().get(i, j);
-
-                    if (!decorators.hasDecorators(biome)) {
-                        continue;
-                    }
-
-                    if (height < engine.getDimension().getFluidHeight() && PREDICATE_SOLID.test(output.get(i, height, j))
-                            && height + 1 < output.getHeight() && B.isWater(output.get(i, height + 1, j))) {
-                        seaSurfaceDecorator.decorate(i, j,
-                                realX, Math.round(i + 1), Math.round(x + i - 1),
-                                realZ, Math.round(z + j + 1), Math.round(z + j - 1),
-                                output, biome, engine.getDimension().getFluidHeight(), engine.getHeight());
-                        seaFloorDecorator.decorate(i, j,
-                                realX, realZ, output, biome, height + 1,
-                                engine.getDimension().getFluidHeight() + 1);
-                    }
-
-                    if (height == engine.getDimension().getFluidHeight()) {
-                        shoreLineDecorator.decorate(i, j,
-                                realX, Math.round(x + i + 1), Math.round(x + i - 1),
-                                realZ, Math.round(z + j + 1), Math.round(z + j - 1),
-                                output, biome, height, engine.getHeight());
-                    }
-
-                    if (height >= 0 && height < output.getHeight()) {
-                        surfaceDecorator.decorate(i, j, realX, realZ, output, biome, height, engine.getHeight() - height);
-                    }
+                if (height >= 0 && height < output.getHeight()) {
+                    surfaceDecorator.decorate(i, j, realX, realZ, biome, height, worldHeight - height);
                 }
             }
-
-            engine.getMetrics().getDecoration().put(p.getMilliseconds());
         }
     }
 }

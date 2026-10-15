@@ -109,14 +109,8 @@ public class IrisDimension extends IrisRegistrant {
     private int logicalHeight = 256;
     @Desc("If set to true, Iris will remove chunks to allow visualizing cross sections of chunks easily")
     private boolean debugChunkCrossSections = false;
-    @Desc("Vertically split up the biome palettes with barrier blocks in between to visualize them. The gap size comes from explodeBiomePaletteSize.")
-    private boolean explodeBiomePalettes = false;
     @Desc("Studio Mode for testing different parts of the world")
     private StudioMode studioMode = StudioMode.NORMAL;
-    @MinNumber(1)
-    @MaxNumber(16)
-    @Desc("Customize the palette height explosion")
-    private int explodeBiomePaletteSize = 3;
     @MinNumber(2)
     @MaxNumber(16)
     @Desc("Every X/Z % debugCrossSectionsMod == 0 cuts the chunk")
@@ -126,8 +120,6 @@ public class IrisDimension extends IrisRegistrant {
     @MinNumber(0)
     @Desc("The version of this dimension. Changing this will stop users from accidentally upgrading (and breaking their worlds).")
     private int version = 1;
-    @Desc("Should bedrock be generated or not.")
-    private boolean bedrock = true;
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The land chance. Up to 1.0 for total land or 0.0 for total sea")
@@ -146,8 +138,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
     @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
     private boolean debugSmartBore = false;
-    @Desc("Generate decorations or not")
-    private boolean decorate = true;
     @Desc("Refuse to place surface objects and trees over carved surface openings.")
     private boolean requireObjectSurfaceSupport = true;
     @MinNumber(0)

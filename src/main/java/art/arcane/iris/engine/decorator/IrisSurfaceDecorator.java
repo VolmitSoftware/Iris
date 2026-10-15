@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,48 +15,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.InferredType;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.world.BiomeKind;
 
 public class IrisSurfaceDecorator extends IrisEngineDecorator {
-    public IrisSurfaceDecorator(Engine engine) {
-        super(engine, "Surface", DecorationPart.NONE);
-    }
-
-    protected IrisSurfaceDecorator(Engine engine, String name) {
-        super(engine, name, DecorationPart.NONE);
+    public IrisSurfaceDecorator(DecorationScene scene) {
+        super(scene, DecorationPart.NONE);
     }
 
     protected boolean isSlopeValid(ResolvedDecorator decorator, int realX, int realZ) {
-        return !decorator.slopeBlocks(() -> getComplex().getSlopeStream().get(realX, realZ));
+        return !decorator.slopeBlocks(() -> scene.slopeAt(realX, realZ));
     }
 
-    @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, int height, int max) {
-        decorate(x, z, realX, realX1, realX_1, realZ, realZ1, realZ_1, data, biome, biome.getInferredType(), height, max);
-    }
-
-    @BlockCoordinates
-    public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1,
-                         Hunk<PlatformBlockState> data, IrisBiome biome, InferredType inferredType, int height, int max) {
-        int fluidHeight = getDimension().getFluidHeight();
-        if (inferredType == InferredType.SHORE && height < fluidHeight) {
+                         DecoratedBiome biome, int height, int max) {
+        BiomeKind kind = biome.kind();
+        int fluidHeight = scene.fluidHeight();
+        if (kind == BiomeKind.SHORE && height < fluidHeight) {
             return;
         }
 
-        boolean underwater = isUnderwater(inferredType, height, fluidHeight);
-        boolean caveSkipFluid = skipsFluid(inferredType);
+        boolean underwater = isUnderwater(kind, height, fluidHeight);
+        boolean caveSkipFluid = skipsFluid(kind);
         RNG rng = getRNG(realX, realZ);
         ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(biome, getPart()), rng, realX, realZ, decorators.log());
 
@@ -70,19 +54,18 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             opts.underwater = underwater;
             opts.fluidHeight = fluidHeight;
             opts.caveSkipFluid = caveSkipFluid;
-            DecoratorCore.placeStackUp(decorator, x, z, realX, realZ, height, max, data, opts);
+            DecoratorCore.placeStackUp(decorator, scene, x, z, realX, realZ, height, max, opts);
             return;
         }
 
-        DecoratorCore.placeSurfaceSingle(decorator, x, z, realX, height, realZ,
-                data, underwater, caveSkipFluid, getEngine().getMantle(), decorators.log());
+        DecoratorCore.placeSurfaceSingle(decorator, scene, x, z, realX, height, realZ, underwater, caveSkipFluid);
     }
 
-    static boolean isUnderwater(InferredType inferredType, int height, int fluidHeight) {
-        return height < fluidHeight && inferredType != InferredType.CAVE;
+    static boolean isUnderwater(BiomeKind kind, int height, int fluidHeight) {
+        return height < fluidHeight && kind != BiomeKind.CAVE;
     }
 
-    static boolean skipsFluid(InferredType inferredType) {
-        return inferredType == InferredType.CAVE;
+    static boolean skipsFluid(BiomeKind kind) {
+        return kind == BiomeKind.CAVE;
     }
 }

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,28 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.iris.spi.PlatformBlockState;
 
 /*
  * Floating island decoration path. Bypasses all canGoOn, slope, whitelist, and blacklist
- * gating from IrisSurfaceDecorator — the island top IS the biome's designated surface by
+ * gating from IrisSurfaceDecorator: the island top IS the biome's designated surface by
  * construction, so those material-compatibility checks are never meaningful here.
  */
 public class FloatingDecorator {
 
-    public static int decorateColumn(Engine engine, IrisBiome target, DecorationPart part,
+    public static int decorateColumn(DecorationScene scene, DecoratedBiome target, DecorationPart part,
                                      int xf, int zf, int realX, int realZ,
-                                     int height, int max, Hunk<PlatformBlockState> data, RNG rng,
+                                     int height, int max, RNG rng,
                                      Runnable candidatesNullCallback) {
-        BiomeDecorators decorators = BiomeDecorators.of(engine);
+        BiomeDecorators decorators = scene.decorators();
         ResolvedDecorator decorator = DecoratorCore.pickDecorator(decorators.decorators(target, part), rng, realX, realZ, decorators.log());
 
         if (decorator == null) {
@@ -45,10 +40,10 @@ public class FloatingDecorator {
         }
 
         if (!decorator.isStacking()) {
-            DecoratorCore.placeFloatingSimple(decorator, xf, zf, realX, realZ, height, max, data, decorators.log());
+            DecoratorCore.placeFloatingSimple(decorator, scene, xf, zf, realX, realZ, height, max);
             return max > 1 ? 1 : 0;
         }
 
-        return DecoratorCore.placeFloatingStacked(decorator, xf, zf, realX, realZ, height, max, data);
+        return DecoratorCore.placeFloatingStacked(decorator, scene, xf, zf, realX, realZ, height, max);
     }
 }

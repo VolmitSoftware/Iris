@@ -61,7 +61,7 @@ body:
     id: loaderversion
     attributes:
       label: Platform / Loader Version
-      description: Exact server or loader build (see console). For example "Paper 26.3-133", "Fabric Loader 0.19.5", "NeoForge 26.3.0.33-beta".
+      description: Exact server or loader build (see console). For example "Paper 26.3-133", "Fabric Loader 0.19.5", "NeoForge 26.3.0.83".
       placeholder: DO NOT SAY "LATEST"
     validations:
       required: true

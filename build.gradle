@@ -76,7 +76,7 @@ String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse
 String bukkitMinecraftRange = providers.gradleProperty('bukkitMinecraftRange').getOrElse('26.1.2-26.3')
 String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse('0.19.5')
 String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse('26.3-66.0.8')
-String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse('26.3.0.33-beta')
+String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse('26.3.0.83')
 String volmLibShared = 'com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT'
 File localVolmLibCheckout = (File) gradle.extensions.extraProperties.get('volmLibDirectory')
 IncludedBuild localVolmLibBuild = localVolmLibCheckout == null ? null : gradle.includedBuilds.find { IncludedBuild includedBuild ->

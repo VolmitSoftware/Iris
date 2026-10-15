@@ -464,6 +464,8 @@ public final class ModdedForcedDatapack {
                 Files.createDirectories(destination);
             } else if (!Files.exists(destination)) {
                 Files.copy(source, destination);
+            } else if (Files.isRegularFile(destination) && ModdedDatapackTagMerge.isTag(relative)) {
+                ModdedDatapackTagMerge.merge(source, destination);
             } else if (!Files.isRegularFile(destination) || Files.mismatch(source, destination) != -1L) {
                 throw new IOException("Conflicting Iris datapack output at " + destination + ".");
             }

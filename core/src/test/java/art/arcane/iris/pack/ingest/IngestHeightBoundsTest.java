@@ -52,7 +52,7 @@ public class IngestHeightBoundsTest {
         types.add(new CatalogDimensionType("examplemod:skyrealm", 0, 256, 256, null));
         WorldgenCatalog catalog = new WorldgenCatalog(fixture.format(), fixture.minecraftVersion(), fixture.platform(),
                 fixture.capturedAtEpochMillis(), fixture.contentFingerprint(), fixture.namespaces(), fixture.biomes(),
-                fixture.placedFeatures(), fixture.structures(), types, fixture.levelStems());
+                fixture.placedFeatures(), fixture.structures(), types, fixture.levelStems(), fixture.blockTags());
 
         JsonObject stone = tinDeposit("\"dimensionHeight\": {\"min\": 0, \"max\": 192}, \"borrowedDimensionType\": \"examplemod:skyrealm\"",
                 catalog);

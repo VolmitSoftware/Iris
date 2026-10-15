@@ -37,12 +37,17 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot.
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot.WorldgenSpawn;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot.WorldgenStructure;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 public final class WorldgenCatalogAssembler {
     private static final String MINECRAFT = "minecraft";
@@ -58,16 +63,57 @@ public final class WorldgenCatalogAssembler {
         List<CatalogStructure> structures = structures(snapshot.structures());
         List<CatalogDimensionType> dimensionTypes = dimensionTypes(snapshot.dimensionTypes());
         List<CatalogLevelStem> levelStems = levelStems(snapshot.levelStems());
+        Map<String, List<String>> blockTags = referencedBlockTags(placedFeatures, snapshot.blockTags());
         Map<String, List<String>> registryKeys = new LinkedHashMap<>();
         registryKeys.put("biome", biomes.stream().map(CatalogBiome::key).toList());
         registryKeys.put("placed_feature", placedFeatures.stream().map(CatalogPlacedFeature::key).toList());
         registryKeys.put("structure", structures.stream().map(CatalogStructure::key).toList());
         registryKeys.put("dimension_type", dimensionTypes.stream().map(CatalogDimensionType::key).toList());
         registryKeys.put("level_stem", levelStems.stream().map(CatalogLevelStem::key).toList());
+        registryKeys.put("block_tag", List.copyOf(blockTags.keySet()));
         List<CatalogNamespace> namespaces = namespaces(registryKeys, context);
         return new WorldgenCatalog(WorldgenCatalog.FORMAT, context.minecraftVersion(), context.platform(),
                 context.capturedAtEpochMillis(), WorldgenCatalogFingerprint.of(namespaces, registryKeys), namespaces,
-                biomes, placedFeatures, structures, dimensionTypes, levelStems);
+                biomes, placedFeatures, structures, dimensionTypes, levelStems, blockTags);
+    }
+
+    private static Map<String, List<String>> referencedBlockTags(List<CatalogPlacedFeature> features,
+                                                                 Map<String, List<String>> available) {
+        Set<String> referenced = new TreeSet<>();
+        for (CatalogPlacedFeature feature : features) {
+            collectTagMatches(feature.config(), referenced);
+        }
+        Map<String, List<String>> tags = new TreeMap<>();
+        for (String tag : referenced) {
+            List<String> members = available.get(tag);
+            if (members != null) {
+                tags.put(tag, members);
+            }
+        }
+        return tags;
+    }
+
+    private static void collectTagMatches(JsonElement element, Set<String> tags) {
+        if (element == null || element.isJsonNull() || element.isJsonPrimitive()) {
+            return;
+        }
+        if (element.isJsonArray()) {
+            for (JsonElement entry : element.getAsJsonArray()) {
+                collectTagMatches(entry, tags);
+            }
+            return;
+        }
+        JsonObject object = element.getAsJsonObject();
+        JsonElement predicate = object.get("predicate_type");
+        JsonElement tag = object.get("tag");
+        if (predicate != null && predicate.isJsonPrimitive() && predicate.getAsString().endsWith("tag_match")
+                && tag != null && tag.isJsonPrimitive()) {
+            String key = tag.getAsString();
+            tags.add(key.contains(":") ? key : MINECRAFT + ":" + key);
+        }
+        for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            collectTagMatches(entry.getValue(), tags);
+        }
     }
 
     private static List<CatalogNamespace> namespaces(Map<String, List<String>> registryKeys, CatalogCaptureContext context) {

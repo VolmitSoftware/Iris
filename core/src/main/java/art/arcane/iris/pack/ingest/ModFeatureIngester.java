@@ -27,6 +27,8 @@ import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,8 @@ import java.util.TreeSet;
 
 final class ModFeatureIngester {
     private static final String VANILLA_NAMESPACE = "minecraft";
+    private static final String REPLACEABLE_BLOCKS = "replaceableBlocks";
+    private static final String PALETTE = "palette";
 
     private final IngestPackModel model;
     private final WorldgenCatalogIndex index;
@@ -96,7 +100,7 @@ final class ModFeatureIngester {
         universe.addAll(model.reachableBiomes().values());
         Set<String> caveKeys = caveKeys(adopted);
         List<ModIngestItem> items = new ArrayList<>(plans.size());
-        for (FeaturePlan plan : plans.values()) {
+        for (FeaturePlan plan : hostProducersFirst(plans.values())) {
             String namespace = WorldgenCatalogIndex.namespaceOf(plan.key());
             Set<String> hosts = new TreeSet<>(plan.declaring());
             hosts.retainAll(universe);
@@ -128,6 +132,57 @@ final class ModFeatureIngester {
         return items;
     }
 
+    static List<FeaturePlan> hostProducersFirst(Collection<FeaturePlan> plans) {
+        List<FeaturePlan> pending = new ArrayList<>(plans);
+        List<FeaturePlan> ordered = new ArrayList<>(pending.size());
+        while (!pending.isEmpty()) {
+            FeaturePlan next = pending.getFirst();
+            for (FeaturePlan candidate : pending) {
+                if (!waitsForHostProducer(candidate, pending)) {
+                    next = candidate;
+                    break;
+                }
+            }
+            pending.remove(next);
+            ordered.add(next);
+        }
+        return ordered;
+    }
+
+    private static boolean waitsForHostProducer(FeaturePlan consumer, List<FeaturePlan> pending) {
+        Set<String> hosts = depositBlocks(consumer, REPLACEABLE_BLOCKS);
+        if (hosts.isEmpty()) {
+            return false;
+        }
+        for (FeaturePlan producer : pending) {
+            if (producer != consumer && !Collections.disjoint(depositBlocks(producer, PALETTE), hosts)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> depositBlocks(FeaturePlan plan, String field) {
+        if (plan.deposits() == null) {
+            return Set.of();
+        }
+        Set<String> blocks = new TreeSet<>();
+        for (JsonObject deposit : plan.deposits()) {
+            JsonElement values = deposit.get(field);
+            if (values == null || !values.isJsonArray()) {
+                continue;
+            }
+            for (JsonElement value : values.getAsJsonArray()) {
+                if (value.isJsonPrimitive()) {
+                    blocks.add(value.getAsString());
+                } else if (value.isJsonObject() && value.getAsJsonObject().has("block")) {
+                    blocks.add(value.getAsJsonObject().get("block").getAsString());
+                }
+            }
+        }
+        return blocks;
+    }
+
     private boolean treeInPackVanillaBiomes(FeaturePlan plan) {
         Optional<CatalogPlacedFeature> feature = index.placedFeature(plan.key());
         if (feature.isEmpty() || !trees.isTree(feature.get())) {
@@ -149,7 +204,8 @@ final class ModFeatureIngester {
         CatalogPlacedFeature placed = feature.get();
         try {
             if (OreDepositConverter.handles(placed)) {
-                List<JsonObject> deposits = OreDepositConverter.convert(placed, model.verticalBounds(), model.packMinY());
+                List<JsonObject> deposits = OreDepositConverter.convert(placed, model.verticalBounds(), model.packMinY(),
+                        index.catalog().blockTags());
                 return new FeaturePlan(key, declaring, steps, deposits, null, "");
             }
             if (PatchDecoratorConverter.handles(placed)) {

@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -53,7 +54,7 @@ public class CanopyEstimateTest {
                 JsonParser.parseString("[{\"type\": \"minecraft:count\", \"count\": 10}, {\"type\": \"minecraft:in_square\"},"
                         + "{\"type\": \"minecraft:surface_water_depth_filter\", \"max_water_depth\": 0}, {\"type\": \"minecraft:biome\"}]")));
         return new WorldgenCatalog(WorldgenCatalog.FORMAT, "26.3", "fabric", 1L, "canopy", List.of(new CatalogNamespace("mod", "Mod", "1")),
-                biomes, features, List.of(), List.of(), List.of());
+                biomes, features, List.of(), List.of(), List.of(), Map.of());
     }
 
     private static CatalogBiome biome(String key, List<String> vegetal) {

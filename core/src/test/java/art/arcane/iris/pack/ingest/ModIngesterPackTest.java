@@ -216,7 +216,7 @@ public class ModIngesterPackTest {
         namespaces.add(new CatalogNamespace("quietmod", "Quiet Mod", "1.0.0"));
         WorldgenCatalog catalog = new WorldgenCatalog(fixture.format(), fixture.minecraftVersion(), fixture.platform(),
                 fixture.capturedAtEpochMillis(), fixture.contentFingerprint(), namespaces, fixture.biomes(),
-                fixture.placedFeatures(), fixture.structures(), fixture.dimensionTypes(), fixture.levelStems());
+                fixture.placedFeatures(), fixture.structures(), fixture.dimensionTypes(), fixture.levelStems(), fixture.blockTags());
 
         ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog, Set.of(), Set.of(), false));
 

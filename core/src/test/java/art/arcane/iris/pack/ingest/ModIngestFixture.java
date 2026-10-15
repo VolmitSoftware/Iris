@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 final class ModIngestFixture {
@@ -316,7 +317,7 @@ final class ModIngestFixture {
                 List.of(new CatalogNamespace(MOD, "Example Mod", "1.0.0"), new CatalogNamespace(OTHER_MOD, "Other Mod", "2.0.0")),
                 biomes, features, structures,
                 List.of(new CatalogDimensionType("minecraft:overworld", -64, 384, 384, null)),
-                List.of());
+                List.of(), Map.of());
     }
 
     static ModIngestRequest request(Path source, Path target, Set<String> namespaces, boolean replace) {

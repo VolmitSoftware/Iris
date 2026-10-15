@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -42,7 +43,8 @@ final class OreDepositConverter {
         return ORE_TYPES.contains(VanillaJson.namespaced(feature.featureType()));
     }
 
-    static List<JsonObject> convert(CatalogPlacedFeature feature, VanillaHeights.VerticalBounds bounds, int packMinY) throws IngestConversionException {
+    static List<JsonObject> convert(CatalogPlacedFeature feature, VanillaHeights.VerticalBounds bounds, int packMinY,
+                                    Map<String, List<String>> blockTags) throws IngestConversionException {
         JsonObject config = VanillaJson.featureConfig(feature.config());
         Placement placement = placement(VanillaJson.placement(feature.placement()), bounds);
         int size = VanillaJson.integer(config.get("size"), "ore size");
@@ -52,7 +54,7 @@ final class OreDepositConverter {
         double discard = VanillaJson.number(config, "discard_chance_on_air_exposure", 0D, "ore");
         String shape = VanillaJson.namespaced(feature.featureType()).equals("minecraft:scattered_ore") ? "VANILLA_SCATTERED" : "VANILLA_ELLIPSOID";
         List<JsonObject> deposits = new ArrayList<>();
-        for (Target target : targets(VanillaJson.array(config.get("targets"), "ore targets"))) {
+        for (Target target : targets(VanillaJson.array(config.get("targets"), "ore targets"), blockTags)) {
             JsonObject deposit = new JsonObject();
             deposit.addProperty("minHeight", placement.band().min() - packMinY);
             deposit.addProperty("maxHeight", placement.band().max() - packMinY);
@@ -84,13 +86,13 @@ final class OreDepositConverter {
         return deposits;
     }
 
-    private static List<Target> targets(JsonArray targets) throws IngestConversionException {
+    private static List<Target> targets(JsonArray targets, Map<String, List<String>> blockTags) throws IngestConversionException {
         List<Target> result = new ArrayList<>(targets.size());
         SortedSet<String> claimed = new TreeSet<>();
         for (JsonElement entry : targets) {
             JsonObject target = VanillaJson.object(entry, "ore target");
             JsonObject block = VanillaBlockStates.irisBlock(target.get("state"));
-            VanillaRuleTests.HostSet hosts = VanillaRuleTests.hosts(target.get("target"));
+            VanillaRuleTests.HostSet hosts = VanillaRuleTests.hosts(target.get("target"), blockTags);
             if (hosts.any()) {
                 if (!claimed.isEmpty()) {
                     throw new IngestConversionException("ore target accepting any block follows restricted targets");
@@ -125,6 +127,11 @@ final class OreDepositConverter {
                 }
                 case "minecraft:rarity_filter" -> spawnChance /= Math.max(1D, VanillaJson.number(object.get("chance"), "rarity_filter.chance"));
                 case "minecraft:random_chance" -> spawnChance *= Math.max(0D, Math.min(1D, VanillaJson.number(object.get("chance"), "random_chance.chance")));
+                case "minecraft:noise_based_count", "minecraft:noise_threshold_count" -> {
+                    double mean = VanillaPlacementChain.noiseCountMean(object);
+                    minCount = Math.min(MAX_PER_CHUNK, Math.round(minCount * mean));
+                    maxCount = Math.min(MAX_PER_CHUNK, Math.round(maxCount * mean));
+                }
                 case "minecraft:in_square", "minecraft:biome" -> {
                 }
                 case "minecraft:height_range" -> band = VanillaHeights.band(object.get("height"), bounds);

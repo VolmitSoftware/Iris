@@ -26,6 +26,7 @@ import com.google.gson.JsonParser;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -65,7 +66,7 @@ public class FeatureConverterFormatTest {
                  {"type": "minecraft:biome"}]
                 """);
 
-        List<JsonObject> deposits = OreDepositConverter.convert(iron, OVERWORLD, -64);
+        List<JsonObject> deposits = OreDepositConverter.convert(iron, OVERWORLD, -64, Map.of());
 
         assertEquals(2, deposits.size());
         assertEquals("minecraft:iron_ore", deposits.get(0).getAsJsonArray("palette").get(0).getAsJsonObject().get("block").getAsString());
@@ -88,7 +89,7 @@ public class FeatureConverterFormatTest {
                  {"type": "minecraft:biome"}]
                 """));
 
-        List<JsonObject> deposits = OreDepositConverter.convert(clay, OVERWORLD, -64);
+        List<JsonObject> deposits = OreDepositConverter.convert(clay, OVERWORLD, -64, Map.of());
 
         assertEquals(1, deposits.size());
         assertEquals("FULL_HEIGHT", deposits.getFirst().get("placementScope").getAsString());
@@ -101,7 +102,7 @@ public class FeatureConverterFormatTest {
                 "{\"size\": 4, \"targets\": [{\"state\": \"minecraft:stone\", \"target\": {\"predicate_type\": \"minecraft:always_true\"}}]}",
                 "[{\"type\": \"minecraft:environment_scan\", \"direction_of_search\": \"down\", \"max_steps\": 16, \"target_condition\": {\"type\": \"minecraft:solid\"}}]");
 
-        IngestConversionException failure = assertThrows(IngestConversionException.class, () -> OreDepositConverter.convert(buried, OVERWORLD, -64));
+        IngestConversionException failure = assertThrows(IngestConversionException.class, () -> OreDepositConverter.convert(buried, OVERWORLD, -64, Map.of()));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("minecraft:environment_scan"));
     }
@@ -178,6 +179,6 @@ public class FeatureConverterFormatTest {
 
     private static WorldgenCatalogIndex index() {
         return WorldgenCatalogIndex.of(new WorldgenCatalog(WorldgenCatalog.FORMAT, "26.3", "fabric", 0L, "",
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
     }
 }

@@ -23,6 +23,7 @@ import art.arcane.iris.pack.ingest.catalog.CatalogLevelStem;
 import art.arcane.iris.pack.ingest.catalog.CatalogNamespace;
 import art.arcane.iris.pack.ingest.catalog.CatalogPlacedFeature;
 import art.arcane.iris.pack.ingest.catalog.WorldgenCatalog;
+import art.arcane.iris.pack.ingest.catalog.WorldgenCatalogIndex;
 import art.arcane.iris.pack.ingest.catalog.WorldgenCatalogFingerprint;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModMetadata;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot;
@@ -34,6 +35,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot.
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot.WorldgenSpawn;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldgenSnapshot.WorldgenStructure;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import org.junit.Test;
 
@@ -104,15 +106,27 @@ public class WorldgenCatalogAssemblerTest {
                 "placed_feature", List.of("examplemod:ore_glimmer"),
                 "structure", List.of("examplemod:tower"),
                 "dimension_type", List.of("minecraft:overworld"),
-                "level_stem", List.of("minecraft:overworld")));
+                "level_stem", List.of("minecraft:overworld"),
+                "block_tag", List.of("examplemod:glimmer_hosts")));
         assertEquals(expected, catalog.contentFingerprint());
+    }
+
+    @Test
+    public void onlyBlockTagsReferencedByPlacedFeaturesAreKept() {
+        WorldgenCatalog catalog = WorldgenCatalogAssembler.assemble(snapshot(), CONTEXT);
+
+        assertEquals(Map.of("examplemod:glimmer_hosts", List.of("minecraft:dirt", "minecraft:grass_block")), catalog.blockTags());
+        assertEquals(List.of("minecraft:dirt", "minecraft:grass_block"),
+                WorldgenCatalogIndex.of(catalog).blockTag("examplemod:glimmer_hosts").orElseThrow());
     }
 
     static NativeWorldgenSnapshot snapshot() {
         JsonObject definition = new JsonObject();
         definition.add("downfall", new JsonPrimitive(0.4F));
-        JsonObject config = new JsonObject();
-        config.add("type", new JsonPrimitive("minecraft:ore"));
+        JsonObject config = JsonParser.parseString("""
+                {"type": "minecraft:ore", "targets": [{"state": "examplemod:glimmer_ore",
+                  "target": {"predicate_type": "minecraft:tag_match", "tag": "examplemod:glimmer_hosts"}}]}
+                """).getAsJsonObject();
         return new NativeWorldgenSnapshot(
                 List.of(new WorldgenBiome("examplemod:glade", 0.7F, 0.4F, true, List.of("minecraft:is_overworld"),
                                 List.of(List.of(), List.of("examplemod:ore_glimmer")),
@@ -124,6 +138,8 @@ public class WorldgenCatalogAssemblerTest {
                 List.of(new WorldgenDimensionType("minecraft:overworld", -64, 384, 384, null)),
                 List.of(new WorldgenLevelStem("minecraft:overworld", "minecraft:overworld", "minecraft:noise",
                         "minecraft:multi_noise", null)),
+                Map.of("examplemod:glimmer_hosts", List.of("minecraft:dirt", "minecraft:grass_block"),
+                        "minecraft:unreferenced", List.of("minecraft:stone")),
                 new EncodeFailures(0, List.of(), null));
     }
 }

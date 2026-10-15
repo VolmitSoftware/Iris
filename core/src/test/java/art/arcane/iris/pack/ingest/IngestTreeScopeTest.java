@@ -107,7 +107,7 @@ public class IngestTreeScopeTest {
         features.add(feature("mossy_rocks", "minecraft:forest_rock", "{\"state\": \"minecraft:mossy_cobblestone\"}"));
         return new WorldgenCatalog(fixture.format(), fixture.minecraftVersion(), fixture.platform(), fixture.capturedAtEpochMillis(),
                 fixture.contentFingerprint(), fixture.namespaces(), biomes, features, fixture.structures(),
-                fixture.dimensionTypes(), fixture.levelStems());
+                fixture.dimensionTypes(), fixture.levelStems(), fixture.blockTags());
     }
 
     private static CatalogPlacedFeature feature(String path, String type, String config) {

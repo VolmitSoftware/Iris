@@ -166,6 +166,14 @@ final class VanillaPlacementChain {
         return values.get(0).getAsInt() == 0 && values.get(1).getAsInt() == -1 && values.get(2).getAsInt() == 0;
     }
 
+    static double noiseCountMean(JsonObject object) throws IngestConversionException {
+        if (VanillaJson.type(object, "type").equals("minecraft:noise_threshold_count")) {
+            return (VanillaJson.number(object.get("below_noise"), "noise_threshold_count.below_noise")
+                    + VanillaJson.number(object.get("above_noise"), "noise_threshold_count.above_noise")) / 2D;
+        }
+        return noiseBasedMean(object);
+    }
+
     private static double noiseBasedMean(JsonObject object) throws IngestConversionException {
         double ratio = VanillaJson.number(object.get("noise_to_count_ratio"), "noise_based_count.noise_to_count_ratio");
         double offset = VanillaJson.number(object, "noise_offset", 0D, "noise_based_count");

@@ -24,6 +24,7 @@ import com.google.gson.JsonParser;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -93,20 +94,23 @@ public class VanillaFeatureParsersTest {
                   {"predicate_type": "minecraft:all_of", "rules": [
                     {"predicate_type": "minecraft:not", "rule": {"predicate_type": "minecraft:tag_match", "tag": "minecraft:height_specific_ore_replaceables"}},
                     {"predicate_type": "minecraft:tag_match", "tag": "minecraft:stone_ore_replaceables"}]}]}
-                """));
+                """), Map.of());
 
         assertFalse(stone.any());
         assertEquals(Set.of("minecraft:tuff", "minecraft:stone", "minecraft:granite", "minecraft:diorite", "minecraft:andesite"), stone.blocks());
         assertEquals(Set.of("minecraft:netherrack"),
-                VanillaRuleTests.hosts(json("{\"predicate_type\": \"minecraft:block_match\", \"block\": \"minecraft:netherrack\"}")).blocks());
+                VanillaRuleTests.hosts(json("{\"predicate_type\": \"minecraft:block_match\", \"block\": \"minecraft:netherrack\"}"), Map.of()).blocks());
         assertEquals(Set.of("minecraft:end_stone"), VanillaRuleTests.hosts(json(
-                "{\"predicate_type\": \"minecraft:blockstate_match\", \"block_state\": {\"Name\": \"minecraft:end_stone\"}}")).blocks());
-        assertTrue(VanillaRuleTests.hosts(json("{\"predicate_type\": \"minecraft:always_true\"}")).any());
+                "{\"predicate_type\": \"minecraft:blockstate_match\", \"block_state\": {\"Name\": \"minecraft:end_stone\"}}"), Map.of()).blocks());
+        assertTrue(VanillaRuleTests.hosts(json("{\"predicate_type\": \"minecraft:always_true\"}"), Map.of()).any());
         assertThrows(IngestConversionException.class, () -> VanillaRuleTests.hosts(json(
-                "{\"predicate_type\": \"minecraft:random_block_match\", \"block\": \"minecraft:stone\", \"probability\": 0.5}")));
+                "{\"predicate_type\": \"minecraft:random_block_match\", \"block\": \"minecraft:stone\", \"probability\": 0.5}"), Map.of()));
         IngestConversionException unknownTag = assertThrows(IngestConversionException.class, () -> VanillaRuleTests.hosts(json(
-                "{\"predicate_type\": \"minecraft:tag_match\", \"tag\": \"examplemod:moon_rock\"}")));
+                "{\"predicate_type\": \"minecraft:tag_match\", \"tag\": \"examplemod:moon_rock\"}"), Map.of()));
         assertTrue(unknownTag.getMessage().contains("examplemod:moon_rock"));
+        assertEquals(Set.of("examplemod:moon_stone"), VanillaRuleTests.hosts(json(
+                "{\"predicate_type\": \"minecraft:tag_match\", \"tag\": \"examplemod:moon_rock\"}"),
+                Map.of("examplemod:moon_rock", List.of("examplemod:moon_stone"))).blocks());
     }
 
     @Test

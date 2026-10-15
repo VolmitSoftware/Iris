@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -55,7 +56,7 @@ public class WorldgenCatalogStoreTest {
                 List.of(new CatalogStructure("examplemod:tower", "minecraft:jigsaw", "surface_structures", "none",
                         "examplemod:has_tower", List.of("examplemod:glade"), List.of("examplemod:towers"))),
                 List.of(new CatalogDimensionType("examplemod:sky", 0, 256, 256, new JsonObject())),
-                List.of(new CatalogLevelStem("examplemod:sky", "examplemod:sky", "minecraft:noise", "minecraft:multi_noise", null)));
+                List.of(new CatalogLevelStem("examplemod:sky", "examplemod:sky", "minecraft:noise", "minecraft:multi_noise", null)), Map.of());
         Path file = folder.getRoot().toPath().resolve("nested").resolve(WorldgenCatalogStore.FILE_NAME);
 
         WorldgenCatalogStore.write(file, catalog);
@@ -72,7 +73,7 @@ public class WorldgenCatalogStoreTest {
                 List.of(new CatalogBiome("examplemod:glade", 0.7F, 0.8F, true, List.of(), List.of(List.of("examplemod:flowers")), List.of(), null),
                         new CatalogBiome("minecraft:forest", 0.7F, 0.8F, true, List.of(), List.of(List.of("examplemod:flowers")), List.of(), null),
                         new CatalogBiome("minecraft:desert", 2.0F, 0.0F, false, List.of(), List.of(), List.of(), null)),
-                List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), Map.of());
         WorldgenCatalogIndex index = WorldgenCatalogIndex.of(catalog);
 
         assertEquals(1, index.biomesIn("examplemod").size());

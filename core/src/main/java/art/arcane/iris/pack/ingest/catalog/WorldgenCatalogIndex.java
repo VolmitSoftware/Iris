@@ -74,6 +74,10 @@ public final class WorldgenCatalogIndex {
         return Optional.ofNullable(dimensionTypes.get(key));
     }
 
+    public Optional<List<String>> blockTag(String key) {
+        return Optional.ofNullable(catalog.blockTags().get(key));
+    }
+
     public Optional<CatalogLevelStem> levelStem(String key) {
         return Optional.ofNullable(levelStems.get(key));
     }

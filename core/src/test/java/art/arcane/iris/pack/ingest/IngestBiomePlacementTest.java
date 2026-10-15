@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -129,7 +130,7 @@ public class IngestBiomePlacementTest {
         }
         return new WorldgenCatalog(WorldgenCatalog.FORMAT, "26.3", "fabric", 1000L, "fingerprint-placement",
                 List.of(new CatalogNamespace(MOD, "Mod Pack", "1.0.0")), biomes, List.of(), List.of(),
-                List.of(new CatalogDimensionType("minecraft:overworld", -64, 384, 384, null)), List.of());
+                List.of(new CatalogDimensionType("minecraft:overworld", -64, 384, 384, null)), List.of(), Map.of());
     }
 
     private static CatalogBiome biome(String key, float temperature, float downfall, String categoryTag) {

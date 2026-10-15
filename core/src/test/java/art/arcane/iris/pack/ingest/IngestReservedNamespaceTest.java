@@ -75,7 +75,7 @@ public class IngestReservedNamespaceTest {
         biomes.add(biome("underworld:ash_fields"));
         return new WorldgenCatalog(fixture.format(), fixture.minecraftVersion(), fixture.platform(),
                 fixture.capturedAtEpochMillis(), fixture.contentFingerprint(), fixture.namespaces(), biomes,
-                fixture.placedFeatures(), fixture.structures(), fixture.dimensionTypes(), fixture.levelStems());
+                fixture.placedFeatures(), fixture.structures(), fixture.dimensionTypes(), fixture.levelStems(), fixture.blockTags());
     }
 
     private static CatalogBiome biome(String key) {

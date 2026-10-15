@@ -20,6 +20,7 @@
 package art.arcane.iris.pack.ingest.catalog;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public record WorldgenCatalog(
@@ -33,8 +34,9 @@ public record WorldgenCatalog(
         List<CatalogPlacedFeature> placedFeatures,
         List<CatalogStructure> structures,
         List<CatalogDimensionType> dimensionTypes,
-        List<CatalogLevelStem> levelStems) {
-    public static final int FORMAT = 1;
+        List<CatalogLevelStem> levelStems,
+        Map<String, List<String>> blockTags) {
+    public static final int FORMAT = 2;
 
     public WorldgenCatalog {
         Objects.requireNonNull(minecraftVersion, "minecraftVersion");
@@ -46,5 +48,6 @@ public record WorldgenCatalog(
         structures = List.copyOf(Objects.requireNonNull(structures, "structures"));
         dimensionTypes = List.copyOf(Objects.requireNonNull(dimensionTypes, "dimensionTypes"));
         levelStems = List.copyOf(Objects.requireNonNull(levelStems, "levelStems"));
+        blockTags = Map.copyOf(Objects.requireNonNull(blockTags, "blockTags"));
     }
 }

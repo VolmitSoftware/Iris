@@ -42,32 +42,32 @@ final class VanillaRuleTests {
     private VanillaRuleTests() {
     }
 
-    static HostSet hosts(JsonElement ruleTest) throws IngestConversionException {
+    static HostSet hosts(JsonElement ruleTest, Map<String, List<String>> blockTags) throws IngestConversionException {
         JsonObject object = VanillaJson.object(ruleTest, "ore target predicate");
         String type = VanillaJson.type(object, "predicate_type");
         return switch (type) {
             case "minecraft:always_true" -> HostSet.ANY;
-            case "minecraft:tag_match" -> tag(VanillaJson.namespaced(VanillaJson.string(object.get("tag"), "tag_match.tag")));
+            case "minecraft:tag_match" -> tag(VanillaJson.namespaced(VanillaJson.string(object.get("tag"), "tag_match.tag")), blockTags);
             case "minecraft:block_match" -> HostSet.of(Set.of(VanillaJson.namespaced(VanillaJson.string(object.get("block"), "block_match.block"))));
             case "minecraft:blockstate_match" -> HostSet.of(Set.of(VanillaBlockStates.irisBlock(object.get("block_state")).get("block").getAsString()));
-            case "minecraft:any_of" -> anyOf(rules(object));
-            case "minecraft:all_of" -> allOf(rules(object));
+            case "minecraft:any_of" -> anyOf(rules(object), blockTags);
+            case "minecraft:all_of" -> allOf(rules(object), blockTags);
             default -> throw new IngestConversionException("unsupported ore target predicate " + (type.isEmpty() ? object.toString() : type));
         };
     }
 
-    private static HostSet tag(String tag) throws IngestConversionException {
-        List<String> blocks = BLOCK_TAGS.get(tag);
+    private static HostSet tag(String tag, Map<String, List<String>> blockTags) throws IngestConversionException {
+        List<String> blocks = blockTags.containsKey(tag) ? blockTags.get(tag) : BLOCK_TAGS.get(tag);
         if (blocks == null) {
-            throw new IngestConversionException("ore target uses block tag " + tag + " whose members are not known offline");
+            throw new IngestConversionException("ore target uses block tag " + tag + " whose members the catalog did not capture");
         }
         return HostSet.of(Set.copyOf(blocks));
     }
 
-    private static HostSet anyOf(List<JsonElement> rules) throws IngestConversionException {
+    private static HostSet anyOf(List<JsonElement> rules, Map<String, List<String>> blockTags) throws IngestConversionException {
         SortedSet<String> union = new TreeSet<>();
         for (JsonElement rule : rules) {
-            HostSet hosts = hosts(rule);
+            HostSet hosts = hosts(rule, blockTags);
             if (hosts.any()) {
                 return HostSet.ANY;
             }
@@ -76,7 +76,7 @@ final class VanillaRuleTests {
         return HostSet.of(union);
     }
 
-    private static HostSet allOf(List<JsonElement> rules) throws IngestConversionException {
+    private static HostSet allOf(List<JsonElement> rules, Map<String, List<String>> blockTags) throws IngestConversionException {
         HostSet positive = null;
         SortedSet<String> negative = new TreeSet<>();
         for (JsonElement rule : rules) {
@@ -86,14 +86,14 @@ final class VanillaRuleTests {
                 continue;
             }
             if (type.equals("minecraft:not")) {
-                HostSet excluded = hosts(ruleObject.get("rule"));
+                HostSet excluded = hosts(ruleObject.get("rule"), blockTags);
                 if (excluded.any()) {
                     throw new IngestConversionException("ore target predicate never matches");
                 }
                 negative.addAll(excluded.blocks());
                 continue;
             }
-            positive = intersect(positive, hosts(ruleObject));
+            positive = intersect(positive, hosts(ruleObject, blockTags));
         }
         if (positive == null) {
             throw new IngestConversionException("ore target all_of has no block constraint");

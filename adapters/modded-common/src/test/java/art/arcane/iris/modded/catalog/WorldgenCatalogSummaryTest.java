@@ -30,6 +30,7 @@ import art.arcane.iris.pack.ingest.catalog.WorldgenCatalog;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -74,7 +75,7 @@ public class WorldgenCatalogSummaryTest {
     @Test
     public void keyNamespacesWithoutModMetadataStillSummarize() {
         WorldgenCatalog catalog = new WorldgenCatalog(WorldgenCatalog.FORMAT, "26.3", "fabric", 1L, "x",
-                List.of(), List.of(biome("datapack:dunes")), List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(biome("datapack:dunes")), List.of(), List.of(), List.of(), List.of(), Map.of());
 
         NamespaceSummary summary = WorldgenCatalogSummary.namespace(catalog, "datapack").orElseThrow();
 
@@ -104,7 +105,7 @@ public class WorldgenCatalogSummaryTest {
                 List.of(new CatalogStructure("examplemod:tower", "minecraft:jigsaw", "surface_structures", "none", "",
                         List.of(), List.of())),
                 List.of(new CatalogDimensionType("examplemod:sky", 0, 256, 256, null)),
-                List.of(new CatalogLevelStem("examplemod:sky", "examplemod:sky", "minecraft:noise", "minecraft:fixed", null)));
+                List.of(new CatalogLevelStem("examplemod:sky", "examplemod:sky", "minecraft:noise", "minecraft:fixed", null)), Map.of());
     }
 
     private static CatalogBiome biome(String key) {

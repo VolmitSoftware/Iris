@@ -58,6 +58,7 @@ import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
+import art.arcane.iris.modded.catalog.ModdedWorldgenCatalogs;
 import art.arcane.iris.modded.command.IrisModdedCommands;
 import art.arcane.iris.modded.command.ModdedGuiHost;
 import art.arcane.iris.modded.command.ModdedObjectUndo;
@@ -173,6 +174,7 @@ public final class ModdedEngineBootstrap {
         ModdedStartup.runOnce(server);
         reconcileSpawn(server);
         ModdedWorldCheck.serverStarted(server);
+        ModdedWorldgenCatalogs.capture(server);
     }
 
     public static void levelLoaded(NativeWorld world) {

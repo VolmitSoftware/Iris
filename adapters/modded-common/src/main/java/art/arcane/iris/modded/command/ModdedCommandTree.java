@@ -114,6 +114,9 @@ final class ModdedCommandTree {
         root.then(downloadTree("download"));
         root.then(downloadTree("dl"));
 
+        root.then(ModdedCatalogCommands.catalogTree());
+        root.then(ModdedCatalogCommands.ingestTree());
+
         root.then(metricsTree("metrics"));
         root.then(metricsTree("measure"));
 

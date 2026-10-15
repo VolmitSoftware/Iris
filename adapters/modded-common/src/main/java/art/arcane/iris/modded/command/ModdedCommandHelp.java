@@ -20,6 +20,7 @@ package art.arcane.iris.modded.command;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.IrisMessages;
+import art.arcane.iris.modded.localization.ModdedCatalogMessages;
 import art.arcane.iris.modded.localization.ModdedHelpMessages;
 import art.arcane.volmlib.util.director.help.DirectorHelpMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
@@ -68,6 +69,8 @@ final class ModdedCommandHelp {
                 Entry.command("debug", "", ModdedHelpMessages.COMMAND_DEBUG_TOGGLE_IRIS_DEBUG_LOGGING_AND_SAVE_SETTINGS_JSON),
                 Entry.command("reload", "", ModdedHelpMessages.COMMAND_RELOAD_RELOAD_SETTINGS_JSON_ALSO_HOTLOADED_AUTOMATICALLY_EVERY_3S),
                 Entry.command("download", "<pack=overworld|pack=underworld|link=<zip-url>> [overwrite=true]", ModdedHelpMessages.COMMAND_DOWNLOAD_DOWNLOAD_A_PACK_PROJECT, "dl"),
+                Entry.command("catalog", "[namespace|refresh]", ModdedCatalogMessages.HELP_CATALOG),
+                Entry.group("ingest", ModdedCatalogMessages.HELP_INGEST),
                 Entry.command("metrics", "", ModdedHelpMessages.COMMAND_METRICS_PRINT_GENERATION_METRICS_FOR_YOUR_CURRENT_IRIS_DIMENSION, "measure"),
                 Entry.command("regen", "[radius]", ModdedHelpMessages.COMMAND_REGEN_DELETE_AND_REGENERATE_NEARBY_CHUNKS_IN_PLACE, "rg"),
                 Entry.group("pregen", ModdedHelpMessages.GROUP_PREGEN_PREGENERATE_AN_IRIS_DIMENSION, "pregenerate"),
@@ -165,6 +168,9 @@ final class ModdedCommandHelp {
                 Entry.command("compat", "[pack]", ModdedHelpMessages.COMMAND_COMPAT_SHOW_CONTENT_THAT_CANNOT_GENERATE_ON_THIS_MINECRAFT_VERSION, "cp")
         ));
         SECTIONS.put("pk", SECTIONS.get("pack"));
+        SECTIONS.put("ingest", List.of(
+                Entry.command("mods", "<source> <target> [dimension=<key>] [namespaces=<a,b>] [replace=true]", ModdedCatalogMessages.HELP_INGEST_MODS)
+        ));
         SECTIONS.put("world", List.of(
                 Entry.command("enable", "<dimension> <pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_ENABLE_CREATE_AND_INJECT_A_PERSISTENT_IRIS_DIMENSION_AT_RUNTIME_DOWNLOADS_THE_PACK, "create"),
                 Entry.command("replace-overworld", "<pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_REPLACE_OVERWORLD_INJECT_AN_IRIS_PRIMARY_WORLD_AND_ROUTE_PLAYERS_THERE_INSTEAD_OF_THE),

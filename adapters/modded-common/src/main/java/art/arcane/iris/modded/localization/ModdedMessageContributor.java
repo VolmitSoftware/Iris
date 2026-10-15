@@ -12,6 +12,7 @@ public final class ModdedMessageContributor implements IrisMessageContributor {
         List<MessageKey> keys = new ArrayList<>();
         keys.addAll(ModdedCommandMessages.keys());
         keys.addAll(ModdedHelpMessages.keys());
+        keys.addAll(ModdedCatalogMessages.keys());
         keys.addAll(ClientUiMessages.keys());
         return List.copyOf(keys);
     }

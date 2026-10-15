@@ -18,6 +18,9 @@
 
 package art.arcane.iris.modded;
 
+import art.arcane.iris.world.history.GenerationEpoch;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.history.GenerationPackFingerprint;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -76,7 +79,7 @@ public class ModdedTakeoverReconcilerTest {
             assertTrue(Files.isRegularFile(skylands.resolve("data/payload.bin")));
             assertTrue(Files.isRegularFile(worldRoot.resolve("dimensions/minecraft/overworld/region/r.0.0.mca")));
             assertTrue(Files.isRegularFile(worldRoot.resolve("players/data/player.dat")));
-            assertEquals(Map.of("iristest:skylands", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
+            assertEquals(Map.of(), ModdedTakeoverReconciler.readApplied(worldRoot));
         } finally {
             deleteTree(temporary);
         }
@@ -112,7 +115,7 @@ public class ModdedTakeoverReconcilerTest {
     }
 
     @Test
-    public void changeWithoutChunkDataRecordsStateWithoutARecoveryFolder() throws IOException {
+    public void newTakeoverWithoutChunkDataStaysPendingWithoutARecoveryFolder() throws IOException {
         Path temporary = Files.createTempDirectory("iris-takeover-empty");
         Path worldRoot = temporary.resolve("world");
         Path recoveryParent = temporary.resolve("config");
@@ -125,7 +128,7 @@ public class ModdedTakeoverReconcilerTest {
             assertEquals(Set.of("aether:the_aether"), result.changedLevels());
             assertNull(result.recovery());
             assertFalse(Files.exists(recoveryParent));
-            assertEquals(Map.of("aether:the_aether", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
+            assertEquals(Map.of(), ModdedTakeoverReconciler.readApplied(worldRoot));
         } finally {
             deleteTree(temporary);
         }
@@ -182,6 +185,140 @@ public class ModdedTakeoverReconcilerTest {
         } finally {
             deleteTree(temporary);
         }
+    }
+
+    @Test
+    public void changedTakeoverKeepsThePreviousStateUntilTheNewPackGenerates() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-change");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path region = worldRoot.resolve("dimensions/iristest/skylands/region/r.0.0.mca");
+            ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of("iristest:skylands", "overworld"));
+            touch(region);
+
+            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of("iristest:skylands", "skypack"), List.of(), temporary.resolve("config"));
+
+            assertEquals(Set.of("iristest:skylands"), result.changedLevels());
+            assertFalse(Files.exists(region));
+            assertEquals(Map.of("iristest:skylands", "overworld"), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void existingHistoryOfTheConfiguredPackIsAdoptedWithoutQuarantine() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-history-match");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path skylands = worldRoot.resolve("dimensions/iristest/skylands");
+            createHistory(temporary, skylands, ModdedWorldgenIds.dimensionTypeRef("skypack", "sky"), "sky", List.of());
+            touch(skylands.resolve("region/r.0.0.mca"));
+
+            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of("iristest:skylands", "skypack:sky"), List.of(), temporary.resolve("config"));
+
+            assertEquals(Set.of("iristest:skylands"), result.adoptedLevels());
+            assertNull(result.recovery());
+            assertTrue(Files.isRegularFile(skylands.resolve("region/r.0.0.mca")));
+            assertEquals(Map.of("iristest:skylands", "skypack:sky"), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void historyOfAnotherPackIsQuarantined() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-history-other");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path skylands = worldRoot.resolve("dimensions/iristest/skylands");
+            createHistory(temporary, skylands, ModdedWorldgenIds.dimensionTypeRef("otherpack", "sky"), "sky", List.of());
+            touch(skylands.resolve("region/r.0.0.mca"));
+
+            ModdedTakeoverReconciler.Result result = ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of("iristest:skylands", "skypack:sky"), List.of(), temporary.resolve("config"));
+
+            assertEquals(Set.of(), result.adoptedLevels());
+            assertFalse(Files.exists(skylands.resolve("region")));
+            assertFalse(Files.exists(skylands.resolve("iris")));
+            assertEquals(Map.of(), ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void borrowedHistoryMatchesOnItsRecordedAliasPack() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-history-borrowed");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            Path aether = worldRoot.resolve("dimensions/aether/the_aether");
+            createHistory(temporary, aether, "aether:the_aether", "sky",
+                    List.of(ModdedWorldgenIds.biomeRef("skypack", "sky", "meadow")));
+            touch(aether.resolve("region/r.0.0.mca"));
+
+            ModdedTakeoverReconciler.Result other = ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of("aether:the_aether", "otherpack:sky"), List.of(), temporary.resolve("config"));
+
+            assertEquals(Set.of(), other.adoptedLevels());
+            assertFalse(Files.exists(aether.resolve("region")));
+
+            createHistory(temporary, aether, "aether:the_aether", "sky",
+                    List.of(ModdedWorldgenIds.biomeRef("skypack", "sky", "meadow")));
+            ModdedTakeoverReconciler.Result matching = ModdedTakeoverReconciler.reconcile(
+                    worldRoot, Map.of("aether:the_aether", "skypack:sky"), List.of(), temporary.resolve("config"));
+
+            assertEquals(Set.of("aether:the_aether"), matching.adoptedLevels());
+            assertTrue(Files.isDirectory(aether.resolve("iris")));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void recordAppliedStoresOnlyTakeoversThatGenerateFromTheirPack() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-record");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            ModdedTakeoverReconciler.writeApplied(worldRoot, Map.of("iristest:kept", "overworld"));
+
+            Map<String, String> recorded = ModdedTakeoverReconciler.recordApplied(worldRoot,
+                    Map.of("iristest:kept", "overworld", "iristest:live", "skypack", "iristest:skipped", "skypack"),
+                    (String level, String packRef) -> !level.equals("iristest:skipped"));
+
+            Map<String, String> expected = Map.of("iristest:kept", "overworld", "iristest:live", "skypack");
+            assertEquals(expected, recorded);
+            assertEquals(expected, ModdedTakeoverReconciler.readApplied(worldRoot));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    @Test
+    public void recordAppliedFailsWhenTheStateCannotBeWritten() throws IOException {
+        Path temporary = Files.createTempDirectory("iris-takeover-record-fail");
+        Path worldRoot = temporary.resolve("world");
+        try {
+            touch(worldRoot.resolve("data/irisworldgen/dimension-takeovers.json/blocker"));
+
+            assertThrows(IOException.class, () -> ModdedTakeoverReconciler.recordApplied(worldRoot,
+                    Map.of("iristest:live", "skypack"), (String level, String packRef) -> true));
+        } finally {
+            deleteTree(temporary);
+        }
+    }
+
+    private static void createHistory(Path temporary, Path dimensionRoot, String dimensionTypeKey, String dimensionKey,
+                                      List<String> biomeKeys) throws IOException {
+        Path source = Files.createTempDirectory(temporary, "pack");
+        touch(source.resolve("dimensions/" + dimensionKey + ".json"));
+        GenerationEpoch epoch = ModdedRetainedPackNameTest.epoch(dimensionTypeKey, dimensionKey, biomeKeys);
+        Files.createDirectories(dimensionRoot);
+        GenerationHistory.create(dimensionRoot, source,
+                GenerationPackFingerprint.compute(source, GenerationPackFingerprint.CURRENT_VERSION), 5L,
+                epoch.dimensionContract(), epoch.registryContract());
     }
 
     private static void touch(Path file) throws IOException {

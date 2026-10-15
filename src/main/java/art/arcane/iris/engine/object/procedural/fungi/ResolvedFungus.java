@@ -18,32 +18,36 @@
 
 package art.arcane.iris.engine.object.procedural.fungi;
 
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.fungi.Fungus;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** A fungus made placeable: its variants are baked by {@link FungusGenerator}. */
 public final class ResolvedFungus extends ResolvedProceduralPlacement {
     private final Fungus settings;
 
-    public ResolvedFungus(Fungus settings) {
+    public ResolvedFungus(Fungus settings, ObjectHost host) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)));
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
         this.settings = settings;
     }
 
     @Override
-    protected IrisObject generate(int index, RNG rng, IrisData data) {
+    protected ProceduralShape generate(int index, RNG rng, ObjectBuilder blocks) {
         throw new UnsupportedOperationException("A fungus bakes its variants itself, from the stem heights");
     }
 
     @Override
-    protected KList<IrisObject> bake(IrisData data) {
-        KList<IrisObject> baked = new KList<>();
+    protected List<PlaceableObject> bake(ObjectBuilder blocks) {
+        List<PlaceableObject> baked = new ArrayList<>();
         int count = variantCount();
         int lo = Math.min(settings.stemHeightMin(), settings.stemHeightMax());
         int hi = Math.max(settings.stemHeightMin(), settings.stemHeightMax());
@@ -60,13 +64,11 @@ public final class ResolvedFungus extends ResolvedProceduralPlacement {
                 height = (int) Math.round(Math.max(lo, Math.min(hi, base + jitter)));
             }
 
-            IrisObject object = FungusGenerator.generate(settings, Math.max(1, height), variantRng(i), data);
-            if (object == null || object.getBlocks().isEmpty()) {
+            ProceduralShape generated = FungusGenerator.generate(settings, Math.max(1, height), variantRng(i), blocks);
+            if (generated == null || generated.blocks().isEmpty()) {
                 continue;
             }
-            object.setLoadKey("procedural/" + getName() + "#" + i);
-            object.setLoader(data);
-            baked.add(object);
+            baked.add(build(blocks, "procedural/" + name() + "#" + i, generated));
         }
 
         return baked;

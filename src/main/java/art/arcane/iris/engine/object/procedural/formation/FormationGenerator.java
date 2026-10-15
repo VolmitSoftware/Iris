@@ -19,10 +19,10 @@
 package art.arcane.iris.engine.object.procedural.formation;
 
 import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -33,7 +33,7 @@ public final class FormationGenerator {
     private FormationGenerator() {
     }
 
-    public static IrisObject generate(Formation f, int variantIndex, RNG rng, IrisData data) {
+    public static ProceduralShape generate(Formation f, int variantIndex, RNG rng, ObjectBuilder blocks) {
         int lo = Math.min(f.heightMin(), f.heightMax());
         int hi = Math.max(f.heightMin(), f.heightMax());
         int height = Math.max(3, rng.i(lo, hi + 1));
@@ -61,9 +61,9 @@ public final class FormationGenerator {
             return null;
         }
 
-        Map<Vector3i, PlatformBlockState> resolved = new HashMap<>();
+        Map<Vector3i, BlockState> resolved = new HashMap<>();
         for (Map.Entry<Vector3i, FormationCanvas.Role> entry : canvas.getCells().entrySet()) {
-            PlatformBlockState bd = FormationBlockResolver.resolve(f, data, entry.getValue(), entry.getKey());
+            BlockState bd = FormationBlockResolver.resolve(f, blocks, entry.getValue(), entry.getKey());
             if (bd == null) {
                 continue;
             }

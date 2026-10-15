@@ -19,11 +19,11 @@
 package art.arcane.iris.engine.object.procedural.coral;
 
 import art.arcane.iris.builtin.objects.coral.Coral;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -36,7 +36,7 @@ public final class CoralGenerator {
     private CoralGenerator() {
     }
 
-    public static IrisObject generate(Coral coral, int variantIndex, RNG rng, IrisData data) {
+    public static ProceduralShape generate(Coral coral, int variantIndex, RNG rng, ObjectBuilder blocks) {
         int lo = Math.min(coral.heightMin(), coral.heightMax());
         int hi = Math.max(coral.heightMin(), coral.heightMax());
         int height = Math.max(2, rng.i(lo, hi + 1));
@@ -51,7 +51,7 @@ public final class CoralGenerator {
             case TENDRIL -> buildTendril(canvas, coral, height, shapeSeed, rng);
         }
 
-        Map<Vector3i, PlatformBlockState> resolved = resolve(canvas, coral, data);
+        Map<Vector3i, BlockState> resolved = resolve(canvas, coral, blocks);
         return IrisProceduralBlocks.assemble(resolved);
     }
 
@@ -230,29 +230,29 @@ public final class CoralGenerator {
         };
     }
 
-    private static Map<Vector3i, PlatformBlockState> resolve(CoralCanvas canvas, Coral coral, IrisData data) {
-        Map<Vector3i, PlatformBlockState> out = new HashMap<>();
+    private static Map<Vector3i, BlockState> resolve(CoralCanvas canvas, Coral coral, ObjectBuilder blocks) {
+        Map<Vector3i, BlockState> out = new HashMap<>();
         RNG paletteRng = new RNG(coral.seed());
         for (Map.Entry<Long, CoralCanvas.Role> entry : canvas.getCells().entrySet()) {
             int[] xyz = CoralCanvas.decode(entry.getKey());
             int x = xyz[0];
             int y = xyz[1];
             int z = xyz[2];
-            PlatformBlockState state;
+            BlockState state;
             if (entry.getValue() == CoralCanvas.Role.TIP) {
-                state = IrisProceduralBlocks.resolve(coral.tipBlock(), coral.tipPalette(), data, x, y, z, paletteRng);
+                state = IrisProceduralBlocks.resolve(coral.tipBlock(), coral.tipPalette(), blocks, x, y, z, paletteRng);
                 if (state == null) {
-                    state = IrisProceduralBlocks.resolve(coral.block(), coral.blockPalette(), data, x, y, z, paletteRng);
+                    state = IrisProceduralBlocks.resolve(coral.block(), coral.blockPalette(), blocks, x, y, z, paletteRng);
                 }
             } else {
-                state = IrisProceduralBlocks.resolve(coral.block(), coral.blockPalette(), data, x, y, z, paletteRng);
+                state = IrisProceduralBlocks.resolve(coral.block(), coral.blockPalette(), blocks, x, y, z, paletteRng);
             }
             if (state == null) {
                 continue;
             }
             if (coral.waterlogged() && IrisProceduralBlocks.hasProperty(state, "waterlogged")) {
                 try {
-                    state = state.withProperty("waterlogged", "true");
+                    state = blocks.withProperty(state, "waterlogged", "true");
                 } catch (IllegalArgumentException ignored) {
                 }
             }

@@ -20,7 +20,8 @@ package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.builtin.objects.tree.Tree;
-import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import com.volmit.block.BlockState;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -37,11 +38,11 @@ public final class TreePlausibility {
     private TreePlausibility() {
     }
 
-    public static void apply(Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved, Set<TreeBlockCanvas.Vec> trunkPositions,
-                             Set<TreeBlockCanvas.Vec> leafPositions, Tree tree) {
+    public static void apply(Map<TreeBlockCanvas.Vec, BlockState> resolved, Set<TreeBlockCanvas.Vec> trunkPositions,
+                             Set<TreeBlockCanvas.Vec> leafPositions, Tree tree, ObjectBuilder blocks) {
         Set<TreeBlockCanvas.Vec> realLeaves = new HashSet<>();
         for (TreeBlockCanvas.Vec v : leafPositions) {
-            PlatformBlockState state = resolved.get(v);
+            BlockState state = resolved.get(v);
             if (state != null && IrisProceduralBlocks.hasProperty(state, "persistent") && IrisProceduralBlocks.hasProperty(state, "distance")) {
                 realLeaves.add(v);
             }
@@ -53,17 +54,21 @@ public final class TreePlausibility {
         Map<TreeBlockCanvas.Vec, Integer> distance = computeDistances(trunkPositions, realLeaves);
 
         for (TreeBlockCanvas.Vec v : realLeaves) {
-            PlatformBlockState leaf = resolved.get(v);
+            BlockState leaf = resolved.get(v);
             Integer d = distance.get(v);
             if (!tree.plausible()) {
-                leaf = leaf.withProperty("persistent", "true").withProperty("distance", "1");
+                leaf = withLeafState(blocks, leaf, "true", "1");
             } else if (d != null && d < MAX_DISTANCE) {
-                leaf = leaf.withProperty("persistent", "false").withProperty("distance", String.valueOf(Math.max(1, d)));
+                leaf = withLeafState(blocks, leaf, "false", String.valueOf(Math.max(1, d)));
             } else {
-                leaf = leaf.withProperty("persistent", "true").withProperty("distance", String.valueOf(MAX_DISTANCE));
+                leaf = withLeafState(blocks, leaf, "true", String.valueOf(MAX_DISTANCE));
             }
             resolved.put(v, leaf);
         }
+    }
+
+    private static BlockState withLeafState(ObjectBuilder blocks, BlockState leaf, String persistent, String distance) {
+        return blocks.withProperty(blocks.withProperty(leaf, "persistent", persistent), "distance", distance);
     }
 
     static Map<TreeBlockCanvas.Vec, Integer> computeDistances(Set<TreeBlockCanvas.Vec> trunkPositions, Set<TreeBlockCanvas.Vec> realLeaves) {

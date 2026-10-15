@@ -19,8 +19,9 @@
 package art.arcane.iris.engine.object.procedural.coral;
 
 import art.arcane.iris.builtin.objects.coral.Coral;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -28,15 +29,15 @@ import art.arcane.volmlib.util.math.RNG;
 public final class ResolvedCoral extends ResolvedProceduralPlacement {
     private final Coral settings;
 
-    public ResolvedCoral(Coral settings) {
+    public ResolvedCoral(Coral settings, ObjectHost host) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)));
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
         this.settings = settings;
     }
 
     @Override
-    protected IrisObject generate(int index, RNG rng, IrisData data) {
-        return CoralGenerator.generate(settings, index, rng, data);
+    protected ProceduralShape generate(int index, RNG rng, ObjectBuilder blocks) {
+        return CoralGenerator.generate(settings, index, rng, blocks);
     }
 }

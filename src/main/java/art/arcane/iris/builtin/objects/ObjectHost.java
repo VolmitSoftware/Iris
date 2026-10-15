@@ -28,6 +28,7 @@ import com.volmit.world.PackWorld;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * What {@code iris:objects} asks of Iris: the objects of the pack, how Iris scales and places them, and the layout around
@@ -83,8 +84,12 @@ public interface ObjectHost {
     /** Builds what placing the placement would build on first use, so the first chunk to place it does not wait. */
     void warm(ObjectPlacement placement, RNG rng);
 
-    /** The procedural objects {@code settings} declare, made placeable once. */
-    List<ProceduralPlacement> procedural(ProceduralObjectSettings settings);
+    /** The procedural objects {@code settings} declare, made placeable by {@code resolve} once per world. */
+    List<ProceduralPlacement> procedural(ProceduralObjectSettings settings,
+                                         Function<ProceduralObjectSettings, List<ProceduralPlacement>> resolve);
+
+    /** A builder for one bake of objects made block by block. */
+    ObjectBuilder builder();
 
     /** The object settings of the biome and the region of the dimension stacked above, at the column; none where nothing sits above. */
     Optional<UpperObjects> upperObjects(int worldX, int worldZ);

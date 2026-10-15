@@ -21,10 +21,9 @@ package art.arcane.iris.engine.object.procedural.formation;
 import com.volmit.block.PaletteSpec;
 import java.util.Optional;
 import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.material.IrisMaterialPalette;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -32,14 +31,14 @@ public final class FormationBlockResolver {
     private FormationBlockResolver() {
     }
 
-    public static PlatformBlockState resolve(Formation f, IrisData data, FormationCanvas.Role role, Vector3i raw) {
+    public static BlockState resolve(Formation f, ObjectBuilder blocks, FormationCanvas.Role role, Vector3i raw) {
         int x = raw.getBlockX();
         int y = raw.getBlockY();
         int z = raw.getBlockZ();
         RNG paletteRng = new RNG(f.seed());
 
         if (role == FormationCanvas.Role.CAP && capDefined(f)) {
-            PlatformBlockState cap = IrisProceduralBlocks.resolve(f.capBlock(), f.capPalette(), data, x, y, z, paletteRng);
+            BlockState cap = IrisProceduralBlocks.resolve(f.capBlock(), f.capPalette(), blocks, x, y, z, paletteRng);
             if (cap != null) {
                 return cap;
             }
@@ -49,13 +48,13 @@ public final class FormationBlockResolver {
             PaletteSpec strata = f.strataPalette().orElseThrow();
             int thickness = Math.max(1, f.strataThickness());
             int band = Math.floorDiv(y, thickness);
-            PlatformBlockState strataState = IrisProceduralBlocks.pick(strata, data, f.seed() + (band * 31L), x, band, z);
+            BlockState strataState = blocks.pick(strata, f.seed() + (band * 31L), x, band, z);
             if (strataState != null) {
                 return strataState;
             }
         }
 
-        return IrisProceduralBlocks.resolve(f.block(), f.blockPalette(), data, x, y, z, paletteRng);
+        return IrisProceduralBlocks.resolve(f.block(), f.blockPalette(), blocks, x, y, z, paletteRng);
     }
 
     private static boolean capDefined(Formation f) {

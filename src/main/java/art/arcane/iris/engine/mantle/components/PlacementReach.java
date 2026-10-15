@@ -30,6 +30,7 @@ import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
@@ -101,7 +102,7 @@ final class PlacementReach {
 
     private int ofProcedural(ProceduralObjectSettings settings) {
         int radius = 0;
-        for (ProceduralPlacement placement : host.procedural(settings)) {
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.of(host, settings)) {
             for (PlaceableObject variant : placement.variants()) {
                 radius = Math.max(radius, of(new ObjectSize(variant.width(), variant.height(), variant.depth()), placement));
             }

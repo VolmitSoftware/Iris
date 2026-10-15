@@ -23,7 +23,9 @@ import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
+import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import art.arcane.iris.builtin.validate.ObjectLimit;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.List;
@@ -79,6 +81,11 @@ public interface ProceduralPlacement extends PlacementSource {
     ObjectTranslate translate();
 
     Optional<VacuumSettings> vacuumSettings();
+
+    /** The heights the variants may sit between. */
+    ObjectLimit clamp();
+
+    Optional<StiltSettings> stiltSettings();
 
     /** One of the variants, picked with {@code rng}; empty when none baked. */
     Optional<PlaceableObject> variant(RNG rng);

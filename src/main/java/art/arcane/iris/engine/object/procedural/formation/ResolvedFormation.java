@@ -19,9 +19,9 @@
 package art.arcane.iris.engine.object.procedural.formation;
 
 import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -29,20 +29,20 @@ import art.arcane.volmlib.util.math.RNG;
 public final class ResolvedFormation extends ResolvedProceduralPlacement {
     private final Formation settings;
 
-    public ResolvedFormation(Formation settings) {
+    public ResolvedFormation(Formation settings, ObjectHost host) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)));
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
         this.settings = settings;
     }
 
     @Override
-    protected void customize(IrisObjectPlacement placement) {
-        placement.setSurfaceSupportBuffer(settings.surfaceSupportBuffer());
+    public int surfaceSupportBuffer() {
+        return settings.surfaceSupportBuffer();
     }
 
     @Override
-    protected IrisObject generate(int index, RNG rng, IrisData data) {
-        return FormationGenerator.generate(settings, index, rng, data);
+    protected ProceduralShape generate(int index, RNG rng, ObjectBuilder blocks) {
+        return FormationGenerator.generate(settings, index, rng, blocks);
     }
 }

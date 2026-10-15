@@ -19,9 +19,9 @@
 package art.arcane.iris.engine.object.procedural.ruin;
 
 import art.arcane.iris.builtin.objects.ruin.RuinDecorator;
-import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -36,7 +36,7 @@ final class RuinDecoratorApplier {
     private RuinDecoratorApplier() {
     }
 
-    static void apply(RuinBlockCanvas canvas, RuinDecorator decorator, IrisData data, long seed, RNG rng) {
+    static void apply(RuinBlockCanvas canvas, RuinDecorator decorator, ObjectBuilder blocks, long seed, RNG rng) {
         List<Vector3i> candidates = switch (decorator.target()) {
             case TOP -> topCandidates(canvas);
             case SURFACE -> surfaceCandidates(canvas);
@@ -48,7 +48,7 @@ final class RuinDecoratorApplier {
             if (!rng.chance(decorator.chance())) {
                 continue;
             }
-            PlatformBlockState bd = IrisProceduralBlocks.resolve(decorator.block(), decorator.palette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
+            BlockState bd = IrisProceduralBlocks.resolve(decorator.block(), decorator.palette(), blocks, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
             if (bd != null) {
                 canvas.accent(v.getBlockX(), v.getBlockY(), v.getBlockZ(), bd);
             }

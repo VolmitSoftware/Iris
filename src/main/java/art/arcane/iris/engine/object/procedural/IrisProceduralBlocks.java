@@ -18,23 +18,23 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.common.data.B;
-import art.arcane.volmlib.util.math.IrisBlockVector;
-import art.arcane.volmlib.util.math.Vector3i;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.math.Vector3i;
+import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
+import com.volmit.object.ObjectBlock;
+import com.volmit.world.BlockPosition;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Shared low-level helpers for building procedural objects in memory: resolving a
- * single block id or a noise palette into a platform block state, and assembling a
- * raw block map into a centered IrisObject anchored so its y=0 layer sits one block
- * above the terrain surface (same convention the tree generator uses).
+ * Shared low-level helpers for building procedural objects in memory: resolving a single block id or a noise palette
+ * into a block state, and assembling a raw block map into a centered object shape anchored so its y=0 layer sits one
+ * block above the terrain surface (same convention the tree generator uses).
  */
 public final class IrisProceduralBlocks {
     public static final String[] FACE_PROPERTIES = {"north", "east", "south", "west", "up", "down"};
@@ -61,92 +61,39 @@ public final class IrisProceduralBlocks {
         return palette.filter(IrisProceduralBlocks::paletteSet).isPresent();
     }
 
-    public static PlatformBlockState resolve(String block, Optional<PaletteSpec> palette, IrisData data, int x, int y, int z, RNG paletteRng) {
-        return resolve(block, palette.orElse(null), data, x, y, z, paletteRng);
+    public static BlockState resolve(String block, Optional<PaletteSpec> palette, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng) {
+        return resolve(block, palette.orElse(null), blocks, x, y, z, paletteRng);
     }
 
-    public static PlatformBlockState resolve(Optional<String> block, Optional<PaletteSpec> palette, IrisData data, int x, int y, int z, RNG paletteRng) {
-        return resolve(block.orElse(null), palette.orElse(null), data, x, y, z, paletteRng);
+    public static BlockState resolve(Optional<String> block, Optional<PaletteSpec> palette, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng) {
+        return resolve(block.orElse(null), palette.orElse(null), blocks, x, y, z, paletteRng);
     }
 
     /** The block of {@code palette} at the position, picked with the seed of {@code paletteRng} as the palette's old class did; else {@code block}. */
-    public static PlatformBlockState resolve(String block, PaletteSpec palette, IrisData data, int x, int y, int z, RNG paletteRng) {
+    public static BlockState resolve(String block, PaletteSpec palette, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng) {
         if (paletteSet(palette)) {
-            return pick(palette, data, paletteRng.getSeed(), x, y, z);
+            return blocks.pick(palette, paletteRng.getSeed(), x, y, z);
         }
         if (block != null && !block.isEmpty()) {
-            return B.getStateOrNull(block, false);
+            return blocks.block(block);
         }
         return null;
     }
 
-    /** The block {@code palette} gives at the position when its noise is seeded with {@code seed}. */
-    public static PlatformBlockState pick(PaletteSpec palette, IrisData data, long seed, int x, int y, int z) {
-        return B.getState(data.getPackResources().blocks().palette(palette, seed).at(x, y, z).key());
+    public static boolean hasProperty(BlockState state, String property) {
+        return state.properties().containsKey(property);
     }
 
-    public static boolean hasProperty(PlatformBlockState state, String property) {
-        String key = state.key();
-        int start = propertyStart(key, property);
-        if (start < 0) {
-            return false;
-        }
-        int valueStart = start + property.length() + 2;
-        return key.indexOf(',', valueStart) >= 0 || key.indexOf(']', valueStart) >= 0;
+    public static String materialKey(BlockState state) {
+        return state.material().toString();
     }
 
-    public static String materialKey(PlatformBlockState state) {
-        String memoized = state.materialKey();
-        if (memoized != null) {
-            return memoized;
-        }
-        String key = state.key();
-        int bracket = key.indexOf('[');
-        return bracket < 0 ? key : key.substring(0, bracket);
+    public static String propertyValue(BlockState state, String property) {
+        return state.properties().get(property);
     }
 
-    public static String propertyValue(PlatformBlockState state, String property) {
-        String key = state.key();
-        int start = propertyStart(key, property);
-        if (start < 0) {
-            return null;
-        }
-        int valueStart = start + property.length() + 2;
-        int end = key.indexOf(',', valueStart);
-        if (end < 0) {
-            end = key.indexOf(']', valueStart);
-        }
-        if (end < 0) {
-            return null;
-        }
-        return key.substring(valueStart, end);
-    }
-
-    /**
-     * Index of the delimiter opening "[property=" or ",property=" within the key, or -1. Scans in place
-     * rather than building the search needles, and prefers a "[" match over a "," match.
-     */
-    private static int propertyStart(String key, String property) {
-        int bracket = key.indexOf('[');
-        if (bracket < 0) {
-            return -1;
-        }
-        int start = delimitedPropertyIndex(key, property, bracket, '[');
-        return start < 0 ? delimitedPropertyIndex(key, property, bracket, ',') : start;
-    }
-
-    private static int delimitedPropertyIndex(String key, String property, int from, char delimiter) {
-        int length = property.length();
-        int limit = key.length() - length - 2;
-        for (int i = key.indexOf(delimiter, from); i >= 0 && i <= limit; i = key.indexOf(delimiter, i + 1)) {
-            if (key.regionMatches(i + 1, property, 0, length) && key.charAt(i + 1 + length) == '=') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public static IrisObject assemble(Map<Vector3i, PlatformBlockState> blocks) {
+    /** The blocks centered on x and z, with their lowest layer one block above the anchor; null when there are none. */
+    public static ProceduralShape assemble(Map<Vector3i, BlockState> blocks) {
         if (blocks == null || blocks.isEmpty()) {
             return null;
         }
@@ -173,15 +120,15 @@ public final class IrisProceduralBlocks {
         int cy = h / 2;
         int cz = d / 2;
 
-        IrisObject object = new IrisObject(w, h, d);
-        for (Map.Entry<Vector3i, PlatformBlockState> entry : blocks.entrySet()) {
+        List<ObjectBlock> placed = new ArrayList<>(blocks.size());
+        for (Map.Entry<Vector3i, BlockState> entry : blocks.entrySet()) {
             Vector3i v = entry.getKey();
             int nx = v.getBlockX() - minX - cx;
             int ny = v.getBlockY() - cy + 1;
             int nz = v.getBlockZ() - minZ - cz;
-            object.getBlocks().put(new IrisBlockVector(nx, ny, nz), entry.getValue());
+            placed.add(new ObjectBlock(new BlockPosition(nx, ny, nz), entry.getValue()));
         }
 
-        return object;
+        return new ProceduralShape(w, h, d, placed);
     }
 }

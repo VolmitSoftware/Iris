@@ -20,26 +20,28 @@ package art.arcane.iris.engine.object.procedural;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.carve.CaveAnchorMode;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.volmlib.util.cache.AtomicCache;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 /**
- * A procedural object's settings made placeable: bakes a deterministic pool of variants from them, once, and turns
- * the placement options into the object placement the engine scatters. The settings classes held the same cache
- * and methods before they became module settings.
+ * A procedural object's settings made placeable: bakes a deterministic pool of variants from them, once, through the
+ * host's object builder, and hands the placement options to {@code iris:objects}.
  */
-public abstract class ResolvedProceduralPlacement implements IrisProceduralPlacement {
+public abstract class ResolvedProceduralPlacement implements ProceduralPlacement {
     private static final long VARIANT_SEED_STRIDE = 7919L;
 
     /** The options every procedural placement shares with an object placement. */
@@ -49,66 +51,124 @@ public abstract class ResolvedProceduralPlacement implements IrisProceduralPlace
     }
 
     private final Shape shape;
-    private final AtomicCache<KList<IrisObject>> variantCache = new AtomicCache<>();
+    private final ObjectHost host;
+    private final AtomicCache<List<PlaceableObject>> variantCache = new AtomicCache<>();
 
-    protected ResolvedProceduralPlacement(Shape shape) {
+    protected ResolvedProceduralPlacement(Shape shape, ObjectHost host) {
         this.shape = shape;
+        this.host = host;
     }
 
-    /** The object variant {@code index} is baked as, from its own seeded stream. */
-    protected abstract IrisObject generate(int index, RNG rng, IrisData data);
+    /** The shape variant {@code index} is baked as, from its own seeded stream; null when it has no blocks. */
+    protected abstract ProceduralShape generate(int index, RNG rng, ObjectBuilder blocks);
 
     /** The number of variants to bake; the settings' count, at least one. */
     protected int variantCount() {
         return Math.max(1, shape.variants());
     }
 
-    /** The options this object shares with an object placement. */
-    public Shape shape() {
-        return shape;
-    }
-
     @Override
-    public String getName() {
+    public String name() {
         return shape.name();
     }
 
     @Override
-    public double getChance() {
+    public double chance() {
         return shape.chance();
     }
 
     @Override
-    public int getDensity() {
+    public int density() {
         return shape.density();
     }
 
     @Override
-    public boolean isPlausible() {
+    public boolean plausible() {
         return false;
     }
 
     @Override
-    public KList<IrisObject> getVariantObjects(IrisData data) {
-        return variantCache.aquire(() -> bake(data));
+    public boolean tree() {
+        return false;
+    }
+
+    @Override
+    public ObjectPlaceMode mode() {
+        return shape.mode();
+    }
+
+    @Override
+    public CarvingMode carvingSupport() {
+        return shape.carvingSupport();
+    }
+
+    @Override
+    public CaveAnchorMode caveAnchorMode() {
+        return CaveAnchorMode.PROFILE_DEFAULT;
+    }
+
+    @Override
+    public boolean underwater() {
+        return shape.underwater();
+    }
+
+    @Override
+    public ObjectRotation rotation() {
+        return shape.rotation();
+    }
+
+    @Override
+    public ObjectTranslate translate() {
+        return shape.translate();
+    }
+
+    @Override
+    public Optional<VacuumSettings> vacuumSettings() {
+        return Optional.ofNullable(shape.vacuumSettings());
+    }
+
+    @Override
+    public ObjectLimit clamp() {
+        return shape.clamp();
+    }
+
+    @Override
+    public Optional<StiltSettings> stiltSettings() {
+        return Optional.ofNullable(shape.stiltSettings());
+    }
+
+    @Override
+    public List<PlaceableObject> variants() {
+        return variantCache.aquire(() -> bake(host.builder()));
+    }
+
+    @Override
+    public Optional<PlaceableObject> variant(RNG rng) {
+        List<PlaceableObject> baked = variants();
+        if (baked == null || baked.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(baked.get(rng.i(baked.size())));
     }
 
     /** Bakes every variant; the default draws variant {@code i} from {@code seed + i * stride}. */
-    protected KList<IrisObject> bake(IrisData data) {
-        KList<IrisObject> baked = new KList<>();
+    protected List<PlaceableObject> bake(ObjectBuilder blocks) {
+        List<PlaceableObject> baked = new ArrayList<>();
         int count = variantCount();
 
         for (int i = 0; i < count; i++) {
-            IrisObject object = generate(i, variantRng(i), data);
-            if (object == null || object.getBlocks().isEmpty()) {
+            ProceduralShape generated = generate(i, variantRng(i), blocks);
+            if (generated == null || generated.blocks().isEmpty()) {
                 continue;
             }
-            object.setLoadKey("procedural/" + shape.name() + "#" + i);
-            object.setLoader(data);
-            baked.add(object);
+            baked.add(build(blocks, "procedural/" + shape.name() + "#" + i, generated));
         }
 
         return baked;
+    }
+
+    protected static PlaceableObject build(ObjectBuilder blocks, String loadKey, ProceduralShape generated) {
+        return blocks.build(loadKey, generated.width(), generated.height(), generated.depth(), generated.blocks());
     }
 
     protected final RNG variantRng(int index) {
@@ -117,47 +177,5 @@ public abstract class ResolvedProceduralPlacement implements IrisProceduralPlace
 
     protected final long seed() {
         return shape.seed();
-    }
-
-    @Override
-    public IrisObject getVariantObject(IrisData data, RNG rng) {
-        KList<IrisObject> baked = getVariantObjects(data);
-        if (baked == null || baked.isEmpty()) {
-            return null;
-        }
-        return baked.get(rng.i(baked.size()));
-    }
-
-    @Override
-    public IrisObjectPlacement asPlacement() {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setMode(shape.mode());
-        placement.setRotation(irisRotation(shape.rotation()));
-        placement.setClamp(shape.clamp());
-        placement.setCarvingSupport(shape.carvingSupport());
-        placement.setUnderwater(shape.underwater());
-        placement.setTranslate(irisTranslate(shape.translate()));
-        placement.setStiltSettings(shape.stiltSettings());
-        placement.setVacuumSettings(shape.vacuumSettings());
-        placement.setChance(shape.chance());
-        placement.setDensity(shape.density());
-        customize(placement);
-        return placement;
-    }
-
-    /** Sets what this kind of placement adds to the common options. */
-    protected void customize(IrisObjectPlacement placement) {
-    }
-
-    private static IrisObjectRotation irisRotation(ObjectRotation rotation) {
-        return new IrisObjectRotation()
-                .setEnabled(rotation.enabled())
-                .setXAxis(rotation.xAxis())
-                .setYAxis(rotation.yAxis())
-                .setZAxis(rotation.zAxis());
-    }
-
-    private static IrisObjectTranslate irisTranslate(ObjectTranslate translate) {
-        return new IrisObjectTranslate(translate.x(), translate.y(), translate.yRandom(), translate.z());
     }
 }

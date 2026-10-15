@@ -20,10 +20,10 @@ package art.arcane.iris.engine.object.procedural.ruin;
 
 import art.arcane.iris.builtin.objects.ruin.RuinDecorator;
 import art.arcane.iris.builtin.objects.ruin.Ruin;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
@@ -37,7 +37,7 @@ public final class RuinGenerator {
     private RuinGenerator() {
     }
 
-    public static IrisObject generate(Ruin ruin, int variantIndex, RNG rng, IrisData data) {
+    public static ProceduralShape generate(Ruin ruin, int variantIndex, RNG rng, ObjectBuilder blocks) {
         int count = Math.max(1, ruin.variants());
         int height = pick(ruin.heightMin(), ruin.heightMax(), variantIndex, count, rng);
         int width = pick(ruin.widthMin(), ruin.widthMax(), variantIndex, count, rng);
@@ -54,9 +54,9 @@ public final class RuinGenerator {
 
         applyBurial(ruin, canvas, height);
         applyErosion(ruin, canvas);
-        applyAccents(ruin, canvas, rng, data);
+        applyAccents(ruin, canvas, rng, blocks);
 
-        return resolve(ruin, canvas, data);
+        return resolve(ruin, canvas, blocks);
     }
 
     private static int pick(int lo, int hi, int variantIndex, int count, RNG rng) {
@@ -121,18 +121,18 @@ public final class RuinGenerator {
         }
     }
 
-    private static void applyAccents(Ruin ruin, RuinBlockCanvas canvas, RNG rng, IrisData data) {
+    private static void applyAccents(Ruin ruin, RuinBlockCanvas canvas, RNG rng, ObjectBuilder blocks) {
         if (ruin.accents() == null || ruin.accents().isEmpty()) {
             return;
         }
         int decoratorIndex = 0;
         for (art.arcane.iris.builtin.objects.ruin.RuinDecorator decorator : ruin.accents()) {
-            RuinDecoratorApplier.apply(canvas, decorator, data, ruin.seed() + decoratorIndex * 911L, rng.nextParallelRNG(decoratorIndex + 1));
+            RuinDecoratorApplier.apply(canvas, decorator, blocks, ruin.seed() + decoratorIndex * 911L, rng.nextParallelRNG(decoratorIndex + 1));
             decoratorIndex++;
         }
     }
 
-    private static IrisObject resolve(Ruin ruin, RuinBlockCanvas canvas, IrisData data) {
+    private static ProceduralShape resolve(Ruin ruin, RuinBlockCanvas canvas, ObjectBuilder blocks) {
         if (canvas.cells().isEmpty()) {
             return null;
         }
@@ -149,25 +149,25 @@ public final class RuinGenerator {
         }
         int span = Math.max(1, maxY - minY);
 
-        Map<Vector3i, PlatformBlockState> blocks = new HashMap<>();
+        Map<Vector3i, BlockState> resolved = new HashMap<>();
         for (Map.Entry<Vector3i, RuinBlockCanvas.Cell> entry : canvas.cells().entrySet()) {
             Vector3i v = entry.getKey();
             RuinBlockCanvas.Cell cell = entry.getValue();
-            PlatformBlockState bd;
+            BlockState bd;
             if (cell.role() == RuinBlockCanvas.Role.ACCENT) {
                 bd = cell.accentData();
             } else {
-                bd = structuralBlock(ruin, cell, v, data, paletteRng, scale, mossiness, weatherSeed, minY, span);
+                bd = structuralBlock(ruin, cell, v, blocks, paletteRng, scale, mossiness, weatherSeed, minY, span);
             }
             if (bd != null) {
-                blocks.put(v, bd);
+                resolved.put(v, bd);
             }
         }
 
-        return IrisProceduralBlocks.assemble(blocks);
+        return IrisProceduralBlocks.assemble(resolved);
     }
 
-    private static PlatformBlockState structuralBlock(Ruin ruin, RuinBlockCanvas.Cell cell, Vector3i v, IrisData data, RNG paletteRng, double scale, double mossiness, long weatherSeed, int minY, int span) {
+    private static BlockState structuralBlock(Ruin ruin, RuinBlockCanvas.Cell cell, Vector3i v, ObjectBuilder blocks, RNG paletteRng, double scale, double mossiness, long weatherSeed, int minY, int span) {
         boolean weathered = false;
         if (mossiness > 0.0) {
             int sx = (int) Math.round(v.getBlockX() * scale);
@@ -180,12 +180,12 @@ public final class RuinGenerator {
         }
 
         if (weathered) {
-            PlatformBlockState wd = IrisProceduralBlocks.resolve(ruin.weatheredBlock(), ruin.weatheringPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
+            BlockState wd = IrisProceduralBlocks.resolve(ruin.weatheredBlock(), ruin.weatheringPalette(), blocks, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
             if (wd != null) {
                 return wd;
             }
         }
-        return IrisProceduralBlocks.resolve(ruin.block(), ruin.blockPalette(), data, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
+        return IrisProceduralBlocks.resolve(ruin.block(), ruin.blockPalette(), blocks, v.getBlockX(), v.getBlockY(), v.getBlockZ(), paletteRng);
     }
 
     private static double clamp01(double value) {

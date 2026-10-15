@@ -25,6 +25,7 @@ import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.world.PackWorld;
@@ -80,7 +81,7 @@ final class ObjectWarmUp {
     }
 
     private void warmProcedural(ProceduralObjectSettings settings) {
-        for (ProceduralPlacement placement : host.procedural(settings)) {
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.of(host, settings)) {
             placement.variant(root.nextParallelRNG(warmed++));
         }
     }

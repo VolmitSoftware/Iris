@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.procedural.fungi;
 
 import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 
 import java.util.Map;
@@ -29,7 +29,7 @@ public final class FungusStemBuilder {
     private FungusStemBuilder() {
     }
 
-    public static double[] build(Map<Vector3i, PlatformBlockState> stemCells, Fungus fungus, int stemHeight, long seed) {
+    public static double[] build(Map<Vector3i, BlockState> stemCells, Fungus fungus, int stemHeight, long seed) {
         int width = Math.max(1, Math.min(3, fungus.stemWidth()));
         double maxLean = stemHeight * Math.tan(Math.toRadians(Math.max(0.0, fungus.stemCurve())));
         double leanRad = Math.toRadians(fungus.stemLeanAzimuth());

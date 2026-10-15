@@ -36,6 +36,7 @@ import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
+import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
@@ -400,7 +401,7 @@ final class ChunkObjectPlacing {
     }
 
     private List<ProceduralPlacement> proceduralPlacements(ProceduralObjectSettings settings) {
-        return settings == null ? List.of() : host.procedural(settings);
+        return settings == null ? List.of() : ResolvedProceduralObjects.of(host, settings);
     }
 
     private void placeProceduralFrom(List<ProceduralPlacement> placements, String scope, CaveProfile caveProfile, ResourceId expectedCaveBiome) {

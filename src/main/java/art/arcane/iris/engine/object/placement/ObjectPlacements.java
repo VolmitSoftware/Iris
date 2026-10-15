@@ -20,7 +20,6 @@ package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
@@ -28,21 +27,18 @@ import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.WeakHashMap;
 
 /**
- * The object placements and procedural objects a region or biome declares, as Iris places them: the module settings of
+ * The object placements a region or biome declares, as Iris places them: the module settings of
  * {@code iris:objects}, made into Iris's own placements once and kept for as long as the settings live.
  */
 public final class ObjectPlacements {
     private static final Map<ObjectSettings, Placements> PLACEMENTS = Collections.synchronizedMap(new WeakHashMap<>());
-    private static final Map<ProceduralObjectSettings, ResolvedProceduralObjects> PROCEDURAL = Collections.synchronizedMap(new WeakHashMap<>());
 
     private ObjectPlacements() {
     }
@@ -60,17 +56,6 @@ public final class ObjectPlacements {
     /** The placements of {@code owner} that place in carvings. */
     public static KList<IrisObjectPlacement> carving(IrisRegistrant owner) {
         return placementsOf(owner).carving;
-    }
-
-    /** The procedural objects {@code owner} declares; none when it declares none. */
-    public static ResolvedProceduralObjects procedural(IrisRegistrant owner) {
-        Optional<ProceduralObjectSettings> settings = owner.getModuleSettings().find(ProceduralObjectSettings.class);
-        return procedural(settings.orElse(NO_PROCEDURAL_OBJECTS));
-    }
-
-    /** The procedural objects {@code settings} declare. */
-    public static ResolvedProceduralObjects procedural(ProceduralObjectSettings settings) {
-        return PROCEDURAL.computeIfAbsent(settings, ResolvedProceduralObjects::new);
     }
 
     /** Whether {@code dimension} places its objects in the terrain stacked above it too. */
@@ -111,7 +96,6 @@ public final class ObjectPlacements {
         return made;
     }
 
-    private static final ProceduralObjectSettings NO_PROCEDURAL_OBJECTS = new ProceduralObjectSettings();
     private static final RequireSurfaceSupportSettings NO_SURFACE_SUPPORT_REQUIREMENT = new RequireSurfaceSupportSettings();
     private static final SurfaceSupportBufferSettings NO_SURFACE_SUPPORT_BUFFER = new SurfaceSupportBufferSettings();
     private static final TreeGrowthSettings NO_TREE_GROWTH = new TreeGrowthSettings();

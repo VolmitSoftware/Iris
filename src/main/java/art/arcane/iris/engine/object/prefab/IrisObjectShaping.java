@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.object.prefab;
 
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.data.VectorMap;
@@ -287,7 +286,13 @@ public final class IrisObjectShaping {
     }
 
     public static String materialKey(PlatformBlockState state) {
-        return IrisProceduralBlocks.materialKey(state);
+        String memoized = state.materialKey();
+        if (memoized != null) {
+            return memoized;
+        }
+        String key = state.key();
+        int bracket = key.indexOf('[');
+        return bracket < 0 ? key : key.substring(0, bracket);
     }
 
     public static List<IrisBlockVector> blocksBetweenTwoPoints(IrisVector loc1, IrisVector loc2) {

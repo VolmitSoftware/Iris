@@ -20,10 +20,10 @@ package art.arcane.iris.engine.object.procedural.crystal;
 
 import art.arcane.iris.builtin.objects.crystal.Crystal;
 import com.volmit.block.PaletteSpec;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.spi.PlatformBlockState;
+import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -34,14 +34,14 @@ public final class CrystalGenerator {
     private CrystalGenerator() {
     }
 
-    public static IrisObject generate(Crystal crystal, int variantIndex, RNG rng, IrisData data) {
+    public static ProceduralShape generate(Crystal crystal, int variantIndex, RNG rng, ObjectBuilder blocks) {
         CrystalCanvas canvas = new CrystalCanvas();
         long structureSeed = rng.getSeed();
 
         CrystalBaseBuilder.build(canvas, crystal, structureSeed + 977L);
         CrystalShardBuilder.build(canvas, crystal, rng);
 
-        Map<Vector3i, PlatformBlockState> resolved = new HashMap<>();
+        Map<Vector3i, BlockState> resolved = new HashMap<>();
         RNG paletteRng = new RNG(crystal.seed());
         RNG tipRng = new RNG(crystal.seed() + (variantIndex * 31337L) + 4099L);
 
@@ -50,7 +50,7 @@ public final class CrystalGenerator {
             int x = position.getBlockX();
             int y = position.getBlockY();
             int z = position.getBlockZ();
-            PlatformBlockState blockData = resolveRole(crystal, entry.getValue(), data, x, y, z, paletteRng, tipRng);
+            BlockState blockData = resolveRole(crystal, entry.getValue(), blocks, x, y, z, paletteRng, tipRng);
             if (blockData == null) {
                 continue;
             }
@@ -60,53 +60,53 @@ public final class CrystalGenerator {
         return IrisProceduralBlocks.assemble(resolved);
     }
 
-    private static PlatformBlockState resolveRole(Crystal crystal, CrystalRole role, IrisData data, int x, int y, int z, RNG paletteRng, RNG tipRng) {
+    private static BlockState resolveRole(Crystal crystal, CrystalRole role, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng, RNG tipRng) {
         return switch (role) {
-            case BASE -> resolveBase(crystal, data, x, y, z, paletteRng);
-            case SHARD -> resolveShard(crystal, data, x, y, z, paletteRng);
-            case TIP -> resolveTip(crystal, data, x, y, z, paletteRng, tipRng);
+            case BASE -> resolveBase(crystal, blocks, x, y, z, paletteRng);
+            case SHARD -> resolveShard(crystal, blocks, x, y, z, paletteRng);
+            case TIP -> resolveTip(crystal, blocks, x, y, z, paletteRng, tipRng);
         };
     }
 
-    private static PlatformBlockState resolveBase(Crystal crystal, IrisData data, int x, int y, int z, RNG paletteRng) {
+    private static BlockState resolveBase(Crystal crystal, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng) {
         boolean hasBase = IrisProceduralBlocks.paletteSet(crystal.basePalette())
                 || (crystal.baseBlock() != null && !crystal.baseBlock().isEmpty());
         if (hasBase) {
-            PlatformBlockState base = IrisProceduralBlocks.resolve(crystal.baseBlock(), crystal.basePalette(), data, x, y, z, paletteRng);
+            BlockState base = IrisProceduralBlocks.resolve(crystal.baseBlock(), crystal.basePalette(), blocks, x, y, z, paletteRng);
             if (base != null) {
                 return base;
             }
         }
-        return resolveShard(crystal, data, x, y, z, paletteRng);
+        return resolveShard(crystal, blocks, x, y, z, paletteRng);
     }
 
-    private static PlatformBlockState resolveShard(Crystal crystal, IrisData data, int x, int y, int z, RNG paletteRng) {
-        return IrisProceduralBlocks.resolve(crystal.block(), crystal.blockPalette(), data, x, y, z, paletteRng);
+    private static BlockState resolveShard(Crystal crystal, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng) {
+        return IrisProceduralBlocks.resolve(crystal.block(), crystal.blockPalette(), blocks, x, y, z, paletteRng);
     }
 
-    private static PlatformBlockState resolveTip(Crystal crystal, IrisData data, int x, int y, int z, RNG paletteRng, RNG tipRng) {
+    private static BlockState resolveTip(Crystal crystal, ObjectBuilder blocks, int x, int y, int z, RNG paletteRng, RNG tipRng) {
         boolean hasTip = IrisProceduralBlocks.paletteSet(crystal.tipPalette())
                 || (crystal.tipBlock() != null && !crystal.tipBlock().isEmpty());
 
         if (hasTip) {
             if (tipRng.chance(crystal.tipChance())) {
-                PlatformBlockState tip = IrisProceduralBlocks.resolve(crystal.tipBlock(), crystal.tipPalette(), data, x, y, z, paletteRng);
+                BlockState tip = IrisProceduralBlocks.resolve(crystal.tipBlock(), crystal.tipPalette(), blocks, x, y, z, paletteRng);
                 if (tip != null) {
                     return tip;
                 }
             }
-            return resolveShard(crystal, data, x, y, z, paletteRng);
+            return resolveShard(crystal, blocks, x, y, z, paletteRng);
         }
 
         if (crystal.glow() && crystal.glowBlock() != null && !crystal.glowBlock().isEmpty()) {
             if (tipRng.chance(crystal.tipChance())) {
-                PlatformBlockState glow = IrisProceduralBlocks.resolve(crystal.glowBlock(), (PaletteSpec) null, data, x, y, z, paletteRng);
+                BlockState glow = IrisProceduralBlocks.resolve(crystal.glowBlock(), (PaletteSpec) null, blocks, x, y, z, paletteRng);
                 if (glow != null) {
                     return glow;
                 }
             }
         }
 
-        return resolveShard(crystal, data, x, y, z, paletteRng);
+        return resolveShard(crystal, blocks, x, y, z, paletteRng);
     }
 }

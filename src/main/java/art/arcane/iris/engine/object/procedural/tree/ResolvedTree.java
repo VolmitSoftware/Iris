@@ -18,15 +18,16 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
+import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.tree.Tree;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
-import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 
-import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /** A procedural tree made placeable: its variants are baked by {@link ProceduralTreeGenerator}, at heights spread between its limits. */
 public final class ResolvedTree extends ResolvedProceduralPlacement {
@@ -36,10 +37,10 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
 
     private final Tree settings;
 
-    public ResolvedTree(Tree settings) {
+    public ResolvedTree(Tree settings, ObjectHost host) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)));
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
         this.settings = settings;
     }
 
@@ -48,18 +49,23 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
     }
 
     @Override
-    public boolean isPlausible() {
+    public boolean plausible() {
         return settings.plausible();
     }
 
     @Override
-    protected IrisObject generate(int index, RNG rng, IrisData data) {
+    public boolean tree() {
+        return true;
+    }
+
+    @Override
+    protected ProceduralShape generate(int index, RNG rng, ObjectBuilder blocks) {
         throw new UnsupportedOperationException("Tree variants are baked with heights spread over the limits");
     }
 
     @Override
-    protected KList<IrisObject> bake(IrisData data) {
-        KList<IrisObject> baked = new KList<>();
+    protected List<PlaceableObject> bake(ObjectBuilder blocks) {
+        List<PlaceableObject> baked = new ArrayList<>();
         int count = Math.max(1, settings.variants());
         int lo = Math.min(settings.heightMin(), settings.heightMax());
         int hi = Math.max(settings.heightMin(), settings.heightMax());
@@ -67,17 +73,14 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
 
         for (int i = 0; i < count; i++) {
             int height = variantHeight(heightRng, lo, hi, count, i);
-            IrisObject object = ProceduralTreeGenerator.generate(settings, Math.max(MINIMUM_HEIGHT, height),
-                    new RNG(settings.seed() + (i * VARIANT_SEED_STRIDE)), data);
-            if (object == null || object.getBlocks().isEmpty()) {
+            ProceduralShape generated = ProceduralTreeGenerator.generate(settings, Math.max(MINIMUM_HEIGHT, height),
+                    new RNG(settings.seed() + (i * VARIANT_SEED_STRIDE)), blocks);
+            if (generated == null || generated.blocks().isEmpty()) {
                 continue;
             }
-            object.setLoadKey(getVariantLoadKey(i));
-            object.setLoader(data);
-            baked.add(object);
+            baked.add(build(blocks, getVariantLoadKey(i), generated));
         }
 
-        digestForGoldenDebug(baked);
         return baked;
     }
 
@@ -89,19 +92,5 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
         double base = lo + step * index;
         double jitter = heightRng.d(-step * HEIGHT_JITTER_FRACTION, step * HEIGHT_JITTER_FRACTION);
         return (int) Math.round(Math.max(lo, Math.min(hi, base + jitter)));
-    }
-
-    private static void digestForGoldenDebug(KList<IrisObject> baked) {
-        if (!new File("plugins/Iris/goldendebug.txt").isFile()) {
-            return;
-        }
-        for (IrisObject object : baked) {
-            long[] digest = new long[]{0L};
-            object.getBlocks().forEach((vector, state) -> {
-                long position = ((long) vector.getBlockX() << 40) ^ ((long) vector.getBlockY() << 20) ^ vector.getBlockZ();
-                digest[0] ^= Long.rotateLeft(position * 0x9E3779B97F4A7C15L ^ state.key().hashCode(), (int) (position & 63));
-            });
-            IrisLogging.debug("Goldendebug bake: " + object.getLoadKey() + " blocks=" + object.getBlocks().size() + " digest=" + Long.toHexString(digest[0]));
-        }
     }
 }

@@ -35,7 +35,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
-import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
+import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.IrisBlockVector;
@@ -473,7 +473,7 @@ public class FloatingObjectPlacing {
         }
         PlatformBlockState existingState = placer.get(x, y, z);
         boolean wouldReplace = B.isSolid(existingState) && B.isVineBlock(state);
-        String material = IrisProceduralBlocks.materialKey(state);
+        String material = IrisObjectShaping.materialKey(state);
         boolean placesBlock = !material.equals("minecraft:air") && !material.equals("minecraft:cave_air") && !wouldReplace;
         return state.isCustom() || placesBlock;
     }

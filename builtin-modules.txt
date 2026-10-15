@@ -83,3 +83,4 @@ include art/arcane/iris/engine/mantle/components/PlacementReach*.class
 include art/arcane/iris/engine/mantle/components/ObjectWarmUp*.class
 include art/arcane/iris/engine/mantle/components/ObjectLocating*.class
 include art/arcane/iris/engine/mantle/components/TreeGrowing*.class
+include art/arcane/iris/engine/object/procedural/**

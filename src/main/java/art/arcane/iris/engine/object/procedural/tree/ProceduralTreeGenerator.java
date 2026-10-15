@@ -18,12 +18,13 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.builtin.objects.ObjectBuilder;
 import art.arcane.iris.builtin.objects.tree.Tree;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.math.IrisBlockVector;
+import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.BlockState;
+import com.volmit.object.ObjectBlock;
+import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,7 +37,7 @@ public final class ProceduralTreeGenerator {
     private ProceduralTreeGenerator() {
     }
 
-    public static IrisObject generate(Tree tree, int height, RNG rng, IrisData data) {
+    public static ProceduralShape generate(Tree tree, int height, RNG rng, ObjectBuilder blocks) {
         TreeBlockCanvas canvas = new TreeBlockCanvas();
         long baseSeed = rng.getSeed();
 
@@ -63,12 +64,12 @@ public final class ProceduralTreeGenerator {
             TreeSupport.ensureLeavesSupported(canvas, 24);
         }
 
-        Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved = new HashMap<>();
+        Map<TreeBlockCanvas.Vec, BlockState> resolved = new HashMap<>();
         Set<TreeBlockCanvas.Vec> trunkPositions = new HashSet<>();
         Set<TreeBlockCanvas.Vec> leafPositions = new HashSet<>();
         for (Map.Entry<TreeBlockCanvas.Vec, TreeBlockCanvas.Cell> entry : canvas.getCells().entrySet()) {
             TreeBlockCanvas.Cell cell = entry.getValue();
-            PlatformBlockState state = TreeBlockResolver.resolve(tree, data, cell, entry.getKey());
+            BlockState state = TreeBlockResolver.resolve(tree, blocks, cell, entry.getKey());
             if (state == null) {
                 continue;
             }
@@ -80,12 +81,12 @@ public final class ProceduralTreeGenerator {
             }
         }
 
-        TreePlausibility.apply(resolved, trunkPositions, leafPositions, tree);
+        TreePlausibility.apply(resolved, trunkPositions, leafPositions, tree, blocks);
 
         return assemble(resolved);
     }
 
-    private static IrisObject assemble(Map<TreeBlockCanvas.Vec, PlatformBlockState> resolved) {
+    private static ProceduralShape assemble(Map<TreeBlockCanvas.Vec, BlockState> resolved) {
         if (resolved.isEmpty()) {
             return null;
         }
@@ -112,15 +113,15 @@ public final class ProceduralTreeGenerator {
         int cy = h / 2;
         int cz = d / 2;
 
-        IrisObject object = new IrisObject(w, h, d);
-        for (Map.Entry<TreeBlockCanvas.Vec, PlatformBlockState> entry : resolved.entrySet()) {
+        List<ObjectBlock> placed = new ArrayList<>(resolved.size());
+        for (Map.Entry<TreeBlockCanvas.Vec, BlockState> entry : resolved.entrySet()) {
             TreeBlockCanvas.Vec v = entry.getKey();
             int nx = v.x() - minX - cx;
             int ny = v.y() - cy + 1;
             int nz = v.z() - minZ - cz;
-            object.getBlocks().put(new IrisBlockVector(nx, ny, nz), entry.getValue());
+            placed.add(new ObjectBlock(new BlockPosition(nx, ny, nz), entry.getValue()));
         }
 
-        return object;
+        return new ProceduralShape(w, h, d, placed);
     }
 }

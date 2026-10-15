@@ -112,6 +112,11 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
     }
 
     @Override
+    public MantleLayer<Boolean> caverns() {
+        return new MantleCaverns(bounds, chunks);
+    }
+
+    @Override
     public MantleEdit edit() {
         if (openEdit != null) {
             throw new IllegalStateException("This mantle already has an open edit; commit or close it first");
@@ -254,6 +259,12 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
         public MantleLayer<BlockState> blocks() {
             requireOpen();
             return plannedBlocks;
+        }
+
+        @Override
+        public MantleLayer<Boolean> caverns() {
+            requireOpen();
+            return new MantleCaverns(bounds, chunks);
         }
 
         @Override

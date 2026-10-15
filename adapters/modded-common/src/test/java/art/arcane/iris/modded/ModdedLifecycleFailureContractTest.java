@@ -243,7 +243,6 @@ public class ModdedLifecycleFailureContractTest {
         assertTrue(bind.contains("rollback.add(() -> TileData.restorePlatformReader("));
         assertTrue(bind.contains("rollback.add(() -> TileData.restorePlatformFactory("));
         assertTrue(bind.contains("rollback.add(() -> GuiHost.set("));
-        assertTrue(bind.contains("rollback.add(() -> DecoratorPlatformHooks.restore("));
         assertTrue(bind.contains("bindService(PreservationRegistry.class"));
         assertTrue(bind.contains("bindService(EngineEffectsProvider.class"));
         assertTrue(bind.contains("bindService(EnginePlatformHooks.class"));

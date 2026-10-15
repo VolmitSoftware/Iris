@@ -101,6 +101,12 @@ final class IrisBlockRegistry implements BlockRegistry {
     }
 
     @Override
+    public BlockState oreFor(BlockState rock, BlockState ore) {
+        PlatformBlockState suited = IrisPlatforms.get().registries().deepSlateOre(platformState(rock), platformState(ore));
+        return BlockState.parse(PlatformBlockStates.namespaced(suited.key()));
+    }
+
+    @Override
     public boolean hasTrait(BlockState state, BlockTrait trait) {
         return hasTrait(platformState(state), trait);
     }

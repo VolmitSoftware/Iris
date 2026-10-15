@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.CaveDressing;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.engine.framework.Engine;
@@ -37,7 +36,7 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source, CaveDressing.Source {
+public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
@@ -114,16 +113,12 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
     }
 
     @Override
-    public CaveDressing caveDressing() {
-        return state(IrisCaveDressing.class, world -> new IrisCaveDressing(engine, resources, log));
-    }
-
-    @Override
     public long seed(IrisSeed seed) {
         SeedManager seeds = engine.getSeedManager();
         return switch (seed) {
             case BIOME -> seeds.getBiome();
             case CARVE -> seeds.getCarve();
+            case COMPLEX -> seeds.getComplex();
             case COMPONENT -> seeds.getComponent();
             case DECORATOR -> seeds.getDecorator();
             case DEPOSIT -> seeds.getDeposit();

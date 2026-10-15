@@ -1,165 +1,107 @@
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.engine.IrisComplex;
-import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.EngineMetrics;
-import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.image.IrisImageMapRuntime;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.terrain.BiomeLayers;
-import art.arcane.iris.engine.terrain.TerrainPalettes;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.context.ChunkContext;
-import art.arcane.iris.util.project.context.ChunkedDataCache;
-import art.arcane.iris.util.project.hunk.Hunk;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
+import art.arcane.iris.builtin.terrain.BedrockSettings;
 import art.arcane.iris.builtin.terrain.HideOresSettings;
-import art.arcane.iris.core.modules.BuiltInPack;
-import org.junit.After;
+import art.arcane.iris.builtin.terrain.LayersSettings;
+import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.engine.modifier.ApiChunk;
+import art.arcane.iris.engine.object.TestSettings;
+import com.volmit.block.BlockState;
 import org.junit.Test;
 
-import java.util.List;
-
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 /** Terrain fills a column from bedrock to its height with the biome's layers over rock, and the fluid above it up to the fluid height. */
 public class TerrainModuleTest {
     private static final int HEIGHT = 20;
     private static final int FLUID_HEIGHT = 25;
-
-    private final PlatformBlockState grass = mock(PlatformBlockState.class);
-    private final PlatformBlockState dirt = mock(PlatformBlockState.class);
-    private final PlatformBlockState rock = mock(PlatformBlockState.class);
-    private final PlatformBlockState water = mock(PlatformBlockState.class);
-
-    @After
-    public void unbindPlatform() {
-        UsableBlockPlatform.unbind();
-    }
+    private static final int WORLD_HEIGHT = 64;
+    private static final BlockState GRASS = new BlockState("minecraft:grass_block");
+    private static final BlockState DIRT = new BlockState("minecraft:dirt");
+    private static final BlockState STONE = new BlockState("minecraft:stone");
+    private static final BlockState WATER = new BlockState("minecraft:water");
+    private static final BlockState BEDROCK = new BlockState("minecraft:bedrock");
 
     @Test
-    @SuppressWarnings("unchecked")
     public void aColumnIsBedrockThenRockThenLayersThenFluid() {
-        UsableBlockPlatform.bind();
-        IrisBiome biome = mock(IrisBiome.class);
-        TerrainModule.TerrainShaper shaper = new TerrainModule.TerrainShaper(engine(true), palettes(), layersOf(biome), mock(TerrainOres.class));
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 64, 16);
+        ApiChunk chunk = world().biomeSettings(TestSettings.of(LayersSettings.class,
+                "{\"layers\": [{\"palette\": [{\"block\": \"grass_block\"}]}, {\"palette\": [{\"block\": \"dirt\"}]}]}"));
 
-        shaper.shape(0, 0, blocks, context(biome));
+        chunk.generate(new TerrainModule());
 
-        PlatformBlockState floor = blocks.get(3, 0, 4);
-        assertNotNull("bedrock at the bottom", floor);
-        assertNotSame(rock, floor);
-        assertSame("rock below the layers", rock, blocks.get(3, 5, 4));
-        assertSame("the second layer", dirt, blocks.get(3, HEIGHT - 1, 4));
-        assertSame("the first layer is the surface", grass, blocks.get(3, HEIGHT, 4));
-        assertSame("fluid above the surface", water, blocks.get(3, HEIGHT + 1, 4));
-        assertSame("fluid up to the fluid height", water, blocks.get(3, FLUID_HEIGHT, 4));
-        assertNull("nothing above the fluid", blocks.get(3, FLUID_HEIGHT + 1, 4));
+        assertEquals("bedrock at the bottom", BEDROCK, chunk.get(3, 0, 4));
+        assertEquals("rock below the layers", STONE, chunk.get(3, 5, 4));
+        assertEquals("the second layer", DIRT, chunk.get(3, HEIGHT - 1, 4));
+        assertEquals("the first layer is the surface", GRASS, chunk.get(3, HEIGHT, 4));
+        assertEquals("fluid above the surface", WATER, chunk.get(3, HEIGHT + 1, 4));
+        assertEquals("fluid up to the fluid height", WATER, chunk.get(3, FLUID_HEIGHT, 4));
+        assertEquals("nothing above the fluid", ApiChunk.AIR, chunk.get(3, FLUID_HEIGHT + 1, 4));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
+    public void aBiomeWithoutLayersHasOneLayerOfGrass() {
+        ApiChunk chunk = world();
+
+        chunk.generate(new TerrainModule());
+
+        assertEquals(GRASS, chunk.get(3, HEIGHT, 4));
+        assertEquals(STONE, chunk.get(3, HEIGHT - 1, 4));
+    }
+
+    @Test
     public void oresOfTheBiomeThenTheRegionThenTheDimensionReplaceTheBlocksTheirBandsReach() {
-        UsableBlockPlatform.bind();
-        Engine engine = engine(false);
-        IrisDimension dimension = engine.getDimension();
-        IrisBiome biome = mock(IrisBiome.class);
-        ChunkContext context = context(biome);
-        IrisRegion region = context.getRegion().get(0, 0);
-        PlatformBlockState biomeOre = mock(PlatformBlockState.class);
-        PlatformBlockState regionOre = mock(PlatformBlockState.class);
-        PlatformBlockState dimensionOre = mock(PlatformBlockState.class);
-        TerrainOres ores = mock(TerrainOres.class);
-        ResolvedOres biomeOres = oresAt(2, biomeOre);
-        ResolvedOres regionOres = oresAt(2, regionOre, 3, regionOre);
-        ResolvedOres dimensionOres = oresAt(2, dimensionOre, 3, dimensionOre, 4, dimensionOre);
-        when(ores.of(biome)).thenReturn(biomeOres);
-        when(ores.of(region)).thenReturn(regionOres);
-        when(ores.of(dimension)).thenReturn(dimensionOres);
-        Hunk<PlatformBlockState> blocks = Hunk.newArrayHunk(16, 64, 16);
+        ApiChunk chunk = world()
+                .biomeSettings(ores("coal_ore", 2, 2))
+                .regionSettings(ores("iron_ore", 2, 3))
+                .dimensionSettings(ores("gold_ore", 2, 4));
 
-        new TerrainModule.TerrainShaper(engine, palettes(), layersOf(biome, new KList<>()), ores).shape(0, 0, blocks, context);
+        chunk.generate(new TerrainModule());
 
-        assertSame("the biome's ore comes first", biomeOre, blocks.get(3, 2, 4));
-        assertSame("then the region's", regionOre, blocks.get(3, 3, 4));
-        assertSame("then the dimension's", dimensionOre, blocks.get(3, 4, 4));
-        assertSame("rock where no ore reaches", rock, blocks.get(3, 5, 4));
+        assertEquals("the biome's ore comes first", new BlockState("minecraft:coal_ore"), chunk.get(3, 2, 4));
+        assertEquals("then the region's", new BlockState("minecraft:iron_ore"), chunk.get(3, 3, 4));
+        assertEquals("then the dimension's", new BlockState("minecraft:gold_ore"), chunk.get(3, 4, 4));
+        assertEquals("rock where no ore reaches", STONE, chunk.get(3, 5, 4));
     }
 
-    /** Underground ores that give {@code block} at each listed height and nothing elsewhere. */
-    private static ResolvedOres oresAt(Object... heightsAndBlocks) {
-        ResolvedOre ore = mock(ResolvedOre.class);
-        when(ore.generatesSurface()).thenReturn(false);
-        when(ore.minY()).thenReturn(0D);
-        when(ore.maxY()).thenReturn(10D);
-        for (int index = 0; index < heightsAndBlocks.length; index += 2) {
-            when(ore.generate(anyInt(), eq((int) heightsAndBlocks[index]), anyInt())).thenReturn((PlatformBlockState) heightsAndBlocks[index + 1]);
-        }
-        return new ResolvedOres(List.of(ore));
+    @Test
+    public void aDimensionThatHidesOresPlacesNone() {
+        ApiChunk chunk = world().dimensionSettings(ores("gold_ore", 2, 4), new HideOresSettings(true));
+
+        chunk.generate(new TerrainModule());
+
+        assertEquals(STONE, chunk.get(3, 3, 4));
     }
 
-    @SuppressWarnings("unchecked")
-    private ChunkContext context(IrisBiome biome) {
-        ChunkedDataCache<IrisBiome> biomes = mock(ChunkedDataCache.class);
-        when(biomes.get(anyInt(), anyInt())).thenReturn(biome);
-        ChunkedDataCache<IrisRegion> regions = mock(ChunkedDataCache.class);
-        when(regions.get(anyInt(), anyInt())).thenReturn(mock(IrisRegion.class));
-        ChunkContext context = mock(ChunkContext.class);
-        when(context.getBiome()).thenReturn(biomes);
-        when(context.getRegion()).thenReturn(regions);
-        when(context.getRoundedHeight(anyInt(), anyInt())).thenReturn(HEIGHT);
-        return context;
+    @Test
+    public void aDimensionWithoutBedrockHasRockAtItsBottom() {
+        ApiChunk chunk = world().dimensionSettings(TestSettings.of(BedrockSettings.class, "{\"bedrock\": false}"));
+
+        chunk.generate(new TerrainModule());
+
+        assertEquals(STONE, chunk.get(3, 0, 4));
+        assertNotEquals(BEDROCK, chunk.get(0, 0, 0));
     }
 
-    private TerrainPalettes palettes() {
-        TerrainPalettes palettes = mock(TerrainPalettes.class);
-        when(palettes.rockAt(anyDouble(), anyDouble())).thenReturn(rock);
-        when(palettes.fluidAt(anyDouble(), anyDouble())).thenReturn(water);
-        return palettes;
+    @Test
+    public void aDimensionStackedOnItselfHangsItsGroundFromTheTop() {
+        ApiChunk chunk = new ApiChunk(0, 0, WORLD_HEIGHT).surface((x, z) -> HEIGHT).upperDimension((x, z) -> 50).stackedOnItself();
+
+        chunk.generate(new TerrainModule());
+
+        assertEquals("bedrock caps the upper ground", BEDROCK, chunk.get(3, WORLD_HEIGHT - 1, 4));
+        assertEquals("rock under the upper surface", STONE, chunk.get(3, 55, 4));
+        assertEquals("the upper ground's face is the biome's layer", GRASS, chunk.get(3, 50, 4));
+        assertEquals("nothing between the grounds", ApiChunk.AIR, chunk.get(3, 49, 4));
     }
 
-    private BiomeLayers layersOf(IrisBiome biome) {
-        KList<PlatformBlockState> layers = new KList<>();
-        layers.add(grass, dirt);
-        return layersOf(biome, layers);
+    private static ApiChunk world() {
+        return new ApiChunk(0, 0, WORLD_HEIGHT).surface((x, z) -> HEIGHT).fluidHeight(FLUID_HEIGHT);
     }
 
-    private BiomeLayers layersOf(IrisBiome biome, KList<PlatformBlockState> layers) {
-        BiomeLayers biomeLayers = mock(BiomeLayers.class);
-        when(biomeLayers.generateLayers(eq(biome), any(), anyDouble(), anyDouble(), any(RNG.class), anyInt(), anyInt(), any(), any())).thenReturn(layers);
-        when(biomeLayers.generateSeaLayers(eq(biome), anyDouble(), anyDouble(), any(RNG.class), anyInt(), any())).thenReturn(new KList<>());
-        return biomeLayers;
-    }
-
-    private Engine engine(boolean hidesOres) {
-        IrisDimension dimension = mock(IrisDimension.class);
-        when(dimension.getFluidHeight()).thenReturn(FLUID_HEIGHT);
-        when(dimension.isBedrock()).thenReturn(true);
-        when(dimension.getModuleSettings()).thenReturn(BuiltInPack.settings(new HideOresSettings(hidesOres)));
-        IrisComplex complex = mock(IrisComplex.class);
-        when(complex.getImageMapRuntime()).thenReturn(mock(IrisImageMapRuntime.class));
-        SeedManager seeds = mock(SeedManager.class);
-        when(seeds.getTerrain()).thenReturn(1337L);
-        Engine engine = mock(Engine.class);
-        when(engine.getDimension()).thenReturn(dimension);
-        when(engine.getComplex()).thenReturn(complex);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
-        return engine;
+    /** Ore generators of one block that give it at every height from {@code min} to {@code max}. */
+    private static OreSettings ores(String block, int min, int max) {
+        return TestSettings.of(OreSettings.class, "{\"generators\": [{\"palette\": {\"palette\": [{\"block\": \"" + block
+                + "\"}]}, \"chanceStyle\": {\"style\": \"STATIC\"}, \"threshold\": 0.5, \"range\": {\"min\": " + min + ", \"max\": " + max + "}}]}");
     }
 }

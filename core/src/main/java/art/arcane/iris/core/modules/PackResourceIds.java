@@ -71,4 +71,8 @@ final class PackResourceIds {
     ResourceId of(String type, String key) {
         return of(type + "/" + key);
     }
+
+    private ResourceId idOf(String key) {
+        return new ResourceId(namespace, NOT_PATH.matcher(key.toLowerCase(Locale.ROOT)).replaceAll(REPLACEMENT));
+    }
 }

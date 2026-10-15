@@ -21,7 +21,6 @@ package art.arcane.iris.modded;
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.engine.data.cache.AtomicCacheFailureReporting;
-import art.arcane.iris.engine.decorator.DecoratorPlatformHooks;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineEffectsProvider;
 import art.arcane.iris.engine.framework.EnginePlatformHooks;
@@ -371,10 +370,6 @@ public final class ModdedEngineBootstrap {
                 GuiHost.Provider previousGuiHost = GuiHost.get();
                 ModdedGuiHost.install();
                 rollback.add(() -> GuiHost.set(previousGuiHost));
-
-                ModdedDecoratorHooks decoratorHooks = new ModdedDecoratorHooks();
-                DecoratorPlatformHooks.Bindings previousDecoratorBindings = DecoratorPlatformHooks.bind(decoratorHooks, decoratorHooks);
-                rollback.add(() -> DecoratorPlatformHooks.restore(previousDecoratorBindings));
 
                 ModdedPreservationService preservation = createdServices.register(
                         ModdedPreservationService.class, new ModdedPreservationService());

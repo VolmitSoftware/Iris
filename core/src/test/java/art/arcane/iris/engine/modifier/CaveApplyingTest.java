@@ -69,7 +69,7 @@ public class CaveApplyingTest {
 
     @Before
     public void setUp() {
-        world = new CarveTestWorld().biome("cave/lush", 1).dressing(dressing);
+        world = new CarveTestWorld().biome("cave/lush", 1);
         dressing.walls.put(LUSH, WALL);
         dressing.floors.put(LUSH, List.of(FLOOR));
         dressing.ceilings.put(LUSH, List.of(CEILING));
@@ -157,7 +157,7 @@ public class CaveApplyingTest {
             }
         };
         CarveWorld carveWorld = new CarveWorld(world.resources().noise(), 1337L, HEIGHT, FLUID_HEIGHT, LAVA_HEIGHT, CarveTestWorld.MIN_HEIGHT);
-        new CaveApplying(world, carveWorld, upperDimensionCarving).apply(matter, terrain, 0, 0, blocks);
+        new CaveApplying(world, carveWorld, upperDimensionCarving).apply(matter, terrain, 0, 0, blocks, dressing);
     }
 
     private int markers() {

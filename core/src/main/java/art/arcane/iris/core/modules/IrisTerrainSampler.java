@@ -20,12 +20,18 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.spi.PlatformBlockState;
+import art.arcane.iris.util.common.data.B;
+import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.TerrainSampler;
+import com.volmit.world.UpperDimension;
 
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -42,18 +48,29 @@ final class IrisTerrainSampler implements TerrainSampler {
     private final Engine engine;
     private final PackResourceIds ids;
     private final BlockBox bounds;
+    private final PlatformBlockStates states;
 
     /** The chunk at {@code originX}, {@code originZ} widened by {@code reachBlocks}, over the full world height. */
     IrisTerrainSampler(Engine engine, PackResourceIds ids, int originX, int originZ, int reachBlocks) {
+        this(engine, ids, originX, originZ, reachBlocks, new PlatformBlockStates(B::getState));
+    }
+
+    /** The chunk at {@code originX}, {@code originZ} widened by {@code reachBlocks}, whose blocks convert with {@code states}. */
+    IrisTerrainSampler(Engine engine, PackResourceIds ids, int originX, int originZ, int reachBlocks, PlatformBlockStates states) {
         this(engine, ids, originX - reachBlocks, originZ - reachBlocks,
-                originX + CHUNK_WIDTH_BLOCKS + reachBlocks, originZ + CHUNK_WIDTH_BLOCKS + reachBlocks);
+                originX + CHUNK_WIDTH_BLOCKS + reachBlocks, originZ + CHUNK_WIDTH_BLOCKS + reachBlocks, states);
     }
 
     /** Columns from the minima, inclusive, to the maxima, exclusive, over the full world height. */
     IrisTerrainSampler(Engine engine, PackResourceIds ids, int minX, int minZ, int maxX, int maxZ) {
+        this(engine, ids, minX, minZ, maxX, maxZ, new PlatformBlockStates(B::getState));
+    }
+
+    private IrisTerrainSampler(Engine engine, PackResourceIds ids, int minX, int minZ, int maxX, int maxZ, PlatformBlockStates states) {
         this.engine = engine;
         this.ids = ids;
         this.bounds = ApiHeights.columns(engine, minX, minZ, maxX, maxZ);
+        this.states = states;
     }
 
     @Override
@@ -95,6 +112,12 @@ final class IrisTerrainSampler implements TerrainSampler {
     }
 
     @Override
+    public ResourceId surfaceBiome(int worldX, int worldZ) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        return ids.of(engine.getSurfaceBiome(worldX, worldZ).getLoadKey());
+    }
+
+    @Override
     public int fluidHeight() {
         return engine.getDimension().getFluidHeight();
     }
@@ -109,6 +132,38 @@ final class IrisTerrainSampler implements TerrainSampler {
         }
         int surfaceY = (int) Math.round(engine.getComplex().getHeightStream().get((double) worldX, (double) worldZ));
         return OptionalInt.of(Math.max(upper.getUpperSurfaceY(worldX, worldZ), surfaceY + engine.getDimension().getUpperDimensionGap()));
+    }
+
+    @Override
+    public BiomeKind surfaceKind(int worldX, int worldZ) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        return kindOf(engine.getSurfaceBiome(worldX, worldZ).getInferredType());
+    }
+
+    static BiomeKind kindOf(InferredType type) {
+        return switch (type) {
+            case LAND -> BiomeKind.LAND;
+            case SEA -> BiomeKind.SEA;
+            case SHORE -> BiomeKind.SHORE;
+            case CAVE -> BiomeKind.CAVE;
+        };
+    }
+
+    @Override
+    public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        return Optional.ofNullable(engine.getComplex().getImageMapRuntime().sampleSurfaceBlock(worldX, worldZ)).map(states::toApi);
+    }
+
+    @Override
+    public int minWorldY() {
+        return engine.getMinHeight();
+    }
+
+    @Override
+    public Optional<UpperDimension> upperDimension() {
+        UpperDimensionContext upper = engine.getUpperContext();
+        return upper == null ? Optional.empty() : Optional.of(new IrisUpperDimension(engine, upper, new PackResourceIds(upper.getData().getDataFolder()), states));
     }
 
     private void requireInside(int worldX, int y, int worldZ) {

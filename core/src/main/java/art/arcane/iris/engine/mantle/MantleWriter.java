@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle;
 
 
+import art.arcane.iris.builtin.terrain.BedrockSettings;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
@@ -198,7 +199,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return;
         }
 
-        if (y == 0 && t instanceof PlatformBlockState && engineMantle.getEngine().getDimension().isBedrock()) {
+        if (y == 0 && t instanceof PlatformBlockState && engineMantle.getEngine().getDimension().getModuleSettings().find(BedrockSettings.class).map(BedrockSettings::bedrock).orElse(true)) {
             return;
         }
 

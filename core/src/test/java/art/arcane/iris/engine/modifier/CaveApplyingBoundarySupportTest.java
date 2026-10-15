@@ -14,6 +14,7 @@ import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.TerrainSampler;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class CaveApplyingBoundarySupportTest {
     private static final BlockState STONE = new BlockState("minecraft:stone");
     private static final BlockState SAND = new BlockState("minecraft:sand");
 
-    private final CarveTestWorld world = new CarveTestWorld().biome("custom/floor", 1).dressing(new RecordingCaveDressing());
+    private final CarveTestWorld world = new CarveTestWorld().biome("custom/floor", 1);
     private final CaveBlockClasses classes = new CaveBlockClasses(new CarveTestWorld.Blocks());
 
     @Test
@@ -58,7 +59,8 @@ public class CaveApplyingBoundarySupportTest {
         doReturn(new MatterCavern(true, "custom/floor", (byte) 0)).when(floorSlice).get(1, 6, 2);
         doReturn(null).when(ceilingSlice).get(1, CEILING_Y & 15, 2);
         TerrainSampler terrain = new CaveBiomeTerrain((x, y, z) -> y == CEILING_Y ? Optional.of(resolvedCeiling) : Optional.empty());
-        CaveApplying.Application application = modifier.new Application(chunkOnly(mantleChunk), mantleChunk, terrain, 2, 2, new ArrayHunk<>(BlockState.class, 16, 64, 16, AIR));
+        CaveApplying.Application application = modifier.new Application(chunkOnly(mantleChunk), mantleChunk, terrain, 2, 2, new ArrayHunk<>(BlockState.class, 16, 64, 16, AIR),
+                new RecordingCaveDressing());
         Map<String, ResourceId> customBiomeCache = new HashMap<>();
 
         ResourceId floor = application.resolveCaveBoundaryBiome(1, 6, 2, 40, 44, customBiomeCache);
@@ -115,6 +117,16 @@ public class CaveApplyingBoundarySupportTest {
 
         @Override
         public BlockBox bounds() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BiomeKind surfaceKind(int worldX, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int minWorldY() {
             throw new UnsupportedOperationException();
         }
 

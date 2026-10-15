@@ -18,11 +18,9 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.CaveDressing;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
-import com.volmit.hunk.Hunk;
 import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
@@ -38,28 +36,28 @@ public final class RecordingCaveDressing implements CaveDressing {
     public final List<String> decorated = new ArrayList<>();
     public BlockState fluid;
 
-    @Override
+    /** Whether {@link #fluid} is set, for the carving that blends caves towards fluid columns. */
     public boolean fluidPresentAt(int x, int z) {
         return fluid != null;
     }
 
     @Override
-    public BlockState fluidAt(Hunk<BlockState> chunk, int x, int z) {
+    public BlockState fluidAt(int x, int z) {
         return fluid;
     }
 
     @Override
-    public BlockState wall(Hunk<BlockState> chunk, ResourceId biome, RNG rng, int x, int y, int z) {
+    public BlockState wall(ResourceId biome, RNG rng, int x, int y, int z) {
         return walls.get(biome);
     }
 
     @Override
-    public List<BlockState> floorLayers(Hunk<BlockState> chunk, ResourceId biome, int x, int z, RNG rng, int depth, int floorY) {
+    public List<BlockState> floorLayers(ResourceId biome, int x, int z, RNG rng, int depth, int floorY) {
         return floors.getOrDefault(biome, List.of());
     }
 
     @Override
-    public List<BlockState> ceilingLayers(Hunk<BlockState> chunk, ResourceId biome, int x, int z, RNG rng, int depth, int ceilingY) {
+    public List<BlockState> ceilingLayers(ResourceId biome, int x, int z, RNG rng, int depth) {
         return ceilings.getOrDefault(biome, List.of());
     }
 
@@ -69,17 +67,17 @@ public final class RecordingCaveDressing implements CaveDressing {
     }
 
     @Override
-    public void decorateFloor(Hunk<BlockState> chunk, int localX, int localZ, int x, int z, ResourceId biome, int floorY, int airThickness) {
+    public void decorateFloor(int localX, int localZ, int x, int z, ResourceId biome, int floorY, int airThickness) {
         decorated.add("floor " + localX + "," + floorY + "," + localZ);
     }
 
     @Override
-    public void decorateCeiling(Hunk<BlockState> chunk, int localX, int localZ, int x, int z, ResourceId biome, int ceilingY, int airThickness) {
+    public void decorateCeiling(int localX, int localZ, int x, int z, ResourceId biome, int ceilingY, int airThickness) {
         decorated.add("ceiling " + localX + "," + ceilingY + "," + localZ);
     }
 
     @Override
-    public BlockState deepSlateOre(Hunk<BlockState> chunk, BlockState existing, BlockState layer) {
-        return new BlockState("minecraft:deepslate_" + layer.material().path());
+    public BlockState oreFor(BlockState rock, BlockState ore) {
+        return new BlockState("minecraft:deepslate_" + ore.material().path());
     }
 }

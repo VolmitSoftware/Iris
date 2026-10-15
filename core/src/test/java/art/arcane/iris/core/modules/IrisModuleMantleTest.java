@@ -366,6 +366,11 @@ public class IrisModuleMantleTest {
         }
 
         @Override
+        public MantleLayer<Boolean> caverns() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public MantleEdit edit() {
             throw new UnsupportedOperationException();
         }

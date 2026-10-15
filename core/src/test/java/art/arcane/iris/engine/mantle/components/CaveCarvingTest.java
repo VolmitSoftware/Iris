@@ -23,7 +23,6 @@ import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.core.modules.CarveTestTerrain;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.core.modules.InMemoryMantle;
-import art.arcane.iris.engine.modifier.RecordingCaveDressing;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -58,7 +57,7 @@ public class CaveCarvingTest {
     }
 
     private static CarveTestWorld newWorld() {
-        return new CarveTestWorld().biome("cave/lush", 1).biome("plains", 1).dressing(new RecordingCaveDressing());
+        return new CarveTestWorld().biome("cave/lush", 1).biome("plains", 1);
     }
 
     @Test
@@ -116,7 +115,7 @@ public class CaveCarvingTest {
         };
         CarveWorld carveWorld = new CarveWorld(world.resources().noise(), 1337L, HEIGHT, FLUID_HEIGHT, LAVA_HEIGHT, CarveTestWorld.MIN_HEIGHT);
 
-        new CaveCarving(world, carveWorld, false).carve(matter, terrain, 0, 0);
+        new CaveCarving(world, carveWorld, false, (x, z) -> false).carve(matter, terrain, 0, 0);
 
         int[] count = new int[1];
         mantle.chunk(0, 0).iterate(MatterCavern.class, (x, y, z, cavern) -> count[0]++);

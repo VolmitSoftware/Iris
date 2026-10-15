@@ -36,7 +36,10 @@ final class StageMetrics implements StageTimings {
     private static final Map<String, Function<EngineMetrics, AtomicRollingSequence>> NAMED = Map.of(
             "iris:post/smooth", EngineMetrics::getPost,
             "iris:perfection/surface", EngineMetrics::getPerfection,
-            "iris:carve/apply", EngineMetrics::getCave);
+            "iris:carve/apply", EngineMetrics::getCave,
+            "iris:deposit/ores", EngineMetrics::getDeposit,
+            "iris:decorant/decorate", EngineMetrics::getDecoration,
+            "iris:terrain/shape", EngineMetrics::getTerrain);
 
     private final EngineMetrics metrics;
 

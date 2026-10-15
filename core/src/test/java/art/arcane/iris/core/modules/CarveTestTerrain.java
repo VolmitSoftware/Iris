@@ -22,6 +22,7 @@ import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.TerrainSampler;
 
 import java.util.Optional;
@@ -67,6 +68,16 @@ public final class CarveTestTerrain implements TerrainSampler {
     @Override
     public BlockBox bounds() {
         return new BlockBox(originX - MARGIN, 0, originZ - MARGIN, originX + 16 + MARGIN, height, originZ + 16 + MARGIN);
+    }
+
+    @Override
+    public BiomeKind surfaceKind(int worldX, int worldZ) {
+        return BiomeKind.LAND;
+    }
+
+    @Override
+    public int minWorldY() {
+        return CarveTestWorld.MIN_HEIGHT;
     }
 
     @Override

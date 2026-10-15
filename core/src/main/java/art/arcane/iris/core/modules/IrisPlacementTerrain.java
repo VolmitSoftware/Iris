@@ -24,7 +24,8 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.terrain.TerrainPalettes;
+import art.arcane.iris.builtin.terrain.BedrockSettings;
+import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.block.BlockState;
 
@@ -115,7 +116,7 @@ final class IrisPlacementTerrain implements PlacementTerrain {
 
     @Override
     public boolean hasBedrock() {
-        return engine().getDimension().isBedrock();
+        return engine().getDimension().getModuleSettings().find(BedrockSettings.class).map(BedrockSettings::bedrock).orElse(true);
     }
 
     @Override
@@ -134,7 +135,8 @@ final class IrisPlacementTerrain implements PlacementTerrain {
         if (engine.getComplex() == null) {
             return PlatformBlockStates.AIR;
         }
-        return states.toApi(TerrainPalettes.of(engine).rockAt(x, z));
+        BlockState rock = TerrainPalettes.of(engine.getGeneration().world()).rockAt(x, z);
+        return rock == null ? PlatformBlockStates.AIR : rock;
     }
 
     @Override

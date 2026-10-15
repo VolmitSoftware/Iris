@@ -20,16 +20,19 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
 import art.arcane.iris.builtin.deposit.DepositPlacementScope;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.BlockRegistry;
+import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
+import com.volmit.host.ArrayHunk;
+import com.volmit.hunk.Hunk;
 import org.junit.Test;
+
+import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DepositPlacerContainmentTest {
     @Test
@@ -63,16 +66,12 @@ public class DepositPlacerContainmentTest {
 
     @Test
     public void airAndFluidTargetsAreRejected() {
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        PlatformBlockState fluid = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        when(fluid.isFluid()).thenReturn(true);
+        BlockRegistry blocks = ApiChunk.blocks();
 
-        assertTrue(DepositPlacer.canReplaceDepositTarget(solid));
-        assertFalse(DepositPlacer.canReplaceDepositTarget(air));
-        assertFalse(DepositPlacer.canReplaceDepositTarget(fluid));
-        assertFalse(DepositPlacer.canReplaceDepositTarget(null));
+        assertTrue(DepositPlacer.canReplaceDepositTarget(blocks, new BlockState("minecraft:stone")));
+        assertFalse(DepositPlacer.canReplaceDepositTarget(blocks, ApiChunk.AIR));
+        assertFalse(DepositPlacer.canReplaceDepositTarget(blocks, new BlockState("minecraft:water")));
+        assertFalse(DepositPlacer.canReplaceDepositTarget(blocks, null));
     }
 
     @Test
@@ -155,21 +154,13 @@ public class DepositPlacerContainmentTest {
 
     @Test
     public void exposureProbeChecksOnlyInBoundsOrthogonalNeighbors() {
-        Hunk<PlatformBlockState> data = Hunk.newHunk(3, 3, 3);
-        PlatformBlockState solid = mock(PlatformBlockState.class);
-        PlatformBlockState air = mock(PlatformBlockState.class);
-        when(air.isAir()).thenReturn(true);
-        for (int x = 0; x < 3; x++) {
-            for (int y = 0; y < 3; y++) {
-                for (int z = 0; z < 3; z++) {
-                    data.setRaw(x, y, z, solid);
-                }
-            }
-        }
+        BlockRegistry blocks = ApiChunk.blocks();
+        Hunk<BlockState> data = new ArrayHunk<>(BlockState.class, 3, 3, 3, new BlockState("minecraft:stone"));
+        Predicate<BlockState> isAir = state -> blocks.hasTrait(state, BlockTrait.AIR);
 
-        assertFalse(DepositPlacer.isAdjacentToAir(data, 1, 1, 1));
-        data.setRaw(2, 1, 1, air);
-        assertTrue(DepositPlacer.isAdjacentToAir(data, 1, 1, 1));
-        assertFalse(DepositPlacer.isAdjacentToAir(data, 0, 0, 0));
+        assertFalse(DepositPlacer.isAdjacentToAir(data, 1, 1, 1, isAir));
+        data.set(2, 1, 1, ApiChunk.AIR);
+        assertTrue(DepositPlacer.isAdjacentToAir(data, 1, 1, 1, isAir));
+        assertFalse(DepositPlacer.isAdjacentToAir(data, 0, 0, 0, isAir));
     }
 }

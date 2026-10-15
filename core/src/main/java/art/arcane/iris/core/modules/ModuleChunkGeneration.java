@@ -60,7 +60,7 @@ public final class ModuleChunkGeneration {
         int chunkX = x >> CHUNK_SHIFT;
         int chunkZ = z >> CHUNK_SHIFT;
         long seed = ModuleSeeds.chunk(engine.getSeedManager().getSeed(), chunkX, chunkZ);
-        try (PinnedMantleChunk mantle = new PinnedMantleChunk(engine, chunkX, chunkZ)) {
+        try (PinnedMantleChunks mantle = new PinnedMantleChunks(engine)) {
             IrisGenerationContext inputs = new IrisGenerationContext(engine, x, z, blocks, new PlatformBlockStates(platformStates), mantle,
                     pack.catalog().mantle());
             StageMetrics metrics = new StageMetrics(engine.getMetrics());

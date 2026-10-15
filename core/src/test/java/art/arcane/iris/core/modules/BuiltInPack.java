@@ -21,9 +21,12 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.actuator.DecorantModule;
+import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule;
 import art.arcane.iris.engine.loot.LootModule;
 import art.arcane.iris.engine.modifier.CarveModule;
+import art.arcane.iris.engine.modifier.DepositModule;
 import art.arcane.iris.engine.modifier.MatterModule;
 import art.arcane.iris.engine.modifier.PerfectionModule;
 import art.arcane.iris.engine.modifier.PostModule;
@@ -65,7 +68,8 @@ public final class BuiltInPack {
     public static List<IrisModule> jarModules() {
         return List.of(new PostModule(), new PerfectionModule(), new MatterModule(), new LootModule(), new SpawnModule(),
                 new PrepareModule(), new AnchorModule(), new ValidateModule(), new BoreModule(), new BlocksModule(),
-                new StiltModule(), new VacuumModule(), new SnowModule(), new VanillaFeaturesModule(), new CarveModule());
+                new StiltModule(), new VacuumModule(), new SnowModule(), new VanillaFeaturesModule(), new CarveModule(),
+                new DepositModule(), new DecorantModule(), new TerrainModule());
     }
 
     /** Every built-in module: Iris's own and the compiled-in copies of the jar's ({@link #jarModules()}). */

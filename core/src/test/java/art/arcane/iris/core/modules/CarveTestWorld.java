@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.CaveDressing;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
@@ -62,7 +61,7 @@ import static org.mockito.Mockito.when;
  * own noise over an empty pack, a few blocks by name and the world's seeds, all in memory, so the module is tested through IrisApi alone.
  * Biomes and regions have the ids {@code test:<key>}; a declaration made for {@code <key>} has the source {@code test:<kind>/<key>}.
  */
-public final class CarveTestWorld implements PackWorld, IrisSeed.Source, CaveDressing.Source {
+public final class CarveTestWorld implements PackWorld, IrisSeed.Source {
     public static final String NAMESPACE = "test";
     public static final int MIN_HEIGHT = -64;
     private static final Set<String> AIRS = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
@@ -76,7 +75,6 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source, CaveDre
     private final IrisData data = packData();
     private final Resources resources = new Resources();
     private long carveSeed = 1337L;
-    private CaveDressing dressing;
 
     public CarveTestWorld declare(Target level, String key, IrisFeature value) {
         String kind = level.name().toLowerCase();
@@ -96,11 +94,6 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source, CaveDre
 
     public CarveTestWorld carveSeed(long seed) {
         this.carveSeed = seed;
-        return this;
-    }
-
-    public CarveTestWorld dressing(CaveDressing dressing) {
-        this.dressing = dressing;
         return this;
     }
 
@@ -162,14 +155,6 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source, CaveDre
     @Override
     public long seed(IrisSeed seed) {
         return seed == IrisSeed.CARVE ? carveSeed : carveSeed + seed.ordinal();
-    }
-
-    @Override
-    public CaveDressing caveDressing() {
-        if (dressing == null) {
-            throw new UnsupportedOperationException("This world has no cave dressing");
-        }
-        return dressing;
     }
 
     @SuppressWarnings("unchecked")

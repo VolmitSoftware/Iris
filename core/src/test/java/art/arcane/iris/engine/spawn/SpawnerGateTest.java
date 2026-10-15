@@ -18,13 +18,16 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.LiveWorld;
+import art.arcane.iris.builtin.LiveWorld.BiomeKind;
+import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.Spawner;
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.world.IrisWorld;
-import art.arcane.iris.engine.object.world.biome.InferredType;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformWorld;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,17 +39,19 @@ import static org.mockito.Mockito.when;
 
 /** Whether a spawner may fire: the biome kind its group wants, the world's time and weather, and its rates in the engine's data. */
 public class SpawnerGateTest {
-    private Engine engine;
-    private PlatformWorld world;
+    private LiveWorld live;
 
     @Before
     public void buildEngine() {
-        engine = mock(Engine.class);
+        Engine engine = mock(Engine.class);
         IrisWorld engineWorld = mock(IrisWorld.class);
-        world = mock(PlatformWorld.class);
-        when(engineWorld.platformWorld()).thenReturn(world);
+        PlatformWorld platformWorld = mock(PlatformWorld.class);
+        when(platformWorld.getTime()).thenReturn(6000L);
+        when(engineWorld.platformWorld()).thenReturn(platformWorld);
         when(engine.getWorld()).thenReturn(engineWorld);
+        when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getEngineData()).thenReturn(new IrisEngineData());
+        live = LiveWorld.of(new EngineGeneration(engine).world());
     }
 
     @Test
@@ -56,58 +61,54 @@ public class SpawnerGateTest {
         Spawner beach = spawner("{\"group\": \"BEACH\"}");
         Spawner cave = spawner("{\"group\": \"CAVE\"}");
 
-        assertTrue(SpawnerGate.suits(normal, biome(InferredType.LAND)));
-        assertFalse(SpawnerGate.suits(normal, biome(InferredType.SEA)));
-        assertTrue(SpawnerGate.suits(underwater, biome(InferredType.SEA)));
-        assertFalse(SpawnerGate.suits(underwater, biome(InferredType.LAND)));
-        assertTrue(SpawnerGate.suits(beach, biome(InferredType.SHORE)));
-        assertFalse(SpawnerGate.suits(beach, biome(InferredType.CAVE)));
-        assertTrue(SpawnerGate.suits(cave, biome(InferredType.SEA)));
+        assertTrue(SpawnerGate.suits(normal, BiomeKind.LAND));
+        assertFalse(SpawnerGate.suits(normal, BiomeKind.SEA));
+        assertTrue(SpawnerGate.suits(underwater, BiomeKind.SEA));
+        assertFalse(SpawnerGate.suits(underwater, BiomeKind.LAND));
+        assertTrue(SpawnerGate.suits(beach, BiomeKind.SHORE));
+        assertFalse(SpawnerGate.suits(beach, BiomeKind.CAVE));
+        assertTrue(SpawnerGate.suits(cave, BiomeKind.SEA));
     }
 
     @Test
     public void timeAndWeatherMustMatch() {
         Spawner daytimeRain = spawner("{\"timeBlock\": {\"startHour\": 8, \"endHour\": 18}, \"weather\": \"DOWNFALL\"}");
-        when(world.getTime()).thenReturn(6000L);
-        when(world.isStorming()).thenReturn(true);
-        assertTrue(SpawnerGate.suits(daytimeRain, world));
-
-        when(world.isStorming()).thenReturn(false);
-        assertFalse(SpawnerGate.suits(daytimeRain, world));
-
-        when(world.isStorming()).thenReturn(true);
-        when(world.getTime()).thenReturn(20000L);
-        assertFalse(SpawnerGate.suits(daytimeRain, world));
+        assertTrue(SpawnerGate.suits(daytimeRain, new Sky(6000L, true, false)));
+        assertFalse(SpawnerGate.suits(daytimeRain, new Sky(6000L, false, false)));
+        assertFalse(SpawnerGate.suits(daytimeRain, new Sky(20000L, true, false)));
     }
 
     @Test
     public void aSpawnerWithoutRatesAlwaysMayFire() {
         Spawner free = spawner("{}");
 
-        SpawnerGate.spawned("free", free, engine, 3, 4);
+        SpawnerGate.spawned("free", free, live, 3, 4);
 
-        assertTrue(SpawnerGate.canSpawn("free", free, engine, 3, 4));
+        assertTrue(SpawnerGate.canSpawn("free", free, live, 3, 4));
     }
 
     @Test
     public void aRateHoldsTheSpawnerBackForItsIntervalPerWorldAndPerChunk() {
         Spawner limited = spawner("{\"maximumRate\": {\"amount\": 1, \"per\": {\"minutes\": 10}}, \"maximumRatePerChunk\": {\"amount\": 1, \"per\": {\"minutes\": 10}}}");
 
-        assertTrue(SpawnerGate.canSpawn("limited", limited, engine, 3, 4));
-        SpawnerGate.spawned("limited", limited, engine, 3, 4);
+        assertTrue(SpawnerGate.canSpawn("limited", limited, live, 3, 4));
+        SpawnerGate.spawned("limited", limited, live, 3, 4);
 
-        assertFalse(SpawnerGate.canSpawn("limited", limited, engine, 3, 4));
-        assertFalse(SpawnerGate.canSpawn("limited", limited, engine, 9, 9));
-        assertTrue(SpawnerGate.canSpawn("other", limited, engine, 9, 9));
+        assertFalse(SpawnerGate.canSpawn("limited", limited, live, 3, 4));
+        assertFalse(SpawnerGate.canSpawn("limited", limited, live, 9, 9));
+        assertTrue(SpawnerGate.canSpawn("other", limited, live, 9, 9));
+    }
+
+    @Test
+    public void aWorldWithoutAPlatformWorldLetsNothingFire() {
+        Engine engine = mock(Engine.class);
+        when(engine.getData()).thenReturn(mock(IrisData.class));
+        when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
+
+        assertFalse(SpawnerGate.canSpawn("any", spawner("{}"), LiveWorld.of(new EngineGeneration(engine).world()), 0, 0));
     }
 
     private static Spawner spawner(String json) {
         return TestSettings.of(Spawner.class, json);
-    }
-
-    private static IrisBiome biome(InferredType type) {
-        IrisBiome biome = mock(IrisBiome.class);
-        when(biome.getInferredType()).thenReturn(type);
-        return biome;
     }
 }

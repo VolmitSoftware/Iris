@@ -28,7 +28,7 @@ import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.Locator;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.PlatformBlockStates;
-import art.arcane.iris.engine.framework.LootResolver;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.platform.bukkit.BukkitItemStacks;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;

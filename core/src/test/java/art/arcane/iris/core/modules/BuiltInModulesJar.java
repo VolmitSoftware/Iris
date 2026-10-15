@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  * every class {@code builtin-modules.txt} lists ({@code module} lines with their nested classes, {@code include} patterns)
  * and the entry points in order. Tests load it from a pack's {@code modules} folder without building IrisModule.
  */
-final class BuiltInModulesJar {
+public final class BuiltInModulesJar {
     private static final String LIST_PROPERTY = "iris.builtinModulesList";
     private static final String SERVICE_ENTRY = "META-INF/services/com.volmit.IrisModule";
     private static final String JAR_NAME = "iris-builtins.jar";
@@ -45,7 +45,7 @@ final class BuiltInModulesJar {
     }
 
     /** Writes {@code <pack>/modules/iris-builtins.jar} and returns its entry classes. */
-    static List<String> writeInto(Path pack) throws IOException {
+    public static List<String> writeInto(Path pack) throws IOException {
         List<String> modules = new ArrayList<>();
         List<PathMatcher> classes = new ArrayList<>();
         for (String line : Files.readAllLines(Path.of(System.getProperty(LIST_PROPERTY)))) {

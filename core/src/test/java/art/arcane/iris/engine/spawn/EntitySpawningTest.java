@@ -18,20 +18,20 @@
 
 package art.arcane.iris.engine.spawn;
 
+import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
-import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.PlatformWorld;
-import art.arcane.volmlib.util.collection.KList;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemRegistry;
 import com.volmit.service.EntitySpawns;
@@ -80,6 +80,7 @@ public class EntitySpawningTest {
         IrisWorld engineWorld = mock(IrisWorld.class);
         when(engineWorld.platformWorld()).thenReturn(mock(PlatformWorld.class));
         when(engine.getWorld()).thenReturn(engineWorld);
+        when(engine.getEngineData()).thenReturn(new IrisEngineData());
         SeedManager seeds = mock(SeedManager.class);
         when(seeds.getEntity()).thenReturn(11L);
         when(engine.getSeedManager()).thenReturn(seeds);
@@ -88,11 +89,10 @@ public class EntitySpawningTest {
 
     @Test
     public void aCaveWithoutFloorMarkersHasNowhereToSpawn() {
-        EngineMantle mantle = mock(EngineMantle.class);
-        when(engine.getMantle()).thenReturn(mantle);
-        when(mantle.findMarkers(2, 3, art.arcane.volmlib.util.matter.slices.MarkerMatter.CAVE_FLOOR)).thenReturn(new KList<>());
+        LiveWorld live = mock(LiveWorld.class);
+        when(live.caveFloors(2, 3)).thenReturn(List.of());
 
-        assertNull(EntitySpawning.caveSpawnPosition(engine, 2, 3));
+        assertNull(EntitySpawning.caveSpawnPosition(live, 2, 3));
     }
 
     @Test

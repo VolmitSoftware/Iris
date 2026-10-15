@@ -1,55 +1,68 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.builtin.loot.LootEntry;
+import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.LootTable;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.engine.object.TestSettings;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.IrisFeature;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.MaxNumber;
+import com.volmit.config.PackSettings;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Severity;
-import org.junit.Rule;
+import com.volmit.validation.ValidationContext;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LootValidatorTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    private ModuleResourceFixture tables;
+    private PackResources resources;
+    private final List<Entry<LootSettings>> references = new ArrayList<>();
+
+    @Before
+    public void servePack() {
+        IrisData data = mock(IrisData.class);
+        tables = ModuleResourceFixture.serve(data);
+        resources = data.getPackResources();
+    }
 
     @Test
-    public void acceptsValidLootTableAndReference() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "loot/global/clutter.json", "{\"name\":\"Clutter\",\"minPicked\":1,\"maxPicked\":2,"
+    public void acceptsValidLootTableAndReference() {
+        table("global/clutter", "{\"name\":\"Clutter\",\"minPicked\":1,\"maxPicked\":2,"
                 + "\"loot\":[{\"type\":\"stick\",\"rarity\":2,\"minAmount\":1,\"maxAmount\":3}]}");
-        write(pack, "dimensions/main.json", "{\"loot\":{\"mode\":\"FALLBACK\",\"multiplier\":0.5,"
-                + "\"tables\":[\"global/clutter\"]}}");
+        reference(Target.DIMENSION, "main", "{\"mode\":\"FALLBACK\",\"multiplier\":0.5,\"tables\":[\"global/clutter\"]}");
 
-        assertTrue(errors(pack).isEmpty());
+        assertTrue(errors().isEmpty());
     }
 
     @Test
-    public void rejectsMissingLootReference() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"loot\":{\"tables\":[\"missing\"]}}");
+    public void rejectsMissingLootReference() {
+        reference(Target.DIMENSION, "main", "{\"tables\":[\"missing\"]}");
 
-        assertEquals(List.of("Dimension 'main'.loot.tables[0] references missing loot table 'missing'."),
-                errors(pack));
+        assertEquals(List.of("Dimension 'main'.loot.tables[0] references missing loot table 'missing'."), errors());
     }
 
     @Test
-    public void rejectsInvalidLootBoundsAndEmptyEntries() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "loot/broken.json", "{\"rarity\":0,\"minPicked\":4,\"maxPicked\":2,\"maxTries\":0,"
+    public void rejectsInvalidLootBoundsAndEmptyEntries() {
+        table("broken", "{\"rarity\":0,\"minPicked\":4,\"maxPicked\":2,\"maxTries\":0,"
                 + "\"loot\":[{\"type\":\"\",\"rarity\":0,\"minAmount\":3,\"maxAmount\":1,"
                 + "\"enchantments\":[{\"enchantment\":\"\",\"minLevel\":4,\"maxLevel\":2,\"chance\":2}]}]}");
 
-        List<String> errors = errors(pack);
+        List<String> errors = errors();
 
         assertTrue(errors.stream().anyMatch(error -> error.contains(".rarity must be at least 1")));
         assertTrue(errors.stream().anyMatch(error -> error.contains(".minPicked must not exceed")));
@@ -61,45 +74,42 @@ public class LootValidatorTest {
     }
 
     @Test
-    public void rejectsInvalidReferenceModeAndMultiplier() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "dimensions/main.json", "{\"loot\":{\"mode\":\"MERGE\",\"multiplier\":-1,\"tables\":[]}}");
+    public void aTableWithoutEntriesIsRejected() {
+        table("empty", "{\"name\":\"Empty\"}");
 
-        List<String> errors = errors(pack);
-
-        assertEquals(2, errors.size());
-        assertTrue(errors.get(0).contains(".mode must be"));
-        assertTrue(errors.get(1).contains(".multiplier must be"));
+        assertEquals(List.of("Loot table 'empty'.loot must be a non-empty array."), errors());
     }
 
     @Test
-    public void enforcesPublishedLootMultiplierCap() throws Exception {
-        File acceptedPack = temporaryFolder.newFolder("accepted-pack");
-        write(acceptedPack, "dimensions/main.json", "{\"loot\":{\"multiplier\":16,\"tables\":[]}}");
-        assertTrue(errors(acceptedPack).isEmpty());
+    public void rejectsInvalidReferenceMultiplier() {
+        reference(Target.DIMENSION, "main", "{\"multiplier\":-1,\"tables\":[]}");
 
-        File rejectedPack = temporaryFolder.newFolder("rejected-pack");
-        write(rejectedPack, "dimensions/main.json", "{\"loot\":{\"multiplier\":16.01,\"tables\":[]}}");
-        assertEquals(List.of("Dimension 'main'.loot.multiplier must be a finite number from 0 to 16."),
-                errors(rejectedPack));
+        assertEquals(List.of("Dimension 'main'.loot.multiplier must be a finite number from 0 to 16."), errors());
     }
 
     @Test
-    public void acceptsPublishedLootWorkBounds() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "loot/boundary.json", "{\"minPicked\":64,\"maxPicked\":64,\"maxTries\":256,"
+    public void enforcesPublishedLootMultiplierCap() {
+        reference(Target.DIMENSION, "accepted", "{\"multiplier\":16,\"tables\":[]}");
+        assertTrue(errors().isEmpty());
+
+        reference(Target.DIMENSION, "rejected", "{\"multiplier\":16.01,\"tables\":[]}");
+        assertEquals(List.of("Dimension 'rejected'.loot.multiplier must be a finite number from 0 to 16."), errors());
+    }
+
+    @Test
+    public void acceptsPublishedLootWorkBounds() {
+        table("boundary", "{\"minPicked\":64,\"maxPicked\":64,\"maxTries\":256,"
                 + "\"loot\":[{\"type\":\"stone\",\"minAmount\":64,\"maxAmount\":64}]}");
 
-        assertTrue(errors(pack).isEmpty());
+        assertTrue(errors().isEmpty());
     }
 
     @Test
-    public void rejectsLootWorkBoundsAbovePublishedCaps() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "loot/excessive.json", "{\"minPicked\":65,\"maxPicked\":65,\"maxTries\":257,"
+    public void rejectsLootWorkBoundsAbovePublishedCaps() {
+        table("excessive", "{\"minPicked\":65,\"maxPicked\":65,\"maxTries\":257,"
                 + "\"loot\":[{\"type\":\"stone\",\"minAmount\":65,\"maxAmount\":65}]}");
 
-        List<String> errors = errors(pack);
+        List<String> errors = errors();
 
         assertTrue(errors.contains("Loot table 'excessive'.minPicked must be at most 64."));
         assertTrue(errors.contains("Loot table 'excessive'.maxPicked must be at most 64."));
@@ -124,43 +134,89 @@ public class LootValidatorTest {
     }
 
     @Test
-    public void clearModeWithTablesWarnsWithoutBlocking() throws Exception {
-        File pack = temporaryFolder.newFolder("clear-warn");
-        write(pack, "loot/t.json", "{\"loot\":[{\"type\":\"minecraft:stone\"}]}");
-        write(pack, "biomes/x.json", "{\"loot\":{\"mode\":\"CLEAR\",\"tables\":[\"t\"]}}");
+    public void clearModeWithTablesWarnsWithoutBlocking() {
+        table("t", "{\"loot\":[{\"type\":\"minecraft:stone\"}]}");
+        reference(Target.BIOME, "x", "{\"mode\":\"CLEAR\",\"tables\":[\"t\"]}");
 
-        
-        assertTrue(errors(pack).isEmpty());
+        assertTrue(errors().isEmpty());
         assertEquals(List.of("Biome 'x'.loot uses mode CLEAR and lists 1 table(s); CLEAR clears parent tables"
                 + " and contributes no tables of its own, so these entries are dead. Use REPLACE to substitute them."),
-                warnings(pack));
+                warnings());
     }
 
     @Test
-    public void clearModeWithMissingTableStillBlocksOnTheDanglingKey() throws Exception {
-        File pack = temporaryFolder.newFolder("clear-dangling");
-        write(pack, "biomes/x.json", "{\"loot\":{\"mode\":\"CLEAR\",\"tables\":[\"missing\"]}}");
+    public void clearModeWithMissingTableStillBlocksOnTheDanglingKey() {
+        reference(Target.BIOME, "x", "{\"mode\":\"CLEAR\",\"tables\":[\"missing\"]}");
 
-        
-        assertTrue(errors(pack).contains(
-                "Biome 'x'.loot.tables[0] references missing loot table 'missing'."));
+        assertTrue(errors().contains("Biome 'x'.loot.tables[0] references missing loot table 'missing'."));
     }
 
-    private static List<String> errors(File pack) {
-        return messages(pack, Severity.ERROR);
+    @Test
+    public void aTableThatFailsToLoadIsReportedWithoutStoppingTheCheck() {
+        table("fine", "{\"loot\":[{\"type\":\"stone\"}]}");
+        table("broken", "{\"loot\":[{\"type\":\"stone\"}]}");
+        when(resources.find(LootResources.TABLES.key(new ResourceId("test", "broken")))).thenThrow(new IllegalStateException("unreadable"));
+
+        assertEquals(List.of("Loot table 'broken' cannot be read; the log says what is wrong with the file."), errors());
     }
 
-    private static List<String> warnings(File pack) {
-        return messages(pack, Severity.WARNING);
+    @Test
+    public void referencesAreFoundByTheIdThePackGivesTheirKey() {
+        table("Global/Clutter", "{\"loot\":[{\"type\":\"stick\"}]}");
+        reference(Target.REGION, "plains", "{\"tables\":[\"Global/Clutter\"]}");
+
+        assertTrue(errors().isEmpty());
     }
 
-    private static List<String> messages(File pack, Severity severity) {
-        return LootValidator.check(pack).stream().filter(problem -> problem.severity() == severity).map(Problem::message).toList();
+    private void table(String key, String json) {
+        tables.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, json));
     }
 
-    private void write(File root, String relative, String content) throws Exception {
-        File file = new File(root, relative);
-        Files.createDirectories(file.toPath().getParent());
-        Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+    private void reference(Target level, String key, String json) {
+        String folder = switch (level) {
+            case DIMENSION -> "dimension";
+            case REGION -> "region";
+            default -> "biome";
+        };
+        references.add(new Entry<>(level, new ResourceId("test", folder + "/" + key), TestSettings.of(LootSettings.class, json)));
+    }
+
+    private List<String> errors() {
+        return messages(Severity.ERROR);
+    }
+
+    private List<String> warnings() {
+        return messages(Severity.WARNING);
+    }
+
+    private List<String> messages(Severity severity) {
+        List<Problem> problems = new ArrayList<>();
+        new LootValidator().validate(context(problems));
+        return problems.stream().filter(problem -> problem.severity() == severity).map(Problem::message).toList();
+    }
+
+    private ValidationContext context(List<Problem> problems) {
+        return new ValidationContext() {
+            @Override
+            public PackResources resources() {
+                return resources;
+            }
+
+            @Override
+            public PackSettings settings() {
+                return new PackSettings() {
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+                        return featureType == LootSettings.class ? (List<Entry<F>>) (List<?>) List.copyOf(references) : List.of();
+                    }
+                };
+            }
+
+            @Override
+            public void report(Problem problem) {
+                problems.add(problem);
+            }
+        };
     }
 }

@@ -20,12 +20,12 @@ public class IrisStructureLootPlacementTest {
         assertEquals(1, placement.getPlace().size());
         assertEquals("pieces/village_house", placement.getPlace().get(0));
         assertEquals(2, placement.getLoot().size());
-        assertEquals("village_common", placement.getLoot().get(0).getName());
-        assertEquals(1, placement.getLoot().get(0).getWeight());
-        assertTrue(placement.getLoot().get(0).getFilter().isEmpty());
-        assertEquals("village_rare", placement.getLoot().get(1).getName());
-        assertEquals(1, placement.getLoot().get(1).getWeight());
-        assertTrue(placement.getLoot().get(1).getFilter().isEmpty());
+        assertEquals("village_common", placement.getLoot().get(0).name());
+        assertEquals(1, placement.getLoot().get(0).weight());
+        assertTrue(placement.getLoot().get(0).filter().isEmpty());
+        assertEquals("village_rare", placement.getLoot().get(1).name());
+        assertEquals(1, placement.getLoot().get(1).weight());
+        assertTrue(placement.getLoot().get(1).filter().isEmpty());
         assertFalse(placement.isOverrideGlobalLoot());
     }
 

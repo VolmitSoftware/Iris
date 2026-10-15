@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInModulesJar;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaTestPlatform;
 import art.arcane.iris.builtin.loot.LootTable;
@@ -52,7 +53,7 @@ public class LootResourcesTest {
 
             assertEquals(List.of("iris:loot/table"), catalog.resourceKinds().stream().map(registration -> registration.kind().id().toString())
                     .filter(id -> id.startsWith("iris:loot/")).toList());
-            assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(LootValidator.class::isInstance));
+            assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(validator -> validator.getClass().getName().equals(LootValidator.class.getName())));
             assertFalse(data.getLoaders().containsKey(LootTable.class));
         } finally {
             data.close();
@@ -64,18 +65,18 @@ public class LootResourcesTest {
         Path pack = lootPack("tables");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            LootTable table = LootResources.table(data, "dungeon/chest");
+            LootTable table = LootResources.table(data.getPackResources(), "dungeon/chest");
 
             assertEquals("Chest", table.name());
             assertEquals(1, table.loot().size());
             assertEquals("stick", table.loot().getFirst().type());
-            assertEquals(List.of("dungeon/chest"), LootResources.tableKeys(data));
-            assertNull(LootResources.table(data, "missing"));
-            assertNull(LootResources.table(data, " "));
+            assertEquals(List.of("dungeon/chest"), LootResources.tableKeys(data.getPackResources()));
+            assertNull(LootResources.table(data.getPackResources(), "missing"));
+            assertNull(LootResources.table(data.getPackResources(), " "));
 
             write(pack, "loot/dungeon/chest.json", "{\"name\":\"Renamed\"}");
             data.dump();
-            assertEquals("Renamed", LootResources.table(data, "dungeon/chest").name());
+            assertEquals("Renamed", LootResources.table(data.getPackResources(), "dungeon/chest").name());
         } finally {
             data.close();
         }
@@ -101,6 +102,7 @@ public class LootResourcesTest {
         write(pack.toPath(), "regions/region.json", "{\"landBiomes\":[\"biome\"]}");
         write(pack.toPath(), "biomes/biome.json", "{\"name\":\"Biome\"}");
         write(pack.toPath(), "loot/dungeon/chest.json", "{\"name\":\"Chest\",\"loot\":[{\"type\":\"stick\"}]}");
+        BuiltInModulesJar.writeInto(pack.toPath());
         return pack.toPath();
     }
 

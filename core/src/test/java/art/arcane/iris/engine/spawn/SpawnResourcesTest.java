@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInModulesJar;
 import art.arcane.iris.core.project.ModuleResourceSchemas;
 import art.arcane.iris.core.project.SchemaTestPlatform;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -68,21 +69,21 @@ public class SpawnResourcesTest {
         Path pack = spawnPack("spawns");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            Spawner spawner = SpawnResources.spawner(data, "camp/zombies");
+            Spawner spawner = SpawnResources.spawner(data.getPackResources(), "camp/zombies");
 
             assertEquals("zombie", spawner.spawns().getFirst().entity());
-            assertEquals("minecraft:zombie", SpawnResources.entity(data, "zombie").type());
-            assertEquals(List.of("camp/zombies"), SpawnResources.marker(data, "camp").spawners());
-            assertEquals(List.of(new SpawnResources.KeyedSpawner("camp/zombies", spawner)), SpawnResources.spawners(data, List.of("camp/zombies", "missing")));
-            assertEquals(List.of("zombie"), SpawnResources.entityKeys(data));
-            assertEquals(List.of("camp"), SpawnResources.markerKeys(data));
-            assertEquals(List.of("camp/zombies"), SpawnResources.spawnerKeys(data));
-            assertNull(SpawnResources.spawner(data, "missing"));
-            assertNull(SpawnResources.entity(data, " "));
+            assertEquals("minecraft:zombie", SpawnResources.entity(data.getPackResources(), "zombie").type());
+            assertEquals(List.of("camp/zombies"), SpawnResources.marker(data.getPackResources(), "camp").spawners());
+            assertEquals(List.of(new SpawnResources.KeyedSpawner("camp/zombies", spawner)), SpawnResources.spawners(data.getPackResources(), List.of("camp/zombies", "missing")));
+            assertEquals(List.of("zombie"), SpawnResources.entityKeys(data.getPackResources()));
+            assertEquals(List.of("camp"), SpawnResources.markerKeys(data.getPackResources()));
+            assertEquals(List.of("camp/zombies"), SpawnResources.spawnerKeys(data.getPackResources()));
+            assertNull(SpawnResources.spawner(data.getPackResources(), "missing"));
+            assertNull(SpawnResources.entity(data.getPackResources(), " "));
 
             write(pack, "entities/zombie.json", "{\"type\":\"minecraft:husk\"}");
             data.dump();
-            assertEquals("minecraft:husk", SpawnResources.entity(data, "zombie").type());
+            assertEquals("minecraft:husk", SpawnResources.entity(data.getPackResources(), "zombie").type());
         } finally {
             data.close();
         }
@@ -115,6 +116,7 @@ public class SpawnResourcesTest {
         write(pack.toPath(), "entities/zombie.json", "{\"type\":\"minecraft:zombie\"}");
         write(pack.toPath(), "spawners/camp/zombies.json", "{\"spawns\":[{\"entity\":\"zombie\"}]}");
         write(pack.toPath(), "markers/camp.json", "{\"spawners\":[\"camp/zombies\"]}");
+        BuiltInModulesJar.writeInto(pack.toPath());
         return pack.toPath();
     }
 

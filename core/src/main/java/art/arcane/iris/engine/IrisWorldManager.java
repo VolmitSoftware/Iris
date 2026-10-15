@@ -58,7 +58,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private final KList<Runnable> updateQueue = new KList<>();
     final ChronoLatch cl;
     private final ChronoLatch clw;
-    private final ChronoLatch cln;
     private final ChronoLatch chunkUpdater;
     private final ChronoLatch chunkDiscovery;
     private final KMap<Long, Future<?>> cleanup = new KMap<>();
@@ -89,7 +88,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     public IrisWorldManager() {
         super(null);
         cl = null;
-        cln = null;
         clw = null;
         looper = null;
         chunkUpdater = null;
@@ -101,7 +99,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         super(engine);
         chunkUpdater = new ChronoLatch(3000);
         chunkDiscovery = new ChronoLatch(5000);
-        cln = new ChronoLatch(60000);
         cl = new ChronoLatch(3000);
         clw = new ChronoLatch(1000, true);
         cleanupService = createCleanupExecutor(getTarget().getWorld().name());
@@ -155,10 +152,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
             if (chunkDiscovery.flip()) {
                 chunkMaintenance.discoverChunks();
-            }
-
-            if (cln.flip()) {
-                getEngine().getEngineData().cleanup(getEngine());
             }
 
             if (!IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()

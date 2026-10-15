@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.ModuleLog;
@@ -35,12 +36,13 @@ import java.util.function.Function;
  * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
  * reaches do through {@link IrisPackSettings#of}.
  */
-public final class IrisPackWorld implements PackWorld, IrisSeed.Source {
+public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
     private final ModuleLog log;
     private final Map<ModuleLog, IrisPackWorld> viewsByLog;
+    private final LiveWorld liveWorld;
 
     IrisPackWorld(Engine engine) {
         this(engine, engine.getData().getPackResources(), new WorldStates(), IrisApiLogger.hostLog(), new ConcurrentHashMap<>());
@@ -53,6 +55,7 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source {
         this.states = states;
         this.log = log;
         this.viewsByLog = viewsByLog;
+        this.liveWorld = new IrisLiveWorld(engine, resources);
     }
 
     /** Iris's own view of {@code world}, which Iris hands to every stage, service and lifecycle hook. */
@@ -97,6 +100,11 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source {
     @Override
     public IrisPackWorld withLog(ModuleLog log) {
         return viewsByLog.computeIfAbsent(log, moduleLog -> new IrisPackWorld(engine, resources, states, moduleLog, viewsByLog));
+    }
+
+    @Override
+    public LiveWorld liveWorld() {
+        return liveWorld;
     }
 
     @Override

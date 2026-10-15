@@ -91,6 +91,7 @@ public class SchemaBuilder {
     private static final String MINECRAFT_NAMESPACE = "minecraft:";
     /** Namespaced key or family/namespace prefix: "minecraft:village_plains", "minecraft:village", "nova_structures:". */
     private static final String VANILLA_STRUCTURE_PREFIX_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./-]*$";
+    private static final String LOOT_TABLE_DEFINITION = "loot-table-key";
     private static volatile JSONArray fontTypes;
     private final KMap<String, JSONObject> definitions;
     private final Class<?> root;
@@ -221,6 +222,10 @@ public class SchemaBuilder {
 
     private JSONArray entityTypes() {
         return keysAsArray(IrisPlatforms.get().registries().entityKeys());
+    }
+
+    private JSONArray lootTableKeys() {
+        return keysAsArray(IrisPlatforms.get().registries().lootTableKeys());
     }
 
     private JSONArray specialEntityTypes() {
@@ -448,6 +453,7 @@ public class SchemaBuilder {
             case TEMPLATE_POOL -> putRegistryEnumRef(property, "enum-native-jigsaw-pool", this::nativeJigsawPools);
             case POTION_EFFECT -> putRegistryEnumRef(property, "enum-potion-effect-type", this::potionTypes);
             case ENCHANTMENT -> putRegistryEnumRef(property, "enum-enchantment", this::enchantTypes);
+            case LOOT_TABLE -> putRegistryEnumRef(property, LOOT_TABLE_DEFINITION, this::lootTableKeys);
             case PACK_BIOME -> putPackResourceRef(property, IrisBiome.class);
             case PACK_REGION -> putPackResourceRef(property, IrisRegion.class);
             case PACK_OBJECT -> putPackResourceRef(property, IrisObject.class);

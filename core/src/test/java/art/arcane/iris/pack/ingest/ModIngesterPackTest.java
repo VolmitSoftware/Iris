@@ -20,6 +20,8 @@ package art.arcane.iris.pack.ingest;
 
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
+import art.arcane.iris.pack.ingest.catalog.CatalogNamespace;
+import art.arcane.iris.pack.ingest.catalog.WorldgenCatalog;
 import com.google.gson.JsonObject;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -201,6 +204,26 @@ public class ModIngesterPackTest {
         assertEquals(List.of("examplemod", "othermod"),
                 ModIngestFixture.strings(ModIngestFixture.readJson(target.resolve("ingest/manifest.json")).get("namespaces")));
         assertTrue(report.items().stream().noneMatch(item -> item.namespace().equals("minecraft")));
+    }
+
+    @Test
+    public void namespacesWithoutAnyIngestedContentAreLeftOutOfTheManifestAndSummary() throws Exception {
+        Path root = folder.getRoot().toPath();
+        Path source = ModIngestFixture.writeSourcePack(root);
+        Path target = root.resolve("packs").resolve("quiet");
+        WorldgenCatalog fixture = ModIngestFixture.catalog();
+        List<CatalogNamespace> namespaces = new ArrayList<>(fixture.namespaces());
+        namespaces.add(new CatalogNamespace("quietmod", "Quiet Mod", "1.0.0"));
+        WorldgenCatalog catalog = new WorldgenCatalog(fixture.format(), fixture.minecraftVersion(), fixture.platform(),
+                fixture.capturedAtEpochMillis(), fixture.contentFingerprint(), namespaces, fixture.biomes(),
+                fixture.placedFeatures(), fixture.structures(), fixture.dimensionTypes(), fixture.levelStems());
+
+        ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog, Set.of(), false));
+
+        assertEquals(List.of("examplemod", "othermod"),
+                ModIngestFixture.strings(ModIngestFixture.readJson(target.resolve("ingest/manifest.json")).get("namespaces")));
+        assertTrue(report.summaryLines().stream().noneMatch(line -> line.startsWith("quietmod")));
+        assertEquals(3, report.summaryLines().size());
     }
 
     private static List<String> directoryNames(Path root) throws IOException {

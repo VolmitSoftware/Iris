@@ -96,8 +96,19 @@ public final class ModIngester {
         items.addAll(featureItems);
         items.addAll(ModStructureIngester.ingest(request.catalog().structures(), namespaces, hostBiomes, dimension));
         pack.flush();
-        IngestManifest.write(pack, request.catalog(), request.dimensionKey(), targetKey, namespaces, items);
-        return new ModIngestReport(target, items, IngestManifest.summary(targetKey, pack, namespaces, items));
+        Set<String> reported = reportedNamespaces(namespaces, items);
+        IngestManifest.write(pack, request.catalog(), request.dimensionKey(), targetKey, reported, items);
+        return new ModIngestReport(target, items, IngestManifest.summary(targetKey, pack, reported, items));
+    }
+
+    private static Set<String> reportedNamespaces(Set<String> namespaces, List<ModIngestItem> items) {
+        Set<String> reported = new TreeSet<>();
+        for (ModIngestItem item : items) {
+            if (namespaces.contains(item.namespace())) {
+                reported.add(item.namespace());
+            }
+        }
+        return reported;
     }
 
     private static Set<String> selectNamespaces(ModIngestRequest request, Set<String> reserved) {

@@ -1082,6 +1082,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "החבילה הנדרשת '{pack}' אינה מותקנת. התקן אותה באמצעות /iris download ולאחר מכן הפעל מחדש את השרת."
 failed_inject_iris_world = "נכשל להזרק Iris עולם »{dimensionId}': {value}{errorMessage}"
+creating_iris_world_in_background = "יוצר את עולם Iris {dimensionId} מהחבילה '{pack}', מימד '{packDimension}' (זרע {seed}) ברקע. תקבל הודעה כשהוא יהיה זמין."
 created_iris_world_from_pack_dimension_seed = "נוצר Iris עולם העולם {dimensionId} מתוך \"חבילה\"{pack}מימד \"{packDimension}(זה {seed})."
 it_is_live_now_re_injected_on_every_startup_teleport = "הוא חי עכשיו ומופץ מחדש על כל סטארט-אפ.  טלפורט עם /iris world status או פורטל, אין צורך מחדש."
 failed_inject_iris_primary_world = "נכשל להזרק Iris עולם ראשון: {value}{errorMessage}"

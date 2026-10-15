@@ -7,7 +7,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,7 +21,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class ModdedDimensionRestoreTest {
+public class ModdedDimensionInjectionTest {
     private static final long STEP_TIMEOUT_SECONDS = 10L;
 
     @Test
@@ -26,13 +30,13 @@ public class ModdedDimensionRestoreTest {
         RecordingSteps steps = new RecordingSteps(dimensions.size());
         steps.prepareBarrier = new CountDownLatch(dimensions.size());
 
-        List<ModdedDimensionRestore.Result> results;
-        try (ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps)) {
+        List<ModdedDimensionInjection.Result> results;
+        try (ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps)) {
             results = restore.finish();
         }
 
         assertEquals(dimensions.size(), results.size());
-        for (ModdedDimensionRestore.Result result : results) {
+        for (ModdedDimensionInjection.Result result : results) {
             assertNull(result.failure());
         }
         assertFalse(steps.prepareThreads.contains(Thread.currentThread()));
@@ -44,7 +48,7 @@ public class ModdedDimensionRestoreTest {
         RecordingSteps steps = new RecordingSteps(dimensions.size());
         steps.buildBarrier = new CountDownLatch(dimensions.size());
 
-        try (ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps)) {
+        try (ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps)) {
             restore.finish();
         }
 
@@ -61,8 +65,8 @@ public class ModdedDimensionRestoreTest {
         steps.prepareFailure = failure;
         steps.failingIndex = 1;
 
-        List<ModdedDimensionRestore.Result> results;
-        try (ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps)) {
+        List<ModdedDimensionInjection.Result> results;
+        try (ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps)) {
             results = restore.finish();
         }
 
@@ -82,14 +86,14 @@ public class ModdedDimensionRestoreTest {
         steps.buildFailure = failure;
         steps.failingIndex = 0;
 
-        List<ModdedDimensionRestore.Result> results;
-        try (ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps)) {
+        List<ModdedDimensionInjection.Result> results;
+        try (ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps)) {
             results = restore.finish();
         }
 
         assertSame(failure, results.get(0).failure());
         assertNull(results.get(1).failure());
-        assertEquals(List.of("level-0"), steps.abandoned);
+        assertEquals(List.of("level-0:null"), steps.abandoned);
         assertEquals(List.of("level-1:engine-1"), steps.completed);
     }
 
@@ -101,8 +105,8 @@ public class ModdedDimensionRestoreTest {
         steps.beginFailure = failure;
         steps.failingIndex = 1;
 
-        List<ModdedDimensionRestore.Result> results;
-        try (ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps)) {
+        List<ModdedDimensionInjection.Result> results;
+        try (ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps)) {
             results = restore.finish();
         }
 
@@ -126,7 +130,7 @@ public class ModdedDimensionRestoreTest {
             release.countDown();
         });
 
-        try (ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps)) {
+        try (ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps)) {
             restore.awaitPreparations();
 
             assertEquals(dimensions.size(), steps.prepared.get());
@@ -143,12 +147,149 @@ public class ModdedDimensionRestoreTest {
         List<ModdedDimensionRegistryStore.PersistentDimension> dimensions = dimensions(3);
         RecordingSteps steps = new RecordingSteps(dimensions.size());
 
-        ModdedDimensionRestore<String, String, String> restore = ModdedDimensionRestore.start(dimensions, steps);
+        ModdedDimensionInjection<String, String, String> restore = ModdedDimensionInjection.start(dimensions, steps);
         restore.close();
 
         assertTrue(steps.discardedAll.await(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertTrue(steps.begun.isEmpty());
         assertEquals(Set.of("prepared-0", "prepared-1", "prepared-2"), Set.copyOf(steps.discarded));
+    }
+
+    @Test
+    public void asyncInjectionReturnsAtOnceAndMutatesLevelsOnlyOnTheServerExecutor() throws Exception {
+        ModdedDimensionRegistryStore.PersistentDimension dimension = dimensions(1).getFirst();
+        RecordingSteps steps = new RecordingSteps(1);
+        CountDownLatch release = new CountDownLatch(1);
+        steps.prepareGate = release;
+        ExecutorService server = Executors.newSingleThreadExecutor(Thread.ofPlatform().name("test-server").factory());
+        try {
+            Thread serverThread = server.submit(Thread::currentThread).get();
+            ModdedDimensionInjection.Async<String, String, String> async =
+                    ModdedDimensionInjection.async(dimension, steps, server);
+            async.start();
+
+            assertFalse(async.result().isDone());
+            release.countDown();
+            ModdedDimensionInjection.Result result = async.result().get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            assertNull(result.failure());
+            assertSame(dimension, result.dimension());
+            assertEquals(List.of("level-0:engine-0"), steps.completed);
+            assertEquals(Set.of(serverThread), steps.serverThreads);
+            assertFalse(steps.prepareThreads.contains(serverThread));
+            assertFalse(steps.prepareThreads.contains(Thread.currentThread()));
+            assertFalse(steps.buildThreads.contains(serverThread));
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    @Test
+    public void asyncPreparationFailureCompletesWithoutCreatingALevel() throws Exception {
+        ModdedDimensionRegistryStore.PersistentDimension dimension = dimensions(1).getFirst();
+        RecordingSteps steps = new RecordingSteps(1);
+        IllegalStateException failure = new IllegalStateException("pack refused");
+        steps.prepareFailure = failure;
+        steps.failingIndex = 0;
+        ExecutorService server = Executors.newSingleThreadExecutor();
+        try {
+            ModdedDimensionInjection.Async<String, String, String> async =
+                    ModdedDimensionInjection.async(dimension, steps, server);
+            async.start();
+
+            ModdedDimensionInjection.Result result = async.result().get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            assertSame(failure, result.failure());
+            assertTrue(steps.begun.isEmpty());
+            assertTrue(steps.completed.isEmpty());
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    @Test
+    public void asyncEngineFailureAbandonsTheCreatedLevel() throws Exception {
+        ModdedDimensionRegistryStore.PersistentDimension dimension = dimensions(1).getFirst();
+        RecordingSteps steps = new RecordingSteps(1);
+        IllegalStateException failure = new IllegalStateException("engine refused");
+        steps.buildFailure = failure;
+        steps.failingIndex = 0;
+        ExecutorService server = Executors.newSingleThreadExecutor();
+        try {
+            ModdedDimensionInjection.Async<String, String, String> async =
+                    ModdedDimensionInjection.async(dimension, steps, server);
+            async.start();
+
+            ModdedDimensionInjection.Result result = async.result().get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            assertSame(failure, result.failure());
+            assertEquals(List.of("level-0:null"), steps.abandoned);
+            assertTrue(steps.completed.isEmpty());
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    @Test
+    public void cancellingWhilePreparingDiscardsThePreparationWithoutCreatingALevel() throws Exception {
+        ModdedDimensionRegistryStore.PersistentDimension dimension = dimensions(1).getFirst();
+        RecordingSteps steps = new RecordingSteps(1);
+        CountDownLatch release = new CountDownLatch(1);
+        steps.prepareGate = release;
+        ExecutorService server = Executors.newSingleThreadExecutor();
+        try {
+            ModdedDimensionInjection.Async<String, String, String> async =
+                    ModdedDimensionInjection.async(dimension, steps, server);
+            async.start();
+
+            server.submit(async::cancel).get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            release.countDown();
+            ModdedDimensionInjection.Result result = async.result().get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            assertTrue(result.failure() instanceof CancellationException);
+            assertTrue(steps.discardedAll.await(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertEquals(List.of("prepared-0"), steps.discarded);
+            server.submit(() -> null).get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            assertTrue(steps.begun.isEmpty());
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    @Test
+    public void cancellingWhileBuildingWaitsForTheEngineAndAbandonsTheLevelWithIt() throws Exception {
+        ModdedDimensionRegistryStore.PersistentDimension dimension = dimensions(1).getFirst();
+        RecordingSteps steps = new RecordingSteps(1);
+        CountDownLatch building = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        steps.buildStarted = building;
+        steps.buildGate = release;
+        ExecutorService server = Executors.newSingleThreadExecutor();
+        try {
+            ModdedDimensionInjection.Async<String, String, String> async =
+                    ModdedDimensionInjection.async(dimension, steps, server);
+            async.start();
+            assertTrue(building.await(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+
+            Future<?> cancelled = server.submit(async::cancel);
+            Thread.ofPlatform().daemon(true).start(() -> {
+                try {
+                    Thread.sleep(200L);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+                release.countDown();
+            });
+            cancelled.get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            ModdedDimensionInjection.Result result = async.result().get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            server.submit(() -> null).get(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            assertTrue(result.failure() instanceof CancellationException);
+            assertEquals(List.of("level-0:engine-0"), steps.abandoned);
+            assertTrue(steps.completed.isEmpty());
+        } finally {
+            server.shutdownNow();
+        }
     }
 
     private static List<ModdedDimensionRegistryStore.PersistentDimension> dimensions(int count) {
@@ -189,15 +330,15 @@ public class ModdedDimensionRestoreTest {
         }
         try {
             if (!gate.await(STEP_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                throw new IllegalStateException("Preparation gate never opened");
+                throw new IllegalStateException("Restore step gate never opened");
             }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for the preparation gate", interrupted);
+            throw new IllegalStateException("Interrupted while waiting for a restore step gate", interrupted);
         }
     }
 
-    private static final class RecordingSteps implements ModdedDimensionRestore.Steps<String, String, String> {
+    private static final class RecordingSteps implements ModdedDimensionInjection.Steps<String, String, String> {
         private final Set<Thread> prepareThreads = ConcurrentHashMap.newKeySet();
         private final Set<Thread> buildThreads = ConcurrentHashMap.newKeySet();
         private final Set<Thread> serverThreads = ConcurrentHashMap.newKeySet();
@@ -210,6 +351,8 @@ public class ModdedDimensionRestoreTest {
         private CountDownLatch prepareGate;
         private CountDownLatch prepareBarrier;
         private CountDownLatch buildBarrier;
+        private CountDownLatch buildStarted;
+        private CountDownLatch buildGate;
         private RuntimeException prepareFailure;
         private RuntimeException beginFailure;
         private RuntimeException buildFailure;
@@ -248,6 +391,10 @@ public class ModdedDimensionRestoreTest {
         public String build(String level, String prepared) {
             buildThreads.add(Thread.currentThread());
             await(buildBarrier);
+            if (buildStarted != null) {
+                buildStarted.countDown();
+            }
+            awaitGate(buildGate);
             int index = index(level);
             if (buildFailure != null && index == failingIndex) {
                 throw buildFailure;
@@ -262,9 +409,9 @@ public class ModdedDimensionRestoreTest {
         }
 
         @Override
-        public void abandon(String level, Throwable failure) {
+        public void abandon(String level, String engine, Throwable failure) {
             serverThreads.add(Thread.currentThread());
-            abandoned.add(level);
+            abandoned.add(level + ":" + engine);
         }
 
         @Override

@@ -112,49 +112,105 @@ public final class ModdedDimensionManager {
         );
     }
 
-    static RestoringLevel beginRestore(
+    static PendingInjection beginInjection(
             NativeModdedServer server,
             ModdedDimensionRegistryStore.PersistentDimension dimension,
-            ModdedGenerationHistoryStorage.ActivePack active
+            ModdedGenerationHistoryStorage.ActivePack active,
+            ModdedGenerationMode generationMode
     ) {
         NativeDimensionRuntime serverAccess = requireAccess();
         DimensionRequest requested = new DimensionRequest(dimension.id(), dimension.pack(), dimension.dimension(), dimension.seed());
         synchronized (LOCK) {
             Handle present = presentHandle(server, serverAccess, requested);
             if (present != null) {
-                return new RestoringLevel(present, true);
+                return new PendingInjection(present, true);
             }
             try {
-                RuntimePack runtimePack = persistentRuntimePack(active, ModdedGenerationMode.PERSISTENT_RESTORE);
-                return new RestoringLevel(createLevel(server, serverAccess, requested, runtimePack), false);
+                RuntimePack runtimePack = persistentRuntimePack(active, generationMode);
+                return new PendingInjection(createLevel(server, serverAccess, requested, runtimePack), false);
             } catch (Throwable e) {
                 throw injectionFailure(requested, e);
             }
         }
     }
 
-    static Handle completeRestore(NativeModdedServer server, RestoringLevel restoring, Engine engine) {
-        if (restoring.present()) {
-            return restoring.handle();
+    static Handle completeInjection(NativeModdedServer server, PendingInjection pending, Engine engine) {
+        if (pending.present()) {
+            return pending.handle();
         }
         NativeDimensionRuntime serverAccess = requireAccess();
         synchronized (LOCK) {
             try {
-                return register(publishLevel(server, serverAccess, restoring.handle(), engine));
+                return register(publishLevel(server, serverAccess, pending.handle(), engine));
             } catch (Throwable e) {
-                throw injectionFailure(DimensionRequest.of(restoring.handle()), e);
+                throw injectionFailure(DimensionRequest.of(pending.handle()), e);
             }
         }
     }
 
-    static void abandonRestore(NativeModdedServer server, RestoringLevel restoring, Throwable failure) {
-        if (restoring.present()) {
+    static void abandonInjection(NativeModdedServer server, PendingInjection pending, Engine engine, Throwable failure) {
+        if (engine != null) {
+            try {
+                ModdedWorldEngines.closeUnregistered(engine);
+            } catch (Throwable cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+                ModdedIrisLog.error("Iris failed to close the abandoned engine for '{}'",
+                        pending.handle().dimensionId(), cleanupFailure);
+            }
+        }
+        if (pending.present()) {
             return;
         }
         NativeDimensionRuntime serverAccess = requireAccess();
-        Handle handle = restoring.handle();
+        Handle handle = pending.handle();
         synchronized (LOCK) {
             rollbackInjection(server, serverAccess, handle.dimensionId(), handle.level(), handle.generator(), false, failure);
+        }
+    }
+
+    static PendingInjection beginCreation(
+            NativeModdedServer server,
+            ModdedDimensionRegistryStore.PersistentDimension dimension,
+            ModdedGenerationHistoryStorage.ActivePack active
+    ) {
+        synchronized (LOCK) {
+            if (ModdedDimensionRegistryStore.get(server, dimension.id()) != null) {
+                throw new IllegalStateException(alreadyExists(dimension.id()));
+            }
+            ModdedDimensionRegistryStore.put(server, dimension);
+            try {
+                return beginInjection(server, dimension, active, ModdedGenerationMode.PERSISTENT_CREATE);
+            } catch (RuntimeException | Error failure) {
+                forgetCreation(server, dimension.id(), failure);
+                throw failure;
+            }
+        }
+    }
+
+    static Handle completeCreation(NativeModdedServer server, PendingInjection pending, Engine engine) {
+        try {
+            return completeInjection(server, pending, engine);
+        } catch (RuntimeException | Error failure) {
+            forgetCreation(server, pending.handle().dimensionId(), failure);
+            throw failure;
+        }
+    }
+
+    static void abandonCreation(NativeModdedServer server, PendingInjection pending, Engine engine, Throwable failure) {
+        abandonInjection(server, pending, engine, failure);
+        forgetCreation(server, pending.handle().dimensionId(), failure);
+    }
+
+    static String alreadyExists(String dimensionId) {
+        return "Iris dimension '" + dimensionId
+                + "' already exists. Use the Iris world update command to stage a pack update.";
+    }
+
+    private static void forgetCreation(NativeModdedServer server, String dimensionId, Throwable failure) {
+        try {
+            ModdedDimensionRegistryStore.remove(server, dimensionId);
+        } catch (Throwable rollbackFailure) {
+            failure.addSuppressed(rollbackFailure);
         }
     }
 
@@ -210,58 +266,13 @@ public final class ModdedDimensionManager {
         return new IllegalStateException("Iris runtime dimension injection failed for " + requested.dimensionId(), failure);
     }
 
-    public static Handle createPersistent(NativeModdedServer server, String dimensionId, String pack, String packDimensionKey, long seed) {
-        synchronized (LOCK) {
-            ModdedDimensionRegistryStore.PersistentDimension previous =
-                    ModdedDimensionRegistryStore.get(server, dimensionId);
-            if (previous != null) {
-                throw new IllegalStateException("Iris dimension '" + dimensionId
-                        + "' already exists. Use the Iris world update command to stage a pack update.");
-            }
-            ModdedDimensionRegistryStore.put(server, new ModdedDimensionRegistryStore.PersistentDimension(
-                    dimensionId,
-                    pack,
-                    packDimensionKey,
-                    seed
-            ));
-            try {
-                return create(
-                        server,
-                        new DimensionRequest(dimensionId, pack, packDimensionKey, seed),
-                        () -> persistentRuntimePack(
-                                ModdedGenerationHistoryStorage.createOrStage(
-                                        server,
-                                        dimensionId,
-                                        pack,
-                                        packDimensionKey,
-                                        seed
-                                ),
-                                ModdedGenerationMode.PERSISTENT_CREATE
-                        )
-                );
-            } catch (Throwable e) {
-                try {
-                    ModdedDimensionRegistryStore.remove(server, dimensionId);
-                } catch (Throwable rollbackFailure) {
-                    e.addSuppressed(rollbackFailure);
-                }
-                if (e instanceof RuntimeException runtimeException) {
-                    throw runtimeException;
-                }
-                if (e instanceof Error fatalError) {
-                    throw fatalError;
-                }
-                throw new IllegalStateException("Iris runtime dimension injection failed for " + dimensionId, e);
-            }
-        }
-    }
-
     public static UpdateResult stagePersistentUpdate(
             NativeModdedServer server,
             String dimensionId,
             String pack,
             String packDimensionKey
     ) {
+        ModdedDimensionCreations.requireNotCreating(dimensionId);
         synchronized (LOCK) {
             ModdedDimensionRegistryStore.PersistentDimension previous =
                     ModdedDimensionRegistryStore.get(server, dimensionId);
@@ -324,6 +335,7 @@ public final class ModdedDimensionManager {
     }
 
     public static boolean removePersistent(NativeModdedServer server, String dimensionId, boolean wipeStorage) {
+        ModdedDimensionCreations.requireNotCreating(dimensionId);
         ModdedDimensionRegistryStore.PersistentDimension previous =
                 ModdedDimensionRegistryStore.get(server, dimensionId);
         ModdedDimensionRegistryStore.remove(server, dimensionId);
@@ -592,8 +604,8 @@ public final class ModdedDimensionManager {
     public record Handle(String dimensionId, String pack, String packDimensionKey, long seed, NativeWorld level, IrisModdedChunkGenerator generator) {
     }
 
-    record RestoringLevel(Handle handle, boolean present) {
-        RestoringLevel {
+    record PendingInjection(Handle handle, boolean present) {
+        PendingInjection {
             handle = Objects.requireNonNull(handle, "handle");
         }
     }

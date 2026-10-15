@@ -1077,6 +1077,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "Het vereiste pack '{pack}' is niet geïnstalleerd. Installeer het met /iris download en start de server daarna opnieuw."
 failed_inject_iris_world = "Spuiten mislukt Iris wereld{dimensionId}': {value}{errorMessage}"
+creating_iris_world_in_background = "Iris-wereld {dimensionId} wordt op de achtergrond aangemaakt uit pack '{pack}', dimensie '{packDimension}' (seed {seed}). Je krijgt een melding zodra hij klaar is."
 created_iris_world_from_pack_dimension_seed = "Aangemaakt Iris wereld {dimensionId} uit verpakking{pack}' dimensie'{packDimension}\" (zaad {seed})."
 it_is_live_now_re_injected_on_every_startup_teleport = "Het is nu live en opnieuw bij elke opstart.  Teleporteren met /iris world status of een portaal; geen herstart vereist."
 failed_inject_iris_primary_world = "Spuiten mislukt Iris primaire wereld: {value}{errorMessage}"

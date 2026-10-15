@@ -150,13 +150,30 @@ public final class ModdedWorldEngines {
             ModdedDimensionRegistryStore.PersistentDimension dimension
     ) {
         ModdedEngineBootstrap.bind();
-        ModdedGenerationHistoryStorage.PreparedHistory prepared = ModdedGenerationHistoryStorage.prepareRestore(
+        return prepared(ModdedGenerationHistoryStorage.prepareRestore(
                 server,
                 dimension.id(),
                 dimension.pack(),
                 dimension.dimension(),
                 dimension.seed()
-        );
+        ));
+    }
+
+    static PreparedPack prepareCreated(
+            NativeModdedServer server,
+            ModdedDimensionRegistryStore.PersistentDimension dimension
+    ) {
+        ModdedEngineBootstrap.bind();
+        return prepared(ModdedGenerationHistoryStorage.prepareCreate(
+                server,
+                dimension.id(),
+                dimension.pack(),
+                dimension.dimension(),
+                dimension.seed()
+        ));
+    }
+
+    private static PreparedPack prepared(ModdedGenerationHistoryStorage.PreparedHistory prepared) {
         try {
             ModdedDimensionMetadata.warmConfiguredPack(prepared.active().packRoot().toFile(), prepared.active().dimensionKey());
             return new PreparedPack(prepared.active(), prepared.lease(), loadPack(prepared.active()));

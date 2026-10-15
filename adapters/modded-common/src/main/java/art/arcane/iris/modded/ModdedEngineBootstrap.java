@@ -213,6 +213,7 @@ public final class ModdedEngineBootstrap {
         stoppedPending = true;
         Throwable failure = null;
         failure = runStopStage(failure, "pack downloads", IrisModdedCommands::shutdownDownloads);
+        failure = runStopStage(failure, "dimension creations", ModdedDimensionCreations::cancelAll);
         failure = runStopStage(failure, "world check", () -> ModdedWorldCheck.serverStopped(stoppingServer));
         failure = runStopStage(failure, "protocol", ModdedProtocolHandler::stop);
         failure = runStopStage(failure, "pregenerator", ModdedPregenJob::shutdown);

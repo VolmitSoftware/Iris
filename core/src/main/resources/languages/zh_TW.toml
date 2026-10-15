@@ -1080,6 +1080,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "所需維度包「{pack}」尚未安裝。請使用 /iris download 安裝，然後重新啟動伺服器。"
 failed_inject_iris_world = "注入失敗 Iris 世界{dimensionId}': {value}{errorMessage}"
+creating_iris_world_in_background = "正在背景從包 '{pack}' 的維度 '{packDimension}'（種子 {seed}）建立 Iris 世界 {dimensionId}。完成後會通知你。"
 created_iris_world_from_pack_dimension_seed = "建立 Iris 世界 {dimensionId} 從包\"{pack}\" 維度 \"{packDimension}'(種子 {seed})."
 it_is_live_now_re_injected_on_every_startup_teleport = "它現在正在直播,並在每次啟動時重新注入。  傳送到 /iris world status 或入口網站;不需要重新啟動。"
 failed_inject_iris_primary_world = "注入失敗 Iris 初級世界: {value}{errorMessage}"

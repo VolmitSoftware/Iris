@@ -1080,6 +1080,7 @@ opening_image_map_studio_on_server_display = "Opening the Image Map Studio for {
 [iris.modded.moddedworldcommands]
 required_pack_is_not_installed_install_then_restart = "필수 팩 '{pack}'이(가) 설치되어 있지 않습니다. /iris download로 설치한 다음 서버를 다시 시작하세요."
 failed_inject_iris_world = "Iris 월드 '{dimensionId}' 주입 실패: {value}{errorMessage}"
+creating_iris_world_in_background = "팩 '{pack}'의 차원 '{packDimension}'(시드 {seed})에서 Iris 월드 {dimensionId}을(를) 백그라운드에서 만드는 중입니다. 준비되면 알려 드립니다."
 created_iris_world_from_pack_dimension_seed = "팩 '{pack}'의 차원 '{packDimension}'(시드 {seed})에서 Iris 월드 {dimensionId}을(를) 만들었습니다."
 it_is_live_now_re_injected_on_every_startup_teleport = "그것은 지금 살고 모든 시작에 거부.  Teleport와 함께 /iris world status 또는 포털; 재시작 필요 없음."
 failed_inject_iris_primary_world = "Iris 기본 월드 주입 실패: {value}{errorMessage}"

@@ -391,6 +391,15 @@ public final class ModdedWorldEngines {
                 (actualType.maximumHeight() - actualType.minimumHeight()),
                 actualType.logicalHeight());
         String runtimeName = "Modded level '" + level.name() + "'";
+        if (dimension.hasBorrowedDimensionType()) {
+            if (!recorded.dimensionTypeKey().equals(dimension.getBorrowedDimensionType().trim())) {
+                throw new IllegalStateException("Immutable Iris dimension contract for '" + level.name()
+                        + "' records dimension type " + recorded.dimensionTypeKey() + ", but its pack borrows "
+                        + dimension.getBorrowedDimensionType().trim() + ".");
+            }
+            expected.requireBorrowedFit(runtimeName, actual);
+            return;
+        }
         expected.requireExact(runtimeName, actual);
         expected.requireHeight(runtimeName, level.minHeight(), (level.maxHeight() - level.minHeight()));
     }

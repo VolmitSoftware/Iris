@@ -1,5 +1,6 @@
 package art.arcane.iris.modded;
 
+import art.arcane.iris.generation.terrain.IrisDimension;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -17,6 +18,19 @@ public class ModdedWorldgenIdsTest {
         assertEquals(new ModdedWorldgenIds.ScopedDimension("Pack/A-_", "É山"),
                 ModdedWorldgenIds.scopedDimensionType(
                         ModdedWorldgenIds.dimensionTypeRef("Pack/A-_", "É山")).orElseThrow());
+    }
+
+    @Test
+    public void borrowedDimensionTypeReplacesTheScopedGeneratedType() {
+        IrisDimension generated = new IrisDimension();
+        generated.setLoadKey("sky");
+        IrisDimension borrowed = new IrisDimension().setBorrowedDimensionType("iristest:skylands");
+        borrowed.setLoadKey("sky");
+
+        assertEquals(ModdedWorldgenIds.dimensionTypeRef("overworld", "sky"),
+                ModdedWorldgenIds.dimensionTypeRef("overworld", generated));
+        assertEquals("iristest:skylands", ModdedWorldgenIds.dimensionTypeRef("overworld", borrowed));
+        assertTrue(ModdedWorldgenIds.scopedDimensionType("iristest:skylands").isEmpty());
     }
 
     @Test

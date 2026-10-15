@@ -172,6 +172,9 @@ public final class ModdedEngineBootstrap {
         bindWorldGenerators(server);
         ModdedStartup.runOnce(server);
         reconcileSpawn(server);
+        if (!loader().clientEnvironment()) {
+            ModdedTakeoverReconciler.recordApplied(server);
+        }
         ModdedWorldCheck.serverStarted(server);
     }
 
@@ -367,6 +370,9 @@ public final class ModdedEngineBootstrap {
         selfTest(moddedLoader.getClass().getClassLoader());
         bind();
         IrisLanguage.initialize();
+        if (!moddedLoader.clientEnvironment()) {
+            ModdedTakeoverReconciler.reconcileEarly();
+        }
         ModdedStartup.prefetchStartupDatapack();
         if (!moddedLoader.clientEnvironment()) {
             MainWorldService.reconcileEarly();

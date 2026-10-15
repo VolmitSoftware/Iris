@@ -324,6 +324,8 @@ public final class ModdedForcedDatapack {
                 false
         );
         digest.update(inputFingerprint.getBytes(StandardCharsets.UTF_8));
+        digest.update(ModdedDimensionTakeovers.fingerprint(ModdedModConfig.get().dimensionTakeovers())
+                .getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(digest.digest());
     }
 
@@ -333,14 +335,19 @@ public final class ModdedForcedDatapack {
 
         int packCount = 0;
         KList<String> presetIds = new KList<>();
+        Map<String, String> stagedDimensionTypes = new LinkedHashMap<>();
         Path worldRoot = worldRootOrNull();
         Set<PackSelection> legacySelections = unadoptedSelections(worldRoot);
         List<File> packRoots = compilationPackRoots(worldRoot);
         for (File pack : packRoots) {
             PackStageContext context = packStageContext(pack.toPath(), legacySelections);
-            if (stagePack(context, fixer, stagingDirectory, seenBiomes, presetIds)) {
+            if (stagePack(context, fixer, stagingDirectory, seenBiomes, presetIds, stagedDimensionTypes)) {
                 packCount++;
             }
+        }
+        if (!ModdedEngineBootstrap.loader().clientEnvironment()) {
+            ModdedDimensionTakeovers.writeLevelStems(stagingDirectory,
+                    ModdedModConfig.get().dimensionTakeovers(), stagedDimensionTypes);
         }
 
         IrisDatapackCompiler.installRetainedRegistrySources(packRoots, List.of(stagingDirectory.toFile()), fixer);
@@ -362,7 +369,8 @@ public final class ModdedForcedDatapack {
 
     private static boolean stagePack(PackStageContext context, IDataFixer fixer, Path stagingDirectory,
                                      Map<String, KSet<String>> seenBiomes,
-                                     KList<String> presetIds) throws IOException {
+                                     KList<String> presetIds,
+                                     Map<String, String> stagedDimensionTypes) throws IOException {
         File sourcePack = context.packRoot().toFile();
         PackValidationResult validation;
         try {
@@ -392,11 +400,12 @@ public final class ModdedForcedDatapack {
                 stagingDirectory.getParent(), PACK_FOLDER + ".pack-" + sourcePack.getName() + "-");
         Map<String, KSet<String>> packBiomes = new LinkedHashMap<>();
         KList<String> packPresetIds = new KList<>();
+        Map<String, String> packDimensionTypes = new LinkedHashMap<>();
         KList<File> packFolders = new KList<>();
         packFolders.add(packStagingDirectory.toFile());
         boolean installed;
         try {
-            installed = installPack(context, fixer, packFolders, packBiomes, packPresetIds);
+            installed = installPack(context, fixer, packFolders, packBiomes, packPresetIds, packDimensionTypes);
         } catch (Throwable installationFailure) {
             if (context.required()) {
                 throw requiredPackFailure(context, "datapack serialization", installationFailure);
@@ -414,6 +423,7 @@ public final class ModdedForcedDatapack {
             mergeDirectory(packStagingDirectory, stagingDirectory);
             mergeBiomes(seenBiomes, packBiomes);
             presetIds.addAll(packPresetIds);
+            stagedDimensionTypes.putAll(packDimensionTypes);
             return true;
         } finally {
             try {
@@ -470,7 +480,8 @@ public final class ModdedForcedDatapack {
 
     private static boolean installPack(PackStageContext context, IDataFixer fixer, KList<File> folders,
                                        Map<String, KSet<String>> seenBiomes,
-                                       KList<String> presetIds) throws IOException {
+                                       KList<String> presetIds,
+                                       Map<String, String> dimensionTypes) throws IOException {
         File packFolder = context.packRoot().toFile();
         String packName = context.packName();
         File dimensionsDirectory = new File(packFolder, "dimensions");
@@ -504,18 +515,27 @@ public final class ModdedForcedDatapack {
                         biomesForNamespace(seenBiomes, "iris"),
                         context
                 );
-                writeDimensionType(
-                        folders,
-                        fixer,
-                        dimension,
-                        context.dimensionTypeRef(dimensionKey),
-                        context.emitLegacyDimensionTypeAlias(),
-                        context
-                );
+                String typeRef = context.dimensionTypeRef(dimensionKey);
+                if (dimension.hasBorrowedDimensionType()) {
+                    typeRef = requireBorrowedType(context, dimension, typeRef);
+                } else {
+                    requireScopedType(context, typeRef);
+                    writeDimensionType(
+                            folders,
+                            fixer,
+                            dimension,
+                            typeRef,
+                            context.emitLegacyDimensionTypeAlias(),
+                            context
+                    );
+                }
                 if (context.emitPresets()) {
-                    String presetRef = ModdedWorldgenIds.presetRef(packName, dimensionKey);
-                    writeWorldPreset(folders, packName, dimensionKey, presetRef);
-                    presetIds.add(presetRef);
+                    dimensionTypes.put(packName + ":" + dimensionKey, typeRef);
+                    if (!dimension.hasBorrowedDimensionType()) {
+                        String presetRef = ModdedWorldgenIds.presetRef(packName, dimensionKey);
+                        writeWorldPreset(folders, packName, dimensionKey, presetRef);
+                        presetIds.add(presetRef);
+                    }
                 }
                 installedDimensions++;
             }
@@ -540,6 +560,22 @@ public final class ModdedForcedDatapack {
                         + packDimensionKey + "' is not loaded. Restart the server so the forced Iris datapack registers it before creating the world."
                         + (LOADED.get() ? "" : " The forced Iris datapack has not been loaded by this server at all"
                         + " (datapack source injection failed; see the Iris boot ERROR), so a restart alone will not register it.")));
+    }
+
+    private static void requireScopedType(PackStageContext context, String stagedTypeRef) throws IOException {
+        if (context.required() && ModdedWorldgenIds.scopedDimensionType(stagedTypeRef).isEmpty()) {
+            throw new IOException("Retained Iris dimension type key is not scoped: " + stagedTypeRef);
+        }
+    }
+
+    private static String requireBorrowedType(PackStageContext context, IrisDimension dimension, String stagedTypeRef)
+            throws IOException {
+        String borrowed = dimension.getBorrowedDimensionType().trim();
+        if (context.required() && !borrowed.equals(stagedTypeRef)) {
+            throw new IOException("Retained Iris generation pack at " + context.packRoot() + " borrows dimension type "
+                    + borrowed + ", but its generation history records " + stagedTypeRef + ".");
+        }
+        return borrowed;
     }
 
     private static void writeWorldPreset(KList<File> folders, String packName, String dimensionKey,
@@ -789,11 +825,13 @@ public final class ModdedForcedDatapack {
         Path normalizedRoot = packRoot.toAbsolutePath().normalize();
         RetainedPack retained = retainedPack(normalizedRoot);
         if (retained != null) {
-            ModdedWorldgenIds.ScopedDimension identity = ModdedWorldgenIds
-                    .scopedDimensionType(retained.epoch().dimensionContract().dimensionTypeKey())
-                    .orElseThrow(() -> new IOException("Retained Iris dimension type key is not scoped: "
-                            + retained.epoch().dimensionContract().dimensionTypeKey()));
-            if (!identity.dimension().equals(retained.epoch().dimensionContract().dimensionKey())) {
+            GenerationEpoch.DimensionContract contract = retained.epoch().dimensionContract();
+            Optional<ModdedWorldgenIds.ScopedDimension> scoped = ModdedWorldgenIds.scopedDimensionType(contract.dimensionTypeKey());
+            if (scoped.isEmpty()) {
+                return PackStageContext.retained(normalizedRoot, contract.dimensionKey(), retained.epoch());
+            }
+            ModdedWorldgenIds.ScopedDimension identity = scoped.get();
+            if (!identity.dimension().equals(contract.dimensionKey())) {
                 throw new IOException("Retained Iris dimension type identity does not match its epoch contract.");
             }
             return PackStageContext.retained(normalizedRoot, identity.pack(), retained.epoch());

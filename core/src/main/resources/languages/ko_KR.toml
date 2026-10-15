@@ -449,6 +449,7 @@ operator_instruction = "콘솔에서 {command}을(를) 실행하세요(싱글 �
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "다음 재시작 시 기존 차원을 Iris 팩으로 인수하거나 인수를 해제합니다"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1090,6 +1091,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "현재 로드된
 loaded_iris_dimensions = "로드 중 ... Iris 크기: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "재시작하지 않고 주입하려면 /iris world create <name> <pack>을(를) 사용하세요."
+takeover_set = "{dimensionId}의 Iris 인수를 팩 '{pack}', 차원 '{packDimension}'(으)로 설정했습니다."
+takeover_cleared = "{dimensionId}의 Iris 인수를 해제했습니다. 다음 재시작 시 차원 고유의 생성기로 돌아갑니다."
+takeover_not_configured = "{dimensionId}에 설정된 Iris 인수가 없습니다."
+takeover_restart_required = "재시작 필요: 다음 시작 시 이 차원의 청크, 엔티티, POI, Iris Mantle 데이터가 복구 폴더로 이동되고 다시 생성됩니다. 플레이어 데이터는 유지됩니다."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "외부 데이터 팩 가져오기를 다운로드하고 관리합니다(Modrinth)"

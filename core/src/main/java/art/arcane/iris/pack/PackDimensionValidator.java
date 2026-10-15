@@ -30,8 +30,12 @@ import java.nio.file.Files;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 final class PackDimensionValidator {
+    private static final String BORROWED_DIMENSION_TYPE = "borrowedDimensionType";
+    private static final Pattern RESOURCE_KEY = Pattern.compile("[a-z0-9_.-]+:[a-z0-9/._-]+");
+
     private PackDimensionValidator() {
     }
 
@@ -56,6 +60,7 @@ final class PackDimensionValidator {
 
             validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
+            validateBorrowedDimensionType(dimensionKey, dimJson, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "terrainSamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "caveDensitySamplingStep", 1, blockingErrors);
             validateSamplingStep(dimensionKey, dimJson, "biomeBoundsSamplingStep", 4, blockingErrors);
@@ -121,6 +126,18 @@ final class PackDimensionValidator {
         if (!key.isEmpty() && !key.equalsIgnoreCase("none") && !dimensionKeys.contains(key)) {
             errors.add("Dimension '" + dimensionKey + "' upperDimension references missing dimension '" + key + "'.");
         }
+    }
+
+    static void validateBorrowedDimensionType(String dimensionKey, JSONObject dimension, List<String> errors) {
+        if (!dimension.has(BORROWED_DIMENSION_TYPE) || dimension.isNull(BORROWED_DIMENSION_TYPE)) {
+            return;
+        }
+        Object value = dimension.opt(BORROWED_DIMENSION_TYPE);
+        if (value instanceof String key && (key.isEmpty() || RESOURCE_KEY.matcher(key).matches())) {
+            return;
+        }
+        errors.add("Dimension '" + dimensionKey + "' " + BORROWED_DIMENSION_TYPE
+                + " must be a namespaced dimension type key such as aether:the_aether, but was '" + value + "'.");
     }
 
     static void validateObjectScaleFactor(String dimensionKey, JSONObject dimension, List<String> errors) {

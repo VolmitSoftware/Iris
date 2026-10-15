@@ -449,6 +449,7 @@ operator_instruction = "コンソールから {command} を実行してくださ
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "次回の再起動時に既存のディメンションを Iris パックで引き継ぐか、引き継ぎを無効にします"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1090,6 +1091,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "現在読み込�
 loaded_iris_dimensions = "読み込み済み Iris ディメンション: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "再起動せずに注入するには /iris world create <name> <pack> を使用してください。"
+takeover_set = "{dimensionId} の Iris テイクオーバーをパック '{pack}'、ディメンション '{packDimension}' に設定しました。"
+takeover_cleared = "{dimensionId} の Iris テイクオーバーを無効にしました。次回の再起動でディメンション本来のジェネレーターに戻ります。"
+takeover_not_configured = "{dimensionId} には Iris テイクオーバーが設定されていません。"
+takeover_restart_required = "再起動が必要です: 次回の起動時に、このディメンションのチャンク、エンティティ、POI、Iris Mantle データを復旧フォルダーへ移動して再生成します。プレイヤーデータは保持されます。"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "外部データパックのインポートをダウンロードして管理します（Modrinth）"

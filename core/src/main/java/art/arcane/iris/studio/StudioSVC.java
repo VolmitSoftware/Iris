@@ -373,14 +373,10 @@ public class StudioSVC implements IrisService {
                 throw new IOException("Generation pack does not contain a loadable dimension '"
                         + dimensionKey + "'.");
             }
-            String dimensionTypeKey = IrisPlatforms.get()
-                    .registries()
-                    .generationRegistry()
-                    .dimensionTypeResourceKey(
-                            data.getDataFolder().getName(),
-                            dimension.getLoadKey(),
-                            dimension.getDimensionTypeKey()
-                    );
+            String dimensionTypeKey = dimension.dimensionTypeResourceKey(
+                    IrisPlatforms.get().registries().generationRegistry(),
+                    data.getDataFolder().getName()
+            );
             GenerationEpoch.DimensionContract dimensionContract = GenerationEpochContractFactory.create(
                     dimension,
                     dimension.getLoadKey(),

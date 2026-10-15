@@ -511,19 +511,21 @@ public final class ModdedDimensionManager {
                 .normalize();
         PackValidationRegistry.requireLoadable(packRoot);
         IrisData data = IrisData.openDatapackCompiler(packRoot.toFile());
+        String dimensionTypeRef;
         try {
             IrisDimension dimension = data.getDimensionLoader().load(dimensionKey, false);
             if (dimension == null) {
                 throw new IllegalStateException("Transient Iris Studio pack does not contain dimension '"
                         + dimensionKey + "'.");
             }
+            dimensionTypeRef = ModdedWorldgenIds.dimensionTypeRef(pack, dimension);
         } finally {
             data.close();
         }
         return new RuntimePack(
                 packRoot,
                 dimensionKey,
-                ModdedWorldgenIds.dimensionTypeRef(pack, dimensionKey),
+                dimensionTypeRef,
                 ModdedGenerationMode.TRANSIENT_STUDIO
         );
     }

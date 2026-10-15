@@ -896,14 +896,10 @@ public final class IrisWorldGeneratorResolver {
     }
 
     private static String dimensionTypeKey(IrisData data, IrisDimension dimension) {
-        return IrisPlatforms.get()
-                .registries()
-                .generationRegistry()
-                .dimensionTypeResourceKey(
-                        data.getDataFolder().getName(),
-                        dimension.getLoadKey(),
-                        dimension.getDimensionTypeKey()
-                );
+        return dimension.dimensionTypeResourceKey(
+                IrisPlatforms.get().registries().generationRegistry(),
+                data.getDataFolder().getName()
+        );
     }
 
     private record LoadedHistory(GenerationHistory history, File activePack) {

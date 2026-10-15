@@ -5,6 +5,7 @@ import art.arcane.iris.world.history.GenerationEpochContractFactory;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationPackFingerprint;
 import art.arcane.iris.world.history.GenerationRegistryContract;
+import art.arcane.iris.world.history.GenerationRegistryContractFactory;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -27,6 +28,28 @@ public class ModdedGenerationHistoryStorageTest {
     private static final String DIMENSION_FINGERPRINT = "11".repeat(32);
     private static final String DEFINITION_FINGERPRINT = "22".repeat(32);
     private static final int TRANSITION_WIDTH_BLOCKS = 256;
+
+    @Test
+    public void adoptionRetainsLegacyBiomeAliasesOnlyWhenTheLevelAlreadyHasChunks() throws IOException {
+        Path root = Files.createTempDirectory("iris-modded-history-alias-policy");
+        try {
+            Path fresh = root.resolve("fresh");
+            Path emptyRegion = root.resolve("empty-region");
+            Files.createDirectories(emptyRegion.resolve("region"));
+            Path legacy = root.resolve("legacy");
+            Files.createDirectories(legacy.resolve("region"));
+            Files.writeString(legacy.resolve("region").resolve("r.0.0.mca"), "chunk", StandardCharsets.UTF_8);
+
+            assertEquals(GenerationRegistryContractFactory.CustomBiomeAliasPolicy.CONTENT_ADDRESSED_ONLY,
+                    ModdedGenerationHistoryStorage.adoptionAliasPolicy(fresh));
+            assertEquals(GenerationRegistryContractFactory.CustomBiomeAliasPolicy.CONTENT_ADDRESSED_ONLY,
+                    ModdedGenerationHistoryStorage.adoptionAliasPolicy(emptyRegion));
+            assertEquals(GenerationRegistryContractFactory.CustomBiomeAliasPolicy.RETAIN_LEGACY_ALIASES,
+                    ModdedGenerationHistoryStorage.adoptionAliasPolicy(legacy));
+        } finally {
+            deleteTree(root);
+        }
+    }
 
     @Test
     public void newDimensionPublishesAnImmutableWorldLocalPack() throws IOException {

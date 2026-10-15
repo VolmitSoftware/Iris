@@ -451,6 +451,7 @@ operator_instruction = "Беги. {command} от консоли (или вклю
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "Перехватить существующее измерение пакетом Iris при следующем перезапуске или отключить перехват"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1092,6 +1093,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Нет. Iris В 
 loaded_iris_dimensions = "загруженный Iris размеры: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Использовать /iris world create <name> <pack> Вводить один без перезапуска."
+takeover_set = "Перехват Iris для {dimensionId} настроен на пакет '{pack}', измерение '{packDimension}'."
+takeover_cleared = "Перехват Iris для {dimensionId} отключён; собственный генератор измерения вернётся при следующем перезапуске."
+takeover_not_configured = "Для {dimensionId} перехват Iris не настроен."
+takeover_restart_required = "Требуется перезапуск: при следующем запуске данные чанков, сущностей, POI и Iris Mantle этого измерения будут перемещены в папку восстановления и сгенерированы заново. Данные игроков сохраняются."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "& управляет внешним импортом пакетов данных (Modrinth)"

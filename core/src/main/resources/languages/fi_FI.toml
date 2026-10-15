@@ -451,6 +451,7 @@ operator_instruction = "Juokse {command} konsolilta (tai mahdollista huijaukset 
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "Ota olemassa oleva ulottuvuus haltuun Iris-paketilla seuraavassa uudelleenkäynnistyksessä tai poista haltuunotto käytöstä"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1092,6 +1093,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Ei Iris mitat ov
 loaded_iris_dimensions = "Ladattu Iris mitat: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Käyttö /iris world create <name> <pack> pistääksesi yhden ilman, että aloitat alusta."
+takeover_set = "Iris-haltuunotto kohteelle {dimensionId} asetettu: paketti '{pack}', ulottuvuus '{packDimension}'."
+takeover_cleared = "Iris-haltuunotto kohteelle {dimensionId} poistettu käytöstä; ulottuvuuden oma generaattori palaa seuraavan uudelleenkäynnistyksen yhteydessä."
+takeover_not_configured = "Kohteelle {dimensionId} ei ole määritetty Iris-haltuunottoa."
+takeover_restart_required = "Uudelleenkäynnistys vaaditaan: seuraavassa käynnistyksessä ulottuvuuden chunk-, entiteetti-, POI- ja Iris Mantle -tiedot siirretään palautuskansioon ja luodaan uudelleen. Pelaajatiedot säilytetään."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Lataa & Hallinnoidaan ulkoisen datapaketin tuontia (Modrinth)"

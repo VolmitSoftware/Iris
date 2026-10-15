@@ -1,6 +1,7 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.terrain.IrisDimension;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
@@ -20,6 +21,12 @@ public final class ModdedWorldgenIds {
 
     public static String dimensionTypeRef(String pack, String dimension) {
         return NAMESPACE + ":" + scopedPath(pack, dimension) + "/dimension_type";
+    }
+
+    public static String dimensionTypeRef(String pack, IrisDimension dimension) {
+        return dimension.hasBorrowedDimensionType()
+                ? dimension.getBorrowedDimensionType().trim()
+                : dimensionTypeRef(pack, dimension.getLoadKey());
     }
 
     public static String biomePathPrefix(String pack, String dimension) {

@@ -22,6 +22,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldDimensions;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldInspection.Dimension;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
@@ -34,6 +35,9 @@ final class WorldCheckDimensionContract {
     static boolean checkDimensionType(NativeWorld level, IrisModdedChunkGenerator generator) {
         try {
             IrisDimension dimension = generator.commandEngine().getDimension();
+            if (dimension.hasBorrowedDimensionType()) {
+                return checkBorrowedDimensionType(level, dimension);
+            }
             Dimension expected = expectedDimensionContract(dimension);
             Dimension actual = new NativeWorldInspection(level).dimension();
             boolean pass = matchesDimensionContract(level.minHeight(), (level.maxHeight() - level.minHeight()), expected, actual);
@@ -52,6 +56,24 @@ final class WorldCheckDimensionContract {
                     "validationError=" + error.getClass().getSimpleName() + ":" + error.getMessage());
             return false;
         }
+    }
+
+    private static boolean checkBorrowedDimensionType(NativeWorld level, IrisDimension dimension) {
+        String borrowed = dimension.getBorrowedDimensionType().trim();
+        String actualKey = NativeWorldDimensions.settings(level).key();
+        boolean pass = borrowed.equals(actualKey)
+                && dimension.getMinHeight() == level.minHeight()
+                && dimension.getMaxHeight() <= level.maxHeight();
+        String detail = "borrowed=" + borrowed + ",actual=" + actualKey
+                + ",packRange=" + dimension.getMinHeight() + ".." + dimension.getMaxHeight()
+                + ",levelRange=" + level.minHeight() + ".." + level.maxHeight();
+        WorldCheckPredicates.qaEvent("dimension_type", dimension.getLoadKey(), pass, detail);
+        if (!pass) {
+            ModdedIrisLog.error("[worldcheck] borrowed dimension type mismatch for {}: {}", dimension.getLoadKey(), detail);
+        } else {
+            ModdedIrisLog.info("[worldcheck] borrowed dimension type contract: {}", detail);
+        }
+        return pass;
     }
 
     static Dimension expectedDimensionContract(IrisDimension dimension) {

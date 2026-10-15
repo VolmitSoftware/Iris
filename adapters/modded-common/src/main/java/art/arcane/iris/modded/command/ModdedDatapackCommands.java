@@ -163,6 +163,9 @@ public final class ModdedDatapackCommands {
                 continue;
             }
             IrisDimension dimension = engine.getDimension();
+            if (dimension.hasBorrowedDimensionType()) {
+                continue;
+            }
             String json;
             try {
                 json = dimension.getDimensionType().toJson(DataVersion.getRuntime().get());

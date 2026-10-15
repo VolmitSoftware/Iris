@@ -154,6 +154,40 @@ public class GenerationRegistryContractFactoryTest {
     }
 
     @Test
+    public void borrowedDimensionTypeIsRecordedAsAnExternalDefinitionInsteadOfAGeneratedType() throws Exception {
+        File pack = temporary.newFolder("borrowed-pack");
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(pack);
+        when(data.getContentGate()).thenReturn(mock(ContentGate.class));
+        IrisDimension dimension = spy(new IrisDimension().setBorrowedDimensionType("aether:the_aether"));
+        dimension.setLoadKey("skylands");
+        stubDimensions(data, dimension);
+        doReturn(new KList<>()).when(dimension).getReachableBiomes(any());
+        doReturn(new KList<>()).when(dimension).getAllRegions(any());
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.blockTypeKeys()).thenReturn(new KList<>());
+        when(registries.entityKeys()).thenReturn(new KList<>());
+        FakeGenerationRegistry generationRegistry = new FakeGenerationRegistry("test-runtime");
+
+        GenerationRegistryContract contract = GenerationRegistryContractFactory.create(
+                data,
+                dimension,
+                GenerationPackFingerprint.compute(pack.toPath(), GenerationPackFingerprint.CURRENT_VERSION),
+                DataVersion.getLatest().get(),
+                registries,
+                generationRegistry
+        );
+
+        GenerationRegistryContract.PhysicalResourceKey borrowed = key(
+                GenerationRegistryContractFactory.DIMENSION_TYPE_REGISTRY, "aether:the_aether");
+        assertTrue(contract.definitions().containsKey(borrowed));
+        assertFalse(contract.generatedSources().containsKey(borrowed));
+        assertFalse(contract.definitions().containsKey(key(
+                GenerationRegistryContractFactory.DIMENSION_TYPE_REGISTRY, "test:skylands_type")));
+        assertEquals("aether:the_aether", dimension.dimensionTypeResourceKey(generationRegistry, "borrowed-pack"));
+    }
+
+    @Test
     public void duplicateLogicalBiomeIdsKeepExactDefinitionsAndChooseStableLegacyAlias() throws Exception {
         File pack = temporary.newFolder("duplicate-biomes");
         IrisData data = mock(IrisData.class);

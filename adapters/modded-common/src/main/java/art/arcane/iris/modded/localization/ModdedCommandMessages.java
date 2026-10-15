@@ -1152,6 +1152,22 @@ public final class ModdedCommandMessages {
             "iris.modded.moddedworldcommands.iris_main_world_override_cleared_overworld_keeps_its_current_generator",
             "Iris main world override cleared. The overworld keeps its current generator; edit server.properties level-type and restart to change it back."
     );
+    public static final TextKey MODDED_WORLD_COMMANDS_TAKEOVER_SET = TextKey.of(
+            "iris.modded.moddedworldcommands.takeover_set",
+            "Iris takeover of " + "{dimensionId}" + " set to pack '" + "{pack}" + "', dimension '" + "{packDimension}" + "'."
+    );
+    public static final TextKey MODDED_WORLD_COMMANDS_TAKEOVER_CLEARED = TextKey.of(
+            "iris.modded.moddedworldcommands.takeover_cleared",
+            "Iris takeover of " + "{dimensionId}" + " turned off; the dimension's own generator returns on the next restart."
+    );
+    public static final TextKey MODDED_WORLD_COMMANDS_TAKEOVER_NOT_CONFIGURED = TextKey.of(
+            "iris.modded.moddedworldcommands.takeover_not_configured",
+            "No Iris takeover is configured for " + "{dimensionId}" + "."
+    );
+    public static final TextKey MODDED_WORLD_COMMANDS_TAKEOVER_RESTART_REQUIRED = TextKey.of(
+            "iris.modded.moddedworldcommands.takeover_restart_required",
+            "Restart required: on the next start the dimension's chunk, entity, POI, and Iris Mantle data move to a recovery folder and regenerate. Player data is kept."
+    );
     public static final TextKey MODDED_WORLD_COMMANDS_INVALID_SEED_USE_NUMBER_RANDOM = TextKey.of(
             "iris.modded.moddedworldcommands.invalid_seed_use_number_random",
             "Invalid seed '" + "{seedRaw}" + "'. Use a number or 'random'."
@@ -1548,6 +1564,10 @@ public final class ModdedCommandMessages {
             MODDED_WORLD_COMMANDS_VANILLA_OVERWORLD_GENERATOR_CANNOT_BE_HOT_SWAPPED_SO_THIS_DOES,
             MODDED_WORLD_COMMANDS_INSTEAD_IS_NOW_CONFIGURED_PRIMARY_WORLD_PLAYERS_VANILLA_OVERWORLD_ARE,
             MODDED_WORLD_COMMANDS_IRIS_MAIN_WORLD_OVERRIDE_CLEARED_OVERWORLD_KEEPS_ITS_CURRENT_GENERATOR,
+            MODDED_WORLD_COMMANDS_TAKEOVER_SET,
+            MODDED_WORLD_COMMANDS_TAKEOVER_CLEARED,
+            MODDED_WORLD_COMMANDS_TAKEOVER_NOT_CONFIGURED,
+            MODDED_WORLD_COMMANDS_TAKEOVER_RESTART_REQUIRED,
             MODDED_WORLD_COMMANDS_INVALID_SEED_USE_NUMBER_RANDOM,
             MODDED_WORLD_COMMANDS_PACK_IS_NOT_READY_YET_STILL_LOADING_VALIDATING_TRY_COMMAND,
             MODDED_WORLD_COMMANDS_FAILED_WRITE_SERVER_PROPERTIES_CHECK_FILE_PERMISSIONS_SET_LEVEL_TYPE,

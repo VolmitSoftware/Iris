@@ -451,6 +451,7 @@ operator_instruction = "Vykdyti {command} iš konsolės (arba leidžia cheats į
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "Kito paleidimo iš naujo metu perimti esamą dimensiją Iris paketu arba išjungti perėmimą"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1092,6 +1093,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Ne Iris šiuo me
 loaded_iris_dimensions = "Įkelta Iris matmenys: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Naudojimas /iris world create <name> <pack> švirkšti vieną nepradedant iš naujo."
+takeover_set = "Iris perėmimas dimensijai {dimensionId} nustatytas į paketą '{pack}', dimensiją '{packDimension}'."
+takeover_cleared = "Iris perėmimas dimensijai {dimensionId} išjungtas; dimensijos nuosavas generatorius grįš kito paleidimo iš naujo metu."
+takeover_not_configured = "Dimensijai {dimensionId} nesukonfigūruotas joks Iris perėmimas."
+takeover_restart_required = "Reikia paleisti iš naujo: kito paleidimo metu dimensijos chunk, esybių, POI ir Iris Mantle duomenys perkeliami į atkūrimo aplanką ir sugeneruojami iš naujo. Žaidėjų duomenys išsaugomi."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Parsisiųsti & valdyti išorės importą (Modrinth)"

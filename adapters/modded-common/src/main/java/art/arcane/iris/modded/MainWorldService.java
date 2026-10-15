@@ -239,48 +239,19 @@ public final class MainWorldService {
 
     private static Path quarantineVanillaDimensions(Path worldRoot) throws IOException {
         Path recovery = markerFile().getParent().resolve("mainworld-recovery-" + UUID.randomUUID());
-        List<Path> moved = new ArrayList<>();
+        List<Path> sources = new ArrayList<>();
         for (String file : NativeServerWorldLayout.metadataFiles()) {
-            moveToRecovery(worldRoot, worldRoot.resolve(file), recovery, moved);
+            sources.add(worldRoot.resolve(file));
         }
         for (String folder : NativeServerWorldLayout.primaryFolders()) {
-            moveToRecovery(worldRoot, worldRoot.resolve(folder), recovery, moved);
+            sources.add(worldRoot.resolve(folder));
         }
-        moveToRecovery(worldRoot, worldRoot.resolve(IrisEngineMantle.STORAGE_FOLDER_NAME), recovery, moved);
+        sources.add(worldRoot.resolve(IrisEngineMantle.STORAGE_FOLDER_NAME));
         for (String folder : NativeServerWorldLayout.dimensionFolders()) {
-            moveToRecovery(worldRoot, worldRoot.resolve(folder), recovery, moved);
+            sources.add(worldRoot.resolve(folder));
         }
-        if (moved.isEmpty()) {
-            Files.deleteIfExists(recovery);
-        }
+        ModdedWorldQuarantine.move(worldRoot, sources, recovery);
         return recovery;
-    }
-
-    private static void moveToRecovery(Path worldRoot, Path source, Path recovery,
-                                       List<Path> moved) throws IOException {
-        if (!Files.exists(source)) {
-            return;
-        }
-        Path relative = worldRoot.relativize(source);
-        Path target = recovery.resolve(relative);
-        Files.createDirectories(target.getParent());
-        try {
-            Files.move(source, target);
-            moved.add(relative);
-        } catch (IOException failure) {
-            for (int index = moved.size() - 1; index >= 0; index--) {
-                Path rollbackRelative = moved.get(index);
-                Path rollbackSource = recovery.resolve(rollbackRelative);
-                Path rollbackTarget = worldRoot.resolve(rollbackRelative);
-                try {
-                    Files.createDirectories(rollbackTarget.getParent());
-                    Files.move(rollbackSource, rollbackTarget);
-                } catch (IOException rollbackFailure) {
-                    failure.addSuppressed(rollbackFailure);
-                }
-            }
-            throw failure;
-        }
     }
 
     private static String escape(String value) {

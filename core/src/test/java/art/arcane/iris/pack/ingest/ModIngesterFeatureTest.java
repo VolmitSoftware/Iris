@@ -155,20 +155,21 @@ public class ModIngesterFeatureTest {
         assertEquals(ModIngestTier.PASSTHROUGH, weird.tier());
         assertTrue(weird.reason(), weird.reason().contains("examplemod:custom_stone"));
         assertTrue(imported.get("enabled").getAsBoolean());
-        assertEquals(List.of("minecraft:ore_diamond", "minecraft:", "examplemod:bluebell_patch", "examplemod:glow_flowers",
-                        "examplemod:ore_ruby", "examplemod:ore_sapphire", "examplemod:ore_tin"),
+        assertEquals(List.of("minecraft:ore_diamond", "minecraft:", "othermod:"),
                 ModIngestFixture.strings(imported.get("disabled")));
+        assertEquals(List.of("examplemod:bluebell_patch", "examplemod:glow_flowers",
+                        "examplemod:ore_ruby", "examplemod:ore_sapphire", "examplemod:ore_tin"),
+                ModIngestFixture.strings(imported.get("disabledExact")));
         assertEquals(List.of("LAKES"), ModIngestFixture.strings(imported.get("disabledSteps")));
     }
 
     @Test
-    public void featuresWithoutHostsOrShadowedByDisabledPrefixesAreSkipped() {
+    public void featuresWithoutHostsAreSkippedAndConvertedKeysNeverShadowTheirFamily() {
         ModIngestItem nether = ModIngestFixture.item(report, "examplemod:nether_ore");
         ModIngestItem buried = ModIngestFixture.item(report, "examplemod:ore_tin_buried");
 
         assertEquals(ModIngestTier.SKIPPED, nether.tier());
-        assertEquals(ModIngestTier.SKIPPED, buried.tier());
-        assertTrue(buried.reason(), buried.reason().contains("examplemod:ore_tin"));
+        assertEquals(ModIngestTier.PASSTHROUGH, buried.tier());
     }
 
     @Test

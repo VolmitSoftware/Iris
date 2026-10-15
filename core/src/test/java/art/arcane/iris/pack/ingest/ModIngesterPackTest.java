@@ -85,7 +85,7 @@ public class ModIngesterPackTest {
         assertFalse(modified.contains("biomes/unused/orphan.json"));
         assertEquals(report.items().size(), manifest.getAsJsonArray("items").size());
         assertTrue(report.summaryLines().toString(),
-                report.summaryLines().contains("examplemod: 5 native, 6 adopted, 2 passthrough, 7 skipped"));
+                report.summaryLines().contains("examplemod: 5 native, 6 adopted, 3 passthrough, 6 skipped"));
     }
 
     @Test

@@ -37,18 +37,26 @@ final class ImportedFeatureWriter {
     private ImportedFeatureWriter() {
     }
 
-    static IrisImportedFeatureControl write(JsonObject dimension, Set<String> nativeKeys) {
+    static IrisImportedFeatureControl write(JsonObject dimension, Set<String> nativeKeys, Set<String> unselectedNamespaces) {
         JsonElement existing = dimension.get("importedFeatures");
         JsonObject imported = existing != null && existing.isJsonObject() ? existing.getAsJsonObject() : new JsonObject();
         Set<String> disabled = new LinkedHashSet<>(IngestJson.strings(imported.get("disabled")));
-        disabled.add(VANILLA_PREFIX);
-        disabled.addAll(nativeKeys);
+        if (!enabled(imported)) {
+            disabled.add(VANILLA_PREFIX);
+            for (String namespace : unselectedNamespaces) {
+                disabled.add(namespace + ":");
+            }
+        }
+        Set<String> disabledExact = new LinkedHashSet<>(IngestJson.strings(imported.get("disabledExact")));
+        disabledExact.addAll(nativeKeys);
         imported.addProperty("enabled", true);
         imported.add("disabled", IngestJson.stringArray(disabled));
+        imported.add("disabledExact", IngestJson.stringArray(disabledExact));
         dimension.add("importedFeatures", imported);
         IrisImportedFeatureControl control = new IrisImportedFeatureControl();
         control.setEnabled(true);
         control.setDisabled(new KList<>(disabled));
+        control.setDisabledExact(new KList<>(disabledExact));
         control.setSteps(steps(imported.get("steps")));
         control.setDisabledSteps(steps(imported.get("disabledSteps")));
         return control;
@@ -90,7 +98,17 @@ final class ImportedFeatureWriter {
                 return "suppressed by importedFeatures.disabled entry " + entry;
             }
         }
+        for (String entry : control.getDisabledExact()) {
+            if (entry.trim().equalsIgnoreCase(key.trim())) {
+                return "suppressed by importedFeatures.disabledExact entry " + entry;
+            }
+        }
         return "suppressed by importedFeatures";
+    }
+
+    private static boolean enabled(JsonObject imported) {
+        JsonElement value = imported.get("enabled");
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean() && value.getAsBoolean();
     }
 
     private static KList<IrisDecorationStep> steps(JsonElement value) {

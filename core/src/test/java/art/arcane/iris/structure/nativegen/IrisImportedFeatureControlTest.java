@@ -87,6 +87,31 @@ public class IrisImportedFeatureControlTest {
     }
 
     @Test
+    public void disabledExactDeniesOnlyTheCompleteKey() {
+        IrisImportedFeatureControl control = new IrisImportedFeatureControl()
+                .setEnabled(true)
+                .setDisabledExact(keys(" ExampleMod:Ore_Tin "));
+
+        assertFalse(control.shouldGenerate("examplemod:ore_tin"));
+        assertTrue(control.shouldGenerate("examplemod:ore_tin_large"));
+        assertTrue(control.shouldGenerate("examplemod:ore_tin/deep"));
+        assertTrue(control.hasFeatureFilter());
+        assertEquals(NativeFeatureGenerationStatus.DISABLED_BY_PACK,
+                control.resolve("examplemod:ore_tin", IrisDecorationStep.UNDERGROUND_ORES));
+        assertEquals(NativeFeatureGenerationStatus.GENERATE_NATIVE,
+                control.resolve("examplemod:ore_tin_large", IrisDecorationStep.UNDERGROUND_ORES));
+    }
+
+    @Test
+    public void nullDisabledExactIsRejected() {
+        IrisImportedFeatureControl control = new IrisImportedFeatureControl()
+                .setEnabled(true)
+                .setDisabledExact(null);
+
+        assertThrows(NullPointerException.class, () -> control.shouldGenerate("examplemod:ore_tin"));
+    }
+
+    @Test
     public void stepAllowListNarrowsGenerationToListedStepsOnly() {
         IrisImportedFeatureControl control = new IrisImportedFeatureControl()
                 .setEnabled(true)

@@ -83,7 +83,8 @@ public final class ModIngester {
                 .adopt(modBiomes(index, namespaces), biomeItems);
         List<ModIngestItem> featureItems = features.apply(adopted);
         JsonObject dimension = pack.edit(model.dimensionPath());
-        IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, features.nativeKeys());
+        IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, features.nativeKeys(),
+                unselectedFeatureNamespaces(request.catalog(), namespaces));
         featureItems = ImportedFeatureWriter.applySuppression(featureItems, features.plans(), control);
         Set<String> hostBiomes = new TreeSet<>(adopted.keySet());
         hostBiomes.addAll(model.reachableBiomes().values());
@@ -122,6 +123,16 @@ public final class ModIngester {
         }
         selected.removeAll(RESERVED_NAMESPACES);
         return selected;
+    }
+
+    private static Set<String> unselectedFeatureNamespaces(WorldgenCatalog catalog, Set<String> selected) {
+        Set<String> unselected = new TreeSet<>();
+        for (CatalogPlacedFeature feature : catalog.placedFeatures()) {
+            unselected.add(WorldgenCatalogIndex.namespaceOf(feature.key()));
+        }
+        unselected.removeAll(selected);
+        unselected.remove(ImportedFeatureWriter.VANILLA_PREFIX.substring(0, ImportedFeatureWriter.VANILLA_PREFIX.length() - 1));
+        return unselected;
     }
 
     private static List<CatalogBiome> modBiomes(WorldgenCatalogIndex index, Set<String> namespaces) {

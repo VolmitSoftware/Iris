@@ -46,7 +46,9 @@ public record IrisDimensionRuntimeContract(
         Objects.requireNonNull(dimension, "dimension");
         Objects.requireNonNull(namespace, "namespace");
         return new IrisDimensionRuntimeContract(
-                namespace + ":" + dimension.getDimensionTypeKey(),
+                dimension.hasBorrowedDimensionType()
+                        ? dimension.getBorrowedDimensionType().trim()
+                        : namespace + ":" + dimension.getDimensionTypeKey(),
                 dimension.getMinHeight(),
                 dimension.getMaxHeight() - dimension.getMinHeight(),
                 dimension.getLogicalHeight());
@@ -81,6 +83,24 @@ public record IrisDimensionRuntimeContract(
             return;
         }
         throw mismatch(runtimeName, "unknown", actualMinHeight, actualHeight, -1);
+    }
+
+    public void requireBorrowedFit(String runtimeName, IrisDimensionRuntimeContract actual) {
+        Objects.requireNonNull(actual, "actual");
+        String packRange = minHeight + ".." + maxHeight();
+        String borrowedRange = actual.minHeight() + ".." + actual.maxHeight();
+        if (!typeKey.equals(actual.typeKey())) {
+            throw new IrisDimensionContractException(runtimeName + " requires borrowed dimension type " + typeKey
+                    + ", but the loaded runtime uses " + actual.typeKey() + " with range " + borrowedRange
+                    + ". Generation was refused before any chunk writes. Restart after the level uses " + typeKey + ".");
+        }
+        if (minHeight == actual.minHeight() && maxHeight() <= actual.maxHeight()) {
+            return;
+        }
+        throw new IrisDimensionContractException(runtimeName + " borrows dimension type " + typeKey
+                + " with range " + borrowedRange + ", but the Iris pack range is " + packRange
+                + ". Generation was refused before any chunk writes. Set the pack dimensionHeight.min to "
+                + actual.minHeight() + " and keep dimensionHeight.max at or below " + actual.maxHeight() + ".");
     }
 
     private IrisDimensionContractException mismatch(

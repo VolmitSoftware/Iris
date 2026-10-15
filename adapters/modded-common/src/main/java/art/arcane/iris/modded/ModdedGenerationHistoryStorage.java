@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 final class ModdedGenerationHistoryStorage {
     private ModdedGenerationHistoryStorage() {
@@ -75,7 +76,7 @@ final class ModdedGenerationHistoryStorage {
                         return new AdoptionSource(source, captureCandidate(
                                 source,
                                 selectedDimensionKey,
-                                GenerationRegistryContractFactory.CustomBiomeAliasPolicy.RETAIN_LEGACY_ALIASES
+                                adoptionAliasPolicy(dimensionRoot)
                         ));
                     },
                     ModdedGenerationHistoryStorage::requireRegistryDefinitions
@@ -170,6 +171,19 @@ final class ModdedGenerationHistoryStorage {
         );
     }
 
+    static GenerationRegistryContractFactory.CustomBiomeAliasPolicy adoptionAliasPolicy(Path dimensionRoot)
+            throws IOException {
+        Path regions = dimensionRoot.resolve("region");
+        if (!Files.isDirectory(regions)) {
+            return GenerationRegistryContractFactory.CustomBiomeAliasPolicy.CONTENT_ADDRESSED_ONLY;
+        }
+        try (Stream<Path> files = Files.list(regions)) {
+            return files.anyMatch((Path file) -> file.getFileName().toString().endsWith(".mca"))
+                    ? GenerationRegistryContractFactory.CustomBiomeAliasPolicy.RETAIN_LEGACY_ALIASES
+                    : GenerationRegistryContractFactory.CustomBiomeAliasPolicy.CONTENT_ADDRESSED_ONLY;
+        }
+    }
+
     static ActivePack resolveActive(GenerationHistory history) throws IOException {
         GenerationEpoch epoch = history.activeEpoch();
         Path packRoot = normalize(history.activePackRoot());
@@ -246,10 +260,9 @@ final class ModdedGenerationHistoryStorage {
             PlatformGenerationRegistry generationRegistry = IrisPlatforms.get()
                     .registries()
                     .generationRegistry();
-            String dimensionTypeKey = generationRegistry.dimensionTypeResourceKey(
-                    source.getFileName().toString(),
-                    dimension.getLoadKey(),
-                    dimension.getDimensionTypeKey()
+            String dimensionTypeKey = dimension.dimensionTypeResourceKey(
+                    generationRegistry,
+                    source.getFileName().toString()
             );
             GenerationEpoch.DimensionContract dimensionContract = GenerationEpochContractFactory.create(
                     dimension,

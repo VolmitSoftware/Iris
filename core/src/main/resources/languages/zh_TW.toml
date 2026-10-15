@@ -452,6 +452,7 @@ operator_instruction = "請從主控台執行 {command}（或在單人遊戲中�
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "在下次重新啟動時用 Iris 資源包接管現有維度，或關閉接管"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1114,6 +1115,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "沒有 Iris 維�
 loaded_iris_dimensions = "已載入 Iris 維度 : {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "使用 /iris world create <name> <pack> 在不重新啟動的情況下注入一個。"
+takeover_set = "已將 {dimensionId} 的 Iris 接管設定為資源包 '{pack}'，維度 '{packDimension}'。"
+takeover_cleared = "已關閉 {dimensionId} 的 Iris 接管；下次重新啟動後該維度將恢復使用其自身的生成器。"
+takeover_not_configured = "{dimensionId} 未設定 Iris 接管。"
+takeover_restart_required = "需要重新啟動：下次啟動時，該維度的區塊、實體、POI 與 Iris Mantle 資料將移至復原資料夾並重新生成。玩家資料將會保留。"
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "下載 & 管理外部資料包進口(Modrinth)"

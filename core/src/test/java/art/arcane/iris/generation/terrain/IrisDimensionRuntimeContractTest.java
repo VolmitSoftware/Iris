@@ -6,6 +6,7 @@ import art.arcane.iris.world.IrisEnvironment;
 import org.junit.Test;
 
 import static art.arcane.iris.generation.terrain.IrisDimensionTypeOptions.TriState.TRUE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -135,6 +136,84 @@ public class IrisDimensionRuntimeContractTest {
         replacement.setFluidHeight(80);
 
         IrisDimensionRuntimeContract.requireHotloadCompatible("Studio world", active, replacement, "iris");
+    }
+
+    @Test
+    public void expectedContractUsesTheBorrowedTypeKey() {
+        IrisDimension dimension = borrowedDimension("aether:the_aether", 0, 256);
+
+        assertEquals("aether:the_aether", IrisDimensionRuntimeContract.expected(dimension, "iris").typeKey());
+    }
+
+    @Test
+    public void borrowedTypeAcceptsAPackRangeInsideTheBorrowedRange() {
+        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
+                borrowedDimension("aether:the_aether", 0, 192), "iris");
+
+        expected.requireBorrowedFit("Modded level 'aether:the_aether'",
+                new IrisDimensionRuntimeContract("aether:the_aether", 0, 256, 256));
+        expected.requireBorrowedFit("Modded level 'aether:the_aether'",
+                new IrisDimensionRuntimeContract("aether:the_aether", 0, 192, 64));
+    }
+
+    @Test
+    public void borrowedTypeRejectsAPackTopAboveTheBorrowedTop() {
+        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
+                borrowedDimension("aether:the_aether", 0, 320), "iris");
+
+        assertBorrowedFitRejected(expected, new IrisDimensionRuntimeContract("aether:the_aether", 0, 256, 256),
+                "0..320", "0..256");
+    }
+
+    @Test
+    public void borrowedTypeRejectsAPackMinimumThatDiffersFromTheBorrowedMinimum() {
+        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
+                borrowedDimension("aether:the_aether", 16, 256), "iris");
+
+        assertBorrowedFitRejected(expected, new IrisDimensionRuntimeContract("aether:the_aether", 0, 256, 256),
+                "16..256", "0..256");
+    }
+
+    @Test
+    public void borrowedTypeRejectsALevelUsingAnotherType() {
+        IrisDimensionRuntimeContract expected = IrisDimensionRuntimeContract.expected(
+                borrowedDimension("aether:the_aether", 0, 256), "iris");
+
+        assertBorrowedFitRejected(expected, new IrisDimensionRuntimeContract("minecraft:overworld", 0, 256, 256),
+                "aether:the_aether", "minecraft:overworld");
+    }
+
+    @Test
+    public void hotloadRejectsBorrowedTypeChanges() {
+        IrisDimension active = hotloadDimension();
+        IrisDimension replacement = hotloadDimension();
+        replacement.setBorrowedDimensionType("aether:the_aether");
+
+        assertHotloadRejected(active, replacement, "aether:the_aether");
+    }
+
+    private IrisDimension borrowedDimension(String typeKey, int minHeight, int maxHeight) {
+        IrisDimension dimension = new IrisDimension();
+        dimension.setLoadKey("skylands");
+        dimension.setBorrowedDimensionType(typeKey);
+        dimension.setDimensionHeight(new IrisRange(minHeight, maxHeight));
+        dimension.setLogicalHeight(maxHeight - minHeight);
+        return dimension;
+    }
+
+    private void assertBorrowedFitRejected(IrisDimensionRuntimeContract expected,
+                                           IrisDimensionRuntimeContract actual,
+                                           String expectedFragment,
+                                           String actualFragment) {
+        try {
+            expected.requireBorrowedFit("Modded level 'aether:the_aether'", actual);
+            fail("A borrowed dimension type that cannot hold the pack range must be rejected");
+        } catch (IrisDimensionContractException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("Modded level 'aether:the_aether'"));
+            assertTrue(e.getMessage(), e.getMessage().contains(expectedFragment));
+            assertTrue(e.getMessage(), e.getMessage().contains(actualFragment));
+            assertTrue(e.getMessage(), e.getMessage().contains("Generation was refused"));
+        }
     }
 
     private IrisDimensionRuntimeContract expectedContract() {

@@ -175,6 +175,7 @@ final class ModdedCommandHelp {
                 Entry.command("enable", "<dimension> <pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_ENABLE_CREATE_AND_INJECT_A_PERSISTENT_IRIS_DIMENSION_AT_RUNTIME_DOWNLOADS_THE_PACK, "create"),
                 Entry.command("replace-overworld", "<pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_REPLACE_OVERWORLD_INJECT_AN_IRIS_PRIMARY_WORLD_AND_ROUTE_PLAYERS_THERE_INSTEAD_OF_THE),
                 Entry.command("mainworld", "<pack|pack:dimensionKey|off> [seed|random]", ModdedHelpMessages.COMMAND_MAINWORLD_CONFIGURE_PRIMARY_WORLD_PRESET),
+                Entry.command("takeover", "<dimension> <pack|pack:dimensionKey|off>", ModdedHelpMessages.COMMAND_TAKEOVER_REPLACE_AN_EXISTING_DIMENSION_WITH_AN_IRIS_PACK),
                 Entry.command("disable", "<dimension>", ModdedHelpMessages.COMMAND_DISABLE_EVACUATE_AND_UNLOAD_AN_IRIS_DIMENSION_WORLD_DATA_ON_DISK_IS_KEPT),
                 Entry.command("delete", "<dimension>", ModdedHelpMessages.COMMAND_DELETE_DISABLE_AN_IRIS_DIMENSION_AND_WIPE_ITS_CHUNK_AND_MANTLE_DATA_FROM, "remove", "rm"),
                 Entry.command("list", "", ModdedHelpMessages.COMMAND_LIST_LIST_LOADED_IRIS_DIMENSIONS, "ls"),

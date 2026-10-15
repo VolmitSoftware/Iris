@@ -449,6 +449,7 @@ operator_instruction = "Start {command} vanaf de console (of schakel bedrog in s
 "entry.command.height" = "Print the current dimension height range"
 "entry.command.worlds" = "List loaded dimensions and identify the Iris-generated dimensions"
 "entry.command.mainworld" = "Configure or clear the Iris primary-world preset used on restart"
+"entry.command.takeover" = "Neem bij de volgende herstart een bestaande dimensie over met een Iris-pack, of schakel de overname uit"
 "entry.command.object.we" = "Explain why WorldEdit selection import requires the Bukkit plugin"
 "entry.command.object.studio" = "Explain why the object studio world requires the Bukkit toolchain"
 "entry.command.object.convert" = "Explain why schematic conversion requires the Bukkit plugin"
@@ -1111,6 +1112,10 @@ no_iris_dimensions_are_currently_loaded_create_one_with_iris = "Nee Iris De afme
 loaded_iris_dimensions = "Geladen Iris afmetingen: {value}"
 message_2 = "  - {dimension}"
 use_iris_world_create_name_pack_inject_one_without_restarting = "Gebruik /iris world create <name> <pack> om er één te injecteren zonder opnieuw te starten."
+takeover_set = "Iris-overname van {dimensionId} ingesteld op pack '{pack}', dimensie '{packDimension}'."
+takeover_cleared = "Iris-overname van {dimensionId} uitgeschakeld; de eigen generator van de dimensie keert terug bij de volgende herstart."
+takeover_not_configured = "Er is geen Iris-overname ingesteld voor {dimensionId}."
+takeover_restart_required = "Herstart vereist: bij de volgende start worden de chunk-, entiteit-, POI- en Iris Mantle-gegevens van de dimensie naar een herstelmap verplaatst en opnieuw gegenereerd. Spelergegevens blijven behouden."
 
 [iris.director.commanddatapack]
 "director.download_manage_external_datapack_imports_modrinth" = "Downloaden & de invoer van externe datapacks beheren (Modrinth)"

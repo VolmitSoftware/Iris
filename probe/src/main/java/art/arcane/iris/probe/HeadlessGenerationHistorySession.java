@@ -41,8 +41,8 @@ final class HeadlessGenerationHistorySession {
         String fingerprint = GenerationPackFingerprint.compute(pack, GenerationPackFingerprint.CURRENT_VERSION);
         GenerationRegistryContract registryContract = GenerationRegistryContractFactory.create(
                 data, dimension, fingerprint, fixer, registries, generationRegistry);
-        String dimensionTypeKey = generationRegistry.dimensionTypeResourceKey(
-                data.getDataFolder().getName(), dimension.getLoadKey(), dimension.getDimensionTypeKey());
+        String dimensionTypeKey = dimension.dimensionTypeResourceKey(
+                generationRegistry, data.getDataFolder().getName());
         GenerationEpoch.DimensionContract dimensionContract = GenerationEpochContractFactory.create(
                 dimension, dimension.getLoadKey(), dimensionTypeKey);
         return new GenerationHistory.FreshCreation(request.worldRoot(), pack, fingerprint, request.seed(),

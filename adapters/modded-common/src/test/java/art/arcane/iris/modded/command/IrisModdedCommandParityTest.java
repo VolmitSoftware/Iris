@@ -173,6 +173,7 @@ public class IrisModdedCommandParityTest {
         assertTrue(ModdedCommandHelp.documents("studio", "pkg"));
         assertTrue(ModdedCommandHelp.documents("object", "we"));
         assertTrue(ModdedCommandHelp.documents("world", "mainworld"));
+        assertTrue(ModdedCommandHelp.documents("world", "takeover"));
         assertTrue(ModdedCommandHelp.documents("goto", "unregistered"));
         assertTrue(ModdedCommandHelp.documents("pack", "compat"));
         assertTrue(ModdedCommandHelp.documents("pack", "cp"));

@@ -43,6 +43,10 @@ public final class ModdedDimensionStorage {
     private ModdedDimensionStorage() {
     }
 
+    static List<String> chunkDataFolders() {
+        return CHUNK_DATA_FOLDERS;
+    }
+
     public static File storageFolder(NativeModdedServer server, String dimension) {
         return server.dimensionFolder(dimension).toFile();
     }

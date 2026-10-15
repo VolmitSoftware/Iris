@@ -63,6 +63,7 @@ import art.arcane.iris.pack.validation.CompatStatus;
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.datapack.DataVersion;
@@ -263,6 +264,8 @@ public class IrisDimension extends IrisRegistrant {
     private IrisRange dimensionHeight = new IrisRange(-64, 320);
     @Description("Define options for this dimension")
     private IrisDimensionTypeOptions dimensionOptions = new IrisDimensionTypeOptions();
+    @Description("Borrow an existing registered dimension type, such as minecraft:the_end or a mod's aether:the_aether, instead of generating one from dimensionOptions. Sky, fog, lighting, and client effects then come from that type, and dimensionOptions and fullbright are ignored. dimensionHeight.min must equal the type's min_y and dimensionHeight.max must not exceed its top; a mismatch is refused when the world loads. Leave empty to generate a dimension type. Modded servers only.")
+    private String borrowedDimensionType = "";
     @Description("Configure and enforce the native Minecraft world border. When omitted, Iris leaves the native border unchanged.")
     private IrisWorldBoundary worldBoundary = null;
     @ArrayType(type = IrisImageMapBinding.class)
@@ -1103,6 +1106,17 @@ public class IrisDimension extends IrisRegistrant {
 
     public String getDimensionTypeKey() {
         return sanitizeDimensionTypeKeyValue(getLoadKey());
+    }
+
+    public boolean hasBorrowedDimensionType() {
+        return borrowedDimensionType != null && !borrowedDimensionType.isBlank();
+    }
+
+    public String dimensionTypeResourceKey(PlatformGenerationRegistry registry, String packName) {
+        if (hasBorrowedDimensionType()) {
+            return borrowedDimensionType.trim();
+        }
+        return registry.dimensionTypeResourceKey(packName, getLoadKey(), getDimensionTypeKey());
     }
 
     public String getCustomBiomeKey(String customBiomeId) {

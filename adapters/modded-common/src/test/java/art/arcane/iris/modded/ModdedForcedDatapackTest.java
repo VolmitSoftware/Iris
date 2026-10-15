@@ -260,6 +260,61 @@ public class ModdedForcedDatapackTest {
         }
     }
 
+    @Test
+    public void mergesTagFilesFromDifferentPacksIntoTheUnionOfTheirValues() throws IOException {
+        Path root = Files.createTempDirectory("iris-forced-pack-tag-merge");
+        try {
+            Path tag = Path.of("data/minecraft/tags/worldgen/biome/water_on_map_outlines.json");
+            Path source = root.resolve("source");
+            Path destination = root.resolve("destination");
+            Files.createDirectories(source.resolve(tag).getParent());
+            Files.createDirectories(destination.resolve(tag).getParent());
+            Files.writeString(source.resolve(tag),
+                    "{\"replace\":false,\"values\":[\"iris:biomes/b\",\"iris:biomes/c\",{\"id\":\"mod:river\",\"required\":false}]}",
+                    StandardCharsets.UTF_8);
+            Files.writeString(destination.resolve(tag),
+                    "{\"replace\":false,\"values\":[\"iris:biomes/a\",\"iris:biomes/b\"]}",
+                    StandardCharsets.UTF_8);
+
+            ModdedForcedDatapack.mergeDirectory(source, destination);
+
+            JSONObject merged = new JSONObject(Files.readString(destination.resolve(tag), StandardCharsets.UTF_8));
+            assertFalse(merged.getBoolean("replace"));
+            List<String> values = new ArrayList<>();
+            for (int index = 0; index < merged.getJSONArray("values").length(); index++) {
+                Object value = merged.getJSONArray("values").get(index);
+                values.add(value instanceof JSONObject entry ? entry.getString("id") : value.toString());
+            }
+            assertEquals(List.of("iris:biomes/a", "iris:biomes/b", "iris:biomes/c", "mod:river"), values);
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    public void tagMergeKeepsStrictConflictsForNonTagFilesInTheSameMerge() throws IOException {
+        Path root = Files.createTempDirectory("iris-forced-pack-tag-strict");
+        try {
+            Path tag = Path.of("data/minecraft/tags/worldgen/biome/is_overworld.json");
+            Path biome = Path.of("data/iris/worldgen/biome/shared.json");
+            for (String side : List.of("source", "destination")) {
+                Files.createDirectories(root.resolve(side).resolve(tag).getParent());
+                Files.createDirectories(root.resolve(side).resolve(biome).getParent());
+                Files.writeString(root.resolve(side).resolve(tag),
+                        "{\"replace\":false,\"values\":[\"iris:biomes/" + side + "\"]}", StandardCharsets.UTF_8);
+            }
+            Files.writeString(root.resolve("source").resolve(biome), "{\"temperature\":1}", StandardCharsets.UTF_8);
+            Files.writeString(root.resolve("destination").resolve(biome), "{\"temperature\":2}", StandardCharsets.UTF_8);
+
+            assertThrows(
+                    IOException.class,
+                    () -> ModdedForcedDatapack.mergeDirectory(root.resolve("source"), root.resolve("destination"))
+            );
+        } finally {
+            deleteTree(root);
+        }
+    }
+
     private List<String> directoryEntries(Path root) throws IOException {
         try (Stream<Path> entries = Files.list(root)) {
             return entries.map((Path path) -> path.getFileName().toString())

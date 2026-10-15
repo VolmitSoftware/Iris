@@ -19,6 +19,7 @@
 package art.arcane.iris.pack.ingest;
 
 import art.arcane.iris.pack.AtomicDirectoryPublisher;
+import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.iris.pack.ingest.catalog.CatalogBiome;
 import art.arcane.iris.pack.ingest.catalog.CatalogNamespace;
 import art.arcane.iris.pack.ingest.catalog.CatalogPlacedFeature;
@@ -29,6 +30,7 @@ import art.arcane.iris.structure.nativegen.IrisImportedFeatureControl;
 import art.arcane.iris.studio.workspace.IrisProjectCopier;
 import com.google.gson.JsonObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -43,9 +45,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public final class ModIngester {
-    private static final Set<String> RESERVED_NAMESPACES = Set.of("minecraft", "c", "iris");
+    private static final Set<String> RESERVED_NAMESPACES = Set.of("minecraft", "c", "iris", "irisworldgen");
+    private static final String JSON = ".json";
 
     private ModIngester() {
     }
@@ -58,7 +62,7 @@ public final class ModIngester {
         if (Files.exists(source.resolve(IngestManifest.PATH), LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Source pack " + source + " was written by mod ingest; ingest from its original pack instead.");
         }
-        Set<String> namespaces = selectNamespaces(request);
+        Set<String> namespaces = selectNamespaces(request, reservedNamespaces(request.catalog(), source, target.getParent()));
         requireReplaceableTarget(target, request.replaceTarget());
         String targetKey = target.getFileName().toString();
         Files.createDirectories(target.getParent());
@@ -96,13 +100,13 @@ public final class ModIngester {
         return new ModIngestReport(target, items, IngestManifest.summary(targetKey, pack, namespaces, items));
     }
 
-    private static Set<String> selectNamespaces(ModIngestRequest request) {
+    private static Set<String> selectNamespaces(ModIngestRequest request, Set<String> reserved) {
         Set<String> selected = new TreeSet<>();
         if (!request.namespaces().isEmpty()) {
             for (String namespace : request.namespaces()) {
                 String normalized = namespace.trim().toLowerCase(Locale.ROOT);
-                if (RESERVED_NAMESPACES.contains(normalized)) {
-                    throw new IllegalArgumentException("Namespace " + normalized + " cannot be ingested; it belongs to Minecraft or Iris.");
+                if (reserved.contains(normalized)) {
+                    throw new IllegalArgumentException("Namespace " + normalized + " cannot be ingested; it belongs to Minecraft, Iris, or an installed Iris pack dimension.");
                 }
                 selected.add(normalized);
             }
@@ -121,8 +125,38 @@ public final class ModIngester {
         for (CatalogStructure structure : catalog.structures()) {
             selected.add(WorldgenCatalogIndex.namespaceOf(structure.key()));
         }
-        selected.removeAll(RESERVED_NAMESPACES);
+        selected.removeAll(reserved);
         return selected;
+    }
+
+    private static Set<String> reservedNamespaces(WorldgenCatalog catalog, Path source, Path packsRoot) throws IOException {
+        Set<String> dimensionKeys = new TreeSet<>(dimensionKeys(source));
+        for (File pack : PackDirectoryResolver.listVisiblePackDirectories(packsRoot.toFile())) {
+            dimensionKeys.addAll(dimensionKeys(pack.toPath()));
+        }
+        for (CatalogNamespace namespace : catalog.namespaces()) {
+            dimensionKeys.remove(namespace.namespace());
+        }
+        Set<String> reserved = new TreeSet<>(RESERVED_NAMESPACES);
+        reserved.addAll(dimensionKeys);
+        return reserved;
+    }
+
+    private static Set<String> dimensionKeys(Path pack) throws IOException {
+        Path dimensions = pack.resolve("dimensions");
+        if (!Files.isDirectory(dimensions, LinkOption.NOFOLLOW_LINKS)) {
+            return Set.of();
+        }
+        Set<String> keys = new TreeSet<>();
+        try (Stream<Path> files = Files.list(dimensions)) {
+            for (Path file : files.toList()) {
+                String name = file.getFileName().toString();
+                if (name.endsWith(JSON) && Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                    keys.add(name.substring(0, name.length() - JSON.length()).toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        return keys;
     }
 
     private static Set<String> unselectedFeatureNamespaces(WorldgenCatalog catalog, Set<String> selected) {

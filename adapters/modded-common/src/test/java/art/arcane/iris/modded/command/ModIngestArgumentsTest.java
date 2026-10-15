@@ -36,15 +36,17 @@ public class ModIngestArgumentsTest {
         assertEquals("modded_overworld", arguments.targetPack());
         assertEquals("overworld", arguments.dimension());
         assertEquals(Set.of(), arguments.namespaces());
+        assertEquals(Set.of(), arguments.excludedRegions());
         assertFalse(arguments.replace());
     }
 
     @Test
     public void keyedOptionalsAreParsedInAnyOrder() {
         ModIngestArguments arguments = ModIngestArguments.parse(
-                "  overworld   modded  replace=true namespaces=biomesoplenty,terralith dimension=overworld_alt ");
+                "  overworld   modded  replace=true namespaces=biomesoplenty,terralith excludeRegions=prismatics,estranged dimension=overworld_alt ");
 
         assertEquals("overworld_alt", arguments.dimension());
+        assertEquals(Set.of("prismatics", "estranged"), arguments.excludedRegions());
         assertEquals(Set.of("biomesoplenty", "terralith"), arguments.namespaces());
         assertTrue(arguments.replace());
     }
@@ -72,6 +74,8 @@ public class ModIngestArgumentsTest {
         assertEquals("invalid dimension key 'a..b'", reason("overworld modded dimension=a..b"));
         assertEquals("invalid namespace 'Bad'", reason("overworld modded namespaces=ok,Bad"));
         assertEquals("namespaces must not be empty", reason("overworld modded namespaces=,"));
+        assertEquals("invalid region 'a/../b'", reason("overworld modded excludeRegions=a/../b"));
+        assertEquals("excludeRegions must not be empty", reason("overworld modded excludeRegions=,"));
         assertEquals("source and target must be different packs", reason("overworld overworld"));
     }
 

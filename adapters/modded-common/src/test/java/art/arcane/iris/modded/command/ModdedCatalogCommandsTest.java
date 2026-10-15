@@ -62,7 +62,7 @@ public class ModdedCatalogCommandsTest {
         assertTrue(ModdedCommandHelp.documents("ingest", "mods"));
         List<String> lines = ModdedCommandHelp.consoleLines("ingest");
         assertTrue(lines.stream().anyMatch((String line) ->
-                line.startsWith("/iris ingest mods <source> <target> [dimension=<key>] [namespaces=<a,b>] [replace=true] - ")));
+                line.startsWith("/iris ingest mods <source> <target> [dimension=<key>] [namespaces=<a,b>] [excludeRegions=<a,b>] [replace=true] - ")));
     }
 
     private static CommandNode<CommandSourceStack> child(CommandNode<CommandSourceStack> parent, String name) {

@@ -45,7 +45,7 @@ public class IngestReservedNamespaceTest {
         ModIngestFixture.write(root.resolve("packs").resolve("underworld"), "dimensions/underworld.json", "{\"name\": \"Underworld\"}");
         Path target = root.resolve("packs").resolve("modded");
 
-        ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog(), Set.of(), false));
+        ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog(), Set.of(), Set.of(), false));
 
         assertNull(ModIngestFixture.item(report, "irisworldgen:packs/6f76/dimensions/6f76/biomes/dunes"));
         assertNull(ModIngestFixture.item(report, "overworld:dunes"));
@@ -63,7 +63,7 @@ public class IngestReservedNamespaceTest {
 
         for (String namespace : List.of("irisworldgen", "overworld")) {
             assertThrows(namespace, IllegalArgumentException.class, () -> ModIngester.ingest(
-                    new ModIngestRequest(source, target, "overworld", catalog(), Set.of(namespace), false)));
+                    new ModIngestRequest(source, target, "overworld", catalog(), Set.of(namespace), Set.of(), false)));
         }
     }
 

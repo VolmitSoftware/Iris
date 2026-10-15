@@ -475,7 +475,7 @@ detail_dimensions = "ディメンションタイプ: {value}、レベルステ�
 refreshing = "ワールド生成カタログを取得しています..."
 refreshed = "ワールド生成カタログを {duration} で取得しました: {path}"
 refresh_failed = "ワールド生成カタログの取得に失敗しました: {reason}"
-ingest_invalid = "引数が無効です: {reason}。使い方: /iris ingest mods <source> <target> [dimension=<key>] [namespaces=<a,b>] [replace=true]"
+ingest_invalid = "引数が無効です: {reason}。使い方: /iris ingest mods <source> <target> [dimension=<key>] [namespaces=<a,b>] [excludeRegions=<a,b>] [replace=true]"
 ingest_pack_missing = "パック '{pack}' が {path} に見つかりません。"
 ingest_started = "'{source}' から '{target}' へ Mod のワールド生成を取り込んでいます (ディメンション {dimension})..."
 ingest_failed = "Mod の取り込みに失敗しました: {reason}"

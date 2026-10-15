@@ -73,7 +73,7 @@ public class IngestHeightBoundsTest {
                 }
                 """.formatted(heightFields));
         Path target = root.resolve("packs").resolve("modded");
-        ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog, Set.of(ModIngestFixture.MOD), false));
+        ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog, Set.of(ModIngestFixture.MOD), Set.of(), false));
         JsonObject dimension = ModIngestFixture.readJson(target.resolve("dimensions/modded.json"));
         JsonObject stone = ModIngestFixture.findByPaletteBlock(dimension.getAsJsonArray("deposits"), "examplemod:tin_ore");
         assertNotNull(stone);

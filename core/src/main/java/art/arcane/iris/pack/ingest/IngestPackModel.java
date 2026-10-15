@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 final class IngestPackModel {
     private static final int DEFAULT_MIN_Y = -64;
@@ -111,8 +112,21 @@ final class IngestPackModel {
     }
 
     IngestClimate biomeClimate(String biomeKey) {
-        String derivative = reachableBiomes.get(biomeKey);
-        return derivative == null ? null : index.biome(derivative).map(IngestClimate::of).orElse(null);
+        return climateReference(index, reachableBiomes.get(biomeKey)).map(IngestClimate::of).orElse(null);
+    }
+
+    Set<String> biomeCategories(String biomeKey) {
+        return climateReference(index, reachableBiomes.get(biomeKey)).map((CatalogBiome biome) -> BiomeCategories.of(biome.tags())).orElse(Set.of());
+    }
+
+    private static Optional<CatalogBiome> climateReference(WorldgenCatalogIndex index, String derivative) {
+        if (derivative == null) {
+            return Optional.empty();
+        }
+        Optional<CatalogBiome> biome = index.biome(derivative);
+        return biome.isPresent() && !BiomeCategories.isVoid(biome.get().tags()) && !biome.get().key().equals(DEFAULT_DERIVATIVE)
+                ? biome
+                : Optional.empty();
     }
 
     VanillaHeights.VerticalBounds verticalBounds() {
@@ -138,10 +152,10 @@ final class IngestPackModel {
         }
         List<IngestClimate> landClimates = new ArrayList<>();
         for (String biome : pools.get(BiomeRole.LAND)) {
-            Optional<CatalogBiome> catalogBiome = index.biome(reachable.get(biome));
+            Optional<CatalogBiome> catalogBiome = climateReference(index, reachable.get(biome));
             catalogBiome.ifPresent(value -> landClimates.add(IngestClimate.of(value)));
         }
-        return new RegionProfile(key, IngestClimate.average(landClimates), pools);
+        return new RegionProfile(key, IngestClimate.average(landClimates), (int) number(region.get("rarity"), 1D), pools);
     }
 
     private static void collectReachable(IngestPack pack, List<JsonObject> regions, Map<String, String> reachable) throws IOException {
@@ -192,7 +206,7 @@ final class IngestPackModel {
         }
     }
 
-    record RegionProfile(String key, IngestClimate climate, Map<BiomeRole, List<String>> pools) {
+    record RegionProfile(String key, IngestClimate climate, int rarity, Map<BiomeRole, List<String>> pools) {
         List<String> pool(BiomeRole role) {
             return pools.get(role);
         }

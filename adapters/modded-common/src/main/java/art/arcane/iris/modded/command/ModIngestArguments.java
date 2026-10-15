@@ -26,21 +26,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-record ModIngestArguments(String sourcePack, String targetPack, String dimension, Set<String> namespaces, boolean replace) {
-    static final List<String> OPTION_SUGGESTIONS = List.of("dimension=", "namespaces=", "replace=true");
+record ModIngestArguments(String sourcePack, String targetPack, String dimension, Set<String> namespaces,
+                          Set<String> excludedRegions, boolean replace) {
+    static final List<String> OPTION_SUGGESTIONS = List.of("dimension=", "namespaces=", "excludeRegions=", "replace=true");
     private static final Pattern PACK = Pattern.compile("[A-Za-z0-9_.-]+");
     private static final Pattern TARGET_PACK = Pattern.compile("[A-Za-z0-9_-]+");
     private static final Pattern DIMENSION = Pattern.compile("[A-Za-z0-9_/.-]+");
     private static final Pattern NAMESPACE = Pattern.compile("[a-z0-9_.-]+");
+    private static final Pattern REGION = Pattern.compile("[A-Za-z0-9_/.-]+");
     private static final String DIMENSION_KEY = "dimension";
     private static final String NAMESPACES_KEY = "namespaces";
     private static final String REPLACE_KEY = "replace";
+    private static final String EXCLUDE_REGIONS_KEY = "excludeRegions";
 
     ModIngestArguments {
         Objects.requireNonNull(sourcePack, "sourcePack");
         Objects.requireNonNull(targetPack, "targetPack");
         Objects.requireNonNull(dimension, "dimension");
         namespaces = Set.copyOf(Objects.requireNonNull(namespaces, "namespaces"));
+        excludedRegions = Set.copyOf(Objects.requireNonNull(excludedRegions, "excludedRegions"));
     }
 
     static ModIngestArguments parse(String raw) {
@@ -62,7 +66,8 @@ record ModIngestArguments(String sourcePack, String targetPack, String dimension
                 continue;
             }
             String key = token.substring(0, equals);
-            if (!key.equals(DIMENSION_KEY) && !key.equals(NAMESPACES_KEY) && !key.equals(REPLACE_KEY)) {
+            if (!key.equals(DIMENSION_KEY) && !key.equals(NAMESPACES_KEY) && !key.equals(REPLACE_KEY)
+                    && !key.equals(EXCLUDE_REGIONS_KEY)) {
                 throw new IllegalArgumentException("unknown option '" + key + "'");
             }
             if (options.putIfAbsent(key, token.substring(equals + 1)) != null) {
@@ -88,7 +93,7 @@ record ModIngestArguments(String sourcePack, String targetPack, String dimension
             throw new IllegalArgumentException("invalid dimension key '" + dimension + "'");
         }
         return new ModIngestArguments(source, target, dimension, namespaces(options.get(NAMESPACES_KEY)),
-                replace(options.get(REPLACE_KEY)));
+                regions(options.get(EXCLUDE_REGIONS_KEY)), replace(options.get(REPLACE_KEY)));
     }
 
     private static void requirePack(String pack) {
@@ -115,6 +120,26 @@ record ModIngestArguments(String sourcePack, String targetPack, String dimension
             throw new IllegalArgumentException("namespaces must not be empty");
         }
         return namespaces;
+    }
+
+    private static Set<String> regions(String raw) {
+        if (raw == null) {
+            return Set.of();
+        }
+        Set<String> regions = new LinkedHashSet<>();
+        for (String part : raw.split(",")) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (!REGION.matcher(part).matches() || part.contains("..")) {
+                throw new IllegalArgumentException("invalid region '" + part + "'");
+            }
+            regions.add(part);
+        }
+        if (regions.isEmpty()) {
+            throw new IllegalArgumentException("excludeRegions must not be empty");
+        }
+        return regions;
     }
 
     private static boolean replace(String raw) {

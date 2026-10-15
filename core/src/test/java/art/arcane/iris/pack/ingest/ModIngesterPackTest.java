@@ -158,7 +158,7 @@ public class ModIngesterPackTest {
         Map<String, String> first = snapshot(target);
 
         assertThrows(IOException.class, () -> ModIngester.ingest(new ModIngestRequest(
-                source, target, "missing", ModIngestFixture.catalog(), Set.of(ModIngestFixture.MOD), true)));
+                source, target, "missing", ModIngestFixture.catalog(), Set.of(ModIngestFixture.MOD), Set.of(), true)));
 
         assertEquals(first, snapshot(target));
         assertEquals(List.of("modded"), directoryNames(root.resolve("packs")));
@@ -184,7 +184,7 @@ public class ModIngesterPackTest {
         ModIngester.ingest(ModIngestFixture.request(source, target, Set.of(ModIngestFixture.MOD), false));
 
         IOException failure = assertThrows(IOException.class, () -> ModIngester.ingest(new ModIngestRequest(
-                target, root.resolve("packs").resolve("again"), "modded", ModIngestFixture.catalog(), Set.of(), false)));
+                target, root.resolve("packs").resolve("again"), "modded", ModIngestFixture.catalog(), Set.of(), Set.of(), false)));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("original pack"));
         assertFalse(Files.exists(root.resolve("packs").resolve("again")));
@@ -218,7 +218,7 @@ public class ModIngesterPackTest {
                 fixture.capturedAtEpochMillis(), fixture.contentFingerprint(), namespaces, fixture.biomes(),
                 fixture.placedFeatures(), fixture.structures(), fixture.dimensionTypes(), fixture.levelStems());
 
-        ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog, Set.of(), false));
+        ModIngestReport report = ModIngester.ingest(new ModIngestRequest(source, target, "overworld", catalog, Set.of(), Set.of(), false));
 
         assertEquals(List.of("examplemod", "othermod"),
                 ModIngestFixture.strings(ModIngestFixture.readJson(target.resolve("ingest/manifest.json")).get("namespaces")));

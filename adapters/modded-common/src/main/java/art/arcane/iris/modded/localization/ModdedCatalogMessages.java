@@ -77,7 +77,7 @@ public final class ModdedCatalogMessages {
     public static final TextKey INGEST_INVALID = TextKey.of(
             "iris.modded.catalog.ingest_invalid",
             "Invalid arguments: {reason}. Usage: /iris ingest mods <source> <target> [dimension=<key>] "
-                    + "[namespaces=<a,b>] [replace=true]"
+                    + "[namespaces=<a,b>] [excludeRegions=<a,b>] [replace=true]"
     );
     public static final TextKey INGEST_PACK_MISSING = TextKey.of(
             "iris.modded.catalog.ingest_pack_missing",

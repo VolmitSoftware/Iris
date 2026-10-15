@@ -197,7 +197,7 @@ final class ModdedCatalogCommands {
         }
         Path targetPack = packsRoot.toPath().toAbsolutePath().normalize().resolve(arguments.targetPack());
         ModIngestRequest request = new ModIngestRequest(sourcePack.toPath(), targetPack, arguments.dimension(),
-                catalog.get(), arguments.namespaces(), arguments.replace());
+                catalog.get(), arguments.namespaces(), arguments.excludedRegions(), arguments.replace());
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCatalogMessages.INGEST_STARTED,
                 MessageArgument.untrusted("source", arguments.sourcePack()),
                 MessageArgument.untrusted("target", arguments.targetPack()),

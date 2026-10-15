@@ -169,7 +169,7 @@ final class ModdedCommandHelp {
         ));
         SECTIONS.put("pk", SECTIONS.get("pack"));
         SECTIONS.put("ingest", List.of(
-                Entry.command("mods", "<source> <target> [dimension=<key>] [namespaces=<a,b>] [replace=true]", ModdedCatalogMessages.HELP_INGEST_MODS)
+                Entry.command("mods", "<source> <target> [dimension=<key>] [namespaces=<a,b>] [excludeRegions=<a,b>] [replace=true]", ModdedCatalogMessages.HELP_INGEST_MODS)
         ));
         SECTIONS.put("world", List.of(
                 Entry.command("enable", "<dimension> <pack|pack:dimensionKey> [seed|random]", ModdedHelpMessages.COMMAND_ENABLE_CREATE_AND_INJECT_A_PERSISTENT_IRIS_DIMENSION_AT_RUNTIME_DOWNLOADS_THE_PACK, "create"),

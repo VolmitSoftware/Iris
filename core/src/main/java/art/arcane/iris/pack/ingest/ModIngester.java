@@ -83,8 +83,9 @@ public final class ModIngester {
         IngestPackModel model = IngestPackModel.load(pack, targetKey, index);
         ModFeatureIngester features = new ModFeatureIngester(model, index, namespaces);
         List<ModIngestItem> biomeItems = new ArrayList<>();
-        Map<String, ModBiomeAdopter.AdoptedBiome> adopted = new ModBiomeAdopter(model, index, features.decoratorKeys())
-                .adopt(modBiomes(index, namespaces), biomeItems);
+        requireKnownRegions(model, request.excludedRegions());
+        Map<String, ModBiomeAdopter.AdoptedBiome> adopted = new ModBiomeAdopter(model, index, features.decoratorKeys(),
+                request.excludedRegions()).adopt(modBiomes(index, namespaces), biomeItems);
         List<ModIngestItem> featureItems = features.apply(adopted);
         JsonObject dimension = pack.edit(model.dimensionPath());
         IrisImportedFeatureControl control = ImportedFeatureWriter.write(dimension, features.nativeKeys(),
@@ -99,6 +100,16 @@ public final class ModIngester {
         Set<String> reported = reportedNamespaces(namespaces, items);
         IngestManifest.write(pack, request.catalog(), request.dimensionKey(), targetKey, reported, items);
         return new ModIngestReport(target, items, IngestManifest.summary(targetKey, pack, reported, items));
+    }
+
+    private static void requireKnownRegions(IngestPackModel model, Set<String> excludedRegions) {
+        Set<String> unknown = new TreeSet<>(excludedRegions);
+        for (IngestPackModel.RegionProfile region : model.regions()) {
+            unknown.remove(region.key());
+        }
+        if (!unknown.isEmpty()) {
+            throw new IllegalArgumentException("Excluded regions " + unknown + " are not regions of dimension " + model.dimensionPath() + ".");
+        }
     }
 
     private static Set<String> reportedNamespaces(Set<String> namespaces, List<ModIngestItem> items) {

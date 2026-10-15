@@ -26,6 +26,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -36,15 +40,25 @@ final class ModBiomeAdopter {
     static final String INGEST_BIOME_FOLDER = "ingest/";
     private static final List<String> OVERRIDE_FIELDS = List.of("customDerivitives", "vanillaDerivative", "biomeScatter", "biomeSkyScatter", "children");
     private static final int VEGETAL_STEP = IrisDecorationStep.VEGETAL_DECORATION.ordinal();
+    private static final double CATEGORY_WEIGHT = 1D;
+    private static final double REGION_CLIMATE_WEIGHT = 0.25D;
+    private static final double REUSE_WEIGHT = 0.05D;
+    private static final double THEMED_REGION_PENALTY = 0.6D;
+    private static final int THEMED_RARITY_FACTOR = 5;
 
     private final IngestPackModel model;
     private final ModBiomeClassifier classifier;
     private final Set<String> decoratorFeatures;
+    private final Set<String> excludedRegions;
+    private final Set<String> themedRegions;
+    private final Map<String, Integer> templateUses = new HashMap<>();
 
-    ModBiomeAdopter(IngestPackModel model, WorldgenCatalogIndex index, Set<String> decoratorFeatures) {
+    ModBiomeAdopter(IngestPackModel model, WorldgenCatalogIndex index, Set<String> decoratorFeatures, Set<String> excludedRegions) {
         this.model = model;
         this.classifier = new ModBiomeClassifier(model.environment(), index.catalog());
         this.decoratorFeatures = decoratorFeatures;
+        this.excludedRegions = Set.copyOf(excludedRegions);
+        this.themedRegions = themedRegions(model.regions());
     }
 
     Map<String, AdoptedBiome> adopt(List<CatalogBiome> modBiomes, List<ModIngestItem> items) throws IOException {
@@ -57,14 +71,15 @@ final class ModBiomeAdopter {
                 continue;
             }
             BiomeRole role = classification.role();
-            IngestClimate climate = IngestClimate.of(biome);
-            IngestPackModel.RegionProfile region = nearestRegion(role, climate);
-            if (region == null) {
+            Placement placement = place(role, IngestClimate.of(biome), BiomeCategories.of(biome.tags()));
+            if (placement == null) {
                 items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.SKIPPED, "",
-                        "no region in this dimension has a " + role.label() + " biome pool"));
+                        "no region in this dimension accepts a " + role.label() + " biome"));
                 continue;
             }
-            String template = nearestTemplate(region, role, climate);
+            IngestPackModel.RegionProfile region = placement.region();
+            String template = placement.template();
+            templateUses.merge(template, 1, Integer::sum);
             String irisKey = irisKey(biome.key());
             JsonObject json = model.pack().require(IngestPack.biomePath(template)).deepCopy();
             transform(json, biome, ownsVegetation(biome, namespace));
@@ -83,34 +98,47 @@ final class ModBiomeAdopter {
         return INGEST_BIOME_FOLDER + namespace + "/" + modBiomeKey.substring(colon + 1);
     }
 
-    private IngestPackModel.RegionProfile nearestRegion(BiomeRole role, IngestClimate climate) {
-        IngestPackModel.RegionProfile best = null;
-        double bestDistance = Double.POSITIVE_INFINITY;
+    private Placement place(BiomeRole role, IngestClimate climate, Set<String> categories) {
+        Placement best = null;
+        double bestScore = Double.POSITIVE_INFINITY;
         for (IngestPackModel.RegionProfile region : model.regions()) {
-            if (region.pool(role).isEmpty()) {
+            if (excludedRegions.contains(region.key())) {
                 continue;
             }
-            double distance = climate.distance(region.climate());
-            if (best == null || distance < bestDistance) {
-                best = region;
-                bestDistance = distance;
+            double regionPenalty = (themedRegions.contains(region.key()) ? THEMED_REGION_PENALTY : 0D)
+                    + (region.climate() == null ? 0D : REGION_CLIMATE_WEIGHT * climate.distance(region.climate()));
+            for (String template : region.pool(role)) {
+                IngestClimate templateClimate = model.biomeClimate(template);
+                double score = climate.distance(templateClimate == null ? region.climate() : templateClimate)
+                        + CATEGORY_WEIGHT * BiomeCategories.distance(categories, model.biomeCategories(template))
+                        + REUSE_WEIGHT * templateUses.getOrDefault(template, 0)
+                        + regionPenalty;
+                if (best == null || score < bestScore) {
+                    best = new Placement(region, template);
+                    bestScore = score;
+                }
             }
         }
         return best;
     }
 
-    private String nearestTemplate(IngestPackModel.RegionProfile region, BiomeRole role, IngestClimate climate) {
-        String best = null;
-        double bestDistance = Double.POSITIVE_INFINITY;
-        for (String candidate : region.pool(role)) {
-            IngestClimate candidateClimate = model.biomeClimate(candidate);
-            double distance = climate.distance(candidateClimate == null ? region.climate() : candidateClimate);
-            if (best == null || distance < bestDistance) {
-                best = candidate;
-                bestDistance = distance;
+    private static Set<String> themedRegions(List<IngestPackModel.RegionProfile> regions) {
+        if (regions.isEmpty()) {
+            return Set.of();
+        }
+        List<Integer> rarities = new ArrayList<>(regions.size());
+        for (IngestPackModel.RegionProfile region : regions) {
+            rarities.add(region.rarity());
+        }
+        rarities.sort(Comparator.naturalOrder());
+        int median = Math.max(1, rarities.get(rarities.size() / 2));
+        Set<String> themed = new HashSet<>();
+        for (IngestPackModel.RegionProfile region : regions) {
+            if (region.rarity() >= median * THEMED_RARITY_FACTOR) {
+                themed.add(region.key());
             }
         }
-        return best;
+        return themed;
     }
 
     private void transform(JsonObject json, CatalogBiome biome, boolean ownsVegetation) throws IOException {
@@ -169,5 +197,8 @@ final class ModBiomeAdopter {
     }
 
     record AdoptedBiome(String modKey, String irisKey, BiomeRole role) {
+    }
+
+    private record Placement(IngestPackModel.RegionProfile region, String template) {
     }
 }

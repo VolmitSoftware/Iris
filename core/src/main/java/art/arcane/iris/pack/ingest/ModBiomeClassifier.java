@@ -83,7 +83,7 @@ final class ModBiomeClassifier {
         return false;
     }
 
-    private static Set<String> conventionTags(List<String> tags) {
+    static Set<String> conventionTags(List<String> tags) {
         Set<String> paths = new HashSet<>();
         for (String tag : tags) {
             String key = VanillaJson.namespaced(tag);

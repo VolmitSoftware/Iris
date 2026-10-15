@@ -25,12 +25,14 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 
-public record ModIngestRequest(Path sourcePack, Path targetPack, String dimensionKey, WorldgenCatalog catalog, Set<String> namespaces, boolean replaceTarget) {
+public record ModIngestRequest(Path sourcePack, Path targetPack, String dimensionKey, WorldgenCatalog catalog, Set<String> namespaces,
+                               Set<String> excludedRegions, boolean replaceTarget) {
     public ModIngestRequest {
         Objects.requireNonNull(sourcePack, "sourcePack");
         Objects.requireNonNull(targetPack, "targetPack");
         Objects.requireNonNull(dimensionKey, "dimensionKey");
         Objects.requireNonNull(catalog, "catalog");
         namespaces = Set.copyOf(Objects.requireNonNull(namespaces, "namespaces"));
+        excludedRegions = Set.copyOf(Objects.requireNonNull(excludedRegions, "excludedRegions"));
     }
 }

@@ -320,7 +320,7 @@ final class ModIngestFixture {
     }
 
     static ModIngestRequest request(Path source, Path target, Set<String> namespaces, boolean replace) {
-        return new ModIngestRequest(source, target, "overworld", catalog(), namespaces, replace);
+        return new ModIngestRequest(source, target, "overworld", catalog(), namespaces, Set.of(), replace);
     }
 
     static JsonObject readJson(Path file) throws IOException {

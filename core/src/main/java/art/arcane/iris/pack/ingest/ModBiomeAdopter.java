@@ -45,7 +45,6 @@ final class ModBiomeAdopter {
     private static final double REGION_CLIMATE_WEIGHT = 0.25D;
     private static final double REGION_CATEGORY_WEIGHT = 0.25D;
     private static final double REUSE_WEIGHT = 0.05D;
-    private static final double THEMED_REGION_PENALTY = 0.6D;
     private static final double BARE_SURFACE_PENALTY = 3D;
     private static final int THEMED_RARITY_FACTOR = 5;
 
@@ -77,8 +76,7 @@ final class ModBiomeAdopter {
             boolean ownsVegetation = ownsVegetation(biome, namespace);
             Placement placement = place(role, IngestClimate.of(biome), BiomeCategories.of(biome.tags()), ownsVegetation);
             if (placement == null) {
-                items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.SKIPPED, "",
-                        "no region in this dimension accepts a " + role.label() + " biome"));
+                items.add(new ModIngestItem(namespace, biome.key(), "biome", ModIngestTier.SKIPPED, "", unplacedReason(role)));
                 continue;
             }
             IngestPackModel.RegionProfile region = placement.region();
@@ -103,21 +101,30 @@ final class ModBiomeAdopter {
     }
 
     private Placement place(BiomeRole role, IngestClimate climate, Set<String> categories, boolean ownsVegetation) throws IOException {
+        Placement common = bestPlacement(role, climate, categories, ownsVegetation, false);
+        return common != null ? common : bestPlacement(role, climate, categories, ownsVegetation, true);
+    }
+
+    private Placement bestPlacement(BiomeRole role, IngestClimate climate, Set<String> categories, boolean ownsVegetation,
+                                    boolean themed) throws IOException {
         Placement best = null;
         double bestScore = Double.POSITIVE_INFINITY;
         for (IngestPackModel.RegionProfile region : model.regions()) {
-            if (excludedRegions.contains(region.key())) {
+            if (excludedRegions.contains(region.key()) || themedRegions.contains(region.key()) != themed) {
                 continue;
             }
             IngestClimate regionClimate = regionClimate(region, role, categories);
-            double regionPenalty = (themedRegions.contains(region.key()) ? THEMED_REGION_PENALTY : 0D)
-                    + (regionClimate == null ? 0D : REGION_CLIMATE_WEIGHT * climate.distance(regionClimate))
+            double regionPenalty = (regionClimate == null ? 0D : REGION_CLIMATE_WEIGHT * climate.distance(regionClimate))
                     + REGION_CATEGORY_WEIGHT * (1D - regionAffinity(region, role, categories));
             for (String template : region.pool(role)) {
+                int uses = templateUses.getOrDefault(template, 0);
+                if (uses >= role.templateCap()) {
+                    continue;
+                }
                 IngestClimate templateClimate = model.biomeClimate(template);
                 double score = climate.distance(templateClimate == null ? region.climate() : templateClimate)
                         + CATEGORY_WEIGHT * BiomeCategories.distance(categories, model.biomeCategories(template))
-                        + REUSE_WEIGHT * templateUses.getOrDefault(template, 0)
+                        + REUSE_WEIGHT * uses
                         + (ownsVegetation ? BARE_SURFACE_PENALTY * (1D - model.plantableShare(template)) : 0D)
                         + regionPenalty;
                 if (best == null || score < bestScore) {
@@ -127,6 +134,15 @@ final class ModBiomeAdopter {
             }
         }
         return best;
+    }
+
+    private String unplacedReason(BiomeRole role) {
+        for (IngestPackModel.RegionProfile region : model.regions()) {
+            if (!excludedRegions.contains(region.key()) && !region.pool(role).isEmpty()) {
+                return "every " + role.label() + " template already hosts " + role.templateCap() + " adopted biomes";
+            }
+        }
+        return "no region in this dimension accepts a " + role.label() + " biome";
     }
 
     private IngestClimate regionClimate(IngestPackModel.RegionProfile region, BiomeRole role, Set<String> categories) {

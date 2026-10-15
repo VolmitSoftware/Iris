@@ -1,78 +1,122 @@
+/*
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package art.arcane.iris.engine.object.terrain.carving;
 
-import art.arcane.iris.engine.object.value.IRare;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.util.project.interpolation.IrisInterpolation;
-import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.builtin.carve.CarvingSettings;
+import com.volmit.ModuleLog;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Range;
+import com.volmit.FeatureAttachment.Target;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.resource.PackResources;
+import com.volmit.world.PackBiome;
+import com.volmit.world.PackWorld;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Picks the dimension's carving entry for a position: the last enabled root entry whose world Y band holds the height,
- * then, through the entries' children, the one a noise pattern selects at the column. The state a caller passes (or, when
- * it passes none, the thread's) keeps the picks and the entries' biomes, so a caller resolving many positions reuses them.
+ * What the carve module keeps for one world about the cave biome bands its dimension declares ({@link CarvingSettings}): the
+ * entries made ready ({@link ResolvedCarvingEntry}), in the order the dimension lists them and by id, and the picks among them.
+ * A pick is the dimension's last enabled root entry whose world Y band holds a height, then, through the entries' children, the
+ * one a noise pattern selects at a column.
  */
 public final class CarvingResolver {
     private static final int MAX_CHILD_DEPTH = 32;
     private static final long CHILD_SEED_SALT = 0x9E3779B97F4A7C15L;
-    private static final ThreadLocal<WeakReference<State>> THREAD_STATE =
-            ThreadLocal.withInitial(() -> new WeakReference<>(null));
 
-    private CarvingResolver() {
+    private final PackResources resources;
+    private final ModuleLog log;
+    private final int minHeight;
+    private final long childSeed;
+    private final List<ResolvedCarvingEntry> entries;
+    private final Map<String, ResolvedCarvingEntry> index;
+    private final Map<Integer, Optional<ResolvedCarvingEntry>> rootEntriesByWorldY = new ConcurrentHashMap<>();
+    private final Map<ResolvedCarvingEntry, ParentSelectionPlan> selectionPlans = new ConcurrentHashMap<>();
 
+    CarvingResolver(PackWorld world, List<CarvingEntry> declared) {
+        this.resources = world.resources();
+        this.log = world.log();
+        this.minHeight = world.minHeight();
+        this.childSeed = IrisSeed.CARVE.of(world) ^ CHILD_SEED_SALT;
+        this.entries = declared.stream().filter(Objects::nonNull).map(ResolvedCarvingEntry::new).toList();
+        this.index = indexById(entries);
     }
 
-    public static ResolvedCarvingEntry resolveRootEntry(Engine engine, int worldY) {
-        return resolveRootEntry(engine, worldY, threadState());
+    /** The bands of the world {@code world} generates now. */
+    public static CarvingResolver of(PackWorld world) {
+        return world.state(CarvingResolver.class, generating -> new CarvingResolver(generating, dimensionEntries(generating)));
     }
 
-    public static ResolvedCarvingEntry resolveRootEntry(Engine engine, int worldY, State state) {
-        State resolvedState = state == null ? threadState() : state;
-        resolvedState.bind(engine);
-        if (resolvedState.rootEntriesByWorldY.containsKey(worldY)) {
-            return resolvedState.rootEntriesByWorldY.get(worldY);
+    private static List<CarvingEntry> dimensionEntries(PackWorld world) {
+        List<CarvingEntry> dimensionEntries = new ArrayList<>();
+        for (Entry<CarvingSettings> entry : world.settings().declared(CarvingSettings.class)) {
+            if (entry.level() == Target.DIMENSION) {
+                dimensionEntries.addAll(entry.value().entries());
+            }
         }
+        return dimensionEntries;
+    }
 
-        List<ResolvedCarvingEntry> entries = resolvedState.bands.entries();
-        if (entries.isEmpty()) {
-            resolvedState.rootEntriesByWorldY.put(worldY, null);
-            return null;
-        }
+    /** Every declared entry, enabled or not. */
+    public List<ResolvedCarvingEntry> entries() {
+        return entries;
+    }
 
+    /** The entries by their trimmed ids; entries without an id are not in it, and the last of several with one id is. */
+    public Map<String, ResolvedCarvingEntry> index() {
+        return index;
+    }
+
+    /** The root entry for a height above the dimension's bottom; null where no enabled entry with a biome holds it. */
+    public ResolvedCarvingEntry rootEntryAt(int y) {
+        return rootEntryAtWorldY(y + minHeight);
+    }
+
+    /** The root entry for a world Y as packs write them; null where no enabled entry with a biome holds it. */
+    public ResolvedCarvingEntry rootEntryAtWorldY(int worldY) {
+        return rootEntriesByWorldY.computeIfAbsent(worldY, this::pickRootEntry).orElse(null);
+    }
+
+    private Optional<ResolvedCarvingEntry> pickRootEntry(int worldY) {
         ResolvedCarvingEntry resolved = null;
         for (ResolvedCarvingEntry entry : entries) {
-            if (!isRootCandidate(engine, entry, worldY, resolvedState)) {
-                continue;
+            if (isRootCandidate(entry, worldY)) {
+                resolved = entry;
             }
-
-            resolved = entry;
         }
-
-        resolvedState.rootEntriesByWorldY.put(worldY, resolved);
-        return resolved;
+        return Optional.ofNullable(resolved);
     }
 
-    public static ResolvedCarvingEntry resolveFromRoot(Engine engine, ResolvedCarvingEntry rootEntry, int worldX, int worldZ) {
-        return resolveFromRoot(engine, rootEntry, worldX, worldZ, threadState());
-    }
-
-    public static ResolvedCarvingEntry resolveFromRoot(Engine engine, ResolvedCarvingEntry rootEntry, int worldX, int worldZ, State state) {
-        State resolvedState = state == null ? threadState() : state;
-        resolvedState.bind(engine);
+    public ResolvedCarvingEntry resolveFromRoot(ResolvedCarvingEntry rootEntry, int worldX, int worldZ) {
         if (rootEntry == null) {
             return null;
         }
 
-        IrisBiome rootBiome = resolveEntryBiome(engine, rootEntry, resolvedState);
+        PackBiome rootBiome = entryBiome(rootEntry);
         if (rootBiome == null) {
             return null;
         }
@@ -82,11 +126,10 @@ public final class CarvingResolver {
             return rootEntry;
         }
 
-        Map<String, ResolvedCarvingEntry> entryIndex = resolvedState.bands.index();
         ResolvedCarvingEntry current = rootEntry;
         int depth = remainingDepth;
         while (depth > 0) {
-            ResolvedCarvingEntry selected = selectChild(engine, current, worldX, worldZ, entryIndex, resolvedState);
+            ResolvedCarvingEntry selected = selectChild(current, worldX, worldZ);
             if (selected == null || selected == current) {
                 break;
             }
@@ -102,30 +145,12 @@ public final class CarvingResolver {
         return current;
     }
 
-    public static IrisBiome resolveEntryBiome(Engine engine, ResolvedCarvingEntry entry) {
-        return resolveEntryBiome(engine, entry, null);
+    /** The pack biome the entry names; null when it names none or the pack has no such biome. */
+    public PackBiome entryBiome(ResolvedCarvingEntry entry) {
+        return entry == null ? null : entry.realBiome(resources, log);
     }
 
-    public static IrisBiome resolveEntryBiome(Engine engine, ResolvedCarvingEntry entry, State state) {
-        if (entry == null) {
-            return null;
-        }
-
-        if (state == null) {
-            return entry.realBiome(engine.getData());
-        }
-
-        state.bind(engine);
-        if (state.biomeCache.containsKey(entry)) {
-            return state.biomeCache.get(entry);
-        }
-
-        IrisBiome biome = entry.realBiome(engine.getData());
-        state.biomeCache.put(entry, biome);
-        return biome;
-    }
-
-    private static boolean isRootCandidate(Engine engine, ResolvedCarvingEntry entry, int worldY, State state) {
+    private boolean isRootCandidate(ResolvedCarvingEntry entry, int worldY) {
         if (entry == null || !entry.enabled()) {
             return false;
         }
@@ -135,41 +160,28 @@ public final class CarvingResolver {
             return false;
         }
 
-        return resolveEntryBiome(engine, entry, state) != null;
+        return entryBiome(entry) != null;
     }
 
-    private static ResolvedCarvingEntry selectChild(
-            Engine engine,
-            ResolvedCarvingEntry parent,
-            int worldX,
-            int worldZ,
-            Map<String, ResolvedCarvingEntry> entryIndex,
-            State state
-    ) {
+    private ResolvedCarvingEntry selectChild(ResolvedCarvingEntry parent, int worldX, int worldZ) {
         List<String> children = parent.children();
         if (children.isEmpty()) {
             return parent;
         }
 
-        IrisBiome parentBiome = resolveEntryBiome(engine, parent, state);
+        PackBiome parentBiome = entryBiome(parent);
         if (parentBiome == null) {
             return parent;
         }
 
-        ParentSelectionPlan selectionPlan = state.selectionPlans.get(parent);
-        if (selectionPlan == null) {
-            selectionPlan = buildSelectionPlan(engine, parent, parentBiome, entryIndex, state);
-            state.selectionPlans.put(parent, selectionPlan);
-        }
-
+        ParentSelectionPlan selectionPlan = selectionPlans.computeIfAbsent(parent, key -> buildSelectionPlan(key, parentBiome));
         if (selectionPlan.parentOnly) {
             return parent;
         }
 
-        long seed = resolveChildSeed(engine, state);
-        CNG childGenerator = parent.childrenGenerator(seed, engine.getData());
-        double sample = childGenerator.noiseFast2D(worldX, worldZ);
-        int selectedIndex = (int) Math.round(IrisInterpolation.lerp(0, selectionPlan.maxIndex, sample));
+        NoiseSampler childGenerator = parent.childrenGenerator(childSeed, resources);
+        double sample = childGenerator.sample(worldX, worldZ);
+        int selectedIndex = (int) Math.round(sample * selectionPlan.maxIndex);
         CarvingChoice selected = selectionPlan.get(selectedIndex);
         if (selected == null || selected.entry == null) {
             return parent;
@@ -178,25 +190,19 @@ public final class CarvingResolver {
         return selected.entry;
     }
 
-    private static ParentSelectionPlan buildSelectionPlan(
-            Engine engine,
-            ResolvedCarvingEntry parent,
-            IrisBiome parentBiome,
-            Map<String, ResolvedCarvingEntry> entryIndex,
-            State state
-    ) {
+    private ParentSelectionPlan buildSelectionPlan(ResolvedCarvingEntry parent, PackBiome parentBiome) {
         List<CarvingChoice> options = new ArrayList<>();
         for (String childId : parent.children()) {
             if (childId == null || childId.isBlank()) {
                 continue;
             }
 
-            ResolvedCarvingEntry child = entryIndex.get(childId.trim());
+            ResolvedCarvingEntry child = index.get(childId.trim());
             if (child == null || !child.enabled()) {
                 continue;
             }
 
-            IrisBiome childBiome = resolveEntryBiome(engine, child, state);
+            PackBiome childBiome = entryBiome(child);
             if (childBiome == null) {
                 continue;
             }
@@ -243,13 +249,12 @@ public final class CarvingResolver {
         return mapped.toArray(new CarvingChoice[0]);
     }
 
-    private static int rarity(IrisBiome biome) {
+    private static int rarity(PackBiome biome) {
         if (biome == null) {
             return 1;
         }
 
-        int rarity = biome.getRarity();
-        return Math.max(rarity, 1);
+        return Math.max(biome.rarity(), 1);
     }
 
     private static int clampDepth(int depth) {
@@ -260,56 +265,14 @@ public final class CarvingResolver {
         return Math.min(depth, MAX_CHILD_DEPTH);
     }
 
-    private static long resolveChildSeed(Engine engine, State state) {
-        if (state.childSeed == null) {
-            state.childSeed = engine.getSeedManager().getCarve() ^ CHILD_SEED_SALT;
-        }
-
-        return state.childSeed;
-    }
-
-    private static State threadState() {
-        WeakReference<State> reference = THREAD_STATE.get();
-        State state = reference.get();
-        if (state != null) {
-            return state;
-        }
-        State replacement = new State();
-        THREAD_STATE.set(new WeakReference<>(replacement));
-        return replacement;
-    }
-
-    public static final class State {
-        private final Map<Integer, ResolvedCarvingEntry> rootEntriesByWorldY = new HashMap<>();
-        private final Map<ResolvedCarvingEntry, ParentSelectionPlan> selectionPlans = new IdentityHashMap<>();
-        private final Map<ResolvedCarvingEntry, IrisBiome> biomeCache = new IdentityHashMap<>();
-        private WeakReference<Engine> engineIdentity;
-        private WeakReference<IrisDimension> dimensionIdentity;
-        private WeakReference<IrisData> dataIdentity;
-        private CarvingBands bands;
-        private Long childSeed;
-
-        private void bind(Engine engine) {
-            IrisDimension dimension = engine.getDimension();
-            IrisData data = engine.getData();
-            if (references(engineIdentity, engine)
-                    && references(dimensionIdentity, dimension)
-                    && references(dataIdentity, data)) {
-                return;
+    private static Map<String, ResolvedCarvingEntry> indexById(List<ResolvedCarvingEntry> entries) {
+        Map<String, ResolvedCarvingEntry> index = new HashMap<>();
+        for (ResolvedCarvingEntry entry : entries) {
+            if (!entry.id().isBlank()) {
+                index.put(entry.id().trim(), entry);
             }
-            engineIdentity = new WeakReference<>(engine);
-            dimensionIdentity = new WeakReference<>(dimension);
-            dataIdentity = new WeakReference<>(data);
-            bands = CarvingBands.of(engine);
-            rootEntriesByWorldY.clear();
-            selectionPlans.clear();
-            biomeCache.clear();
-            childSeed = null;
         }
-
-        private static boolean references(WeakReference<?> identity, Object value) {
-            return identity != null && identity.get() == value;
-        }
+        return Map.copyOf(index);
     }
 
     private static final class ParentSelectionPlan {
@@ -350,18 +313,6 @@ public final class CarvingResolver {
         }
     }
 
-    private static final class CarvingChoice implements IRare {
-        private final ResolvedCarvingEntry entry;
-        private final int rarity;
-
-        private CarvingChoice(ResolvedCarvingEntry entry, int rarity) {
-            this.entry = entry;
-            this.rarity = rarity;
-        }
-
-        @Override
-        public int getRarity() {
-            return rarity;
-        }
+    private record CarvingChoice(ResolvedCarvingEntry entry, int rarity) {
     }
 }

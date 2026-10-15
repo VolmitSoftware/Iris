@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.terrain.carving.ResolvedCaveProfile;
-import art.arcane.iris.engine.object.value.IrisRange;
-import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.iris.builtin.carve.CaveFieldModule;
+import com.volmit.config.Range;
+import com.volmit.noise.NoiseSampler;
 
 final class CaveFieldModuleState {
-    final CNG density;
+    final NoiseSampler density;
     final int minY;
     final int maxY;
     final double weight;
@@ -32,11 +32,11 @@ final class CaveFieldModuleState {
     final double minContribution;
     final double maxContribution;
 
-    CaveFieldModuleState(ResolvedCaveProfile.Module module, CNG density) {
-        IrisRange range = module.verticalRange();
+    CaveFieldModuleState(CaveFieldModule module, NoiseSampler density) {
+        Range range = module.verticalRange();
         this.density = density;
-        this.minY = (int) Math.floor(range.getMin());
-        this.maxY = (int) Math.ceil(range.getMax());
+        this.minY = (int) Math.floor(range.min());
+        this.maxY = (int) Math.ceil(range.max());
         this.weight = module.weight();
         this.threshold = module.threshold();
         this.invert = module.invert();
@@ -47,12 +47,12 @@ final class CaveFieldModuleState {
     }
 
     double sample(double x, int y, double z) {
-        double sampled = density.noiseFastSigned3D(x, y, z);
+        double sampled = density.signed(x, y, z);
         return invert ? (threshold - sampled) * weight : (sampled - threshold) * weight;
     }
 
     double sample(double x, double y, double z) {
-        double sampled = density.noiseFastSigned3D(x, y, z);
+        double sampled = density.signed(x, y, z);
         return invert ? (threshold - sampled) * weight : (sampled - threshold) * weight;
     }
 }

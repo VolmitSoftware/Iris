@@ -19,11 +19,10 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.carve.CaveDepthSettings;
-import art.arcane.iris.core.modules.IrisPackWorld;
-import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
+import art.arcane.iris.engine.object.terrain.carving.DeclaredByLevel;
 import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.CaveBiomes;
 import com.volmit.world.PackWorld;
 
@@ -36,13 +35,13 @@ import java.util.Optional;
 public final class CaveBiomeBands implements CaveBiomes {
     @Override
     public Optional<String> overriddenBiome(PackWorld world, int x, int y, int z) {
-        Engine engine = IrisPackWorld.of(world).engine();
-        ResolvedCarvingEntry rootEntry = CarvingResolver.resolveRootEntry(engine, y + engine.getWorld().minHeight(), null);
+        CarvingResolver resolver = CarvingResolver.of(world);
+        ResolvedCarvingEntry rootEntry = resolver.rootEntryAt(y);
         if (rootEntry == null) {
             return Optional.empty();
         }
-        ResolvedCarvingEntry entry = CarvingResolver.resolveFromRoot(engine, rootEntry, x, z, null);
-        if (CarvingResolver.resolveEntryBiome(engine, entry, null) == null) {
+        ResolvedCarvingEntry entry = resolver.resolveFromRoot(rootEntry, x, z);
+        if (resolver.entryBiome(entry) == null) {
             return Optional.empty();
         }
         return Optional.of(entry.biomeKey().trim());
@@ -50,12 +49,25 @@ public final class CaveBiomeBands implements CaveBiomes {
 
     @Override
     public int minDepthBelowSurface(PackWorld world, String biomeKey) {
-        IrisBiome biome = IrisPackWorld.of(world).engine().getData().getBiomeLoader().load(biomeKey);
-        return biome == null ? 0 : minDepthBelowSurface(biome);
+        return Depths.of(world).minDepthBelowSurface(world.resources().idOf(biomeKey));
     }
 
-    /** How many blocks below the surface {@code biome}'s caves begin, as its {@code caveMinDepthBelowSurface} says; 0 where it says none. */
-    public static int minDepthBelowSurface(IrisBiome biome) {
-        return biome.getModuleSettings().find(CaveDepthSettings.class).map(CaveDepthSettings::depth).orElse(0);
+    /** The minimum depths the world's biomes declare ({@code caveMinDepthBelowSurface}), found by biome id. */
+    private static final class Depths {
+        private final DeclaredByLevel<CaveDepthSettings> declared;
+
+        private Depths(PackWorld world) {
+            this.declared = DeclaredByLevel.of(world, CaveDepthSettings.class);
+        }
+
+        static Depths of(PackWorld world) {
+            return world.state(Depths.class, Depths::new);
+        }
+
+        /** How many blocks below the surface the biome's caves begin, as its {@code caveMinDepthBelowSurface} says; 0 where it says none. */
+        int minDepthBelowSurface(ResourceId biome) {
+            CaveDepthSettings depth = declared.ofBiome(biome);
+            return depth == null ? 0 : depth.depth();
+        }
     }
 }

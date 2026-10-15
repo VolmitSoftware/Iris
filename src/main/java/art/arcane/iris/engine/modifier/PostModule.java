@@ -45,6 +45,7 @@ public final class PostModule implements IrisModule {
 
     @Override
     public void install(StageGraph graph) {
-        graph.define(IrisStages.Post.SMOOTH).requires(IrisStages.Carve.APPLY).run(SurfaceSmoothing::smooth);
+        // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
+        graph.define(IrisStages.Post.SMOOTH).softAfter(IrisStages.Carve.APPLY.ref()).run(SurfaceSmoothing::smooth);
     }
 }

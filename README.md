@@ -145,16 +145,17 @@ naming the class and what it uses. A VolmLib class that Iris's Bukkit jar strips
 `core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on that classpath but missing on a
 server, so the check treats it as missing and fails the task naming it. `check` runs the task.
 
-The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:spawn` and `iris:vanilla-features`, and the object placement stages
-`iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are
+The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:spawn`, `iris:vanilla-features` and
+`iris:carve`, and the object placement stages `iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are
 written against IrisApi and `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and
 `canPlaceOn`, the terrain sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the
 mantle's planned blocks; the placement stages read the placement being run through the `ObjectPlacement` facade, and the loot and
-spawn services, which have no chunk to ask, ask `LiveWorld` (both below). Without the jar a pack's world has no loot, block drops,
-entity spawns or ambient effects, and its biomes' `loot`, `blockDrops`, `entitySpawners` and `effects` are not read.
+spawn services, which have no chunk to ask, ask `LiveWorld` (both below). Without the jar a pack's world has no caves, vanilla
+placed features, loot, block drops, entity spawns or ambient effects, and its biomes' `loot`, `blockDrops`, `entitySpawners` and
+`effects` are not read.
 Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
 `iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
-`iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads. Iris warns once per pack folder
+`iris:objects`, `iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads. Iris warns once per pack folder
 when a pack loads none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps equal to
 `builtin-modules.txt`): add a module to the jar and to that list together.
 
@@ -174,3 +175,11 @@ and the block operations only the platform can do (turning a state with the obje
 placement's own states). Its types answer with IrisApi, VolmLib and built-in values only. `prepare.PreparedPlacement`, the output of
 `iris:prepare/transforms`, lives in the exposed package too, because `IrisStages` names it. `iris:post` reads its switches
 (`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.
+
+`iris:carve` also reads the mantle's matter slices through `MatterMantle` (a facade Iris's mantle implements: the chunk of
+`MatterCavern`s and markers it plans and applies, which the platform and the rest of Iris read as slices, not as module layers) and asks
+`CaveDressing` for what the biome layers, decorators and fluid palette give a cave's walls, floor and ceiling. `CaveDressing` is
+transitional: it goes when `iris:terrain` and `iris:decorant` are modules of the same jar and carve asks their classes directly.
+A cave's dimension, region and biome settings are found by the id the layout's biome samples carry (`DeclaredByLevel`), its
+absolute world Y bands convert with `PackWorld.minHeight()`, and its noise reads `NoiseSampler.signed(...)` (Iris's memoised signed read)
+and `scaled(...)`. `caveLavaHeight` and `upperDimensionCarving` are its dimension settings.

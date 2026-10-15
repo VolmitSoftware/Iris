@@ -18,26 +18,26 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
+import art.arcane.iris.builtin.carve.CaveFieldModule;
 import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.engine.object.value.IrisRange;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.util.project.noise.CNG;
-import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.math.M;
+import com.volmit.config.Range;
+import com.volmit.noise.NoiseFactory;
+import com.volmit.noise.NoiseSampler;
+import com.volmit.noise.NoiseStyle;
+import com.volmit.noise.StyledRange;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public final class IrisCaveProfileSampler {
+public final class CaveProfileSampler {
     private static final double FLOATING_THRESHOLD_BIAS_SCALE = 0.2D;
 
-    private final IrisData data;
     private final CaveProfile profile;
-    private final ResolvedCaveProfile resolved;
-    private final CNG baseDensity;
-    private final CNG detailDensity;
-    private final CNG warpDensity;
-    private final RNG thresholdRng;
+    private final NoiseSampler baseDensity;
+    private final NoiseSampler detailDensity;
+    private final NoiseSampler warpDensity;
+    private final NoiseSampler thresholdNoise;
     private final ModuleState[] modules;
     private final double inverseNormalization;
     private final double baseWeight;
@@ -47,16 +47,13 @@ public final class IrisCaveProfileSampler {
     private final boolean hasWarp;
     private final boolean hasModules;
 
-    public IrisCaveProfileSampler(Engine engine, CaveProfile profile) {
-        this.data = engine.getData();
+    public CaveProfileSampler(NoiseFactory noise, long carveSeed, CaveProfile profile) {
         this.profile = profile;
-        this.resolved = ResolvedCaveProfile.of(profile);
         List<ModuleState> moduleStates = new ArrayList<>();
-        RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = resolved.baseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
-        this.detailDensity = resolved.detailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
-        this.warpDensity = resolved.warpStyle().create(baseRng.nextParallelRNG(770_713), data);
-        this.thresholdRng = baseRng.nextParallelRNG(489_112);
+        this.baseDensity = noise.sampler(profile.baseDensityStyle(), carveSeed + 934_447);
+        this.detailDensity = noise.sampler(profile.detailDensityStyle(), carveSeed + 612_991);
+        this.warpDensity = noise.sampler(profile.warpStyle(), carveSeed + 770_713);
+        this.thresholdNoise = noise.sampler(profile.densityThreshold().style(), carveSeed + 489_112);
         this.baseWeight = profile.baseWeight();
         this.detailWeight = profile.detailWeight();
         this.warpStrength = profile.warpStrength();
@@ -64,8 +61,8 @@ public final class IrisCaveProfileSampler {
 
         double weight = Math.abs(baseWeight) + Math.abs(detailWeight);
         int index = 0;
-        for (ResolvedCaveProfile.Module module : resolved.modules()) {
-            CNG moduleDensity = module.style().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
+        for (CaveFieldModule module : profile.modules()) {
+            NoiseSampler moduleDensity = noise.sampler(module.style(), carveSeed + 1_000_003L + (index * 65_537L));
             ModuleState state = new ModuleState(module, moduleDensity);
             moduleStates.add(state);
             weight += Math.abs(state.weight);
@@ -76,7 +73,7 @@ public final class IrisCaveProfileSampler {
         double normalization = weight <= 0 ? 1D : weight;
         this.inverseNormalization = 1D / normalization;
         this.hasModules = modules.length > 0;
-        this.enabled = profile.enabled() && baseDensity != null && detailDensity != null && (!hasWarp || warpDensity != null);
+        this.enabled = profile.enabled();
     }
 
     public boolean shouldCarve(int x, int y, int z, double floatingCarveThreshold) {
@@ -84,9 +81,21 @@ public final class IrisCaveProfileSampler {
             return false;
         }
 
-        double threshold = resolved.densityThreshold().get(thresholdRng, x, z, data) - profile.thresholdBias();
+        double threshold = thresholdAt(x, z) - profile.thresholdBias();
         threshold += floatingThresholdBias(floatingCarveThreshold);
         return sampleDensity(x, y, z) <= threshold;
+    }
+
+    /** The profile's density threshold at the column, as a styled range picks its value. */
+    private double thresholdAt(int x, int z) {
+        StyledRange range = profile.densityThreshold();
+        if (range.min() == range.max()) {
+            return range.min();
+        }
+        if (NoiseStyle.FLAT.equals(range.style().style())) {
+            return M.lerp(range.min(), range.max(), 0.5);
+        }
+        return range.min() + (thresholdNoise.sample(x, z) * (range.max() - range.min()));
     }
 
     double sampleDensity(int x, int y, int z) {
@@ -98,8 +107,8 @@ public final class IrisCaveProfileSampler {
     }
 
     private double sampleDensityUnwarped(int x, int y, int z) {
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        double density = baseDensity.signed(x, y, z) * baseWeight;
+        density += detailDensity.signed(x, y, z) * detailWeight;
         if (hasModules) {
             for (ModuleState module : modules) {
                 if (!module.isActive(y)) {
@@ -114,13 +123,13 @@ public final class IrisCaveProfileSampler {
     }
 
     private double sampleDensityWarped(int x, int y, int z) {
-        double warpA = warpDensity.noiseFastSigned3D(x, y, z);
-        double warpB = warpDensity.noiseFastSigned3D(x + 31.37D, y - 17.21D, z + 23.91D);
+        double warpA = warpDensity.signed(x, y, z);
+        double warpB = warpDensity.signed(x + 31.37D, y - 17.21D, z + 23.91D);
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        double density = baseDensity.signed(warpedX, warpedY, warpedZ) * baseWeight;
+        density += detailDensity.signed(warpedX, warpedY, warpedZ) * detailWeight;
         if (hasModules) {
             for (ModuleState module : modules) {
                 if (!module.isActive(y)) {
@@ -140,18 +149,18 @@ public final class IrisCaveProfileSampler {
     }
 
     private static final class ModuleState {
-        private final CNG density;
+        private final NoiseSampler density;
         private final int minY;
         private final int maxY;
         private final double weight;
         private final double threshold;
         private final boolean invert;
 
-        private ModuleState(ResolvedCaveProfile.Module module, CNG density) {
-            IrisRange range = module.verticalRange();
+        private ModuleState(CaveFieldModule module, NoiseSampler density) {
+            Range range = module.verticalRange();
             this.density = density;
-            this.minY = (int) Math.floor(range.getMin());
-            this.maxY = (int) Math.ceil(range.getMax());
+            this.minY = (int) Math.floor(range.min());
+            this.maxY = (int) Math.ceil(range.max());
             this.weight = module.weight();
             this.threshold = module.threshold();
             this.invert = module.invert();
@@ -162,7 +171,7 @@ public final class IrisCaveProfileSampler {
         }
 
         private double sample(double x, double y, double z) {
-            double sampled = density.noiseFastSigned3D(x, y, z);
+            double sampled = density.signed(x, y, z);
             return invert ? (threshold - sampled) * weight : (sampled - threshold) * weight;
         }
     }

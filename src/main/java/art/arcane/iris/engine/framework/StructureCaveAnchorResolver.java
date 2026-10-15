@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.framework;
 
+import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.builtin.structure.StructureAnchorMode;
 import art.arcane.iris.builtin.structure.StructurePlacement;
@@ -291,7 +292,7 @@ public final class StructureCaveAnchorResolver {
                 placement.underwater(),
                 cavern,
                 mantleY,
-                engine.getDimension().getCaveLavaHeight());
+                engine.getDimension().getModuleSettings().find(CaveLavaHeightSettings.class).map(CaveLavaHeightSettings::height).orElse(CaveLavaHeightSettings.DEFAULT_HEIGHT));
     }
 
     static boolean acceptsAnchorFluid(

@@ -252,7 +252,9 @@ Requirements: JDK 25 (set `JAVA_HOME` to it). The Gradle wrapper handles everyth
 ./gradlew buildAllToOut
 ```
 
-builds every platform artifact into the workspace-level `../PluginOuts/` directory:
+builds every platform artifact into the workspace-level `../PluginOuts/` directory: the Bukkit jar
+and a Fabric, Forge and NeoForge jar for every Minecraft version in `gradle/mod-targets.json`
+(1.21.1, 26.1.2, 26.2 and 26.3):
 
 ```
 Iris v<version> [CraftBukkit] <mc>.jar
@@ -261,14 +263,18 @@ Iris v<version> [Forge] <mc>+<loader>.jar
 Iris v<version> [NeoForge] <mc>+<loader>.jar
 ```
 
-Per-platform tasks: `./gradlew buildBukkit`, `buildFabric`, `buildForge`, `buildNeoforge`. The
+Per-platform tasks: `./gradlew buildBukkit`, and `build<Loader><mc>` for one mod jar, for example
+`buildFabric26_2` or `buildNeoForge1_21_1`. `buildFabric`, `buildForge` and `buildNeoforge` export the
+26.3 jars. `./gradlew checkAll` runs every check, then builds and verifies all twelve mod jars and runs their
+unit tests; Forge 1.21.1 only compiles its tests because Forge 52 cannot bootstrap Minecraft outside
+FML. The
 SPI jar (the pure-JVM adapter/platform contract, not the stable plugin API) is built to `spi/build/libs/` by
 `./gradlew :spi:jar`.
 
 `./gradlew buildAll` also runs `buildAllToOut` and copies the jars into a consumer dropin tree
 for a local test server. The consumer directory defaults to `../../[Minecraft Server]/consumers/`
 when it exists, otherwise `build/consumers/` inside the repo. `-Plocation=/path/to/consumers`
-changes only the consumer directory. Both tasks copy all four verified platform jars into
+changes only the consumer directory. Both tasks copy every verified platform jar into
 `../PluginOuts/`.
 
 VolmLib is built from source when a `VolmLib` checkout sits beside the repo or in a parent directory

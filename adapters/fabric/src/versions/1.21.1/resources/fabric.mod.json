@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "irisworldgen",
+  "version": "${version}",
+  "name": "Iris",
+  "description": "Iris World Generation Engine (Fabric adapter - native chunk generator, explicit Iris world datapack workflow, engine lifecycle)",
+  "authors": [
+    "Arcane Arts (Volmit Software)"
+  ],
+  "contributors": [
+    "cyberpwn",
+    "NextdoorPsycho",
+    "Vatuu"
+  ],
+  "contact": {
+    "homepage": "https://docs.volmit.com/iris/",
+    "issues": "https://github.com/VolmitSoftware/Iris/issues",
+    "sources": "https://github.com/VolmitSoftware/Iris"
+  },
+  "license": "GPL-3.0",
+  "icon": "assets/irisworldgen/icon.png",
+  "environment": "*",
+  "accessWidener": "volmlib.accesswidener",
+  "mixins": [
+    "volmlib.fabric.mixins.json",
+    "volmlib.entity.mixins.json",
+    {
+      "config": "volmlib.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "entrypoints": {
+    "main": [
+      "art.arcane.iris.fabric.IrisFabricBootstrap"
+    ],
+    "client": [
+      "art.arcane.iris.fabric.IrisFabricClient"
+    ]
+  },
+  "jars": [
+    {
+      "file": "META-INF/jars/fabric-api-base.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-registry-sync-v0.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-resource-loader-v0.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-lifecycle-events-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-command-api-v2.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-events-interaction-v0.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-networking-api-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-rendering-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-key-binding-api-v1.jar"
+    },
+    {
+      "file": "META-INF/jars/fabric-permissions-api.jar"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "${minecraftVersion}",
+    "java": ">=21",
+    "fabric-permissions-api-v0": "*"
+  }
+}

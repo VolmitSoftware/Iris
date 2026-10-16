@@ -168,6 +168,12 @@ public final class ModdedEngineBootstrap {
         ModdedStartup.prepareDimensionRestore(server);
     }
 
+    public static void levelsReady(NativeModdedServer server) {
+        server.refreshWorlds();
+        bindWorldGenerators(server);
+        ModdedStartup.reinjectPersistentDimensions(server);
+    }
+
     public static void serverStarted(NativeModdedServer server) {
         // Prime the off-thread level snapshot before anything can read it; the per-tick refresh in
         // ModdedScheduler.tick has not run yet at this point.

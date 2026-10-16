@@ -15,7 +15,10 @@ public final class GenerationRevisionScope {
             "adapters/client-common/src/main/java",
             "adapters/fabric/src/main/java",
             "adapters/forge/src/main/java",
-            "adapters/neoforge/src/main/java"
+            "adapters/neoforge/src/main/java",
+            "adapters/forge/src/versions/1.21.1/java",
+            "adapters/neoforge/src/versions/1.21.1/java",
+            "adapters/modded-common/src/versions/1.21.1/java"
     );
     private static final List<String> OPERATIONAL_EXCLUSIONS = List.of(
             "core/src/main/java/art/arcane/iris/generation/runtime/EngineDiagnostics.java",

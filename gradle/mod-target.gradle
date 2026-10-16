@@ -1,0 +1,15 @@
+import groovy.json.JsonSlurper
+
+File irisDirectory = project.name.startsWith('iris-') ? file('../..') : rootDir
+String targetMinecraft = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
+Map<String, Map<String, Object>> targets = (Map<String, Map<String, Object>>) new JsonSlurper()
+    .parse(new File(irisDirectory, 'gradle/mod-targets.json'))
+Map<String, Object> target = targets.get(targetMinecraft)
+if (target == null) {
+    throw new GradleException("Unsupported Iris mod target ${targetMinecraft}; choose ${targets.keySet().join(', ')}")
+}
+ext.irisModTarget = target
+ext.irisModTargets = targets
+if (project.name.startsWith('iris-')) {
+    layout.buildDirectory.set(layout.projectDirectory.dir("build/${targetMinecraft}"))
+}

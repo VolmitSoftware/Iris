@@ -71,7 +71,15 @@ public class BuiltInPackUpdatesTest {
 
     @Test
     public void boundsReleaseMetadataSize() throws Exception {
-        assertEquals(BuiltInPackUpdates.Update.unavailable(), checkResponse(" ".repeat(1024 * 1024 + 1)));
+        String release = release("4010", "overworld.zip", false);
+        assertEquals(BuiltInPackUpdates.Update.unavailable(),
+                checkResponse(release + " ".repeat(1024 * 1024 - release.length() + 1)));
+    }
+
+    @Test
+    public void acceptsReleaseMetadataAtSizeLimit() throws Exception {
+        String release = release("4010", "overworld.zip", false);
+        assertEquals("4010", checkResponse(release + " ".repeat(1024 * 1024 - release.length())).version());
     }
 
     @Test

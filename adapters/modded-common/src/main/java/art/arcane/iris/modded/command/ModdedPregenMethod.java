@@ -114,15 +114,9 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         try {
-            if (!sync) {
-                try {
-                    semaphore.tryAcquire(maxInFlight, 5, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-            ModdedIrisLog.info("Iris modded pregen done: dim={} completed={} peakInFlight={} finalLimit={}",
-                    runtime.worldIdentity(), completed.get(), inFlightPeak.get(), adaptiveLimit.get());
+            awaitPendingChunks();
+            ModdedIrisLog.info("Iris modded pregen closing: dim={} completed={} pending={} peakInFlight={} finalLimit={}",
+                    runtime.worldIdentity(), completed.get(), inFlight.get(), inFlightPeak.get(), adaptiveLimit.get());
             try {
                 engine.syncGenerationHistory();
             } catch (RuntimeException e) {
@@ -178,6 +172,39 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         return finalSaveOnServerThread.get()
                 || finalSaveDeferred.get()
                 || queuedFinalSave.get() != null;
+    }
+
+    private void awaitPendingChunks() {
+        if (sync || runtime.isServerThread()) {
+            return;
+        }
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
+                + TimeUnit.MILLISECONDS.toNanos(FINAL_SAVE_TIMEOUT_MILLIS);
+        boolean interrupted = false;
+        try {
+            while (inFlight.get() > 0) {
+                if (finalSaveOnServerThread.get() || !runtime.isRunning()) {
+                    return;
+                }
+                if (System.nanoTime() >= deadline) {
+                    throw new IllegalStateException("Iris pregen chunk callbacks did not finish for "
+                            + runtime.worldIdentity() + ": " + inFlight.get() + " pending");
+                }
+                try {
+                    synchronized (permitMonitor) {
+                        if (inFlight.get() > 0) {
+                            permitMonitor.wait(FINAL_SAVE_POLL_MILLIS);
+                        }
+                    }
+                } catch (InterruptedException ignored) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private void saveLevel(boolean wait) {
@@ -237,30 +264,36 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
 
     private void awaitFinalSave(FinalSaveRequest request) {
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(FINAL_SAVE_TIMEOUT_MILLIS);
-        while (true) {
-            if (deferFinalSaveIfRequested()) {
-                return;
+        boolean interrupted = false;
+        try {
+            while (true) {
+                if (deferFinalSaveIfRequested()) {
+                    return;
+                }
+                long remainingNanos = deadline - System.nanoTime();
+                if (remainingNanos <= 0L) {
+                    ModdedIrisLog.warn("Iris pregen level save did not complete in time for {}", runtime.worldIdentity());
+                    return;
+                }
+                long waitMillis = Math.max(1L, Math.min(FINAL_SAVE_POLL_MILLIS,
+                        TimeUnit.NANOSECONDS.toMillis(remainingNanos)));
+                try {
+                    request.completion().get(waitMillis, TimeUnit.MILLISECONDS);
+                    return;
+                } catch (InterruptedException ignored) {
+                    interrupted = true;
+                } catch (TimeoutException e) {
+                    continue;
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause() == null ? e : e.getCause();
+                    ModdedIrisLog.error("Iris pregen level save failed for {}", runtime.worldIdentity(), cause);
+                    throw new IllegalStateException("Iris pregen level save failed for "
+                            + runtime.worldIdentity(), cause);
+                }
             }
-            long remainingNanos = deadline - System.nanoTime();
-            if (remainingNanos <= 0L) {
-                ModdedIrisLog.warn("Iris pregen level save did not complete in time for {}", runtime.worldIdentity());
-                return;
-            }
-            long waitMillis = Math.max(1L, Math.min(FINAL_SAVE_POLL_MILLIS,
-                    TimeUnit.NANOSECONDS.toMillis(remainingNanos)));
-            try {
-                request.completion().get(waitMillis, TimeUnit.MILLISECONDS);
-                return;
-            } catch (InterruptedException e) {
+        } finally {
+            if (interrupted) {
                 Thread.currentThread().interrupt();
-                return;
-            } catch (TimeoutException e) {
-                continue;
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause() == null ? e : e.getCause();
-                ModdedIrisLog.error("Iris pregen level save failed for {}", runtime.worldIdentity(), cause);
-                throw new IllegalStateException("Iris pregen level save failed for "
-                        + runtime.worldIdentity(), cause);
             }
         }
     }

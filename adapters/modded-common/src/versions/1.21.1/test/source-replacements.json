@@ -1,0 +1,430 @@
+{
+  "global": [
+    {
+      "pattern": "\\bIdentifier\\b",
+      "replacement": "ResourceLocation"
+    },
+    {
+      "pattern": "\\bEntitySpawnReason\\b",
+      "replacement": "MobSpawnType"
+    },
+    {
+      "pattern": "net\\.minecraft\\.world\\.entity\\.animal\\.panda\\.Panda",
+      "replacement": "net.minecraft.world.entity.animal.Panda"
+    },
+    {
+      "pattern": "net\\.minecraft\\.world\\.entity\\.npc\\.villager\\.Villager",
+      "replacement": "net.minecraft.world.entity.npc.Villager"
+    },
+    {
+      "pattern": "net\\.minecraft\\.world\\.level\\.gamerules\\.GameRules",
+      "replacement": "net.minecraft.world.level.GameRules"
+    },
+    {
+      "pattern": "\\bSpeleothemBlock\\b",
+      "replacement": "PointedDripstoneBlock"
+    },
+    {
+      "pattern": "\\bSpeleothemThickness\\b",
+      "replacement": "DripstoneThickness"
+    },
+    {
+      "pattern": "\\bEntityTypes\\b",
+      "replacement": "EntityType"
+    },
+    {
+      "pattern": "\\bAbstractSpreadingStructurePlacement\\b",
+      "replacement": "StructurePlacement"
+    },
+    {
+      "pattern": "\\bDirectPoolAlias\\b",
+      "replacement": "Direct"
+    },
+    {
+      "pattern": "\\bRandomGroupPoolAlias\\b",
+      "replacement": "RandomGroup"
+    },
+    {
+      "pattern": "\\bRandomPoolAlias\\b",
+      "replacement": "Random"
+    },
+    {
+      "pattern": "\\.identifier\\(\\)",
+      "replacement": ".location()"
+    },
+    {
+      "pattern": "ChunkPos\\.pack\\(",
+      "replacement": "ChunkPos.asLong("
+    },
+    {
+      "pattern": "\\.registryAccess\\(\\)\\.lookupOrThrow\\(",
+      "replacement": ".registryAccess().registryOrThrow("
+    },
+    {
+      "pattern": "\\.getPos\\(\\)\\.x\\(\\)",
+      "replacement": ".getPos().x"
+    },
+    {
+      "pattern": "\\.getPos\\(\\)\\.z\\(\\)",
+      "replacement": ".getPos().z"
+    },
+    {
+      "pattern": "\\.getChunkPos\\(\\)\\.x\\(\\)",
+      "replacement": ".getChunkPos().x"
+    },
+    {
+      "pattern": "\\.getChunkPos\\(\\)\\.z\\(\\)",
+      "replacement": ".getChunkPos().z"
+    },
+    {
+      "pattern": "IdentifierArgument",
+      "replacement": "ResourceLocationArgument"
+    },
+    {
+      "pattern": "IdentifierArgument\\.identifier\\(\\)",
+      "replacement": "ResourceLocationArgument.id()"
+    },
+    {
+      "pattern": "BuiltInRegistries\\.([A-Z_]+)\\.getValue\\(",
+      "replacement": "BuiltInRegistries.$1.get("
+    },
+    {
+      "pattern": "\\blevel\\.getMinY\\(",
+      "replacement": "level.getMinBuildHeight("
+    },
+    {
+      "pattern": "(?ms)^        if \\(!Items\\.[A-Z_]+\\.builtInRegistryHolder\\(\\)\\.areComponentsBound\\(\\)\\) \\{\\n.*?^        \\}\\n",
+      "replacement": ""
+    }
+  ],
+  "files": {
+    "art/arcane/iris/modded/command/NativeTaggedItemsTest.java": [
+      {
+        "pattern": "\\.getBooleanOr\\(\"selection_tool\", false\\)",
+        "replacement": ".getBoolean(\"selection_tool\")"
+      },
+      {
+        "pattern": "assertTrue\\(item\\.stack\\(\\)\\.get\\(DataComponents\\.TOOLTIP_DISPLAY\\)\\.hiddenComponents\\(\\)\\.contains\\(DataComponents\\.UNBREAKABLE\\)\\);",
+        "replacement": "assertEquals(false, item.stack().get(DataComponents.UNBREAKABLE).showInTooltip());"
+      }
+    ],
+    "art/arcane/iris/modded/service/ModdedPackUpdateServiceTest.java": [
+      {
+        "pattern": "import net\\.minecraft\\.server\\.permissions\\.LevelBasedPermissionSet;\\n",
+        "replacement": ""
+      },
+      {
+        "pattern": "when\\(handle\\.permissions\\(\\)\\)\\.thenReturn\\(LevelBasedPermissionSet\\.ALL\\);",
+        "replacement": "when(handle.hasPermission(2)).thenReturn(false);"
+      },
+      {
+        "pattern": "handle\\.hasPermission\\(",
+        "replacement": "handle.hasPermissions("
+      },
+      {
+        "pattern": "handle\\.nameAndId\\(",
+        "replacement": "handle.getGameProfile("
+      },
+      {
+        "pattern": "handle\\.level\\(\\)",
+        "replacement": "handle.serverLevel()"
+      }
+    ],
+    "art/arcane/iris/modded/service/ModdedChunkUpdateServiceTest.java": [
+      {
+        "pattern": "when\\(level\\.getMaxY\\(\\)\\)\\.thenReturn\\(319\\);",
+        "replacement": "when(level.getMaxBuildHeight()).thenReturn(320);"
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeSpawnPopulationTest.java": [
+      {
+        "pattern": "when\\(level\\.getMaxY\\(\\)\\)\\.thenReturn\\(320\\);",
+        "replacement": "when(level.getMaxBuildHeight()).thenReturn(321);"
+      },
+      {
+        "pattern": "rules\\.get\\(GameRules\\.SPAWN_MOBS\\)",
+        "replacement": "rules.getBoolean(GameRules.RULE_DOMOBSPAWNING)"
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeTeleportSafetyTest.java": [
+      {
+        "pattern": "when\\(level\\.getMaxY\\(\\)\\)\\.thenReturn\\(16\\);",
+        "replacement": "when(level.getMaxBuildHeight()).thenReturn(17);"
+      },
+      {
+        "pattern": "import net.minecraft.server.level.ServerLevel;",
+        "replacement": "import net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ChunkResult;\nimport net.minecraft.world.level.chunk.ChunkAccess;"
+      },
+      {
+        "pattern": "CompletableFuture<Void> loaded",
+        "replacement": "CompletableFuture<ChunkResult<ChunkAccess>> loaded"
+      },
+      {
+        "pattern": "\\.addTicketAndLoadWithRadius\\(any\\(\\), any\\(\\), anyInt\\(\\)\\)",
+        "replacement": ".getChunkFutureMainThread(anyInt(), anyInt(), any(), anyBoolean())"
+      },
+      {
+        "pattern": "loaded\\.complete\\(null\\)",
+        "replacement": "loaded.complete(ChunkResult.of(mock(ChunkAccess.class)))"
+      },
+      {
+        "pattern": "\\.removeTicketWithRadius\\(any\\(\\), any\\(\\), anyInt\\(\\)\\)",
+        "replacement": ".removeRegionTicket(any(), any(), anyInt(), any())"
+      },
+      {
+        "pattern": "import static org.mockito.ArgumentMatchers.anyInt;",
+        "replacement": "import static org.mockito.ArgumentMatchers.anyInt;\nimport static org.mockito.ArgumentMatchers.anyBoolean;"
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeStructureOperationsTest.java": [
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.levelgen\\.feature\\.FallenTreeFeature;\\n",
+        "replacement": ""
+      },
+      {
+        "pattern": "        assertEquals\\(\"fallen_trees\", NativeStructureOperations\\.classifyFeature\\(mock\\(FallenTreeFeature\\.class\\)\\)\\);\\n",
+        "replacement": ""
+      }
+    ],
+    "art/arcane/iris/nativegen/NativeStructureReferenceRepairTest.java": [
+      {
+        "pattern": "\\borigin\\.x\\(\\)",
+        "replacement": "origin.x"
+      },
+      {
+        "pattern": "\\borigin\\.z\\(\\)",
+        "replacement": "origin.z"
+      },
+      {
+        "pattern": "\\bcandidate\\.x\\(\\)",
+        "replacement": "candidate.x"
+      },
+      {
+        "pattern": "\\bcandidate\\.z\\(\\)",
+        "replacement": "candidate.z"
+      },
+      {
+        "pattern": "\\borigin\\.pack\\(",
+        "replacement": "origin.toLong("
+      },
+      {
+        "pattern": "\"lookupOrThrow\"",
+        "replacement": "\"registryOrThrow\""
+      },
+      {
+        "pattern": "\"lookup\"",
+        "replacement": "\"registry\""
+      }
+    ],
+    "art/arcane/iris/modded/ModdedNativeStructureWorldgenAccessTest.java": [
+      {
+        "pattern": "\\bgenerationCenter\\.x\\(\\)",
+        "replacement": "generationCenter.x"
+      },
+      {
+        "pattern": "\\bgenerationCenter\\.z\\(\\)",
+        "replacement": "generationCenter.z"
+      },
+      {
+        "pattern": "\\borigin\\.pack\\(",
+        "replacement": "origin.toLong("
+      },
+      {
+        "pattern": "\\.updateNeighborsAt\\(",
+        "replacement": ".blockUpdated("
+      },
+      {
+        "pattern": "(Direction\\.(?:NORTH|EAST)), position, position\\.(north|east)\\(\\),\\s*Blocks\\.DIRT\\.defaultBlockState\\(\\),",
+        "replacement": "$1, Blocks.DIRT.defaultBlockState(), position, position.$2(),"
+      },
+      {
+        "pattern": "\"getMinY\"",
+        "replacement": "\"getMinBuildHeight\""
+      }
+    ],
+    "art/arcane/iris/modded/ModdedTileParityTest.java": [
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.block\\.entity\\.SignTextSlot;\\n",
+        "replacement": ""
+      },
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.storage\\.TagValueInput;\\n",
+        "replacement": ""
+      },
+      {
+        "pattern": "\\.loadWithComponents\\(TagValueInput\\.create\\(\\s*ProblemReporter\\.DISCARDING, registries, (tile\\.nativeData\\(\\)\\.payload\\(\\)|\\(\\(ModdedTileData\\) tile\\)\\.nativeData\\(\\)\\.payload\\(\\))\\)\\)",
+        "replacement": ".loadWithComponents($1, registries)"
+      },
+      {
+        "pattern": "\\.getText\\(SignTextSlot\\.FRONT\\)",
+        "replacement": ".getFrontText()"
+      },
+      {
+        "pattern": "\\.getText\\(SignTextSlot\\.BACK\\)",
+        "replacement": ".getBackText()"
+      },
+      {
+        "pattern": "\\.getMessages\\(false\\)\\.get\\((\\d+)\\)",
+        "replacement": ".getMessages(false)[$1]"
+      },
+      {
+        "pattern": "out\\.writeShort\\(28\\);",
+        "replacement": "out.writeShort(37);"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedEntitySpawnerParityTest.java": [
+      {
+        "pattern": "MobSpawnType\\.SPAWN_ITEM_USE",
+        "replacement": "MobSpawnType.SPAWN_EGG"
+      },
+      {
+        "pattern": "MobSpawnType\\.LOAD",
+        "replacement": "MobSpawnType.EVENT"
+      }
+    ],
+    "art/arcane/iris/modded/service/ModdedWorldBoundaryTest.java": [
+      {
+        "pattern": "\\.setSafeZone\\(",
+        "replacement": ".setDamageSafeZone("
+      },
+      {
+        "pattern": "\\.getSafeZone\\(",
+        "replacement": ".getDamageSafeZone("
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeSpawnBiomeTablesTest.java": [
+      {
+        "pattern": "import net.minecraft.resources.ResourceLocation;",
+        "replacement": "import net.minecraft.resources.ResourceLocation;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.core.registries.Registries;"
+      },
+      {
+        "pattern": "registry\\.get\\((ResourceLocation\\.parse\\(\"[^\"]+\"\\))\\)",
+        "replacement": "registry.getHolder(ResourceKey.create(Registries.BIOME, $1))"
+      }
+    ],
+    "art/arcane/iris/modded/NativeItemTranslatorTest.java": [
+      {
+        "pattern": "assertEquals\\(73F, stack\\.get\\(DataComponents\\.CUSTOM_MODEL_DATA\\)\\.floats\\(\\)\\.getFirst\\(\\), 0F\\);",
+        "replacement": "assertEquals(73, stack.get(DataComponents.CUSTOM_MODEL_DATA).value());"
+      },
+      {
+        "pattern": "\\.getString\\(\"marker\"\\)\\.orElseThrow\\(\\)",
+        "replacement": ".getString(\"marker\")"
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeHarvestSessionTest.java": [
+      {
+        "pattern": "\\.getSelectedItem\\(",
+        "replacement": ".getSelected("
+      },
+      {
+        "pattern": "            doAnswer\\(invocation -> \\{ item\\.set\\(invocation\\.getArgument\\(0\\)\\); return null; \\}\\)\\n                    \\.when\\(inventory\\)\\.setSelectedItem\\(any\\(ItemStack\\.class\\)\\);\\n",
+        "replacement": ""
+      }
+    ],
+    "art/arcane/iris/modded/command/IrisModdedCommandsTeleportTest.java": [
+      {
+        "pattern": "\\.addTicketAndLoadWithRadius\\(any\\(\\), any\\(\\), anyInt\\(\\)\\)",
+        "replacement": ".getChunkFutureMainThread(anyInt(), anyInt(), any(), anyBoolean())"
+      },
+      {
+        "pattern": "import static org.mockito.ArgumentMatchers.anyInt;",
+        "replacement": "import static org.mockito.ArgumentMatchers.anyInt;\nimport static org.mockito.ArgumentMatchers.anyBoolean;"
+      }
+    ],
+    "art/arcane/iris/modded/NativeRegistryAccessTest.java": [
+      {
+        "pattern": "\\.registryAccess\\(\\)\\.registryOrThrow\\(",
+        "replacement": ".registryAccess().lookupOrThrow("
+      },
+      {
+        "pattern": "\\.reloadableRegistries\\(\\)\\.lookup\\(",
+        "replacement": ".reloadableRegistries().get("
+      },
+      {
+        "pattern": "import net.minecraft.core.HolderLookup;",
+        "replacement": "import net.minecraft.core.HolderLookup;\nimport net.minecraft.core.RegistryAccess;"
+      },
+      {
+        "pattern": "HolderLookup\\.Provider reloadedRegistries = mock\\(HolderLookup\\.Provider.class",
+        "replacement": "RegistryAccess.Frozen reloadedRegistries = mock(RegistryAccess.Frozen.class"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedEntityPersistenceTest.java": [
+      {
+        "pattern": "\\.entityTags\\(",
+        "replacement": ".getTags("
+      }
+    ],
+    "art/arcane/iris/modded/ModdedLootApplierTest.java": [
+      {
+        "pattern": "import net.minecraft.core.BlockPos;",
+        "replacement": "import net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;"
+      },
+      {
+        "pattern": "ChestBlock\\.getConnectedBlockPos\\(leftPos, leftState\\)\\)\\.thenReturn\\(rightPos\\)",
+        "replacement": "ChestBlock.getConnectedDirection(leftState)).thenReturn(Direction.EAST)"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedBlockResolutionContractTest.java": [
+      {
+        "pattern": ", Blocks\\.PALE_MOSS_BLOCK",
+        "replacement": ""
+      },
+      {
+        "pattern": "Blocks\\.SULFUR_SPIKE, ",
+        "replacement": ""
+      },
+      {
+        "pattern": "\"minecraft:sulfur_spike\", ",
+        "replacement": ""
+      },
+      {
+        "pattern": "copperChestVariantsReceiveIrisLootAndPostLoadUpdates",
+        "replacement": "chestsReceiveIrisLootAndPostLoadUpdates"
+      },
+      {
+        "pattern": "\"copper_chest\", \"exposed_copper_chest\", \"weathered_copper_chest\",\\s*\"oxidized_copper_chest\", \"waxed_copper_chest\", \"waxed_exposed_copper_chest\",\\s*\"waxed_weathered_copper_chest\", \"waxed_oxidized_copper_chest\"",
+        "replacement": "\"chest\", \"trapped_chest\""
+      },
+      {
+        "pattern": "sulfurAndDripstoneTipsReceivePostLoadUpdates",
+        "replacement": "dripstoneTipsReceivePostLoadUpdates"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedWaterEntitySpawnTest.java": [
+      {
+        "pattern": "(?ms)^        BuiltInRegistries\\.BLOCK\\.prepareTagReload\\(new TagLoader\\.LoadResult<>.*?\\)\\)\\)\\)\\.apply\\(\\);\\n",
+        "replacement": ""
+      }
+    ],
+    "art/arcane/iris/modded/command/ModdedLanguageCommandsTest.java": [
+      {
+        "pattern": "new ClickEvent\\.RunCommand\\(",
+        "replacement": "new ClickEvent(ClickEvent.Action.RUN_COMMAND, "
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeCommandTextTest.java": [
+      {
+        "pattern": "\\(\\(ClickEvent\\.RunCommand\\) component\\.getStyle\\(\\)\\.getClickEvent\\(\\)\\)\\.command\\(\\)",
+        "replacement": "component.getStyle().getClickEvent().getValue()"
+      },
+      {
+        "pattern": "\\(\\(HoverEvent\\.ShowText\\) component\\.getStyle\\(\\)\\.getHoverEvent\\(\\)\\)\\.value\\(\\)",
+        "replacement": "component.getStyle().getHoverEvent().getValue(HoverEvent.Action.SHOW_TEXT)"
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeChunkRegenerationTest.java": [
+      {
+        "pattern": "\\.markUnsaved\\(\\)",
+        "replacement": ".setUnsaved(true)"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedSavedBiomeConsumersTest.java": [
+      {
+        "pattern": "player\\.level\\(\\)",
+        "replacement": "player.serverLevel()"
+      }
+    ]
+  }
+}

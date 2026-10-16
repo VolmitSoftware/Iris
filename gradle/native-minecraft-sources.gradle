@@ -1,3 +1,6 @@
+import groovy.json.JsonSlurper
+import java.util.zip.ZipFile
+
 Configuration nativeMinecraftSources = configurations.create('nativeMinecraftSources') {
     canBeConsumed = false
     canBeResolved = true
@@ -6,41 +9,86 @@ Configuration nativeMinecraftSources = configurations.create('nativeMinecraftSou
 String nativeSourceLoader = extensions.extraProperties.get('nativeSourceLoader')
 String nativeSourceImplementation = 'minecraft26_2'
 String nativeSourceMinecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
+String versionPrefix = "versions/${nativeSourceMinecraftVersion}/"
 extensions.extraProperties.set('nativeSourceImplementation', nativeSourceImplementation)
 dependencies.add(nativeMinecraftSources.name,
     "com.github.VolmitSoftware.VolmLib:native-${nativeSourceImplementation}-sources:master-SNAPSHOT")
 
+Set<String> overrides = new HashSet<>()
+Map<String, Object> replacements = [:]
 TaskProvider<Sync> unpackNativeMinecraftSources = tasks.register('unpackNativeMinecraftSources', Sync) {
     dependsOn(nativeMinecraftSources)
-    from(provider { nativeMinecraftSources.collect { File artifact -> zipTree(artifact) } }) {
-        include('art/**', 'modded/**', "${nativeSourceLoader}/**",
-            'resources/modded/**', "resources/${nativeSourceLoader}/**", "versions/${nativeSourceMinecraftVersion}/**")
-        eachFile { FileCopyDetails source ->
-            String versionPrefix = "versions/${nativeSourceMinecraftVersion}/"
-            if (source.path.startsWith(versionPrefix)) {
-                source.path = source.path.substring(versionPrefix.length())
+    inputs.property('minecraftVersion', nativeSourceMinecraftVersion)
+    inputs.property('loader', nativeSourceLoader)
+    doFirst {
+        overrides.clear()
+        for (File artifact : nativeMinecraftSources) {
+            new ZipFile(artifact).withCloseable { ZipFile archive ->
+                archive.entries().each { entry ->
+                    if (entry.name.startsWith(versionPrefix)) {
+                        overrides.add(entry.name.substring(versionPrefix.length()))
+                    }
+                }
+                java.util.zip.ZipEntry rules = archive.getEntry(versionPrefix + 'source-replacements.json')
+                if (rules != null) {
+                    archive.getInputStream(rules).withCloseable { InputStream stream ->
+                        replacements = (Map<String, Object>) new JsonSlurper().parse(stream)
+                    }
+                }
             }
         }
     }
+    from(provider { nativeMinecraftSources.collect { File artifact -> zipTree(artifact) } }) {
+        include('art/**', 'modded/**', "${nativeSourceLoader}/**",
+            'resources/modded/**', "resources/${nativeSourceLoader}/**")
+        eachFile { FileCopyDetails source ->
+            if (overrides.contains(source.path)) {
+                source.exclude()
+            }
+        }
+    }
+    from(provider { nativeMinecraftSources.collect { File artifact -> zipTree(artifact) } }) {
+        include("${versionPrefix}art/**", "${versionPrefix}modded/**", "${versionPrefix}${nativeSourceLoader}/**",
+            "${versionPrefix}resources/modded/**", "${versionPrefix}resources/${nativeSourceLoader}/**")
+        eachFile { FileCopyDetails source -> source.path = source.path.substring(versionPrefix.length()) }
+    }
+    includeEmptyDirs = false
     into(layout.buildDirectory.dir('generated/sources/native-minecraft'))
+    doLast {
+        List<Map<String, String>> rules = (List<Map<String, String>>) (replacements.get('global') ?: [])
+        Map<String, List<Map<String, String>>> fileRules = (Map<String, List<Map<String, String>>>) (replacements.get('files') ?: [:])
+        project.fileTree(destinationDir).matching { include('**/*.java') }.each { File source ->
+            String path = destinationDir.toPath().relativize(source.toPath()).toString().replace(File.separator, '/')
+            if (!overrides.contains(path)) {
+                String content = source.getText('UTF-8')
+                String rewritten = content
+                for (Map<String, String> rule : rules + (fileRules.get(path) ?: [])) {
+                    rewritten = rewritten.replaceAll(rule.pattern, rule.replacement)
+                }
+                if (content != rewritten) {
+                    source.setText(rewritten, 'UTF-8')
+                }
+            }
+        }
+    }
 }
 
 sourceSets.main.java.srcDir(unpackNativeMinecraftSources)
-
+tasks.named('compileJava').configure { dependsOn(unpackNativeMinecraftSources) }
 sourceSets.main.resources.srcDir(layout.buildDirectory.dir('generated/sources/native-minecraft/resources/modded'))
 sourceSets.main.resources.srcDir(layout.buildDirectory.dir("generated/sources/native-minecraft/resources/${nativeSourceLoader}"))
 tasks.named('processResources').configure {
     dependsOn(unpackNativeMinecraftSources)
 }
-
 tasks.named('verifyLoggingPolicy').configure {
     dependsOn(unpackNativeMinecraftSources)
 }
-
+tasks.named('verifyNativeBoundary').configure {
+    dependsOn(unpackNativeMinecraftSources)
+}
 tasks.named('verifyNativeClassBoundary').configure {
     dependsOn(tasks.named('classes'))
 }
-
 tasks.matching { Task task -> task.name == 'createMinecraftArtifacts' }.configureEach {
     dependsOn(unpackNativeMinecraftSources)
 }

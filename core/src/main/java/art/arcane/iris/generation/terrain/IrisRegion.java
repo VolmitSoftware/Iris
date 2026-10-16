@@ -467,7 +467,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     }
 
     /**
-     * Cascade: a region that lost every land biome to the gate cannot generate, so it leaves the dimension's region
+     * Cascade: a region that lost every biome in a declared surface pool cannot generate, so it leaves the dimension's region
      * pool too. Loading biomes here is safe - biomes never load regions.
      */
     @Override
@@ -489,17 +489,9 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
                     "structures[" + index + "].caveBiomes");
         }
 
-        if (getLandBiomes().isEmpty()) {
-            return base;
-        }
-
-        List<CompatFinding> drops = new ArrayList<>();
-
-        if (!resolvePool(() -> data, getLandBiomes(), "landBiomes", drops).isEmpty()) {
-            return base;
-        }
-
-        return CompatPools.cascade(data, base, drops, "region", getLoadKey(), "no land biomes remain");
+        base = evaluateSurfacePoolCompat(data, base, getLandBiomes(), "land");
+        base = evaluateSurfacePoolCompat(data, base, getSeaBiomes(), "sea");
+        return evaluateSurfacePoolCompat(data, base, getShoreBiomes(), "shore");
     }
 
     @Override
@@ -510,5 +502,18 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     @Override
     public String getTypeName() {
         return "Region";
+    }
+
+    private CompatStatus evaluateSurfacePoolCompat(IrisData data, CompatStatus base, KList<String> keys, String role) {
+        if (base.excluded() || keys.isEmpty()) {
+            return base;
+        }
+
+        List<CompatFinding> drops = new ArrayList<>();
+        if (!resolvePool(() -> data, keys, role + "Biomes", drops).isEmpty()) {
+            return base;
+        }
+
+        return CompatPools.cascade(data, base, drops, "region", getLoadKey(), "no " + role + " biomes remain");
     }
 }

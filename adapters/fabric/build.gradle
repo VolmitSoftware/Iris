@@ -22,6 +22,7 @@ import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.attributes.Bundling
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 import javax.inject.Inject
@@ -38,10 +39,14 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'net.fabricmc.fabric-loom' version '1.17.14'
+    id 'net.fabricmc.fabric-loom' version '1.17.21' apply false
+    id 'net.fabricmc.fabric-loom-remap' version '1.17.21' apply false
     alias(libs.plugins.shadow)
 }
 
+apply from: file('../../gradle/mod-target.gradle')
+
+apply plugin: irisModTarget.fabricRemap ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
 apply plugin: 'art.arcane.volmit-packaging'
 
 interface IrisFileOperations {
@@ -58,7 +63,7 @@ Properties rootProperties = new Properties()
 file('../../gradle.properties').withInputStream { InputStream stream -> rootProperties.load(stream) }
 String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.3.3'))
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse(rootProperties.getProperty('minecraftVersion', '26.3'))
-String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse(rootProperties.getProperty('fabricLoaderVersion', '0.19.5'))
+String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse(irisModTarget.fabricLoader.toString())
 Closure<String> irisArtifactName = { String platform, String targetVersion ->
     return "Iris v${project.version} [${platform}] ${targetVersion}.jar"
 }
@@ -141,7 +146,11 @@ configurations.create('jij') {
 
 dependencies {
     minecraft("com.mojang:minecraft:${minecraftVersion}")
-    implementation("net.fabricmc:fabric-loader:${fabricLoaderVersion}")
+    if (irisModTarget.fabricRemap) {
+        mappings(loom.officialMojangMappings())
+    }
+    String modConfiguration = irisModTarget.fabricRemap ? 'modImplementation' : 'implementation'
+    add(modConfiguration, "net.fabricmc:fabric-loader:${fabricLoaderVersion}")
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.mockito:mockito-core:5.23.0')
     testImplementation(testFixtures('art.arcane:core'))
@@ -168,11 +177,17 @@ dependencies {
         libs.fabricApi.keyMapping,
         libs.fabricApi.permission
     ]
+    if (irisModTarget.fabricModules != null) {
+        fabricApi = ((Map<String, String>) irisModTarget.fabricModules).collect { String module, String moduleVersion ->
+            "net.fabricmc.fabric-api:${module}:${moduleVersion}".toString()
+        }
+        fabricApi.add("me.lucko:fabric-permissions-api:${irisModTarget.fabricPermissions}".toString())
+    }
     fabricApi.each { Object notation ->
         add('jij', notation)
-        add('implementation', notation)
+        add(modConfiguration, notation)
     }
-    compileOnly('org.slf4j:slf4j-api:2.0.17')
+    compileOnly("org.slf4j:slf4j-api:${irisModTarget.slf4j}")
     compileOnly(libs.spigot) {
         transitive = false
     }
@@ -201,21 +216,28 @@ dependencies {
         libs.jaxen
     ]
     shared.each { Object notation ->
-        add('bundle', notation)
-        add('devBundle', notation)
+        ['bundle', 'devBundle'].each { String configuration ->
+            add(configuration, notation) {
+                if (group == 'art.arcane' && name == 'core') {
+                    attributes {
+                        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
+                    }
+                }
+            }
+        }
     }
 }
 
 tasks.named('compileJava', JavaCompile).configure {
     options.encoding = 'UTF-8'
-    options.release.set(25)
+    options.release.set((int) irisModTarget.java)
 }
 
 tasks.named('test').configure {
 }
 
 loom {
-    accessWidenerPath = art.arcane.volmit.packaging.NativeAccessRules.prepare(nativeSourceImplementation, "fabric", layout.buildDirectory.dir("native-access").get().asFile)
+    accessWidenerPath = art.arcane.volmit.packaging.NativeAccessRules.prepare(irisModTarget.nativeAccess.toString(), "fabric", layout.buildDirectory.dir("native-access").get().asFile)
     runs {
         client {
             runDir(providers.gradleProperty('irisClientRunDir').getOrElse('run'))
@@ -270,6 +292,13 @@ Map<String, String> nestedFabricApiJars = [
     'fabric-permission-api-v1'   : 'fabric-permission-api-v1.jar'
 ]
 
+if (irisModTarget.fabricModules != null) {
+    nestedFabricApiJars = ((Map<String, String>) irisModTarget.fabricModules).collectEntries { String module, String ignored ->
+        [(module): "${module}.jar".toString()]
+    }
+    nestedFabricApiJars.put('fabric-permissions-api', 'fabric-permissions-api.jar')
+}
+
 FileTree staleLoaderJars = fileTree(layout.buildDirectory.dir('libs')) {
     include('Iris v* [Fabric] *.jar')
     include('iris-fabric-*.jar')
@@ -288,6 +317,10 @@ tasks.named('shadowJar', ShadowJar).configure {
     archiveFileName.set(irisArtifactName('Fabric', "${minecraftVersion}+${fabricLoaderVersion}"))
     configurations = [project.configurations.named('bundle').get()]
     mergeServiceFiles()
+    if ((int) irisModTarget.java == 21) {
+        exclude('art/arcane/volmlib/util/noise/NativeBillowLoader*.class')
+        exclude('art/arcane/volmlib/util/noise/BillowBatch*.class')
+    }
     exclude('META-INF/maven/**')
     exclude('META-INF/proguard/**')
     exclude('META-INF/*.SF')
@@ -346,28 +379,39 @@ tasks.named('shadowJar', ShadowJar).configure {
     }
 }
 
-// The thin `jar`/`remapJar` outputs carry valid fabric.mod.json metadata but bundle zero
-// dependencies. Installing one is an instant NoClassDefFoundError, and they sit in build/libs right
-// next to the real artifact. shadowJar is the only shippable Fabric jar.
+// The thin jar omits bundled dependencies. Obfuscated targets remap the complete shadow jar.
 tasks.named('jar').configure {
     enabled = false
 }
 
 tasks.matching { it.name == 'remapJar' }.configureEach {
-    enabled = false
+    enabled = (boolean) irisModTarget.fabricRemap
+    if (irisModTarget.fabricRemap) {
+        dependsOn(tasks.named('shadowJar'))
+        inputFile.set(tasks.named('shadowJar', ShadowJar).flatMap { it.archiveFile })
+        archiveFileName.set(irisArtifactName('Fabric', "${minecraftVersion}+${fabricLoaderVersion}"))
+        addNestedDependencies.set(false)
+    }
+}
+if (irisModTarget.fabricRemap) {
+    tasks.named('shadowJar', ShadowJar).configure {
+        destinationDirectory.set(layout.buildDirectory.dir('devlibs'))
+    }
 }
 
 tasks.named('assemble').configure {
-    dependsOn(tasks.named('shadowJar'))
+    dependsOn(tasks.named(irisModTarget.fabricRemap ? 'remapJar' : 'shadowJar'))
 }
 
 pluginPackaging {
     artifacts {
         create('distribution') {
-            taskName = 'shadowJar'
+            taskName = irisModTarget.fabricRemap ? 'remapJar' : 'shadowJar'
             policyName = 'Iris Fabric'
             prunePrefixes = ['art/arcane/volmlib/']
             keepPrefixes = ['art/arcane/volmlib/util/matter/slices/']
         }
     }
 }
+
+apply from: file('../../gradle/modded-version-sources.gradle')

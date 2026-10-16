@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[52,53)"
+license = "GPL-3.0"
+issueTrackerURL = "https://github.com/VolmitSoftware/Iris/issues"
+
+[[mods]]
+modId = "irisworldgen"
+version = "${version}"
+displayName = "Iris"
+description = "Iris World Generation Engine (Forge adapter - native chunk generator, explicit Iris world datapack workflow, engine lifecycle)"
+authors = "Arcane Arts (Volmit Software)"
+credits = "cyberpwn, NextdoorPsycho, Vatuu"
+displayURL = "https://docs.volmit.com/iris/"
+logoFile = "assets/irisworldgen/icon.png"
+
+[[dependencies.irisworldgen]]
+modId = "forge"
+mandatory = true
+versionRange = "[52,53)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.irisworldgen]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[${minecraftVersion}]"
+ordering = "NONE"
+side = "BOTH"

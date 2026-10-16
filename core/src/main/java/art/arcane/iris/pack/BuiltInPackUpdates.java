@@ -4,16 +4,20 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -48,7 +52,7 @@ public final class BuiltInPackUpdates {
                     .GET()
                     .build();
             CompletableFuture<HttpResponse<String>> response = client.sendAsync(request,
-                    HttpResponse.BodyHandlers.limiting(HttpResponse.BodyHandlers.ofString(), 1024L * 1024L));
+                    info -> new ReleaseBodySubscriber(HttpResponse.BodyHandlers.ofString().apply(info)));
             requests.put(pack, response.copy().orTimeout(REQUEST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
                     .whenComplete((result, error) -> {
                         if (error != null) {
@@ -107,6 +111,60 @@ public final class BuiltInPackUpdates {
             return newerThan(installedVersion)
                     ? " -> v" + version + " available"
                     : "";
+        }
+    }
+
+    private static final class ReleaseBodySubscriber implements HttpResponse.BodySubscriber<String> {
+        private final HttpResponse.BodySubscriber<String> body;
+        private Flow.Subscription subscription;
+        private int remaining = 1024 * 1024;
+        private boolean complete;
+
+        private ReleaseBodySubscriber(HttpResponse.BodySubscriber<String> body) {
+            this.body = body;
+        }
+
+        @Override
+        public CompletionStage<String> getBody() {
+            return body.getBody();
+        }
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+            this.subscription = subscription;
+            body.onSubscribe(subscription);
+        }
+
+        @Override
+        public void onNext(List<ByteBuffer> buffers) {
+            if (complete) {
+                return;
+            }
+            for (ByteBuffer buffer : buffers) {
+                if (buffer.remaining() > remaining) {
+                    subscription.cancel();
+                    onError(new IOException("Release metadata exceeds 1 MiB"));
+                    return;
+                }
+                remaining -= buffer.remaining();
+            }
+            body.onNext(buffers);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            if (!complete) {
+                complete = true;
+                body.onError(error);
+            }
+        }
+
+        @Override
+        public void onComplete() {
+            if (!complete) {
+                complete = true;
+                body.onComplete();
+            }
         }
     }
 }

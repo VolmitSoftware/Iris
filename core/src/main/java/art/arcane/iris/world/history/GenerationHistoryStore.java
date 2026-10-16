@@ -7,8 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import com.google.gson.Strictness;
+import art.arcane.volmlib.util.json.StrictJsonReader;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
@@ -229,9 +228,9 @@ public final class GenerationHistoryStore {
             throw new IOException("Generation manifest size changed while reading: " + manifestPath);
         }
         try (Reader input = new StringReader(new String(encoded, StandardCharsets.UTF_8));
-             JsonReader reader = new JsonReader(input)) {
-            reader.setStrictness(Strictness.STRICT);
-            JsonElement parsed = JsonParser.parseReader(reader);
+             JsonReader reader = new JsonReader(new StrictJsonReader(input))) {
+            reader.setLenient(false);
+            JsonElement parsed = GSON.getAdapter(JsonElement.class).read(reader);
             if (parsed == null || !parsed.isJsonObject()) {
                 throw new IllegalArgumentException("Generation manifest must be a JSON object.");
             }
@@ -314,9 +313,9 @@ public final class GenerationHistoryStore {
         if (Files.size(metadata) > MAX_MANIFEST_BYTES) {
             throw new IOException("Generation epoch metadata exceeds the supported size: " + metadata);
         }
-        try (JsonReader reader = new JsonReader(Files.newBufferedReader(metadata, StandardCharsets.UTF_8))) {
-            reader.setStrictness(Strictness.STRICT);
-            JsonElement parsed = JsonParser.parseReader(reader);
+        try (JsonReader reader = new JsonReader(new StrictJsonReader(Files.newBufferedReader(metadata, StandardCharsets.UTF_8)))) {
+            reader.setLenient(false);
+            JsonElement parsed = GSON.getAdapter(JsonElement.class).read(reader);
             if (!parsed.isJsonObject() || reader.peek() != JsonToken.END_DOCUMENT) {
                 throw new IOException("Invalid generation epoch metadata: " + metadata);
             }

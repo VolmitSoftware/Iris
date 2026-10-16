@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,24 @@ public class ModdedArtifactVerifierTest {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void rejectsClassesNewerThanSelectedRuntimeIncludingNestedJars() throws Exception {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V25, Opcodes.ACC_PUBLIC, "example/NewRuntime", null, "java/lang/Object", null);
+        writer.visitEnd();
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        entries.put("example/NewRuntime.class", writer.toByteArray());
+        File artifact = createArtifact(entries);
+        GradleException failure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verifyJavaRuntime(artifact, 21));
+        assertTrue(failure.getMessage().contains("requires Java 25"));
+        ModdedArtifactVerifier.verifyJavaRuntime(artifact, 25);
+        File nested = createArtifact(Map.of("META-INF/jars/library.jar", Files.readAllBytes(artifact.toPath())));
+        GradleException nestedFailure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verifyJavaRuntime(nested, 21));
+        assertTrue(nestedFailure.getMessage().contains("library.jar!/example/NewRuntime.class"));
+    }
 
     @Test
     public void acceptsMinecraftRuntimeReferences() throws Exception {
@@ -163,6 +182,16 @@ public class ModdedArtifactVerifierTest {
 
         GradleException failure = assertThrows(GradleException.class,
                 () -> ModdedArtifactVerifier.verify(artifact, REQUIRED_ENTRIES));
+        assertTrue(failure.getMessage().contains("Iris-private runtime references"));
+    }
+
+    @Test
+    public void rejectsBukkitRelocatedGsonReferences() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put("art/arcane/iris/Test.class", "art/arcane/iris/util/gson/Gson"
+                .getBytes(StandardCharsets.ISO_8859_1));
+        GradleException failure = assertThrows(GradleException.class,
+                () -> ModdedArtifactVerifier.verify(createArtifact(entries), REQUIRED_ENTRIES));
         assertTrue(failure.getMessage().contains("Iris-private runtime references"));
     }
 

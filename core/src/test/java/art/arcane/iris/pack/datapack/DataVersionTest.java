@@ -9,6 +9,7 @@ import static org.junit.Assert.assertSame;
 public class DataVersionTest {
     @Test
     public void runtimeSelectionPreservesEverySupportedVersion() {
+        assertSame(DataVersion.V1_21_1, DataVersion.forMinecraftVersion("1.21.1"));
         assertSame(DataVersion.V26_1_2, DataVersion.forMinecraftVersion("26.1.2"));
         assertSame(DataVersion.V26_2, DataVersion.forMinecraftVersion("26.2"));
         assertSame(DataVersion.V26_2, DataVersion.forMinecraftVersion("26.2.0"));
@@ -24,6 +25,7 @@ public class DataVersionTest {
 
     @Test
     public void packFormatsMatchServerVersionJson() {
+        assertEquals(48, DataVersion.V1_21_1.getPackFormat());
         assertEquals(101, DataVersion.V26_1_2.getPackFormat());
         assertEquals(107, DataVersion.V26_2.getPackFormat());
         assertEquals(121, DataVersion.V26_3.getPackFormat());
@@ -31,7 +33,7 @@ public class DataVersionTest {
 
     @Test
     public void minSupportedPackFormatIsTheOldestSupportedRuntime() {
-        assertEquals(101, DataVersion.minSupportedPackFormat());
+        assertEquals(48, DataVersion.minSupportedPackFormat());
     }
 
     @Test

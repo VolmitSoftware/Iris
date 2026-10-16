@@ -1,0 +1,80 @@
+import groovy.json.JsonSlurper
+
+String sourceMinecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
+List<File> adapterSourceRoots = [projectDir, file('../modded-common'), file('../client-common')]
+
+tasks.named('compileTestJava', JavaCompile).configure {
+    options.release.set((int) irisModTarget.java)
+}
+tasks.withType(Test).configureEach {
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of((int) irisModTarget.java)
+    })
+}
+
+['java', 'resources'].each { String kind ->
+    List<File> overlays = adapterSourceRoots.collect { File adapter ->
+        new File(adapter, "src/versions/${sourceMinecraftVersion}/${kind}")
+    }
+    if (!overlays.any { File directory -> directory.isDirectory() }) {
+        return
+    }
+    TaskProvider<Sync> prepareSources = tasks.register("prepareVersion${kind.capitalize()}", Sync) {
+        adapterSourceRoots.each { File adapter ->
+            File overlay = new File(adapter, "src/versions/${sourceMinecraftVersion}/${kind}")
+            from(new File(adapter, "src/main/${kind}")) {
+                exclude { FileTreeElement entry -> new File(overlay, entry.path).isFile() }
+            }
+            from(overlay)
+        }
+        includeEmptyDirs = false
+        into(layout.buildDirectory.dir("generated/sources/iris/${kind}"))
+    }
+    Set<File> replacedRoots = adapterSourceRoots.collect { File adapter ->
+        new File(adapter, "src/main/${kind}").canonicalFile
+    }.toSet()
+    List<Object> retainedRoots = sourceSets.main."${kind}".srcDirs.findAll { File source ->
+        !replacedRoots.contains(source.canonicalFile)
+    }.toList()
+    sourceSets.main."${kind}".setSrcDirs(retainedRoots + [prepareSources])
+    tasks.named('verifyLoggingPolicy').configure { dependsOn(prepareSources) }
+    tasks.named('verifyNativeBoundary').configure { dependsOn(prepareSources) }
+}
+
+File testRulesFile = file("../modded-common/src/versions/${sourceMinecraftVersion}/test/source-replacements.json")
+if (testRulesFile.isFile()) {
+    Map<String, Object> testRules = (Map<String, Object>) new JsonSlurper().parse(testRulesFile)
+    TaskProvider<Sync> prepareTests = tasks.register('prepareVersionTests', Sync) {
+        inputs.file(testRulesFile)
+        adapterSourceRoots.each { File adapter ->
+            File overlay = new File(adapter, "src/versions/${sourceMinecraftVersion}/test/java")
+            from(new File(adapter, 'src/test/java')) {
+                exclude { FileTreeElement entry -> new File(overlay, entry.path).isFile() }
+            }
+            from(overlay)
+        }
+        includeEmptyDirs = false
+        into(layout.buildDirectory.dir('generated/sources/iris/test'))
+        doLast {
+            List<Map<String, String>> rules = (List<Map<String, String>>) (testRules.get('global') ?: [])
+            Map<String, List<Map<String, String>>> fileRules = (Map<String, List<Map<String, String>>>) (testRules.get('files') ?: [:])
+            project.fileTree(destinationDir).matching { include('**/*.java') }.each { File source ->
+                String path = destinationDir.toPath().relativize(source.toPath()).toString().replace(File.separator, '/')
+                boolean overridden = adapterSourceRoots.any { File adapter ->
+                    new File(adapter, "src/versions/${sourceMinecraftVersion}/test/java/${path}").isFile()
+                }
+                if (!overridden) {
+                    String content = source.getText('UTF-8')
+                    String rewritten = content
+                    for (Map<String, String> rule : rules + (fileRules.get(path) ?: [])) {
+                        rewritten = rewritten.replaceAll(rule.pattern, rule.replacement)
+                    }
+                    if (content != rewritten) {
+                        source.setText(rewritten, 'UTF-8')
+                    }
+                }
+            }
+        }
+    }
+    sourceSets.test.java.setSrcDirs([prepareTests])
+}

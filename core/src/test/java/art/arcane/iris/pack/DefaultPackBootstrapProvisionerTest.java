@@ -58,7 +58,7 @@ public class DefaultPackBootstrapProvisionerTest {
             Path dataDirectory = root.resolve("plugins/Iris");
             writePack(dataDirectory.resolve("packs/overworld"), "overworld", "runtime");
             BukkitStartupPaths startupPaths = BukkitStartupPaths.resolve(root, new String[0]);
-            for (DataVersion version : new DataVersion[]{DataVersion.V26_1_2, DataVersion.V26_2, DataVersion.V26_3}) {
+            for (DataVersion version : new DataVersion[]{DataVersion.V1_21_1, DataVersion.V26_1_2, DataVersion.V26_2, DataVersion.V26_3}) {
                 DefaultPackBootstrapProvisioner.ProvisionResult result = DefaultPackBootstrapProvisioner.provision(
                         new DefaultPackBootstrapProvisioner.BootstrapRequest(dataDirectory, ignored -> {}, startupPaths, version));
                 Path biomeRoot = result.datapackRoot().resolve("data/iris/worldgen/biome/biomes");

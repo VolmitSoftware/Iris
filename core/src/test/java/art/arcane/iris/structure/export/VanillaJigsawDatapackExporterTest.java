@@ -143,6 +143,47 @@ public class VanillaJigsawDatapackExporterTest {
     }
 
     @Test
+    public void exports1211RuntimeBlockStatesAndPackFormat() throws Exception {
+        when(IrisPlatforms.get().minecraftVersion()).thenReturn("1.21.1");
+        try {
+            TestGraph graph = connectorGraph();
+            Path output = temporaryFolder.getRoot().toPath().resolve("village-1211");
+            VanillaJigsawExportSettings settings = VanillaJigsawExportSettings.builder()
+                    .maxDistanceVertical(graph.structure.getMaxSizeChunks() * 16).build();
+            VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(
+                    request(graph, output).namespace("studio").resourcePath("village/test").settings(settings).build());
+            assertTrue(result.diagnostics().toString(), result.isSuccess());
+            JsonObject pack = json(output.resolve("pack.mcmeta")).getAsJsonObject("pack");
+            assertEquals(48, pack.get("pack_format").getAsInt());
+            JsonObject structure = json(output.resolve("data/studio/worldgen/structure/village/test.json"));
+            assertTrue(structure.get("max_distance_from_center").isJsonPrimitive());
+            CompoundTag template = (CompoundTag) NBTUtil.read(output.resolve(
+                    "data/studio/structure/village/test/piece/pieces/start.nbt").toFile()).getTag();
+            assertEquals(3955, template.getInt("DataVersion"));
+            CompoundTag palette = (CompoundTag) template.getListTag("palette").get(0);
+            assertEquals("minecraft:jigsaw", palette.getString("Name"));
+        } finally {
+            when(IrisPlatforms.get().minecraftVersion()).thenReturn("26.2");
+        }
+    }
+
+    @Test
+    public void rejects1211VanillaExportWithDifferentVerticalDistance() throws Exception {
+        when(IrisPlatforms.get().minecraftVersion()).thenReturn("1.21.1");
+        try {
+            Path output = temporaryFolder.getRoot().toPath().resolve("unequal-1211");
+            VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(
+                    request(connectorGraph(), output).settings(VanillaJigsawExportSettings.builder()
+                            .maxDistanceVertical(127).build()).build());
+            assertFalse(result.isSuccess());
+            assertTrue(result.diagnostics().stream().anyMatch(diagnostic ->
+                    diagnostic.code() == VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE));
+        } finally {
+            when(IrisPlatforms.get().minecraftVersion()).thenReturn("26.2");
+        }
+    }
+
+    @Test
     public void exports26_3RuntimeBlockStatesAndPackFormat() throws Exception {
         when(IrisPlatforms.get().minecraftVersion()).thenReturn("26.3.0");
         try {

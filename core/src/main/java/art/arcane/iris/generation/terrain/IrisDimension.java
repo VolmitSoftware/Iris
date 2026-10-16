@@ -1360,11 +1360,12 @@ public class IrisDimension extends IrisRegistrant {
                             "pack": {
                                 "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
                                 "pack_format": %d,
+                                "supported_formats": [%d, %d],
                                 "min_format": %d,
                                 "max_format": %d
                             }
                         }
-                        """.formatted(maxFormat, minFormat, maxFormat);
+                        """.formatted(maxFormat, minFormat, maxFormat, minFormat, maxFormat);
 
         for (File datapackRoot : datapackRoots) {
             File mcm = new File(datapackRoot, "pack.mcmeta");

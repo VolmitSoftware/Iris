@@ -3,6 +3,7 @@ package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureWorldgenAccess;
 
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockChangeSet;
 import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructurePostProcessor;
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureTerrainIntegrator;
@@ -231,7 +232,8 @@ public class NativeStructureWorldgenAccessTest {
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
                 true,
-                position -> false);
+                position -> false,
+                NativeBlockChangeSet.disabled());
         int x = generationCenter.getMiddleBlockX();
         int z = generationCenter.getMiddleBlockZ();
 
@@ -249,7 +251,8 @@ public class NativeStructureWorldgenAccessTest {
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
                 false,
-                position::equals);
+                position::equals,
+                NativeBlockChangeSet.disabled());
 
         assertSame(Blocks.DIRT, access.getBlockState(position).getBlock());
         assertFalse(access.ensureCanWrite(position));
@@ -320,7 +323,8 @@ public class NativeStructureWorldgenAccessTest {
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
                 false,
-                position -> false);
+                position -> false,
+                NativeBlockChangeSet.disabled());
     }
 
     private static ChunkPos generationCenter() {

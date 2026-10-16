@@ -8,6 +8,9 @@ Map<String, Object> target = targets.get(targetMinecraft)
 if (target == null) {
     throw new GradleException("Unsupported Iris mod target ${targetMinecraft}; choose ${targets.keySet().join(', ')}")
 }
+targets.each { String minecraft, Map<String, Object> candidate ->
+    candidate.put('overlays', candidate.get('overlays') ?: [minecraft])
+}
 ext.irisModTarget = target
 ext.irisModTargets = targets
 if (project.name.startsWith('iris-')) {

@@ -181,6 +181,8 @@ dependencies {
         fabricApi = ((Map<String, String>) irisModTarget.fabricModules).collect { String module, String moduleVersion ->
             "net.fabricmc.fabric-api:${module}:${moduleVersion}".toString()
         }
+    }
+    if (irisModTarget.fabricPermissions != null) {
         fabricApi.add("me.lucko:fabric-permissions-api:${irisModTarget.fabricPermissions}".toString())
     }
     fabricApi.each { Object notation ->
@@ -296,6 +298,8 @@ if (irisModTarget.fabricModules != null) {
     nestedFabricApiJars = ((Map<String, String>) irisModTarget.fabricModules).collectEntries { String module, String ignored ->
         [(module): "${module}.jar".toString()]
     }
+}
+if (irisModTarget.fabricPermissions != null) {
     nestedFabricApiJars.put('fabric-permissions-api', 'fabric-permissions-api.jar')
 }
 

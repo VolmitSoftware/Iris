@@ -1,6 +1,6 @@
 import groovy.json.JsonSlurper
 
-String sourceMinecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
+List<String> sourceOverlays = (List<String>) irisModTarget.overlays
 List<File> adapterSourceRoots = [projectDir, file('../modded-common'), file('../client-common')]
 
 tasks.named('compileTestJava', JavaCompile).configure {
@@ -12,20 +12,33 @@ tasks.withType(Test).configureEach {
     })
 }
 
-['java', 'resources'].each { String kind ->
-    List<File> overlays = adapterSourceRoots.collect { File adapter ->
-        new File(adapter, "src/versions/${sourceMinecraftVersion}/${kind}")
+Closure<List<File>> overlayDirectories = { File adapter, String kind ->
+    sourceOverlays.collect { String overlay -> new File(adapter, "src/versions/${overlay}/${kind}") }
+}
+Closure<Integer> overlayOrigin = { List<File> overlays, String path ->
+    for (int index = overlays.size() - 1; index >= 0; index--) {
+        if (new File(overlays.get(index), path).isFile()) {
+            return index
+        }
     }
-    if (!overlays.any { File directory -> directory.isDirectory() }) {
+    return -1
+}
+
+['java', 'resources'].each { String kind ->
+    if (!adapterSourceRoots.any { File adapter -> overlayDirectories(adapter, kind).any { File directory -> directory.isDirectory() } }) {
         return
     }
     TaskProvider<Sync> prepareSources = tasks.register("prepareVersion${kind.capitalize()}", Sync) {
         adapterSourceRoots.each { File adapter ->
-            File overlay = new File(adapter, "src/versions/${sourceMinecraftVersion}/${kind}")
+            List<File> overlays = overlayDirectories(adapter, kind)
             from(new File(adapter, "src/main/${kind}")) {
-                exclude { FileTreeElement entry -> new File(overlay, entry.path).isFile() }
+                exclude { FileTreeElement entry -> overlayOrigin(overlays, entry.path) >= 0 }
             }
-            from(overlay)
+            overlays.eachWithIndex { File overlay, int index ->
+                from(overlay) {
+                    exclude { FileTreeElement entry -> !entry.directory && overlayOrigin(overlays, entry.path) != index }
+                }
+            }
         }
         includeEmptyDirs = false
         into(layout.buildDirectory.dir("generated/sources/iris/${kind}"))
@@ -41,37 +54,49 @@ tasks.withType(Test).configureEach {
     tasks.named('verifyNativeBoundary').configure { dependsOn(prepareSources) }
 }
 
-File testRulesFile = file("../modded-common/src/versions/${sourceMinecraftVersion}/test/source-replacements.json")
-if (testRulesFile.isFile()) {
-    Map<String, Object> testRules = (Map<String, Object>) new JsonSlurper().parse(testRulesFile)
+List<File> testRulesFiles = sourceOverlays.collect { String overlay ->
+    file("../modded-common/src/versions/${overlay}/test/source-replacements.json")
+}
+boolean testOverlays = testRulesFiles.any { File rules -> rules.isFile() } || adapterSourceRoots.any { File adapter ->
+    overlayDirectories(adapter, 'test/java').any { File directory -> directory.isDirectory() }
+}
+if (testOverlays) {
+    List<Map<String, Object>> testRules = testRulesFiles.collect { File rules ->
+        rules.isFile() ? (Map<String, Object>) new JsonSlurper().parse(rules) : [:]
+    }
     TaskProvider<Sync> prepareTests = tasks.register('prepareVersionTests', Sync) {
-        inputs.file(testRulesFile)
+        testRulesFiles.findAll { File rules -> rules.isFile() }.each { File rules -> inputs.file(rules) }
         adapterSourceRoots.each { File adapter ->
-            File overlay = new File(adapter, "src/versions/${sourceMinecraftVersion}/test/java")
+            List<File> overlays = overlayDirectories(adapter, 'test/java')
             from(new File(adapter, 'src/test/java')) {
-                exclude { FileTreeElement entry -> new File(overlay, entry.path).isFile() }
+                exclude { FileTreeElement entry -> overlayOrigin(overlays, entry.path) >= 0 }
             }
-            from(overlay)
+            overlays.eachWithIndex { File overlay, int index ->
+                from(overlay) {
+                    exclude { FileTreeElement entry -> !entry.directory && overlayOrigin(overlays, entry.path) != index }
+                }
+            }
         }
         includeEmptyDirs = false
         into(layout.buildDirectory.dir('generated/sources/iris/test'))
         doLast {
-            List<Map<String, String>> rules = (List<Map<String, String>>) (testRules.get('global') ?: [])
-            Map<String, List<Map<String, String>>> fileRules = (Map<String, List<Map<String, String>>>) (testRules.get('files') ?: [:])
             project.fileTree(destinationDir).matching { include('**/*.java') }.each { File source ->
                 String path = destinationDir.toPath().relativize(source.toPath()).toString().replace(File.separator, '/')
-                boolean overridden = adapterSourceRoots.any { File adapter ->
-                    new File(adapter, "src/versions/${sourceMinecraftVersion}/test/java/${path}").isFile()
-                }
-                if (!overridden) {
-                    String content = source.getText('UTF-8')
-                    String rewritten = content
+                int origin = adapterSourceRoots.collect { File adapter ->
+                    overlayOrigin(overlayDirectories(adapter, 'test/java'), path)
+                }.max()
+                String content = source.getText('UTF-8')
+                String rewritten = content
+                for (int index = origin + 1; index < testRules.size(); index++) {
+                    Map<String, Object> replacements = testRules.get(index)
+                    List<Map<String, String>> rules = (List<Map<String, String>>) (replacements.get('global') ?: [])
+                    Map<String, List<Map<String, String>>> fileRules = (Map<String, List<Map<String, String>>>) (replacements.get('files') ?: [:])
                     for (Map<String, String> rule : rules + (fileRules.get(path) ?: [])) {
                         rewritten = rewritten.replaceAll(rule.pattern, rule.replacement)
                     }
-                    if (content != rewritten) {
-                        source.setText(rewritten, 'UTF-8')
-                    }
+                }
+                if (content != rewritten) {
+                    source.setText(rewritten, 'UTF-8')
                 }
             }
         }

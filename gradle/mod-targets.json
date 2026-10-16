@@ -4,7 +4,9 @@
     "fabricRemap": true,
     "fabricLoader": "0.19.5",
     "forge": "1.21.1-52.1.20",
+    "forgeRange": "[52,53)",
     "neoForge": "21.1.262",
+    "neoForgeRange": "[21.1,21.2)",
     "nativeAccess": "minecraft1_21_1",
     "fabricModules": {
       "fabric-api-base": "0.4.42+6573ed8c19",
@@ -25,7 +27,9 @@
     "fabricRemap": false,
     "fabricLoader": "0.19.5",
     "forge": "26.3-66.0.8",
+    "forgeRange": "[66,67)",
     "neoForge": "26.3.0.83",
+    "neoForgeRange": "[26.3.0.65-beta,26.4)",
     "nativeAccess": "minecraft26_2",
     "slf4j": "2.0.17"
   }

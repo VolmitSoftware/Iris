@@ -263,8 +263,9 @@ tasks.named('test').configure {
 processResources {
     inputs.property('version', irisVersion)
     inputs.property('minecraftVersion', minecraftVersion)
+    inputs.property('loaderRange', irisModTarget.forgeRange.toString())
     filesMatching('META-INF/mods.toml') {
-        expand('version': irisVersion, 'minecraftVersion': minecraftVersion)
+        expand('version': irisVersion, 'minecraftVersion': minecraftVersion, 'loaderRange': irisModTarget.forgeRange.toString())
     }
 }
 

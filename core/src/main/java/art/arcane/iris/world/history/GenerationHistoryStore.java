@@ -10,7 +10,9 @@ import com.google.gson.JsonParseException;
 import art.arcane.volmlib.util.json.StrictJsonReader;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.MalformedJsonException;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -247,7 +249,8 @@ public final class GenerationHistoryStore {
                 epochs.add(readEpoch(manifestPath.getParent(), reference.getAsString()));
             }
             return GenerationManifest.fromJson(index, epochs);
-        } catch (JsonParseException | IllegalArgumentException | ArithmeticException exception) {
+        } catch (JsonParseException | MalformedJsonException | EOFException | IllegalArgumentException
+                 | ArithmeticException exception) {
             throw new IOException("Invalid generation manifest: " + manifestPath, exception);
         }
     }
@@ -324,7 +327,7 @@ public final class GenerationHistoryStore {
                 throw new IOException("Generation epoch metadata identity differs from its reference: " + metadata);
             }
             return epoch;
-        } catch (JsonParseException | IllegalArgumentException exception) {
+        } catch (JsonParseException | MalformedJsonException | EOFException | IllegalArgumentException exception) {
             throw new IOException("Invalid generation epoch metadata: " + metadata, exception);
         }
     }

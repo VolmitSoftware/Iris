@@ -169,11 +169,15 @@ public class IrisDatapackCompilerTest {
         int minFormat = pack.getInt("min_format");
         int maxFormat = pack.getInt("max_format");
 
-        assertEquals(101, minFormat);
+        assertEquals(DataVersion.V1_21_1.getPackFormat(), minFormat);
         assertEquals(121, maxFormat);
         assertEquals(maxFormat, pack.getInt("pack_format"));
+        assertEquals(minFormat, pack.getJSONArray("supported_formats").getInt(0));
+        assertEquals(maxFormat, pack.getJSONArray("supported_formats").getInt(1));
 
         // One artifact serves supported runtimes: each supported DataVersion's format must be in range.
+        assertTrue(minFormat <= DataVersion.V1_21_1.getPackFormat()
+                && DataVersion.V1_21_1.getPackFormat() <= maxFormat);
         assertTrue(minFormat <= DataVersion.V26_1_2.getPackFormat()
                 && DataVersion.V26_1_2.getPackFormat() <= maxFormat);
         assertTrue(minFormat <= DataVersion.V26_2.getPackFormat()

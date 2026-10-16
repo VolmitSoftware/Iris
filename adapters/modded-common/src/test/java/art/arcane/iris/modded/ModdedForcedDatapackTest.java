@@ -58,7 +58,9 @@ import static org.mockito.Mockito.when;
 public class ModdedForcedDatapackTest {
     @Test
     public void metadataUses263DataFormat() throws IOException {
+        IrisPlatform previous = IrisPlatforms.getOrNull();
         Path packDirectory = Files.createTempDirectory("iris-modded-pack-format");
+        IrisPlatforms.unbind();
         try {
             ModdedForcedDatapack.writePackMeta(packDirectory);
             JSONObject pack = new JSONObject(Files.readString(packDirectory.resolve("pack.mcmeta")))
@@ -67,6 +69,9 @@ public class ModdedForcedDatapackTest {
             assertEquals(121, pack.getInt("min_format"));
             assertEquals(121, pack.getInt("max_format"));
         } finally {
+            if (previous != null) {
+                IrisPlatforms.bind(previous);
+            }
             deleteTree(packDirectory);
         }
     }

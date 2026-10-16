@@ -1,0 +1,32 @@
+{
+  "global": [
+    {
+      "pattern": "\\bEntityTypes\\b",
+      "replacement": "EntityType"
+    },
+    {
+      "pattern": "\\bSpeleothemBlock\\b",
+      "replacement": "PointedDripstoneBlock"
+    },
+    {
+      "pattern": "\\bSpeleothemThickness\\b",
+      "replacement": "DripstoneThickness"
+    }
+  ],
+  "files": {
+    "art/arcane/iris/modded/ModdedBlockResolutionContractTest.java": [
+      {
+        "pattern": "Blocks\\.SULFUR_SPIKE, ",
+        "replacement": ""
+      },
+      {
+        "pattern": "\"minecraft:sulfur_spike\", ",
+        "replacement": ""
+      },
+      {
+        "pattern": "sulfurAndDripstoneTipsReceivePostLoadUpdates",
+        "replacement": "dripstoneTipsReceivePostLoadUpdates"
+      }
+    ]
+  }
+}

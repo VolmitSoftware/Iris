@@ -1,0 +1,78 @@
+{
+  "global": [
+    {
+      "pattern": "new MobSpawnSettings\\.SpawnerData\\((EntityTypes\\.[A-Z_]+), UniformInt\\.of\\((\\d+), (\\d+)\\)\\)",
+      "replacement": "new MobSpawnSettings.SpawnerData($1, $2, $3)"
+    }
+  ],
+  "files": {
+    "art/arcane/volmlib/nativelib/minecraft26_2/fabric/NativeFabricBiomeDefinitionTest.java": [
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.levelgen\\.carver\\.WorldCarver;",
+        "replacement": "import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;"
+      },
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.levelgen\\.feature\\.Feature;",
+        "replacement": "import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;"
+      },
+      {
+        "pattern": "mock\\(Feature\\.class\\)",
+        "replacement": "mock(ConfiguredFeature.class)"
+      },
+      {
+        "pattern": "MappedRegistry<WorldCarver> carvers = new MappedRegistry<>\\(Registries\\.CARVER,",
+        "replacement": "MappedRegistry<ConfiguredWorldCarver<?>> carvers = new MappedRegistry<>(Registries.CONFIGURED_CARVER,"
+      },
+      {
+        "pattern": "\\\\\"features\\\\\":\\[\\]\\}\";",
+        "replacement": "\\\\\"features\\\\\":[],\\\\\"spawners\\\\\":{},\\\\\"spawn_costs\\\\\":{}}\";"
+      }
+    ],
+    "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeWorldgenScanTest.java": [
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.levelgen\\.carver\\.WorldCarver;",
+        "replacement": "import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;"
+      },
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.levelgen\\.feature\\.Feature;",
+        "replacement": "import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;"
+      },
+      {
+        "pattern": "mock\\(Feature\\.class\\)",
+        "replacement": "mock(ConfiguredFeature.class)"
+      },
+      {
+        "pattern": "MappedRegistry<WorldCarver> carvers = new MappedRegistry<>\\(Registries\\.CARVER,",
+        "replacement": "MappedRegistry<ConfiguredWorldCarver<?>> carvers = new MappedRegistry<>(Registries.CONFIGURED_CARVER,"
+      },
+      {
+        "pattern": "\\]\\]\\}\";",
+        "replacement": "]],\\\\\"spawners\\\\\":{},\\\\\"spawn_costs\\\\\":{}}\";"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedTileParityTest.java": [
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.block\\.entity\\.SignTextSlot;\\n",
+        "replacement": ""
+      },
+      {
+        "pattern": "\\.getText\\(SignTextSlot\\.FRONT\\)",
+        "replacement": ".getFrontText()"
+      },
+      {
+        "pattern": "\\.getText\\(SignTextSlot\\.BACK\\)",
+        "replacement": ".getBackText()"
+      },
+      {
+        "pattern": "\\.getMessages\\(false\\)\\.get\\((\\d+)\\)",
+        "replacement": ".getMessages(false)[$1]"
+      }
+    ],
+    "art/arcane/iris/modded/ModdedWaterEntitySpawnTest.java": [
+      {
+        "pattern": "(?ms)^        BuiltInRegistries\\.BLOCK\\.prepareTagReload\\(new TagLoader\\.LoadResult<>.*?\\)\\)\\)\\)\\.apply\\(\\);\\n",
+        "replacement": ""
+      }
+    ]
+  }
+}

@@ -168,13 +168,18 @@ dependencies {
         "art.arcane:core:${irisVersion}".toString(),
         "art.arcane:spi:${irisVersion}".toString(),
         libs.paralithic,
-        libs.asm,
         libs.lru,
         libs.caffeine,
         'com.fulcrumgenomics:jlibdeflate:0.2.0',
         libs.dom4j,
         libs.jaxen
     ]
+    add('bundle', libs.asm)
+    add('devBundle', 'org.ow2.asm:asm') {
+        version {
+            prefer(libs.versions.asm.get())
+        }
+    }
     shared.each { Object notation ->
         ['bundle', 'devBundle'].each { String configuration ->
             add(configuration, notation) {

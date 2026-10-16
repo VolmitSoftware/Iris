@@ -22,6 +22,56 @@
     "fabricPermissions": "0.3.1",
     "slf4j": "2.0.9"
   },
+  "26.1.2": {
+    "java": 25,
+    "fabricRemap": false,
+    "fabricLoader": "0.19.5",
+    "forge": "26.1.2-64.1.4",
+    "forgeRange": "[64,65)",
+    "neoForge": "26.1.2.116",
+    "neoForgeRange": "[26.1.2,26.2)",
+    "nativeAccess": "minecraft26_1_2",
+    "overlays": [
+      "26.2",
+      "26.1.2"
+    ],
+    "fabricModules": {
+      "fabric-api-base": "2.0.3+ece063234c",
+      "fabric-registry-sync-v0": "7.1.1+2fa62b4e4c",
+      "fabric-resource-loader-v1": "2.0.10+7c44c7324c",
+      "fabric-lifecycle-events-v1": "4.1.1+df84eb3d4c",
+      "fabric-command-api-v2": "3.0.5+e2bdee784c",
+      "fabric-events-interaction-v0": "5.2.3+07b380be4c",
+      "fabric-networking-api-v1": "6.3.2+a217cccf4c",
+      "fabric-rendering-v1": "23.3.1+e9207d814c",
+      "fabric-key-mapping-api-v1": "2.0.4+e2bdee784c",
+      "fabric-permission-api-v1": "1.0.3+5730ecca4c"
+    },
+    "slf4j": "2.0.17"
+  },
+  "26.2": {
+    "java": 25,
+    "fabricRemap": false,
+    "fabricLoader": "0.19.5",
+    "forge": "26.2-65.1.3",
+    "forgeRange": "[65,66)",
+    "neoForge": "26.2.0.89",
+    "neoForgeRange": "[26.2,26.3)",
+    "nativeAccess": "minecraft26_2",
+    "fabricModules": {
+      "fabric-api-base": "2.0.4+ece063239e",
+      "fabric-registry-sync-v0": "7.1.1+c7bd5b8e9e",
+      "fabric-resource-loader-v1": "2.0.13+9edec1269e",
+      "fabric-lifecycle-events-v1": "4.1.4+29b6eb019e",
+      "fabric-command-api-v2": "3.1.0+00cb03469e",
+      "fabric-events-interaction-v0": "5.2.8+515ac5339e",
+      "fabric-networking-api-v1": "6.3.4+2989c6a09e",
+      "fabric-rendering-v1": "25.3.3+515ac5339e",
+      "fabric-key-mapping-api-v1": "2.0.5+e2bdee789e",
+      "fabric-permission-api-v1": "1.0.5+e442d8d09e"
+    },
+    "slf4j": "2.0.17"
+  },
   "26.3": {
     "java": 25,
     "fabricRemap": false,
@@ -30,7 +80,7 @@
     "forgeRange": "[66,67)",
     "neoForge": "26.3.0.83",
     "neoForgeRange": "[26.3.0.65-beta,26.4)",
-    "nativeAccess": "minecraft26_2",
+    "nativeAccess": "minecraft26_3",
     "slf4j": "2.0.17"
   }
 }

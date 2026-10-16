@@ -1,6 +1,7 @@
 package art.arcane.iris.structure.export;
 
 import art.arcane.iris.structure.graph.CompiledStructureGraph;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.structure.graph.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.structure.graph.StructureGraphCompilation;
 import art.arcane.iris.structure.graph.StructureGraphCompiler;
@@ -214,6 +215,12 @@ final class VanillaJigsawExportCompiler {
                     "Minecraft jigsaw size must be within 0..20; Iris export requires 1..20.");
         }
         long horizontalDistance = (long) structure.getMaxSizeChunks() * 16L;
+        if (DataVersion.getRuntime() == DataVersion.V1_21_1 && horizontalDistance != settings.maxDistanceVertical()) {
+            addError(diagnostics,
+                    VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE,
+                    "max_distance_from_center.vertical",
+                    "Minecraft 1.21.1 vanilla export requires equal horizontal and vertical maximum distances.");
+        }
         if (horizontalDistance < 1L || horizontalDistance > MAX_HORIZONTAL_DISTANCE) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE,
@@ -576,6 +583,12 @@ final class VanillaJigsawExportCompiler {
     private JsonObject packMetadata(VanillaJigsawExportRequest request) {
         JsonObject pack = new JsonObject();
         pack.addProperty("description", request.description());
+        if (DataVersion.getRuntime() == DataVersion.V1_21_1) {
+            pack.addProperty("pack_format", DataVersion.V1_21_1.getPackFormat());
+            JsonObject root = new JsonObject();
+            root.add("pack", pack);
+            return root;
+        }
         JsonArray minimum = new JsonArray();
         boolean current = VanillaStructureTemplateEncoder.targets263();
         int packFormat = current ? 121 : 107;

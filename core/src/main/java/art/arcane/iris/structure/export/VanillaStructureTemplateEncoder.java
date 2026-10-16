@@ -61,7 +61,8 @@ final class VanillaStructureTemplateEncoder {
         root.put("palette", palette(paletteStates, format));
         root.put("blocks", blocks(orderedBlocks, paletteIndexes));
         root.put("entities", new ListTag<>(CompoundTag.class));
-        root.putInt("DataVersion", lowercase ? 5023 : DATA_VERSION_26_2);
+        root.putInt("DataVersion", "1.21.1".equals(IrisPlatforms.get().minecraftVersion())
+                ? 3955 : lowercase ? 5023 : DATA_VERSION_26_2);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         NBTUtil.write(new NamedTag("", root), output, true);

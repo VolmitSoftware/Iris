@@ -18,7 +18,8 @@ TaskProvider<JavaExec> resolvedRevisionVerification = tasks.register('verifyReso
     classpath = files('../../buildSrc/build/libs/buildSrc.jar')
     mainClass.set('art.arcane.iris.buildtools.GenerationBuildRevision')
     doFirst {
-        List<String> arguments = ['verify-dependencies', file('../../core/build/generated/generation-revision/META-INF/iris/generation-kernels/abi-1.revision').absolutePath]
+        String runtimeVariant = providers.gradleProperty('irisRuntimeJava').getOrElse(irisModTarget.java.toString()) == '21' ? 'java21/' : ''
+        List<String> arguments = ['verify-dependencies', file("../../core/build/${runtimeVariant}generated/generation-revision/META-INF/iris/generation-kernels/abi-1.revision").absolutePath]
         for (ResolvedArtifact artifact : configurations.bundle.resolvedConfiguration.resolvedArtifacts) {
             String group = artifact.moduleVersion.id.group
             String name = artifact.moduleVersion.id.name

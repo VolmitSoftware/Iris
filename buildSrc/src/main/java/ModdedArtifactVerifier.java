@@ -2,6 +2,8 @@ import org.gradle.api.GradleException;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +41,8 @@ public final class ModdedArtifactVerifier {
     private static final List<String> PRIVATE_REFERENCE_PREFIXES = List.of(
             "art/arcane/iris/shadow/jpountz",
             "art/arcane/iris/shadow/oshi",
-            "art/arcane/iris/shadow/jna"
+            "art/arcane/iris/shadow/jna",
+            "art/arcane/iris/util/gson"
     );
     // ASM must always be relocated: the loaders put their own copy on the module layer and a second
     // org.objectweb.asm package on the same layer is a boot failure.
@@ -64,6 +67,14 @@ public final class ModdedArtifactVerifier {
     private static final Pattern QUOTED_JSON_FILE = Pattern.compile("\"([^\"]+\\.(?:json|jar))\"");
 
     private ModdedArtifactVerifier() {
+    }
+
+    public static void verifyJavaRuntime(File artifact, int runtimeJava) {
+        try (JarInputStream archive = new JarInputStream(new FileInputStream(artifact))) {
+            verifyJavaRuntime(archive, runtimeJava, artifact.getName());
+        } catch (IOException error) {
+            throw new GradleException("Could not verify Java " + runtimeJava + " compatibility of " + artifact, error);
+        }
     }
 
     public static void verify(File artifact, List<String> requiredEntries) {
@@ -189,6 +200,38 @@ public final class ModdedArtifactVerifier {
             verifyMixinCompatibilityLevels(artifact, jar);
         } catch (IOException e) {
             throw new GradleException("Unable to verify modded Iris artifact " + artifact.getAbsolutePath(), e);
+        }
+    }
+
+    private static void verifyJavaRuntime(JarInputStream archive, int runtimeJava, String location) throws IOException {
+        JarEntry entry;
+        while ((entry = archive.getNextJarEntry()) != null) {
+            String name = entry.getName();
+            if (entry.isDirectory()) {
+                continue;
+            }
+            if (name.startsWith("META-INF/versions/")) {
+                String version = name.substring("META-INF/versions/".length()).split("/", 2)[0];
+                if (Integer.parseInt(version) > runtimeJava) {
+                    continue;
+                }
+            }
+            if (name.endsWith(".jar")) {
+                try (JarInputStream nested = new JarInputStream(new ByteArrayInputStream(archive.readAllBytes()))) {
+                    verifyJavaRuntime(nested, runtimeJava, location + "!/" + name);
+                }
+            } else if (name.endsWith(".class")) {
+                byte[] header = archive.readNBytes(8);
+                if (header.length != 8 || header[0] != (byte) 0xca || header[1] != (byte) 0xfe
+                        || header[2] != (byte) 0xba || header[3] != (byte) 0xbe) {
+                    throw new GradleException("Invalid class file " + location + "!/" + name);
+                }
+                int major = (header[6] & 0xff) << 8 | header[7] & 0xff;
+                if (major > runtimeJava + 44) {
+                    throw new GradleException(location + "!/" + name + " requires Java " + (major - 44)
+                            + "; target runtime is Java " + runtimeJava);
+                }
+            }
         }
     }
 

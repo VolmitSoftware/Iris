@@ -22,7 +22,6 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.Strictness;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.platform.reflect.KeyedType;
 import art.arcane.volmlib.util.collection.KMap;
@@ -51,7 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TileData implements Cloneable {
-    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setStrictness(Strictness.LENIENT).setObjectToNumberStrategy(com.google.gson.ToNumberPolicy.LONG_OR_DOUBLE).create();
+    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setLenient().setObjectToNumberStrategy(com.google.gson.ToNumberPolicy.LONG_OR_DOUBLE).create();
     /**
      * Memoized {@link #resolveMaterial()}. Pasting one tile resolves its material at least twice
      * ({@link #isApplicable(BlockData)} then {@link #toBukkit(Block)}), and matchMaterial normalizes the string and

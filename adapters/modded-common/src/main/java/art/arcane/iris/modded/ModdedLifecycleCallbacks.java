@@ -14,6 +14,7 @@ public final class ModdedLifecycleCallbacks {
         return new NativeModdedCallbacks(
                 ModdedEngineBootstrap::serverAboutToStart,
                 ModdedEngineBootstrap::start,
+                ModdedEngineBootstrap::levelsReady,
                 ModdedEngineBootstrap::serverStarted,
                 ModdedEngineBootstrap::stop,
                 ModdedEngineBootstrap::stopped,

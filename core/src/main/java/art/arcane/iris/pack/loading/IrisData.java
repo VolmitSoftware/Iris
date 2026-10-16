@@ -25,7 +25,6 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.Strictness;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
@@ -676,7 +675,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
-                .setStrictness(Strictness.LENIENT)
+                .setLenient()
                 .registerTypeAdapterFactory(this)
                 .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();
@@ -718,7 +717,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
-                .setStrictness(Strictness.LENIENT)
+                .setLenient()
                 .registerTypeAdapterFactory(this)
                 .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();

@@ -2,6 +2,7 @@ package art.arcane.iris.pack.datapack;
 
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.pack.datapack.v1217.DataFixerV1217;
+import art.arcane.iris.pack.datapack.v1206.DataFixerV1206;
 import art.arcane.volmlib.util.collection.KMap;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import art.arcane.iris.pack.datapack.v263.DataFixerV263;
 @Getter
 public enum DataVersion {
     UNSUPPORTED("0.0.0", 0, () -> null),
+    V1_21_1("1.21.1", 48, DataFixerV1206::new),
     V26_1_2("26.1.2", 101, DataFixerV1217::new),
     V26_2("26.2", 107, DataFixerV1217::new),
     V26_3("26.3", 121, DataFixerV263::new);
@@ -41,6 +43,7 @@ public enum DataVersion {
             return UNSUPPORTED;
         }
         return switch (version) {
+            case "1.21.1" -> V1_21_1;
             case "26.1.2" -> V26_1_2;
             case "26.2", "26.2.0" -> V26_2;
             case "26.3", "26.3.0" -> V26_3;

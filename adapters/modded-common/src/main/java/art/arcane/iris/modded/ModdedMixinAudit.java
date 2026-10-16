@@ -45,6 +45,9 @@ public final class ModdedMixinAudit {
     private static final AtomicBoolean AUDITED = new AtomicBoolean(false);
 
     static final List<ExpectedMixin> EXPECTED = List.of(
+            new ExpectedMixin(ENTITY_CONFIG, "ServerLevelsReadyMixin",
+                    NativeMixinTarget.SERVER, "volmlib$levelsReady",
+                    false, NativeMixinFlags::levelsReadyRan),
             new ExpectedMixin(ENTITY_CONFIG, "RegistryClientNamesMixin",
                     NativeMixinTarget.REGISTRY_PACKET, "volmlib$clientRegistryNames",
                     false, NativeMixinFlags::registryClientNamesRan),

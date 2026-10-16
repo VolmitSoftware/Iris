@@ -6,6 +6,8 @@ import io.papermc.paperweight.userdev.PaperweightUserDependenciesExtension
 import io.papermc.paperweight.userdev.PaperweightUserExtension
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.provider.Provider
+import org.gradle.jvm.toolchain.JavaLauncher
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.DeleteSpec
@@ -71,12 +73,14 @@ project(':core') {
     group = 'art.arcane'
     version = rootProject.version
 }
+apply from: file('gradle/mod-target.gradle')
+
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
-// The Bukkit jar retains 26.1.2 and 26.2 alongside 26.3; loader jars are 26.3-only.
+// The Bukkit jar retains 26.1.2 and 26.2 alongside 26.3.
 String bukkitMinecraftRange = providers.gradleProperty('bukkitMinecraftRange').getOrElse('26.1.2-26.3')
-String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse('0.19.5')
-String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse('26.3-66.0.8')
-String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse('26.3.0.33-beta')
+String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse(irisModTarget.fabricLoader.toString())
+String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse(irisModTarget.forge.toString())
+String neoForgeVersion = providers.gradleProperty('neoForgeVersion').getOrElse(irisModTarget.neoForge.toString())
 String volmLibShared = 'com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT'
 File localVolmLibCheckout = (File) gradle.extensions.extraProperties.get('volmLibDirectory')
 IncludedBuild localVolmLibBuild = localVolmLibCheckout == null ? null : gradle.includedBuilds.find { IncludedBuild includedBuild ->
@@ -104,18 +108,18 @@ File pluginOutDirectory = file(providers.gradleProperty('pluginOutDirectory').ge
 File legacyBukkitJar = layout.buildDirectory.file("libs/Iris-${project.version}.jar").get().asFile
 File bukkitArtifact = layout.buildDirectory.file("libs/${bukkitArtifactName}").get().asFile
 File consumerBukkitArtifact = layout.buildDirectory.file("consumer/${bukkitArtifactName}").get().asFile
-File fabricArtifact = layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}").asFile
-File forgeArtifact = layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}").asFile
-File neoForgeArtifact = layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}").asFile
+File fabricArtifact = layout.projectDirectory.file("adapters/fabric/build/${minecraftVersion}/libs/${fabricArtifactName}").asFile
+File forgeArtifact = layout.projectDirectory.file("adapters/forge/build/${minecraftVersion}/libs/${forgeArtifactName}").asFile
+File neoForgeArtifact = layout.projectDirectory.file("adapters/neoforge/build/${minecraftVersion}/libs/${neoForgeArtifactName}").asFile
 File consumerDirectory = layout.buildDirectory.dir('consumer').get().asFile
 FileTree staleConsumerBukkitJars = fileTree(consumerDirectory) {
     include('Iris v* [CraftBukkit] *.jar')
 }
 Map<String, FileTree> staleOutJars = [
     CraftBukkit: 'Iris v* [CraftBukkit] *.jar',
-    Fabric     : 'Iris v* [Fabric] *.jar',
-    Forge      : 'Iris v* [Forge] *.jar',
-    NeoForge   : 'Iris v* [NeoForge] *.jar'
+    Fabric     : "Iris v* [Fabric] ${minecraftVersion}+*.jar",
+    Forge      : "Iris v* [Forge] ${minecraftVersion}+*.jar",
+    NeoForge   : "Iris v* [NeoForge] ${minecraftVersion}+*.jar"
 ].collectEntries { String platform, String pattern ->
     [(platform): fileTree(pluginOutDirectory) { include(pattern) }]
 }
@@ -323,7 +327,10 @@ List<Object> moddedSharedInputs = []
     'gradle/volmlib-stamp.gradle',
     'gradle/generation-build-revision.gradle',
     'gradle/modded-generation-build-revision.gradle',
-    'gradle/native-minecraft-sources.gradle'
+    'gradle/native-minecraft-sources.gradle',
+    'gradle/mod-target.gradle',
+    'gradle/mod-targets.json',
+    'gradle/modded-version-sources.gradle'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 if (localVolmLibCheckout != null) {
     moddedSharedInputs.add(fileTree(localVolmLibCheckout) {
@@ -358,7 +365,7 @@ Closure<Void> declareModdedJarIo = { Exec task, String adapter, String artifactN
     ).withPropertyName('adapterSources')
     versions.each { String key, String value -> task.inputs.property(key, value) }
     declareVolmLibInputs(task)
-    task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/libs/${artifactName}"))
+    task.outputs.file(layout.projectDirectory.file("adapters/${adapter}/build/${minecraftVersion}/libs/${artifactName}"))
     return null
 }
 
@@ -368,7 +375,7 @@ tasks.register('fabricJar', Exec) {
     String wrapperScript = System.getProperty('os.name').toLowerCase().contains('windows') ? 'gradlew.bat' : 'gradlew'
     List<String> command = [
         layout.projectDirectory.file(wrapperScript).asFile.absolutePath,
-        'shadowJar',
+        'assemble',
         '--console=plain',
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
@@ -389,7 +396,7 @@ tasks.register('fabricJar', Exec) {
 tasks.register('buildFabric', Copy) {
     group = 'iris'
     dependsOn('fabricJar')
-    from(layout.projectDirectory.file("adapters/fabric/build/libs/${fabricArtifactName}"))
+    from(layout.projectDirectory.file("adapters/fabric/build/${minecraftVersion}/libs/${fabricArtifactName}"))
     into(pluginOutDirectory)
     File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-fabric.jar")
     doFirst {
@@ -405,7 +412,7 @@ tasks.register('forgeJar', Exec) {
     String wrapperScript = System.getProperty('os.name').toLowerCase().contains('windows') ? 'gradlew.bat' : 'gradlew'
     List<String> command = [
         layout.projectDirectory.file(wrapperScript).asFile.absolutePath,
-        'shadowJar',
+        'assemble',
         '--console=plain',
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
@@ -426,7 +433,7 @@ tasks.register('forgeJar', Exec) {
 tasks.register('buildForge', Copy) {
     group = 'iris'
     dependsOn('forgeJar')
-    from(layout.projectDirectory.file("adapters/forge/build/libs/${forgeArtifactName}"))
+    from(layout.projectDirectory.file("adapters/forge/build/${minecraftVersion}/libs/${forgeArtifactName}"))
     into(pluginOutDirectory)
     File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-forge.jar")
     doFirst {
@@ -442,7 +449,7 @@ tasks.register('neoforgeJar', Exec) {
     String wrapperScript = System.getProperty('os.name').toLowerCase().contains('windows') ? 'gradlew.bat' : 'gradlew'
     List<String> command = [
         layout.projectDirectory.file(wrapperScript).asFile.absolutePath,
-        'shadowJar',
+        'assemble',
         '--console=plain',
         "-PirisVersion=${project.version}",
         "-PminecraftVersion=${minecraftVersion}",
@@ -463,7 +470,7 @@ tasks.register('neoforgeJar', Exec) {
 tasks.register('buildNeoforge', Copy) {
     group = 'iris'
     dependsOn('neoforgeJar')
-    from(layout.projectDirectory.file("adapters/neoforge/build/libs/${neoForgeArtifactName}"))
+    from(layout.projectDirectory.file("adapters/neoforge/build/${minecraftVersion}/libs/${neoForgeArtifactName}"))
     into(pluginOutDirectory)
     File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}-neoforge.jar")
     doFirst {
@@ -521,7 +528,7 @@ tasks.register('moddedTest', Exec) {
     inputs.property('minecraftVersion', minecraftVersion)
     inputs.property('fabricLoaderVersion', fabricLoaderVersion)
     declareVolmLibInputs(it)
-    outputs.dir(layout.projectDirectory.dir('adapters/fabric/build/test-results/test'))
+    outputs.dir(layout.projectDirectory.dir("adapters/fabric/build/${minecraftVersion}/test-results/test"))
     mustRunAfter(tasks.named('jar'))
     mustRunAfter(project(':core').tasks.named('check'))
     mustRunAfter(project(':spi').tasks.named('jar'))
@@ -549,6 +556,7 @@ tasks.named('check').configure {
 }
 
 List<String> commonModdedArtifactEntries = [
+    'agent.jar',
     'pack.mcmeta',
     'com/fulcrumgenomics/jlibdeflate/LibdeflateDecompressor.class',
     'com/fulcrumgenomics/jlibdeflate/LibdeflateException.class',
@@ -601,6 +609,7 @@ tasks.register('verifyFabricArtifact') {
             'art/arcane/iris/fabric/IrisFabricBootstrap.class'
         ]
         ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
+        ModdedArtifactVerifier.verifyJavaRuntime(artifact, (int) irisModTarget.java)
         logger.lifecycle("Verified ${artifact.name} packaging, mixin compat, and nested jars")
     }
 }
@@ -618,6 +627,7 @@ tasks.register('verifyForgeArtifact') {
             'art/arcane/iris/forge/IrisForgeBootstrap.class'
         ]
         ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
+        ModdedArtifactVerifier.verifyJavaRuntime(artifact, (int) irisModTarget.java)
         logger.lifecycle("Verified ${artifact.name} packaging, mixin compat, and nested jars")
     }
 }
@@ -635,6 +645,7 @@ tasks.register('verifyNeoforgeArtifact') {
             'art/arcane/iris/neoforge/IrisNeoForgeBootstrap.class'
         ]
         ModdedArtifactVerifier.verify(artifact, requiredEntries, bukkitCoupledCoreClasses)
+        ModdedArtifactVerifier.verifyJavaRuntime(artifact, (int) irisModTarget.java)
         logger.lifecycle("Verified ${artifact.name} packaging, mixin compat, and nested jars")
     }
 }
@@ -642,6 +653,59 @@ tasks.register('verifyNeoforgeArtifact') {
 tasks.register('verifyModdedArtifacts') {
     group = 'verification'
     dependsOn('verifyFabricArtifact', 'verifyForgeArtifact', 'verifyNeoforgeArtifact')
+}
+
+TaskProvider<Task> verifyModdedMatrix = tasks.register('verifyModdedMatrix') {
+    group = 'verification'
+    description = 'Builds and verifies every supported Minecraft mod target and runs the shared mod tests.'
+}
+TaskProvider<Exec> previousMatrixBuild = null
+irisModTargets.each { String targetMinecraft, Map<String, Object> target ->
+    ['fabric': 'Fabric', 'forge': 'Forge', 'neoforge': 'NeoForge'].each { String loader, String label ->
+        String pinKey = loader == 'fabric' ? 'fabricLoader' : loader == 'neoforge' ? 'neoForge' : 'forge'
+        String loaderPin = target.get(pinKey).toString()
+        String displayedLoader = loaderPin.startsWith(targetMinecraft + '-')
+                ? loaderPin.substring(targetMinecraft.length() + 1) : loaderPin
+        String artifactName = irisArtifactName(label, "${targetMinecraft}+${displayedLoader}")
+        File artifact = file("adapters/${loader}/build/${targetMinecraft}/libs/${artifactName}")
+        TaskProvider<Exec> buildTarget = tasks.register("verify${label}${targetMinecraft.replace('.', '_')}", Exec) {
+            group = 'verification'
+            workingDir = file("adapters/${loader}")
+            String wrapperScript = System.getProperty('os.name').toLowerCase().contains('windows') ? 'gradlew.bat' : 'gradlew'
+            List<String> command = [file(wrapperScript).absolutePath, 'assemble', 'compileTestJava',
+                    'verifyLoggingPolicy', 'verifyNativeClassBoundary', '--console=plain',
+                    "-PirisVersion=${project.version}", "-PminecraftVersion=${targetMinecraft}",
+                    "-PuseLocalVolmLib=${localVolmLibCheckout != null}"]
+            if (loader == 'fabric') {
+                command.add('test')
+            }
+            commandLine(command)
+            if (localVolmLibCheckout != null) {
+                environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
+            }
+            inputs.files(moddedSharedInputs, file("adapters/${loader}/src"), file("adapters/${loader}/build.gradle"),
+                    file("adapters/${loader}/settings.gradle"))
+            inputs.properties(target)
+            declareVolmLibInputs(it)
+            outputs.file(artifact)
+            if (loader == 'fabric') {
+                outputs.dir(file("adapters/${loader}/build/${targetMinecraft}/test-results/test"))
+            }
+            doLast {
+                String metadata = loader == 'fabric' ? 'fabric.mod.json'
+                        : loader == 'forge' ? 'META-INF/mods.toml' : 'META-INF/neoforge.mods.toml'
+                ModdedArtifactVerifier.verify(artifact, commonModdedArtifactEntries + [metadata], bukkitCoupledCoreClasses)
+                ModdedArtifactVerifier.verifyJavaRuntime(artifact, (int) target.java)
+                logger.lifecycle("Verified ${artifact.name}")
+            }
+        }
+        if (previousMatrixBuild != null) {
+            TaskProvider<Exec> preceding = previousMatrixBuild
+            buildTarget.configure { mustRunAfter(preceding) }
+        }
+        previousMatrixBuild = buildTarget
+        verifyModdedMatrix.configure { dependsOn(buildTarget) }
+    }
 }
 
 // Entries the Bukkit artifact only ever reaches by name - NMS binding lookup, the SIMD kernels, the
@@ -805,9 +869,18 @@ tasks.register('irisDev', Copy) {
 int defaultTestForks = Math.min(8, Math.max(1, Runtime.runtime.availableProcessors().intdiv(2)))
 int testForks = Math.max(1, Integer.parseInt(providers.gradleProperty('testForks')
     .getOrElse(String.valueOf(defaultTestForks))))
+int irisRuntimeJava = providers.gradleProperty('irisRuntimeJava').getOrElse(irisModTarget.java.toString()).toInteger()
+if (!(irisRuntimeJava in [21, 25])) {
+    throw new GradleException('irisRuntimeJava must be 21 or 25')
+}
+Set<String> sharedRuntimeProjects = [':core', ':core:agent', ':spi'] as Set<String>
 
 allprojects {
     apply plugin: 'java'
+    boolean java21Runtime = irisRuntimeJava == 21 && sharedRuntimeProjects.contains(project.path)
+    if (java21Runtime) {
+        layout.buildDirectory.set(layout.projectDirectory.dir('build/java21'))
+    }
 
     tasks.withType(Test).configureEach {
         int moduleForks = project.path.startsWith(':adapters:bukkit:') ? Math.min(2, testForks)
@@ -819,6 +892,32 @@ allprojects {
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(25)
+        }
+        if (java21Runtime) {
+            sourceCompatibility = JavaVersion.VERSION_21
+            targetCompatibility = JavaVersion.VERSION_21
+        }
+    }
+
+    if (java21Runtime) {
+        Provider<JavaLauncher> runtimeLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+        tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = '21'
+            targetCompatibility = '21'
+            if (project.path == ':core') {
+                options.compilerArgumentProviders.add({
+                    ['--system', runtimeLauncher.get().metadata.installationPath.asFile.absolutePath]
+                } as org.gradle.process.CommandLineArgumentProvider)
+            } else {
+                options.release.set(21)
+            }
+        }
+        if (project.path != ':core') {
+            tasks.withType(Test).configureEach {
+                javaLauncher.set(runtimeLauncher)
+            }
         }
     }
 
@@ -881,7 +980,9 @@ allprojects {
         options.compilerArgs.add('-parameters')
         options.encoding = 'UTF-8'
         options.debugOptions.debugLevel = 'none'
-        options.release.set(25)
+        if (!java21Runtime) {
+            options.release.set(25)
+        }
     }
 
     tasks.named('javadoc').configure {

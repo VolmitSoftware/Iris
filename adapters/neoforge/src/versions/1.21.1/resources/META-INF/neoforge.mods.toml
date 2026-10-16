@@ -1,0 +1,37 @@
+modLoader = "javafml"
+loaderVersion = "[3,)"
+license = "GPL-3.0"
+issueTrackerURL = "https://github.com/VolmitSoftware/Iris/issues"
+
+[[mixins]]
+config = "volmlib.entity.mixins.json"
+
+[[mixins]]
+config = "volmlib.client.mixins.json"
+
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
+[[mods]]
+modId = "irisworldgen"
+version = "${version}"
+displayName = "Iris"
+description = "Iris World Generation Engine (NeoForge adapter - native chunk generator, explicit Iris world datapack workflow, engine lifecycle)"
+authors = "Arcane Arts (Volmit Software)"
+credits = "cyberpwn, NextdoorPsycho, Vatuu"
+displayURL = "https://docs.volmit.com/iris/"
+logoFile = "assets/irisworldgen/icon.png"
+
+[[dependencies.irisworldgen]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.irisworldgen]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${minecraftVersion}]"
+ordering = "NONE"
+side = "BOTH"

@@ -1,4 +1,5 @@
 import io.github.slimjar.resolver.data.Mirror
+import org.gradle.api.attributes.java.TargetJvmVersion
 import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
@@ -197,6 +198,11 @@ slimJar {
 }
 
 def embeddedAgentJar = project(':core:agent').tasks.named('jar', Jar)
+tasks.named('processResources').configure {
+    from(embeddedAgentJar.map { it.archiveFile }) {
+        rename { String ignored -> 'agent.jar' }
+    }
+}
 def templateSource = file('src/main/templates')
 def templateDest = layout.buildDirectory.dir('generated/sources/templates')
 def generateTemplates = tasks.register('generateTemplates', Copy) {
@@ -263,7 +269,35 @@ tasks.named('compileJava', JavaCompile).configure {
 tasks.named('test', Test).configure {
     jvmArgs('--add-modules', 'jdk.incubator.vector')
     dependsOn(languageSourceManifestTask)
-    classpath = files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources') + sourceSets.main.output + classpath
+    classpath = (files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources')
+            + sourceSets.main.output + classpath) - files(tasks.named('shadowJar'))
+}
+
+if (providers.gradleProperty('irisRuntimeJava').getOrElse(rootProject.irisModTarget.java.toString()) == '21') {
+    configurations.configureEach {
+        if (name == 'compileClasspath' || name.endsWith('CompileClasspath')
+                || name in ['testRuntimeClasspath', 'externalProviderTestRuntimeClasspath']) {
+            attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+        }
+    }
+    tasks.register('java21RuntimeTest', Test) {
+        group = 'verification'
+        description = 'Verifies generation kernels and pack updates on the Minecraft 1.21.1 Java runtime.'
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = (files(layout.buildDirectory.dir('generated/language-source')) + files('src/main/resources')
+                + sourceSets.main.output + sourceSets.test.runtimeClasspath) - files(tasks.named('shadowJar'))
+        javaLauncher.set(javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(21)
+        })
+        jvmArgs('--add-modules', 'jdk.incubator.vector')
+        filter {
+            includeTestsMatching('art.arcane.iris.generation.simd.*')
+            includeTestsMatching('art.arcane.iris.pack.BuiltInPackUpdatesTest')
+        }
+    }
+    tasks.named('check').configure {
+        dependsOn('java21RuntimeTest')
+    }
 }
 
 configurations.matching { it.name.startsWith('slim') }.all { }
@@ -417,6 +451,10 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     inputs.property('languageTomlSupportClassPattern', languageTomlSupportClassPattern)
     dependsOn(embeddedAgentJar)
     mergeServiceFiles()
+    if (providers.gradleProperty('irisRuntimeJava').getOrElse(rootProject.irisModTarget.java.toString()) == '21') {
+        exclude('art/arcane/volmlib/util/noise/NativeBillowLoader*.class')
+        exclude('art/arcane/volmlib/util/noise/BillowBatch*.class')
+    }
     // minimize() stays off. Caffeine reaches its 520 generated cache and node classes through
     // MethodHandles.Lookup.findClass on a computed name, and the VolmLib command, GUI and hotload
     // surfaces are only referenced from :adapters:bukkit:plugin, which is merged into the artifact
@@ -434,9 +472,6 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     exclude(unusedVolmLibClassEntries)
     exclude(annotationOnlyArtifacts)
     exclude(dependencyBuildMetadata)
-    from(embeddedAgentJar.map { it.archiveFile }) {
-        rename { String ignored -> 'agent.jar' }
-    }
 }
 
 rootProject.tasks.matching {

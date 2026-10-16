@@ -91,7 +91,6 @@ public final class ModdedStartup {
         }
         ModdedForcedDatapack.verifyInjected();
         ModdedMixinAudit.runOnce();
-        reinjectPersistentDimensions(server);
 
         ModdedScheduler scheduler = ModdedEngineBootstrap.schedulerOrNull();
         if (scheduler == null) {

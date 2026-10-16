@@ -8,6 +8,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.junit.Test;
@@ -65,5 +66,27 @@ public class NativeGeneratorOwnershipTest {
         when(chunks.getGenerator()).thenReturn(mock(ChunkGenerator.class));
         assertNull(NativeWorldGenerators.find(world, IrisModdedChunkGenerator.class));
         assertFalse(nativeGenerator.represents(world));
+    }
+
+    @Test
+    public void protocolLookupTracksInstalledGeneratorAndPolicyOwner() {
+        IrisModdedChunkGenerator owner = new IrisModdedChunkGenerator(
+                new NativeGeneratorContext(mock(BiomeSource.class), "example:surface"));
+        NativeModdedChunkGenerator<?, ?, ?> nativeGenerator = (NativeModdedChunkGenerator<?, ?, ?>) owner.nativeGenerator();
+        ServerLevel level = mock(ServerLevel.class);
+        ServerChunkCache chunks = mock(ServerChunkCache.class);
+        when(level.dimension()).thenReturn(Level.OVERWORLD);
+        when(level.getChunkSource()).thenReturn(chunks);
+        when(chunks.getGenerator()).thenReturn(nativeGenerator);
+        NativeProtocolWorld world = new NativeProtocolWorld(level);
+
+        assertSame(owner, world.generator(IrisModdedChunkGenerator.class));
+        assertSame(nativeGenerator, world.generator(ChunkGenerator.class));
+        assertNull(world.generator(String.class));
+
+        ChunkGenerator replacement = mock(ChunkGenerator.class);
+        when(chunks.getGenerator()).thenReturn(replacement);
+        assertNull(world.generator(IrisModdedChunkGenerator.class));
+        assertSame(replacement, world.generator(ChunkGenerator.class));
     }
 }

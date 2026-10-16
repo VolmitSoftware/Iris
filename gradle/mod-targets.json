@@ -8,6 +8,10 @@
     "neoForge": "21.1.262",
     "neoForgeRange": "[21.1,21.2)",
     "nativeAccess": "minecraft1_21_1",
+    "testLoaders": [
+      "fabric",
+      "neoforge"
+    ],
     "fabricModules": {
       "fabric-api-base": "0.4.42+6573ed8c19",
       "fabric-registry-sync-v0": "5.3.2+e3eddc2119",

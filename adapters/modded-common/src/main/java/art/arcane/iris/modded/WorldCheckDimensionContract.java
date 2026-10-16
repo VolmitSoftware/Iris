@@ -86,7 +86,8 @@ final class WorldCheckDimensionContract {
                 (float) json.getDouble("ambient_light"),
                 json.getBoolean("has_skylight"),
                 json.getBoolean("has_ceiling"),
-                json.getBoolean("has_ender_dragon_fight"),
+                json.has("has_ender_dragon_fight") ? json.getBoolean("has_ender_dragon_fight")
+                        : "minecraft:the_end".equals(json.optString("effects")),
                 json.getInt("monster_spawn_block_light_limit"));
     }
 

@@ -425,6 +425,12 @@
         "pattern": "player\\.level\\(\\)",
         "replacement": "player.serverLevel()"
       }
+    ],
+    "art/arcane/iris/modded/ModdedMixinAuditTest.java": [
+      {
+        "pattern": "\"volmlib\\.entity\\.mixins\\.json/ServerLevelStructureBootstrapMixin\",",
+        "replacement": "\"volmlib.entity.mixins.json/ServerLevelStructureBootstrapMixin\",\n            \"volmlib.entity.mixins.json/WorldDimensionsBakeMixin\",\n            \"volmlib.entity.mixins.json/WorldGenSettingsPersistenceMixin\","
+      }
     ]
   }
 }

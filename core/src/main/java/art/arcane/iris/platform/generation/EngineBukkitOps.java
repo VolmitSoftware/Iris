@@ -36,6 +36,7 @@ import art.arcane.iris.world.loot.InventorySlotType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.world.loot.IrisLootTable;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
@@ -83,7 +84,10 @@ import org.bukkit.loot.Lootable;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -146,12 +150,16 @@ public final class EngineBukkitOps {
     }
 
     static void materializeTiles(Engine engine, Chunk chunk, MantleChunk<Matter> mantleChunk) {
+        StaleRecords stale = new StaleRecords();
         mantleChunk.iterate(TileWrapper.class, (x, y, z, value) -> {
             int worldY = y + engine.getWorld().minHeight();
             if (worldY < chunk.getWorld().getMinHeight() || worldY >= chunk.getWorld().getMaxHeight()) {
                 return;
             }
             Block block = chunk.getBlock(x & 15, worldY, z & 15);
+            if (stale.tileReplaced(block, value.getData())) {
+                return;
+            }
             if (!TileData.setTileState(block, value.getData())) {
                 NamespacedKey blockTypeKey = KeyedType.getKey(block.getType());
                 String blockType = blockTypeKey == null ? block.getType().name() : blockTypeKey.toString();
@@ -160,21 +168,25 @@ public final class EngineBukkitOps {
             }
         });
         mantleChunk.deleteSlices(TileWrapper.class);
+        stale.report("tile", chunk);
     }
 
     static void materializeCustomBlocks(Engine engine, Chunk chunk, MantleChunk<Matter> mantleChunk) {
+        StaleRecords stale = new StaleRecords();
         mantleChunk.iterate(Identifier.class, (x, y, z, value) -> {
             int worldY = y + engine.getWorld().minHeight();
             if (worldY < chunk.getWorld().getMinHeight() || worldY >= chunk.getWorld().getMaxHeight()) {
                 return;
             }
-            IrisServices.get(ExternalDataSVC.class).processUpdate(
-                    engine,
-                    chunk.getBlock(x & 15, worldY, z & 15),
-                    value
-            );
+            ExternalDataSVC service = IrisServices.get(ExternalDataSVC.class);
+            Block block = chunk.getBlock(x & 15, worldY, z & 15);
+            if (stale.carrierReplaced(service, block, value)) {
+                return;
+            }
+            service.processUpdate(engine, block, value);
         });
         mantleChunk.deleteSlices(Identifier.class);
+        stale.report("custom block", chunk);
     }
 
     static void materializeUpdates(Engine engine, Chunk chunk, MantleChunk<Matter> mantleChunk) {
@@ -855,4 +867,47 @@ public final class EngineBukkitOps {
         }
     }
 
+    private static final class StaleRecords {
+        private final Map<Identifier, Material> carriers = new HashMap<>();
+        private int skipped;
+
+        private boolean carrierReplaced(ExternalDataSVC service, Block block, Identifier record) {
+            Material carrier = carriers.get(record);
+            if (carrier == null) {
+                carrier = carrierType(service, record);
+                carriers.put(record, carrier);
+            }
+            if (carrier == Material.AIR || block.getType() == carrier) {
+                return false;
+            }
+            skipped++;
+            return true;
+        }
+
+        private boolean tileReplaced(Block block, TileData tile) {
+            if (tile.resolveMaterial() == null || tile.isApplicable(block.getBlockData())) {
+                return false;
+            }
+            skipped++;
+            return true;
+        }
+
+        private void report(String records, Chunk chunk) {
+            if (skipped == 0) {
+                return;
+            }
+            IrisLogging.debug("Skipped %d stale %s records at chunk %d,%d in %s",
+                    skipped, records, chunk.getX(), chunk.getZ(), chunk.getWorld().getName());
+        }
+
+        private static Material carrierType(ExternalDataSVC service, Identifier record) {
+            Optional<BlockData> resolved = service.getBlockData(record);
+            if (resolved.isEmpty()) {
+                return Material.AIR;
+            }
+            BlockData data = resolved.get();
+            Material type = (data instanceof IrisCustomData custom ? custom.getBase() : data).getMaterial();
+            return type == Material.CAVE_AIR || type == Material.VOID_AIR ? Material.AIR : type;
+        }
+    }
 }

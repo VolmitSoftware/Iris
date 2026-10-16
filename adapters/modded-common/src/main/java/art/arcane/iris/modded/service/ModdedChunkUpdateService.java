@@ -31,10 +31,12 @@ import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockResolution;
 import art.arcane.iris.modded.ModdedLootApplier;
 import art.arcane.iris.modded.ModdedTileData;
+import art.arcane.iris.modded.api.ModdedBlockData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockPlacement;
 import art.arcane.iris.spi.IrisLogging;
@@ -50,6 +52,8 @@ import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -239,16 +243,24 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
         int minHeight = engine.getWorld().minHeight();
+        StaleCarriers stale = new StaleCarriers();
         materializeDeferredSlice(chunk, Identifier.class, () ->
                 chunk.iterate(Identifier.class, (Integer x, Integer yf, Integer z, Identifier identifier) -> {
                     int y = yf + minHeight;
                     if (y < level.minHeight() || y >= level.maxHeight() - 1) {
                         return;
                     }
-                    NativeBlockPoint position = new NativeBlockPoint(baseX + (x & 15), y, baseZ + (z & 15));
-                    ModdedCustomContentRegistry.processBlockPlacement(engine, identifier.toString(),
+                    int blockX = baseX + (x & 15);
+                    int blockZ = baseZ + (z & 15);
+                    String key = identifier.toString();
+                    if (stale.carrierReplaced(key, level.getBlock(blockX, y, blockZ))) {
+                        return;
+                    }
+                    NativeBlockPoint position = new NativeBlockPoint(blockX, y, blockZ);
+                    ModdedCustomContentRegistry.processBlockPlacement(engine, key,
                             () -> NativeWorldMaintenance.placement(level, position));
                 }));
+        stale.report(level.name(), chunkX, chunkZ);
     }
 
     static void materializeDeferredSlice(MantleChunk<Matter> chunk, Class<?> sliceType, Runnable materializer) {
@@ -384,6 +396,42 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             ModdedLootApplier.apply(engine, level, pos, state, chunk);
         } else {
             NativeWorldMaintenance.refresh(level, pos);
+        }
+    }
+
+    private static final class StaleCarriers {
+        private static final String UNCHECKED = "";
+
+        private final Map<String, String> carriers = new HashMap<>();
+        private int skipped;
+
+        private boolean carrierReplaced(String key, NativeBlockState live) {
+            String carrier = carriers.get(key);
+            if (carrier == null) {
+                carrier = carrierKey(key);
+                carriers.put(key, carrier);
+            }
+            if (carrier.equals(UNCHECKED) || carrier.equals(IrisProceduralBlocks.materialKey(live))) {
+                return false;
+            }
+            skipped++;
+            return true;
+        }
+
+        private void report(String levelName, int chunkX, int chunkZ) {
+            if (skipped == 0) {
+                return;
+            }
+            IrisLogging.debug("Skipped %d stale custom block records at chunk %d,%d in %s",
+                    skipped, chunkX, chunkZ, levelName);
+        }
+
+        private static String carrierKey(String key) {
+            ModdedBlockData resolved = ModdedCustomContentRegistry.resolveBlock(key);
+            if (resolved == null || resolved.state().isAir()) {
+                return UNCHECKED;
+            }
+            return IrisProceduralBlocks.materialKey(resolved.state());
         }
     }
 }

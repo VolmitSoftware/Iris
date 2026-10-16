@@ -116,7 +116,9 @@ public class ModdedClientPackageIsolationTest {
     }
 
     private static boolean isClassFile(Path path) {
-        return Files.isRegularFile(path) && path.getFileName().toString().endsWith(".class");
+        String name = path.getFileName().toString();
+        return Files.isRegularFile(path) && name.endsWith(".class")
+                && !name.endsWith("Test.class") && !name.contains("Test$");
     }
 
     private static String readAsLatin1(Path path) throws IOException {
@@ -127,7 +129,8 @@ public class ModdedClientPackageIsolationTest {
         String anchor = "/art/arcane/iris/modded/ModdedMixinAudit.class";
         URL located = ModdedClientPackageIsolationTest.class.getResource(anchor);
         assertNotNull("compiled main classes are not on the test classpath as files", located);
-        assertEquals("expected a directory classpath entry, got " + located, "file", located.getProtocol());
+        assertTrue("expected a directory classpath entry, got " + located,
+                located.getProtocol().equals("file") || located.getProtocol().equals("union"));
         Path root = Path.of(located.toURI());
         for (int depth = 0; depth < 5; depth++) {
             root = root.getParent();

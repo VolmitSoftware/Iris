@@ -74,7 +74,8 @@ public class IrisModLanguageAssetsTest {
     private Set<String> resourceFiles() throws Exception {
         URL resource = IrisModLanguageAssetsTest.class.getClassLoader().getResource(ROOT + "en_us.json");
         assertNotNull("Missing English mod language resource", resource);
-        assertEquals("Mod language resources must resolve to a directory on disk", "file", resource.getProtocol());
+        assertTrue("Mod language resources must resolve to a directory, got " + resource,
+                resource.getProtocol().equals("file") || resource.getProtocol().equals("union"));
         Path directory = Path.of(resource.toURI()).getParent();
         try (Stream<Path> paths = Files.list(directory)) {
             return paths

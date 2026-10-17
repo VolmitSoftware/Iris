@@ -1,0 +1,55 @@
+name: Translation
+description: A message in Iris is wrong, missing, or unclear.
+labels: [bug]
+type: Bug
+assignees: [SwiftSwamp]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The language files are in [`core/src/main/resources/languages/`](https://github.com/VolmitSoftware/Iris/tree/HEAD/core/src/main/resources/languages).
+
+        You can create a pull request to modify the files directly.
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - English (en_US)
+        - German (de_DE)
+        - Spanish (es_ES)
+        - Finnish (fi_FI)
+        - French (fr_FR)
+        - Hebrew (he_IL)
+        - Italian (it_IT)
+        - Japanese (ja-JP)
+        - Korean (ko_KR)
+        - Lithuanian (lt_LT)
+        - Dutch (nl_NL)
+        - Polish (pl_PL)
+        - Portuguese (pt_PT)
+        - Russian (ru_RU)
+        - Turkish (tr_TR)
+        - Vietnamese (vi_VI)
+        - Chinese, Simplified (zh_CN)
+        - Chinese, Traditional (zh_TW)
+        - Another language (name it below)
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+    validations:
+      required: true
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested text
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where does it appear?
+      description: The command used or message key where it is appearing.

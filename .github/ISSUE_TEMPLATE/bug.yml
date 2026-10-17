@@ -1,87 +1,78 @@
-name: Iris Bug Report
-description: File a bug report for Iris
-labels: [ bug ]
+name: Bug report
+description: Something in Iris isn't working.
+labels: [bug]
+type: Bug
+assignees: [SwiftSwamp]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to fill this out!
-        If this does not work for you, feel free to use the [blank](https://github.com/VolmitSoftware/Iris/issues/new) format.
+        Make sure you're on the [latest release](https://github.com/VolmitSoftware/Iris/releases/latest) and that it hasn't [already been reported](https://github.com/VolmitSoftware/Iris/issues?q=is%3Aissue).
+
+        The Iris plugin supports Minecraft 26.1.2 through 26.3 on Paper, Purpur, Leaf, Canvas, Folia, and Spigot. The Fabric, Forge, and NeoForge builds support 26.3. Both need Java 25.
   - type: textarea
-    id: how
+    id: issue
     attributes:
-      label: Problem
-      description: Please give a text description of how you reached the problem
-      value: |
-        1. Install Iris...
-        2. Do this...
-        3. Do that...
-        4. Observe the error...
+      label: What issue are you having?
+      description: Include any error message you saw.
     validations:
       required: true
   - type: textarea
-    id: what
+    id: steps
     attributes:
-      label: Solution
-      description: Explain where you think the problem comes from (optional)
-      placeholder: The code to place a is missing b and c...
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a server with Iris installed
+        2. Change ... in the config
+        3. Run /iris ...
+        4. ... happens instead of ...
     validations:
-      required: false
+      required: true
+  - type: input
+    id: diagnostics
+    attributes:
+      label: Debug dump or latest log file
+      description: Run `/iris debug dump upload=true` and paste the link. If Iris won't start, upload `logs/latest.log` to [mclo.gs](https://mclo.gs) and paste that link instead.
+      placeholder: https://mclo.gs/...
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: "Iris version"
+      description: Run `/iris debug version` (`/iris version` on Fabric, Forge, and NeoForge).
+    validations:
+      required: true
   - type: dropdown
     id: platform
     attributes:
-      label: Platform
-      description: Which server platform is Iris running on? Pick the loader or server software, not the launcher.
+      label: Server software
       options:
-        - Paper
-        - Purpur
-        - Leaf
-        - Canvas
-        - Folia
-        - Spigot / CraftBukkit
-        - Fabric
-        - Forge
-        - NeoForge
-        - Other (describe under Problem)
-    validations:
-      required: true
-  - type: dropdown
-    id: mcversion
-    attributes:
-      label: Minecraft Version
-      description: What version of Minecraft is the server on? Iris 4.x supports 26.1.2 to 26.3 on Bukkit-family servers and 26.3 on Fabric, Forge and NeoForge; older versions are not supported.
-      options:
-        - '26.3'
-        - '26.2'
-        - '26.1.2'
+        - "Paper"
+        - "Purpur"
+        - "Leaf"
+        - "Canvas"
+        - "Folia"
+        - "Spigot"
+        - "Fabric"
+        - "Forge"
+        - "NeoForge"
         - Other (unsupported)
     validations:
       required: true
-  - type: input
-    id: loaderversion
+  - type: dropdown
+    id: minecraft
     attributes:
-      label: Platform / Loader Version
-      description: Exact server or loader build (see console). For example "Paper 26.3-133", "Fabric Loader 0.19.5", "NeoForge 26.3.0.83".
-      placeholder: DO NOT SAY "LATEST"
+      label: Minecraft version
+      options:
+        - "26.3"
+        - "26.2"
+        - "26.1.2"
+        - Other (unsupported)
     validations:
       required: true
-  - type: input
-    id: irisversion
+  - type: textarea
+    id: extra
     attributes:
-      label: Iris Version
-      description: What version of Iris are you running? (see console)
-      placeholder: DO NOT SAY "LATEST"
-    validations:
-      required: true
-  - type: input
-    id: logs
-    attributes:
-      label: Log
-      description: Paste a full log. Always use [mclogs](https://mclo.gs) Or [Pastebin](https://pastebin.com/). Must not be a crash report. Must be a full log. Must not be a screenshot of a log.
-      placeholder: https://mslog.gs/...
-    validations:
-      required: true
-  - type: markdown
-    id: thanks
-    attributes:
-      value: "Thank you for filling out the form! We will be with you soon. Please do not ask support to review your report."
+      label: Anything else?
+      description: Other plugins involved, screenshots, or videos.

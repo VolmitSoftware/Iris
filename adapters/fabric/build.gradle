@@ -61,7 +61,7 @@ apply from: file('../../gradle/volmlib-stamp.gradle')
 
 Properties rootProperties = new Properties()
 file('../../gradle.properties').withInputStream { InputStream stream -> rootProperties.load(stream) }
-String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.3.3'))
+String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.3.4'))
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse(rootProperties.getProperty('minecraftVersion', '26.3'))
 String fabricLoaderVersion = providers.gradleProperty('fabricLoaderVersion').getOrElse(irisModTarget.fabricLoader.toString())
 Closure<String> irisArtifactName = { String platform, String targetVersion ->

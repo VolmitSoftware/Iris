@@ -48,6 +48,9 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -424,13 +427,29 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                     if (excluder.excludeField(field, false))
                         continue;
 
-                    queue.add(field.getType());
+                    collectClasses(field.getGenericType(), queue);
                 }
             } catch (Throwable ignored) {
             }
         }
 
         return result;
+    }
+
+    private static void collectClasses(Type type, Collection<Class<?>> classes) {
+        switch (type) {
+            case Class<?> c when c.isArray() -> collectClasses(c.getComponentType(), classes);
+            case Class<?> c -> classes.add(c);
+            case ParameterizedType p -> {
+                collectClasses(p.getRawType(), classes);
+                for (Type argument : p.getActualTypeArguments()) {
+                    collectClasses(argument, classes);
+                }
+            }
+            case GenericArrayType a -> collectClasses(a.getGenericComponentType(), classes);
+            default -> {
+            }
+        }
     }
 
     public String toLoadKey(File f) {

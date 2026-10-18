@@ -335,7 +335,9 @@ public final class TreeCanopyBuilder {
             int x = (int) Math.round(ox + dx * t);
             int y = (int) Math.round(oy + dy * t - sagBlocks * t * t);
             int z = (int) Math.round(oz + dz * t);
-            if (!canvas.has(x, y, z)) {
+            TreeBlockCanvas.Cell existing = canvas.get(x, y, z);
+            if (existing == null || existing.role() == TreeBlockCanvas.Role.LEAF
+                    || existing.role() == TreeBlockCanvas.Role.SECONDARY_LEAF) {
                 canvas.setTrunk(x, y, z, TreeBlockCanvas.Role.TRUNK, axis);
             }
             tip = new int[]{x, y, z};

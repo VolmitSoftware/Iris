@@ -22,6 +22,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
 
 public class HeightmapObjectPlacer implements IObjectPlacer {
@@ -45,6 +46,16 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
 
     public void set(int param1Int1, int param1Int2, int param1Int3, NativeBlockState param1BlockData) {
         oplacer.set(param1Int1, param1Int2, param1Int3, param1BlockData);
+    }
+
+    @Override
+    public boolean beginTreeCanopy(BlockPosition position) {
+        return oplacer.beginTreeCanopy(position);
+    }
+
+    @Override
+    public void endTreeCanopy() {
+        oplacer.endTreeCanopy();
     }
 
     public NativeBlockState get(int param1Int1, int param1Int2, int param1Int3) {

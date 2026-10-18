@@ -18,6 +18,7 @@ import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
 import net.momirealms.craftengine.bukkit.item.BukkitItemDefinition;
+import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
@@ -27,9 +28,11 @@ import net.momirealms.craftengine.core.block.property.Property;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureDefinition;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
@@ -43,6 +46,7 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -140,21 +144,38 @@ public class CraftEngineDataProvider extends ExternalDataProvider implements Lis
     }
 
     @Override
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         Pair<Identifier, KMap<String, String>> statePair = ExternalDataSVC.parseState(blockId);
         Identifier baseBlockId = statePair.getA();
         KMap<String, String> state = statePair.getB();
         ImmutableBlockState blockState = findBlockState(baseBlockId);
         if (blockState != null) {
             placeBlockState(block, applyProperties(baseBlockId, blockState, state), blockId);
-            return;
+            return null;
         }
         FurnitureDefinition furniture = requireFurniture(baseBlockId);
         KMap<String, String> properties = validateFurnitureProperties(baseBlockId, furniture, state);
         Location location = parseYawAndPitch(engine, block, properties);
-        if (CraftEngineFurniture.place(location, furniture, properties.get("variant"), false) == null) {
+        BukkitFurniture placed = CraftEngineFurniture.place(location, furniture, properties.get("variant"), false);
+        if (placed == null) {
             throw missing(blockId, "Failed to place CraftEngine furniture.");
         }
+        return placed.baseEntity().getUniqueId().toString();
+    }
+
+    @Override
+    public boolean removeGenerated(@NotNull Block block, @NotNull String token) {
+        Chunk chunk = block.getChunk();
+        if (!chunk.isEntitiesLoaded()) {
+            return false;
+        }
+        UUID entityId = UUID.fromString(token);
+        for (Entity entity : chunk.getEntities()) {
+            if (entityId.equals(entity.getUniqueId())) {
+                return CraftEngineFurniture.remove(entity, false, false);
+            }
+        }
+        return true;
     }
 
     @Override

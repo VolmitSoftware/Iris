@@ -2,6 +2,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.volmlib.nativelib.terrain.structure.StructureStagePolicy;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.structure.nativegen.GenerationWritePolicy;
 import art.arcane.iris.structure.nativegen.IrisStructurePolicy;
@@ -13,6 +14,7 @@ import art.arcane.iris.structure.nativegen.StructureLocateSearch;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedStructureStage;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVolumeSource;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockChangeSet;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureLocateSearchAccess;
@@ -105,6 +107,16 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
         return GenerationWritePolicy.protectedPositions(context.getDimension().getStaticObjectLayer(context.getData())
                         .forTransition(context),
                 context.getDimensionStackContext(), context.getMinHeight());
+    }
+
+    @Override
+    public NativeBlockChangeSet trackBlockChanges(Engine context, NativeBlockChangeSet.Bounds bounds) {
+        return DeferredPlacementRecords.track(context, bounds);
+    }
+
+    @Override
+    public void invalidateBlockChanges(Engine context, NativeBlockChangeSet changes) {
+        DeferredPlacementRecords.invalidate(context, changes);
     }
 
     @Override

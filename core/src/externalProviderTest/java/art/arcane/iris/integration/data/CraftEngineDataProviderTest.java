@@ -15,6 +15,7 @@ import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
 import net.momirealms.craftengine.bukkit.item.BukkitItemDefinition;
+import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
@@ -24,10 +25,12 @@ import net.momirealms.craftengine.core.entity.furniture.FurnitureVariant;
 import net.momirealms.craftengine.core.registry.Holder;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.junit.Test;
@@ -37,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,12 +52,59 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class CraftEngineDataProviderTest {
+    @Test
+    public void furniturePlacementReturnsExactEntityTokenAndCleanupKeepsReplacement() {
+        FurnitureDefinition definition = furnitureDefinition();
+        Engine engine = mock(Engine.class);
+        SeedManager seeds = mock(SeedManager.class);
+        when(engine.getSeedManager()).thenReturn(seeds);
+        Block block = mock(Block.class);
+        when(block.getLocation()).thenAnswer(invocation -> new Location(null, 0, 70, 0));
+        Chunk chunk = mock(Chunk.class);
+        when(block.getChunk()).thenReturn(chunk);
+        when(chunk.isEntitiesLoaded()).thenReturn(true);
+        Entity original = mock(Entity.class);
+        Entity replacement = mock(Entity.class);
+        UUID originalId = UUID.randomUUID();
+        when(original.getUniqueId()).thenReturn(originalId);
+        when(replacement.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(chunk.getEntities()).thenReturn(new Entity[]{replacement, original});
+        BukkitFurniture placed = mock(BukkitFurniture.class);
+        when(placed.baseEntity()).thenReturn(original);
+        CraftEngineDataProvider provider = new CraftEngineDataProvider();
+        try (MockedStatic<CraftEngineBlocks> blocks = mockStatic(CraftEngineBlocks.class);
+             MockedStatic<CraftEngineFurniture> furniture = mockStatic(CraftEngineFurniture.class)) {
+            furniture.when(() -> CraftEngineFurniture.byId(Key.of("test:chair"))).thenReturn(definition);
+            furniture.when(() -> CraftEngineFurniture.place(any(Location.class), eq(definition), eq("alpha"), eq(false)))
+                    .thenReturn(placed);
+            furniture.when(() -> CraftEngineFurniture.remove(original, false, false)).thenReturn(true);
+
+            String token = provider.processUpdate(engine, block, Identifier.fromString("test:chair"));
+
+            assertEquals(originalId.toString(), token);
+            assertTrue(provider.removeGenerated(block, token));
+            furniture.verify(() -> CraftEngineFurniture.remove(original, false, false));
+            furniture.verify(() -> CraftEngineFurniture.remove(replacement, false, false), never());
+        }
+    }
+
+    @Test
+    public void furnitureCleanupWaitsForEntitiesToLoad() {
+        Block block = mock(Block.class);
+        Chunk chunk = mock(Chunk.class);
+        when(block.getChunk()).thenReturn(chunk);
+
+        assertFalse(new CraftEngineDataProvider().removeGenerated(block, UUID.randomUUID().toString()));
+        verify(chunk, never()).getEntities();
+    }
+
     @Test
     public void startupWaitsForReloadEventAndEmptyLoadedRegistriesAreReady() {
         CraftEngineDataProvider provider = spy(new CraftEngineDataProvider());

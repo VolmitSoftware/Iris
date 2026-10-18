@@ -3,6 +3,7 @@ package art.arcane.iris.modded;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedNativeStructureWorldgenAccess;
 
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockChangeSet;
 import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructurePostProcessor;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureTerrainIntegrator;
@@ -230,8 +231,9 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter,
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                true,
-                position -> false);
+                true, true,
+                position -> false,
+                NativeBlockChangeSet.disabled());
         int x = generationCenter.getMiddleBlockX();
         int z = generationCenter.getMiddleBlockZ();
 
@@ -248,8 +250,9 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
-                position::equals);
+                false, true,
+                position::equals,
+                NativeBlockChangeSet.disabled());
 
         assertSame(Blocks.DIRT, access.getBlockState(position).getBlock());
         assertFalse(access.ensureCanWrite(position));
@@ -268,6 +271,37 @@ public class ModdedNativeStructureWorldgenAccessTest {
         assertEquals(0, recording.blockTicks.count());
         assertTrue(access.setBlock(position.above(), Blocks.STONE.defaultBlockState(), 2));
         assertEquals(1, recording.mutations);
+    }
+
+    @Test
+    public void acceptedWritesAndReportedChangesAreTrackedOutsideProtectedCells() {
+        RecordingDelegate recording = new RecordingDelegate();
+        BlockPos protectedCell = generationCenter().getMiddleBlockPosition(70);
+        WorldGenLevel delegate = recording.world();
+        NativeBlockChangeSet changes = NativeBlockChangeSet.create(
+                ModdedNativeStructureWorldgenAccess.changeBounds(delegate, generationCenter()));
+        ModdedNativeStructureWorldgenAccess access = ModdedNativeStructureWorldgenAccess.create(
+                delegate, generationCenter(),
+                (x, z) -> SURFACE_FIRST_FREE_Y,
+                (x, z) -> FLOOR_FIRST_FREE_Y,
+                false, true,
+                protectedCell::equals,
+                changes);
+        BlockPos written = protectedCell.above();
+        BlockPos removed = protectedCell.east();
+        BlockPos reported = protectedCell.above(2);
+
+        assertFalse(access.setBlock(protectedCell, Blocks.STONE.defaultBlockState(), 2));
+        assertTrue(access.setBlock(written, Blocks.STONE.defaultBlockState(), 2));
+        assertTrue(access.removeBlock(removed, false));
+        access.recordBlockChange(reported.getX(), reported.getY(), reported.getZ());
+        access.recordBlockChange(protectedCell.getX(), protectedCell.getY(), protectedCell.getZ());
+
+        assertEquals(3, changes.size());
+        assertTrue(changes.contains(written.getX(), written.getY(), written.getZ()));
+        assertTrue(changes.contains(removed.getX(), removed.getY(), removed.getZ()));
+        assertTrue(changes.contains(reported.getX(), reported.getY(), reported.getZ()));
+        assertFalse(changes.contains(protectedCell.getX(), protectedCell.getY(), protectedCell.getZ()));
     }
 
     @Test
@@ -319,8 +353,9 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
-                position -> false);
+                false, true,
+                position -> false,
+                NativeBlockChangeSet.disabled());
     }
 
     private static ChunkPos generationCenter() {

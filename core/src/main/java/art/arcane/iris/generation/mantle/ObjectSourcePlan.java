@@ -32,7 +32,8 @@ final class ObjectSourcePlan {
     private static final int PLACEMENT_DESTINATION_BYTES = 40;
     private static final int UNKNOWN_PAYLOAD_BYTES = 256;
     private static final int CUSTOM_BIT = 1 << 8;
-    private static final int Y_SHIFT = 9;
+    private static final int CANOPY_BIT = 1 << 9;
+    private static final int Y_SHIFT = 10;
     private static final int MAXIMUM_Y = (1 << (31 - Y_SHIFT)) - 1;
 
     private final long[] destinations;
@@ -102,7 +103,7 @@ final class ObjectSourcePlan {
                     custom = CUSTOM_BIT;
                 }
             }
-            cells[position] = (key.y() << Y_SHIFT) | custom | ((key.z() & 15) << 4) | (key.x() & 15);
+            cells[position] = (key.y() << Y_SHIFT) | custom | (mutation.canopy() ? CANOPY_BIT : 0) | ((key.z() & 15) << 4) | (key.x() & 15);
             valueIndexes[position] = table.indexOf(value);
         }
         values = table.values.toArray();
@@ -275,9 +276,9 @@ final class ObjectSourcePlan {
             Object value = values[valueIndexes[start + index]];
             decoded[index] = (cell & CUSTOM_BIT) != 0
                     ? new ObjectDestinationTransaction.CustomBlockMutation(
-                    new ObjectDestinationTransaction.DataKey(x, y, z, NativeBlockState.class), (NativeBlockState) value)
+                    new ObjectDestinationTransaction.DataKey(x, y, z, NativeBlockState.class), (NativeBlockState) value, (cell & CANOPY_BIT) != 0)
                     : new ObjectDestinationTransaction.SetMutation(
-                    new ObjectDestinationTransaction.DataKey(x, y, z, typeOf(value)), value);
+                    new ObjectDestinationTransaction.DataKey(x, y, z, typeOf(value)), value, (cell & CANOPY_BIT) != 0);
         }
         return List.of(decoded);
     }
@@ -285,10 +286,17 @@ final class ObjectSourcePlan {
     static byte[] encode(List<ObjectDestinationTransaction.Mutation> mutations, int height) {
         IrisMatterSupport.ensureRegistered();
         Matter payload = new IrisMatter(16, height, 16);
+        boolean skipCanopy = false;
         for (ObjectDestinationTransaction.Mutation mutation : mutations) {
             ObjectDestinationTransaction.DataKey key = mutation.key();
             int x = key.x() & 15;
             int z = key.z() & 15;
+            if (key.type() == NativeBlockState.class) {
+                skipCanopy = !ObjectContinuationPersistence.beginBlock(payload, x, key.y(), z, mutation.canopy());
+            }
+            if (mutation.canopy() && skipCanopy) {
+                continue;
+            }
             if (mutation instanceof ObjectDestinationTransaction.CustomBlockMutation custom) {
                 payload.slice(NativeBlockState.class).set(x, key.y(), z, custom.state().placementBaseState());
                 payload.slice(Identifier.class).set(x, key.y(), z, Identifier.fromString(custom.state().deferredPlacementKey()));

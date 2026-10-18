@@ -1,5 +1,9 @@
 package art.arcane.iris.modded.api;
 
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.integration.Identifier;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockPlacement;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntityRuntime;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeSpawnedEntity;
 import net.minecraft.SharedConstants;
@@ -9,6 +13,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -20,6 +25,33 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ModdedCustomContentRegistryTest {
+    @Test
+    public void removalReturnsToOriginalProviderWithTokenAndPlacementState() {
+        ModdedDataProvider provider = mock(ModdedDataProvider.class);
+        Engine engine = mock(Engine.class);
+        NativeBlockPlacement placement = mock(NativeBlockPlacement.class);
+        ModdedBlockPlacementContext context = new ModdedBlockPlacementContext(
+                engine, placement, "provider_test:furniture/chair", Map.of("variant", "oak"));
+        when(provider.modId()).thenReturn("ownership_test");
+        when(provider.isReady()).thenReturn(true);
+        when(provider.isValidProvider("provider_test:furniture/chair", ModdedDataType.BLOCK)).thenReturn(true);
+        when(provider.processBlockPlacement(context)).thenReturn("entity-token");
+        when(provider.removeGenerated(context, "entity-token")).thenReturn(true);
+        ModdedCustomContentRegistry.Discovery discovery = ModdedCustomContentRegistry.discover(List.of(provider));
+        try {
+            CustomBlockOwnership.Entry ownership = ModdedCustomContentRegistry.processBlockPlacement(engine,
+                    "provider_test:furniture/chair[variant=oak]", () -> placement);
+
+            assertEquals(new CustomBlockOwnership.Entry(
+                    Identifier.fromString("ownership_test:provider_test/furniture/chair[variant=oak]"),
+                    "entity-token", false), ownership);
+            assertTrue(ModdedCustomContentRegistry.removeGenerated(engine, ownership, () -> placement));
+            verify(provider).removeGenerated(context, "entity-token");
+        } finally {
+            discovery.rollback();
+        }
+    }
+
     @BeforeClass
     public static void bootstrapRegistries() {
         SharedConstants.tryDetectVersion();

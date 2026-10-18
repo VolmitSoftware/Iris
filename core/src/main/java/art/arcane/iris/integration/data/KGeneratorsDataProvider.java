@@ -47,17 +47,18 @@ public class KGeneratorsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
-        if (block.getType() != Material.STRUCTURE_VOID) return;
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+        if (block.getType() != Material.STRUCTURE_VOID) return null;
         IGeneratorLocation existing = KGeneratorsAPI.getLoadedGeneratorLocation(block.getLocation());
-        if (existing != null) return;
+        if (existing != null) return null;
         block.setBlockData(BukkitBlockResolution.getAir(), false);
         Generator generator = Main.getGenerators().get(blockId.key());
-        if (generator == null) return;
+        if (generator == null) return null;
         GeneratorLocation location = new GeneratorLocation(-1, generator, block.getLocation(), Main.getPlacedGenerators().getChunkInfo(block.getChunk()), null, null);
         Main.getDatabases().getDb().saveGenerator(location);
         Main.getPlacedGenerators().addLoaded(location);
         Main.getSchedules().schedule(location, true);
+        return null;
     }
 
     @Override

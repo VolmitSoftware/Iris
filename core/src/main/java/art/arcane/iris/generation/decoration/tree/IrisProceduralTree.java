@@ -242,11 +242,11 @@ public class IrisProceduralTree implements IrisProceduralPlacement {
     private IrisTreeRootStyle rootStyle = IrisTreeRootStyle.BUTTRESS;
 
     @MinNumber(0)
-    @Description("Override the root depth/reach in blocks. 0 means auto (scales with tree height).")
+    @Description("Root depth in blocks, also used for ground-contact extension up to 16 blocks. 0 scales with tree height.")
     private int rootDepth = 0;
 
     @MinNumber(0)
-    @Description("Override the root flare radius in blocks. 0 means auto.")
+    @Description("Horizontal reach of buttress and stilt roots. 0 uses a compact radius based on trunk width. Taproots ignore this field.")
     private double rootFlare = 0;
 
     @MinNumber(1)

@@ -24,6 +24,7 @@ import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 
 final class GoldenDebugObjectPlacer implements IObjectPlacer {
     private static final int[] GOLDEN_DEBUG_TARGET = parseGoldenDebugTarget(resolveGoldenDebugSpec());
@@ -91,6 +92,16 @@ final class GoldenDebugObjectPlacer implements IObjectPlacer {
     @Override
     public void set(int x, int y, int z, NativeBlockState d) {
         delegate.set(x, y, z, d);
+    }
+
+    @Override
+    public boolean beginTreeCanopy(BlockPosition position) {
+        return delegate.beginTreeCanopy(position);
+    }
+
+    @Override
+    public void endTreeCanopy() {
+        delegate.endTreeCanopy();
     }
 
     @Override

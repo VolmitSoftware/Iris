@@ -21,6 +21,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import org.junit.Test;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -31,6 +32,7 @@ import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +44,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class FloatingObjectPlacementTransactionTest {
+    @Test
+    public void canopyCommitRechecksSolidsAndSkipsAssociatedMetadata() {
+        IslandObjectPlacer delegate = createPlacer(true);
+        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
+        NativeBlockState canopy = mock(NativeBlockState.class);
+        NativeBlockState trunk = mock(NativeBlockState.class);
+        when(trunk.isSolid()).thenReturn(true);
+        when(delegate.beginTreeCanopy(any())).thenCallRealMethod();
+        when(delegate.canWriteObjectBlock(4, 101, 7)).thenReturn(true);
+        assertTrue(transaction.beginTreeCanopy(new BlockPosition(4, 101, 7)));
+        transaction.set(4, 101, 7, canopy);
+        transaction.setData(4, 101, 7, "canopy");
+        transaction.endTreeCanopy();
+        when(delegate.get(4, 101, 7)).thenReturn(trunk);
+
+        assertEquals(FloatingObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
+
+        verify(delegate, never()).set(4, 101, 7, canopy);
+        verify(delegate, never()).setData(4, 101, 7, "canopy");
+    }
+
     @Test
     public void unsupportedFinalTerrainRejectsBlocksTilesAndMarkersTogether() {
         IslandObjectPlacer delegate = createPlacer(false);

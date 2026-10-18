@@ -28,125 +28,161 @@ public final class TreeRootBuilder {
     }
 
     public static void build(TreeBlockCanvas canvas, IrisProceduralTree tree, int height, long baseSeed) {
-        List<int[]> cells = new ArrayList<>();
+        List<TreeBlockCanvas.Vec> cells = new ArrayList<>();
         for (TreeBlockCanvas.Vec v : canvas.getTrunk()) {
             if (v.y() == 0) {
-                cells.add(new int[]{v.x(), v.z()});
+                cells.add(v);
             }
         }
         if (cells.isEmpty()) {
             return;
         }
+        cells.sort(TreeBlockCanvas.Vec::compareTo);
 
         int depth = tree.getRootDepth() > 0 ? tree.getRootDepth() : autoDepth(height);
         RNG rng = new RNG(baseSeed ^ 0x5009L);
 
         double cx = 0;
         double cz = 0;
-        for (int[] c : cells) {
-            cx += c[0];
-            cz += c[1];
+        for (TreeBlockCanvas.Vec cell : cells) {
+            cx += cell.x();
+            cz += cell.z();
         }
         cx /= cells.size();
         cz /= cells.size();
 
         double baseRadius = 1.0;
-        for (int[] c : cells) {
-            baseRadius = Math.max(baseRadius, Math.hypot(c[0] - cx, c[1] - cz) + 0.5);
+        for (TreeBlockCanvas.Vec cell : cells) {
+            baseRadius = Math.max(baseRadius, Math.hypot(cell.x() - cx, cell.z() - cz) + 0.5);
         }
-        double flare = tree.getRootFlare() > 0 ? tree.getRootFlare() : baseRadius + Math.max(2.0, depth * 0.6);
+        double flare = tree.getRootFlare() > 0 ? tree.getRootFlare() : baseRadius + Math.max(0.75, baseRadius * 0.35);
+        RootShape shape = new RootShape(cells, cx, cz, baseRadius, depth, flare);
 
         IrisTreeRootStyle style = tree.getRootStyle();
         switch (style) {
-            case TAPROOT -> taproot(canvas, cells, cx, cz, baseRadius, depth);
+            case TAPROOT -> taproot(canvas, shape);
             case BUTTRESS -> {
-                taproot(canvas, cells, cx, cz, baseRadius, depth);
-                buttress(canvas, cells, cx, cz, baseRadius, depth, flare, rng);
+                taproot(canvas, shape);
+                buttress(canvas, shape, rng);
             }
             case STILT -> {
-                taproot(canvas, cells, cx, cz, baseRadius, Math.min(depth, 3));
-                stilts(canvas, cx, cz, baseRadius, flare, height, cells.size(), rng);
+                stilts(canvas, shape, height, rng);
+                taproot(canvas, new RootShape(cells, cx, cz, baseRadius, Math.min(depth, 3), flare));
             }
         }
     }
 
-    private static void taproot(TreeBlockCanvas canvas, List<int[]> cells, double cx, double cz, double baseRadius, int depth) {
-        int icx = (int) Math.round(cx);
-        int icz = (int) Math.round(cz);
-        for (int k = 1; k <= depth; k++) {
-            double frac = k / (double) depth;
-            double keepR = baseRadius * (1.0 - 0.6 * frac);
-            for (int[] c : cells) {
-                if (Math.hypot(c[0] - cx, c[1] - cz) <= keepR + 1e-6) {
-                    placeRoot(canvas, c[0], -k, c[1], TreeBlockCanvas.Axis.Y);
+    private static void taproot(TreeBlockCanvas canvas, RootShape shape) {
+        TreeBlockCanvas.Vec center = nearestCell(shape.cells(), shape.centerX(), shape.centerZ());
+        for (int k = 1; k <= shape.depth(); k++) {
+            double fraction = k / (double) shape.depth();
+            double keepRadius = shape.radius() * (1.0 - fraction);
+            for (TreeBlockCanvas.Vec cell : shape.cells()) {
+                if (Math.hypot(cell.x() - shape.centerX(), cell.z() - shape.centerZ()) <= keepRadius) {
+                    placeRoot(canvas, cell.x(), -k, cell.z(), TreeBlockCanvas.Axis.Y);
                 }
             }
-            placeRoot(canvas, icx, -k, icz, TreeBlockCanvas.Axis.Y);
+            placeRoot(canvas, center.x(), -k, center.z(), TreeBlockCanvas.Axis.Y);
         }
     }
 
-    private static void buttress(TreeBlockCanvas canvas, List<int[]> cells, double cx, double cz, double baseRadius,
-                                 int depth, double flare, RNG rng) {
-        int nLegs = Math.max(4, Math.min(12, cells.size() + 2));
-        for (int li = 0; li < nLegs; li++) {
-            double ang = 2.0 * Math.PI * li / nLegs + rng.d(-0.25, 0.25);
-            double ca = Math.cos(ang);
-            double sa = Math.sin(ang);
-            int prevX = (int) Math.round(cx + baseRadius * ca);
-            int prevZ = (int) Math.round(cz + baseRadius * sa);
-            for (int k = 1; k <= depth; k++) {
-                double frac = k / (double) depth;
-                double r = baseRadius + (flare - baseRadius) * frac;
-                int x = (int) Math.round(cx + r * ca);
-                int z = (int) Math.round(cz + r * sa);
-                placeRoot(canvas, x, -k, z, TreeBlockCanvas.Axis.Y);
-                if (x != prevX || z != prevZ) {
-                    placeRoot(canvas, prevX, -k, prevZ, TreeBlockCanvas.Axis.Y);
-                }
-                prevX = x;
-                prevZ = z;
+    private static void buttress(TreeBlockCanvas canvas, RootShape shape, RNG rng) {
+        int legs = Math.max(3, Math.min(8, shape.cells().size() + 2));
+        for (int leg = 0; leg < legs; leg++) {
+            double angle = 2.0 * Math.PI * leg / legs + rng.d(-0.25, 0.25);
+            double reach = shape.flare() * rng.d(0.8, 1.0);
+            int x = (int) Math.round(shape.centerX() + reach * Math.cos(angle));
+            int z = (int) Math.round(shape.centerZ() + reach * Math.sin(angle));
+            int depth = legDepth(shape.depth(), leg, legs);
+            TreeBlockCanvas.Vec start = nearestCell(shape.cells(), x, z);
+            rasterizeRoot(canvas, start, new TreeBlockCanvas.Vec(x, -depth, z));
+        }
+    }
+
+    private static void stilts(TreeBlockCanvas canvas, RootShape shape, int height, RNG rng) {
+        int stiltTop = Math.min(height - 1, Math.max(2, Math.min(7, (int) Math.round(0.25 * height))));
+        List<TreeBlockCanvas.Vec> attachments = new ArrayList<>();
+        for (TreeBlockCanvas.Vec cell : canvas.getTrunk()) {
+            if (cell.y() == stiltTop) {
+                attachments.add(cell);
             }
         }
-    }
-
-    private static void stilts(TreeBlockCanvas canvas, double cx, double cz, double baseRadius, double flare,
-                               int height, int cellCount, RNG rng) {
-        int stiltTop = Math.max(2, Math.min(7, (int) Math.round(0.25 * height)));
-        int nProps = Math.max(4, Math.min(10, cellCount + 2));
-        for (int p = 0; p < nProps; p++) {
-            double ang = 2.0 * Math.PI * p / nProps + rng.d(-0.25, 0.25);
-            double ca = Math.cos(ang);
-            double sa = Math.sin(ang);
-            int sx = (int) Math.round(cx + baseRadius * ca);
-            int sz = (int) Math.round(cz + baseRadius * sa);
-            int fx = (int) Math.round(cx + flare * ca);
-            int fz = (int) Math.round(cz + flare * sa);
-            rasterizeRoot(canvas, sx, stiltTop, sz, fx, -2, fz);
+        if (attachments.isEmpty()) {
+            attachments.addAll(shape.cells());
+        }
+        attachments.sort(TreeBlockCanvas.Vec::compareTo);
+        int props = Math.max(3, Math.min(8, shape.cells().size() + 2));
+        for (int prop = 0; prop < props; prop++) {
+            double angle = 2.0 * Math.PI * prop / props + rng.d(-0.25, 0.25);
+            double reach = shape.flare() * rng.d(0.8, 1.0);
+            int x = (int) Math.round(shape.centerX() + reach * Math.cos(angle));
+            int z = (int) Math.round(shape.centerZ() + reach * Math.sin(angle));
+            int depth = legDepth(Math.min(shape.depth(), 3), prop, props);
+            TreeBlockCanvas.Vec start = nearestCell(attachments, x, z);
+            rasterizeRoot(canvas, start, new TreeBlockCanvas.Vec(x, -depth, z));
         }
     }
 
-    private static void rasterizeRoot(TreeBlockCanvas canvas, int ox, int oy, int oz, int ex, int ey, int ez) {
-        int dx = ex - ox;
-        int dy = ey - oy;
-        int dz = ez - oz;
+    private static int legDepth(int depth, int leg, int count) {
+        return Math.max(1, (int) Math.round(depth * (0.55 + 0.45 * leg / Math.max(1, count - 1))));
+    }
+
+    private static TreeBlockCanvas.Vec nearestCell(List<TreeBlockCanvas.Vec> cells, double x, double z) {
+        TreeBlockCanvas.Vec nearest = cells.getFirst();
+        double distance = Double.POSITIVE_INFINITY;
+        for (TreeBlockCanvas.Vec cell : cells) {
+            double dx = cell.x() - x;
+            double dz = cell.z() - z;
+            double candidateDistance = dx * dx + dz * dz;
+            if (candidateDistance < distance) {
+                nearest = cell;
+                distance = candidateDistance;
+            }
+        }
+        return nearest;
+    }
+
+    private static void rasterizeRoot(TreeBlockCanvas canvas, TreeBlockCanvas.Vec start, TreeBlockCanvas.Vec end) {
+        int dx = end.x() - start.x();
+        int dy = end.y() - start.y();
+        int dz = end.z() - start.z();
         int steps = Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.max(Math.abs(dz), 1));
         TreeBlockCanvas.Axis axis = TreeFunctions.logAxis(dx, dy, dz);
-        for (int i = 0; i <= steps; i++) {
+        int x = start.x();
+        int y = start.y();
+        int z = start.z();
+        for (int i = 1; i <= steps; i++) {
             double t = i / (double) steps;
-            int x = (int) Math.round(ox + dx * t);
-            int y = (int) Math.round(oy + dy * t);
-            int z = (int) Math.round(oz + dz * t);
-            placeRoot(canvas, x, y, z, axis);
+            int nextX = (int) Math.round(start.x() + dx * t);
+            int nextY = (int) Math.round(start.y() + dy * t);
+            int nextZ = (int) Math.round(start.z() + dz * t);
+            while (y != nextY) {
+                y += Integer.signum(nextY - y);
+                placeRoot(canvas, x, y, z, axis);
+            }
+            while (x != nextX) {
+                x += Integer.signum(nextX - x);
+                placeRoot(canvas, x, y, z, axis);
+            }
+            while (z != nextZ) {
+                z += Integer.signum(nextZ - z);
+                placeRoot(canvas, x, y, z, axis);
+            }
         }
     }
 
     private static void placeRoot(TreeBlockCanvas canvas, int x, int y, int z, TreeBlockCanvas.Axis axis) {
-        if (!canvas.has(x, y, z)) {
+        TreeBlockCanvas.Cell cell = canvas.get(x, y, z);
+        if (cell == null || cell.role() != TreeBlockCanvas.Role.TRUNK && cell.role() != TreeBlockCanvas.Role.SECONDARY_TRUNK) {
             canvas.setTrunk(x, y, z, TreeBlockCanvas.Role.TRUNK, axis);
         }
     }
 
     private static int autoDepth(int height) {
         return Math.max(2, Math.min(16, (int) Math.round(0.18 * height)));
+    }
+
+    private record RootShape(List<TreeBlockCanvas.Vec> cells, double centerX, double centerZ,
+                             double radius, int depth, double flare) {
     }
 }

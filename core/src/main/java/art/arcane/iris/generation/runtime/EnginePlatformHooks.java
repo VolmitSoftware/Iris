@@ -21,6 +21,8 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.iris.world.history.SavedTerrainChunk;
 
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +30,10 @@ import art.arcane.iris.generation.mantle.MantleComponent;
 import art.arcane.volmlib.util.collection.KList;
 
 public interface EnginePlatformHooks {
+    default boolean removeCustomBlock(Engine engine, NativeBlockPoint position, CustomBlockOwnership.Entry entry) {
+        return false;
+    }
+
     default CompletableFuture<Void> flushSavedTerrainCapture(Engine engine) {
         return CompletableFuture.failedFuture(new UnsupportedOperationException(
                 "This platform does not support saved terrain checkpoints."));

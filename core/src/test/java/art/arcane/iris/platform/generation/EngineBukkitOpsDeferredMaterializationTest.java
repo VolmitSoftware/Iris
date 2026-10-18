@@ -51,6 +51,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -76,6 +77,7 @@ public class EngineBukkitOpsDeferredMaterializationTest {
             iterator.accept(1, 2, 3, identifier);
             return null;
         }).when(stored).iterate(eq(Identifier.class), any());
+        doReturn(identifier).when(stored).get(1, 2, 3, Identifier.class);
         Engine engine = mock(Engine.class);
         when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
         when(engine.getMetrics()).thenReturn(new EngineMetrics(8));

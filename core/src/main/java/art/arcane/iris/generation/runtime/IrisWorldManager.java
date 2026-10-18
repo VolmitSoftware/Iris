@@ -44,6 +44,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.CompletableFuture;
@@ -247,6 +248,16 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         } catch (RejectedExecutionException ex) {
             IrisLogging.debug("Skipped mantle cleanup schedule for " + cX + ", " + cZ + "; cleanup executor is stopped.");
         }
+    }
+
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        runManagerTask("bukkit_world_manager_entities_load", () -> {
+            if (!event.getEntities().isEmpty()
+                    && event.getWorld().equals(BukkitWorldBinding.world(getEngine().getWorld()))) {
+                chunkMaintenance.onEntitiesLoaded(event.getChunk());
+            }
+        });
     }
 
     @Override

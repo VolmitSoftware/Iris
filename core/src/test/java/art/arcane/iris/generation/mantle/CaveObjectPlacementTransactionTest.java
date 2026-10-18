@@ -28,9 +28,11 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -42,6 +44,26 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class CaveObjectPlacementTransactionTest {
+    @Test
+    public void canopyCommitRechecksSolidsAndSkipsAssociatedMetadata() {
+        IObjectPlacer delegate = createPlacer(128, 80, 20, 60);
+        CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
+        NativeBlockState canopy = mock(NativeBlockState.class);
+        NativeBlockState trunk = mock(NativeBlockState.class);
+        when(trunk.isSolid()).thenReturn(true);
+        when(delegate.beginTreeCanopy(any())).thenCallRealMethod();
+        assertTrue(transaction.beginTreeCanopy(new BlockPosition(4, 30, 7)));
+        transaction.set(4, 30, 7, canopy);
+        transaction.setData(4, 30, 7, "canopy");
+        transaction.endTreeCanopy();
+        when(delegate.get(4, 30, 7)).thenReturn(trunk);
+
+        assertEquals(CaveObjectPlacementTransaction.CommitResult.COMMITTED, transaction.commit());
+
+        verify(delegate, never()).set(4, 30, 7, canopy);
+        verify(delegate, never()).setData(4, 30, 7, "canopy");
+    }
+
     @Test
     public void validPlacementCommitsBlocksTilesAndMetadataTogether() {
         IObjectPlacer delegate = createPlacer(128, 80, 20, 60);

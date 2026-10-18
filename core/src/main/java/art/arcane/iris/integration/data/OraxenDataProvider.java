@@ -61,8 +61,9 @@ public final class OraxenDataProvider extends ExternalDataProvider implements Li
     }
 
     @Override
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         OraxenBlocks.place(blockId.key(), block.getLocation());
+        return null;
     }
 
     @Override

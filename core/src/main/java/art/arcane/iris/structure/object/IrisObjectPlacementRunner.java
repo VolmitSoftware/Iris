@@ -23,6 +23,7 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.cave.CarveResult;
 import art.arcane.iris.generation.cave.CarvingMode;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
+import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
 import art.arcane.iris.structure.object.IrisSurfaceSupport;
 import art.arcane.iris.generation.decoration.IrisVacuumSettings;
@@ -331,6 +332,18 @@ final class IrisObjectPlacementRunner {
             return -1;
         }
 
+        TreeGrounding.Plan grounding = null;
+        if (self.getTreeGrounding() != null && yv < 0 && config.getCarvingSupport().supportsSurface()
+                && !config.isForcePlace() && !config.isFromBottom() && !paint && !ceilingHang
+                && config.getMode() != ObjectPlaceMode.FLOATING && !rawStructurePiece) {
+            grounding = self.getTreeGrounding().plan(placer, new TreeGrounding.Placement(rdata, config,
+                    new BlockPosition(x, y + yrand, z), new BlockPosition(spinx, spiny, spinz)));
+            if (!grounding.supported()) {
+                return -1;
+            }
+            stilting = false;
+        }
+
         IrisPaintSurfaceProjection paintProjection = null;
         KList<IrisBlockVector> paintSupport = null;
         if (paint) {
@@ -467,6 +480,7 @@ final class IrisObjectPlacementRunner {
         try {
             VectorMap<NativeBlockState> blocks = self.blocks;
             VectorMap<TileData> states = self.states;
+            TreeGrounding tree = self.getTreeGrounding();
             // Zero-tile objects are the common case: skip the two Key allocations VectorMap#get needs to prove null.
             boolean hasStates = !states.isEmpty();
 
@@ -622,47 +636,71 @@ final class IrisObjectPlacementRunner {
                     continue;
                 }
 
-                data = normalizePlacedWaterlogging(data, placer, xx, yy, zz, waterlogCandidate);
-
-                if (!rawStructurePiece && B.isVineBlock(data)) {
-                    data = attachVineFaces(placer, data, xx, yy, zz);
+                boolean canopy = tree != null && tree.isCanopy(g.getBlockX(), g.getBlockY(), g.getBlockZ());
+                if (canopy && !placer.beginTreeCanopy(new BlockPosition(xx, yy, zz))) {
+                    continue;
                 }
 
-                // Short-circuit order matters for cost only: the mantle read is paid solely
-                // for vine blocks. Both operands are pure, so the value is unchanged.
-                boolean wouldReplace = !rawStructurePiece && B.isVineBlock(data) && B.isSolid(placer.get(xx, yy, zz));
-                String material = IrisObjectShaping.materialKey(data);
-                boolean air = material.equals("minecraft:air") || material.equals("minecraft:cave_air");
-                boolean place = shouldPlaceObjectBlock(rawStructurePiece, air, wouldReplace);
+                try {
+                    data = normalizePlacedWaterlogging(data, placer, xx, yy, zz, waterlogCandidate);
 
-                if (data.isCustom() || place) {
-                    placer.set(xx, yy, zz, data);
-                    if (heightmap != null) {
-                        Position2 pos = new Position2(xx, zz);
-                        Integer currentHeight = heightmap.get(pos);
-                        if (currentHeight == null || currentHeight < yy) {
-                            heightmap.put(pos, yy);
+                    if (!rawStructurePiece && B.isVineBlock(data)) {
+                        data = attachVineFaces(placer, data, xx, yy, zz);
+                    }
+
+                    // Short-circuit order matters for cost only: the mantle read is paid solely
+                    // for vine blocks. Both operands are pure, so the value is unchanged.
+                    boolean wouldReplace = !rawStructurePiece && B.isVineBlock(data) && B.isSolid(placer.get(xx, yy, zz));
+                    String material = IrisObjectShaping.materialKey(data);
+                    boolean air = material.equals("minecraft:air") || material.equals("minecraft:cave_air");
+                    boolean place = shouldPlaceObjectBlock(rawStructurePiece, air, wouldReplace);
+
+                    if (data.isCustom() || place) {
+                        placer.set(xx, yy, zz, data);
+                        if (heightmap != null) {
+                            Position2 pos = new Position2(xx, zz);
+                            Integer currentHeight = heightmap.get(pos);
+                            if (currentHeight == null || currentHeight < yy) {
+                                heightmap.put(pos, yy);
+                            }
+                        }
+                        if (tile != null) {
+                            placer.setTile(xx, yy, zz, tile);
+                        }
+                        if (markers != null && markers.containsKey(g)) {
+                            placer.setData(xx, yy, zz, new MatterMarker(markers.get(g)));
+                        }
+                        if (listener != null) {
+                            listener.accept(new BlockPosition(xx, yy, zz), data);
+                        }
+                        if (vacuuming && yy < vacuumLowest) {
+                            vacuumLowest = yy;
+                        }
+                        if (vacuuming && yy > vacuumHighest) {
+                            vacuumHighest = yy;
                         }
                     }
-                    if (tile != null) {
-                        placer.setTile(xx, yy, zz, tile);
-                    }
-                    if (markers != null && markers.containsKey(g)) {
-                        placer.setData(xx, yy, zz, new MatterMarker(markers.get(g)));
-                    }
-                    if (listener != null) {
-                        listener.accept(new BlockPosition(xx, yy, zz), data);
-                    }
-                    if (vacuuming && yy < vacuumLowest) {
-                        vacuumLowest = yy;
-                    }
-                    if (vacuuming && yy > vacuumHighest) {
-                        vacuumHighest = yy;
+                } finally {
+                    if (canopy) {
+                        placer.endTreeCanopy();
                     }
                 }
             }
         } finally {
             self.readLock.unlock();
+        }
+
+        if (grounding != null) {
+            for (TreeGrounding.Extension extension : grounding.extensions()) {
+                for (int rootY = extension.topY(); rootY >= extension.bottomY(); rootY--) {
+                    NativeBlockState rootState = normalizePlacedWaterlogging(extension.state(), placer,
+                            extension.x(), rootY, extension.z(), waterlogCandidate);
+                    placer.set(extension.x(), rootY, extension.z(), rootState);
+                    if (listener != null) {
+                        listener.accept(new BlockPosition(extension.x(), rootY, extension.z()), rootState);
+                    }
+                }
+            }
         }
 
         if (stilting) {

@@ -84,10 +84,11 @@ public class ItemAdderDataProvider extends ExternalDataProvider implements Liste
     }
 
     @Override
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         if (CustomBlock.place(blockId.toString(), block.getLocation()) == null) {
             throw new MissingResourceException("Failed to place ItemsAdder block.", blockId.namespace(), blockId.key());
         }
+        return null;
     }
 
     @Override

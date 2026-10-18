@@ -28,6 +28,7 @@ import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -49,6 +50,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private final Long2IntOpenHashMap surfaceHeights;
     private final Long2IntOpenHashMap caveCeilings;
     private int blockWrites;
+    private BlockPosition canopyPosition;
 
     CaveObjectPlacementTransaction(IObjectPlacer delegate, int anchorY, int minDepthBelowSurface) {
         this.delegate = delegate;
@@ -95,11 +97,34 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
             }
         }
 
-        for (BufferedMutation mutation : mutations) {
-            mutation.apply(delegate);
-        }
+        applyMutations();
         discard();
         return CommitResult.COMMITTED;
+    }
+
+    private void applyMutations() {
+        boolean canopyOpen = false;
+        boolean skipCanopy = false;
+        try {
+            for (BufferedMutation mutation : mutations) {
+                if (mutation.value() instanceof NativeBlockState) {
+                    if (canopyOpen) {
+                        delegate.endTreeCanopy();
+                        canopyOpen = false;
+                    }
+                    skipCanopy = mutation.canopy()
+                            && !delegate.beginTreeCanopy(new BlockPosition(mutation.x(), mutation.y(), mutation.z()));
+                    canopyOpen = mutation.canopy() && !skipCanopy;
+                }
+                if (!mutation.canopy() || !skipCanopy) {
+                    mutation.apply(delegate);
+                }
+            }
+        } finally {
+            if (canopyOpen) {
+                delegate.endTreeCanopy();
+            }
+        }
     }
 
     void discard() {
@@ -139,9 +164,28 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         if (state == null) {
             return;
         }
-        mutations.add(new BlockMutation(x, y, z, state));
+        mutations.add(new BlockMutation(x, y, z, state, isCanopy(x, y, z)));
         bufferedBlocks.put(new PositionKey(x, y, z), state);
         blockWrites++;
+    }
+
+    @Override
+    public boolean beginTreeCanopy(BlockPosition position) {
+        if (!IObjectPlacer.super.beginTreeCanopy(position)) {
+            return false;
+        }
+        canopyPosition = position;
+        return true;
+    }
+
+    @Override
+    public void endTreeCanopy() {
+        canopyPosition = null;
+    }
+
+    private boolean isCanopy(int x, int y, int z) {
+        return canopyPosition != null && canopyPosition.getX() == x
+                && canopyPosition.getY() == y && canopyPosition.getZ() == z;
     }
 
     @Override
@@ -198,7 +242,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     @Override
     public void setTile(int x, int y, int z, TileData tile) {
         if (tile != null) {
-            mutations.add(new TileMutation(x, y, z, tile));
+            mutations.add(new TileMutation(x, y, z, tile, isCanopy(x, y, z)));
         }
     }
 
@@ -207,7 +251,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         if (data == null) {
             return;
         }
-        mutations.add(new DataMutation(x, y, z, data));
+        mutations.add(new DataMutation(x, y, z, data, isCanopy(x, y, z)));
         if (data instanceof NativeBlockState state) {
             bufferedBlocks.put(new PositionKey(x, y, z), state);
             blockWrites++;
@@ -291,24 +335,26 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
 
         Object value();
 
+        boolean canopy();
+
         void apply(IObjectPlacer placer);
     }
 
-    private record BlockMutation(int x, int y, int z, NativeBlockState value) implements BufferedMutation {
+    private record BlockMutation(int x, int y, int z, NativeBlockState value, boolean canopy) implements BufferedMutation {
         @Override
         public void apply(IObjectPlacer placer) {
             placer.set(x, y, z, value);
         }
     }
 
-    private record TileMutation(int x, int y, int z, TileData value) implements BufferedMutation {
+    private record TileMutation(int x, int y, int z, TileData value, boolean canopy) implements BufferedMutation {
         @Override
         public void apply(IObjectPlacer placer) {
             placer.setTile(x, y, z, value);
         }
     }
 
-    private record DataMutation(int x, int y, int z, Object value) implements BufferedMutation {
+    private record DataMutation(int x, int y, int z, Object value, boolean canopy) implements BufferedMutation {
         @Override
         public void apply(IObjectPlacer placer) {
             placer.setData(x, y, z, value);

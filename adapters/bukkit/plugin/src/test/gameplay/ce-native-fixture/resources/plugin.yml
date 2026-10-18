@@ -1,0 +1,12 @@
+name: IrisCraftEngineNativeFixture
+version: 1.0.0
+main: art.arcane.iris.fixture.CraftEngineNativeFixture
+api-version: '26.1.2'
+folia-supported: true
+depend: [Iris, CraftEngine]
+commands:
+  iriscenative:
+    permission: iriscenative.run
+permissions:
+  iriscenative.run:
+    default: op

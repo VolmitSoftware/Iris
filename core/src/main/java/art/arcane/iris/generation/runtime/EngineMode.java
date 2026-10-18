@@ -23,11 +23,9 @@ import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.mantle.EngineMantle;
+import art.arcane.iris.generation.mantle.ObjectContinuationPersistence;
 import art.arcane.iris.generation.stage.IrisDimensionStackActuator;
 import art.arcane.iris.generation.stage.IrisTransitionGeometryActuator;
-import art.arcane.iris.integration.Identifier;
-import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
-import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.SavedTerrainChunk;
@@ -36,13 +34,10 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
 import art.arcane.volmlib.util.hunk.Hunk;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterSlice;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 public interface EngineMode extends Staged {
     KList<EngineStage> getTerrainStages();
@@ -221,7 +216,7 @@ public interface EngineMode extends Staged {
             recordNaturalTerrain(x, z, blocks, biomes, ctx);
             IrisDimensionStackActuator.clearHostNaturalMetadata(getEngine(), x, z, biomes.getHeight(), ctx);
             ctx.beginContent();
-            List<Matter> continuations = restoreObjectContinuations(x, z);
+            List<Matter> continuations = restoreObjectContinuations(x, z, blocks);
             if (!continuations.isEmpty()) {
                 ctx.setCaveTerrain(null);
             }
@@ -229,16 +224,13 @@ public interface EngineMode extends Staged {
                 i.generate(x, z, blocks, biomes, multicore, ctx);
             }
             for (Matter continuation : continuations) {
-                restoreObjectMetadata(x, z, continuation);
-                MatterSlice<NativeBlockState> states = continuation.getSlice(NativeBlockState.class);
-                if (states != null) {
-                    states.iterateSync((localX, y, localZ, state) -> blocks.set(localX, y, localZ, state));
-                }
+                ObjectContinuationPersistence.restore(getMantle().getMantle(), x >> 4, z >> 4,
+                        continuation, blocks, true);
             }
         }
     }
 
-    private List<Matter> restoreObjectContinuations(int x, int z) {
+    private List<Matter> restoreObjectContinuations(int x, int z, Hunk<NativeBlockState> blocks) {
         if (!(getEngine() instanceof IrisEngine irisEngine)) {
             return List.of();
         }
@@ -257,47 +249,12 @@ public interface EngineMode extends Staged {
                 if (continuation.getHeight() != getEngine().getHeight()) {
                     throw new IOException("Object continuation height does not match the world");
                 }
-                restoreObjectMetadata(x, z, continuation);
+                ObjectContinuationPersistence.restore(getMantle().getMantle(), x >> 4, z >> 4,
+                        continuation, blocks, false);
             }
             return continuations;
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to restore object continuation at " + (x >> 4) + "," + (z >> 4), failure);
-        }
-    }
-
-    private void restoreObjectMetadata(int x, int z, Matter continuation) {
-        MantleChunk<Matter> chunk = getMantle().getMantle().useChunk(x >> 4, z >> 4);
-        try {
-            synchronized (chunk) {
-                MatterSlice<NativeBlockState> states = continuation.getSlice(NativeBlockState.class);
-                if (states != null) {
-                    states.iterateSync((localX, y, localZ, state) -> {
-                        Matter section = chunk.get(y >> 4);
-                        if (section != null) {
-                            clearObjectMetadata(section, localX, y & 15, localZ);
-                        }
-                    });
-                }
-                for (Map.Entry<Class<?>, MatterSlice<?>> entry : continuation.getSliceMap().entrySet()) {
-                    entry.getValue().iterateSync((localX, y, localZ, value) ->
-                            chunk.getOrCreate(y >> 4).slice(entry.getKey()).set(localX, y & 15, localZ, value));
-                }
-            }
-        } finally {
-            chunk.release();
-        }
-    }
-
-    private static void clearObjectMetadata(Matter section, int x, int y, int z) {
-        clearObjectMetadata(section.getSlice(Identifier.class), x, y, z);
-        clearObjectMetadata(section.getSlice(String.class), x, y, z);
-        clearObjectMetadata(section.getSlice(TreeBlockMaterial.class), x, y, z);
-        clearObjectMetadata(section.getSlice(TileWrapper.class), x, y, z);
-    }
-
-    private static void clearObjectMetadata(MatterSlice<?> slice, int x, int y, int z) {
-        if (slice != null) {
-            slice.set(x, y, z, null);
         }
     }
 

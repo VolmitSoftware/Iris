@@ -23,6 +23,7 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import org.jetbrains.annotations.Nullable;
 
 public class DecayControlPlacer implements IObjectPlacer {
@@ -45,6 +46,16 @@ public class DecayControlPlacer implements IObjectPlacer {
     @Override
     public void set(int x, int y, int z, NativeBlockState d) {
         delegate.set(x, y, z, d);
+    }
+
+    @Override
+    public boolean beginTreeCanopy(BlockPosition position) {
+        return delegate.beginTreeCanopy(position);
+    }
+
+    @Override
+    public void endTreeCanopy() {
+        delegate.endTreeCanopy();
     }
 
     @Override

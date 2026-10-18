@@ -97,6 +97,10 @@ final class PaletteInspectorPanel extends JPanel {
         setVisible(true);
     }
 
+    void showTextureStatus(String status) {
+        statisticsView.showTextureStatus(status);
+    }
+
     void hideInspector() {
         setVisible(false);
     }
@@ -183,12 +187,13 @@ final class PaletteInspectorPanel extends JPanel {
         private static final int HISTOGRAM_HEIGHT = 84;
         private static final int BAND_HEIGHT = 12;
         private static final int ROW_HEIGHT = 20;
-        private static final int SWATCH_SIZE = 10;
+        private static final int SWATCH_SIZE = 14;
         private static final int WEIGHT_COLUMN_WIDTH = 48;
         private static final int ACTUAL_COLUMN_WIDTH = 70;
         private static final int NOTE_LINE_HEIGHT = 15;
 
         private PaletteLayerPreview preview;
+        private String textureStatus;
 
         private StatisticsView() {
             setOpaque(true);
@@ -201,6 +206,12 @@ final class PaletteInspectorPanel extends JPanel {
             repaint();
         }
 
+        private void showTextureStatus(String status) {
+            textureStatus = status;
+            revalidate();
+            repaint();
+        }
+
         @Override
         public Dimension getPreferredSize() {
             if (preview == null) {
@@ -209,7 +220,7 @@ final class PaletteInspectorPanel extends JPanel {
             int width = Math.max(getWidth(), PANEL_WIDTH - 20) - MARGIN * 2;
             FontMetrics noteMetrics = getFontMetrics(LEGEND_FONT);
             int noteLines = 0;
-            for (String note : notes(preview)) {
+            for (String note : notes()) {
                 noteLines += wrap(note, noteMetrics, width).size() + 1;
             }
             int height = MARGIN + 18 + HISTOGRAM_HEIGHT + BAND_HEIGHT + 30
@@ -288,8 +299,7 @@ final class PaletteInspectorPanel extends JPanel {
 
             int rowY = y + ROW_HEIGHT;
             for (PaletteLayerPreview.Entry entry : preview.entries()) {
-                canvas.setColor(new Color(entry.color()));
-                canvas.fillRoundRect(x, rowY - SWATCH_SIZE, SWATCH_SIZE, SWATCH_SIZE, 3, 3);
+                drawSwatch(canvas, entry, x, rowY - SWATCH_SIZE + 2);
                 canvas.setFont(ITEM_FONT);
                 canvas.setColor(entry.found() ? PRIMARY_TEXT : NoiseExplorerGUI.ERROR);
                 String name = entry.found() ? shortBlockName(entry.block()) : shortBlockName(entry.block()) + " (not found)";
@@ -304,12 +314,21 @@ final class PaletteInspectorPanel extends JPanel {
             return rowY - ROW_HEIGHT;
         }
 
+        private static void drawSwatch(Graphics2D canvas, PaletteLayerPreview.Entry entry, int x, int y) {
+            if (entry.texture() != null) {
+                canvas.drawImage(entry.texture().toImage(), x, y, SWATCH_SIZE, SWATCH_SIZE, null);
+                return;
+            }
+            canvas.setColor(new Color(entry.color()));
+            canvas.fillRoundRect(x, y, SWATCH_SIZE, SWATCH_SIZE, 3, 3);
+        }
+
         private void drawNotes(Graphics2D canvas, int x, int y, int width) {
             canvas.setFont(LEGEND_FONT);
             canvas.setColor(SECONDARY_TEXT);
             FontMetrics metrics = canvas.getFontMetrics();
             int lineY = y;
-            for (String note : notes(preview)) {
+            for (String note : notes()) {
                 for (String line : wrap(note, metrics, width)) {
                     canvas.drawString(line, x, lineY);
                     lineY += NOTE_LINE_HEIGHT;
@@ -318,8 +337,11 @@ final class PaletteInspectorPanel extends JPanel {
             }
         }
 
-        private static List<String> notes(PaletteLayerPreview preview) {
+        private List<String> notes() {
             List<String> notes = new ArrayList<>();
+            if (textureStatus != null) {
+                notes.add(textureStatus);
+            }
             notes.add("▼ gets under half its weight, ▲ gets over double.");
             notes.add(String.format(Locale.ROOT, "Measured on a %d × %d grid spread over %,.0f blocks around 0, 0.",
                     PaletteLayerPreview.STATISTICS_GRID_SIZE, PaletteLayerPreview.STATISTICS_GRID_SIZE,

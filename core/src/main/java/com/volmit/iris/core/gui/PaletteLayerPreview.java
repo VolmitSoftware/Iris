@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.gui;
 
+import com.volmit.iris.core.gui.BlockTextures.BlockTexture;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -47,12 +48,14 @@ final class PaletteLayerPreview {
     private final IrisData data;
     private final int[] entryBySlot;
     private final int[] colorByEntry;
+    private final BlockTexture[] textureByEntry;
     private final List<Entry> entries;
     private final long[] histogram;
     private final double absentShare;
     private final double outOfRangeShare;
 
-    private PaletteLayerPreview(String biomeKey, IrisBiome biome, int layer, int depth, RNG random, IrisData data) {
+    private PaletteLayerPreview(String biomeKey, IrisBiome biome, int layer, int depth, RNG random, IrisData data,
+                                BlockTextures textures) {
         this.biomeKey = biomeKey;
         this.biome = biome;
         this.paletteLayer = biome.getLayers().get(layer);
@@ -64,6 +67,7 @@ final class PaletteLayerPreview {
         if (entryBySlot.length == 0) {
             throw new IllegalStateException("No palette block in " + biomeKey + " layer " + layer + " could be found");
         }
+        this.textureByEntry = resolveEntryTextures(textures);
         this.colorByEntry = resolveEntryColors();
 
         Statistics statistics = measure();
@@ -73,7 +77,7 @@ final class PaletteLayerPreview {
         this.entries = describeEntries(statistics.sharesByEntry());
     }
 
-    static PaletteLayerPreview load(Engine engine, String biomeKey, int layer, int depth) {
+    static PaletteLayerPreview load(Engine engine, String biomeKey, int layer, int depth, BlockTextures textures) {
         if (engine == null || engine.isClosed()) {
             throw new IllegalStateException("Open a studio world to preview pack palettes");
         }
@@ -83,7 +87,7 @@ final class PaletteLayerPreview {
             throw new IllegalStateException("Palette layer removed during hotload: " + biomeKey + " layer " + layer);
         }
         RNG terrainRandom = new RNG(engine.getSeedManager().getTerrain());
-        return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data);
+        return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data, textures);
     }
 
     double sample(double x, double z) {
@@ -95,6 +99,10 @@ final class PaletteLayerPreview {
 
     int colorForNoise(double noise) {
         return colorByEntry[entryIndexForNoise(noise)];
+    }
+
+    BlockTexture textureForNoise(double noise) {
+        return textureByEntry[entryIndexForNoise(noise)];
     }
 
     Entry entryForNoise(double noise) {
@@ -153,20 +161,40 @@ final class PaletteLayerPreview {
         return entryBySlot[IrisBiomePaletteLayer.slotForNoise(noise, entryBySlot.length)];
     }
 
+    private BlockTexture[] resolveEntryTextures(BlockTextures textures) {
+        KList<IrisBlockData> palette = paletteLayer.getPalette();
+        BlockTexture[] resolved = new BlockTexture[palette.size()];
+        if (textures == null) {
+            return resolved;
+        }
+        for (int entry = 0; entry < palette.size(); entry++) {
+            BlockData block = palette.get(entry).getBlockData(data);
+            resolved[entry] = block == null ? null : textures.topTexture(block).orElse(null);
+        }
+        return resolved;
+    }
+
+    // Blocks without a texture, like custom blocks or everything before the textures load, fall back to map colours.
     private int[] resolveEntryColors() {
         KList<IrisBlockData> palette = paletteLayer.getPalette();
-        List<BlockData> blocks = new ArrayList<>();
-        for (IrisBlockData entry : palette) {
-            BlockData block = entry.getBlockData(data);
-            if (block != null) {
-                blocks.add(block);
+        List<BlockData> untexturedBlocks = new ArrayList<>();
+        for (int entry = 0; entry < palette.size(); entry++) {
+            BlockData block = palette.get(entry).getBlockData(data);
+            if (block != null && textureByEntry[entry] == null) {
+                untexturedBlocks.add(block);
             }
         }
-        Map<String, Integer> colorsByBlock = BlockPreviewColors.colorsByBlock(blocks);
+        Map<String, Integer> mapColorsByBlock = BlockPreviewColors.colorsByBlock(untexturedBlocks);
         int[] colors = new int[palette.size()];
         for (int entry = 0; entry < palette.size(); entry++) {
             BlockData block = palette.get(entry).getBlockData(data);
-            colors[entry] = block == null ? MISSING_BLOCK_COLOR : colorsByBlock.get(block.getAsString(true));
+            if (block == null) {
+                colors[entry] = MISSING_BLOCK_COLOR;
+            } else if (textureByEntry[entry] != null) {
+                colors[entry] = textureByEntry[entry].averageColor();
+            } else {
+                colors[entry] = mapColorsByBlock.get(block.getAsString(true));
+            }
         }
         return colors;
     }
@@ -215,6 +243,7 @@ final class PaletteLayerPreview {
                     block.getWeight(),
                     block.getBlockData(data) != null,
                     colorByEntry[entry],
+                    textureByEntry[entry],
                     placed ? (lastSlot - firstSlot + 1) / (double) slotCount : 0D,
                     sharesByEntry[entry],
                     placed ? slotLowerBound(firstSlot, slotCount) : Double.NaN,
@@ -251,8 +280,8 @@ final class PaletteLayerPreview {
         return slot == slotCount - 1 ? 1D : (slot + 0.5D) / (slotCount - 1);
     }
 
-    record Entry(String block, int weight, boolean found, int color, double weightShare, double actualShare,
-                 double lowestNoise, double highestNoise) {
+    record Entry(String block, int weight, boolean found, int color, BlockTexture texture, double weightShare,
+                 double actualShare, double lowestNoise, double highestNoise) {
         boolean isFarBelowWeight() {
             return found && actualShare < weightShare / FAR_FROM_WEIGHT_FACTOR;
         }

@@ -23,7 +23,6 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
@@ -73,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -104,7 +104,7 @@ public final class NoiseExplorerGUI extends JPanel {
     private static final int STATUS_HEIGHT = 50;
     private static final int REFINEMENT_DELAY_MILLIS = 180;
     private static final long DEFAULT_SEED = 12345L;
-    private static final int SUMMARIZED_BLOCK_COUNT = 3;
+    private static final double TEXTURE_PIXELS_MAX_BLOCKS_PER_PIXEL = 0.25D;
     private static final long COARSE_SAMPLE_BUDGET = 4_096L;
     private static final long MAX_REFINED_SAMPLE_BUDGET = 48_000L;
     private static final double REFINEMENT_TARGET_MILLIS = 250D;
@@ -153,6 +153,10 @@ public final class NoiseExplorerGUI extends JPanel {
     private final JLabel catalogLabel = new JLabel("Pack catalog waiting");
     private final JComboBox<NoisePalette> palettePicker = new JComboBox<>(NoisePalette.values());
     private final PaletteInspectorPanel paletteInspector = new PaletteInspectorPanel(new PaletteInspectorListener());
+    private final PaletteNavigator paletteNavigator;
+    private final UUID trackedPlayerId;
+    private PlayerLocationTracker locationTracker;
+    private volatile BlockTextures blockTextures;
 
     private List<SourceItem> packSources = List.of();
     private NoiseViewport viewport = new NoiseViewport(0D, 0D, 1D);
@@ -175,8 +179,10 @@ public final class NoiseExplorerGUI extends JPanel {
     private String errorMessage;
 
     private NoiseExplorerGUI(ExplorerMode mode, Engine engine, String customGeneratorKey, IrisGenerator fallbackGenerator,
-                             String customName, long initialSeed, String initialPackSourceId) {
+                             String customName, long initialSeed, String initialPackSourceId, UUID trackedPlayerId) {
         this.mode = mode;
+        this.trackedPlayerId = trackedPlayerId;
+        this.paletteNavigator = new PaletteNavigator(trackedPlayerId != null, this::selectPaletteLayer);
         this.initialPackSourceId = initialPackSourceId;
         this.awaitingInitialPackSource = mode == ExplorerMode.PALETTES;
         this.activeEngine = engine;
@@ -206,17 +212,17 @@ public final class NoiseExplorerGUI extends JPanel {
     public static void launch() {
         Engine engine = GuiHost.findActiveEngine();
         EventQueue.invokeLater(() -> {
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null, null);
             buildFrame("Noise Explorer", explorer);
         });
     }
 
-    public static void launchPalettes(String biomeKey) {
+    public static void launchPalettes(String biomeKey, UUID trackedPlayerId) {
         Engine engine = GuiHost.findActiveEngine();
         String initialSourceId = biomeKey == null ? null : paletteSourceId(biomeKey, 0);
         String title = biomeKey == null ? "Palette Explorer" : "Palette Explorer: " + biomeKey;
         EventQueue.invokeLater(() -> {
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.PALETTES, engine, null, null, null, DEFAULT_SEED, initialSourceId);
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.PALETTES, engine, null, null, null, DEFAULT_SEED, initialSourceId, trackedPlayerId);
             buildFrame(title, explorer);
         });
     }
@@ -232,6 +238,7 @@ public final class NoiseExplorerGUI extends JPanel {
                     fallbackGenerator,
                     displayName,
                     initialSeed,
+                    null,
                     null
             );
             buildFrame("Noise Explorer: " + displayName, explorer);
@@ -326,7 +333,9 @@ public final class NoiseExplorerGUI extends JPanel {
         JPanel north = new JPanel(new BorderLayout());
         north.setBackground(SIDEBAR_BACKGROUND);
         north.add(heading, BorderLayout.NORTH);
-        north.add(searchField, BorderLayout.SOUTH);
+        if (mode == ExplorerMode.NOISE) {
+            north.add(searchField, BorderLayout.SOUTH);
+        }
 
         sourceList.setBackground(SIDEBAR_BACKGROUND);
         sourceList.setForeground(SECONDARY_TEXT);
@@ -347,7 +356,7 @@ public final class NoiseExplorerGUI extends JPanel {
 
         JPanel controls = buildControls();
         sidebar.add(north, BorderLayout.NORTH);
-        sidebar.add(scrollPane, BorderLayout.CENTER);
+        sidebar.add(mode == ExplorerMode.PALETTES ? paletteNavigator : scrollPane, BorderLayout.CENTER);
         sidebar.add(controls, BorderLayout.SOUTH);
         populateSourceList();
         return sidebar;
@@ -432,6 +441,12 @@ public final class NoiseExplorerGUI extends JPanel {
 
     void openViewer() {
         loadCatalog();
+        if (mode == ExplorerMode.PALETTES) {
+            loadBlockTextures();
+            if (trackedPlayerId != null) {
+                locationTracker = PlayerLocationTracker.follow(trackedPlayerId, paletteNavigator::showLocation);
+            }
+        }
         SourceItem initial = findInitialSource();
         if (initial != null && !selectSourceInList(initial.id())) {
             selectSource(initial);
@@ -497,10 +512,11 @@ public final class NoiseExplorerGUI extends JPanel {
             try {
                 Engine engine = resolveEngine();
                 List<SourceItem> loadedSources = loadPackSources(engine);
-                EventQueue.invokeLater(() -> applyCatalog(revision, loadedSources, null));
+                PaletteCatalog paletteCatalog = mode == ExplorerMode.PALETTES && engine != null ? PaletteCatalog.load(engine) : null;
+                EventQueue.invokeLater(() -> applyCatalog(revision, loadedSources, paletteCatalog, null));
             } catch (Throwable error) {
                 Iris.reportError(error);
-                EventQueue.invokeLater(() -> applyCatalog(revision, List.of(), error));
+                EventQueue.invokeLater(() -> applyCatalog(revision, List.of(), null, error));
             }
         });
     }
@@ -562,7 +578,7 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     // Palette layers always use the world's terrain seed: they share their cached noise with the running world.
-    private static List<SourceItem> loadPackPaletteSources(Engine engine) {
+    private List<SourceItem> loadPackPaletteSources(Engine engine) {
         IrisData data = engine.getData();
         String[] keys = data.getBiomeLoader().getPossibleKeys();
         if (keys == null || keys.length == 0) {
@@ -579,12 +595,12 @@ public final class NoiseExplorerGUI extends JPanel {
                 int selectedLayer = layer;
                 sources.add(new SourceItem(
                         paletteSourceId(key, layer),
-                        "Layer " + layer + " · " + summarizeBlocks(biome.getLayers().get(layer)),
+                        "Layer " + layer + " · " + PaletteCatalog.summarizeBlocks(biome.getLayers().get(layer)),
                         key,
                         NoiseCategory.PACK_PALETTES,
                         false,
                         (sourceSeed, depth) -> {
-                            PaletteLayerPreview preview = PaletteLayerPreview.load(engine, key, selectedLayer, depth);
+                            PaletteLayerPreview preview = PaletteLayerPreview.load(engine, key, selectedLayer, depth, blockTextures);
                             return new LoadedSource(preview::sample, preview);
                         }
                 ));
@@ -597,24 +613,49 @@ public final class NoiseExplorerGUI extends JPanel {
         return "palette:" + biomeKey + "#" + layer;
     }
 
-    private static String summarizeBlocks(IrisBiomePaletteLayer layer) {
-        List<String> names = layer.getPalette().stream()
-                .map(block -> block.getBlock().replace("minecraft:", ""))
-                .distinct()
-                .toList();
-        if (names.size() <= SUMMARIZED_BLOCK_COUNT) {
-            return String.join(", ", names);
+    private void selectPaletteLayer(String biomeKey, int layer) {
+        SourceItem source = findSourceById(paletteSourceId(biomeKey, layer), packSources);
+        if (source != null && source != selectedSource) {
+            selectSource(source);
         }
-        return String.join(", ", names.subList(0, SUMMARIZED_BLOCK_COUNT))
-                + " +" + (names.size() - SUMMARIZED_BLOCK_COUNT) + " more";
     }
 
-    private void applyCatalog(long revision, List<SourceItem> sources, Throwable error) {
+    private static int paletteLayerOf(SourceItem source) {
+        return Integer.parseInt(source.id().substring(source.id().lastIndexOf('#') + 1));
+    }
+
+    private void loadBlockTextures() {
+        paletteInspector.showTextureStatus(MinecraftClientJar.isCached()
+                ? "Loading block textures..."
+                : "Downloading block textures from Mojang. This happens once and is about 40 MB.");
+        BlockTextures.shared().whenComplete((textures, error) -> EventQueue.invokeLater(() -> applyBlockTextures(textures, error)));
+    }
+
+    private void applyBlockTextures(BlockTextures textures, Throwable error) {
+        if (disposed) {
+            return;
+        }
+        if (error != null) {
+            Throwable reason = error.getCause() == null ? error : error.getCause();
+            paletteInspector.showTextureStatus("Block textures unavailable (" + readableError(reason) + "). Showing map colours instead.");
+            return;
+        }
+        blockTextures = textures;
+        paletteInspector.showTextureStatus(null);
+        if (palettePreview != null) {
+            loadSelectedSource();
+        }
+    }
+
+    private void applyCatalog(long revision, List<SourceItem> sources, PaletteCatalog paletteCatalog, Throwable error) {
         if (disposed || revision != catalogLoadRevision.get()) {
             return;
         }
         catalogLoading = false;
         packSources = sources;
+        if (paletteCatalog != null) {
+            paletteNavigator.showCatalog(paletteCatalog);
+        }
         if (error != null) {
             catalogLabel.setForeground(ERROR);
             catalogLabel.setText("Pack catalog unavailable");
@@ -687,16 +728,15 @@ public final class NoiseExplorerGUI extends JPanel {
             EventQueue.invokeLater(this::populateSourceList);
             return;
         }
+        if (mode == ExplorerMode.PALETTES) {
+            return;
+        }
         String selectedId = selectedSource == null ? null : selectedSource.id();
         String filter = searchField.getText().trim().toLowerCase(Locale.ROOT);
         sourceModel.clear();
         for (NoiseCategory category : CATEGORY_ORDER) {
             List<SourceItem> matching = matchingSources(category, filter);
             if (matching.isEmpty()) {
-                continue;
-            }
-            if (category == NoiseCategory.PACK_PALETTES) {
-                addGroupedByBiome(matching);
                 continue;
             }
             sourceModel.addElement(new ListItem(categoryLabel(category), null));
@@ -706,17 +746,6 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         if (selectedId != null) {
             selectSourceInList(selectedId);
-        }
-    }
-
-    private void addGroupedByBiome(List<SourceItem> paletteSources) {
-        String currentBiome = null;
-        for (SourceItem source : paletteSources) {
-            if (!source.rawName().equals(currentBiome)) {
-                currentBiome = source.rawName();
-                sourceModel.addElement(new ListItem(currentBiome, null));
-            }
-            sourceModel.addElement(new ListItem(source.text(), source));
         }
     }
 
@@ -759,6 +788,9 @@ public final class NoiseExplorerGUI extends JPanel {
         selectedSource = source;
         paletteDepth = 0;
         selectedLabel.setText(source.category() == NoiseCategory.PACK_PALETTES ? source.rawName() : source.text());
+        if (source.category() == NoiseCategory.PACK_PALETTES) {
+            paletteNavigator.markSelected(source.rawName(), paletteLayerOf(source));
+        }
         loadSelectedSource();
     }
 
@@ -844,7 +876,11 @@ public final class NoiseExplorerGUI extends JPanel {
 
     private NoiseColorScale activeColorScale() {
         PaletteLayerPreview preview = palettePreview;
-        return preview == null ? palette : new PaletteLayerScale(paletteInspector.selectedView(), preview, palette);
+        if (preview == null) {
+            return palette;
+        }
+        boolean showTexturePixels = viewport.blocksPerPixel() <= TEXTURE_PIXELS_MAX_BLOCKS_PER_PIXEL;
+        return new PaletteLayerScale(paletteInspector.selectedView(), preview, palette, showTexturePixels);
     }
 
     private void applySeed() {
@@ -1028,6 +1064,9 @@ public final class NoiseExplorerGUI extends JPanel {
             return;
         }
         disposed = true;
+        if (locationTracker != null) {
+            locationTracker.stop();
+        }
         refinementTimer.stop();
         interactionTimer.stop();
         GuiHost.unregisterHotloadHook(hotloadHook);

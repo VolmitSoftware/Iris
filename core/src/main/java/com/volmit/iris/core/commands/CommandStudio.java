@@ -259,7 +259,7 @@ public class CommandStudio implements DecreeExecutor {
     ) {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Palette Explorer!");
-        NoiseExplorerGUI.launchPalettes(biome == null ? null : biome.getLoadKey());
+        NoiseExplorerGUI.launchPalettes(biome == null ? null : biome.getLoadKey(), sender().isPlayer() ? player().getUniqueId() : null);
     }
 
     @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)

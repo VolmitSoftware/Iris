@@ -23,6 +23,10 @@ import java.awt.Color;
 interface NoiseColorScale {
     int colorFinite(double value);
 
+    default int colorAt(double value, double worldX, double worldZ) {
+        return colorFinite(value);
+    }
+
     int colorInvalid();
 
     Color displayColorNormalized(double normalized);

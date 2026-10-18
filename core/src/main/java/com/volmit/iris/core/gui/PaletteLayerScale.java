@@ -27,11 +27,23 @@ final class PaletteLayerScale implements NoiseColorScale {
     private final View view;
     private final PaletteLayerPreview preview;
     private final NoisePalette noisePalette;
+    private final boolean showTexturePixels;
 
-    PaletteLayerScale(View view, PaletteLayerPreview preview, NoisePalette noisePalette) {
+    PaletteLayerScale(View view, PaletteLayerPreview preview, NoisePalette noisePalette, boolean showTexturePixels) {
         this.view = view;
         this.preview = preview;
         this.noisePalette = noisePalette;
+        this.showTexturePixels = showTexturePixels;
+    }
+
+    @Override
+    public int colorAt(double value, double worldX, double worldZ) {
+        BlockTextures.BlockTexture texture = showTexturePixels && view != View.NOISE ? preview.textureForNoise(value) : null;
+        if (texture == null) {
+            return colorFinite(value);
+        }
+        int texel = texture.texelAt(worldX, worldZ);
+        return view == View.BLOCKS ? texel : BlockPreviewColors.shade(texel, overlayShade(value));
     }
 
     @Override

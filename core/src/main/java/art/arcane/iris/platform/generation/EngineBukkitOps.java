@@ -23,6 +23,9 @@ import art.arcane.iris.world.history.GenerationFindCatalog;
 import art.arcane.iris.world.event.IrisLootEvent;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.integration.ExternalDataSVC;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.locator.Locator;
@@ -137,13 +140,17 @@ public final class EngineBukkitOps {
             Runnable tileTask = () -> materializeTiles(engine, c, chunk);
             Runnable customTask = () -> materializeCustomBlocks(engine, c, chunk);
             Runnable updateTask = () -> materializeUpdates(engine, c, chunk);
+            Runnable materialize = () -> {
+                DeferredPlacementRecords.removeInvalidated(engine, mantle, c.getX(), c.getZ());
+                runMaterializationPasses(chunk, tileTask, customTask, updateTask);
+            };
 
             if (shouldRunChunkUpdateInline(c)) {
-                runMaterializationPasses(chunk, tileTask, customTask, updateTask);
+                materialize.run();
                 return;
             }
 
-            runScheduledMaterializationPasses(c, () -> runMaterializationPasses(chunk, tileTask, customTask, updateTask));
+            runScheduledMaterializationPasses(c, materialize);
         } finally {
             chunk.release();
         }
@@ -151,14 +158,19 @@ public final class EngineBukkitOps {
 
     static void materializeTiles(Engine engine, Chunk chunk, MantleChunk<Matter> mantleChunk) {
         StaleRecords stale = new StaleRecords();
-        mantleChunk.iterate(TileWrapper.class, (x, y, z, value) -> {
-            int worldY = y + engine.getWorld().minHeight();
-            if (worldY < chunk.getWorld().getMinHeight() || worldY >= chunk.getWorld().getMaxHeight()) {
-                return;
+        for (DeferredPlacementRecords.Pending<TileWrapper> record : DeferredPlacementRecords.snapshot(mantleChunk, TileWrapper.class)) {
+            if (!DeferredPlacementRecords.isPending(mantleChunk, TileWrapper.class, record)) {
+                continue;
             }
-            Block block = chunk.getBlock(x & 15, worldY, z & 15);
+            NativeBlockPoint position = record.position();
+            TileWrapper value = record.value();
+            int worldY = position.y() + engine.getWorld().minHeight();
+            if (worldY < chunk.getWorld().getMinHeight() || worldY >= chunk.getWorld().getMaxHeight()) {
+                continue;
+            }
+            Block block = chunk.getBlock(position.x() & 15, worldY, position.z() & 15);
             if (stale.tileReplaced(block, value.getData())) {
-                return;
+                continue;
             }
             if (!TileData.setTileState(block, value.getData())) {
                 NamespacedKey blockTypeKey = KeyedType.getKey(block.getType());
@@ -166,25 +178,33 @@ public final class EngineBukkitOps {
                 String tileType = value.getData().getMaterialKey();
                 IrisLogging.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), blockType, tileType);
             }
-        });
+        }
         mantleChunk.deleteSlices(TileWrapper.class);
         stale.report("tile", chunk);
     }
 
     static void materializeCustomBlocks(Engine engine, Chunk chunk, MantleChunk<Matter> mantleChunk) {
         StaleRecords stale = new StaleRecords();
-        mantleChunk.iterate(Identifier.class, (x, y, z, value) -> {
-            int worldY = y + engine.getWorld().minHeight();
+        for (DeferredPlacementRecords.Pending<Identifier> record : DeferredPlacementRecords.snapshot(mantleChunk, Identifier.class)) {
+            if (!DeferredPlacementRecords.isPending(mantleChunk, Identifier.class, record)) {
+                continue;
+            }
+            NativeBlockPoint position = record.position();
+            Identifier value = record.value();
+            int worldY = position.y() + engine.getWorld().minHeight();
             if (worldY < chunk.getWorld().getMinHeight() || worldY >= chunk.getWorld().getMaxHeight()) {
-                return;
+                continue;
             }
             ExternalDataSVC service = IrisServices.get(ExternalDataSVC.class);
-            Block block = chunk.getBlock(x & 15, worldY, z & 15);
+            Block block = chunk.getBlock(position.x() & 15, worldY, position.z() & 15);
             if (stale.carrierReplaced(service, block, value)) {
-                return;
+                continue;
             }
-            service.processUpdate(engine, block, value);
-        });
+            CustomBlockOwnership.Entry ownership = service.processUpdate(engine, block, value);
+            if (ownership != null) {
+                DeferredPlacementRecords.remember(engine, mantleChunk, position, ownership);
+            }
+        }
         mantleChunk.deleteSlices(Identifier.class);
         stale.report("custom block", chunk);
     }
@@ -877,7 +897,10 @@ public final class EngineBukkitOps {
                 carrier = carrierType(service, record);
                 carriers.put(record, carrier);
             }
-            if (carrier == Material.AIR || block.getType() == carrier) {
+            Material live = block.getType();
+            if (carrier == Material.AIR || live == carrier
+                    || ((carrier == Material.FIRE || carrier == Material.SOUL_FIRE)
+                    && (live == Material.AIR || live == Material.CAVE_AIR || live == Material.VOID_AIR))) {
                 return false;
             }
             skipped++;

@@ -53,6 +53,8 @@ public class ModdedChunkUpdateServiceCarrierTest {
     private static final String MOD_ID = "iris_carrier_guard_test";
     private static final String LAMP = MOD_ID + ":lamp";
     private static final String CHAIR = MOD_ID + ":chair";
+    private static final String FIRE = MOD_ID + ":fire";
+    private static final String SOUL_FIRE = MOD_ID + ":soul_fire";
     private static final List<BlockPos> PLACED = new CopyOnWriteArrayList<>();
 
     @BeforeClass
@@ -80,6 +82,7 @@ public class ModdedChunkUpdateServiceCarrierTest {
                 3, Blocks.COBBLESTONE.defaultBlockState(),
                 4, Blocks.COBBLESTONE.defaultBlockState()));
         List<String> debug = new ArrayList<>();
+        Engine engine = engine(chunk);
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
             logging.when(() -> IrisLogging.debug(anyString(), any(Object[].class))).thenAnswer((InvocationOnMock invocation) -> {
@@ -88,7 +91,7 @@ public class ModdedChunkUpdateServiceCarrierTest {
                 return null;
             });
 
-            new ModdedChunkUpdateService().updateRegeneratedChunk(engine(chunk), level, 0, 0);
+            new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0);
         }
 
         assertEquals(List.of(new BlockPos(1, 6, 1), new BlockPos(4, 6, 4)), PLACED);
@@ -96,6 +99,24 @@ public class ModdedChunkUpdateServiceCarrierTest {
         assertTrue(chunk.customDeleted());
         assertEquals(1, debug.size());
         assertTrue(debug.getFirst(), debug.getFirst().contains("2 stale"));
+    }
+
+    @Test
+    public void extinguishedFireCarriersArePlacedWhileCoveredCarriersAreSkipped() {
+        RecordMantleChunk chunk = new RecordMantleChunk(List.of(
+                new Placed(1, FIRE), new Placed(2, SOUL_FIRE),
+                new Placed(3, FIRE), new Placed(4, SOUL_FIRE)));
+        NativeWorld level = level(Map.of(
+                1, Blocks.AIR.defaultBlockState(),
+                2, Blocks.CAVE_AIR.defaultBlockState(),
+                3, Blocks.COBBLESTONE.defaultBlockState(),
+                4, Blocks.COBBLESTONE.defaultBlockState()));
+        Engine engine = engine(chunk);
+
+        new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0);
+
+        assertEquals(List.of(new BlockPos(1, 6, 1), new BlockPos(2, 6, 2)), PLACED);
+        assertTrue(chunk.customDeleted());
     }
 
     private static NativeWorld level(Map<Integer, BlockState> live) {
@@ -164,6 +185,18 @@ public class ModdedChunkUpdateServiceCarrierTest {
         }
 
         @Override
+        public <T> T get(int x, int y, int z, Class<T> type) {
+            if (type == Identifier.class && y == 70 && x == z) {
+                for (Placed record : records) {
+                    if (record.offset() == x) {
+                        return type.cast(Identifier.fromString(record.key()));
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
         public void deleteSlices(Class<?> type) {
             if (type == Identifier.class) {
                 customDeleted = true;
@@ -183,23 +216,29 @@ public class ModdedChunkUpdateServiceCarrierTest {
 
         @Override
         public Collection<String> getTypes(ModdedDataType type) {
-            return type == ModdedDataType.BLOCK ? List.of(LAMP, CHAIR) : List.of();
+            return type == ModdedDataType.BLOCK ? List.of(LAMP, CHAIR, FIRE, SOUL_FIRE) : List.of();
         }
 
         @Override
         public boolean isValidProvider(String id, ModdedDataType type) {
-            return type == ModdedDataType.BLOCK && (LAMP.equals(id) || CHAIR.equals(id));
+            return type == ModdedDataType.BLOCK && getTypes(type).contains(id);
         }
 
         @Override
         public ModdedBlockData getBlockData(String blockId, Map<String, String> state) {
-            BlockState carrier = CHAIR.equals(blockId) ? Blocks.AIR.defaultBlockState() : Blocks.NOTE_BLOCK.defaultBlockState();
+            BlockState carrier = switch (blockId) {
+                case CHAIR -> Blocks.AIR.defaultBlockState();
+                case FIRE -> Blocks.FIRE.defaultBlockState();
+                case SOUL_FIRE -> Blocks.SOUL_FIRE.defaultBlockState();
+                default -> Blocks.NOTE_BLOCK.defaultBlockState();
+            };
             return ModdedBlockData.deferred(ModdedBlockState.of(carrier, null));
         }
 
         @Override
-        public void processBlockPlacement(ModdedBlockPlacementContext context) {
+        public String processBlockPlacement(ModdedBlockPlacementContext context) {
             PLACED.add(context.placement().position());
+            return null;
         }
     }
 }

@@ -112,15 +112,15 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         Pair<Identifier, KMap<String, String>> parsedState = ExternalDataSVC.parseState(blockId);
         KMap<String, String> state = parsedState.getB();
         blockId = parsedState.getA();
 
         Optional<CrucibleItem> item = itemManager.getItem(blockId.key());
-        if (item.isEmpty()) return;
+        if (item.isEmpty()) return null;
         FurnitureItemContext furniture = item.get().getFurnitureData();
-        if (furniture == null) return;
+        if (furniture == null) return null;
 
         Pair<Float, BlockFace> pair = parseYawAndFace(engine, block, state);
         BiomeColor type = null;
@@ -130,10 +130,11 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
         } catch (NullPointerException | IllegalArgumentException ignored) {}
         if (type != null) {
             Color biomeColor = INMS.get().getBiomeColor(block.getLocation(), type);
-            if (biomeColor == null) return;
+            if (biomeColor == null) return null;
             color = Chroma.of(biomeColor.getRGB());
         }
         furniture.place(block, pair.getB(), pair.getA(), color);
+        return null;
     }
 
     @Override

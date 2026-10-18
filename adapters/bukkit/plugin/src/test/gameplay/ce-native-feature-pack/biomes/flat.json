@@ -1,0 +1,46 @@
+{
+  "name": "Flat",
+  "derivative": "minecraft:snowy_plains",
+  "vanillaDerivative": "minecraft:snowy_plains",
+  "layers": [
+    {
+      "minHeight": 1,
+      "maxHeight": 1,
+      "palette": [
+        {
+          "block": "minecraft:lime_wool"
+        }
+      ]
+    },
+    {
+      "minHeight": 384,
+      "maxHeight": 384,
+      "palette": [
+        {
+          "block": "minecraft:green_concrete"
+        }
+      ]
+    }
+  ],
+  "generators": [
+    {
+      "generator": "flat",
+      "min": 96,
+      "max": 96
+    }
+  ],
+  "decorators": [
+    {
+      "palette": [
+        {
+          "block": "craftengine:default/flower_basket",
+          "data": {
+            "variant": "ground"
+          }
+        }
+      ],
+      "chance": 1,
+      "forcePlace": true
+    }
+  ]
+}

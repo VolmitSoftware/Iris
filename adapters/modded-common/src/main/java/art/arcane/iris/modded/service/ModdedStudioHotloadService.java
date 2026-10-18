@@ -28,6 +28,10 @@ import art.arcane.iris.modded.ModdedSavedTerrainCapture;
 
 import java.util.concurrent.CompletableFuture;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldMaintenance;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
@@ -71,6 +75,12 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
     private final ConcurrentHashMap<String, Watch> watches = new ConcurrentHashMap<>();
     private volatile ExecutorService executor;
     private long lastPollAt;
+
+    @Override
+    public boolean removeCustomBlock(Engine engine, NativeBlockPoint position, CustomBlockOwnership.Entry entry) {
+        return ModdedCustomContentRegistry.removeGenerated(engine, entry,
+                () -> NativeWorldMaintenance.placement(engine.getWorld().platformWorld(), position));
+    }
 
     @Override
     public CompletableFuture<Void> flushSavedTerrainCapture(Engine engine) {

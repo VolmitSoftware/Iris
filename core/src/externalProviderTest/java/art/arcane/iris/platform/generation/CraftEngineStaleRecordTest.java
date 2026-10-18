@@ -1,6 +1,7 @@
 package art.arcane.iris.platform.generation;
 
 import art.arcane.iris.generation.block.IrisCustomData;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.integration.ExternalDataProvider;
@@ -15,6 +16,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterSlice;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
@@ -33,6 +35,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
@@ -40,9 +43,11 @@ import org.mockito.invocation.InvocationOnMock;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -100,8 +105,12 @@ public class CraftEngineStaleRecordTest {
             blocks.when(() -> CraftEngineBlocks.getBukkitBlockData(lamp)).thenReturn(noteBlock);
             blocks.when(() -> CraftEngineBlocks.place(any(Location.class), eq(lamp), eq(false))).thenReturn(true);
             furniture.when(() -> CraftEngineFurniture.byId(Key.of("test:chair"))).thenReturn(chairDefinition);
+            BukkitFurniture placed = mock(BukkitFurniture.class);
+            Entity entity = mock(Entity.class);
+            when(placed.baseEntity()).thenReturn(entity);
+            when(entity.getUniqueId()).thenReturn(UUID.randomUUID());
             furniture.when(() -> CraftEngineFurniture.place(any(Location.class), eq(chairDefinition), eq("alpha"), eq(false)))
-                    .thenReturn(mock(BukkitFurniture.class));
+                    .thenReturn(placed);
             provider.onReload(mock(CraftEngineReloadEvent.class));
             Identifier lampRecord = generatedRecord(service, "test:lamp");
             Identifier chairRecord = generatedRecord(service, "test:chair");
@@ -157,6 +166,16 @@ public class CraftEngineStaleRecordTest {
     @SuppressWarnings("unchecked")
     private static MantleChunk<Matter> records(Placed... records) {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        Matter section = mock(Matter.class);
+        MatterSlice<CustomBlockOwnership> ownership = mock(MatterSlice.class);
+        MatterSlice<Identifier> deferred = mock(MatterSlice.class);
+        when(chunk.getOrCreate(anyInt())).thenReturn(section);
+        when(section.<CustomBlockOwnership>slice(CustomBlockOwnership.class)).thenReturn(ownership);
+        when(section.getSlice(Identifier.class)).thenReturn(deferred);
+        for (Placed record : records) {
+            when(chunk.get(record.offset(), 10, record.offset(), Identifier.class)).thenReturn(record.identifier());
+            when(deferred.get(record.offset(), 10, record.offset())).thenReturn(record.identifier());
+        }
         doAnswer((InvocationOnMock invocation) -> {
             Consumer4<Integer, Integer, Integer, Identifier> iterator = invocation.getArgument(1);
             for (Placed record : records) {

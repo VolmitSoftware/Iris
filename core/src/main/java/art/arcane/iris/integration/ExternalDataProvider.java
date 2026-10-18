@@ -120,7 +120,13 @@ public abstract class ExternalDataProvider {
      * @param block The block where the block should be placed
      * @param blockId The blockId to place
      */
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {}
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+        return null;
+    }
+
+    public boolean removeGenerated(@NotNull Block block, @NotNull String token) {
+        return false;
+    }
 
     /**
      * Spawns a mob in the specified location using the given engine and entity identifier.

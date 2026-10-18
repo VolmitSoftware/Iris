@@ -231,7 +231,7 @@ public class NativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter,
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                true,
+                true, true,
                 position -> false,
                 NativeBlockChangeSet.disabled());
         int x = generationCenter.getMiddleBlockX();
@@ -250,7 +250,7 @@ public class NativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
+                false, true,
                 position::equals,
                 NativeBlockChangeSet.disabled());
 
@@ -322,7 +322,7 @@ public class NativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
+                false, true,
                 position -> false,
                 NativeBlockChangeSet.disabled());
     }

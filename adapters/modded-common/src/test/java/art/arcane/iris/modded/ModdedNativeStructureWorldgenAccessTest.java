@@ -231,7 +231,7 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter,
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                true,
+                true, true,
                 position -> false,
                 NativeBlockChangeSet.disabled());
         int x = generationCenter.getMiddleBlockX();
@@ -250,7 +250,7 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
+                false, true,
                 position::equals,
                 NativeBlockChangeSet.disabled());
 
@@ -284,7 +284,7 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 delegate, generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
+                false, true,
                 protectedCell::equals,
                 changes);
         BlockPos written = protectedCell.above();
@@ -353,7 +353,7 @@ public class ModdedNativeStructureWorldgenAccessTest {
                 recording.world(), generationCenter(),
                 (x, z) -> SURFACE_FIRST_FREE_Y,
                 (x, z) -> FLOOR_FIRST_FREE_Y,
-                false,
+                false, true,
                 position -> false,
                 NativeBlockChangeSet.disabled());
     }

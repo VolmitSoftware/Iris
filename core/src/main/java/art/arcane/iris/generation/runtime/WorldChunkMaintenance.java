@@ -104,6 +104,16 @@ final class WorldChunkMaintenance {
         }
     }
 
+    void onEntitiesLoaded(Chunk chunk) {
+        int chunkX = chunk.getX();
+        int chunkZ = chunk.getZ();
+        World world = chunk.getWorld();
+        invalidateMaterialization(chunkX, chunkZ);
+        J.runRegion(world, chunkX, chunkZ,
+                manager.managedTask("bukkit_world_manager_entity_content_cleanup",
+                        () -> scheduleChunkUpdate(world, chunkX, chunkZ)), 1);
+    }
+
     void discoverChunks() {
         World world = BukkitWorldBinding.world(manager.getEngine().getWorld());
         if (world == null) {

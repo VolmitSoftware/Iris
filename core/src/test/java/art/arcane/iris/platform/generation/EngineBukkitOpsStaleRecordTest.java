@@ -90,6 +90,26 @@ public class EngineBukkitOpsStaleRecordTest {
     }
 
     @Test
+    public void extinguishedFireCarrierIsPlacedButCoveredFireIsSkipped() {
+        for (Material carrier : List.of(Material.FIRE, Material.SOUL_FIRE)) {
+            Fixture fixture = new Fixture();
+            fixture.carrier(ORE, carrier);
+            Block extinguished = fixture.block(1, 10, 1, Material.AIR);
+            Block caveAir = fixture.block(2, 10, 2, Material.CAVE_AIR);
+            Block wall = fixture.block(3, 10, 3, Material.COBBLESTONE);
+
+            fixture.materializeCustomBlocks(customRecords(
+                    new Placed<>(1, 10, 1, ORE),
+                    new Placed<>(2, 10, 2, ORE),
+                    new Placed<>(3, 10, 3, ORE)));
+
+            verify(fixture.service).processUpdate(fixture.engine, extinguished, ORE);
+            verify(fixture.service).processUpdate(fixture.engine, caveAir, ORE);
+            verify(fixture.service, never()).processUpdate(any(), eq(wall), any());
+        }
+    }
+
+    @Test
     public void airCarrierFurnitureRecordIsPlacedWhateverTheLiveBlock() {
         Fixture fixture = new Fixture();
         fixture.carrier(CHAIR, Material.AIR);
@@ -200,6 +220,9 @@ public class EngineBukkitOpsStaleRecordTest {
     @SuppressWarnings("unchecked")
     private static <T> MantleChunk<Matter> records(Class<T> type, Placed<T>[] records) {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        for (Placed<T> record : records) {
+            when(chunk.get(record.x(), record.y(), record.z(), type)).thenReturn(record.value());
+        }
         doAnswer((InvocationOnMock invocation) -> {
             Consumer4<Integer, Integer, Integer, T> iterator = invocation.getArgument(1);
             for (Placed<T> record : records) {

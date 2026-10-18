@@ -28,11 +28,14 @@ import art.arcane.iris.generation.chunk.TerrainChunkBiomeHunkView;
 import art.arcane.iris.platform.generation.EngineBukkitOps;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.mantle.EngineMantle;
+import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
@@ -96,11 +99,12 @@ public final class InPlaceChunkRegenerator {
 
     private void resetMantleMargin() {
         EngineMantle engineMantle = engine.getMantle();
-        Mantle mantle = engineMantle.getMantle();
+        Mantle<Matter> mantle = engineMantle.getMantle();
         int margin = radius + Math.max(engineMantle.getRadius(), engineMantle.getRealRadius()) + 1;
         for (int dx = -margin; dx <= margin; dx++) {
             for (int dz = -margin; dz <= margin; dz++) {
-                mantle.deleteChunk(centerChunkX + dx, centerChunkZ + dz);
+                DeferredPlacementRecords.resetMantleChunk(mantle, centerChunkX + dx, centerChunkZ + dz,
+                        Math.abs(dx) <= radius && Math.abs(dz) <= radius);
             }
         }
     }
@@ -188,7 +192,14 @@ public final class InPlaceChunkRegenerator {
             }
         }
 
-        EngineBukkitOps.updateChunk(engine, chunk);
+        Mantle<Matter> mantle = engine.getMantle().getMantle();
+        MantleChunk<Matter> records = mantle.useChunk(chunkX, chunkZ);
+        try {
+            DeferredPlacementRecords.invalidateCustomBlockOwnership(records);
+        } finally {
+            records.release();
+        }
+        EngineBukkitOps.updateChunk(engine, chunk, mantle);
         world.refreshChunk(chunkX, chunkZ);
     }
 

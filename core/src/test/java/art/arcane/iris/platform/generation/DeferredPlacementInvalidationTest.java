@@ -1,7 +1,9 @@
 package art.arcane.iris.platform.generation;
 
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisEngineMantle;
@@ -12,6 +14,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformRegistries;
+import art.arcane.iris.structure.nativegen.ImportedFeaturePolicy;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -26,19 +29,24 @@ import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
 import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.matter.Matter;
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -105,6 +113,52 @@ public class DeferredPlacementInvalidationTest {
 
             assertSame(NativeBlockChangeSet.disabled(),
                     DeferredPlacementRecords.track(engine(chunks, adapter), bounds()));
+            assertSame(NativeBlockChangeSet.disabled(),
+                    DeferredPlacementRecords.positions(engine(chunks, adapter), bounds()));
+        });
+    }
+
+    @Test
+    public void importedFeatureCutRemovesFireRecordBeforeMaterialization() {
+        withMantleData(adapter -> {
+            Map<Long, MantleChunk<Matter>> chunks = new HashMap<>();
+            MantleChunk<Matter> stored = chunk(chunks, adapter, 0, 0);
+            Identifier fire = Identifier.fromString("craftengine:example/fire");
+            setRecord(stored, 3, 70, 5, Identifier.class, fire);
+            setRecord(stored, 4, 70, 5, Identifier.class, fire);
+            Engine engine = engine(chunks, adapter);
+            ImportedFeaturePolicy policy = new ImportedFeaturePolicy(engine);
+            NativeBlockChangeSet candidates = policy.trackedBlockPositions(bounds());
+            assertEquals(2, candidates.size());
+            NativeBlockChangeSet changes = NativeBlockChangeSet.create(candidates.bounds());
+            changes.add(3, 70, 5);
+
+            policy.invalidateBlockChanges(changes);
+
+            assertNull(record(stored, 3, 70, 5, Identifier.class));
+            World world = mock(World.class);
+            when(world.getMinHeight()).thenReturn(MIN_HEIGHT);
+            when(world.getMaxHeight()).thenReturn(320);
+            Chunk bukkitChunk = mock(Chunk.class);
+            when(bukkitChunk.getWorld()).thenReturn(world);
+            Block cut = mock(Block.class);
+            Block extinguished = mock(Block.class);
+            when(cut.getType()).thenReturn(Material.AIR);
+            when(extinguished.getType()).thenReturn(Material.AIR);
+            when(bukkitChunk.getBlock(3, 70, 5)).thenReturn(cut);
+            when(bukkitChunk.getBlock(4, 70, 5)).thenReturn(extinguished);
+            BlockData carrier = mock(BlockData.class);
+            when(carrier.getMaterial()).thenReturn(Material.FIRE);
+            ExternalDataSVC provider = mock(ExternalDataSVC.class);
+            when(provider.getBlockData(fire)).thenReturn(Optional.of(IrisCustomData.of(carrier, fire)));
+            try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {
+                services.when(() -> IrisServices.get(ExternalDataSVC.class)).thenReturn(provider);
+
+                EngineBukkitOps.materializeCustomBlocks(engine, bukkitChunk, stored);
+            }
+
+            verify(provider, never()).processUpdate(eq(engine), eq(cut), any());
+            verify(provider).processUpdate(engine, extinguished, fire);
         });
     }
 
@@ -121,6 +175,27 @@ public class DeferredPlacementInvalidationTest {
             changes.add(16, 70, -16);
             DeferredPlacementRecords.invalidate(engine(chunks, adapter), changes);
             assertNull(record(chunks.get(key(1, -1)), 0, 70, 0, TileWrapper.class));
+        });
+    }
+
+    @Test
+    public void importedFeatureCandidatesIncludeNeighbourOwnershipAndDeduplicateSlices() {
+        withMantleData(adapter -> {
+            Map<Long, MantleChunk<Matter>> chunks = new HashMap<>();
+            MantleChunk<Matter> stored = chunk(chunks, adapter, -1, 1);
+            Identifier identifier = Identifier.fromString("craftengine:example/chair");
+            setRecord(stored, 15, 70, 2, Identifier.class, identifier);
+            setRecord(stored, 15, 70, 2, TileWrapper.class,
+                    new TileWrapper(new TileData("minecraft:chest", new KMap<>())));
+            setRecord(stored, 14, 71, 3, CustomBlockOwnership.class,
+                    new CustomBlockOwnership(List.of(new CustomBlockOwnership.Entry(identifier, "entity-token", false))));
+            setRecord(chunk(chunks, adapter, 2, 0), 0, 70, 0, Identifier.class, identifier);
+
+            NativeBlockChangeSet positions = DeferredPlacementRecords.positions(engine(chunks, adapter), bounds());
+
+            assertEquals(2, positions.size());
+            assertTrue(positions.contains(-1, 70, 18));
+            assertTrue(positions.contains(-2, 71, 19));
         });
     }
 

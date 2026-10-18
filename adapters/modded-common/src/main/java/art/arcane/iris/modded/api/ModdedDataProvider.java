@@ -95,7 +95,12 @@ public interface ModdedDataProvider {
      * Called on the server thread, once per deferred position, by the first provider that claims the identifier -
      * later providers are not consulted for that position. Only fires for states returned as deferred.
      */
-    default void processBlockPlacement(ModdedBlockPlacementContext context) {
+    default String processBlockPlacement(ModdedBlockPlacementContext context) {
+        return null;
+    }
+
+    default boolean removeGenerated(ModdedBlockPlacementContext context, String token) {
+        return false;
     }
 
     /**

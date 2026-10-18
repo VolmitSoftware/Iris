@@ -57,6 +57,8 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedChunkGenera
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeGeneratorContext;
 
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.matter.Matter;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedStructureStage;
 import art.arcane.iris.world.safeguard.GenerationRefusalNotice;
@@ -829,12 +831,12 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         importedFeatures.invalidate();
     }
 
-    public void updateRegeneratedChunk(int chunkX, int chunkZ) {
+    public void updateRegeneratedChunk(Mantle<Matter> mantle, int chunkX, int chunkZ) {
         ModdedChunkUpdateService service = ModdedEngineBootstrap.services().service(ModdedChunkUpdateService.class);
         if (service == null) {
             throw new IllegalStateException("Iris chunk update service is unavailable during regeneration");
         }
-        service.updateRegeneratedChunk(engine(), boundLevel(), chunkX, chunkZ);
+        service.updateRegeneratedChunk(engine(), boundLevel(), mantle, chunkX, chunkZ);
     }
 
     public NativeBiomeResolver regenBiomeResolver() {

@@ -22,6 +22,7 @@ import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.world.WorldMaintenance;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.mantle.EngineMantle;
+import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
 import art.arcane.iris.modded.IrisModdedChunkGenerator;
 import art.arcane.iris.modded.ModdedBlockBuffer;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -36,6 +37,9 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeChunkRegeneration;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeProtocolPlayer;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -110,10 +114,12 @@ public final class ModdedRegen {
 
     private void resetMantleMargin() {
         EngineMantle engineMantle = engine.getMantle();
+        Mantle<Matter> mantle = engineMantle.getMantle();
         int margin = radius + Math.max(engineMantle.getRadius(), engineMantle.getRealRadius()) + 1;
         for (int dx = -margin; dx <= margin; dx++) {
             for (int dz = -margin; dz <= margin; dz++) {
-                engineMantle.getMantle().deleteChunk(centerX + dx, centerZ + dz);
+                DeferredPlacementRecords.resetMantleChunk(mantle, centerX + dx, centerZ + dz,
+                        Math.abs(dx) <= radius && Math.abs(dz) <= radius);
             }
         }
     }
@@ -199,10 +205,21 @@ public final class ModdedRegen {
     }
 
     private void apply(int chunkX, int chunkZ, ModdedBlockBuffer blocks, Hunk<NativeBiome> biomes) {
+        Mantle<Matter> mantle = engine.getMantle().getMantle();
         regeneration.apply(new NativeChunkRegeneration.Replacement(chunkX, chunkZ,
                         engine.getMinHeight(), engine.getMaxHeight() - engine.getMinHeight(),
                         blocks::rawOrNull, generator.regenBiomeResolver()),
-                () -> generator.updateRegeneratedChunk(chunkX, chunkZ));
+                () -> completeReplacement(mantle, chunkX, chunkZ));
+    }
+
+    private void completeReplacement(Mantle<Matter> mantle, int chunkX, int chunkZ) {
+        MantleChunk<Matter> records = mantle.useChunk(chunkX, chunkZ);
+        try {
+            DeferredPlacementRecords.invalidateCustomBlockOwnership(records);
+        } finally {
+            records.release();
+        }
+        generator.updateRegeneratedChunk(mantle, chunkX, chunkZ);
     }
 
     private void ok(String message) {

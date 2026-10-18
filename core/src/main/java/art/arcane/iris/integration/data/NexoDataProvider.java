@@ -89,24 +89,24 @@ public class NexoDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+    public String processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         Pair<Identifier, KMap<String, String>> statePair = ExternalDataSVC.parseState(blockId);
         KMap<String, String> state = statePair.getB();
         blockId = statePair.getA();
 
         if (NexoBlocks.isCustomBlock(blockId.key())) {
             NexoBlocks.place(blockId.key(), block.getLocation());
-            return;
+            return null;
         }
 
         if (!NexoFurniture.isFurniture(blockId.key()))
-            return;
+            return null;
 
         Pair<Float, BlockFace> pair = parseYawAndFace(engine, block, state);
         ItemDisplay display = NexoFurniture.place(blockId.key(), block.getLocation(), pair.getA(), pair.getB());
-        if (display == null) return;
+        if (display == null) return null;
         ItemStack itemStack = display.getItemStack();
-        if (itemStack == null) return;
+        if (itemStack == null) return null;
 
         BiomeColor type = null;
         try {
@@ -115,7 +115,7 @@ public class NexoDataProvider extends ExternalDataProvider {
 
         if (type != null) {
             Color biomeColor = INMS.get().getBiomeColor(block.getLocation(), type);
-            if (biomeColor == null) return;
+            if (biomeColor == null) return null;
             ItemMeta meta = itemStack.getItemMeta();
             switch (meta) {
                 case LeatherArmorMeta armor -> armor.setColor(fromARGB(biomeColor.getAlpha(), biomeColor.getRed(), biomeColor.getGreen(), biomeColor.getBlue()));
@@ -126,6 +126,7 @@ public class NexoDataProvider extends ExternalDataProvider {
             itemStack.setItemMeta(meta);
         }
         display.setItemStack(itemStack);
+        return null;
     }
 
     @Override

@@ -28,6 +28,8 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockProperties;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.block.TileData;
@@ -166,8 +168,8 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
                 updatePassChunk(engine, level, (int) chunkKey, (int) (chunkKey >> 32)));
     }
 
-    public void updateRegeneratedChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
-        updateChunk(engine, level, chunkX, chunkZ, false);
+    public void updateRegeneratedChunk(Engine engine, NativeWorld level, Mantle<Matter> mantle, int chunkX, int chunkZ) {
+        updateChunk(engine, level, mantle, chunkX, chunkZ, false);
     }
 
     /**
@@ -176,7 +178,7 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
      */
     private void updatePassChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ) {
         try {
-            updateChunk(engine, level, chunkX, chunkZ, true);
+            updateChunk(engine, level, engine.getMantle().getMantle(), chunkX, chunkZ, true);
         } catch (Throwable failure) {
             if (engine.isClosed() || engine.getMantle().getMantle().isClosed()) {
                 throw failure;
@@ -188,7 +190,8 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         }
     }
 
-    private void updateChunk(Engine engine, NativeWorld level, int chunkX, int chunkZ, boolean requireNeighbors) {
+    private void updateChunk(Engine engine, NativeWorld level, Mantle<Matter> mantle,
+                             int chunkX, int chunkZ, boolean requireNeighbors) {
         if (requireNeighbors) {
             for (int x = -1; x <= 1; x++) {
                 for (int z = -1; z <= 1; z++) {
@@ -199,11 +202,11 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
             }
         }
 
-        Mantle<Matter> mantle = engine.getMantle().getMantle();
         if (!mantle.isChunkLoaded(chunkX, chunkZ)) {
             warmupMantleChunk(mantle, chunkX, chunkZ);
             return;
         }
+        DeferredPlacementRecords.removeInvalidated(engine, mantle, chunkX, chunkZ);
         if (mantle.hasFlag(chunkX, chunkZ, MantleFlag.ETCHED)) {
             return;
         }
@@ -229,14 +232,19 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
         int minHeight = engine.getWorld().minHeight();
-        materializeDeferredSlice(chunk, TileWrapper.class, () ->
-                chunk.iterate(TileWrapper.class, (Integer x, Integer yf, Integer z, TileWrapper v) -> {
-                    int y = yf + minHeight;
-                    if (y < level.minHeight() || y >= level.maxHeight() - 1) {
-                        return;
-                    }
-                    applyTile(level, baseX + (x & 15), y, baseZ + (z & 15), v.getData());
-                }));
+        materializeDeferredSlice(chunk, TileWrapper.class, () -> {
+            for (DeferredPlacementRecords.Pending<TileWrapper> record : DeferredPlacementRecords.snapshot(chunk, TileWrapper.class)) {
+                if (!DeferredPlacementRecords.isPending(chunk, TileWrapper.class, record)) {
+                    continue;
+                }
+                NativeBlockPoint position = record.position();
+                int y = position.y() + minHeight;
+                if (y < level.minHeight() || y >= level.maxHeight() - 1) {
+                    continue;
+                }
+                applyTile(level, baseX + (position.x() & 15), y, baseZ + (position.z() & 15), record.value().getData());
+            }
+        });
     }
 
     private void runCustomPass(Engine engine, NativeWorld level, int chunkX, int chunkZ, MantleChunk<Matter> chunk) {
@@ -244,22 +252,30 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
         int baseZ = chunkZ << 4;
         int minHeight = engine.getWorld().minHeight();
         StaleCarriers stale = new StaleCarriers();
-        materializeDeferredSlice(chunk, Identifier.class, () ->
-                chunk.iterate(Identifier.class, (Integer x, Integer yf, Integer z, Identifier identifier) -> {
-                    int y = yf + minHeight;
-                    if (y < level.minHeight() || y >= level.maxHeight() - 1) {
-                        return;
-                    }
-                    int blockX = baseX + (x & 15);
-                    int blockZ = baseZ + (z & 15);
-                    String key = identifier.toString();
-                    if (stale.carrierReplaced(key, level.getBlock(blockX, y, blockZ))) {
-                        return;
-                    }
-                    NativeBlockPoint position = new NativeBlockPoint(blockX, y, blockZ);
-                    ModdedCustomContentRegistry.processBlockPlacement(engine, key,
-                            () -> NativeWorldMaintenance.placement(level, position));
-                }));
+        materializeDeferredSlice(chunk, Identifier.class, () -> {
+            for (DeferredPlacementRecords.Pending<Identifier> record : DeferredPlacementRecords.snapshot(chunk, Identifier.class)) {
+                if (!DeferredPlacementRecords.isPending(chunk, Identifier.class, record)) {
+                    continue;
+                }
+                NativeBlockPoint local = record.position();
+                int y = local.y() + minHeight;
+                if (y < level.minHeight() || y >= level.maxHeight() - 1) {
+                    continue;
+                }
+                int blockX = baseX + (local.x() & 15);
+                int blockZ = baseZ + (local.z() & 15);
+                String key = record.value().toString();
+                if (stale.carrierReplaced(key, level.getBlock(blockX, y, blockZ))) {
+                    continue;
+                }
+                NativeBlockPoint position = new NativeBlockPoint(blockX, y, blockZ);
+                CustomBlockOwnership.Entry ownership = ModdedCustomContentRegistry.processBlockPlacement(engine, key,
+                        () -> NativeWorldMaintenance.placement(level, position));
+                if (ownership != null) {
+                    DeferredPlacementRecords.remember(engine, chunk, local, ownership);
+                }
+            }
+        });
         stale.report(level.name(), chunkX, chunkZ);
     }
 
@@ -411,7 +427,8 @@ public final class ModdedChunkUpdateService implements ModdedTickableService {
                 carrier = carrierKey(key);
                 carriers.put(key, carrier);
             }
-            if (carrier.equals(UNCHECKED) || carrier.equals(IrisProceduralBlocks.materialKey(live))) {
+            if (carrier.equals(UNCHECKED) || carrier.equals(IrisProceduralBlocks.materialKey(live))
+                    || ((carrier.equals("minecraft:fire") || carrier.equals("minecraft:soul_fire")) && live.isAir())) {
                 return false;
             }
             skipped++;

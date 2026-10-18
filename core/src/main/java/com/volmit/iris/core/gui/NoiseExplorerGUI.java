@@ -648,7 +648,8 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         blockTextures = textures;
         paletteInspector.showTextureStatus(null);
-        if (palettePreview != null) {
+        // The first layer may still be loading without textures, so it has to be reloaded even before it shows.
+        if (selectedSource != null) {
             loadSelectedSource();
         }
     }

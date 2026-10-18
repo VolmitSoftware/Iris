@@ -51,6 +51,8 @@ public class CNG {
     public static final NoiseInjector SRC_POW = (s, v) -> new double[]{Math.pow(s, v), 0};
     public static final NoiseInjector DST_MOD = (s, v) -> new double[]{v % s, 0};
     public static final NoiseInjector DST_POW = (s, v) -> new double[]{Math.pow(v, s), 0};
+    // Far enough from the first axis' sample to be uncorrelated, and not a multiple of the 65536-cell hash period.
+    private static final double FRACTURE_AXIS_OFFSET = 10_000.5;
     public static long hits = 0;
     public static long creates = 0;
     private final double opacity;
@@ -456,17 +458,33 @@ public class CNG {
         }
 
         if (fracture.isTrueFracturing()) {
-            double x = dim.length > 0 ? dim[0] + ((fracture.noise(dim) - 0.5) * fscale) : 0D;
-            double y = dim.length > 1 ? dim[1] + ((fracture.noise(dim[1], dim[0]) - 0.5) * fscale) : 0D;
-            double z = dim.length > 2 ? dim[2] + ((fracture.noise(dim[2], dim[0], dim[1]) - 0.5) * fscale) : 0D;
+            double x = dim.length > 0 ? dim[0] + axialFractureOffset(0, dim) : 0D;
+            double y = dim.length > 1 ? dim[1] + axialFractureOffset(1, dim) : 0D;
+            double z = dim.length > 2 ? dim[2] + axialFractureOffset(2, dim) : 0D;
             return generator.noise(x * scale, y * scale, z * scale) * opacity;
         }
 
-        double f = fracture.noise(dim) * fscale;
-        double x = dim.length > 0 ? dim[0] + f : 0D;
-        double y = dim.length > 1 ? dim[1] - f : 0D;
-        double z = dim.length > 2 ? dim[2] - f : 0D;
+        // One sample has to drive both axes here, so the push direction turns with the sampled value.
+        // A fixed direction slides every point along the same diagonal and draws straight lines.
+        double fractureValue = fracture.noise(dim);
+        double push = (fractureValue - 0.5) * fscale;
+        double turn = fractureValue * fractureValue * (3 - 2 * fractureValue);
+        double pushAlong = push * (1 - 2 * turn);
+        double pushAcross = push * 4 * fractureValue * (1 - fractureValue);
+        double x = dim.length > 0 ? dim[0] + pushAlong : 0D;
+        double y = dim.length > 1 ? dim[1] + pushAcross : 0D;
+        double z = dim.length > 2 ? dim[2] + pushAcross : 0D;
         return generator.noise(x * scale, y * scale, z * scale) * opacity;
+    }
+
+    private double axialFractureOffset(int axis, double[] dim) {
+        double shift = axis * FRACTURE_AXIS_OFFSET;
+        double sample = switch (dim.length) {
+            case 1 -> fracture.noise(dim[0] + shift);
+            case 2 -> fracture.noise(dim[0] + shift, dim[1] + shift);
+            default -> fracture.noise(dim[0] + shift, dim[1] + shift, dim[2] + shift);
+        };
+        return (sample - 0.5) * fscale;
     }
 
     public double invertNoise(double... dim) {

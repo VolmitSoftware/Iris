@@ -72,7 +72,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -105,9 +104,11 @@ public final class NoiseExplorerGUI extends JPanel {
     private static final int REFINEMENT_DELAY_MILLIS = 180;
     private static final long DEFAULT_SEED = 12345L;
     private static final double TEXTURE_PIXELS_MAX_BLOCKS_PER_PIXEL = 0.25D;
+    private static final double PALETTE_START_BLOCKS_PER_PIXEL = 1D / 16D;
     private static final long COARSE_SAMPLE_BUDGET = 4_096L;
     private static final long MAX_REFINED_SAMPLE_BUDGET = 48_000L;
     private static final double REFINEMENT_TARGET_MILLIS = 250D;
+    private static final double PALETTE_REFINEMENT_TARGET_MILLIS = 2_000D;
     private static final double WHEEL_ZOOM_EXPONENT = 0.08D;
     private static final NoiseCategory[] CATEGORY_ORDER = {
             NoiseCategory.CUSTOM,
@@ -131,7 +132,8 @@ public final class NoiseExplorerGUI extends JPanel {
     };
 
     private final ExplorerMode mode;
-    private final String initialPackSourceId;
+    private final PaletteExplorerStart paletteStart;
+    private final NoiseViewport initialViewport;
     private volatile Engine activeEngine;
     private final LongFunction<NoiseProvider> customFactory;
     private final String customName;
@@ -154,12 +156,11 @@ public final class NoiseExplorerGUI extends JPanel {
     private final JComboBox<NoisePalette> palettePicker = new JComboBox<>(NoisePalette.values());
     private final PaletteInspectorPanel paletteInspector = new PaletteInspectorPanel(new PaletteInspectorListener());
     private final PaletteNavigator paletteNavigator;
-    private final UUID trackedPlayerId;
     private PlayerLocationTracker locationTracker;
     private volatile BlockTextures blockTextures;
 
     private List<SourceItem> packSources = List.of();
-    private NoiseViewport viewport = new NoiseViewport(0D, 0D, 1D);
+    private NoiseViewport viewport;
     private NoisePalette palette;
     private SourceItem selectedSource;
     private NoiseProvider sampler;
@@ -179,12 +180,15 @@ public final class NoiseExplorerGUI extends JPanel {
     private String errorMessage;
 
     private NoiseExplorerGUI(ExplorerMode mode, Engine engine, String customGeneratorKey, IrisGenerator fallbackGenerator,
-                             String customName, long initialSeed, String initialPackSourceId, UUID trackedPlayerId) {
+                             String customName, long initialSeed, PaletteExplorerStart paletteStart) {
         this.mode = mode;
-        this.trackedPlayerId = trackedPlayerId;
-        this.paletteNavigator = new PaletteNavigator(trackedPlayerId != null, this::selectPaletteLayer);
-        this.initialPackSourceId = initialPackSourceId;
+        this.paletteStart = paletteStart;
+        this.paletteNavigator = new PaletteNavigator(this::selectPaletteLayer);
         this.awaitingInitialPackSource = mode == ExplorerMode.PALETTES;
+        this.initialViewport = paletteStart == null
+                ? new NoiseViewport(0D, 0D, 1D)
+                : new NoiseViewport(paletteStart.centerX(), paletteStart.centerZ(), PALETTE_START_BLOCKS_PER_PIXEL);
+        this.viewport = initialViewport;
         this.activeEngine = engine;
         this.customFactory = fallbackGenerator == null
                 ? null
@@ -192,7 +196,7 @@ public final class NoiseExplorerGUI extends JPanel {
         this.customName = customName;
         this.seed = initialSeed;
         this.seedField.setText(Long.toString(initialSeed));
-        this.palette = IrisSettings.get().getGui().colorMode ? NoisePalette.TERRAIN : NoisePalette.GRAYSCALE;
+        this.palette = IrisSettings.get().getGui().colorMode && mode == ExplorerMode.NOISE ? NoisePalette.TERRAIN : NoisePalette.GRAYSCALE;
         this.sourceExecutor = createExecutor("Iris Noise Source Loader");
         this.catalogExecutor = createExecutor("Iris Noise Catalog Loader");
         this.renderCoordinator = new NoiseRenderCoordinator(new RenderListener());
@@ -212,18 +216,15 @@ public final class NoiseExplorerGUI extends JPanel {
     public static void launch() {
         Engine engine = GuiHost.findActiveEngine();
         EventQueue.invokeLater(() -> {
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null, null);
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
             buildFrame("Noise Explorer", explorer);
         });
     }
 
-    public static void launchPalettes(String biomeKey, UUID trackedPlayerId) {
-        Engine engine = GuiHost.findActiveEngine();
-        String initialSourceId = biomeKey == null ? null : paletteSourceId(biomeKey, 0);
-        String title = biomeKey == null ? "Palette Explorer" : "Palette Explorer: " + biomeKey;
+    public static void launchPalettes(PaletteExplorerStart start) {
         EventQueue.invokeLater(() -> {
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.PALETTES, engine, null, null, null, DEFAULT_SEED, initialSourceId, trackedPlayerId);
-            buildFrame(title, explorer);
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.PALETTES, start.engine(), null, null, null, DEFAULT_SEED, start);
+            buildFrame("Palette Explorer", explorer);
         });
     }
 
@@ -238,7 +239,6 @@ public final class NoiseExplorerGUI extends JPanel {
                     fallbackGenerator,
                     displayName,
                     initialSeed,
-                    null,
                     null
             );
             buildFrame("Noise Explorer: " + displayName, explorer);
@@ -376,9 +376,17 @@ public final class NoiseExplorerGUI extends JPanel {
 
         if (mode == ExplorerMode.NOISE) {
             addSeedControls(controls);
+            addPaletteControls(controls);
         }
 
-        JLabel paletteTitle = new JLabel(mode == ExplorerMode.PALETTES ? "Noise view colours" : "Palette");
+        JButton resetView = createButton("Reset view");
+        resetView.addActionListener(event -> resetViewport());
+        controls.add(resetView);
+        return controls;
+    }
+
+    private void addPaletteControls(JPanel controls) {
+        JLabel paletteTitle = new JLabel("Palette");
         paletteTitle.setForeground(SECONDARY_TEXT);
         paletteTitle.setFont(HEADER_FONT);
         controls.add(paletteTitle);
@@ -393,11 +401,6 @@ public final class NoiseExplorerGUI extends JPanel {
             }
         });
         controls.add(palettePicker);
-
-        JButton resetView = createButton("Reset view");
-        resetView.addActionListener(event -> resetViewport());
-        controls.add(resetView);
-        return controls;
     }
 
     private void addSeedControls(JPanel controls) {
@@ -443,8 +446,8 @@ public final class NoiseExplorerGUI extends JPanel {
         loadCatalog();
         if (mode == ExplorerMode.PALETTES) {
             loadBlockTextures();
-            if (trackedPlayerId != null) {
-                locationTracker = PlayerLocationTracker.follow(trackedPlayerId, paletteNavigator::showLocation);
+            if (paletteStart != null) {
+                locationTracker = PlayerLocationTracker.follow(paletteStart.playerId(), paletteStart.worldId(), paletteNavigator::showLocation);
             }
         }
         SourceItem initial = findInitialSource();
@@ -686,7 +689,8 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private void selectInitialPackSource(List<SourceItem> sources) {
-        SourceItem requested = initialPackSourceId == null ? null : findSourceById(initialPackSourceId, sources);
+        String initialSourceId = paletteStart == null || paletteStart.biomeKey() == null ? null : paletteSourceId(paletteStart.biomeKey(), 0);
+        SourceItem requested = initialSourceId == null ? null : findSourceById(initialSourceId, sources);
         SourceItem initial = requested == null ? sources.get(0) : requested;
         if (!selectSourceInList(initial.id())) {
             selectSource(initial);
@@ -938,13 +942,18 @@ public final class NoiseExplorerGUI extends JPanel {
         requestRender(sampleStep);
     }
 
-    private static long refinedSampleBudget(NoiseRenderCoordinator.Result currentResult) {
+    // Smooth noise looks fine upscaled, but blocks and their textures only read correctly at full resolution.
+    private long refinedSampleBudget(NoiseRenderCoordinator.Result currentResult) {
+        boolean fullResolution = mode == ExplorerMode.PALETTES;
+        long maximumBudget = fullResolution
+                ? Math.max(COARSE_SAMPLE_BUDGET, (long) currentResult.request().width() * currentResult.request().height())
+                : MAX_REFINED_SAMPLE_BUDGET;
         return NoiseRenderCoordinator.timeBoundSampleBudget(
                 currentResult.samples(),
                 currentResult.milliseconds(),
-                REFINEMENT_TARGET_MILLIS,
+                fullResolution ? PALETTE_REFINEMENT_TARGET_MILLIS : REFINEMENT_TARGET_MILLIS,
                 COARSE_SAMPLE_BUDGET,
-                MAX_REFINED_SAMPLE_BUDGET
+                maximumBudget
         );
     }
 
@@ -1039,12 +1048,12 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private void resetViewport() {
-        viewport = new NoiseViewport(0D, 0D, 1D);
+        viewport = initialViewport;
         requestPreview();
     }
 
     private void handleHotload() {
-        Engine refreshedEngine = GuiHost.findActiveEngine();
+        Engine refreshedEngine = paletteStart == null ? GuiHost.findActiveEngine() : GuiHost.findEngine(paletteStart.worldId());
         EventQueue.invokeLater(() -> {
             if (disposed) {
                 return;
@@ -1088,7 +1097,7 @@ public final class NoiseExplorerGUI extends JPanel {
             if (renderedImage == null) {
                 drawEmptyState(canvas, getWidth(), renderHeight);
             } else {
-                Object interpolation = renderedImage.getWidth() == getWidth()
+                Object interpolation = renderedImage.getWidth() == getWidth() || mode == ExplorerMode.PALETTES
                         ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
                         : RenderingHints.VALUE_INTERPOLATION_BILINEAR;
                 canvas.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolation);

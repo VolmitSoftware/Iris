@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -82,6 +83,11 @@ public final class GuiHost {
         } catch (Throwable ignored) {
         }
         return null;
+    }
+
+    public static Engine findEngine(UUID worldId) {
+        World world = Bukkit.getWorld(worldId);
+        return world == null ? null : engineOf(world);
     }
 
     public static void registerHotloadHook(Runnable onHotload) {

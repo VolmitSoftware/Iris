@@ -36,17 +36,19 @@ final class PlayerLocationTracker {
     private static final long CHECK_INTERVAL_TICKS = 10L;
 
     private final UUID playerId;
+    private final UUID worldId;
     private final Listener listener;
     private BukkitTask task;
     private PlayerLocation lastLocation;
 
-    private PlayerLocationTracker(UUID playerId, Listener listener) {
+    private PlayerLocationTracker(UUID playerId, UUID worldId, Listener listener) {
         this.playerId = playerId;
+        this.worldId = worldId;
         this.listener = listener;
     }
 
-    static PlayerLocationTracker follow(UUID playerId, Listener listener) {
-        PlayerLocationTracker tracker = new PlayerLocationTracker(playerId, listener);
+    static PlayerLocationTracker follow(UUID playerId, UUID worldId, Listener listener) {
+        PlayerLocationTracker tracker = new PlayerLocationTracker(playerId, worldId, listener);
         tracker.task = Bukkit.getScheduler().runTaskTimer(Iris.instance, tracker::checkLocation, 0L, CHECK_INTERVAL_TICKS);
         return tracker;
     }
@@ -71,16 +73,19 @@ final class PlayerLocationTracker {
         if (player == null) {
             return PlayerLocation.OFFLINE;
         }
+        if (player.getWorld() == null || !player.getWorld().getUID().equals(worldId)) {
+            return PlayerLocation.IN_OTHER_WORLD;
+        }
         Engine engine = engineAt(player.getLocation());
         if (engine == null) {
-            return PlayerLocation.OUTSIDE_IRIS_WORLD;
+            return PlayerLocation.IN_OTHER_WORLD;
         }
         Location position = player.getLocation();
         IrisRegion region = engine.getRegion(position);
         String surfaceBiome = keyOf(engine.getSurfaceBiome(position.getBlockX(), position.getBlockZ()));
         String biomeAtPosition = keyOf(engine.getBiomeOrMantle(position));
         if (region == null || region.getLoadKey() == null || surfaceBiome == null) {
-            return PlayerLocation.OUTSIDE_IRIS_WORLD;
+            return PlayerLocation.IN_OTHER_WORLD;
         }
         return new PlayerLocation(Status.IN_REGION, region.getLoadKey(), surfaceBiome, biomeAtPosition);
     }
@@ -99,14 +104,14 @@ final class PlayerLocationTracker {
 
     enum Status {
         OFFLINE,
-        OUTSIDE_IRIS_WORLD,
+        IN_OTHER_WORLD,
         IN_REGION
     }
 
     // Biomes are 3D: underground, the biome at the player's position can differ from the surface biome above it.
     record PlayerLocation(Status status, String regionKey, String surfaceBiomeKey, String biomeAtPositionKey) {
         static final PlayerLocation OFFLINE = new PlayerLocation(Status.OFFLINE, null, null, null);
-        static final PlayerLocation OUTSIDE_IRIS_WORLD = new PlayerLocation(Status.OUTSIDE_IRIS_WORLD, null, null, null);
+        static final PlayerLocation IN_OTHER_WORLD = new PlayerLocation(Status.IN_OTHER_WORLD, null, null, null);
 
         boolean isBelowSurfaceBiome() {
             return biomeAtPositionKey != null && !biomeAtPositionKey.equals(surfaceBiomeKey);

@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.GuiHost;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
+import com.volmit.iris.core.gui.PaletteExplorerStart;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
@@ -252,14 +253,25 @@ public class CommandStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch();
     }
 
-    @Decree(description = "Preview biome palette layers (External GUI)", aliases = "pal")
-    public void palette(
-            @Param(description = "The biome to open on", contextual = true)
-            IrisBiome biome
-    ) {
+    @Decree(description = "Preview the palettes around you (External GUI)", aliases = "pal", origin = DecreeOrigin.PLAYER)
+    public void palette() {
         if (noGUI()) return;
+        Engine engine = engine();
+        if (engine == null) {
+            sender().sendMessage(C.RED + "Stand in an Iris world to preview its palettes!");
+            return;
+        }
+        Location location = player().getLocation();
+        IrisBiome surfaceBiome = engine.getSurfaceBiome(location.getBlockX(), location.getBlockZ());
         sender().sendMessage(C.GREEN + "Opening Palette Explorer!");
-        NoiseExplorerGUI.launchPalettes(biome == null ? null : biome.getLoadKey(), sender().isPlayer() ? player().getUniqueId() : null);
+        NoiseExplorerGUI.launchPalettes(new PaletteExplorerStart(
+                engine,
+                location.getWorld().getUID(),
+                player().getUniqueId(),
+                surfaceBiome == null ? null : surfaceBiome.getLoadKey(),
+                location.getX(),
+                location.getZ()
+        ));
     }
 
     @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)

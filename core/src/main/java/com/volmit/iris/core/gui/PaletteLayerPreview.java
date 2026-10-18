@@ -38,6 +38,7 @@ final class PaletteLayerPreview {
     static final double STATISTICS_SPACING_BLOCKS = 37D;
     private static final int MISSING_BLOCK_COLOR = 0x5A5F6B;
     private static final double FAR_FROM_WEIGHT_FACTOR = 2D;
+    private static final int BLOCK_CACHE_SIZE = 1 << 16;
 
     private final String biomeKey;
     private final IrisBiome biome;
@@ -50,6 +51,7 @@ final class PaletteLayerPreview {
     private final int[] colorByEntry;
     private final BlockTexture[] textureByEntry;
     private final List<Entry> entries;
+    private final SampledBlock[] blockCache = new SampledBlock[BLOCK_CACHE_SIZE];
     private final long[] histogram;
     private final double absentShare;
     private final double outOfRangeShare;
@@ -90,11 +92,30 @@ final class PaletteLayerPreview {
         return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data, textures);
     }
 
+    // The world picks one block per whole coordinate, and zoomed in, many pixels fall on the same block.
     double sample(double x, double z) {
-        if (biome.getLayerThickness(layer, x, z, random, data) <= depth) {
+        int blockX = (int) Math.floor(x);
+        int blockZ = (int) Math.floor(z);
+        int cacheSlot = blockCacheSlot(blockX, blockZ);
+        SampledBlock cached = blockCache[cacheSlot];
+        if (cached != null && cached.x() == blockX && cached.z() == blockZ) {
+            return cached.noise();
+        }
+        double noise = sampleBlock(blockX, blockZ);
+        blockCache[cacheSlot] = new SampledBlock(blockX, blockZ, noise);
+        return noise;
+    }
+
+    private double sampleBlock(int blockX, int blockZ) {
+        if (biome.getLayerThickness(layer, blockX, blockZ, random, data) <= depth) {
             return Double.NaN;
         }
-        return biome.getLayerNoise(layer, x, z, depth, random, data);
+        return biome.getLayerNoise(layer, blockX, blockZ, depth, random, data);
+    }
+
+    private static int blockCacheSlot(int blockX, int blockZ) {
+        long hash = blockX * 0x9E3779B97F4A7C15L ^ blockZ * 0xC2B2AE3D27D4EB4FL;
+        return (int) ((hash ^ (hash >>> 29)) & (BLOCK_CACHE_SIZE - 1));
     }
 
     int colorForNoise(double noise) {
@@ -289,6 +310,9 @@ final class PaletteLayerPreview {
         boolean isFarAboveWeight() {
             return found && actualShare > weightShare * FAR_FROM_WEIGHT_FACTOR;
         }
+    }
+
+    private record SampledBlock(int x, int z, double noise) {
     }
 
     private record Statistics(long[] histogram, double[] sharesByEntry, double absentShare, double outOfRangeShare) {

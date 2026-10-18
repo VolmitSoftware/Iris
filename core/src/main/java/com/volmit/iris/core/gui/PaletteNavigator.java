@@ -50,7 +50,6 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -71,11 +70,9 @@ final class PaletteNavigator extends JPanel {
     private static final String DETAIL_COLOR = "#8890A0";
 
     private final Listener listener;
-    private final boolean showsPlayerLocation;
     private final CardLayout cards = new CardLayout();
     private final JPanel cardPanel = new JPanel(cards);
     private final JLabel regionLabel = new JLabel();
-    private final JLabel positionLabel = new JLabel();
     private final DefaultListModel<HereRow> hereRows = new DefaultListModel<>();
     private final JList<HereRow> hereList = new JList<>(hereRows);
     private final JTextField searchField = new JTextField();
@@ -88,9 +85,8 @@ final class PaletteNavigator extends JPanel {
     private int selectedLayer;
     private boolean updatingSelection;
 
-    PaletteNavigator(boolean showsPlayerLocation, Listener listener) {
+    PaletteNavigator(Listener listener) {
         super(new BorderLayout());
-        this.showsPlayerLocation = showsPlayerLocation;
         this.listener = listener;
         setBackground(SIDEBAR_BACKGROUND);
         cardPanel.add(buildHereCard(), HERE_CARD);
@@ -132,30 +128,15 @@ final class PaletteNavigator extends JPanel {
         JToggleButton overview = createTab("Overview", OVERVIEW_CARD, group);
         bar.add(here);
         bar.add(overview);
-        (showsPlayerLocation ? here : overview).doClick();
+        here.doClick();
         return bar;
     }
 
     private JToggleButton createTab(String text, String card, ButtonGroup group) {
-        JToggleButton tab = new JToggleButton(text);
-        tab.setFocusPainted(false);
-        tab.setFont(ITEM_FONT);
-        tab.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                BorderFactory.createEmptyBorder(5, 9, 5, 9)
-        ));
-        tab.addItemListener(event -> styleTab(tab));
+        JToggleButton tab = ExplorerStyle.toggleButton(text);
         tab.addActionListener(event -> cards.show(cardPanel, card));
-        styleTab(tab);
         group.add(tab);
         return tab;
-    }
-
-    private static void styleTab(JToggleButton tab) {
-        tab.setBackground(tab.isSelected() ? ACCENT.darker().darker() : FIELD_BACKGROUND);
-        tab.setForeground(tab.isSelected() ? PRIMARY_TEXT : SECONDARY_TEXT);
-        tab.setContentAreaFilled(false);
-        tab.setOpaque(true);
     }
 
     private JPanel buildHereCard() {
@@ -167,11 +148,9 @@ final class PaletteNavigator extends JPanel {
                 BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER),
                 BorderFactory.createEmptyBorder(9, 12, 9, 12)
         ));
-        for (JLabel label : List.of(regionLabel, positionLabel)) {
-            label.setForeground(PRIMARY_TEXT);
-            label.setFont(ITEM_FONT);
-            location.add(label);
-        }
+        regionLabel.setForeground(PRIMARY_TEXT);
+        regionLabel.setFont(ITEM_FONT);
+        location.add(regionLabel);
 
         hereList.setBackground(SIDEBAR_BACKGROUND);
         hereList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -254,17 +233,13 @@ final class PaletteNavigator extends JPanel {
         updatingSelection = true;
         try {
             hereRows.clear();
-            if (!showsPlayerLocation) {
-                showHereMessage("Run /iris std pal in-game", "to see where you are standing.");
-                return;
-            }
             if (location == null || catalog == null) {
-                showHereMessage("Finding where you are...", " ");
+                showHereMessage("Finding where you are...");
                 return;
             }
             switch (location.status()) {
-                case OFFLINE -> showHereMessage("You are offline.", " ");
-                case OUTSIDE_IRIS_WORLD -> showHereMessage("You are not in an Iris world.", " ");
+                case OFFLINE -> showHereMessage("You are offline.");
+                case IN_OTHER_WORLD -> showHereMessage("You left the world this window shows.");
                 case IN_REGION -> showHereRows(location);
             }
             selectInHereList();
@@ -273,18 +248,16 @@ final class PaletteNavigator extends JPanel {
         }
     }
 
-    private void showHereMessage(String firstLine, String secondLine) {
-        regionLabel.setText(firstLine);
-        positionLabel.setText(secondLine);
+    private void showHereMessage(String message) {
+        regionLabel.setText(message);
     }
 
     private void showHereRows(PlayerLocation here) {
         RegionEntry region = catalog.region(here.regionKey());
         regionLabel.setText(labeled("Region", region == null ? here.regionKey() : region.name(), here.regionKey()));
-        positionLabel.setText(here.isBelowSurfaceBiome() ? "Underground, below the surface biome" : "On the surface");
-        addBiomeLayers("Surface biome", here.surfaceBiomeKey());
+        addBiomeLayers("Surface biome here", here.surfaceBiomeKey());
         if (here.isBelowSurfaceBiome()) {
-            addBiomeLayers("Biome at your position", here.biomeAtPositionKey());
+            addBiomeLayers("Underground biome at your height", here.biomeAtPositionKey());
         }
         if (region == null) {
             return;

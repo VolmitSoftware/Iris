@@ -19,12 +19,14 @@
 package com.volmit.iris.core.gui;
 
 import javax.swing.BorderFactory;
-import javax.swing.JComboBox;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSlider;
+import javax.swing.JToggleButton;
+import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -59,11 +61,14 @@ final class PaletteInspectorPanel extends JPanel {
     private final Listener listener;
     private final JLabel titleLabel = new JLabel();
     private final JLabel detailLabel = new JLabel();
-    private final JComboBox<PaletteLayerScale.View> viewPicker = new JComboBox<>(PaletteLayerScale.View.values());
-    private final JLabel depthLabel = new JLabel();
-    private final JSlider depthSlider = new JSlider(0, 0, 0);
+    private final JLabel depthLabel = new JLabel("", SwingConstants.CENTER);
+    private final JButton shallowerButton = ExplorerStyle.button("‹");
+    private final JButton deeperButton = ExplorerStyle.button("›");
+    private final JPanel depthRow = new JPanel(new BorderLayout(6, 0));
     private final StatisticsView statisticsView = new StatisticsView();
-    private boolean updatingControls;
+    private PaletteLayerScale.View selectedView = PaletteLayerScale.View.BLOCKS;
+    private int depth;
+    private int deepestDepth;
 
     PaletteInspectorPanel(Listener listener) {
         super(new BorderLayout());
@@ -80,19 +85,12 @@ final class PaletteInspectorPanel extends JPanel {
     }
 
     void showPreview(PaletteLayerPreview preview) {
-        updatingControls = true;
-        try {
-            titleLabel.setText(preview.biomeKey() + " · layer " + preview.layer());
-            detailLabel.setText(thicknessText(preview) + " · zoom " + formatZoom(preview.zoom())
-                    + " (×" + formatZoom(preview.zoom() * preview.zoom()) + " effective)");
-            int deepestDepth = Math.max(0, preview.maxThickness() - 1);
-            depthSlider.setMaximum(deepestDepth);
-            depthSlider.setValue(preview.depth());
-            depthSlider.setEnabled(deepestDepth > 0);
-            depthLabel.setText(depthText(preview.depth(), deepestDepth));
-        } finally {
-            updatingControls = false;
-        }
+        titleLabel.setText(preview.biomeKey() + " · layer " + preview.layer());
+        detailLabel.setText(thicknessText(preview) + " · zoom " + formatZoom(preview.zoom())
+                + " (×" + formatZoom(preview.zoom() * preview.zoom()) + " effective)");
+        depth = preview.depth();
+        deepestDepth = Math.max(0, preview.maxThickness() - 1);
+        refreshDepthControls();
         statisticsView.show(preview);
         setVisible(true);
     }
@@ -106,7 +104,7 @@ final class PaletteInspectorPanel extends JPanel {
     }
 
     PaletteLayerScale.View selectedView() {
-        return (PaletteLayerScale.View) viewPicker.getSelectedItem();
+        return selectedView;
     }
 
     private JPanel buildControls() {
@@ -123,24 +121,56 @@ final class PaletteInspectorPanel extends JPanel {
         controls.add(titleLabel);
         controls.add(detailLabel);
 
-        controls.add(sectionLabel("View"));
-        viewPicker.setBackground(FIELD_BACKGROUND);
-        viewPicker.setForeground(PRIMARY_TEXT);
-        viewPicker.addActionListener(event -> listener.onViewChanged(selectedView()));
-        controls.add(viewPicker);
-
-        depthLabel.setForeground(SECONDARY_TEXT);
-        depthLabel.setFont(HEADER_FONT);
-        controls.add(depthLabel);
-        depthSlider.setOpaque(false);
-        depthSlider.addChangeListener(event -> {
-            if (!updatingControls && !depthSlider.getValueIsAdjusting()) {
-                listener.onDepthChanged(depthSlider.getValue());
-            }
-        });
-        depthSlider.addChangeListener(event -> depthLabel.setText(depthText(depthSlider.getValue(), depthSlider.getMaximum())));
-        controls.add(depthSlider);
+        controls.add(sectionLabel("Show"));
+        controls.add(buildViewButtons());
+        controls.add(sectionLabel("Depth"));
+        controls.add(buildDepthRow());
         return controls;
+    }
+
+    private JPanel buildViewButtons() {
+        JPanel row = new JPanel(new GridLayout(1, 0, 4, 0));
+        row.setOpaque(false);
+        ButtonGroup group = new ButtonGroup();
+        for (PaletteLayerScale.View view : PaletteLayerScale.View.values()) {
+            JToggleButton button = ExplorerStyle.toggleButton(view.toString());
+            button.setSelected(view == selectedView);
+            button.addActionListener(event -> {
+                selectedView = view;
+                listener.onViewChanged(view);
+            });
+            group.add(button);
+            row.add(button);
+        }
+        return row;
+    }
+
+    private JPanel buildDepthRow() {
+        depthRow.setOpaque(false);
+        depthLabel.setForeground(PRIMARY_TEXT);
+        depthLabel.setFont(ITEM_FONT);
+        shallowerButton.addActionListener(event -> changeDepth(-1));
+        deeperButton.addActionListener(event -> changeDepth(1));
+        depthRow.add(shallowerButton, BorderLayout.WEST);
+        depthRow.add(depthLabel, BorderLayout.CENTER);
+        depthRow.add(deeperButton, BorderLayout.EAST);
+        return depthRow;
+    }
+
+    private void changeDepth(int step) {
+        int nextDepth = Math.clamp(depth + step, 0, deepestDepth);
+        if (nextDepth == depth) {
+            return;
+        }
+        depth = nextDepth;
+        refreshDepthControls();
+        listener.onDepthChanged(depth);
+    }
+
+    private void refreshDepthControls() {
+        depthLabel.setText(depthText(depth, deepestDepth));
+        shallowerButton.setEnabled(depth > 0);
+        deeperButton.setEnabled(depth < deepestDepth);
     }
 
     private static JLabel sectionLabel(String text) {
@@ -159,9 +189,9 @@ final class PaletteInspectorPanel extends JPanel {
 
     private static String depthText(int depth, int deepestDepth) {
         if (deepestDepth == 0) {
-            return "Depth: top block only";
+            return "Top block only";
         }
-        return "Depth " + depth + (depth == 0 ? " (top)" : "") + " of " + deepestDepth;
+        return depth == 0 ? "Top block" : depth + (depth == 1 ? " block down" : " blocks down");
     }
 
     private static String formatZoom(double zoom) {

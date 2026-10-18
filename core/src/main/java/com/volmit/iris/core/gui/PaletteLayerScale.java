@@ -87,7 +87,7 @@ final class PaletteLayerScale implements NoiseColorScale {
     enum View {
         BLOCKS("Blocks"),
         NOISE("Noise"),
-        BLOCKS_SHADED_BY_NOISE("Blocks + noise");
+        BLOCKS_SHADED_BY_NOISE("Both");
 
         private final String label;
 

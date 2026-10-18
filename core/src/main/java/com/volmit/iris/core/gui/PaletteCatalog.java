@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         Map<String, BiomeEntry> biomes = loadBiomes(data);
         List<RegionEntry> regions = new ArrayList<>();
         Set<String> biomesInRegions = new HashSet<>();
-        for (String regionKey : engine.getDimension().getRegions()) {
+        for (String regionKey : regionKeysInUse(engine)) {
             IrisRegion region = data.getRegionLoader().load(regionKey);
             if (region == null) {
                 continue;
@@ -51,6 +52,16 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         }
         List<String> outside = biomes.keySet().stream().filter(key -> !biomesInRegions.contains(key)).toList();
         return new PaletteCatalog(List.copyOf(regions), outside, Map.copyOf(biomes));
+    }
+
+    // A studio focus region is generated even when the dimension's region list doesn't include it.
+    private static Set<String> regionKeysInUse(Engine engine) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (engine.getDimension().hasFocusRegion()) {
+            keys.add(engine.getDimension().getFocusRegion());
+        }
+        keys.addAll(engine.getDimension().getRegions());
+        return keys;
     }
 
     BiomeEntry biome(String key) {

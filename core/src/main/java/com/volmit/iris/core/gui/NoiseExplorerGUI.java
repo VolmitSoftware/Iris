@@ -22,6 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
@@ -82,26 +84,27 @@ import java.util.function.LongFunction;
 public final class NoiseExplorerGUI extends JPanel {
     private static final long serialVersionUID = 2094606939770332040L;
     private static final Color BACKGROUND = new Color(12, 15, 22);
-    private static final Color SIDEBAR_BACKGROUND = new Color(17, 20, 29);
-    private static final Color PANEL_BACKGROUND = new Color(23, 27, 38);
-    private static final Color FIELD_BACKGROUND = new Color(29, 34, 47);
+    static final Color SIDEBAR_BACKGROUND = new Color(17, 20, 29);
+    static final Color PANEL_BACKGROUND = new Color(23, 27, 38);
+    static final Color FIELD_BACKGROUND = new Color(29, 34, 47);
     private static final Color SELECTED_BACKGROUND = new Color(42, 55, 78);
-    private static final Color PRIMARY_TEXT = new Color(230, 234, 242);
-    private static final Color SECONDARY_TEXT = new Color(151, 160, 178);
-    private static final Color ACCENT = new Color(99, 161, 255);
-    private static final Color BORDER = new Color(48, 55, 72);
-    private static final Color ERROR = new Color(255, 116, 116);
+    static final Color PRIMARY_TEXT = new Color(230, 234, 242);
+    static final Color SECONDARY_TEXT = new Color(151, 160, 178);
+    static final Color ACCENT = new Color(99, 161, 255);
+    static final Color BORDER = new Color(48, 55, 72);
+    static final Color ERROR = new Color(255, 116, 116);
     private static final Color GRID = new Color(255, 255, 255, 15);
     private static final Color CROSSHAIR = new Color(255, 255, 255, 125);
     private static final Color LEGEND_BACKGROUND = new Color(10, 12, 18, 215);
     private static final Font MONOSPACED_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-    private static final Font HEADER_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 11);
-    private static final Font ITEM_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
-    private static final Font LEGEND_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
+    static final Font HEADER_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 11);
+    static final Font ITEM_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+    static final Font LEGEND_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
     private static final int SIDEBAR_WIDTH = 270;
     private static final int STATUS_HEIGHT = 50;
     private static final int REFINEMENT_DELAY_MILLIS = 180;
     private static final long DEFAULT_SEED = 12345L;
+    private static final int SUMMARIZED_BLOCK_COUNT = 3;
     private static final long COARSE_SAMPLE_BUDGET = 4_096L;
     private static final long MAX_REFINED_SAMPLE_BUDGET = 48_000L;
     private static final double REFINEMENT_TARGET_MILLIS = 250D;
@@ -109,6 +112,7 @@ public final class NoiseExplorerGUI extends JPanel {
     private static final NoiseCategory[] CATEGORY_ORDER = {
             NoiseCategory.CUSTOM,
             NoiseCategory.PACK_GENERATORS,
+            NoiseCategory.PACK_PALETTES,
             NoiseCategory.SIMPLEX,
             NoiseCategory.PERLIN,
             NoiseCategory.CELLULAR,
@@ -126,6 +130,8 @@ public final class NoiseExplorerGUI extends JPanel {
             NoiseCategory.OTHER
     };
 
+    private final ExplorerMode mode;
+    private final String initialPackSourceId;
     private volatile Engine activeEngine;
     private final LongFunction<NoiseProvider> customFactory;
     private final String customName;
@@ -146,12 +152,15 @@ public final class NoiseExplorerGUI extends JPanel {
     private final JLabel progressLabel = new JLabel("Opening noise explorer...");
     private final JLabel catalogLabel = new JLabel("Pack catalog waiting");
     private final JComboBox<NoisePalette> palettePicker = new JComboBox<>(NoisePalette.values());
+    private final PaletteInspectorPanel paletteInspector = new PaletteInspectorPanel(new PaletteInspectorListener());
 
     private List<SourceItem> packSources = List.of();
     private NoiseViewport viewport = new NoiseViewport(0D, 0D, 1D);
     private NoisePalette palette;
     private SourceItem selectedSource;
     private NoiseProvider sampler;
+    private PaletteLayerPreview palettePreview;
+    private int paletteDepth;
     private NoiseRenderCoordinator.Result renderResult;
     private BufferedImage renderedImage;
     private Point pointer;
@@ -162,10 +171,14 @@ public final class NoiseExplorerGUI extends JPanel {
     private boolean sourceLoading;
     private boolean rendering;
     private boolean disposed;
+    private boolean awaitingInitialPackSource;
     private String errorMessage;
 
-    private NoiseExplorerGUI(Engine engine, String customGeneratorKey, IrisGenerator fallbackGenerator,
-                             String customName, long initialSeed) {
+    private NoiseExplorerGUI(ExplorerMode mode, Engine engine, String customGeneratorKey, IrisGenerator fallbackGenerator,
+                             String customName, long initialSeed, String initialPackSourceId) {
+        this.mode = mode;
+        this.initialPackSourceId = initialPackSourceId;
+        this.awaitingInitialPackSource = mode == ExplorerMode.PALETTES;
         this.activeEngine = engine;
         this.customFactory = fallbackGenerator == null
                 ? null
@@ -193,8 +206,18 @@ public final class NoiseExplorerGUI extends JPanel {
     public static void launch() {
         Engine engine = GuiHost.findActiveEngine();
         EventQueue.invokeLater(() -> {
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(engine, null, null, null, DEFAULT_SEED);
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
             buildFrame("Noise Explorer", explorer);
+        });
+    }
+
+    public static void launchPalettes(String biomeKey) {
+        Engine engine = GuiHost.findActiveEngine();
+        String initialSourceId = biomeKey == null ? null : paletteSourceId(biomeKey, 0);
+        String title = biomeKey == null ? "Palette Explorer" : "Palette Explorer: " + biomeKey;
+        EventQueue.invokeLater(() -> {
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.PALETTES, engine, null, null, null, DEFAULT_SEED, initialSourceId);
+            buildFrame(title, explorer);
         });
     }
 
@@ -203,11 +226,13 @@ public final class NoiseExplorerGUI extends JPanel {
         String displayName = generatorKey == null || generatorKey.isBlank() ? "Custom Generator" : generatorKey;
         EventQueue.invokeLater(() -> {
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(
+                    ExplorerMode.NOISE,
                     engine,
                     generatorKey,
                     fallbackGenerator,
                     displayName,
-                    initialSeed
+                    initialSeed,
+                    null
             );
             buildFrame("Noise Explorer: " + displayName, explorer);
         });
@@ -219,6 +244,7 @@ public final class NoiseExplorerGUI extends JPanel {
         frame.setLayout(new BorderLayout());
         frame.add(explorer.buildSidebar(), BorderLayout.WEST);
         frame.add(explorer, BorderLayout.CENTER);
+        frame.add(explorer.paletteInspector, BorderLayout.EAST);
         frame.setSize(1440, 820);
         frame.setMinimumSize(new Dimension(760, 500));
         frame.setLocationRelativeTo(null);
@@ -339,21 +365,11 @@ public final class NoiseExplorerGUI extends JPanel {
         catalogLabel.setFont(ITEM_FONT);
         controls.add(catalogLabel);
 
-        JLabel seedTitle = new JLabel("Seed");
-        seedTitle.setForeground(SECONDARY_TEXT);
-        seedTitle.setFont(HEADER_FONT);
-        controls.add(seedTitle);
-        JPanel seedRow = new JPanel(new BorderLayout(7, 0));
-        seedRow.setOpaque(false);
-        configureTextField(seedField);
-        JButton applySeed = createButton("Apply");
-        applySeed.addActionListener(event -> applySeed());
-        seedField.addActionListener(event -> applySeed());
-        seedRow.add(seedField, BorderLayout.CENTER);
-        seedRow.add(applySeed, BorderLayout.EAST);
-        controls.add(seedRow);
+        if (mode == ExplorerMode.NOISE) {
+            addSeedControls(controls);
+        }
 
-        JLabel paletteTitle = new JLabel("Palette");
+        JLabel paletteTitle = new JLabel(mode == ExplorerMode.PALETTES ? "Noise view colours" : "Palette");
         paletteTitle.setForeground(SECONDARY_TEXT);
         paletteTitle.setFont(HEADER_FONT);
         controls.add(paletteTitle);
@@ -373,6 +389,22 @@ public final class NoiseExplorerGUI extends JPanel {
         resetView.addActionListener(event -> resetViewport());
         controls.add(resetView);
         return controls;
+    }
+
+    private void addSeedControls(JPanel controls) {
+        JLabel seedTitle = new JLabel("Seed");
+        seedTitle.setForeground(SECONDARY_TEXT);
+        seedTitle.setFont(HEADER_FONT);
+        controls.add(seedTitle);
+        JPanel seedRow = new JPanel(new BorderLayout(7, 0));
+        seedRow.setOpaque(false);
+        configureTextField(seedField);
+        JButton applySeed = createButton("Apply");
+        applySeed.addActionListener(event -> applySeed());
+        seedField.addActionListener(event -> applySeed());
+        seedRow.add(seedField, BorderLayout.CENTER);
+        seedRow.add(applySeed, BorderLayout.EAST);
+        controls.add(seedRow);
     }
 
     private static JButton createButton(String text) {
@@ -423,6 +455,9 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private List<SourceItem> buildFixedSources() {
+        if (mode == ExplorerMode.PALETTES) {
+            return List.of();
+        }
         List<SourceItem> sources = new ArrayList<>();
         if (customFactory != null && customName != null) {
             sources.add(new SourceItem(
@@ -431,7 +466,7 @@ public final class NoiseExplorerGUI extends JPanel {
                     customName,
                     NoiseCategory.CUSTOM,
                     true,
-                    customFactory::apply
+                    (sourceSeed, depth) -> LoadedSource.of(customFactory.apply(sourceSeed))
             ));
         }
         for (NoiseStyle style : NoiseStyle.values()) {
@@ -441,9 +476,9 @@ public final class NoiseExplorerGUI extends JPanel {
                     style.name(),
                     categorize(style),
                     true,
-                    sourceSeed -> {
+                    (sourceSeed, depth) -> {
                         CNG noise = style.create(new RNG(sourceSeed));
-                        return (x, z) -> noise.noise(x, z);
+                        return LoadedSource.of((x, z) -> noise.noise(x, z));
                     }
             ));
         }
@@ -489,11 +524,17 @@ public final class NoiseExplorerGUI extends JPanel {
         return (x, z) -> selectedGenerator.getHeight(x, z, mixedSeed);
     }
 
-    private static List<SourceItem> loadPackSources(Engine engine) {
+    private List<SourceItem> loadPackSources(Engine engine) {
         if (engine == null) {
             return List.of();
         }
-        IrisData data = engine.getData();
+        return switch (mode) {
+            case NOISE -> loadPackGeneratorSources(engine.getData());
+            case PALETTES -> loadPackPaletteSources(engine);
+        };
+    }
+
+    private static List<SourceItem> loadPackGeneratorSources(IrisData data) {
         String[] keys = data.getGeneratorLoader().getPossibleKeys();
         if (keys == null || keys.length == 0) {
             return List.of();
@@ -507,17 +548,65 @@ public final class NoiseExplorerGUI extends JPanel {
                     key,
                     NoiseCategory.PACK_GENERATORS,
                     true,
-                    sourceSeed -> {
+                    (sourceSeed, depth) -> {
                         IrisGenerator generator = data.getGeneratorLoader().load(key);
                         if (generator == null) {
                             throw new IllegalStateException("Pack generator not found: " + key);
                         }
                         long mixedSeed = new RNG(sourceSeed).nextParallelRNG(3245).lmax();
-                        return (x, z) -> generator.getHeight(x, z, mixedSeed);
+                        return LoadedSource.of((x, z) -> generator.getHeight(x, z, mixedSeed));
                     }
             ));
         }
         return List.copyOf(sources);
+    }
+
+    // Palette layers always use the world's terrain seed: they share their cached noise with the running world.
+    private static List<SourceItem> loadPackPaletteSources(Engine engine) {
+        IrisData data = engine.getData();
+        String[] keys = data.getBiomeLoader().getPossibleKeys();
+        if (keys == null || keys.length == 0) {
+            return List.of();
+        }
+        Arrays.sort(keys);
+        List<SourceItem> sources = new ArrayList<>();
+        for (String key : keys) {
+            IrisBiome biome = data.getBiomeLoader().load(key);
+            if (biome == null) {
+                continue;
+            }
+            for (int layer = 0; layer < biome.getLayers().size(); layer++) {
+                int selectedLayer = layer;
+                sources.add(new SourceItem(
+                        paletteSourceId(key, layer),
+                        "Layer " + layer + " · " + summarizeBlocks(biome.getLayers().get(layer)),
+                        key,
+                        NoiseCategory.PACK_PALETTES,
+                        false,
+                        (sourceSeed, depth) -> {
+                            PaletteLayerPreview preview = PaletteLayerPreview.load(engine, key, selectedLayer, depth);
+                            return new LoadedSource(preview::sample, preview);
+                        }
+                ));
+            }
+        }
+        return List.copyOf(sources);
+    }
+
+    private static String paletteSourceId(String biomeKey, int layer) {
+        return "palette:" + biomeKey + "#" + layer;
+    }
+
+    private static String summarizeBlocks(IrisBiomePaletteLayer layer) {
+        List<String> names = layer.getPalette().stream()
+                .map(block -> block.getBlock().replace("minecraft:", ""))
+                .distinct()
+                .toList();
+        if (names.size() <= SUMMARIZED_BLOCK_COUNT) {
+            return String.join(", ", names);
+        }
+        return String.join(", ", names.subList(0, SUMMARIZED_BLOCK_COUNT))
+                + " +" + (names.size() - SUMMARIZED_BLOCK_COUNT) + " more";
     }
 
     private void applyCatalog(long revision, List<SourceItem> sources, Throwable error) {
@@ -529,17 +618,14 @@ public final class NoiseExplorerGUI extends JPanel {
         if (error != null) {
             catalogLabel.setForeground(ERROR);
             catalogLabel.setText("Pack catalog unavailable");
-        } else if (sources.isEmpty()) {
-            catalogLabel.setForeground(SECONDARY_TEXT);
-            catalogLabel.setText("No active pack generators");
         } else {
             catalogLabel.setForeground(SECONDARY_TEXT);
-            catalogLabel.setText(sources.size() + " pack generators");
+            catalogLabel.setText(catalogSummary(sources));
         }
         boolean reloadSelectedPack = false;
         if (error == null
                 && selectedSource != null
-                && selectedSource.category() == NoiseCategory.PACK_GENERATORS) {
+                && selectedSource.category().isFromPack()) {
             SourceItem replacement = findSourceById(selectedSource.id(), sources);
             if (replacement == null) {
                 failRemovedPackSource(selectedSource);
@@ -552,6 +638,29 @@ public final class NoiseExplorerGUI extends JPanel {
         if (reloadSelectedPack) {
             loadSelectedSource();
         }
+        if (error == null && awaitingInitialPackSource && !sources.isEmpty()) {
+            awaitingInitialPackSource = false;
+            selectInitialPackSource(sources);
+        }
+    }
+
+    private void selectInitialPackSource(List<SourceItem> sources) {
+        SourceItem requested = initialPackSourceId == null ? null : findSourceById(initialPackSourceId, sources);
+        SourceItem initial = requested == null ? sources.get(0) : requested;
+        if (!selectSourceInList(initial.id())) {
+            selectSource(initial);
+        }
+    }
+
+    private String catalogSummary(List<SourceItem> sources) {
+        if (mode == ExplorerMode.NOISE) {
+            return sources.isEmpty() ? "No active pack generators" : sources.size() + " pack generators";
+        }
+        if (resolveEngine() == null) {
+            return "Open a studio world to see its palettes";
+        }
+        long biomes = sources.stream().map(SourceItem::rawName).distinct().count();
+        return sources.size() + " palette layers in " + biomes + " biomes";
     }
 
     private void failRemovedPackSource(SourceItem removedSource) {
@@ -560,15 +669,15 @@ public final class NoiseExplorerGUI extends JPanel {
         viewRevision++;
         renderCoordinator.cancel(viewRevision);
         selectedSource = null;
-        sampler = null;
+        clearSampler();
         renderedImage = null;
         renderResult = null;
         sourceLoading = false;
         rendering = false;
-        errorMessage = "Pack generator removed during hotload: " + removedSource.rawName();
+        errorMessage = "Pack source removed during hotload: " + removedSource.text();
         selectedLabel.setText("No source selected");
         progressLabel.setForeground(ERROR);
-        progressLabel.setText("Selected pack generator was removed");
+        progressLabel.setText("Selected pack source was removed");
         sourceList.clearSelection();
         repaint();
     }
@@ -586,6 +695,10 @@ public final class NoiseExplorerGUI extends JPanel {
             if (matching.isEmpty()) {
                 continue;
             }
+            if (category == NoiseCategory.PACK_PALETTES) {
+                addGroupedByBiome(matching);
+                continue;
+            }
             sourceModel.addElement(new ListItem(categoryLabel(category), null));
             for (SourceItem source : matching) {
                 sourceModel.addElement(new ListItem(source.text(), source));
@@ -593,6 +706,17 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         if (selectedId != null) {
             selectSourceInList(selectedId);
+        }
+    }
+
+    private void addGroupedByBiome(List<SourceItem> paletteSources) {
+        String currentBiome = null;
+        for (SourceItem source : paletteSources) {
+            if (!source.rawName().equals(currentBiome)) {
+                currentBiome = source.rawName();
+                sourceModel.addElement(new ListItem(currentBiome, null));
+            }
+            sourceModel.addElement(new ListItem(source.text(), source));
         }
     }
 
@@ -633,7 +757,8 @@ public final class NoiseExplorerGUI extends JPanel {
             return;
         }
         selectedSource = source;
-        selectedLabel.setText(source.text());
+        paletteDepth = 0;
+        selectedLabel.setText(source.category() == NoiseCategory.PACK_PALETTES ? source.rawName() : source.text());
         loadSelectedSource();
     }
 
@@ -644,6 +769,7 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         long revision = sourceLoadRevision.incrementAndGet();
         long requestedSeed = seed;
+        int requestedDepth = paletteDepth;
         refinementTimer.stop();
         viewRevision++;
         renderCoordinator.cancel(viewRevision);
@@ -658,11 +784,11 @@ public final class NoiseExplorerGUI extends JPanel {
         repaint();
         submitLatest(sourceExecutor, () -> {
             try {
-                NoiseProvider loadedSampler = source.factory().create(requestedSeed);
-                if (loadedSampler == null) {
+                LoadedSource loaded = source.factory().create(requestedSeed, requestedDepth);
+                if (loaded == null || loaded.sampler() == null) {
                     throw new IllegalStateException("Noise source returned no sampler: " + source.rawName());
                 }
-                EventQueue.invokeLater(() -> applyLoadedSource(revision, source, loadedSampler));
+                EventQueue.invokeLater(() -> applyLoadedSource(revision, source, loaded));
             } catch (Throwable error) {
                 Iris.reportError(error);
                 EventQueue.invokeLater(() -> applySourceError(revision, source, error));
@@ -670,11 +796,13 @@ public final class NoiseExplorerGUI extends JPanel {
         });
     }
 
-    private void applyLoadedSource(long revision, SourceItem source, NoiseProvider loadedSampler) {
+    private void applyLoadedSource(long revision, SourceItem source, LoadedSource loaded) {
         if (disposed || revision != sourceLoadRevision.get() || selectedSource != source) {
             return;
         }
-        sampler = loadedSampler;
+        sampler = loaded.sampler();
+        palettePreview = loaded.palettePreview();
+        showPaletteInspector();
         sourceLoading = false;
         errorMessage = null;
         renderedImage = null;
@@ -688,13 +816,35 @@ public final class NoiseExplorerGUI extends JPanel {
         if (disposed || revision != sourceLoadRevision.get() || selectedSource != source) {
             return;
         }
-        sampler = null;
+        clearSampler();
         sourceLoading = false;
         rendering = false;
         errorMessage = readableError(error);
         progressLabel.setForeground(ERROR);
         progressLabel.setText("Source failed to load");
         repaint();
+    }
+
+    private void clearSampler() {
+        sampler = null;
+        palettePreview = null;
+        showPaletteInspector();
+    }
+
+    private void showPaletteInspector() {
+        if (palettePreview == null) {
+            paletteInspector.hideInspector();
+        } else {
+            paletteInspector.showPreview(palettePreview);
+        }
+        if (paletteInspector.getParent() != null) {
+            paletteInspector.getParent().revalidate();
+        }
+    }
+
+    private NoiseColorScale activeColorScale() {
+        PaletteLayerPreview preview = palettePreview;
+        return preview == null ? palette : new PaletteLayerScale(paletteInspector.selectedView(), preview, palette);
     }
 
     private void applySeed() {
@@ -767,7 +917,7 @@ public final class NoiseExplorerGUI extends JPanel {
                 viewRevision,
                 sampler,
                 viewport,
-                palette,
+                activeColorScale(),
                 getWidth(),
                 renderHeight(),
                 sampleStep
@@ -935,6 +1085,7 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private void drawLegend(Graphics2D canvas, int width) {
+        NoiseColorScale colorScale = activeColorScale();
         int legendWidth = 190;
         int legendHeight = 40;
         int legendX = Math.max(10, width - legendWidth - 12);
@@ -946,16 +1097,16 @@ public final class NoiseExplorerGUI extends JPanel {
         int gradientWidth = legendWidth - 18;
         for (int x = 0; x < gradientWidth; x++) {
             double normalized = x / (double) Math.max(1, gradientWidth - 1);
-            canvas.setColor(palette.displayColorNormalized(normalized));
+            canvas.setColor(colorScale.displayColorNormalized(normalized));
             canvas.drawLine(gradientX + x, gradientY, gradientX + x, gradientY + 8);
         }
         canvas.setFont(LEGEND_FONT);
         canvas.setColor(PRIMARY_TEXT);
-        canvas.drawString(formatNumber(palette.minimum()), gradientX, legendY + 31);
-        String maximum = formatNumber(palette.maximum());
+        canvas.drawString(formatNumber(colorScale.minimum()), gradientX, legendY + 31);
+        String maximum = formatNumber(colorScale.maximum());
         int maximumWidth = canvas.getFontMetrics().stringWidth(maximum);
         canvas.drawString(maximum, gradientX + gradientWidth - maximumWidth, legendY + 31);
-        String label = palette.label();
+        String label = colorScale.label();
         int labelWidth = canvas.getFontMetrics().stringWidth(label);
         canvas.drawString(label, legendX + ((legendWidth - labelWidth) / 2), legendY + 31);
     }
@@ -1010,10 +1161,22 @@ public final class NoiseExplorerGUI extends JPanel {
         if (renderResult == null) {
             return coordinates + (catalogLoading ? "  ·  loading catalog" : "");
         }
+        PaletteLayerPreview preview = palettePreview;
+        if (preview != null) {
+            return coordinates + "  ·  " + describePaletteAt(preview, worldX, worldZ);
+        }
         NoiseRenderCoordinator.Result result = renderResult;
         long clipped = result.underflow() + result.overflow();
         return coordinates + "  ·  range " + formatNumber(result.minimum()) + ".." + formatNumber(result.maximum())
                 + "  ·  clipped " + clipped + "  invalid " + result.invalid();
+    }
+
+    private static String describePaletteAt(PaletteLayerPreview preview, double worldX, double worldZ) {
+        double noise = preview.sample(worldX, worldZ);
+        if (Double.isNaN(noise)) {
+            return "layer doesn't reach this depth here";
+        }
+        return preview.entryForNoise(noise).block() + "  ·  noise " + formatNumber(noise);
     }
 
     private int renderHeight() {
@@ -1103,6 +1266,7 @@ public final class NoiseExplorerGUI extends JPanel {
         return switch (category) {
             case CUSTOM -> "Custom";
             case PACK_GENERATORS -> "Pack Generators";
+            case PACK_PALETTES -> "Pack Palettes";
             case SIMPLEX -> "Simplex";
             case PERLIN -> "Perlin";
             case CELLULAR -> "Cellular";
@@ -1131,7 +1295,13 @@ public final class NoiseExplorerGUI extends JPanel {
 
     @FunctionalInterface
     private interface SourceFactory {
-        NoiseProvider create(long seed);
+        LoadedSource create(long seed, int paletteDepth);
+    }
+
+    private record LoadedSource(NoiseProvider sampler, PaletteLayerPreview palettePreview) {
+        private static LoadedSource of(NoiseProvider sampler) {
+            return new LoadedSource(sampler, null);
+        }
     }
 
     private record SourceItem(String id, String text, String rawName, NoiseCategory category, boolean usesSeed,
@@ -1139,6 +1309,22 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private record ListItem(String text, SourceItem source) {
+    }
+
+    private final class PaletteInspectorListener implements PaletteInspectorPanel.Listener {
+        @Override
+        public void onViewChanged(PaletteLayerScale.View view) {
+            requestPreview();
+        }
+
+        @Override
+        public void onDepthChanged(int depth) {
+            if (depth == paletteDepth) {
+                return;
+            }
+            paletteDepth = depth;
+            loadSelectedSource();
+        }
     }
 
     private final class RenderListener implements NoiseRenderCoordinator.Listener {
@@ -1217,9 +1403,15 @@ public final class NoiseExplorerGUI extends JPanel {
         }
     }
 
+    private enum ExplorerMode {
+        NOISE,
+        PALETTES
+    }
+
     private enum NoiseCategory {
         CUSTOM,
         PACK_GENERATORS,
+        PACK_PALETTES,
         SIMPLEX,
         PERLIN,
         CELLULAR,
@@ -1234,6 +1426,10 @@ public final class NoiseExplorerGUI extends JPanel {
         NOWHERE,
         SIERPINSKI,
         UTILITY,
-        OTHER
+        OTHER;
+
+        private boolean isFromPack() {
+            return this == PACK_GENERATORS || this == PACK_PALETTES;
+        }
     }
 }

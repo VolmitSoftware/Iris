@@ -20,7 +20,7 @@ package com.volmit.iris.core.gui;
 
 import java.awt.Color;
 
-enum NoisePalette {
+enum NoisePalette implements NoiseColorScale {
     TERRAIN("Terrain", 0D, 1D, new int[]{0x071A2F, 0x155E75, 0x2A9D8F, 0xE9C46A, 0xF4F1DE}),
     SIGNED("Signed", -1D, 1D, new int[]{0x173B66, 0x4F86C6, 0xE7EDF3, 0xE89555, 0x9D3B35}),
     GRAYSCALE("Grayscale", 0D, 1D, new int[]{0x050505, 0xFFFFFF});
@@ -48,7 +48,8 @@ enum NoisePalette {
         return colorFinite(value);
     }
 
-    int colorFinite(double value) {
+    @Override
+    public int colorFinite(double value) {
         double normalized = (value - minimum) / (maximum - minimum);
         return colorNormalized(normalized);
     }
@@ -58,20 +59,29 @@ enum NoisePalette {
         return lookup[(int) Math.round(clipped * (lookup.length - 1))];
     }
 
-    Color displayColorNormalized(double normalized) {
+    @Override
+    public int colorInvalid() {
+        return INVALID_COLOR;
+    }
+
+    @Override
+    public Color displayColorNormalized(double normalized) {
         double clipped = Math.max(0D, Math.min(1D, normalized));
         return displayColors[(int) Math.round(clipped * (displayColors.length - 1))];
     }
 
-    String label() {
+    @Override
+    public String label() {
         return label;
     }
 
-    double minimum() {
+    @Override
+    public double minimum() {
         return minimum;
     }
 
-    double maximum() {
+    @Override
+    public double maximum() {
         return maximum;
     }
 

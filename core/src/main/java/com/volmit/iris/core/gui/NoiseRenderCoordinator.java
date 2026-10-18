@@ -222,9 +222,9 @@ final class NoiseRenderCoordinator implements AutoCloseable {
         double sampleOffset = request.sampleStep() * 0.5D;
         double startWorldX = request.viewport().worldX(sampleOffset, request.width());
         double worldStep = request.viewport().blocksPerPixel() * request.sampleStep();
-        NoisePalette palette = request.palette();
-        double paletteMinimum = palette.minimum();
-        double paletteMaximum = palette.maximum();
+        NoiseColorScale colorScale = request.colorScale();
+        double paletteMinimum = colorScale.minimum();
+        double paletteMaximum = colorScale.maximum();
         for (int y = fromY; y < toY; y++) {
             double screenY = (y * (double) request.sampleStep()) + sampleOffset;
             double worldZ = request.viewport().worldZ(screenY, request.height());
@@ -238,10 +238,10 @@ final class NoiseRenderCoordinator implements AutoCloseable {
                 double value = request.sampler().noise(worldX, worldZ);
                 boolean center = centerRow && x == outputWidth / 2;
                 if (Double.isFinite(value)) {
-                    pixels[pixelIndex++] = palette.colorFinite(value);
+                    pixels[pixelIndex++] = colorScale.colorFinite(value);
                     stats.acceptFinite(value, center, paletteMinimum, paletteMaximum);
                 } else {
-                    pixels[pixelIndex++] = NoisePalette.INVALID_COLOR;
+                    pixels[pixelIndex++] = colorScale.colorInvalid();
                     stats.acceptInvalid(value, center);
                 }
                 worldX += worldStep;
@@ -315,12 +315,12 @@ final class NoiseRenderCoordinator implements AutoCloseable {
         void onRenderFailed(Request request, Throwable error);
     }
 
-    record Request(long revision, NoiseProvider sampler, NoiseViewport viewport, NoisePalette palette,
+    record Request(long revision, NoiseProvider sampler, NoiseViewport viewport, NoiseColorScale colorScale,
                    int width, int height, int sampleStep) {
         Request {
             Objects.requireNonNull(sampler, "sampler");
             Objects.requireNonNull(viewport, "viewport");
-            Objects.requireNonNull(palette, "palette");
+            Objects.requireNonNull(colorScale, "colorScale");
             if (revision < 0L || width < 1 || height < 1 || sampleStep < 1) {
                 throw new IllegalArgumentException("Invalid noise render request");
             }

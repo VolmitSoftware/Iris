@@ -22,6 +22,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
@@ -69,15 +70,37 @@ public class IrisBiomePaletteLayer {
     }
 
     public BlockData get(RNG rng, double x, double y, double z, IrisData data) {
-        if (getBlockData(data).isEmpty()) {
+        KList<BlockData> blocks = getBlockData(data);
+        if (blocks.isEmpty()) {
             return null;
         }
 
-        if (getBlockData(data).size() == 1) {
-            return getBlockData(data).get(0);
+        if (blocks.size() == 1) {
+            return blocks.get(0);
         }
 
-        return getLayerGenerator(rng, data).fit(getBlockData(data), x / zoom, y / zoom, z / zoom);
+        return blocks.get(slotForNoise(getLayerGenerator(rng, data).noise(x / zoom, y / zoom, z / zoom), blocks.size()));
+    }
+
+    public BlockData getAtDepth(RNG rng, double wx, double wz, int depth, IrisData data) {
+        return get(rng, depthShiftedX(wx, depth), depth, depthShiftedZ(wz, depth), data);
+    }
+
+    public double getNoiseAtDepth(RNG rng, double wx, double wz, int depth, IrisData data) {
+        return getLayerGenerator(rng, data).noise(depthShiftedX(wx, depth) / zoom, depth / zoom, depthShiftedZ(wz, depth) / zoom);
+    }
+
+    public static int slotForNoise(double noise, int slotCount) {
+        int slot = (int) Math.round(IrisInterpolation.lerp(0, slotCount - 1, noise));
+        return slot >= 0 && slot < slotCount ? slot : 0;
+    }
+
+    private double depthShiftedX(double wx, int depth) {
+        return (wx + depth) / zoom;
+    }
+
+    private double depthShiftedZ(double wz, int depth) {
+        return (wz - depth) / zoom;
     }
 
     public CNG getLayerGenerator(RNG rng, IrisData data) {
@@ -98,17 +121,28 @@ public class IrisBiomePaletteLayer {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for (IrisBlockData ix : palette) {
-                BlockData bx = ix.getBlockData(data);
-                if (bx != null) {
-                    for (int i = 0; i < ix.getWeight(); i++) {
-                        blockData.add(bx);
-                    }
-                }
+            for (int entry : getPaletteEntryPerSlot(data)) {
+                blockData.add(palette.get(entry).getBlockData(data));
             }
 
             return blockData;
         });
+    }
+
+    public KList<Integer> getPaletteEntryPerSlot(IrisData data) {
+        KList<Integer> entries = new KList<>();
+        for (int entry = 0; entry < palette.size(); entry++) {
+            IrisBlockData block = palette.get(entry);
+            if (block.getBlockData(data) == null) {
+                continue;
+            }
+
+            for (int i = 0; i < block.getWeight(); i++) {
+                entries.add(entry);
+            }
+        }
+
+        return entries;
     }
 
     public IrisBiomePaletteLayer zero() {

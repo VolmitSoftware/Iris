@@ -252,6 +252,16 @@ public class CommandStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch();
     }
 
+    @Decree(description = "Preview biome palette layers (External GUI)", aliases = "pal")
+    public void palette(
+            @Param(description = "The biome to open on", contextual = true)
+            IrisBiome biome
+    ) {
+        if (noGUI()) return;
+        sender().sendMessage(C.GREEN + "Opening Palette Explorer!");
+        NoiseExplorerGUI.launchPalettes(biome == null ? null : biome.getLoadKey());
+    }
+
     @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)
     public void charge() {
         if (!IrisToolbelt.isIrisWorld(world())) {

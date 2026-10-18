@@ -1,0 +1,267 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.volmit.iris.core.gui;
+
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisBlockData;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.RNG;
+import org.bukkit.block.data.BlockData;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+final class PaletteLayerPreview {
+    static final int HISTOGRAM_BINS = 50;
+    static final int STATISTICS_GRID_SIZE = 64;
+    static final double STATISTICS_SPACING_BLOCKS = 37D;
+    private static final int MISSING_BLOCK_COLOR = 0x5A5F6B;
+    private static final double FAR_FROM_WEIGHT_FACTOR = 2D;
+
+    private final String biomeKey;
+    private final IrisBiome biome;
+    private final IrisBiomePaletteLayer paletteLayer;
+    private final int layer;
+    private final int depth;
+    private final RNG random;
+    private final IrisData data;
+    private final int[] entryBySlot;
+    private final int[] colorByEntry;
+    private final List<Entry> entries;
+    private final long[] histogram;
+    private final double absentShare;
+    private final double outOfRangeShare;
+
+    private PaletteLayerPreview(String biomeKey, IrisBiome biome, int layer, int depth, RNG random, IrisData data) {
+        this.biomeKey = biomeKey;
+        this.biome = biome;
+        this.paletteLayer = biome.getLayers().get(layer);
+        this.layer = layer;
+        this.depth = depth;
+        this.random = random;
+        this.data = data;
+        this.entryBySlot = paletteLayer.getPaletteEntryPerSlot(data).stream().mapToInt(Integer::intValue).toArray();
+        if (entryBySlot.length == 0) {
+            throw new IllegalStateException("No palette block in " + biomeKey + " layer " + layer + " could be found");
+        }
+        this.colorByEntry = resolveEntryColors();
+
+        Statistics statistics = measure();
+        this.histogram = statistics.histogram();
+        this.absentShare = statistics.absentShare();
+        this.outOfRangeShare = statistics.outOfRangeShare();
+        this.entries = describeEntries(statistics.sharesByEntry());
+    }
+
+    static PaletteLayerPreview load(Engine engine, String biomeKey, int layer, int depth) {
+        if (engine == null || engine.isClosed()) {
+            throw new IllegalStateException("Open a studio world to preview pack palettes");
+        }
+        IrisData data = engine.getData();
+        IrisBiome biome = data.getBiomeLoader().load(biomeKey);
+        if (biome == null || layer >= biome.getLayers().size()) {
+            throw new IllegalStateException("Palette layer removed during hotload: " + biomeKey + " layer " + layer);
+        }
+        RNG terrainRandom = new RNG(engine.getSeedManager().getTerrain());
+        return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data);
+    }
+
+    double sample(double x, double z) {
+        if (biome.getLayerThickness(layer, x, z, random, data) <= depth) {
+            return Double.NaN;
+        }
+        return biome.getLayerNoise(layer, x, z, depth, random, data);
+    }
+
+    int colorForNoise(double noise) {
+        return colorByEntry[entryIndexForNoise(noise)];
+    }
+
+    Entry entryForNoise(double noise) {
+        return entries.get(entryIndexForNoise(noise));
+    }
+
+    String biomeKey() {
+        return biomeKey;
+    }
+
+    int layer() {
+        return layer;
+    }
+
+    int depth() {
+        return depth;
+    }
+
+    int minThickness() {
+        return paletteLayer.getMinHeight();
+    }
+
+    int maxThickness() {
+        return paletteLayer.getMaxHeight();
+    }
+
+    double zoom() {
+        return paletteLayer.getZoom();
+    }
+
+    boolean hasSlopeCondition() {
+        return !paletteLayer.getSlopeCondition().isDefault();
+    }
+
+    List<Entry> entries() {
+        return entries;
+    }
+
+    long[] histogram() {
+        return histogram.clone();
+    }
+
+    double absentShare() {
+        return absentShare;
+    }
+
+    double outOfRangeShare() {
+        return outOfRangeShare;
+    }
+
+    static double statisticsAreaBlocks() {
+        return STATISTICS_GRID_SIZE * STATISTICS_SPACING_BLOCKS;
+    }
+
+    private int entryIndexForNoise(double noise) {
+        return entryBySlot[IrisBiomePaletteLayer.slotForNoise(noise, entryBySlot.length)];
+    }
+
+    private int[] resolveEntryColors() {
+        KList<IrisBlockData> palette = paletteLayer.getPalette();
+        List<BlockData> blocks = new ArrayList<>();
+        for (IrisBlockData entry : palette) {
+            BlockData block = entry.getBlockData(data);
+            if (block != null) {
+                blocks.add(block);
+            }
+        }
+        Map<String, Integer> colorsByBlock = BlockPreviewColors.colorsByBlock(blocks);
+        int[] colors = new int[palette.size()];
+        for (int entry = 0; entry < palette.size(); entry++) {
+            BlockData block = palette.get(entry).getBlockData(data);
+            colors[entry] = block == null ? MISSING_BLOCK_COLOR : colorsByBlock.get(block.getAsString(true));
+        }
+        return colors;
+    }
+
+    private Statistics measure() {
+        long[] values = new long[HISTOGRAM_BINS];
+        long[] samplesByEntry = new long[paletteLayer.getPalette().size()];
+        long present = 0;
+        long absent = 0;
+        long outOfRange = 0;
+        double origin = -statisticsAreaBlocks() / 2D;
+        for (int gridX = 0; gridX < STATISTICS_GRID_SIZE; gridX++) {
+            for (int gridZ = 0; gridZ < STATISTICS_GRID_SIZE; gridZ++) {
+                double noise = sample(origin + gridX * STATISTICS_SPACING_BLOCKS, origin + gridZ * STATISTICS_SPACING_BLOCKS);
+                if (Double.isNaN(noise)) {
+                    absent++;
+                    continue;
+                }
+                present++;
+                if (noise < 0D || noise > 1D) {
+                    outOfRange++;
+                }
+                values[Math.clamp((int) (noise * HISTOGRAM_BINS), 0, HISTOGRAM_BINS - 1)]++;
+                samplesByEntry[entryIndexForNoise(noise)]++;
+            }
+        }
+        double[] sharesByEntry = new double[samplesByEntry.length];
+        for (int entry = 0; entry < samplesByEntry.length; entry++) {
+            sharesByEntry[entry] = present == 0 ? 0D : samplesByEntry[entry] / (double) present;
+        }
+        long total = present + absent;
+        return new Statistics(values, sharesByEntry, absent / (double) total, present == 0 ? 0D : outOfRange / (double) present);
+    }
+
+    private List<Entry> describeEntries(double[] sharesByEntry) {
+        KList<IrisBlockData> palette = paletteLayer.getPalette();
+        int slotCount = entryBySlot.length;
+        List<Entry> described = new ArrayList<>(palette.size());
+        for (int entry = 0; entry < palette.size(); entry++) {
+            IrisBlockData block = palette.get(entry);
+            int firstSlot = firstSlotOf(entry);
+            int lastSlot = lastSlotOf(entry);
+            boolean placed = firstSlot >= 0;
+            described.add(new Entry(
+                    block.getBlock(),
+                    block.getWeight(),
+                    block.getBlockData(data) != null,
+                    colorByEntry[entry],
+                    placed ? (lastSlot - firstSlot + 1) / (double) slotCount : 0D,
+                    sharesByEntry[entry],
+                    placed ? slotLowerBound(firstSlot, slotCount) : Double.NaN,
+                    placed ? slotUpperBound(lastSlot, slotCount) : Double.NaN
+            ));
+        }
+        return List.copyOf(described);
+    }
+
+    private int firstSlotOf(int entry) {
+        for (int slot = 0; slot < entryBySlot.length; slot++) {
+            if (entryBySlot[slot] == entry) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    private int lastSlotOf(int entry) {
+        for (int slot = entryBySlot.length - 1; slot >= 0; slot--) {
+            if (entryBySlot[slot] == entry) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    // Slots are picked by rounding, so the first and last slot only own half a step of the value range.
+    private static double slotLowerBound(int slot, int slotCount) {
+        return slot == 0 ? 0D : (slot - 0.5D) / (slotCount - 1);
+    }
+
+    private static double slotUpperBound(int slot, int slotCount) {
+        return slot == slotCount - 1 ? 1D : (slot + 0.5D) / (slotCount - 1);
+    }
+
+    record Entry(String block, int weight, boolean found, int color, double weightShare, double actualShare,
+                 double lowestNoise, double highestNoise) {
+        boolean isFarBelowWeight() {
+            return found && actualShare < weightShare / FAR_FROM_WEIGHT_FACTOR;
+        }
+
+        boolean isFarAboveWeight() {
+            return found && actualShare > weightShare * FAR_FROM_WEIGHT_FACTOR;
+        }
+    }
+
+    private record Statistics(long[] histogram, double[] sharesByEntry, double absentShare, double outOfRangeShare) {
+    }
+}

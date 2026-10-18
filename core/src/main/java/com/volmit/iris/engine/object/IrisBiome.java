@@ -314,8 +314,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         for (int i = 0; i < layers.size(); i++) {
-            CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
-            double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
+            double d = getLayerThickness(i, wx, wz, random, rdata);
 
             IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
 
@@ -335,7 +334,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 }
 
                 try {
-                    data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
+                    data.add(getLayerBlock(i, wx, wz, j, random, rdata));
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
@@ -358,6 +357,25 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         return data;
+    }
+
+    public int getLayerThickness(int layer, double wx, double wz, RNG random, IrisData rdata) {
+        IrisBiomePaletteLayer paletteLayer = layers.get(layer);
+        CNG thicknessGenerator = getLayerHeightGenerators(random, rdata).get(layer);
+        return thicknessGenerator.fit(paletteLayer.getMinHeight(), paletteLayer.getMaxHeight(), wx / paletteLayer.getZoom(), wz / paletteLayer.getZoom());
+    }
+
+    public BlockData getLayerBlock(int layer, double wx, double wz, int depth, RNG random, IrisData rdata) {
+        return layers.get(layer).getAtDepth(layerRandom(layer, random), wx, wz, depth, rdata);
+    }
+
+    public double getLayerNoise(int layer, double wx, double wz, int depth, RNG random, IrisData rdata) {
+        return layers.get(layer).getNoiseAtDepth(layerRandom(layer, random), wx, wz, depth, rdata);
+    }
+
+    // Only the first call's random seeds the layer's cached generator, and generation always makes that call at depth 0.
+    private static RNG layerRandom(int layer, RNG random) {
+        return random.nextParallelRNG(layer);
     }
 
     public KList<BlockData> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
@@ -415,8 +433,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         for (int i = 0; i < layers.size(); i++) {
-            CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
-            double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
+            double d = getLayerThickness(i, wx, wz, random, rdata);
 
             IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
 
@@ -432,7 +449,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
             for (int j = 0; j < d; j++) {
                 try {
-                    data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
+                    data.add(getLayerBlock(i, wx, wz, j, random, rdata));
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();

@@ -64,7 +64,7 @@ public class IrisGeneratorStyle {
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
     private double multiplier = 1;
-    @Desc("If set to true, each axis is warped by its own sample of this fracture instead of one shared value, which avoids straight diagonal lines. This is usually 2 or 3 times slower than normal.")
+    @Desc("If set to true, each axis is warped by its own sample instead of one shared value, for the most natural looking fracturing. Applies to this style's built-in fractures, and to how this style fractures its parent when used as a fracture. This is usually 2 or 3 times slower than normal, more for styles with many built-in fractures such as IRIS.")
     private boolean axialFracturing = false;
     @Desc("Apply a generator to the coordinate field fed into this parent generator. I.e. Distort your generator with another generator.")
     private IrisGeneratorStyle fracture = null;
@@ -120,6 +120,10 @@ public class IrisGeneratorStyle {
 
         cng = cng.scale(1D / zoom).pow(exponent).bake();
         cng.setTrueFracturing(axialFracturing);
+
+        if (axialFracturing) {
+            cng.makeNestedFracturesAxial();
+        }
 
         if (fracture != null) {
             cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());

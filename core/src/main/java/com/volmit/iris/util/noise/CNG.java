@@ -314,6 +314,17 @@ public class CNG {
         return rng;
     }
 
+    public void makeNestedFracturesAxial() {
+        if (fracture != null) {
+            fracture.setTrueFracturing(true);
+            fracture.makeNestedFracturesAxial();
+        }
+
+        if (children != null) {
+            children.forEach(CNG::makeNestedFracturesAxial);
+        }
+    }
+
     public CNG fractureWith(CNG c, double scale) {
         fracture = c;
         fscale = scale;

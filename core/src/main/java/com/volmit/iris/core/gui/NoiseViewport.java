@@ -39,6 +39,14 @@ record NoiseViewport(double centerX, double centerZ, double blocksPerPixel) {
         return centerZ + ((screenZ - (height / 2D)) * blocksPerPixel);
     }
 
+    double screenX(double worldX, int width) {
+        return ((worldX - centerX) / blocksPerPixel) + (width / 2D);
+    }
+
+    double screenZ(double worldZ, int height) {
+        return ((worldZ - centerZ) / blocksPerPixel) + (height / 2D);
+    }
+
     NoiseViewport panPixels(double deltaX, double deltaZ) {
         return new NoiseViewport(
                 centerX - (deltaX * blocksPerPixel),

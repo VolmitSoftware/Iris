@@ -109,6 +109,8 @@ public final class NoiseExplorerGUI extends JPanel {
     private static final long MAX_REFINED_SAMPLE_BUDGET = 48_000L;
     private static final double REFINEMENT_TARGET_MILLIS = 250D;
     private static final double PALETTE_REFINEMENT_TARGET_MILLIS = 2_000D;
+    private static final double INTERACTIVE_FRAME_TARGET_MILLIS = 33D;
+    private static final int RESIZE_SETTLE_MILLIS = 45;
     private static final double WHEEL_ZOOM_EXPONENT = 0.08D;
     private static final NoiseCategory[] CATEGORY_ORDER = {
             NoiseCategory.CUSTOM,
@@ -142,7 +144,7 @@ public final class NoiseExplorerGUI extends JPanel {
     private final ThreadPoolExecutor catalogExecutor;
     private final NoiseRenderCoordinator renderCoordinator;
     private final Timer refinementTimer;
-    private final Timer interactionTimer;
+    private final Timer resizeTimer;
     private final AtomicLong sourceLoadRevision = new AtomicLong();
     private final AtomicLong catalogLoadRevision = new AtomicLong();
     private final Runnable hotloadHook = this::handleHotload;
@@ -167,7 +169,8 @@ public final class NoiseExplorerGUI extends JPanel {
     private PaletteLayerPreview palettePreview;
     private int paletteDepth;
     private NoiseRenderCoordinator.Result renderResult;
-    private BufferedImage renderedImage;
+    private NoiseRenderCoordinator.Request interactiveFrame;
+    private boolean interactiveFramePending;
     private Point pointer;
     private Point dragPoint;
     private long seed;
@@ -204,8 +207,8 @@ public final class NoiseExplorerGUI extends JPanel {
         GuiHost.interruptOnPluginShutdown(catalogExecutor);
         this.refinementTimer = new Timer(REFINEMENT_DELAY_MILLIS, event -> requestRefinement());
         this.refinementTimer.setRepeats(false);
-        this.interactionTimer = new Timer(45, event -> requestPreview());
-        this.interactionTimer.setRepeats(false);
+        this.resizeTimer = new Timer(RESIZE_SETTLE_MILLIS, event -> requestPreview());
+        this.resizeTimer.setRepeats(false);
         this.fixedSources = buildFixedSources();
         setBackground(BACKGROUND);
         setFocusable(true);
@@ -715,7 +718,6 @@ public final class NoiseExplorerGUI extends JPanel {
         renderCoordinator.cancel(viewRevision);
         selectedSource = null;
         clearSampler();
-        renderedImage = null;
         renderResult = null;
         sourceLoading = false;
         rendering = false;
@@ -810,7 +812,6 @@ public final class NoiseExplorerGUI extends JPanel {
         viewRevision++;
         renderCoordinator.cancel(viewRevision);
         sampler = null;
-        renderedImage = null;
         renderResult = null;
         sourceLoading = true;
         rendering = false;
@@ -841,7 +842,6 @@ public final class NoiseExplorerGUI extends JPanel {
         showPaletteInspector();
         sourceLoading = false;
         errorMessage = null;
-        renderedImage = null;
         renderResult = null;
         progressLabel.setForeground(SECONDARY_TEXT);
         progressLabel.setText(source.usesSeed() ? "Ready · seed " + seed : "Ready");
@@ -916,9 +916,32 @@ public final class NoiseExplorerGUI extends JPanel {
         int sampleStep = NoiseRenderCoordinator.sampleStepForBudget(
                 getWidth(),
                 renderHeight(),
-                COARSE_SAMPLE_BUDGET
+                interactiveSampleBudget()
         );
-        requestRender(sampleStep);
+        interactiveFrame = requestRender(sampleStep);
+    }
+
+    // Draws one frame at a time while the view moves, so each frame finishes and the next one starts from where the view is by then.
+    private void requestInteractiveFrame() {
+        repaint();
+        if (isInteractiveFrameInFlight()) {
+            interactiveFramePending = true;
+            return;
+        }
+        requestPreview();
+    }
+
+    private boolean isInteractiveFrameInFlight() {
+        return interactiveFrame != null && interactiveFrame.revision() == viewRevision;
+    }
+
+    // The last frame's speed predicts this one, so cheap views draw sharp straight away instead of starting blocky.
+    private long interactiveSampleBudget() {
+        NoiseRenderCoordinator.Result lastResult = renderResult;
+        if (lastResult == null) {
+            return COARSE_SAMPLE_BUDGET;
+        }
+        return timedSampleBudget(lastResult, INTERACTIVE_FRAME_TARGET_MILLIS);
     }
 
     private void requestRefinement() {
@@ -944,20 +967,33 @@ public final class NoiseExplorerGUI extends JPanel {
 
     // Smooth noise looks fine upscaled, but blocks and their textures only read correctly at full resolution.
     private long refinedSampleBudget(NoiseRenderCoordinator.Result currentResult) {
-        boolean fullResolution = mode == ExplorerMode.PALETTES;
-        long maximumBudget = fullResolution
-                ? Math.max(COARSE_SAMPLE_BUDGET, (long) currentResult.request().width() * currentResult.request().height())
-                : MAX_REFINED_SAMPLE_BUDGET;
+        double targetMilliseconds = mode == ExplorerMode.PALETTES ? PALETTE_REFINEMENT_TARGET_MILLIS : REFINEMENT_TARGET_MILLIS;
+        return timedSampleBudget(currentResult, targetMilliseconds);
+    }
+
+    private long timedSampleBudget(NoiseRenderCoordinator.Result lastResult, double targetMilliseconds) {
+        BufferedImage lastImage = lastResult.image();
+        long renderedPixels = (long) lastImage.getWidth() * lastImage.getHeight();
+        if (lastResult.milliseconds() <= 0D) {
+            return maximumSampleBudget();
+        }
         return NoiseRenderCoordinator.timeBoundSampleBudget(
-                currentResult.samples(),
-                currentResult.milliseconds(),
-                fullResolution ? PALETTE_REFINEMENT_TARGET_MILLIS : REFINEMENT_TARGET_MILLIS,
+                renderedPixels,
+                lastResult.milliseconds(),
+                targetMilliseconds,
                 COARSE_SAMPLE_BUDGET,
-                maximumBudget
+                maximumSampleBudget()
         );
     }
 
-    private void requestRender(int sampleStep) {
+    private long maximumSampleBudget() {
+        if (mode == ExplorerMode.PALETTES) {
+            return Math.max(COARSE_SAMPLE_BUDGET, (long) getWidth() * renderHeight());
+        }
+        return MAX_REFINED_SAMPLE_BUDGET;
+    }
+
+    private NoiseRenderCoordinator.Request requestRender(int sampleStep) {
         NoiseRenderCoordinator.Request request = new NoiseRenderCoordinator.Request(
                 viewRevision,
                 sampler,
@@ -968,6 +1004,7 @@ public final class NoiseExplorerGUI extends JPanel {
                 sampleStep
         );
         renderCoordinator.request(request);
+        return request;
     }
 
     private void installInputHandlers() {
@@ -984,8 +1021,7 @@ public final class NoiseExplorerGUI extends JPanel {
                 boolean wasDragging = dragPoint != null;
                 dragPoint = null;
                 if (wasDragging) {
-                    interactionTimer.stop();
-                    requestPreview();
+                    requestInteractiveFrame();
                 }
             }
 
@@ -998,7 +1034,7 @@ public final class NoiseExplorerGUI extends JPanel {
                     double deltaZ = nextPoint.getY() - dragPoint.getY();
                     viewport = viewport.panPixels(deltaX, deltaZ);
                     dragPoint = nextPoint;
-                    interactionTimer.restart();
+                    requestInteractiveFrame();
                 }
             }
 
@@ -1025,7 +1061,7 @@ public final class NoiseExplorerGUI extends JPanel {
                         renderHeight(),
                         factor
                 );
-                interactionTimer.restart();
+                requestInteractiveFrame();
                 event.consume();
             }
         };
@@ -1035,7 +1071,7 @@ public final class NoiseExplorerGUI extends JPanel {
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent event) {
-                interactionTimer.restart();
+                resizeTimer.restart();
             }
         });
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('R'), "reset-view");
@@ -1077,7 +1113,7 @@ public final class NoiseExplorerGUI extends JPanel {
             locationTracker.stop();
         }
         refinementTimer.stop();
-        interactionTimer.stop();
+        resizeTimer.stop();
         GuiHost.unregisterHotloadHook(hotloadHook);
         sourceLoadRevision.incrementAndGet();
         catalogLoadRevision.incrementAndGet();
@@ -1094,14 +1130,9 @@ public final class NoiseExplorerGUI extends JPanel {
             canvas.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             canvas.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             int renderHeight = renderHeight();
-            if (renderedImage == null) {
-                drawEmptyState(canvas, getWidth(), renderHeight);
-            } else {
-                Object interpolation = renderedImage.getWidth() == getWidth() || mode == ExplorerMode.PALETTES
-                        ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
-                        : RenderingHints.VALUE_INTERPOLATION_BILINEAR;
-                canvas.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolation);
-                canvas.drawImage(renderedImage, 0, 0, getWidth(), renderHeight, null);
+            drawEmptyState(canvas, getWidth(), renderHeight);
+            if (renderResult != null) {
+                drawLatestFrame(canvas, renderResult, getWidth(), renderHeight);
             }
             drawCrosshair(canvas, getWidth(), renderHeight);
             drawLegend(canvas, getWidth());
@@ -1109,6 +1140,38 @@ public final class NoiseExplorerGUI extends JPanel {
         } finally {
             canvas.dispose();
         }
+    }
+
+    // Returns true when the view moved while the frame rendered, after starting the frame for where it is now.
+    private boolean finishInteractiveFrame(NoiseRenderCoordinator.Request finishedRequest) {
+        if (finishedRequest != interactiveFrame) {
+            return false;
+        }
+        interactiveFrame = null;
+        if (!interactiveFramePending) {
+            return false;
+        }
+        interactiveFramePending = false;
+        requestPreview();
+        return true;
+    }
+
+    // Moves and scales the last finished frame to the current view, so the map follows the mouse before the next frame lands.
+    private void drawLatestFrame(Graphics2D canvas, NoiseRenderCoordinator.Result frame, int width, int renderHeight) {
+        NoiseRenderCoordinator.Request request = frame.request();
+        BufferedImage image = frame.image();
+        NoiseViewport frameViewport = request.viewport();
+        double frameScreenWidth = image.getWidth() * (double) request.sampleStep();
+        double frameScreenHeight = image.getHeight() * (double) request.sampleStep();
+        int left = (int) Math.round(viewport.screenX(frameViewport.worldX(0D, request.width()), width));
+        int top = (int) Math.round(viewport.screenZ(frameViewport.worldZ(0D, request.height()), renderHeight));
+        int right = (int) Math.round(viewport.screenX(frameViewport.worldX(frameScreenWidth, request.width()), width));
+        int bottom = (int) Math.round(viewport.screenZ(frameViewport.worldZ(frameScreenHeight, request.height()), renderHeight));
+        Object interpolation = request.sampleStep() == 1 || mode == ExplorerMode.PALETTES
+                ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+                : RenderingHints.VALUE_INTERPOLATION_BILINEAR;
+        canvas.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolation);
+        canvas.drawImage(image, left, top, right - left, bottom - top, null);
     }
 
     private static void drawEmptyState(Graphics2D canvas, int width, int height) {
@@ -1395,8 +1458,10 @@ public final class NoiseExplorerGUI extends JPanel {
                 rendering = false;
                 errorMessage = null;
                 renderResult = result;
-                renderedImage = result.image();
                 repaint();
+                if (finishInteractiveFrame(result.request())) {
+                    return;
+                }
                 if (result.request().sampleStep() <= 1) {
                     return;
                 }
@@ -1419,6 +1484,10 @@ public final class NoiseExplorerGUI extends JPanel {
             EventQueue.invokeLater(() -> {
                 if (disposed || request.revision() != viewRevision) {
                     return;
+                }
+                if (request == interactiveFrame) {
+                    interactiveFrame = null;
+                    interactiveFramePending = false;
                 }
                 rendering = false;
                 errorMessage = readableError(error);

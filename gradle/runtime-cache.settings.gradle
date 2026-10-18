@@ -1,0 +1,23 @@
+import groovy.json.JsonSlurper
+
+boolean adapter = rootProject.name.startsWith('iris-')
+File irisDirectory = adapter ? new File(settingsDir, '../..').canonicalFile : settingsDir
+String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
+Map<String, Map<String, Object>> modTargets = (Map<String, Map<String, Object>>) new JsonSlurper()
+    .parse(new File(irisDirectory, 'gradle/mod-targets.json'))
+Map<String, Object> modTarget = modTargets.get(minecraftVersion)
+if (modTarget == null) {
+    throw new GradleException("Unsupported Iris mod target ${minecraftVersion}; choose ${modTargets.keySet().join(', ')}")
+}
+String runtimeJava = providers.gradleProperty('irisRuntimeJava').getOrElse(modTarget.java.toString())
+String variant = adapter ? "minecraft${minecraftVersion}-java${runtimeJava}" : "java${runtimeJava}"
+File projectCacheRoot = gradle.startParameter.projectCacheDir ?: new File(settingsDir, '.gradle')
+gradle.startParameter.projectCacheDir = new File(projectCacheRoot, variant)
+
+String runtimeOutputVariant = runtimeJava == '21' ? 'java21/' : ''
+if (adapter) {
+    runtimeOutputVariant = "modded/${rootProject.name}/${variant}/"
+} else if (gradle.parent != null && gradle.parent.extensions.extraProperties.has('irisRuntimeOutputVariant')) {
+    runtimeOutputVariant = gradle.parent.extensions.extraProperties.get('irisRuntimeOutputVariant').toString()
+}
+gradle.extensions.extraProperties.set('irisRuntimeOutputVariant', runtimeOutputVariant)

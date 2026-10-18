@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack;
 
+import art.arcane.iris.pack.datapack.ServerConfigurator.ServerTimeoutConfiguration;
 import art.arcane.iris.spi.IrisLogging;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
@@ -41,7 +42,7 @@ public class ServerConfiguratorTimeoutTest {
                 return null;
             });
 
-            ServerConfigurator.increaseKeepAliveSpigot(file, live);
+            ServerConfigurator.increaseKeepAliveSpigot(file, live, timeouts());
 
             assertEquals(300L, live.getLong("settings.timeout-time"));
             live.set("world-settings.default.sample-world-setting", true);
@@ -62,7 +63,7 @@ public class ServerConfiguratorTimeoutTest {
         YamlConfiguration live = load(file);
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            ServerConfigurator.increaseKeepAliveSpigot(file, live);
+            ServerConfigurator.increaseKeepAliveSpigot(file, live, timeouts());
 
             assertEquals(600L, live.getLong("settings.timeout-time"));
             assertEquals(original, Files.readString(file));
@@ -81,7 +82,7 @@ public class ServerConfiguratorTimeoutTest {
         YamlConfiguration live = load(link);
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            ServerConfigurator.increaseKeepAliveSpigot(link, live);
+            ServerConfigurator.increaseKeepAliveSpigot(link, live, timeouts());
 
             assertTrue(Files.isSymbolicLink(link));
             assertEquals(relativeTarget, Files.readSymbolicLink(link));
@@ -99,7 +100,7 @@ public class ServerConfiguratorTimeoutTest {
                 + "misc:\n  sample-setting: retained\n");
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            ServerConfigurator.increasePaperWatchdog(file);
+            ServerConfigurator.increasePaperWatchdog(file, timeouts());
 
             YamlConfiguration persisted = load(file);
             assertEquals(180000L, persisted.getLong("watchdog.early-warning-delay"));
@@ -117,7 +118,7 @@ public class ServerConfiguratorTimeoutTest {
         Files.writeString(file, original);
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            ServerConfigurator.increasePaperWatchdog(file);
+            ServerConfigurator.increasePaperWatchdog(file, timeouts());
 
             assertEquals(original, Files.readString(file));
             logging.verifyNoInteractions();
@@ -131,7 +132,7 @@ public class ServerConfiguratorTimeoutTest {
         Files.writeString(file, malformed);
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            assertThrows(InvalidConfigurationException.class, () -> ServerConfigurator.increasePaperWatchdog(file));
+            assertThrows(InvalidConfigurationException.class, () -> ServerConfigurator.increasePaperWatchdog(file, timeouts()));
 
             assertEquals(malformed, Files.readString(file));
             logging.verifyNoInteractions();
@@ -148,7 +149,7 @@ public class ServerConfiguratorTimeoutTest {
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
             assertThrows(IOException.class, () -> ServerConfigurator.increaseKeepAliveSpigot(
-                    blockedParent.resolve("spigot.yml"), live));
+                    blockedParent.resolve("spigot.yml"), live, timeouts()));
 
             assertEquals(60L, live.getLong("settings.timeout-time"));
             assertEquals("retained", live.getString("settings.sample-setting"));
@@ -173,6 +174,10 @@ public class ServerConfiguratorTimeoutTest {
             assertEquals(paper.toPath().toAbsolutePath().normalize(), ServerConfigurator.serverConfigurationOption("paper-settings-directory"));
             assertThrows(IOException.class, () -> ServerConfigurator.serverConfigurationOption("missing-option"));
         }
+    }
+
+    private ServerTimeoutConfiguration timeouts() {
+        return new ServerTimeoutConfiguration(temporaryFolder.getRoot().toPath().resolve("server-timeouts.json"));
     }
 
     private static YamlConfiguration load(Path file) throws IOException, InvalidConfigurationException {

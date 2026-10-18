@@ -33,6 +33,8 @@ plugins {
 
 rootProject.name = 'iris-fabric'
 
+apply from: new File(settingsDir, '../../gradle/runtime-cache.settings.gradle').canonicalFile
+
 dependencyResolutionManagement {
     versionCatalogs {
         libs {

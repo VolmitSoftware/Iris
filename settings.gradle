@@ -22,6 +22,7 @@ plugins {
 
 rootProject.name = 'Iris'
 
+apply from: new File(settingsDir, 'gradle/runtime-cache.settings.gradle')
 apply from: new File(settingsDir, 'gradle/volmlib-resolution.settings.gradle')
 
 include(':core', ':core:agent')

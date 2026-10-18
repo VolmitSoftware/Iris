@@ -45,6 +45,9 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.io.AtomicFileIO;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import art.arcane.iris.platform.bootstrap.ServerProperties;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import art.arcane.iris.world.task.J;
@@ -104,12 +107,24 @@ public class ServerConfigurator {
             if (failure != null) {
                 IrisLogging.reportError("Unable to persist the Spigot timeout setting.", failure);
             }
+        } else {
+            Throwable failure = J.attemptCatch(() -> timeoutConfiguration().restore(
+                    "settings.timeout-time", serverConfigurationOption("spigot-settings"), Bukkit.spigot().getConfig()));
+            if (failure != null) {
+                IrisLogging.reportError("Unable to restore the Spigot timeout setting.", failure);
+            }
         }
 
         if (s.isConfigurePaperWatchdogDelay() && BukkitPlatform.isPaperServer()) {
             Throwable failure = J.attemptCatch(ServerConfigurator::increasePaperWatchdog);
             if (failure != null) {
                 IrisLogging.reportError("Unable to persist the Paper watchdog setting.", failure);
+            }
+        } else if (!s.isConfigurePaperWatchdogDelay()) {
+            Throwable failure = J.attemptCatch(() -> timeoutConfiguration().restore(
+                    "watchdog.early-warning-delay", null, null));
+            if (failure != null) {
+                IrisLogging.reportError("Unable to restore the Paper watchdog setting.", failure);
             }
         }
 
@@ -238,26 +253,26 @@ public class ServerConfigurator {
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, ReflectiveOperationException {
-        increaseKeepAliveSpigot(serverConfigurationOption("spigot-settings"), Bukkit.spigot().getConfig());
+        increaseKeepAliveSpigot(serverConfigurationOption("spigot-settings"), Bukkit.spigot().getConfig(), timeoutConfiguration());
     }
 
-    static void increaseKeepAliveSpigot(Path file, YamlConfiguration configuration) throws IOException {
+    static void increaseKeepAliveSpigot(Path file, YamlConfiguration configuration, ServerTimeoutConfiguration timeouts) throws IOException {
         long previous = configuration.getLong("settings.timeout-time");
         long minimum = TimeUnit.MINUTES.toSeconds(5);
         if (previous >= minimum) {
             return;
         }
-        persistTimeout(file, configuration, "settings.timeout-time", minimum);
+        timeouts.raise(file, configuration, "settings.timeout-time", minimum);
         IrisLogging.warn("Updated " + file + " settings.timeout-time: " + previous + " -> " + minimum
                 + " seconds. Takes effect after a server restart.");
         IrisLogging.warn("Disable autoConfiguration.configureSpigotTimeoutTime in iris.json to manage this setting yourself.");
     }
 
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException, ReflectiveOperationException {
-        increasePaperWatchdog(serverConfigurationOption("paper-settings-directory").resolve("paper-global.yml"));
+        increasePaperWatchdog(serverConfigurationOption("paper-settings-directory").resolve("paper-global.yml"), timeoutConfiguration());
     }
 
-    static void increasePaperWatchdog(Path file) throws IOException, InvalidConfigurationException {
+    static void increasePaperWatchdog(Path file, ServerTimeoutConfiguration timeouts) throws IOException, InvalidConfigurationException {
         YamlConfiguration configuration = new YamlConfiguration();
         configuration.load(file.toFile());
         long previous = configuration.getLong("watchdog.early-warning-delay");
@@ -265,22 +280,14 @@ public class ServerConfigurator {
         if (previous >= minimum) {
             return;
         }
-        persistTimeout(file, configuration, "watchdog.early-warning-delay", minimum);
+        timeouts.raise(file, configuration, "watchdog.early-warning-delay", minimum);
         IrisLogging.warn("Updated " + file + " watchdog.early-warning-delay: " + previous + " -> " + minimum
                 + " milliseconds. Takes effect after a server restart.");
         IrisLogging.warn("Disable autoConfiguration.configurePaperWatchdogDelay in iris.json to manage this setting yourself.");
     }
 
-    private static void persistTimeout(Path file, YamlConfiguration configuration, String key, long minimum) throws IOException {
-        Path target = file.toRealPath();
-        Object previous = configuration.isSet(key) ? configuration.get(key) : null;
-        configuration.set(key, minimum);
-        try {
-            AtomicFileIO.writeString(target, configuration.saveToString());
-        } catch (IOException | RuntimeException failure) {
-            configuration.set(key, previous);
-            throw failure;
-        }
+    private static ServerTimeoutConfiguration timeoutConfiguration() {
+        return new ServerTimeoutConfiguration(IrisPlatforms.get().dataFolder().toPath().resolve("server-timeouts.json"));
     }
 
     static Path serverConfigurationOption(String name) throws ReflectiveOperationException, IOException {
@@ -964,4 +971,131 @@ public class ServerConfigurator {
         }
     }
 
+    static final class ServerTimeoutConfiguration {
+        private static final Object MUTATION_LOCK = new Object();
+        private static final Gson JSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+
+        private final Path recoveryFile;
+
+        ServerTimeoutConfiguration(Path recoveryFile) {
+            this.recoveryFile = Objects.requireNonNull(recoveryFile);
+        }
+
+        void raise(Path file, YamlConfiguration configuration, String key, long minimum) throws IOException {
+            synchronized (MUTATION_LOCK) {
+                Path target = file.toRealPath();
+                YamlConfiguration persisted = load(target);
+                Long original = value(persisted, key);
+                List<SavedTimeout> changes = readChanges();
+                SavedTimeout saved = find(changes, target, key);
+                if (saved == null || !Objects.equals(original, saved.original()) && !Objects.equals(original, saved.applied())) {
+                    changes.remove(saved);
+                    changes.add(new SavedTimeout(target.toString(), key, original, minimum));
+                    writeChanges(changes);
+                }
+                Object previous = configuration.isSet(key) ? configuration.get(key) : null;
+                configuration.set(key, minimum);
+                try {
+                    AtomicFileIO.writeString(target, configuration.saveToString());
+                } catch (IOException | RuntimeException failure) {
+                    configuration.set(key, previous);
+                    throw failure;
+                }
+            }
+        }
+
+        void restore(String key, Path liveFile, YamlConfiguration live) throws IOException {
+            synchronized (MUTATION_LOCK) {
+                List<SavedTimeout> changes = readChanges();
+                for (SavedTimeout saved : List.copyOf(changes)) {
+                    if (!saved.key().equals(key)) {
+                        continue;
+                    }
+                    Path target = Path.of(saved.file());
+                    YamlConfiguration configuration = load(target);
+                    if (Objects.equals(value(configuration, key), saved.applied())) {
+                        configuration.set(key, saved.original());
+                        AtomicFileIO.writeString(target, configuration.saveToString());
+                        if (live != null && target.equals(liveFile.toRealPath())
+                                && Objects.equals(value(live, key), saved.applied())) {
+                            live.set(key, saved.original());
+                        }
+                        IrisLogging.info("Restored " + target + " " + key + " to "
+                                + (saved.original() == null ? "its server default" : saved.original())
+                                + ". Takes effect after a server restart.");
+                    } else {
+                        IrisLogging.info("Kept the current " + target + " " + key
+                                + " because it differs from the value saved by Iris.");
+                    }
+                    changes.remove(saved);
+                    writeChanges(changes);
+                }
+            }
+        }
+
+        private List<SavedTimeout> readChanges() throws IOException {
+            if (!Files.exists(recoveryFile)) {
+                return new ArrayList<>();
+            }
+            try {
+                SavedTimeouts saved = JSON.fromJson(Files.readString(recoveryFile), SavedTimeouts.class);
+                if (saved == null) {
+                    throw new IOException("Empty server timeout recovery data: " + recoveryFile);
+                }
+                return new ArrayList<>(saved.changes());
+            } catch (JsonParseException | IllegalArgumentException exception) {
+                throw new IOException("Invalid server timeout recovery data: " + recoveryFile, exception);
+            }
+        }
+
+        private void writeChanges(List<SavedTimeout> changes) throws IOException {
+            AtomicFileIO.writeString(recoveryFile, JSON.toJson(new SavedTimeouts(changes)));
+        }
+
+        private static SavedTimeout find(List<SavedTimeout> changes, Path target, String key) {
+            for (SavedTimeout change : changes) {
+                if (change.file().equals(target.toString()) && change.key().equals(key)) {
+                    return change;
+                }
+            }
+            return null;
+        }
+
+        private static YamlConfiguration load(Path file) throws IOException {
+            YamlConfiguration configuration = new YamlConfiguration();
+            try {
+                configuration.load(file.toFile());
+            } catch (InvalidConfigurationException exception) {
+                throw new IOException("Invalid server configuration: " + file, exception);
+            }
+            return configuration;
+        }
+
+        private static Long value(YamlConfiguration configuration, String key) throws IOException {
+            if (!configuration.isSet(key)) {
+                return null;
+            }
+            if (!configuration.isInt(key) && !configuration.isLong(key)) {
+                throw new IOException("Server timeout " + key + " must be an integer.");
+            }
+            return configuration.getLong(key);
+        }
+
+        private record SavedTimeout(String file, String key, Long original, long applied) {
+            private SavedTimeout {
+                Objects.requireNonNull(file, "file");
+                Objects.requireNonNull(key, "key");
+                if (!Path.of(file).isAbsolute() || applied <= 0
+                        || !key.equals("settings.timeout-time") && !key.equals("watchdog.early-warning-delay")) {
+                    throw new IllegalArgumentException("Invalid saved server timeout");
+                }
+            }
+        }
+
+        private record SavedTimeouts(List<SavedTimeout> changes) {
+            private SavedTimeouts {
+                changes = List.copyOf(changes);
+            }
+        }
+    }
 }

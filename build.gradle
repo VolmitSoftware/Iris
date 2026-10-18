@@ -310,6 +310,7 @@ List<Object> moddedSharedInputs = []
     'adapters/modded-common/src',
     'adapters/client-common/src',
     'core/src/main',
+    'core/src/testFixtures',
     'core/build.gradle',
     'core/agent/src',
     'core/agent/build.gradle',
@@ -327,6 +328,7 @@ List<Object> moddedSharedInputs = []
     'gradle/native-minecraft-sources.gradle',
     'gradle/mod-target.gradle',
     'gradle/mod-targets.json',
+    'gradle/runtime-cache.settings.gradle',
     'gradle/modded-version-sources.gradle'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 if (localVolmLibCheckout != null) {
@@ -688,12 +690,13 @@ if (!(irisRuntimeJava in [21, 25])) {
     throw new GradleException('irisRuntimeJava must be 21 or 25')
 }
 Set<String> sharedRuntimeProjects = [':core', ':core:agent', ':spi'] as Set<String>
+String runtimeOutputVariant = gradle.extensions.extraProperties.get('irisRuntimeOutputVariant').toString()
 
 allprojects {
     apply plugin: 'java'
     boolean java21Runtime = irisRuntimeJava == 21 && sharedRuntimeProjects.contains(project.path)
-    if (java21Runtime) {
-        layout.buildDirectory.set(layout.projectDirectory.dir('build/java21'))
+    if (!runtimeOutputVariant.isEmpty() && sharedRuntimeProjects.contains(project.path)) {
+        layout.buildDirectory.set(layout.projectDirectory.dir("build/${runtimeOutputVariant}"))
     }
 
     tasks.withType(Test).configureEach {

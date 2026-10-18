@@ -38,12 +38,11 @@ final class PaletteLayerScale implements NoiseColorScale {
 
     @Override
     public int colorAt(double value, double worldX, double worldZ) {
-        BlockTextures.BlockTexture texture = showTexturePixels && view != View.NOISE ? preview.textureForNoise(value) : null;
-        if (texture == null) {
-            return colorFinite(value);
+        if (view == View.NOISE) {
+            return noisePalette.colorFinite(value);
         }
-        int texel = texture.texelAt(worldX, worldZ);
-        return view == View.BLOCKS ? texel : BlockPreviewColors.shade(texel, overlayShade(value));
+        int blockColor = preview.blockColorAt(value, worldX, worldZ, showTexturePixels);
+        return view == View.BLOCKS ? blockColor : BlockPreviewColors.shade(blockColor, overlayShade(value));
     }
 
     @Override

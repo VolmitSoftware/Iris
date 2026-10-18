@@ -48,8 +48,10 @@ final class PaletteLayerPreview {
     private final RNG random;
     private final IrisData data;
     private final int[] entryBySlot;
-    private final int[] colorByEntry;
+    private final BiomeTintField biomeTints;
     private final BlockTexture[] textureByEntry;
+    private final BlockTexture[] legendTextureByEntry;
+    private final int[] legendColorByEntry;
     private final List<Entry> entries;
     private final SampledBlock[] blockCache = new SampledBlock[BLOCK_CACHE_SIZE];
     private final long[] histogram;
@@ -57,7 +59,7 @@ final class PaletteLayerPreview {
     private final double outOfRangeShare;
 
     private PaletteLayerPreview(String biomeKey, IrisBiome biome, int layer, int depth, RNG random, IrisData data,
-                                BlockTextures textures) {
+                                BlockTextures textures, BiomeTintField biomeTints) {
         this.biomeKey = biomeKey;
         this.biome = biome;
         this.paletteLayer = biome.getLayers().get(layer);
@@ -69,8 +71,10 @@ final class PaletteLayerPreview {
         if (entryBySlot.length == 0) {
             throw new IllegalStateException("No palette block in " + biomeKey + " layer " + layer + " could be found");
         }
+        this.biomeTints = biomeTints;
         this.textureByEntry = resolveEntryTextures(textures);
-        this.colorByEntry = resolveEntryColors();
+        this.legendTextureByEntry = tintForLegend(textureByEntry);
+        this.legendColorByEntry = resolveLegendColors();
 
         Statistics statistics = measure();
         this.histogram = statistics.histogram();
@@ -89,7 +93,10 @@ final class PaletteLayerPreview {
             throw new IllegalStateException("Palette layer removed during hotload: " + biomeKey + " layer " + layer);
         }
         RNG terrainRandom = new RNG(engine.getSeedManager().getTerrain());
-        return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data, textures);
+        BiomeTintField biomeTints = textures == null
+                ? null
+                : new BiomeTintField(biome, new RNG(engine.getSeedManager().getBiome()), textures.biomeColors());
+        return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data, textures, biomeTints);
     }
 
     // The world picks one block per whole coordinate, and zoomed in, many pixels fall on the same block.
@@ -119,11 +126,21 @@ final class PaletteLayerPreview {
     }
 
     int colorForNoise(double noise) {
-        return colorByEntry[entryIndexForNoise(noise)];
+        return legendColorByEntry[entryIndexForNoise(noise)];
     }
 
-    BlockTexture textureForNoise(double noise) {
-        return textureByEntry[entryIndexForNoise(noise)];
+    int blockColorAt(double noise, double worldX, double worldZ, boolean showTexturePixels) {
+        int entry = entryIndexForNoise(noise);
+        BlockTexture texture = textureByEntry[entry];
+        if (texture == null) {
+            return legendColorByEntry[entry];
+        }
+        int untintedColor = showTexturePixels ? texture.texelAt(worldX, worldZ) : texture.averageColor();
+        if (texture.biomeTint() == null) {
+            return untintedColor;
+        }
+        int tint = biomeTints.colorAt(texture.biomeTint(), (int) Math.floor(worldX), (int) Math.floor(worldZ));
+        return BlockTexture.multiply(untintedColor, tint);
     }
 
     Entry entryForNoise(double noise) {
@@ -195,8 +212,20 @@ final class PaletteLayerPreview {
         return resolved;
     }
 
+    // The legend shows tinted blocks as they look at the world origin, where the statistics are sampled too.
+    private BlockTexture[] tintForLegend(BlockTexture[] textures) {
+        BlockTexture[] tinted = new BlockTexture[textures.length];
+        for (int entry = 0; entry < textures.length; entry++) {
+            BlockTexture texture = textures[entry];
+            tinted[entry] = texture == null || texture.biomeTint() == null
+                    ? texture
+                    : texture.tinted(biomeTints.colorAt(texture.biomeTint(), 0, 0));
+        }
+        return tinted;
+    }
+
     // Blocks without a texture, like custom blocks or everything before the textures load, fall back to map colours.
-    private int[] resolveEntryColors() {
+    private int[] resolveLegendColors() {
         KList<IrisBlockData> palette = paletteLayer.getPalette();
         List<BlockData> untexturedBlocks = new ArrayList<>();
         for (int entry = 0; entry < palette.size(); entry++) {
@@ -211,8 +240,8 @@ final class PaletteLayerPreview {
             BlockData block = palette.get(entry).getBlockData(data);
             if (block == null) {
                 colors[entry] = MISSING_BLOCK_COLOR;
-            } else if (textureByEntry[entry] != null) {
-                colors[entry] = textureByEntry[entry].averageColor();
+            } else if (legendTextureByEntry[entry] != null) {
+                colors[entry] = legendTextureByEntry[entry].averageColor();
             } else {
                 colors[entry] = mapColorsByBlock.get(block.getAsString(true));
             }
@@ -263,8 +292,8 @@ final class PaletteLayerPreview {
                     block.getBlock(),
                     block.getWeight(),
                     block.getBlockData(data) != null,
-                    colorByEntry[entry],
-                    textureByEntry[entry],
+                    legendColorByEntry[entry],
+                    legendTextureByEntry[entry],
                     placed ? (lastSlot - firstSlot + 1) / (double) slotCount : 0D,
                     sharesByEntry[entry],
                     placed ? slotLowerBound(firstSlot, slotCount) : Double.NaN,

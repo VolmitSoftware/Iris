@@ -21,49 +21,54 @@ package com.volmit.iris.core.gui;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.bukkit.block.data.BlockData;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 final class BlockTextures {
     private static final String DEFAULT_NAMESPACE = "minecraft";
     private static final int MAX_MODEL_PARENTS = 16;
     private static final int MAX_TEXTURE_REFERENCES = 16;
-    private static final int GRASS_TINT = 0x91BD59;
-    private static final int FOLIAGE_TINT = 0x77AB2F;
-    private static final int BIRCH_FOLIAGE_TINT = 0x80A755;
-    private static final int SPRUCE_FOLIAGE_TINT = 0x619961;
-    private static final int WATER_TINT = 0x3F76E4;
+    private static final int NO_TINT_INDEX = -1;
     private static final Object SHARED_LOCK = new Object();
     private static CompletableFuture<BlockTextures> shared;
 
     private final ZipFile clientJar;
+    private final MinecraftBiomeColors biomeColors;
     private final Map<String, Optional<BlockTexture>> topTextures = new ConcurrentHashMap<>();
 
-    private BlockTextures(ZipFile clientJar) {
+    private BlockTextures(ZipFile clientJar, MinecraftBiomeColors biomeColors) {
         this.clientJar = clientJar;
+        this.biomeColors = biomeColors;
     }
 
     static CompletableFuture<BlockTextures> shared() {
         synchronized (SHARED_LOCK) {
             if (shared == null || shared.isCompletedExceptionally()) {
-                shared = MinecraftClientJar.open().thenApply(BlockTextures::new);
+                shared = MinecraftClientJar.open().thenApply(BlockTextures::load);
             }
             return shared;
         }
+    }
+
+    private static BlockTextures load(ZipFile clientJar) {
+        try {
+            return new BlockTextures(clientJar, MinecraftBiomeColors.load(clientJar));
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not read Minecraft's biome colour maps", error);
+        }
+    }
+
+    MinecraftBiomeColors biomeColors() {
+        return biomeColors;
     }
 
     Optional<BlockTexture> topTexture(BlockData block) {
@@ -86,8 +91,12 @@ final class BlockTextures {
             if (image == null) {
                 return Optional.empty();
             }
-            boolean tinted = face.tinted() || state.name().equals("water");
-            return Optional.of(BlockTexture.fromImage(image, tinted ? tintFor(state.name()) : BlockTexture.NO_TINT));
+            BlockTexture texture = BlockTexture.fromImage(
+                    image,
+                    MinecraftBlockTints.fixedTint(state.name(), state.properties(), face.tintIndex()),
+                    MinecraftBlockTints.biomeTint(state.name(), face.tintIndex()).orElse(null)
+            );
+            return Optional.of(face.isSideOnSprite() ? texture.flattened() : texture);
         } catch (IOException | RuntimeException error) {
             return Optional.empty();
         }
@@ -126,25 +135,31 @@ final class BlockTextures {
         JsonObject face = elements == null ? null : topmostFace(elements, faceName);
         if (face == null) {
             String particle = dereference("#particle", textures);
-            return particle == null ? null : new ModelFace(particle, elements != null && anyFaceTinted(elements));
+            boolean isSideOnSprite = elements != null;
+            return particle == null ? null : new ModelFace(particle, isSideOnSprite ? firstTintIndex(elements) : NO_TINT_INDEX, isSideOnSprite);
         }
         String texture = dereference(face.get("texture").getAsString(), textures);
-        return texture == null ? null : new ModelFace(texture, face.has("tintindex"));
+        return texture == null ? null : new ModelFace(texture, tintIndexOf(face), false);
     }
 
-    private static boolean anyFaceTinted(JsonArray elements) {
+    private static int firstTintIndex(JsonArray elements) {
         for (JsonElement element : elements) {
             JsonObject faces = element.getAsJsonObject().getAsJsonObject("faces");
             if (faces == null) {
                 continue;
             }
             for (Map.Entry<String, JsonElement> face : faces.entrySet()) {
-                if (face.getValue().getAsJsonObject().has("tintindex")) {
-                    return true;
+                int tintIndex = tintIndexOf(face.getValue().getAsJsonObject());
+                if (tintIndex != NO_TINT_INDEX) {
+                    return tintIndex;
                 }
             }
         }
-        return false;
+        return NO_TINT_INDEX;
+    }
+
+    private static int tintIndexOf(JsonObject face) {
+        return face.has("tintindex") ? face.get("tintindex").getAsInt() : NO_TINT_INDEX;
     }
 
     private static JsonObject topmostFace(JsonArray elements, String faceName) {
@@ -249,22 +264,6 @@ final class BlockTextures {
         return models.getAsJsonObject();
     }
 
-    private static int tintFor(String blockName) {
-        if (blockName.contains("water")) {
-            return WATER_TINT;
-        }
-        if (blockName.equals("birch_leaves")) {
-            return BIRCH_FOLIAGE_TINT;
-        }
-        if (blockName.equals("spruce_leaves")) {
-            return SPRUCE_FOLIAGE_TINT;
-        }
-        if (blockName.contains("leaves") || blockName.contains("vine")) {
-            return FOLIAGE_TINT;
-        }
-        return GRASS_TINT;
-    }
-
     private static String assetPath(String resource, String folder, String extension) {
         int separator = resource.indexOf(':');
         String namespace = separator < 0 ? DEFAULT_NAMESPACE : resource.substring(0, separator);
@@ -273,26 +272,15 @@ final class BlockTextures {
     }
 
     private JsonObject readJson(String path) throws IOException {
-        ZipEntry entry = clientJar.getEntry(path);
-        if (entry == null) {
-            return null;
-        }
-        try (InputStreamReader reader = new InputStreamReader(clientJar.getInputStream(entry), StandardCharsets.UTF_8)) {
-            return JsonParser.parseReader(reader).getAsJsonObject();
-        }
+        return ClientJarFiles.readJson(clientJar, path);
     }
 
     private BufferedImage readImage(String path) throws IOException {
-        ZipEntry entry = clientJar.getEntry(path);
-        if (entry == null) {
-            return null;
-        }
-        try (InputStream input = clientJar.getInputStream(entry)) {
-            return ImageIO.read(input);
-        }
+        return ClientJarFiles.readImage(clientJar, path);
     }
 
-    private record ModelFace(String texture, boolean tinted) {
+    // Plants and other blocks without a top face only have a side-on sprite, which would read as stripes from above.
+    private record ModelFace(String texture, int tintIndex, boolean isSideOnSprite) {
     }
 
     private record BlockStateId(String namespace, String name, Map<String, String> properties) {
@@ -316,13 +304,13 @@ final class BlockTextures {
         }
     }
 
-    record BlockTexture(int size, int[] pixels, int averageColor) {
-        static final int NO_TINT = 0xFFFFFF;
+    // Biome tinted textures keep their grey pixels, because the biome colour changes from column to column.
+    record BlockTexture(int size, int[] pixels, int averageColor, BiomeTint biomeTint) {
         private static final int OPAQUE_ALPHA = 128;
         private static final double GAP_SHADE = 0.55D;
 
         // Animated textures stack their frames vertically, so only the first square frame is used.
-        static BlockTexture fromImage(BufferedImage image, int tint) {
+        static BlockTexture fromImage(BufferedImage image, int fixedTint, BiomeTint biomeTint) {
             int size = image.getWidth();
             int[] pixels = new int[size * size];
             boolean[] opaque = new boolean[pixels.length];
@@ -337,7 +325,7 @@ final class BlockTextures {
                     if ((argb >>> 24) < OPAQUE_ALPHA) {
                         continue;
                     }
-                    int color = applyTint(argb & 0xFFFFFF, tint);
+                    int color = multiply(argb & 0xFFFFFF, fixedTint);
                     pixels[index] = color;
                     opaque[index] = true;
                     red += (color >>> 16) & 0xFF;
@@ -356,7 +344,21 @@ final class BlockTextures {
                     pixels[index] = gapColor;
                 }
             }
-            return new BlockTexture(size, pixels, average);
+            return new BlockTexture(size, pixels, average, biomeTint);
+        }
+
+        BlockTexture flattened() {
+            int[] flat = new int[pixels.length];
+            Arrays.fill(flat, averageColor);
+            return new BlockTexture(size, flat, averageColor, biomeTint);
+        }
+
+        BlockTexture tinted(int tint) {
+            int[] tintedPixels = new int[pixels.length];
+            for (int index = 0; index < pixels.length; index++) {
+                tintedPixels[index] = multiply(pixels[index], tint);
+            }
+            return new BlockTexture(size, tintedPixels, multiply(averageColor, tint), null);
         }
 
         int texelAt(double worldX, double worldZ) {
@@ -371,11 +373,13 @@ final class BlockTextures {
             return image;
         }
 
-        private static int applyTint(int color, int tint) {
-            int red = ((color >>> 16) & 0xFF) * ((tint >>> 16) & 0xFF) / 255;
-            int green = ((color >>> 8) & 0xFF) * ((tint >>> 8) & 0xFF) / 255;
-            int blue = (color & 0xFF) * (tint & 0xFF) / 255;
-            return (red << 16) | (green << 8) | blue;
+        // The GPU multiplies the texture by the tint in floating point and rounds back to 8 bits per channel.
+        static int multiply(int color, int tint) {
+            return multiplyChannel(color, tint, 16) << 16 | multiplyChannel(color, tint, 8) << 8 | multiplyChannel(color, tint, 0);
+        }
+
+        private static int multiplyChannel(int color, int tint, int shift) {
+            return (((color >>> shift) & 0xFF) * ((tint >>> shift) & 0xFF) + 127) / 255;
         }
     }
 }

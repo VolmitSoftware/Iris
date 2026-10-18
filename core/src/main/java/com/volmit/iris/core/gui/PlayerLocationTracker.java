@@ -75,12 +75,18 @@ final class PlayerLocationTracker {
         if (engine == null) {
             return PlayerLocation.OUTSIDE_IRIS_WORLD;
         }
-        IrisRegion region = engine.getRegion(player.getLocation());
-        IrisBiome biome = engine.getBiomeOrMantle(player.getLocation());
-        if (region == null || biome == null) {
+        Location position = player.getLocation();
+        IrisRegion region = engine.getRegion(position);
+        String surfaceBiome = keyOf(engine.getSurfaceBiome(position.getBlockX(), position.getBlockZ()));
+        String biomeAtPosition = keyOf(engine.getBiomeOrMantle(position));
+        if (region == null || region.getLoadKey() == null || surfaceBiome == null) {
             return PlayerLocation.OUTSIDE_IRIS_WORLD;
         }
-        return new PlayerLocation(Status.IN_BIOME, region.getLoadKey(), biome.getLoadKey());
+        return new PlayerLocation(Status.IN_REGION, region.getLoadKey(), surfaceBiome, biomeAtPosition);
+    }
+
+    private static String keyOf(IrisBiome biome) {
+        return biome == null ? null : biome.getLoadKey();
     }
 
     private static Engine engineAt(Location location) {
@@ -94,12 +100,17 @@ final class PlayerLocationTracker {
     enum Status {
         OFFLINE,
         OUTSIDE_IRIS_WORLD,
-        IN_BIOME
+        IN_REGION
     }
 
-    record PlayerLocation(Status status, String regionKey, String biomeKey) {
-        static final PlayerLocation OFFLINE = new PlayerLocation(Status.OFFLINE, null, null);
-        static final PlayerLocation OUTSIDE_IRIS_WORLD = new PlayerLocation(Status.OUTSIDE_IRIS_WORLD, null, null);
+    // Biomes are 3D: underground, the biome at the player's position can differ from the surface biome above it.
+    record PlayerLocation(Status status, String regionKey, String surfaceBiomeKey, String biomeAtPositionKey) {
+        static final PlayerLocation OFFLINE = new PlayerLocation(Status.OFFLINE, null, null, null);
+        static final PlayerLocation OUTSIDE_IRIS_WORLD = new PlayerLocation(Status.OUTSIDE_IRIS_WORLD, null, null, null);
+
+        boolean isBelowSurfaceBiome() {
+            return biomeAtPositionKey != null && !biomeAtPositionKey.equals(surfaceBiomeKey);
+        }
     }
 
     interface Listener {

@@ -27,7 +27,6 @@ import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -72,12 +71,11 @@ final class PaletteNavigator extends JPanel {
     private static final String DETAIL_COLOR = "#8890A0";
 
     private final Listener listener;
-    private final boolean followsPlayer;
+    private final boolean showsPlayerLocation;
     private final CardLayout cards = new CardLayout();
     private final JPanel cardPanel = new JPanel(cards);
     private final JLabel regionLabel = new JLabel();
-    private final JLabel biomeLabel = new JLabel();
-    private final JCheckBox followCheckBox = new JCheckBox("Follow me", true);
+    private final JLabel positionLabel = new JLabel();
     private final DefaultListModel<HereRow> hereRows = new DefaultListModel<>();
     private final JList<HereRow> hereList = new JList<>(hereRows);
     private final JTextField searchField = new JTextField();
@@ -90,9 +88,9 @@ final class PaletteNavigator extends JPanel {
     private int selectedLayer;
     private boolean updatingSelection;
 
-    PaletteNavigator(boolean followsPlayer, Listener listener) {
+    PaletteNavigator(boolean showsPlayerLocation, Listener listener) {
         super(new BorderLayout());
-        this.followsPlayer = followsPlayer;
+        this.showsPlayerLocation = showsPlayerLocation;
         this.listener = listener;
         setBackground(SIDEBAR_BACKGROUND);
         cardPanel.add(buildHereCard(), HERE_CARD);
@@ -109,13 +107,8 @@ final class PaletteNavigator extends JPanel {
     }
 
     void showLocation(PlayerLocation nextLocation) {
-        String previousBiome = location == null ? null : location.biomeKey();
         location = nextLocation;
         refreshHere();
-        boolean enteredNewBiome = nextLocation.biomeKey() != null && !nextLocation.biomeKey().equals(previousBiome);
-        if (enteredNewBiome && followCheckBox.isSelected()) {
-            chooseBiome(nextLocation.biomeKey(), selectedLayer);
-        }
     }
 
     void markSelected(String biomeKey, int layer) {
@@ -139,7 +132,7 @@ final class PaletteNavigator extends JPanel {
         JToggleButton overview = createTab("Overview", OVERVIEW_CARD, group);
         bar.add(here);
         bar.add(overview);
-        (followsPlayer ? here : overview).doClick();
+        (showsPlayerLocation ? here : overview).doClick();
         return bar;
     }
 
@@ -174,17 +167,11 @@ final class PaletteNavigator extends JPanel {
                 BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER),
                 BorderFactory.createEmptyBorder(9, 12, 9, 12)
         ));
-        for (JLabel label : List.of(regionLabel, biomeLabel)) {
+        for (JLabel label : List.of(regionLabel, positionLabel)) {
             label.setForeground(PRIMARY_TEXT);
             label.setFont(ITEM_FONT);
             location.add(label);
         }
-        followCheckBox.setOpaque(false);
-        followCheckBox.setForeground(SECONDARY_TEXT);
-        followCheckBox.setFont(ITEM_FONT);
-        followCheckBox.setToolTipText("Open the biome you walk into");
-        followCheckBox.setVisible(followsPlayer);
-        location.add(followCheckBox);
 
         hereList.setBackground(SIDEBAR_BACKGROUND);
         hereList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -267,7 +254,7 @@ final class PaletteNavigator extends JPanel {
         updatingSelection = true;
         try {
             hereRows.clear();
-            if (!followsPlayer) {
+            if (!showsPlayerLocation) {
                 showHereMessage("Run /iris std pal in-game", "to see where you are standing.");
                 return;
             }
@@ -278,7 +265,7 @@ final class PaletteNavigator extends JPanel {
             switch (location.status()) {
                 case OFFLINE -> showHereMessage("You are offline.", " ");
                 case OUTSIDE_IRIS_WORLD -> showHereMessage("You are not in an Iris world.", " ");
-                case IN_BIOME -> showHereRows(location.regionKey(), location.biomeKey());
+                case IN_REGION -> showHereRows(location);
             }
             selectInHereList();
         } finally {
@@ -288,22 +275,16 @@ final class PaletteNavigator extends JPanel {
 
     private void showHereMessage(String firstLine, String secondLine) {
         regionLabel.setText(firstLine);
-        biomeLabel.setText(secondLine);
+        positionLabel.setText(secondLine);
     }
 
-    private void showHereRows(String regionKey, String biomeKey) {
-        RegionEntry region = catalog.region(regionKey);
-        BiomeEntry biome = catalog.biome(biomeKey);
-        regionLabel.setText(labeled("Region", region == null ? regionKey : region.name(), regionKey));
-        biomeLabel.setText(labeled("Biome", biome == null ? biomeKey : biome.name(), biomeKey));
-        if (biome != null) {
-            hereRows.addElement(HereRow.header("Layers here"));
-            for (int layer = 0; layer < biome.layerSummaries().size(); layer++) {
-                hereRows.addElement(new HereRow(layerText(layer, biome), biomeKey, layer, false));
-            }
-            if (biome.layerSummaries().isEmpty()) {
-                hereRows.addElement(HereRow.header("This biome has no palette layers"));
-            }
+    private void showHereRows(PlayerLocation here) {
+        RegionEntry region = catalog.region(here.regionKey());
+        regionLabel.setText(labeled("Region", region == null ? here.regionKey() : region.name(), here.regionKey()));
+        positionLabel.setText(here.isBelowSurfaceBiome() ? "Underground, below the surface biome" : "On the surface");
+        addBiomeLayers("Surface biome", here.surfaceBiomeKey());
+        if (here.isBelowSurfaceBiome()) {
+            addBiomeLayers("Biome at your position", here.biomeAtPositionKey());
         }
         if (region == null) {
             return;
@@ -311,9 +292,22 @@ final class PaletteNavigator extends JPanel {
         hereRows.addElement(HereRow.header("Other biomes in this region"));
         for (String otherKey : region.allBiomeKeys()) {
             BiomeEntry other = catalog.biome(otherKey);
-            if (!otherKey.equals(biomeKey) && other != null) {
+            boolean shownAbove = otherKey.equals(here.surfaceBiomeKey()) || otherKey.equals(here.biomeAtPositionKey());
+            if (!shownAbove && other != null) {
                 hereRows.addElement(new HereRow(biomeText(other), otherKey, -1, false));
             }
+        }
+    }
+
+    private void addBiomeLayers(String title, String biomeKey) {
+        BiomeEntry biome = catalog.biome(biomeKey);
+        if (biome == null) {
+            return;
+        }
+        hereRows.addElement(HereRow.header(title));
+        hereRows.addElement(new HereRow(biomeText(biome), biomeKey, -1, false));
+        for (int layer = 0; layer < biome.layerSummaries().size(); layer++) {
+            hereRows.addElement(new HereRow(layerText(layer, biome), biomeKey, layer, false));
         }
     }
 
@@ -470,6 +464,9 @@ final class PaletteNavigator extends JPanel {
 
     private static final class HereRowRenderer extends DefaultListCellRenderer {
         private static final long serialVersionUID = 2785341117408251320L;
+        private static final int HEADER_INDENT = 11;
+        private static final int BIOME_INDENT = 20;
+        private static final int LAYER_INDENT = 34;
 
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
@@ -480,7 +477,7 @@ final class PaletteNavigator extends JPanel {
             setFont(row.header() ? HEADER_FONT : ITEM_FONT);
             setForeground(row.header() ? ACCENT : selected ? PRIMARY_TEXT : SECONDARY_TEXT);
             setBackground(selected && selectable ? FIELD_BACKGROUND.brighter() : SIDEBAR_BACKGROUND);
-            int indent = row.header() ? 11 : 20;
+            int indent = row.header() ? HEADER_INDENT : row.layer() >= 0 ? LAYER_INDENT : BIOME_INDENT;
             setBorder(BorderFactory.createEmptyBorder(row.header() ? 11 : 4, indent, 4, 10));
             return this;
         }

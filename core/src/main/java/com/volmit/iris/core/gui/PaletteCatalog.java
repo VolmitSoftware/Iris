@@ -54,7 +54,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
     }
 
     BiomeEntry biome(String key) {
-        return biomes.get(key);
+        return key == null ? null : biomes.get(key);
     }
 
     RegionEntry region(String key) {

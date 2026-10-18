@@ -1,7 +1,9 @@
 package art.arcane.iris.structure.nativegen;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockChangeSet;
 
+import art.arcane.iris.generation.mantle.DeferredPlacementRecords;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -46,6 +48,16 @@ public class ImportedFeaturePolicy implements NativeImportedFeaturePolicy<IrisDi
     @Override
     public NativeImportedFeatureControl control() {
         return NativeFeatureGenerationPolicy.control(engine);
+    }
+
+    @Override
+    public NativeBlockChangeSet trackedBlockPositions(NativeBlockChangeSet.Bounds bounds) {
+        return DeferredPlacementRecords.positions(engine, bounds);
+    }
+
+    @Override
+    public void invalidateBlockChanges(NativeBlockChangeSet changes) {
+        DeferredPlacementRecords.invalidate(engine, changes);
     }
 
     @Override

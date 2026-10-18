@@ -69,6 +69,29 @@ import static org.mockito.Mockito.when;
 
 public class ModdedChunkUpdateServiceTest {
     @Test
+    @SuppressWarnings("unchecked")
+    public void regeneratedCleanupUsesSuppliedMantleAfterCurrentRuntimeChanges() {
+        Mantle<Matter> selected = mock(Mantle.class);
+        Mantle<Matter> replacement = mock(Mantle.class);
+        MantleDataAdapter<Matter> adapter = mock(MantleDataAdapter.class);
+        MantleChunk<Matter> chunk = new MantleChunk<>(1, 0, 0, adapter, MantleHooks.NONE);
+        when(selected.isChunkLoaded(0, 0)).thenReturn(true);
+        when(selected.useChunk(0, 0)).thenAnswer(invocation -> chunk.use());
+        when(selected.hasFlag(0, 0, MantleFlag.ETCHED)).thenReturn(true);
+        NativeWorld level = mock(NativeWorld.class);
+        when(level.isChunkLoaded(0, 0)).thenReturn(true);
+        Engine engine = engineWith(replacement);
+        when(engine.getWorld().platformWorld()).thenReturn(level);
+
+        new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, selected, 0, 0);
+
+        verify(selected).useChunk(0, 0);
+        verify(replacement, never()).isChunkLoaded(anyInt(), anyInt());
+        verify(replacement, never()).useChunk(anyInt(), anyInt());
+        assertFalse(chunk.inUse());
+    }
+
+    @Test
     public void fallingFluidUpdateRetainsLevelEightStateAndRequestsPhysics() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
@@ -154,7 +177,7 @@ public class ModdedChunkUpdateServiceTest {
                 return null;
             });
 
-            service.updateRegeneratedChunk(engine, level, 0, 0);
+            service.updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0);
 
             assertFalse(chunk.isFlagged(MantleFlag.ETCHED));
             assertFalse(chunk.isFlagged(MantleFlag.UPDATE));
@@ -162,7 +185,7 @@ public class ModdedChunkUpdateServiceTest {
             logging.verify(() -> IrisLogging.reportError(any(Throwable.class)), never());
             logging.verify(() -> IrisLogging.reportError(anyString(), any(Throwable.class)), never());
 
-            service.updateRegeneratedChunk(engine, level, 0, 0);
+            service.updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0);
 
             assertTrue(chunk.isFlagged(MantleFlag.ETCHED));
             assertTrue(chunk.deleted());
@@ -187,7 +210,7 @@ public class ModdedChunkUpdateServiceTest {
             });
 
             assertThrows(SavedBiomeUnavailableException.class,
-                    () -> new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, 0, 0));
+                    () -> new ModdedChunkUpdateService().updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0));
 
             assertFalse(chunk.isFlagged(MantleFlag.ETCHED));
             assertFalse(chunk.isFlagged(MantleFlag.UPDATE));
@@ -215,13 +238,13 @@ public class ModdedChunkUpdateServiceTest {
             });
 
             assertSame(failure, assertThrows(IllegalStateException.class,
-                    () -> service.updateRegeneratedChunk(engine, level, 0, 0)));
+                    () -> service.updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0)));
             assertFalse(chunk.isFlagged(MantleFlag.UPDATE));
             assertFalse(chunk.isFlagged(MantleFlag.ETCHED));
             assertFalse(chunk.deleted());
             verify(chunk.slice, never()).set(2, 5, 2, null);
 
-            service.updateRegeneratedChunk(engine, level, 0, 0);
+            service.updateRegeneratedChunk(engine, level, engine.getMantle().getMantle(), 0, 0);
 
             assertTrue(chunk.isFlagged(MantleFlag.ETCHED));
             assertTrue(chunk.deleted());

@@ -136,6 +136,18 @@
         "replacement": "when(level.getMaxBuildHeight()).thenReturn(320);"
       }
     ],
+    "art/arcane/iris/modded/api/ModdedCustomContentRegistryTest.java": [
+      {
+        "pattern": "\\bResourceLocation\\b",
+        "replacement": "Identifier"
+      }
+    ],
+    "art/arcane/iris/modded/service/ModdedChunkUpdateServiceCarrierTest.java": [
+      {
+        "pattern": "\\bResourceLocation\\b",
+        "replacement": "Identifier"
+      }
+    ],
     "art/arcane/volmlib/nativelib/minecraft26_2/modded/NativeSpawnPopulationTest.java": [
       {
         "pattern": "when\\(level\\.getMaxY\\(\\)\\)\\.thenReturn\\(320\\);",

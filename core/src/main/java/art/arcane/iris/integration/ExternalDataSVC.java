@@ -19,6 +19,7 @@
 package art.arcane.iris.integration;
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.integration.data.DataType;
 import art.arcane.volmlib.nativelib.terrain.BlockProperty;
@@ -247,13 +248,24 @@ public class ExternalDataSVC implements IrisService {
         }
     }
 
-    public void processUpdate(Engine engine, Block block, Identifier blockId) {
+    public CustomBlockOwnership.Entry processUpdate(Engine engine, Block block, Identifier blockId) {
         Pair<Identifier, KMap<String, String>> state = parseState(blockId);
         BlockProvider match = findBlockProvider(state.getA());
         if (match == null) {
             throw new MissingResourceException("No matching provider found for external block placement.", blockId.namespace(), blockId.key());
         }
-        match.provider().processUpdate(engine, block, buildState(match.identifier(), state.getB()));
+        String token = match.provider().processUpdate(engine, block, buildState(match.identifier(), state.getB()));
+        return token == null ? null : new CustomBlockOwnership.Entry(
+                qualifyBlockId(match.provider(), buildState(match.identifier(), state.getB())), token, false);
+    }
+
+    public boolean removeGenerated(Block block, CustomBlockOwnership.Entry entry) {
+        for (ExternalDataProvider provider : activeProviders) {
+            if (provider.getPluginId().equalsIgnoreCase(entry.identifier().namespace()) && provider.isReady()) {
+                return provider.removeGenerated(block, entry.token());
+            }
+        }
+        return false;
     }
 
     public boolean placeBlock(Block block, Identifier blockId) {

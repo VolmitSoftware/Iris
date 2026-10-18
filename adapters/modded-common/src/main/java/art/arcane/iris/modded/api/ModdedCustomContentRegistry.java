@@ -19,6 +19,8 @@
 package art.arcane.iris.modded.api;
 
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBlockPlacement;
@@ -297,11 +299,11 @@ public final class ModdedCustomContentRegistry {
      * consulted for that position. An unparseable key or no matching provider is logged and skipped. Called on the
      * server thread with the chunk loaded.
      */
-    public static void processBlockPlacement(Engine engine, String key, Supplier<NativeBlockPlacement> placement) {
+    public static CustomBlockOwnership.Entry processBlockPlacement(Engine engine, String key, Supplier<NativeBlockPlacement> placement) {
         String base = parseIdentifier(key);
         if (base == null) {
             ModdedIrisLog.warn("Iris deferred custom block placement rejected invalid id {}", key);
-            return;
+            return null;
         }
         Map<String, String> state = parseState(key);
         for (ModdedDataProvider provider : PROVIDERS) {
@@ -309,14 +311,33 @@ public final class ModdedCustomContentRegistry {
                 continue;
             }
             try {
-                provider.processBlockPlacement(new ModdedBlockPlacementContext(
+                String token = provider.processBlockPlacement(new ModdedBlockPlacementContext(
                         engine, placement.get(), base, state));
+                int properties = key.indexOf('[');
+                String qualifiedKey = base.replace(':', '/') + (properties < 0 ? "" : key.substring(properties));
+                return token == null ? null : new CustomBlockOwnership.Entry(
+                        new Identifier(provider.modId(), qualifiedKey), token, false);
             } catch (Throwable error) {
                 ModdedIrisLog.error("Iris custom content provider '{}' failed post-placement for {}", provider.modId(), key, error);
             }
-            return;
+            return null;
         }
         ModdedIrisLog.warn("Iris deferred custom block placement has no provider for {}", key);
+        return null;
+    }
+
+    public static boolean removeGenerated(Engine engine, CustomBlockOwnership.Entry entry,
+                                          Supplier<NativeBlockPlacement> placement) {
+        for (ModdedDataProvider provider : PROVIDERS) {
+            if (provider.modId().equals(entry.identifier().namespace()) && provider.isReady()) {
+                String storedKey = entry.identifier().key();
+                int separator = storedKey.indexOf('/');
+                String key = storedKey.substring(0, separator) + ":" + storedKey.substring(separator + 1);
+                return provider.removeGenerated(new ModdedBlockPlacementContext(
+                        engine, placement.get(), parseIdentifier(key), parseState(key)), entry.token());
+            }
+        }
+        return false;
     }
 
     /**

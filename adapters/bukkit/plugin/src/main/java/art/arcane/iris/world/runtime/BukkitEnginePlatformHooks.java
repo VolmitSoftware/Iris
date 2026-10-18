@@ -19,6 +19,10 @@
 package art.arcane.iris.world.runtime;
 
 import art.arcane.iris.api.world.IrisWorldPhase;
+import art.arcane.iris.generation.mantle.CustomBlockOwnership;
+import art.arcane.iris.integration.ExternalDataSVC;
+import art.arcane.iris.spi.IrisServices;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockPoint;
 import art.arcane.iris.pack.datapack.ServerConfigurator;
 import art.arcane.iris.pack.datapack.DatapackIngestService;
 import art.arcane.iris.world.event.IrisEngineHotloadEvent;
@@ -51,6 +55,13 @@ import org.bukkit.World;
 import org.bukkit.WorldBorder;
 
 public final class BukkitEnginePlatformHooks implements EnginePlatformHooks {
+    @Override
+    public boolean removeCustomBlock(Engine engine, NativeBlockPoint position, CustomBlockOwnership.Entry entry) {
+        ExternalDataSVC service = IrisServices.getOrNull(ExternalDataSVC.class);
+        return service != null && service.removeGenerated(
+                BukkitWorldBinding.world(engine.getWorld()).getBlockAt(position.x(), position.y(), position.z()), entry);
+    }
+
     @Override
     public CompletableFuture<Void> flushSavedTerrainCapture(Engine engine) {
         return INMS.get().flushSavedTerrainCapture(BukkitWorldBinding.world(engine.getWorld()));

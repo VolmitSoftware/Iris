@@ -886,9 +886,17 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return pr;
     }
 
+    default KList<IrisRegion> getGeneratedRegions() {
+        IrisRegion focusRegion = getComplex().getFocusRegion();
+        if (focusRegion != null) {
+            return new KList<>(focusRegion);
+        }
+
+        return getDimension().getAllRegions(this);
+    }
+
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
-        Set<String> regionKeys = getDimension()
-                .getAllRegions(this).stream()
+        Set<String> regionKeys = getGeneratedRegions().stream()
                 .filter((i) -> i.getAllBiomeIdsIncludingChildren(this).contains(biome.getLoadKey()))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
@@ -928,7 +936,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                             .anyMatch((j) -> j.getStructure().equals(s.getLoadKey())))
                     .map(IrisRegistrant::getLoadKey)
                     .collect(Collectors.toSet());
-            Set<String> regionKeys = getDimension().getAllRegions(this).stream()
+            Set<String> regionKeys = getGeneratedRegions().stream()
                     .filter((i) -> i.getAllBiomeIdsIncludingChildren(this).stream().anyMatch(biomeKeys::contains)
                             || i.getJigsawStructures()
                             .stream()
@@ -960,7 +968,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 .filter((i) -> i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
-        Set<String> regionKeys = getDimension().getAllRegions(this).stream()
+        Set<String> regionKeys = getGeneratedRegions().stream()
                 .filter((i) -> i.getAllBiomeIdsIncludingChildren(this).stream().anyMatch(biomeKeys::contains)
                         || i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
                 .map(IrisRegistrant::getLoadKey)
@@ -985,7 +993,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void gotoRegion(IrisRegion r, Player player, boolean teleport) {
-        if (!getDimension().getRegions().contains(r.getLoadKey())) {
+        if (getGeneratedRegions().stream().noneMatch(i -> i.getLoadKey().equals(r.getLoadKey()))) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }

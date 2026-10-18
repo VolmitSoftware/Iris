@@ -889,7 +889,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomeIds().contains(biome.getLoadKey()))
+                .filter((i) -> i.getAllBiomeIdsIncludingChildren(this).contains(biome.getLoadKey()))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Locator<IrisBiome> lb = Locator.surfaceBiome(biome.getLoadKey());
@@ -929,7 +929,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     .map(IrisRegistrant::getLoadKey)
                     .collect(Collectors.toSet());
             Set<String> regionKeys = getDimension().getAllRegions(this).stream()
-                    .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                    .filter((i) -> i.getAllBiomeIdsIncludingChildren(this).stream().anyMatch(biomeKeys::contains)
                             || i.getJigsawStructures()
                             .stream()
                             .anyMatch((j) -> j.getStructure().equals(s.getLoadKey())))
@@ -961,7 +961,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Set<String> regionKeys = getDimension().getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                .filter((i) -> i.getAllBiomeIdsIncludingChildren(this).stream().anyMatch(biomeKeys::contains)
                         || i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());

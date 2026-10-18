@@ -265,6 +265,15 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         return b.v();
     }
 
+    public KSet<String> getAllBiomeIdsIncludingChildren(DataProvider g) {
+        KSet<String> ids = new KSet<>();
+        for (IrisBiome biome : getAllBiomes(g)) {
+            ids.add(biome.getLoadKey());
+        }
+
+        return ids;
+    }
+
     public KList<IrisBiome> getBiomes(DataProvider g, InferredType type) {
         if (type.equals(InferredType.LAND)) {
             return getRealLandBiomes(g);

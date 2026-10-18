@@ -166,11 +166,11 @@ public class ObjectContinuationTest {
             properties.put("CustomName", "continued chest");
             TileWrapper tile = new TileWrapper(new TileData("minecraft:chest", properties));
             List<ObjectDestinationTransaction.Mutation> mutations = List.of(
-                    new ObjectDestinationTransaction.CustomBlockMutation(key(NativeBlockState.class), custom),
-                    new ObjectDestinationTransaction.SetMutation(key(String.class), "tree@42"),
-                    new ObjectDestinationTransaction.SetMutation(key(TreeBlockMaterial.class), TreeBlockMaterial.of("minecraft:oak_log")),
-                    new ObjectDestinationTransaction.SetMutation(key(TileWrapper.class), tile),
-                    new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(17, 5, 1, NativeBlockState.class), air));
+                    new ObjectDestinationTransaction.CustomBlockMutation(key(NativeBlockState.class), custom, false),
+                    new ObjectDestinationTransaction.SetMutation(key(String.class), "tree@42", false),
+                    new ObjectDestinationTransaction.SetMutation(key(TreeBlockMaterial.class), TreeBlockMaterial.of("minecraft:oak_log"), false),
+                    new ObjectDestinationTransaction.SetMutation(key(TileWrapper.class), tile, false),
+                    new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(17, 5, 1, NativeBlockState.class), air, false));
             ObjectContinuationBundle.Fragment fragment = new ObjectContinuationBundle.Fragment(
                     new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.BIOME, 0, 0, 2), new ObjectContinuationBundle.Bounds(15, 1, 17, 1),
                     List.of(new ObjectContinuationBundle.ChunkPosition(0, 0), new ObjectContinuationBundle.ChunkPosition(1, 0)),
@@ -215,7 +215,7 @@ public class ObjectContinuationTest {
         ObjectContinuationBundle.Fragment fragment = new ObjectContinuationBundle.Fragment(
                 new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.BIOME, 0, 0, 0), new ObjectContinuationBundle.Bounds(15, 1, 16, 1),
                 List.of(new ObjectContinuationBundle.ChunkPosition(0, 0), new ObjectContinuationBundle.ChunkPosition(1, 0)),
-                ObjectSourcePlan.encode(List.of(new ObjectDestinationTransaction.SetMutation(key(IrisSpawner.class), spawner)), 64));
+                ObjectSourcePlan.encode(List.of(new ObjectDestinationTransaction.SetMutation(key(IrisSpawner.class), spawner, false)), 64));
 
         try (IrisMatterContext.Scope outer = IrisMatterContext.open(current)) {
             assertThrows(IOException.class, fragment::decode);
@@ -278,7 +278,7 @@ public class ObjectContinuationTest {
     }
 
     private static ObjectDestinationTransaction.Mutation marker(int x, String marker) {
-        return new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(x, 5, 1, String.class), marker);
+        return new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(x, 5, 1, String.class), marker, false);
     }
 
     private static final class Fixture {

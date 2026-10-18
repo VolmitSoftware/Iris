@@ -10,6 +10,7 @@ import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -34,6 +35,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final List<Mutation> mutations;
     private final List<PlacementRange> placements = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
+    private BlockPosition canopyPosition;
     private boolean hydrologyGateKnown;
     private int hydrologyGateChunkX;
     private int hydrologyGateChunkZ;
@@ -82,7 +84,15 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     void apply(ObjectSourcePlan plan) {
+        boolean skipCanopy = false;
         for (Mutation mutation : plan.mutationsFor(destinationChunkX, destinationChunkZ)) {
+            if (mutation.key().type() == NativeBlockState.class) {
+                NativeBlockState existing = mutation.canopy() ? get(mutation.key().x(), mutation.key().y(), mutation.key().z()) : null;
+                skipCanopy = existing != null && existing.isSolid();
+            }
+            if (mutation.canopy() && skipCanopy) {
+                continue;
+            }
             switch (mutation) {
                 case SetMutation set -> setData(set.key().x(), set.key().y(), set.key().z(), set.value(), set);
                 case CustomBlockMutation custom -> set(custom.key().x(), custom.key().y(), custom.key().z(), custom.state(), custom);
@@ -158,10 +168,29 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             cell.tile = CLEARED;
             cell.identifier = identifier;
             mutations.add(replayed != null
-                    ? replayed : new CustomBlockMutation(new DataKey(x, y, z, NativeBlockState.class), state));
+                    ? replayed : new CustomBlockMutation(new DataKey(x, y, z, NativeBlockState.class), state, isCanopy(x, y, z)));
             return;
         }
         setData(x, y, z, state);
+    }
+
+    @Override
+    public boolean beginTreeCanopy(BlockPosition position) {
+        if (!ObjectPassPlacer.super.beginTreeCanopy(position)) {
+            return false;
+        }
+        canopyPosition = position;
+        return true;
+    }
+
+    @Override
+    public void endTreeCanopy() {
+        canopyPosition = null;
+    }
+
+    private boolean isCanopy(int x, int y, int z) {
+        return canopyPosition != null && canopyPosition.getX() == x
+                && canopyPosition.getY() == y && canopyPosition.getZ() == z;
     }
 
     @Override
@@ -257,7 +286,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             cell.put(type, data);
         }
         mutations.add(replayed != null
-                ? replayed : new SetMutation(new DataKey(x, y, z, type), data));
+                ? replayed : new SetMutation(new DataKey(x, y, z, type), data, isCanopy(x, y, z)));
     }
 
     @Override
@@ -476,10 +505,12 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
         DataKey key();
 
+        boolean canopy();
+
         void apply(IObjectPlacer placer);
     }
 
-    record SetMutation(DataKey key, Object value) implements Mutation {
+    record SetMutation(DataKey key, Object value, boolean canopy) implements Mutation {
         @Override
         public int x() {
             return key.x();
@@ -496,7 +527,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         }
     }
 
-    record CustomBlockMutation(DataKey key, NativeBlockState state) implements Mutation {
+    record CustomBlockMutation(DataKey key, NativeBlockState state, boolean canopy) implements Mutation {
         @Override
         public int x() {
             return key.x();

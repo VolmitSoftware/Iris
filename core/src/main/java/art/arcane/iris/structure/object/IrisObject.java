@@ -20,6 +20,7 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.structure.object.FloatingObjectFootprint;
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.generation.cave.CarveResult;
 import art.arcane.iris.pack.value.IrisPosition;
 
@@ -144,6 +145,9 @@ public class IrisObject extends IrisRegistrant {
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
     transient final AtomicCache<FloatingObjectFootprint> floatingFootprint = new AtomicCache<>();
     @Getter
+    @Setter
+    private transient TreeGrounding treeGrounding;
+    @Getter
     VectorMap<NativeBlockState> blocks;
     @Getter
     VectorMap<TileData> states;
@@ -203,6 +207,7 @@ public class IrisObject extends IrisRegistrant {
             copy.setLoader(getLoader());
             copy.setLoadFile(getLoadFile());
             copy.setCenter(getCenter().clone());
+            copy.setTreeGrounding(treeGrounding);
 
             blocks.forEach(copy.blocks::put);
             states.forEach((position, tile) -> copy.states.put(position, tile.clone()));
@@ -349,6 +354,9 @@ public class IrisObject extends IrisRegistrant {
 
     KList<IrisBlockVector> getSurfaceSupportOffsets() {
         return surfaceSupportOffsets.aquire(() -> {
+            if (treeGrounding != null) {
+                return treeGrounding.supportOffsets();
+            }
             readLock.lock();
             try {
                 int lowestY = Integer.MAX_VALUE;

@@ -14,6 +14,8 @@ import art.arcane.iris.generation.terrain.Terrain3DColumnFixtures;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
+import art.arcane.iris.structure.object.DecayControlPlacer;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -51,6 +53,89 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ObjectDestinationTransactionTest {
+    @Test
+    public void separateSourceCanopiesPreservePriorSolidsAndTheirMetadata() {
+        for (boolean custom : new boolean[]{false, true}) {
+            MantleWriter writer = writer();
+            NativeBlockState trunk = mock(NativeBlockState.class);
+            NativeBlockState canopy = mock(NativeBlockState.class);
+            NativeBlockState base = mock(NativeBlockState.class);
+            when(trunk.isSolid()).thenReturn(true);
+            if (custom) {
+                when(canopy.isCustom()).thenReturn(true);
+                when(canopy.deferredPlacementKey()).thenReturn("test:canopy");
+                when(canopy.placementBaseState()).thenReturn(base);
+            }
+            TreeBlockMaterial trunkMaterial = new TreeBlockMaterial("test:trunk");
+            TreeBlockMaterial canopyMaterial = new TreeBlockMaterial("test:canopy");
+            ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+            DecayControlPlacer placer = new DecayControlPlacer(source);
+            for (int x : new int[]{17, 18}) {
+                assertTrue(placer.beginTreeCanopy(new BlockPosition(x, 7, 1)));
+                placer.set(x, 7, 1, canopy);
+                placer.setData(x, 7, 1, "canopy");
+                placer.setData(x, 7, 1, canopyMaterial);
+                placer.endTreeCanopy();
+            }
+            ObjectSourcePlan plan = source.sourcePlanSince(0);
+            for (ObjectDestinationTransaction.Mutation mutation : plan.mutationsFor(1, 0)) {
+                assertTrue(mutation.canopy());
+            }
+            ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 1, 0);
+            destination.set(17, 7, 1, trunk);
+            destination.setData(17, 7, 1, "trunk");
+            destination.setData(17, 7, 1, trunkMaterial);
+            destination.apply(plan);
+            assertSame(trunk, destination.get(17, 7, 1));
+            assertEquals("trunk", destination.getDataIfPresent(17, 7, 1, String.class));
+            assertEquals(trunkMaterial, destination.getDataIfPresent(17, 7, 1, TreeBlockMaterial.class));
+            assertNull(destination.getDataIfPresent(17, 7, 1, Identifier.class));
+            assertSame(custom ? base : canopy, destination.get(18, 7, 1));
+            assertEquals("canopy", destination.getDataIfPresent(18, 7, 1, String.class));
+            destination.commit();
+            verify(writer, never()).set(17, 7, 1, canopy);
+            verify(writer, never()).setData(17, 7, 1, canopy);
+            verify(writer, never()).setData(17, 7, 1, "canopy");
+            verify(writer, never()).setData(17, 7, 1, canopyMaterial);
+        }
+    }
+
+    @Test
+    public void skippedCanopyDoesNotSuppressLaterWoodAtTheSameCell() {
+        MantleWriter writer = writer();
+        NativeBlockState existing = mock(NativeBlockState.class);
+        NativeBlockState canopy = mock(NativeBlockState.class);
+        NativeBlockState replacement = mock(NativeBlockState.class);
+        when(existing.isSolid()).thenReturn(true);
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        assertTrue(source.beginTreeCanopy(new BlockPosition(17, 7, 1)));
+        source.set(17, 7, 1, canopy);
+        source.setData(17, 7, 1, "canopy");
+        source.endTreeCanopy();
+        source.set(17, 7, 1, replacement);
+        source.setData(17, 7, 1, "replacement");
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 1, 0);
+        destination.set(17, 7, 1, existing);
+        destination.apply(source.sourcePlanSince(0));
+        assertSame(replacement, destination.get(17, 7, 1));
+        assertEquals("replacement", destination.getDataIfPresent(17, 7, 1, String.class));
+        destination.commit();
+        verify(writer, never()).setData(17, 7, 1, canopy);
+        verify(writer, never()).setData(17, 7, 1, "canopy");
+        verify(writer).setData(17, 7, 1, replacement);
+    }
+
+    @Test
+    public void canopyCaptureRejectsExistingSolidsWithoutMutations() {
+        MantleWriter writer = writer();
+        NativeBlockState solid = mock(NativeBlockState.class);
+        when(solid.isSolid()).thenReturn(true);
+        when(writer.getPrerequisiteBlock(4, 7, 1)).thenReturn(solid);
+        ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
+        assertFalse(source.beginTreeCanopy(new BlockPosition(4, 7, 1)));
+        assertEquals(0, source.mutationCheckpoint());
+    }
+
     @Test
     public void sourceCaptureCannotReplaceAuthoredRoomSolids() {
         MantleWriter writer = writer();

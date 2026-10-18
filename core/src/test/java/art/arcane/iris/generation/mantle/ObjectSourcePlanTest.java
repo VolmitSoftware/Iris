@@ -74,14 +74,14 @@ public class ObjectSourcePlanTest {
                     int z = centerZ + random.nextInt(2 * reach + 1) - reach;
                     int y = random.nextInt(768);
                     mutations.add(switch (random.nextInt(6)) {
-                        case 0 -> new ObjectDestinationTransaction.CustomBlockMutation(key(x, y, z, NativeBlockState.class), custom);
-                        case 1 -> new ObjectDestinationTransaction.SetMutation(key(x, y, z, String.class), placementMarker);
+                        case 0 -> new ObjectDestinationTransaction.CustomBlockMutation(key(x, y, z, NativeBlockState.class), custom, random.nextBoolean());
+                        case 1 -> new ObjectDestinationTransaction.SetMutation(key(x, y, z, String.class), placementMarker, random.nextBoolean());
                         case 2 -> new ObjectDestinationTransaction.SetMutation(key(x, y, z, TreeBlockMaterial.class),
-                                new TreeBlockMaterial("minecraft:oak_log"));
-                        case 3 -> new ObjectDestinationTransaction.SetMutation(key(x, y, z, MatterMarker.class), marker);
+                                new TreeBlockMaterial("minecraft:oak_log"), random.nextBoolean());
+                        case 3 -> new ObjectDestinationTransaction.SetMutation(key(x, y, z, MatterMarker.class), marker, random.nextBoolean());
                         default -> {
                             NativeBlockState state = states[random.nextInt(states.length)];
-                            yield new ObjectDestinationTransaction.SetMutation(key(x, y, z, NativeBlockState.class), state);
+                            yield new ObjectDestinationTransaction.SetMutation(key(x, y, z, NativeBlockState.class), state, random.nextBoolean());
                         }
                     });
                 }
@@ -109,11 +109,11 @@ public class ObjectSourcePlanTest {
     @Test
     public void heightsOutsideThePackedRangeAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> new ObjectSourcePlan(List.of(
-                new ObjectDestinationTransaction.SetMutation(key(0, -1, 0, String.class), "marker"))));
+                new ObjectDestinationTransaction.SetMutation(key(0, -1, 0, String.class), "marker", false))));
         assertThrows(IllegalArgumentException.class, () -> new ObjectSourcePlan(List.of(
-                new ObjectDestinationTransaction.SetMutation(key(0, 1 << 22, 0, String.class), "marker"))));
+                new ObjectDestinationTransaction.SetMutation(key(0, 1 << 22, 0, String.class), "marker", false))));
         assertThrows(IllegalArgumentException.class, () -> new ObjectSourcePlan(List.of(
-                new ObjectDestinationTransaction.SetMutation(key(0, 4, 0, Object.class), "marker"))));
+                new ObjectDestinationTransaction.SetMutation(key(0, 4, 0, Object.class), "marker", false))));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class ObjectSourcePlanTest {
         List<ObjectDestinationTransaction.Mutation> trees = new ArrayList<>();
         for (int index = 0; index < 100; index++) {
             trees.add(new ObjectDestinationTransaction.SetMutation(key(index & 15, 4, 0, TreeBlockMaterial.class),
-                    new TreeBlockMaterial("minecraft:oak_log")));
+                    new TreeBlockMaterial("minecraft:oak_log"), false));
         }
         int single = new ObjectSourcePlan(one).estimatedRetainedBytes();
 
@@ -150,15 +150,15 @@ public class ObjectSourcePlanTest {
     @Test
     public void retainedBytesIncludeVariableLengthMarkers() {
         ObjectDestinationTransaction.DataKey key = new ObjectDestinationTransaction.DataKey(0, 4, 0, String.class);
-        ObjectSourcePlan shortMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a")));
-        ObjectSourcePlan longMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a".repeat(4096))));
+        ObjectSourcePlan shortMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a", false)));
+        ObjectSourcePlan longMarker = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(key, "a".repeat(4096), false)));
         assertTrue(longMarker.estimatedRetainedBytes() - shortMarker.estimatedRetainedBytes() >= 8190);
     }
 
     @Test
     public void unknownPayloadsAreWeighedInsteadOfDisablingRetention() {
         ObjectSourcePlan unknown = new ObjectSourcePlan(List.of(new ObjectDestinationTransaction.SetMutation(
-                key(0, 4, 0, Object.class), new Object())));
+                key(0, 4, 0, Object.class), new Object(), false)));
 
         assertTrue(unknown.estimatedRetainedBytes() > new ObjectSourcePlan(List.of(mutationAt(0, 0))).estimatedRetainedBytes());
         assertTrue(unknown.estimatedRetainedBytes() < 4096);
@@ -169,9 +169,9 @@ public class ObjectSourcePlanTest {
         List<ObjectDestinationTransaction.Mutation> shortMarkers = List.of(mutationAt(0, 0), mutationAt(16, 0));
         List<ObjectDestinationTransaction.Mutation> longMarkers = List.of(
                 new ObjectDestinationTransaction.SetMutation(
-                        new ObjectDestinationTransaction.DataKey(0, 4, 0, String.class), "a".repeat(4096)),
+                        new ObjectDestinationTransaction.DataKey(0, 4, 0, String.class), "a".repeat(4096), false),
                 new ObjectDestinationTransaction.SetMutation(
-                        new ObjectDestinationTransaction.DataKey(16, 4, 0, String.class), "b".repeat(4096)));
+                        new ObjectDestinationTransaction.DataKey(16, 4, 0, String.class), "b".repeat(4096), false));
         ObjectDestinationTransaction.PlacementRange whole = new ObjectDestinationTransaction.PlacementRange(0, 2);
         ObjectSourcePlan shortPlain = new ObjectSourcePlan(shortMarkers);
         ObjectSourcePlan shortCrossing = new ObjectSourcePlan(shortMarkers, List.of(whole));
@@ -224,6 +224,6 @@ public class ObjectSourcePlanTest {
 
     private static ObjectDestinationTransaction.Mutation mutationAt(int x, int z) {
         return new ObjectDestinationTransaction.SetMutation(
-                new ObjectDestinationTransaction.DataKey(x, 4, z, String.class), "marker");
+                new ObjectDestinationTransaction.DataKey(x, 4, z, String.class), "marker", false);
     }
 }

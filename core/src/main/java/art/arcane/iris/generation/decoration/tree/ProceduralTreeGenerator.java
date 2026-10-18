@@ -40,6 +40,12 @@ public final class ProceduralTreeGenerator {
         long baseSeed = rng.getSeed();
 
         List<TreeTrunkBuilder.Limb> limbs = TreeTrunkBuilder.build(canvas, tree, height);
+        Set<TreeBlockCanvas.Vec> supportPositions = new HashSet<>();
+        for (TreeBlockCanvas.Vec position : canvas.getTrunk()) {
+            if (position.y() == 0) {
+                supportPositions.add(position);
+            }
+        }
 
         boolean wantEndpoints = tree.getDecorators() != null && !tree.getDecorators().isEmpty();
         List<int[]> branchEndpoints = wantEndpoints ? new ArrayList<>() : null;
@@ -55,7 +61,13 @@ public final class ProceduralTreeGenerator {
         }
 
         if (tree.isRoots()) {
+            Set<TreeBlockCanvas.Vec> existingWood = new HashSet<>(canvas.getTrunk());
             TreeRootBuilder.build(canvas, tree, height, baseSeed);
+            for (TreeBlockCanvas.Vec position : canvas.getTrunk()) {
+                if (position.y() <= 0 && !existingWood.contains(position)) {
+                    supportPositions.add(position);
+                }
+            }
         }
 
         if (tree.isPlausible()) {
@@ -82,10 +94,14 @@ public final class ProceduralTreeGenerator {
 
         TreePlausibility.apply(resolved, trunkPositions, leafPositions, tree);
 
-        return assemble(resolved);
+        int rootReach = tree.isRoots() ? tree.getRootDepth() > 0 ? tree.getRootDepth()
+                : Math.max(2, (int) Math.round(height * 0.18)) : 0;
+        return assemble(resolved, supportPositions, leafPositions, rootReach);
     }
 
-    private static IrisObject assemble(Map<TreeBlockCanvas.Vec, NativeBlockState> resolved) {
+    private static IrisObject assemble(Map<TreeBlockCanvas.Vec, NativeBlockState> resolved,
+                                       Set<TreeBlockCanvas.Vec> supportPositions,
+                                       Set<TreeBlockCanvas.Vec> leafPositions, int rootReach) {
         if (resolved.isEmpty()) {
             return null;
         }
@@ -105,21 +121,26 @@ public final class ProceduralTreeGenerator {
             maxZ = Math.max(maxZ, v.z());
         }
 
-        int w = maxX - minX + 1;
+        int w = 2 * Math.max(Math.abs(minX), Math.abs(maxX)) + 1;
         int h = maxY - minY + 1;
-        int d = maxZ - minZ + 1;
-        int cx = w / 2;
+        int d = 2 * Math.max(Math.abs(minZ), Math.abs(maxZ)) + 1;
         int cy = h / 2;
-        int cz = d / 2;
 
         IrisObject object = new IrisObject(w, h, d);
+        List<TreeGrounding.Root> roots = new ArrayList<>(supportPositions.size());
+        Set<TreeBlockCanvas.Vec> canopy = new HashSet<>(leafPositions.size());
         for (Map.Entry<TreeBlockCanvas.Vec, NativeBlockState> entry : resolved.entrySet()) {
             TreeBlockCanvas.Vec v = entry.getKey();
-            int nx = v.x() - minX - cx;
             int ny = v.y() - cy + 1;
-            int nz = v.z() - minZ - cz;
-            object.getBlocks().put(new IrisBlockVector(nx, ny, nz), entry.getValue());
+            object.getBlocks().put(new IrisBlockVector(v.x(), ny, v.z()), entry.getValue());
+            if (supportPositions.contains(v)) {
+                roots.add(new TreeGrounding.Root(v.x(), ny, v.z(), entry.getValue()));
+            }
+            if (leafPositions.contains(v)) {
+                canopy.add(new TreeBlockCanvas.Vec(v.x(), ny, v.z()));
+            }
         }
+        object.setTreeGrounding(TreeGrounding.create(roots, rootReach, canopy));
 
         return object;
     }

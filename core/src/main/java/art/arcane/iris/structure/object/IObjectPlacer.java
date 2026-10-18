@@ -24,6 +24,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.math.BlockPosition;
 import org.jetbrains.annotations.Nullable;
 
 public interface IObjectPlacer {
@@ -34,6 +35,14 @@ public interface IObjectPlacer {
     void set(int x, int y, int z, NativeBlockState d);
 
     NativeBlockState get(int x, int y, int z);
+
+    default boolean beginTreeCanopy(BlockPosition position) {
+        NativeBlockState existing = get(position.getX(), position.getY(), position.getZ());
+        return existing == null || !existing.isSolid();
+    }
+
+    default void endTreeCanopy() {
+    }
 
     boolean isPreventingDecay();
 

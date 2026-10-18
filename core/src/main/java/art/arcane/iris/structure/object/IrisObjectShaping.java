@@ -20,6 +20,8 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
+import art.arcane.iris.generation.decoration.tree.TreeBlockCanvas;
+import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -29,6 +31,9 @@ import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.format.Form;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -264,6 +269,19 @@ final class IrisObjectShaping {
         self.shrinkOffset = offset;
         self.blocks = b;
         self.states = s;
+        if (self.getTreeGrounding() != null) {
+            List<TreeGrounding.Root> roots = new ArrayList<>();
+            for (TreeGrounding.Root root : self.getTreeGrounding().roots()) {
+                roots.add(new TreeGrounding.Root(root.x() + offset.getX(), root.y() + offset.getY(),
+                        root.z() + offset.getZ(), root.state()));
+            }
+            Set<TreeBlockCanvas.Vec> canopy = new HashSet<>();
+            for (TreeBlockCanvas.Vec leaf : self.getTreeGrounding().canopy()) {
+                canopy.add(new TreeBlockCanvas.Vec(leaf.x() + offset.getX(), leaf.y() + offset.getY(),
+                        leaf.z() + offset.getZ()));
+            }
+            self.setTreeGrounding(TreeGrounding.create(roots, self.getTreeGrounding().maxExtension(), canopy));
+        }
         self.surfaceSupportOffsets.reset();
         self.floatingFootprint.reset();
     }

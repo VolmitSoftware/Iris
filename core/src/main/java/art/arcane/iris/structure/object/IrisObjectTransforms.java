@@ -23,6 +23,8 @@ import art.arcane.iris.pack.value.IrisPosition;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
+import art.arcane.iris.generation.decoration.tree.TreeBlockCanvas;
+import art.arcane.iris.generation.decoration.tree.TreeGrounding;
 import art.arcane.iris.generation.block.VectorMap;
 import art.arcane.iris.generation.geometry.AxisAlignedBB;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -33,10 +35,12 @@ import art.arcane.volmlib.util.interpolation.Interpolation3D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Geometric transforms for {@link IrisObject}: rotation, scaling and the interpolated upscalers.
@@ -56,6 +60,8 @@ final class IrisObjectTransforms {
         try {
             VectorMap<NativeBlockState> d = new VectorMap<>();
             VectorMap<TileData> dx = new VectorMap<>();
+            TreeGrounding grounding = self.getTreeGrounding();
+            Set<TreeBlockCanvas.Vec> canopy = grounding == null ? null : new HashSet<>();
 
             for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
                 NativeBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
@@ -64,6 +70,16 @@ final class IrisObjectTransforms {
                 }
                 IrisBlockVector destination = r.rotate(entry.getKey(), spinx, spiny, spinz);
                 d.put(destination, rotated);
+                if (canopy != null) {
+                    TreeBlockCanvas.Vec cell = new TreeBlockCanvas.Vec(destination.getBlockX(),
+                            destination.getBlockY(), destination.getBlockZ());
+                    IrisBlockVector source = entry.getKey();
+                    if (grounding.isCanopy(source.getBlockX(), source.getBlockY(), source.getBlockZ())) {
+                        canopy.add(cell);
+                    } else {
+                        canopy.remove(cell);
+                    }
+                }
                 TileData tile = self.states.get(entry.getKey());
                 if (tile == null) {
                     dx.remove(destination);
@@ -74,6 +90,17 @@ final class IrisObjectTransforms {
 
             self.blocks = d;
             self.states = dx;
+            if (grounding != null) {
+                List<TreeGrounding.Root> roots = new ArrayList<>();
+                for (TreeGrounding.Root root : grounding.roots()) {
+                    IrisBlockVector position = r.rotate(new IrisBlockVector(root.x(), root.y(), root.z()), spinx, spiny, spinz);
+                    NativeBlockState state = d.get(position);
+                    if (state != null) {
+                        roots.add(new TreeGrounding.Root(position.getBlockX(), position.getBlockY(), position.getBlockZ(), state));
+                    }
+                }
+                self.setTreeGrounding(TreeGrounding.create(roots, grounding.maxExtension(), canopy));
+            }
             IrisObjectShaping.shrinkwrap(self);
             self.surfaceSupportOffsets.reset();
             self.floatingFootprint.reset();
@@ -99,6 +126,8 @@ final class IrisObjectTransforms {
         boolean savedOrigin = origin == ScaleOrigin.SAVED;
         List<ScaledVoxel> voxels;
         IrisObject output;
+        TreeGrounding grounding;
+        Vector3i sourceCenter;
         self.readLock.lock();
         try {
             output = savedOrigin ? createOriginScaledObject(self, scale)
@@ -107,7 +136,8 @@ final class IrisObjectTransforms {
             output.setLoader(self.getLoader());
             output.setLoadFile(self.getLoadFile());
             voxels = new ArrayList<>(self.blocks.size());
-            Vector3i sourceCenter = self.getCenter();
+            sourceCenter = self.getCenter().clone();
+            grounding = self.getTreeGrounding();
             IrisBlockVector targetCenter = new IrisBlockVector(output.getCenter().getX(),
                     output.getCenter().getY(), output.getCenter().getZ());
             for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
@@ -124,7 +154,8 @@ final class IrisObjectTransforms {
                 }
                 TileData tile = self.states.get(sourcePosition);
                 voxels.add(new ScaledVoxel(sourcePosition.clone(), minimum, maximum, entry.getValue(),
-                        tile == null ? null : tile.clone()));
+                        tile == null ? null : tile.clone(), grounding != null && grounding.isCanopy(
+                        sourcePosition.getBlockX(), sourcePosition.getBlockY(), sourcePosition.getBlockZ())));
             }
         } finally {
             self.readLock.unlock();
@@ -134,8 +165,9 @@ final class IrisObjectTransforms {
                     .thenComparingInt(voxel -> voxel.source().getBlockY())
                     .thenComparingInt(voxel -> voxel.source().getBlockZ()));
         }
+        Set<TreeBlockCanvas.Vec> canopy = grounding == null ? null : new HashSet<>();
         for (ScaledVoxel voxel : voxels) {
-            writeScaledVoxel(output, voxel);
+            writeScaledVoxel(output, voxel, canopy);
         }
 
         VectorMap<NativeBlockState> scaledBlocks = output.blocks;
@@ -147,10 +179,43 @@ final class IrisObjectTransforms {
             }
         }
         removeInapplicableTiles(output, scaledBlocks);
+        if (grounding != null) {
+            canopy.removeIf(cell -> !output.blocks.containsKey(new IrisBlockVector(cell.x(), cell.y(), cell.z())));
+            scaleRoots(grounding, sourceCenter, output, scale, savedOrigin, canopy);
+        }
         return output;
     }
 
-    private static void writeScaledVoxel(IrisObject output, ScaledVoxel voxel) {
+    private static void scaleRoots(TreeGrounding grounding, Vector3i sourceCenter, IrisObject output,
+                                   double scale, boolean savedOrigin, Set<TreeBlockCanvas.Vec> canopy) {
+        List<TreeGrounding.Root> roots = new ArrayList<>();
+        Vector3i targetCenter = output.getCenter();
+        for (TreeGrounding.Root root : grounding.roots()) {
+            IrisBlockVector position = new IrisBlockVector(root.x(), root.y(), root.z());
+            if (!savedOrigin) {
+                position.add(new IrisBlockVector(sourceCenter.getX(), sourceCenter.getY(), sourceCenter.getZ()));
+            }
+            IrisBlockVector minimum = scaledMinimum(position, scale);
+            IrisBlockVector maximum = scaledMaximum(position, scale);
+            if (!savedOrigin) {
+                IrisBlockVector offset = new IrisBlockVector(targetCenter.getX(), targetCenter.getY(), targetCenter.getZ());
+                minimum.subtract(offset);
+                maximum.subtract(offset);
+            }
+            int y = minimum.getBlockY();
+            for (int x = minimum.getBlockX(); x <= maximum.getBlockX(); x++) {
+                for (int z = minimum.getBlockZ(); z <= maximum.getBlockZ(); z++) {
+                    NativeBlockState state = output.blocks.get(new IrisBlockVector(x, y, z));
+                    if (state != null) {
+                        roots.add(new TreeGrounding.Root(x, y, z, state));
+                    }
+                }
+            }
+        }
+        output.setTreeGrounding(TreeGrounding.create(roots, (int) Math.ceil(grounding.maxExtension() * scale), canopy));
+    }
+
+    private static void writeScaledVoxel(IrisObject output, ScaledVoxel voxel, Set<TreeBlockCanvas.Vec> canopy) {
         IrisBlockVector minimum = voxel.minimum();
         IrisBlockVector maximum = voxel.maximum();
         IrisBlockVector position = minimum.clone();
@@ -161,6 +226,14 @@ final class IrisObjectTransforms {
                 for (int y = minimum.getBlockY(); y <= maximum.getBlockY(); y++) {
                     position.setY(y);
                     output.blocks.put(position, voxel.block());
+                    if (canopy != null) {
+                        TreeBlockCanvas.Vec cell = new TreeBlockCanvas.Vec(x, y, z);
+                        if (voxel.canopy()) {
+                            canopy.add(cell);
+                        } else {
+                            canopy.remove(cell);
+                        }
+                    }
                     if (voxel.tile() == null) {
                         output.states.remove(position);
                     } else {
@@ -468,7 +541,7 @@ final class IrisObjectTransforms {
     }
 
     private record ScaledVoxel(IrisBlockVector source, IrisBlockVector minimum, IrisBlockVector maximum,
-                               NativeBlockState block, TileData tile) {
+                               NativeBlockState block, TileData tile, boolean canopy) {
     }
 
     private enum ScaleOrigin {

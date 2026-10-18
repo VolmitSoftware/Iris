@@ -72,7 +72,8 @@ final class BlockTextures {
     }
 
     Optional<BlockTexture> topTexture(BlockData block) {
-        return topTextures.computeIfAbsent(block.getAsString(true), this::resolveTopTexture);
+        // Blockstate files match on every property, so defaults the pack left out have to be spelled out too.
+        return topTextures.computeIfAbsent(block.getAsString(false), this::resolveTopTexture);
     }
 
     private Optional<BlockTexture> resolveTopTexture(String blockState) {

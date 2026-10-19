@@ -175,7 +175,7 @@ public final class NoiseExplorerGUI extends JPanel {
                              String customName, long initialSeed, PaletteExplorerStart paletteStart) {
         this.mode = mode;
         this.paletteStart = paletteStart;
-        this.paletteNavigator = new PaletteNavigator(this::selectPaletteLayer);
+        this.paletteNavigator = new PaletteNavigator(this::selectPalette);
         this.awaitingInitialPackSource = mode == ExplorerMode.PALETTES;
         this.requestedPaletteBiome = paletteStart == null ? null : paletteStart.biomeKey();
         this.initialViewport = paletteStart == null
@@ -414,8 +414,9 @@ public final class NoiseExplorerGUI extends JPanel {
             return;
         }
         requestedPaletteBiome = biomeKey;
-        if (!packSources.isEmpty()) {
-            selectPaletteLayer(biomeKey, 0);
+        SourceItem firstPalette = firstPaletteOf(biomeKey, packSources);
+        if (firstPalette != null && firstPalette != selectedSource) {
+            selectSource(firstPalette);
         }
     }
 
@@ -612,16 +613,15 @@ public final class NoiseExplorerGUI extends JPanel {
             if (biome == null) {
                 continue;
             }
-            for (int layer = 0; layer < biome.getLayers().size(); layer++) {
-                int selectedLayer = layer;
+            for (BiomePalette palette : BiomePalette.allOf(key, biome)) {
                 sources.add(new SourceItem(
-                        paletteSourceId(key, layer),
-                        "Layer " + layer + " · " + PaletteCatalog.summarizeBlocks(biome.getLayers().get(layer)),
+                        palette.id(),
+                        palette.label() + " · " + PaletteCatalog.summarizeBlocks(palette.resolve(biome)),
                         key,
                         NoiseCategory.PACK_PALETTES,
                         false,
                         (sourceSeed, depth) -> {
-                            PaletteLayerPreview preview = PaletteLayerPreview.load(engine, key, selectedLayer, depth, blockTextures);
+                            PaletteLayerPreview preview = PaletteLayerPreview.load(engine, palette, depth, blockTextures);
                             return new LoadedSource(preview::sample, preview);
                         }
                 ));
@@ -630,19 +630,19 @@ public final class NoiseExplorerGUI extends JPanel {
         return List.copyOf(sources);
     }
 
-    private static String paletteSourceId(String biomeKey, int layer) {
-        return "palette:" + biomeKey + "#" + layer;
+    private static SourceItem firstPaletteOf(String biomeKey, List<SourceItem> sources) {
+        return sources.stream().filter(source -> BiomePalette.belongsTo(source.id(), biomeKey)).findFirst().orElse(null);
     }
 
-    private void selectPaletteLayer(String biomeKey, int layer) {
-        SourceItem source = findSourceById(paletteSourceId(biomeKey, layer), packSources);
+    private void selectPalette(BiomePalette palette) {
+        SourceItem source = findSourceById(palette.id(), packSources);
         if (source != null && source != selectedSource) {
             selectSource(source);
         }
     }
 
-    private static int paletteLayerOf(SourceItem source) {
-        return Integer.parseInt(source.id().substring(source.id().lastIndexOf('#') + 1));
+    private static BiomePalette paletteOf(SourceItem source) {
+        return BiomePalette.fromId(source.id());
     }
 
     private void loadBlockTextures() {
@@ -708,8 +708,7 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private void selectInitialPackSource(List<SourceItem> sources) {
-        String initialSourceId = requestedPaletteBiome == null ? null : paletteSourceId(requestedPaletteBiome, 0);
-        SourceItem requested = initialSourceId == null ? null : findSourceById(initialSourceId, sources);
+        SourceItem requested = requestedPaletteBiome == null ? null : firstPaletteOf(requestedPaletteBiome, sources);
         SourceItem initial = requested == null ? sources.get(0) : requested;
         if (!selectSourceInList(initial.id())) {
             selectSource(initial);
@@ -724,7 +723,7 @@ public final class NoiseExplorerGUI extends JPanel {
             return "Open a studio world to see its palettes";
         }
         long biomes = sources.stream().map(SourceItem::rawName).distinct().count();
-        return sources.size() + " palette layers in " + biomes + " biomes";
+        return sources.size() + " palettes in " + biomes + " biomes";
     }
 
     private void failRemovedPackSource(SourceItem removedSource) {
@@ -810,7 +809,7 @@ public final class NoiseExplorerGUI extends JPanel {
         paletteDepth = 0;
         selectedLabel.setText(source.category() == NoiseCategory.PACK_PALETTES ? source.rawName() : source.text());
         if (source.category() == NoiseCategory.PACK_PALETTES) {
-            paletteNavigator.markSelected(source.rawName(), paletteLayerOf(source));
+            paletteNavigator.markSelected(paletteOf(source));
         }
         loadSelectedSource();
     }
@@ -1298,7 +1297,7 @@ public final class NoiseExplorerGUI extends JPanel {
 
     private static String sourceTitle(SourceItem source) {
         return source.category() == NoiseCategory.PACK_PALETTES
-                ? source.rawName() + " · layer " + paletteLayerOf(source)
+                ? source.rawName() + " · " + paletteOf(source).lowercaseLabel()
                 : source.text();
     }
 

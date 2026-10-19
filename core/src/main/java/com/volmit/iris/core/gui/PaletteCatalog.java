@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,7 +75,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
 
     static String summarizeBlocks(IrisBiomePaletteLayer layer) {
         List<String> names = layer.getPalette().stream()
-                .map(block -> block.getBlock().replace("minecraft:", ""))
+                .map(block -> block.getBlock().replace("minecraft:", "").toLowerCase(Locale.ROOT))
                 .distinct()
                 .toList();
         if (names.size() <= SUMMARIZED_BLOCK_COUNT) {
@@ -86,19 +87,40 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
 
     private static Map<String, BiomeEntry> loadBiomes(IrisData data) {
         String[] keys = data.getBiomeLoader().getPossibleKeys();
-        Map<String, BiomeEntry> biomes = new LinkedHashMap<>();
+        Map<String, IrisBiome> loaded = new LinkedHashMap<>();
         if (keys == null) {
-            return biomes;
+            return Map.of();
         }
         Arrays.sort(keys);
         for (String key : keys) {
             IrisBiome biome = data.getBiomeLoader().load(key);
             if (biome != null) {
-                List<String> layers = biome.getLayers().stream().map(PaletteCatalog::summarizeBlocks).toList();
-                biomes.put(key, new BiomeEntry(key, biome.getName(), layers, List.copyOf(biome.getChildren())));
+                loaded.put(key, biome);
             }
         }
+        Map<String, List<String>> parentsByChild = parentsByChild(loaded);
+        Map<String, BiomeEntry> biomes = new LinkedHashMap<>();
+        loaded.forEach((key, biome) -> biomes.put(key, new BiomeEntry(
+                key,
+                biome.getName(),
+                summarizePalettes(key, biome),
+                biome.getChildren().stream().filter(loaded::containsKey).distinct().toList(),
+                parentsByChild.getOrDefault(key, List.of())
+        )));
         return biomes;
+    }
+
+    private static Map<String, List<String>> parentsByChild(Map<String, IrisBiome> biomes) {
+        Map<String, List<String>> parents = new LinkedHashMap<>();
+        biomes.forEach((parentKey, parent) -> parent.getChildren().stream().distinct().forEach(childKey ->
+                parents.computeIfAbsent(childKey, key -> new ArrayList<>()).add(parentKey)));
+        return parents;
+    }
+
+    private static List<PaletteSummary> summarizePalettes(String key, IrisBiome biome) {
+        return BiomePalette.allOf(key, biome).stream()
+                .map(palette -> new PaletteSummary(palette, summarizeBlocks(palette.resolve(biome))))
+                .toList();
     }
 
     private static RegionEntry describeRegion(String key, IrisRegion region, Map<String, BiomeEntry> biomes) {
@@ -134,12 +156,26 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
     record BiomeGroup(String label, List<String> biomeKeys) {
     }
 
-    record BiomeEntry(String key, String name, List<String> layerSummaries, List<String> childKeys) {
+    /**
+     * @param parentKeys the biomes that list this one as a child, which it can appear inside of
+     */
+    record BiomeEntry(String key, String name, List<PaletteSummary> palettes, List<String> childKeys,
+                      List<String> parentKeys) {
         boolean matches(String filter) {
             if (key.toLowerCase().contains(filter) || name.toLowerCase().contains(filter)) {
                 return true;
             }
-            return layerSummaries.stream().anyMatch(summary -> summary.toLowerCase().contains(filter));
+            return palettes.stream().anyMatch(summary -> summary.text().toLowerCase().contains(filter));
+        }
+
+        BiomePalette firstPalette() {
+            return palettes.isEmpty() ? null : palettes.get(0).palette();
+        }
+    }
+
+    record PaletteSummary(BiomePalette palette, String blocks) {
+        String text() {
+            return palette.label() + " · " + blocks;
         }
     }
 }

@@ -68,9 +68,8 @@ final class PaletteInspectorPanel extends JPanel {
     }
 
     void showPreview(PaletteLayerPreview preview) {
-        titleLabel.setText(preview.biomeKey() + " · layer " + preview.layer());
-        detailLabel.setText(thicknessText(preview) + " · zoom " + formatZoom(preview.zoom())
-                + " (×" + formatZoom(preview.zoom() * preview.zoom()) + " effective)");
+        titleLabel.setText(preview.biomeKey() + " · " + preview.palette().lowercaseLabel());
+        detailLabel.setText(placementText(preview));
         depth = preview.depth();
         deepestDepth = Math.max(0, preview.maxThickness() - 1);
         refreshDepthControls();
@@ -160,6 +159,15 @@ final class PaletteInspectorPanel extends JPanel {
         label.setForeground(StudioTheme.MUTED_TEXT);
         label.setFont(StudioTheme.sectionFont());
         return label;
+    }
+
+    // Stacked layers divide their coordinates by the zoom twice before sampling; wall and slab blocks only once.
+    private static String placementText(PaletteLayerPreview preview) {
+        if (!preview.palette().kind().isStacked()) {
+            return "Single blocks · zoom " + formatZoom(preview.zoom());
+        }
+        return thicknessText(preview) + " · zoom " + formatZoom(preview.zoom())
+                + " (×" + formatZoom(preview.zoom() * preview.zoom()) + " effective)";
     }
 
     private static String thicknessText(PaletteLayerPreview preview) {
@@ -407,6 +415,9 @@ final class PaletteInspectorPanel extends JPanel {
             if (preview.outOfRangeShare() > 0D) {
                 notes.add(percent(preview.outOfRangeShare()) + " of the noise values fall outside 0 to 1."
                         + " Those spots get the first block.");
+            }
+            if (preview.simplification() != null) {
+                notes.add(preview.simplification());
             }
             if (preview.hasSlopeCondition()) {
                 notes.add("This layer has a slope condition, which the preview ignores.");

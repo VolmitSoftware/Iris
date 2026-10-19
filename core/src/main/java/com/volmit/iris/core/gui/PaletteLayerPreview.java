@@ -40,12 +40,10 @@ final class PaletteLayerPreview {
     private static final double FAR_FROM_WEIGHT_FACTOR = 2D;
     private static final int BLOCK_CACHE_SIZE = 1 << 16;
 
-    private final String biomeKey;
-    private final IrisBiome biome;
+    private final BiomePalette palette;
     private final IrisBiomePaletteLayer paletteLayer;
-    private final int layer;
+    private final BiomePalettePlacement placement;
     private final int depth;
-    private final RNG random;
     private final IrisData data;
     private final int[] entryBySlot;
     private final BiomeTintField biomeTints;
@@ -58,18 +56,16 @@ final class PaletteLayerPreview {
     private final double absentShare;
     private final double outOfRangeShare;
 
-    private PaletteLayerPreview(String biomeKey, IrisBiome biome, int layer, int depth, RNG random, IrisData data,
-                                BlockTextures textures, BiomeTintField biomeTints) {
-        this.biomeKey = biomeKey;
-        this.biome = biome;
-        this.paletteLayer = biome.getLayers().get(layer);
-        this.layer = layer;
+    private PaletteLayerPreview(BiomePalette palette, IrisBiomePaletteLayer paletteLayer, BiomePalettePlacement placement,
+                                int depth, IrisData data, BlockTextures textures, BiomeTintField biomeTints) {
+        this.palette = palette;
+        this.paletteLayer = paletteLayer;
+        this.placement = placement;
         this.depth = depth;
-        this.random = random;
         this.data = data;
         this.entryBySlot = paletteLayer.getPaletteEntryPerSlot(data).stream().mapToInt(Integer::intValue).toArray();
         if (entryBySlot.length == 0) {
-            throw new IllegalStateException("No palette block in " + biomeKey + " layer " + layer + " could be found");
+            throw new IllegalStateException("No block of " + palette.biomeKey() + " " + palette.lowercaseLabel() + " could be found");
         }
         this.biomeTints = biomeTints;
         this.textureByEntry = resolveEntryTextures(textures);
@@ -83,20 +79,21 @@ final class PaletteLayerPreview {
         this.entries = describeEntries(statistics.sharesByEntry());
     }
 
-    static PaletteLayerPreview load(Engine engine, String biomeKey, int layer, int depth, BlockTextures textures) {
+    static PaletteLayerPreview load(Engine engine, BiomePalette palette, int depth, BlockTextures textures) {
         if (engine == null || engine.isClosed()) {
             throw new IllegalStateException("Open a studio world to preview pack palettes");
         }
         IrisData data = engine.getData();
-        IrisBiome biome = data.getBiomeLoader().load(biomeKey);
-        if (biome == null || layer >= biome.getLayers().size()) {
-            throw new IllegalStateException("Palette layer removed during hotload: " + biomeKey + " layer " + layer);
+        IrisBiome biome = data.getBiomeLoader().load(palette.biomeKey());
+        IrisBiomePaletteLayer paletteLayer = biome == null ? null : palette.resolve(biome);
+        if (paletteLayer == null) {
+            throw new IllegalStateException("Palette removed during hotload: " + palette.biomeKey() + " " + palette.lowercaseLabel());
         }
-        RNG terrainRandom = new RNG(engine.getSeedManager().getTerrain());
+        BiomePalettePlacement placement = BiomePalettePlacement.of(engine, biome, palette, paletteLayer);
         BiomeTintField biomeTints = textures == null
                 ? null
                 : new BiomeTintField(biome, new RNG(engine.getSeedManager().getBiome()), textures.biomeColors());
-        return new PaletteLayerPreview(biomeKey, biome, layer, depth, terrainRandom, data, textures, biomeTints);
+        return new PaletteLayerPreview(palette, paletteLayer, placement, depth, data, textures, biomeTints);
     }
 
     // The world picks one block per whole coordinate, and zoomed in, many pixels fall on the same block.
@@ -114,10 +111,10 @@ final class PaletteLayerPreview {
     }
 
     private double sampleBlock(int blockX, int blockZ) {
-        if (biome.getLayerThickness(layer, blockX, blockZ, random, data) <= depth) {
+        if (placement.thickness(blockX, blockZ) <= depth) {
             return Double.NaN;
         }
-        return biome.getLayerNoise(layer, blockX, blockZ, depth, random, data);
+        return placement.noise(blockX, blockZ, depth);
     }
 
     private static int blockCacheSlot(int blockX, int blockZ) {
@@ -148,11 +145,15 @@ final class PaletteLayerPreview {
     }
 
     String biomeKey() {
-        return biomeKey;
+        return palette.biomeKey();
     }
 
-    int layer() {
-        return layer;
+    BiomePalette palette() {
+        return palette;
+    }
+
+    String simplification() {
+        return placement.simplification();
     }
 
     int depth() {
@@ -160,11 +161,11 @@ final class PaletteLayerPreview {
     }
 
     int minThickness() {
-        return paletteLayer.getMinHeight();
+        return palette.kind().isStacked() ? paletteLayer.getMinHeight() : 1;
     }
 
     int maxThickness() {
-        return paletteLayer.getMaxHeight();
+        return palette.kind().isStacked() ? paletteLayer.getMaxHeight() : 1;
     }
 
     double zoom() {

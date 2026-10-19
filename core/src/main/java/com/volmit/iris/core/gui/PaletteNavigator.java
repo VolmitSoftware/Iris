@@ -48,6 +48,7 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -71,8 +72,7 @@ final class PaletteNavigator extends JPanel {
 
     private PaletteCatalog catalog;
     private PlayerLocation location;
-    private String selectedBiome;
-    private int selectedLayer;
+    private BiomePalette selectedPalette;
     private boolean updatingSelection;
     private boolean untracked;
 
@@ -103,9 +103,8 @@ final class PaletteNavigator extends JPanel {
         refreshHere();
     }
 
-    void markSelected(String biomeKey, int layer) {
-        selectedBiome = biomeKey;
-        selectedLayer = layer;
+    void markSelected(BiomePalette palette) {
+        selectedPalette = palette;
         updatingSelection = true;
         try {
             selectInHereList();
@@ -145,7 +144,7 @@ final class PaletteNavigator extends JPanel {
         hereList.addListSelectionListener(event -> {
             HereRow row = hereList.getSelectedValue();
             if (!event.getValueIsAdjusting() && !updatingSelection && row != null && row.biomeKey() != null) {
-                chooseBiome(row.biomeKey(), Math.max(0, row.layer()));
+                choose(row.biomeKey(), row.palette());
             }
         });
         card.add(location, BorderLayout.NORTH);
@@ -180,7 +179,7 @@ final class PaletteNavigator extends JPanel {
         overviewTree.setCellRenderer(new OverviewRenderer());
         overviewTree.addTreeSelectionListener(event -> {
             if (!updatingSelection && nodeAt(event.getPath()) instanceof OverviewNode node && node.biomeKey() != null) {
-                chooseBiome(node.biomeKey(), Math.max(0, node.layer()));
+                choose(node.biomeKey(), node.palette());
             }
         });
         card.add(StudioToolbar.padded(searchField, 8, 8, 8, 8), BorderLayout.NORTH);
@@ -188,12 +187,13 @@ final class PaletteNavigator extends JPanel {
         return card;
     }
 
-    private void chooseBiome(String biomeKey, int preferredLayer) {
+    // Choosing a biome rather than one of its palettes opens its first palette.
+    private void choose(String biomeKey, BiomePalette palette) {
         BiomeEntry biome = catalog == null ? null : catalog.biome(biomeKey);
-        if (biome == null || biome.layerSummaries().isEmpty()) {
-            return;
+        BiomePalette chosen = palette != null ? palette : biome == null ? null : biome.firstPalette();
+        if (chosen != null) {
+            listener.onPaletteChosen(chosen);
         }
-        listener.onLayerChosen(biomeKey, Math.min(preferredLayer, biome.layerSummaries().size() - 1));
     }
 
     private void refreshHere() {
@@ -226,33 +226,52 @@ final class PaletteNavigator extends JPanel {
     private void showHereRows(PlayerLocation here) {
         RegionEntry region = catalog.region(here.regionKey());
         regionLabel.setText(labeled("Region", region == null ? here.regionKey() : region.name(), here.regionKey()));
-        addBiomeLayers("Surface biome here", here.surfaceBiomeKey());
+        addBiomePalettes("Surface biome here", here.surfaceBiomeKey());
         if (here.isBelowSurfaceBiome()) {
-            addBiomeLayers("Underground biome at your height", here.biomeAtPositionKey());
+            addBiomePalettes("Underground biome at your height", here.biomeAtPositionKey());
         }
         if (region == null) {
             return;
         }
-        hereRows.addElement(HereRow.header("Other biomes in this region"));
-        for (String otherKey : region.allBiomeKeys()) {
-            BiomeEntry other = catalog.biome(otherKey);
-            boolean shownAbove = otherKey.equals(here.surfaceBiomeKey()) || otherKey.equals(here.biomeAtPositionKey());
-            if (!shownAbove && other != null) {
-                hereRows.addElement(new HereRow(biomeText(other), otherKey, -1, false));
-            }
+        hereRows.addElement(HereRow.header("Biomes in this region"));
+        for (String biomeKey : region.allBiomeKeys()) {
+            addRegionBiome(biomeKey, 0, new HashSet<>(), here);
         }
     }
 
-    private void addBiomeLayers(String title, String biomeKey) {
+    private void addBiomePalettes(String title, String biomeKey) {
         BiomeEntry biome = catalog.biome(biomeKey);
         if (biome == null) {
             return;
         }
         hereRows.addElement(HereRow.header(title));
-        hereRows.addElement(new HereRow(biomeText(biome), biomeKey, -1, false));
-        for (int layer = 0; layer < biome.layerSummaries().size(); layer++) {
-            hereRows.addElement(new HereRow(layerText(layer, biome), biomeKey, layer, false));
+        hereRows.addElement(HereRow.biome(biomeText(biome, childOfText(biome)), biomeKey, 0));
+        for (PaletteCatalog.PaletteSummary summary : biome.palettes()) {
+            hereRows.addElement(HereRow.palette(summary.text(), summary.palette()));
         }
+    }
+
+    // Children sit under the biome they grow inside of, so a child biome is found where it actually appears.
+    private void addRegionBiome(String biomeKey, int nesting, Set<String> ancestors, PlayerLocation here) {
+        BiomeEntry biome = catalog.biome(biomeKey);
+        if (biome == null || !ancestors.add(biomeKey)) {
+            return;
+        }
+        boolean standingHere = biomeKey.equals(here.surfaceBiomeKey()) || biomeKey.equals(here.biomeAtPositionKey());
+        hereRows.addElement(HereRow.biome(biomeText(biome, standingHere ? "you are here" : null), biomeKey, nesting));
+        for (String childKey : biome.childKeys()) {
+            addRegionBiome(childKey, nesting + 1, new HashSet<>(ancestors), here);
+        }
+    }
+
+    private String childOfText(BiomeEntry biome) {
+        if (biome.parentKeys().isEmpty()) {
+            return null;
+        }
+        List<String> parentNames = biome.parentKeys().stream()
+                .map(key -> catalog.biome(key) == null ? key : catalog.biome(key).name())
+                .toList();
+        return "child of " + String.join(", ", parentNames);
     }
 
     private void rebuildOverview() {
@@ -263,14 +282,14 @@ final class PaletteNavigator extends JPanel {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode();
         for (RegionEntry region : catalog.regions()) {
             boolean regionMatches = !filter.isEmpty() && region.name().toLowerCase(Locale.ROOT).contains(filter);
-            DefaultMutableTreeNode regionNode = new DefaultMutableTreeNode(new OverviewNode(region.name(), region.key(), null, -1));
+            DefaultMutableTreeNode regionNode = new DefaultMutableTreeNode(new OverviewNode(region.name(), region.key(), null, null));
             for (BiomeGroup group : region.groups()) {
                 DefaultMutableTreeNode groupNode = new DefaultMutableTreeNode();
                 for (String biomeKey : group.biomeKeys()) {
                     addBiomeNode(groupNode, biomeKey, regionMatches ? "" : filter, new HashSet<>());
                 }
                 if (groupNode.getChildCount() > 0) {
-                    groupNode.setUserObject(new OverviewNode(group.label(), groupNode.getChildCount() + " biomes", null, -1));
+                    groupNode.setUserObject(new OverviewNode(group.label(), groupNode.getChildCount() + " biomes", null, null));
                     regionNode.add(groupNode);
                 }
             }
@@ -283,7 +302,7 @@ final class PaletteNavigator extends JPanel {
             addBiomeNode(outside, biomeKey, filter, new HashSet<>());
         }
         if (outside.getChildCount() > 0) {
-            outside.setUserObject(new OverviewNode("Not in any region", outside.getChildCount() + " biomes", null, -1));
+            outside.setUserObject(new OverviewNode("Not in any region", outside.getChildCount() + " biomes", null, null));
             root.add(outside);
         }
         updatingSelection = true;
@@ -303,14 +322,14 @@ final class PaletteNavigator extends JPanel {
         if (biome == null || !ancestors.add(biomeKey)) {
             return;
         }
-        DefaultMutableTreeNode biomeNode = new DefaultMutableTreeNode(new OverviewNode(biome.name(), biomeKey, biomeKey, -1));
-        for (int layer = 0; layer < biome.layerSummaries().size(); layer++) {
-            biomeNode.add(new DefaultMutableTreeNode(new OverviewNode(layerText(layer, biome), null, biomeKey, layer)));
+        DefaultMutableTreeNode biomeNode = new DefaultMutableTreeNode(new OverviewNode(biome.name(), biomeKey, biomeKey, null));
+        for (PaletteCatalog.PaletteSummary summary : biome.palettes()) {
+            biomeNode.add(new DefaultMutableTreeNode(new OverviewNode(summary.text(), null, biomeKey, summary.palette())));
         }
         for (String childKey : biome.childKeys()) {
             addBiomeNode(biomeNode, childKey, filter, new HashSet<>(ancestors));
         }
-        boolean hasMatchingChild = biomeNode.getChildCount() > biome.layerSummaries().size();
+        boolean hasMatchingChild = biomeNode.getChildCount() > biome.palettes().size();
         if (filter.isEmpty() || biome.matches(filter) || hasMatchingChild) {
             parent.add(biomeNode);
         }
@@ -346,9 +365,8 @@ final class PaletteNavigator extends JPanel {
         while (nodes.hasMoreElements()) {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes.nextElement();
             if (node.getUserObject() instanceof OverviewNode overview
-                    && overview.layer() == selectedLayer
-                    && overview.biomeKey() != null
-                    && overview.biomeKey().equals(selectedBiome)) {
+                    && overview.palette() != null
+                    && overview.palette().equals(selectedPalette)) {
                 return node;
             }
         }
@@ -358,7 +376,7 @@ final class PaletteNavigator extends JPanel {
     private void selectInHereList() {
         for (int index = 0; index < hereRows.size(); index++) {
             HereRow row = hereRows.get(index);
-            if (row.layer() == selectedLayer && row.biomeKey() != null && row.biomeKey().equals(selectedBiome)) {
+            if (row.palette() != null && row.palette().equals(selectedPalette)) {
                 hereList.setSelectedIndex(index);
                 return;
             }
@@ -370,12 +388,10 @@ final class PaletteNavigator extends JPanel {
         return path == null ? null : ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
     }
 
-    private static String layerText(int layer, BiomeEntry biome) {
-        return "Layer " + layer + " · " + biome.layerSummaries().get(layer);
-    }
-
-    private static String biomeText(BiomeEntry biome) {
-        return "<html>" + escape(biome.name()) + " <font color='" + DETAIL_COLOR + "'>" + escape(biome.key()) + "</font></html>";
+    private static String biomeText(BiomeEntry biome, String note) {
+        String noteText = note == null ? "" : " · " + escape(note);
+        return "<html>" + escape(biome.name()) + noteText + " <font color='" + DETAIL_COLOR + "'>" + escape(biome.key())
+                + "</font></html>";
     }
 
     private static String labeled(String title, String name, String key) {
@@ -388,16 +404,27 @@ final class PaletteNavigator extends JPanel {
     }
 
     interface Listener {
-        void onLayerChosen(String biomeKey, int layer);
+        void onPaletteChosen(BiomePalette palette);
     }
 
-    private record HereRow(String text, String biomeKey, int layer, boolean header) {
+    /**
+     * @param nesting how many parent biomes deep a child biome sits
+     */
+    private record HereRow(String text, String biomeKey, BiomePalette palette, int nesting, boolean header) {
         private static HereRow header(String text) {
-            return new HereRow(text, null, -1, true);
+            return new HereRow(text, null, null, 0, true);
+        }
+
+        private static HereRow biome(String text, String biomeKey, int nesting) {
+            return new HereRow(text, biomeKey, null, nesting, false);
+        }
+
+        private static HereRow palette(String text, BiomePalette palette) {
+            return new HereRow(text, palette.biomeKey(), palette, 0, false);
         }
     }
 
-    private record OverviewNode(String label, String detail, String biomeKey, int layer) {
+    private record OverviewNode(String label, String detail, String biomeKey, BiomePalette palette) {
         private String html() {
             if (detail == null) {
                 return escape(label);
@@ -410,7 +437,8 @@ final class PaletteNavigator extends JPanel {
         private static final long serialVersionUID = 2785341117408251320L;
         private static final int HEADER_INDENT = 11;
         private static final int BIOME_INDENT = 20;
-        private static final int LAYER_INDENT = 34;
+        private static final int PALETTE_INDENT = 34;
+        private static final int CHILD_INDENT = 16;
 
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
@@ -422,7 +450,9 @@ final class PaletteNavigator extends JPanel {
             if (row.header()) {
                 setForeground(StudioTheme.MUTED_TEXT);
             }
-            int indent = row.header() ? HEADER_INDENT : row.layer() >= 0 ? LAYER_INDENT : BIOME_INDENT;
+            int indent = row.header() ? HEADER_INDENT
+                    : row.palette() != null ? PALETTE_INDENT
+                    : BIOME_INDENT + row.nesting() * CHILD_INDENT;
             setBorder(StudioTheme.emptyBorder(row.header() ? 11 : 4, indent, 4, 10));
             return this;
         }

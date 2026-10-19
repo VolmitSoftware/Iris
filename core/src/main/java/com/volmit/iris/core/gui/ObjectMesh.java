@@ -55,15 +55,15 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, List<Quad>
         List<Quad> solid = new ArrayList<>();
         List<Quad> translucent = new ArrayList<>();
         List<Quad> topsUnderBlockAbove = new ArrayList<>();
-        for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
-            BlockVector position = entry.getKey();
-            BlockData block = entry.getValue();
-            BlockModel model = modelOf.apply(block);
-            boolean seeThrough = isSeeThrough.test(block);
-            for (Face face : model.faces()) {
-                Quad quad = new Quad(face, position.getBlockX(), position.getBlockY(), position.getBlockZ(),
-                        seeThrough ? SEE_THROUGH_OPACITY : FULL_OPACITY);
-                if (!isHiddenByNeighbour(blocks, modelOf, isSeeThrough, position, block, model, face)) {
+        BlockGrid grid = new BlockGrid(blocks, modelOf, bounds, isSeeThrough);
+        for (BlockVector position : blocks.keySet()) {
+            int x = position.getBlockX();
+            int y = position.getBlockY();
+            int z = position.getBlockZ();
+            int cell = grid.cellAt(x, y, z);
+            for (Face face : grid.modelIn(cell).faces()) {
+                Quad quad = new Quad(face, x, y, z, grid.isSeeThroughIn(cell) ? SEE_THROUGH_OPACITY : FULL_OPACITY);
+                if (!grid.isHiddenByNeighbour(x, y, z, face)) {
                     (quad.isBlended() ? translucent : solid).add(quad);
                 } else if (face.cullFace() == CubeFace.UP) {
                     topsUnderBlockAbove.add(quad);
@@ -111,27 +111,68 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, List<Quad>
         return solidQuads.size() + translucentQuads.size();
     }
 
-    // Glass next to glass and water next to water hide the side between them too, as they do in the game. A see-through
-    // block only hides sides of other see-through blocks, so whatever it covers shows through it.
-    private static boolean isHiddenByNeighbour(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf,
-                                               Predicate<BlockData> isSeeThrough, BlockVector position, BlockData block,
-                                               BlockModel model, Face face) {
-        CubeFace side = face.cullFace();
-        if (side == null) {
-            return false;
+    /**
+     * The object's blocks laid out in an array over its bounds, so finding a block's neighbours is quick. Looking them
+     * up by {@link BlockVector} in a map is slow, since its hash codes collide a lot.
+     */
+    private static final class BlockGrid {
+        private final Bounds bounds;
+        private final BlockData[] blocks;
+        private final BlockModel[] models;
+        private final boolean[] seeThrough;
+
+        BlockGrid(Map<BlockVector, BlockData> placed, Function<BlockData, BlockModel> modelOf, Bounds bounds,
+                  Predicate<BlockData> isSeeThrough) {
+            this.bounds = bounds;
+            int cells = bounds.sizeX() * bounds.sizeY() * bounds.sizeZ();
+            this.blocks = new BlockData[cells];
+            this.models = new BlockModel[cells];
+            this.seeThrough = new boolean[cells];
+            placed.forEach((position, block) -> {
+                int cell = cellAt(position.getBlockX(), position.getBlockY(), position.getBlockZ());
+                blocks[cell] = block;
+                models[cell] = modelOf.apply(block);
+                seeThrough[cell] = isSeeThrough.test(block);
+            });
         }
-        BlockData neighbour = blocks.get(new BlockVector(
-                position.getBlockX() + side.stepX(),
-                position.getBlockY() + side.stepY(),
-                position.getBlockZ() + side.stepZ()));
-        if (neighbour == null || (isSeeThrough.test(neighbour) && !isSeeThrough.test(block))) {
-            return false;
+
+        int cellAt(int x, int y, int z) {
+            return ((y - bounds.minY()) * bounds.sizeZ() + (z - bounds.minZ())) * bounds.sizeX() + (x - bounds.minX());
         }
-        BlockModel neighbourModel = modelOf.apply(neighbour);
-        if (neighbourModel.coveredSides().contains(side.opposite())) {
-            return true;
+
+        BlockModel modelIn(int cell) {
+            return models[cell];
         }
-        return neighbour.getMaterial() == block.getMaterial() && model.hidesSameBlockSides() && neighbourModel.hidesSameBlockSides();
+
+        boolean isSeeThroughIn(int cell) {
+            return seeThrough[cell];
+        }
+
+        // Glass next to glass and water next to water hide the side between them too, as they do in the game. A
+        // see-through block only hides sides of other see-through blocks, so whatever it covers shows through it.
+        boolean isHiddenByNeighbour(int x, int y, int z, Face face) {
+            CubeFace side = face.cullFace();
+            if (side == null || !contains(x + side.stepX(), y + side.stepY(), z + side.stepZ())) {
+                return false;
+            }
+            int cell = cellAt(x, y, z);
+            int neighbourCell = cellAt(x + side.stepX(), y + side.stepY(), z + side.stepZ());
+            BlockData neighbour = blocks[neighbourCell];
+            if (neighbour == null || (seeThrough[neighbourCell] && !seeThrough[cell])) {
+                return false;
+            }
+            BlockModel neighbourModel = models[neighbourCell];
+            if (neighbourModel.coveredSides().contains(side.opposite())) {
+                return true;
+            }
+            return neighbour.getMaterial() == blocks[cell].getMaterial() && models[cell].hidesSameBlockSides()
+                    && neighbourModel.hidesSameBlockSides();
+        }
+
+        private boolean contains(int x, int y, int z) {
+            return x >= bounds.minX() && x < bounds.maxX() && y >= bounds.minY() && y < bounds.maxY()
+                    && z >= bounds.minZ() && z < bounds.maxZ();
+        }
     }
 
     /**

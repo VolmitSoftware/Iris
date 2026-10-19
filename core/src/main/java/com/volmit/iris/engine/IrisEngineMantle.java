@@ -24,6 +24,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
 import com.volmit.iris.engine.mantle.components.MantleCarvingComponent;
+import com.volmit.iris.engine.mantle.components.MantleNoiseCarvingComponent;
 import com.volmit.iris.engine.mantle.components.MantleFluidBodyComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
@@ -58,6 +59,7 @@ public class IrisEngineMantle implements EngineMantle {
         this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
         components = new KMap<>();
         registerComponent(new MantleCarvingComponent(this));
+        registerComponent(new MantleNoiseCarvingComponent(this));
         registerComponent(new MantleFluidBodyComponent(this));
         jigsaw = new MantleJigsawComponent(this);
         registerComponent(jigsaw);

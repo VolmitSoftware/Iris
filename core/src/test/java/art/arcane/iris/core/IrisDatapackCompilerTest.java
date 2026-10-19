@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -311,6 +312,113 @@ public class IrisDatapackCompilerTest {
         );
 
         assertTrue(Files.isRegularFile(datapackRoot.resolve("data/iris/dimension/moon.json")));
+    }
+
+    @Test
+    public void aPackThatCannotLoadAndNoWorldUsesIsLeftOut() throws Exception {
+        Path dataDirectory = temporaryFolder.newFolder("unused-refused-data").toPath();
+        Path serverRoot = temporaryFolder.newFolder("unused-refused-server").toPath();
+        createPack(dataDirectory.resolve("packs/healthy"), "healthy", "healthy_custom");
+        createRefusedPack(dataDirectory.resolve("packs/refused"), "refused");
+        Path datapackRoot = temporaryFolder.newFolder("unused-refused-datapack").toPath();
+
+        IrisDatapackCompiler.CompilationResult result = IrisDatapackCompiler.compile(
+                IrisDatapackCompiler.collectPackRoots(dataDirectory, serverRoot),
+                new KList<File>().qadd(datapackRoot.toFile()),
+                List.of(binding("main", "healthy")),
+                new DataFixerV1217(),
+                false
+        );
+
+        assertEquals(1, result.packCount());
+        assertTrue(Files.isRegularFile(datapackRoot.resolve("data/iris/dimension_type/healthy.json")));
+        assertFalse(Files.exists(datapackRoot.resolve("data/iris/dimension_type/refused.json")));
+    }
+
+    @Test
+    public void aPackThatCannotLoadAddsNoRegistryRequirements() throws Exception {
+        Path healthyPack = temporaryFolder.newFolder("registry-healthy-pack").toPath();
+        Path refusedPack = temporaryFolder.newFolder("registry-refused-pack").toPath();
+        createPack(healthyPack, "healthy", "healthy_custom");
+        createRefusedPack(refusedPack, "refused");
+        DataFixerV1217 fixer = new DataFixerV1217();
+
+        Map<String, String> healthyOnly = IrisDatapackCompiler.computeRegistryRequirements(
+                List.of(healthyPack.toFile()),
+                fixer);
+        Map<String, String> withRefused = IrisDatapackCompiler.computeRegistryRequirements(
+                List.of(healthyPack.toFile(), refusedPack.toFile()),
+                fixer);
+
+        assertEquals(healthyOnly, withRefused);
+    }
+
+    @Test
+    public void onlyPacksThatCannotLoadStillGiveACompleteDatapack() throws Exception {
+        Path packRoot = temporaryFolder.newFolder("only-refused-pack").toPath();
+        createRefusedPack(packRoot, "refused");
+        Path datapackRoot = temporaryFolder.newFolder("only-refused-datapack").toPath();
+
+        IrisDatapackCompiler.CompilationResult result = IrisDatapackCompiler.compile(
+                List.of(packRoot.toFile()),
+                new KList<File>().qadd(datapackRoot.toFile()),
+                List.of(),
+                new DataFixerV1217(),
+                false
+        );
+
+        assertEquals(0, result.dimensionCount());
+        assertTrue(Files.isDirectory(datapackRoot.resolve("data/iris/dimension_type")));
+    }
+
+    @Test
+    public void aPackThatCannotLoadStopsTheCompileWhenAConfiguredWorldSelectsIt() throws Exception {
+        Path packRoot = temporaryFolder.newFolder("selected-refused-pack").toPath();
+        createRefusedPack(packRoot, "refused");
+        Path datapackRoot = temporaryFolder.newFolder("selected-refused-datapack").toPath();
+
+        IOException failure = assertThrows(IOException.class, () -> IrisDatapackCompiler.compile(
+                List.of(packRoot.toFile()),
+                new KList<File>().qadd(datapackRoot.toFile()),
+                List.of(binding("moon", "refused")),
+                new DataFixerV1217(),
+                false
+        ));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("cannot load"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("world_iris_moon"));
+    }
+
+    @Test
+    public void aWorldsOwnPackThatCannotLoadStopsTheCompileEvenWhenNoWorldIsConfigured() throws Exception {
+        Path dataDirectory = temporaryFolder.newFolder("world-refused-data").toPath();
+        Path serverRoot = temporaryFolder.newFolder("world-refused-server").toPath();
+        createRefusedPack(serverRoot.resolve("dimensions/iris/old_world/iris/pack"), "overworld");
+        Path datapackRoot = temporaryFolder.newFolder("world-refused-datapack").toPath();
+
+        IOException failure = assertThrows(IOException.class, () -> IrisDatapackCompiler.compile(
+                IrisDatapackCompiler.collectPackRoots(dataDirectory, serverRoot),
+                new KList<File>().qadd(datapackRoot.toFile()),
+                List.of(),
+                new DataFixerV1217(),
+                false
+        ));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("iris:old_world"));
+    }
+
+    @Test
+    public void aPackInAWorldsFolderBelongsToThatWorld() {
+        assertEquals(Optional.of(new WorldSlotKey("iris", "old_world")),
+                PackUse.worldOwning(Path.of("/server/world/dimensions/iris/old_world/iris/pack")));
+        assertEquals(Optional.empty(), PackUse.worldOwning(Path.of("/server/plugins/Iris/packs/overworld")));
+    }
+
+    /** A pack whose modules cannot load: its {@code modules} folder holds a file that is no jar. */
+    private static void createRefusedPack(Path root, String dimensionKey) throws Exception {
+        createPack(root, dimensionKey, dimensionKey + "_custom");
+        Files.createDirectories(root.resolve("modules"));
+        Files.writeString(root.resolve("modules/broken.jar"), "not a jar", StandardCharsets.UTF_8);
     }
 
     private static void createPack(Path root, String dimensionKey, String biomeId) throws Exception {

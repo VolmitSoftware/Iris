@@ -560,7 +560,7 @@ public class DefaultPackBootstrapProvisionerTest {
             byte[] metadata = Files.readAllBytes(first.datapackRoot().resolve("pack.mcmeta"));
             byte[] originalOverworld = Files.readAllBytes(dataDirectory.resolve("packs/overworld/biomes/local.json"));
             byte[] originalUnderworld = Files.readAllBytes(dataDirectory.resolve("packs/underworld/biomes/local.json"));
-            Path invalidPack = dataDirectory.resolve("packs/invalid");
+            Path invalidPack = root.resolve("dimensions/iris/broken_world/iris/pack");
             Files.createDirectories(invalidPack.resolve("dimensions"));
             Files.writeString(invalidPack.resolve("dimensions/broken.json"), "{", StandardCharsets.UTF_8);
             updateServer = server(

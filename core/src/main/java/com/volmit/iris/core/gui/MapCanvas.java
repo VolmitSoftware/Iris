@@ -88,6 +88,8 @@ final class MapCanvas extends JPanel {
     private IrisRenderer renderer;
     private VisionOverlay overlay;
     private VisionRenderController.Frame renderFrame;
+    private BufferedImage tileLayer;
+    private boolean tileLayerStale = true;
     private RenderType currentType = RenderType.BIOME;
     private String viewLabel = MapView.BIOMES.label();
     private List<GuiMarker> players = List.of();
@@ -455,7 +457,32 @@ final class MapCanvas extends JPanel {
         }
     }
 
+    // The display server gets one finished picture per paint: handing it every tile separately made the map lag.
     private void renderTiles(Graphics2D canvas) {
+        canvas.drawImage(currentTileLayer(), 0, 0, null);
+    }
+
+    private BufferedImage currentTileLayer() {
+        int width = Math.max(1, getWidth());
+        int height = Math.max(1, getHeight());
+        if (tileLayer == null || tileLayer.getWidth() != width || tileLayer.getHeight() != height) {
+            tileLayer = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            tileLayer.setAccelerationPriority(0F);
+            tileLayerStale = true;
+        }
+        if (tileLayerStale) {
+            Graphics2D layer = tileLayer.createGraphics();
+            try {
+                composeTiles(layer);
+            } finally {
+                layer.dispose();
+            }
+            tileLayerStale = false;
+        }
+        return tileLayer;
+    }
+
+    private void composeTiles(Graphics2D canvas) {
         VisionRenderController.Frame frame = renderFrame;
         canvas.setColor(StudioTheme.EDITOR_BACKGROUND);
         canvas.fillRect(0, 0, getWidth(), getHeight());
@@ -746,11 +773,13 @@ final class MapCanvas extends JPanel {
     }
 
     private void onTilesChanged() {
+        tileLayerStale = true;
         repaint();
         refreshStatus();
     }
 
     private void requestRender() {
+        tileLayerStale = true;
         if (closed || !active || getWidth() < 1 || getHeight() < 1 || !ensureEngine()) {
             repaint();
             return;

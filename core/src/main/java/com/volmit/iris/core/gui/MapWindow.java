@@ -61,7 +61,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private static final int SIDEBAR_MINIMUM_WIDTH = 200;
     private static final int CONTENT_MINIMUM_WIDTH = 320;
     private static final double PALETTE_RECENTER_DISTANCE_BLOCKS = 1D;
-    private static final double VIEW_LIST_SHARE_WITH_EXPLORER = 0.34D;
+    private static final int VIEW_LIST_SCROLL_INSETS = 4;
     private static final int EXPLORER_DIVIDER_HEIGHT = 7;
 
     private final JFrame frame;
@@ -296,7 +296,7 @@ public final class MapWindow implements MapCanvas.Listener {
         explorerSplit.setTopComponent(viewListScroll);
         explorerSplit.setBottomComponent(explorerSidebar);
         if (firstUse) {
-            EventQueue.invokeLater(() -> explorerSplit.setDividerLocation(viewListHeightAboveExplorer()));
+            EventQueue.invokeLater(this::fitViewListAboveExplorer);
         }
         return explorerSplit;
     }
@@ -309,14 +309,12 @@ public final class MapWindow implements MapCanvas.Listener {
         explorerSplit.putClientProperty("FlatLaf.style", "style: grip");
     }
 
-    // The explorer needs the room more than the view list, which scrolls once it is squeezed. Measured once the sidebar
-    // is laid out, since the list's rows are taller before they know their width.
-    private int viewListHeightAboveExplorer() {
-        int fullHeight = viewList.getPreferredSize().height + 4;
-        if (sidebar.getHeight() < 1) {
-            return fullHeight;
-        }
-        return Math.min(fullHeight, (int) (sidebar.getHeight() * VIEW_LIST_SHARE_WITH_EXPLORER));
+    // Every view stays in sight, so the divider starts below the last one and can only be dragged further down. Measured
+    // once the sidebar is laid out, since the list's rows are taller before they know their width.
+    private void fitViewListAboveExplorer() {
+        int fullHeight = viewList.getPreferredSize().height + VIEW_LIST_SCROLL_INSETS;
+        viewListScroll.setMinimumSize(new Dimension(0, fullHeight));
+        explorerSplit.setDividerLocation(fullHeight);
     }
 
     private void createNoiseExplorer() {

@@ -27,6 +27,7 @@ import art.arcane.iris.builtin.placement.PlaneNoise;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
@@ -59,6 +60,11 @@ public final class VacuumModule implements IrisModule {
                 .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
                 .reach(IrisObjectVacuum.MAX_RADIUS_BLOCKS)
                 .run(VacuumModule::bendTerrain);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(VacuumSettings.class);
     }
 
     private static void bendTerrain(PlacementStageContext context) {

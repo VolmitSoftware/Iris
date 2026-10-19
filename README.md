@@ -89,10 +89,11 @@ with a random of its own; they used to spread over threads on a multicore pregen
 
 Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition
 or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
-`.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). A module compiled into Iris registers each with
-`registry.registerHeldType(...)` so studio describes it from the module's own annotations; only such a module may, so the classes
-Iris's `IrisObjectPlacement` holds are described by the host module `iris:placement-settings` (the placement stages ship in the
-built-ins jar). Packs write the same JSON as before. Behaviour
+`.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). A module registers each with
+`registry.registerHeldType(...)` so studio describes it from the module's own annotations. A module in the built-ins jar may
+too, because the classes are in the exposed package: the placement stages register what Iris's `IrisObjectPlacement` holds
+(`iris:prepare` its slope clip and rotation clamp, `iris:validate` its limit, `iris:stilt`, `iris:vacuum`, `iris:blocks` its
+replace). Packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
 worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
 

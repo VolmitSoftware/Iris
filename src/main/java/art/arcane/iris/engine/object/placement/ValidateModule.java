@@ -28,6 +28,8 @@ import art.arcane.iris.builtin.placement.PlacementSettings;
 import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.StructureVolumes;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.builtin.validate.ObjectLimit;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
@@ -70,6 +72,11 @@ public final class ValidateModule implements IrisModule {
         graph.define(IrisStages.Validate.COLLISIONS)
                 .requires(IrisStages.Validate.STRUCTURES, IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkCollisions);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(ObjectLimit.class);
     }
 
     private static void checkSurface(PlacementStageContext context) {

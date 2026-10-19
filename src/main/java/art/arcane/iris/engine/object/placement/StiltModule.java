@@ -26,6 +26,7 @@ import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.stilt.StiltLayers;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.block.BlockState;
@@ -78,6 +79,11 @@ public final class StiltModule implements IrisModule {
         graph.define(IrisStages.Stilt.FILL)
                 .requires(IrisStages.Stilt.LAYERS, IrisStages.Anchor.FINAL, IrisStages.Blocks.COMPLETE)
                 .run(StiltModule::fill);
+    }
+
+    @Override
+    public void register(FeatureRegistry registry) {
+        registry.registerHeldType(StiltSettings.class);
     }
 
     private static void collectLayer(BlockStageContext context, StiltLayers layers) {

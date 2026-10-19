@@ -43,7 +43,7 @@ final class BlockTextures {
 
     private final ZipFile clientJar;
     private final MinecraftBiomeColors biomeColors;
-    private final Map<String, Optional<BlockTexture>> topTextures = new ConcurrentHashMap<>();
+    private final Map<String, Optional<ResolvedTexture>> resolvedTextures = new ConcurrentHashMap<>();
 
     private BlockTextures(ZipFile clientJar, MinecraftBiomeColors biomeColors) {
         this.clientJar = clientJar;
@@ -71,12 +71,27 @@ final class BlockTextures {
         return biomeColors;
     }
 
+    /**
+     * What the block looks like from above. Plants and other side-on sprites become their average colour, because
+     * their sprite would read as stripes across a stack of ground blocks.
+     */
     Optional<BlockTexture> topTexture(BlockData block) {
-        // Blockstate files match on every property, so defaults the pack left out have to be spelled out too.
-        return topTextures.computeIfAbsent(block.getAsString(false), this::resolveTopTexture);
+        return resolve(block).map(resolved -> resolved.isSideOnSprite() ? resolved.texture().flattened() : resolved.texture());
     }
 
-    private Optional<BlockTexture> resolveTopTexture(String blockState) {
+    /**
+     * Like {@link #topTexture}, but plants keep their sprite, so single decorations on the ground stay recognisable.
+     */
+    Optional<BlockTexture> iconTexture(BlockData block) {
+        return resolve(block).map(ResolvedTexture::texture);
+    }
+
+    // Blockstate files match on every property, so defaults the pack left out have to be spelled out too.
+    private Optional<ResolvedTexture> resolve(BlockData block) {
+        return resolvedTextures.computeIfAbsent(block.getAsString(false), this::resolveTopTexture);
+    }
+
+    private Optional<ResolvedTexture> resolveTopTexture(String blockState) {
         try {
             BlockStateId state = BlockStateId.parse(blockState);
             JsonObject definition = readJson(assetPath(state.namespace() + ":" + state.name(), "blockstates", ".json"));
@@ -97,7 +112,7 @@ final class BlockTextures {
                     MinecraftBlockTints.fixedTint(state.name(), state.properties(), face.tintIndex()),
                     MinecraftBlockTints.biomeTint(state.name(), face.tintIndex()).orElse(null)
             );
-            return Optional.of(face.isSideOnSprite() ? texture.flattened() : texture);
+            return Optional.of(new ResolvedTexture(texture, face.isSideOnSprite()));
         } catch (IOException | RuntimeException error) {
             return Optional.empty();
         }
@@ -282,6 +297,9 @@ final class BlockTextures {
 
     // Plants and other blocks without a top face only have a side-on sprite, which would read as stripes from above.
     private record ModelFace(String texture, int tintIndex, boolean isSideOnSprite) {
+    }
+
+    private record ResolvedTexture(BlockTexture texture, boolean isSideOnSprite) {
     }
 
     private record BlockStateId(String namespace, String name, Map<String, String> properties) {

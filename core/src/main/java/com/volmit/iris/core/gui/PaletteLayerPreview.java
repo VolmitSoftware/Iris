@@ -31,6 +31,7 @@ import org.bukkit.block.data.BlockData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 final class PaletteLayerPreview {
     static final int HISTOGRAM_BINS = 50;
@@ -206,9 +207,13 @@ final class PaletteLayerPreview {
         }
         for (int entry = 0; entry < blocks.size(); entry++) {
             BlockData block = blocks.get(entry).getBlockData(data);
-            resolved[entry] = block == null ? null : textures.topTexture(block).orElse(null);
+            resolved[entry] = block == null ? null : textureOf(block, textures).orElse(null);
         }
         return resolved;
+    }
+
+    private Optional<BlockTexture> textureOf(BlockData block, BlockTextures textures) {
+        return palette.kind() == BiomePalette.Kind.DECORATOR ? textures.iconTexture(block) : textures.topTexture(block);
     }
 
     // The legend shows tinted blocks as they look at the world origin, where the statistics are sampled too.

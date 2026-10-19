@@ -35,25 +35,32 @@ import java.util.Locale;
 record BiomePalette(String biomeKey, Kind kind, int index) {
     private static final String ID_PREFIX = "palette:";
     private static final char ID_SEPARATOR = '#';
+    private static final String SNIPPET_PREFIX = "snippet/";
 
     enum Kind {
-        LAYER("Layer", "layers", true, true),
-        SEA_LAYER("Sea layer", "seaLayers", true, true),
-        CAVE_CEILING_LAYER("Cave ceiling layer", "caveCeilingLayers", true, true),
-        WALL("Wall", "wall", false, false),
-        SLAB("Slab", "slab", false, false),
-        DECORATOR("Decorator", "decorators", false, true);
+        LAYER("Layer", "layers", SnippetFolder.BLOCK_PALETTES, true, true),
+        SEA_LAYER("Sea layer", "seaLayers", SnippetFolder.BLOCK_PALETTES, true, true),
+        CAVE_CEILING_LAYER("Cave ceiling layer", "caveCeilingLayers", SnippetFolder.BLOCK_PALETTES, true, true),
+        WALL("Wall", "wall", SnippetFolder.BLOCK_PALETTES, false, false),
+        SLAB("Slab", "slab", SnippetFolder.BLOCK_PALETTES, false, false),
+        DECORATOR("Decorator", "decorators", SnippetFolder.DECORATORS, false, true);
 
         private final String label;
         private final String jsonKey;
+        private final SnippetFolder snippetFolder;
         private final boolean stacked;
         private final boolean numbered;
 
-        Kind(String label, String jsonKey, boolean stacked, boolean numbered) {
+        Kind(String label, String jsonKey, SnippetFolder snippetFolder, boolean stacked, boolean numbered) {
             this.label = label;
             this.jsonKey = jsonKey;
+            this.snippetFolder = snippetFolder;
             this.stacked = stacked;
             this.numbered = numbered;
+        }
+
+        SnippetFolder snippetFolder() {
+            return snippetFolder;
         }
 
         /**
@@ -90,6 +97,38 @@ record BiomePalette(String biomeKey, Kind kind, int index) {
             return biome.getDecorators().stream()
                     .map(decorator -> decorator == null ? new KList<IrisBlockData>() : decorator.getPalette())
                     .toList();
+        }
+    }
+
+    /**
+     * The folders under snippet/ that palettes can come from, named after the Iris type they hold.
+     */
+    enum SnippetFolder {
+        BLOCK_PALETTES("biome-palette", "Block palettes"),
+        DECORATORS("decorator", "Decorators");
+
+        private final String folder;
+        private final String label;
+
+        SnippetFolder(String folder, String label) {
+            this.folder = folder;
+            this.label = label;
+        }
+
+        String folder() {
+            return folder;
+        }
+
+        String label() {
+            return label;
+        }
+
+        /**
+         * The snippet's path inside this folder. Packs may leave the folder out, the way the snippet loader allows.
+         */
+        String pathOf(String reference) {
+            String path = reference.startsWith(SNIPPET_PREFIX) ? reference.substring(SNIPPET_PREFIX.length()) : reference;
+            return path.startsWith(folder + "/") ? path.substring(folder.length() + 1) : path;
         }
     }
 

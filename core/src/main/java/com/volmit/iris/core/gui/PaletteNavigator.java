@@ -154,7 +154,7 @@ final class PaletteNavigator extends JPanel {
 
     private JPanel buildOverviewCard() {
         JPanel card = new JPanel(new BorderLayout());
-        StudioToolbar.makeSearchField(searchField, "Search biomes or blocks...");
+        StudioToolbar.makeSearchField(searchField, "Search biomes, snippets or blocks...");
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent event) {
@@ -310,6 +310,7 @@ final class PaletteNavigator extends JPanel {
             outside.setUserObject(new OverviewNode("Not in any region", outside.getChildCount() + " biomes", null, null));
             root.add(outside);
         }
+        addSnippetNodes(root, filter);
         updatingSelection = true;
         try {
             treeModel.setRoot(root);
@@ -340,6 +341,38 @@ final class PaletteNavigator extends JPanel {
         }
     }
 
+    // Snippets sit below the regions, so a palette picked elsewhere is still found in its biome first.
+    private void addSnippetNodes(DefaultMutableTreeNode root, String filter) {
+        for (BiomePalette.SnippetFolder folder : BiomePalette.SnippetFolder.values()) {
+            DefaultMutableTreeNode folderNode = new DefaultMutableTreeNode();
+            catalog.snippets().stream()
+                    .filter(snippet -> snippet.folder() == folder && (filter.isEmpty() || snippet.matches(filter)))
+                    .forEach(snippet -> folderNode.add(snippetNode(snippet)));
+            if (folderNode.getChildCount() > 0) {
+                folderNode.setUserObject(new OverviewNode(folder.label() + " snippets", folderNode.getChildCount() + " files", null, null));
+                root.add(folderNode);
+            }
+        }
+    }
+
+    // Picking a snippet opens it where the first biome using it places it; its children open the other uses.
+    private DefaultMutableTreeNode snippetNode(PaletteCatalog.SnippetEntry snippet) {
+        if (snippet.uses().isEmpty()) {
+            return new DefaultMutableTreeNode(new OverviewNode(snippet.path(), "not used by any biome", null, null));
+        }
+        BiomePalette firstUse = snippet.uses().get(0);
+        String usedBy = snippet.uses().size() == 1 ? "used once" : "used " + snippet.uses().size() + " times";
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode(new OverviewNode(snippet.path() + " · " + snippet.blocks(),
+                usedBy, firstUse.biomeKey(), firstUse));
+        for (BiomePalette use : snippet.uses()) {
+            BiomeEntry biome = catalog.biome(use.biomeKey());
+            String biomeName = biome == null ? use.biomeKey() : biome.name();
+            node.add(new DefaultMutableTreeNode(new OverviewNode(biomeName + " · " + use.lowercaseLabel(), use.biomeKey(),
+                    use.biomeKey(), use)));
+        }
+        return node;
+    }
+
     private void expandDownToBiomes(DefaultMutableTreeNode root) {
         Enumeration<?> nodes = root.breadthFirstEnumeration();
         while (nodes.hasMoreElements()) {
@@ -351,6 +384,9 @@ final class PaletteNavigator extends JPanel {
     }
 
     private void selectInTree() {
+        if (selectedNodeShowsSelectedPalette()) {
+            return;
+        }
         DefaultMutableTreeNode match = findLayerNode((DefaultMutableTreeNode) treeModel.getRoot());
         if (match == null) {
             overviewTree.clearSelection();
@@ -363,6 +399,13 @@ final class PaletteNavigator extends JPanel {
         if (row != null) {
             overviewTree.scrollRectToVisible(new Rectangle(0, row.y, 1, row.height));
         }
+    }
+
+    // The same palette can be listed under its biome and under its snippet; the row the user picked stays picked.
+    private boolean selectedNodeShowsSelectedPalette() {
+        return nodeAt(overviewTree.getSelectionPath()) instanceof OverviewNode node
+                && node.palette() != null
+                && node.palette().equals(selectedPalette);
     }
 
     private DefaultMutableTreeNode findLayerNode(DefaultMutableTreeNode root) {
@@ -477,7 +520,8 @@ final class PaletteNavigator extends JPanel {
             Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
             String text = userObject instanceof OverviewNode node ? node.html() : "";
             super.getTreeCellRendererComponent(tree, text, selected, expanded, leaf, row, false);
-            setFont(userObject instanceof OverviewNode node && node.biomeKey() == null ? StudioTheme.boldFont() : StudioTheme.font());
+            boolean groupsOthers = userObject instanceof OverviewNode node && node.biomeKey() == null && !leaf;
+            setFont(groupsOthers ? StudioTheme.boldFont() : StudioTheme.font());
             return this;
         }
     }

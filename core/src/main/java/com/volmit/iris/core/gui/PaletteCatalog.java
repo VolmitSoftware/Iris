@@ -35,6 +35,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -43,7 +44,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegions, Map<String, BiomeEntry> biomes) {
+record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegions, Map<String, BiomeEntry> biomes,
+                      List<SnippetEntry> snippets) {
     private static final int SUMMARIZED_BLOCK_COUNT = 3;
 
     static PaletteCatalog load(Engine engine) {
@@ -61,7 +63,33 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
             entry.groups().forEach(group -> group.biomeKeys().forEach(key -> collectWithChildren(key, biomes, biomesInRegions)));
         }
         List<String> outside = biomes.keySet().stream().filter(key -> !biomesInRegions.contains(key)).toList();
-        return new PaletteCatalog(List.copyOf(regions), outside, Map.copyOf(biomes));
+        return new PaletteCatalog(List.copyOf(regions), outside, Map.copyOf(biomes), loadSnippets(data, biomes));
+    }
+
+    // Snippet files no biome refers to are listed too, so a new snippet shows up before it is put to use.
+    private static List<SnippetEntry> loadSnippets(IrisData data, Map<String, BiomeEntry> biomes) {
+        Map<String, SnippetEntry> snippets = new LinkedHashMap<>();
+        for (BiomeEntry biome : biomes.values()) {
+            for (PaletteSummary summary : biome.palettes()) {
+                if (summary.snippet() == null) {
+                    continue;
+                }
+                BiomePalette.SnippetFolder folder = summary.palette().kind().snippetFolder();
+                snippets.computeIfAbsent(folder.folder() + "/" + summary.snippet(),
+                                key -> new SnippetEntry(folder, summary.snippet(), summary.blocks(), new ArrayList<>()))
+                        .uses().add(summary.palette());
+            }
+        }
+        for (BiomePalette.SnippetFolder folder : BiomePalette.SnippetFolder.values()) {
+            for (String reference : data.getPossibleSnippets(folder.folder())) {
+                String path = folder.pathOf(reference);
+                snippets.putIfAbsent(folder.folder() + "/" + path, new SnippetEntry(folder, path, null, List.of()));
+            }
+        }
+        return snippets.values().stream()
+                .map(snippet -> new SnippetEntry(snippet.folder(), snippet.path(), snippet.blocks(), List.copyOf(snippet.uses())))
+                .sorted(Comparator.comparing(SnippetEntry::folder).thenComparing(SnippetEntry::path))
+                .toList();
     }
 
     // A studio focus region is generated even when the dimension's region list doesn't include it.
@@ -143,8 +171,7 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         if (element == null || !element.isJsonPrimitive()) {
             return null;
         }
-        String reference = element.getAsString();
-        return reference.substring(reference.lastIndexOf('/') + 1);
+        return palette.kind().snippetFolder().pathOf(element.getAsString());
     }
 
     private static JsonObject readSource(File file) {
@@ -211,7 +238,20 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
     }
 
     /**
-     * @param snippet the name of the snippet file the palette comes from, or null when the biome defines it itself
+     * A snippet file palettes can come from.
+     *
+     * @param blocks a summary of its blocks, or null when no biome uses it
+     * @param uses   the palettes made from it, in biome order
+     */
+    record SnippetEntry(BiomePalette.SnippetFolder folder, String path, String blocks, List<BiomePalette> uses) {
+        boolean matches(String filter) {
+            return path.toLowerCase(Locale.ROOT).contains(filter)
+                    || (blocks != null && blocks.toLowerCase(Locale.ROOT).contains(filter));
+        }
+    }
+
+    /**
+     * @param snippet the path of the snippet file the palette comes from, or null when the biome defines it itself
      */
     record PaletteSummary(BiomePalette palette, String snippet, String blocks) {
         String text() {

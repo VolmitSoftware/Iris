@@ -100,9 +100,6 @@ public class IrisEngine implements Engine {
     private boolean failing;
     private boolean closed;
     private int cacheId;
-    private double maxBiomeObjectDensity;
-    private double maxBiomeLayerDensity;
-    private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
 
     public IrisEngine(EngineTarget target, boolean studio) {
@@ -181,7 +178,6 @@ public class IrisEngine implements Engine {
             mantle.hotload();
             setupMode();
             getDimension().getEngineScripts().forEach(execution::execute);
-            J.a(this::computeBiomeMaxes);
             J.a(() -> {
                 File[] roots = getData().getLoaders()
                         .values()
@@ -340,32 +336,6 @@ public class IrisEngine implements Engine {
     @Override
     public boolean isStudio() {
         return studio;
-    }
-
-    private void computeBiomeMaxes() {
-        for (IrisBiome i : getDimension().getAllBiomes(this)) {
-            double density = 0;
-
-            for (IrisObjectPlacement j : i.getObjects()) {
-                density += j.getDensity() * j.getChance();
-            }
-
-            maxBiomeObjectDensity = Math.max(maxBiomeObjectDensity, density);
-            density = 0;
-
-            for (IrisDecorator j : i.getDecorators()) {
-                density += Math.max(j.getStackMax(), 1) * j.getChance();
-            }
-
-            maxBiomeDecoratorDensity = Math.max(maxBiomeDecoratorDensity, density);
-            density = 0;
-
-            for (IrisBiomePaletteLayer j : i.getLayers()) {
-                density++;
-            }
-
-            maxBiomeLayerDensity = Math.max(maxBiomeLayerDensity, density);
-        }
     }
 
     @Override

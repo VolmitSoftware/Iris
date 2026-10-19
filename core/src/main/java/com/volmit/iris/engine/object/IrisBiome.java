@@ -62,9 +62,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
-    private final transient AtomicCache<Color> cacheColorObjectDensity = new AtomicCache<>();
-    private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
-    private final transient AtomicCache<Color> cacheColorLayerLoad = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDepositLoad = new AtomicCache<>();
     private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
     private final transient AtomicCache<CNG> biomeGenerator = new AtomicCache<>();
@@ -687,31 +684,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                         return new Color(new RandomColor(getName().hashCode()).randomColor());
                     }
                 });
-            }
-            case OBJECT_LOAD -> {
-                return cacheColorObjectDensity.aquire(() -> {
-                    double density = 0;
-
-                    for (IrisObjectPlacement i : getObjects()) {
-                        density += i.getDensity() * i.getChance();
-                    }
-
-                    return Color.getHSBColor(0.225f, (float) (density / engine.getMaxBiomeObjectDensity()), 1f);
-                });
-            }
-            case DECORATOR_LOAD -> {
-                return cacheColorDecoratorLoad.aquire(() -> {
-                    double density = 0;
-
-                    for (IrisDecorator i : getDecorators()) {
-                        density += i.getChance() * Math.min(1, i.getStackMax()) * 256;
-                    }
-
-                    return Color.getHSBColor(0.41f, (float) (density / engine.getMaxBiomeDecoratorDensity()), 1f);
-                });
-            }
-            case LAYER_LOAD -> {
-                return cacheColorLayerLoad.aquire(() -> Color.getHSBColor(0.625f, (float) (getLayers().size() / engine.getMaxBiomeLayerDensity()), 1f));
             }
         }
 

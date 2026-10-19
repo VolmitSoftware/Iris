@@ -36,12 +36,6 @@ enum MapView {
     SEA_BIOMES("Sea biomes", "The sea biome each spot would get, also where the land is",
             Group.BIOME_STREAMS, RenderType.BIOME_SEA, KeyEvent.VK_6),
     CAVE_BIOMES("Cave biomes", "The cave biome under each spot", Group.BIOME_STREAMS, RenderType.CAVE_LAND, KeyEvent.VK_7),
-    OBJECT_LOAD("Objects", "How densely each biome places objects, brighter is denser",
-            Group.LOAD, RenderType.OBJECT_LOAD, KeyEvent.VK_8),
-    DECORATOR_LOAD("Decorators", "How densely each biome places decorations, brighter is denser",
-            Group.LOAD, RenderType.DECORATOR_LOAD, KeyEvent.VK_9),
-    LAYER_LOAD("Layers", "How many block layers each biome stacks, brighter is more",
-            Group.LOAD, RenderType.LAYER_LOAD, KeyEvent.VK_0),
     PALETTES("Palettes", "The blocks each biome's palette layers place, with their textures",
             Group.BLOCKS, null, KeyEvent.VK_P),
     NOISE("Noise", "The pack's noise generators and Iris' built-in noise styles",
@@ -104,7 +98,6 @@ enum MapView {
     enum Group {
         WORLD("World"),
         BIOME_STREAMS("Biome layers"),
-        LOAD("Generation load"),
         BLOCKS("Blocks"),
         GENERATORS("Generators");
 

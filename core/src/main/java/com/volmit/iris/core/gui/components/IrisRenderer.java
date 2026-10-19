@@ -174,7 +174,7 @@ public final class IrisRenderer {
             case BIOME_LAND -> complex.getLandBiomeStream();
             case BIOME_SEA -> complex.getSeaBiomeStream();
             case CAVE_LAND -> complex.getCaveBiomeStream();
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD, HEIGHT, CONTINENT, REGION -> complex.getBaseBiomeStream();
+            case BIOME, HEIGHT, CONTINENT, REGION -> complex.getBaseBiomeStream();
         };
     }
 

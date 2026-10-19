@@ -112,12 +112,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineEnvironment getExecution();
 
-    double getMaxBiomeObjectDensity();
-
-    double getMaxBiomeDecoratorDensity();
-
-    double getMaxBiomeLayerDensity();
-
     boolean isClosed();
 
     EngineWorldManager getWorldManager();

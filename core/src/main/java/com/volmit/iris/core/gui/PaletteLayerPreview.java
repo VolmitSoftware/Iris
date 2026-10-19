@@ -40,7 +40,6 @@ final class PaletteLayerPreview {
     private static final int MISSING_BLOCK_COLOR = 0x5A5F6B;
     private static final double FAR_FROM_WEIGHT_FACTOR = 2D;
     private static final int BLOCK_CACHE_SIZE = 1 << 16;
-    private static final double BARE_GROUND_SHADE = 0.6D;
 
     private final BiomePalette palette;
     private final KList<IrisBlockData> blocks;
@@ -167,13 +166,10 @@ final class PaletteLayerPreview {
     }
 
     /**
-     * The colour where the palette places nothing: the dimmed ground under a decorator, or plain dark otherwise.
+     * The colour where the palette places nothing: the ground under a decorator, or plain dark otherwise.
      */
     int bareColorAt(double worldX, double worldZ, boolean showTexturePixels) {
-        if (ground == null) {
-            return PaletteLayerScale.ABSENT_COLOR;
-        }
-        return BlockPreviewColors.shade(groundColorAt(worldX, worldZ, showTexturePixels), BARE_GROUND_SHADE);
+        return ground == null ? PaletteLayerScale.ABSENT_COLOR : groundColorAt(worldX, worldZ, showTexturePixels);
     }
 
     private int groundColorAt(double worldX, double worldZ, boolean showTexturePixels) {

@@ -23,12 +23,16 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.bukkit.block.data.BlockData;
 
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipFile;
@@ -103,7 +107,7 @@ final class BlockTextures {
             if (face == null) {
                 return Optional.empty();
             }
-            BufferedImage image = readImage(assetPath(face.texture(), "textures", ".png"));
+            BufferedImage image = readLayeredImage(face.textures());
             if (image == null) {
                 return Optional.empty();
             }
@@ -149,13 +153,34 @@ final class BlockTextures {
         }
 
         JsonObject face = elements == null ? null : topmostFace(elements, faceName);
-        if (face == null) {
-            String particle = dereference("#particle", textures);
-            boolean isSideOnSprite = elements != null;
-            return particle == null ? null : new ModelFace(particle, isSideOnSprite ? firstTintIndex(elements) : NO_TINT_INDEX, isSideOnSprite);
+        if (face != null) {
+            String texture = dereference(face.get("texture").getAsString(), textures);
+            return texture == null ? null : new ModelFace(List.of(texture), tintIndexOf(face), false);
         }
-        String texture = dereference(face.get("texture").getAsString(), textures);
-        return texture == null ? null : new ModelFace(texture, tintIndexOf(face), false);
+        List<String> spriteLayers = elements == null ? List.of() : spriteLayers(elements, textures);
+        if (!spriteLayers.isEmpty()) {
+            return new ModelFace(spriteLayers, firstTintIndex(elements), true);
+        }
+        String particle = dereference("#particle", textures);
+        return particle == null ? null : new ModelFace(List.of(particle), NO_TINT_INDEX, false);
+    }
+
+    // Some plants draw a second sprite over the first, like the glowing fireflies on a firefly bush.
+    private static List<String> spriteLayers(JsonArray elements, Map<String, String> textures) {
+        Set<String> layers = new LinkedHashSet<>();
+        for (JsonElement element : elements) {
+            JsonObject faces = element.getAsJsonObject().getAsJsonObject("faces");
+            if (faces == null) {
+                continue;
+            }
+            for (Map.Entry<String, JsonElement> face : faces.entrySet()) {
+                String texture = dereference(face.getValue().getAsJsonObject().get("texture").getAsString(), textures);
+                if (texture != null) {
+                    layers.add(texture);
+                }
+            }
+        }
+        return List.copyOf(layers);
     }
 
     private static int firstTintIndex(JsonArray elements) {
@@ -291,12 +316,35 @@ final class BlockTextures {
         return ClientJarFiles.readJson(clientJar, path);
     }
 
+    // Each layer is drawn over the ones before it, using only its first frame when it is animated.
+    private BufferedImage readLayeredImage(List<String> layers) throws IOException {
+        BufferedImage bottom = readImage(assetPath(layers.get(0), "textures", ".png"));
+        if (bottom == null || layers.size() == 1) {
+            return bottom;
+        }
+        int size = bottom.getWidth();
+        BufferedImage combined = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D canvas = combined.createGraphics();
+        try {
+            for (String layer : layers) {
+                BufferedImage image = readImage(assetPath(layer, "textures", ".png"));
+                if (image != null) {
+                    int frameSize = image.getWidth();
+                    canvas.drawImage(image, 0, 0, size, size, 0, 0, frameSize, frameSize, null);
+                }
+            }
+        } finally {
+            canvas.dispose();
+        }
+        return combined;
+    }
+
     private BufferedImage readImage(String path) throws IOException {
         return ClientJarFiles.readImage(clientJar, path);
     }
 
     // Plants and other blocks without a top face only have a side-on sprite, which would read as stripes from above.
-    private record ModelFace(String texture, int tintIndex, boolean isSideOnSprite) {
+    private record ModelFace(List<String> textures, int tintIndex, boolean isSideOnSprite) {
     }
 
     private record ResolvedTexture(BlockTexture texture, boolean isSideOnSprite) {

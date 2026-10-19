@@ -41,6 +41,8 @@ public final class MapTile {
     private static final double DIM_AMOUNT = 0.72D;
     private static final double DIM_DESATURATION = 0.6D;
     private static final int HIGHLIGHT_EDGE = 0xFFFFFF;
+    // A solid outline turns biomes that are scattered pixel by pixel into white noise, so the edge only tints.
+    private static final double HIGHLIGHT_EDGE_STRENGTH = 0.55D;
     private static final int REGION_BORDER = 0x101114;
     private static final double REGION_BORDER_STRENGTH = 0.6D;
 
@@ -168,7 +170,7 @@ public final class MapTile {
                 || grid[gridIndex(pixelX - 1, pixelZ)] != highlighted
                 || grid[gridIndex(pixelX, pixelZ + 1)] != highlighted
                 || grid[gridIndex(pixelX, pixelZ - 1)] != highlighted;
-        return edge ? HIGHLIGHT_EDGE : color;
+        return edge ? blend(color, HIGHLIGHT_EDGE, HIGHLIGHT_EDGE_STRENGTH) : color;
     }
 
     private boolean isRegionEdge(int pixelX, int pixelZ) {

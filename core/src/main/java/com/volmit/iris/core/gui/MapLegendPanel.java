@@ -37,8 +37,10 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -56,7 +58,14 @@ final class MapLegendPanel extends JPanel {
 
     private final JLabel title = new JLabel();
     private final DefaultListModel<MapCensus.Share> rows = new DefaultListModel<>();
-    private final JList<MapCensus.Share> list = new JList<>(rows);
+    private final JList<MapCensus.Share> list = new JList<>(rows) {
+        // Long names shorten with an ellipsis instead of pushing the percentages out of sight.
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+    };
+    private final Set<String> sharedNames = new HashSet<>();
     private MapStyle.Highlight highlight;
 
     MapLegendPanel(Consumer<MapCensus.Share> onRowClicked) {
@@ -97,11 +106,28 @@ final class MapLegendPanel extends JPanel {
     void show(String subjectTitle, List<MapCensus.Share> shares, MapStyle.Highlight nextHighlight) {
         title.setText(subjectTitle.toUpperCase(Locale.ROOT));
         highlight = nextHighlight;
+        rememberSharedNames(shares);
         if (!sameRows(shares)) {
             rows.clear();
             rows.addAll(shares);
         }
         list.repaint();
+    }
+
+    // Two biomes can share a display name; those rows show their key so they can be told apart.
+    private void rememberSharedNames(List<MapCensus.Share> shares) {
+        Set<String> seen = new HashSet<>();
+        sharedNames.clear();
+        for (MapCensus.Share share : shares) {
+            if (!seen.add(share.label().name())) {
+                sharedNames.add(share.label().name());
+            }
+        }
+    }
+
+    private String rowText(MapCensus.Share share) {
+        String name = share.label().name();
+        return sharedNames.contains(name) ? name + " (" + share.label().key() + ")" : name;
     }
 
     private boolean sameRows(List<MapCensus.Share> shares) {
@@ -157,7 +183,7 @@ final class MapLegendPanel extends JPanel {
         @Override
         public Component getListCellRendererComponent(JList<?> owner, Object value, int index, boolean selected, boolean focused) {
             MapCensus.Share share = (MapCensus.Share) value;
-            super.getListCellRendererComponent(owner, share.label().name(), index, isHighlighted(share), false);
+            super.getListCellRendererComponent(owner, rowText(share), index, isHighlighted(share), false);
             setFont(StudioTheme.font());
             setBorder(StudioTheme.emptyBorder(0, ROW_PADDING + SWATCH_SIZE + SWATCH_GAP, 0, ROW_PADDING + PERCENT_WIDTH));
             setToolTipText(share.label().key());

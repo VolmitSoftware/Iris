@@ -91,7 +91,7 @@ final class ObjectBrowser extends JPanel {
         countLabel.setFont(StudioTheme.smallFont());
         countLabel.setForeground(StudioTheme.SECONDARY_TEXT);
         add(StudioToolbar.padded(searchField, 8, 8, 8, 8), BorderLayout.NORTH);
-        add(StudioToolbar.scroll(tree), BorderLayout.CENTER);
+        add(StickyFolderHeaders.around(tree, StudioToolbar.scroll(tree)), BorderLayout.CENTER);
         add(StudioToolbar.padded(countLabel, 6, 12, 8, 12), BorderLayout.SOUTH);
     }
 

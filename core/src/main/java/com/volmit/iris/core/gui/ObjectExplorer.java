@@ -27,12 +27,14 @@ import org.bukkit.util.BlockVector;
 
 import javax.swing.JComponent;
 import java.awt.EventQueue;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -46,13 +48,15 @@ import java.util.concurrent.atomic.AtomicLong;
 final class ObjectExplorer {
     private static final NamespacedKey TINT_BIOME = NamespacedKey.minecraft("plains");
     private static final int UNKNOWN_BLOCK_COLOR = 0x8A8A8A;
-    private static final String CAMERA_HINT = "Drag to orbit · Shift-drag to pan · Scroll to zoom · R resets";
+    private static final String CAMERA_HINT = "Drag to orbit · Shift-drag to pan · Scroll to zoom · Page Up/Down cuts layers · R resets";
 
     private final Engine startEngine;
     private final UUID worldId;
     private final ObjectBrowser browser = new ObjectBrowser(this::showObject);
     private final ObjectViewport viewport = new ObjectViewport();
-    private final ObjectOverviewPanel overview = new ObjectOverviewPanel();
+    private final ObjectLayerCut layerCut = new ObjectLayerCut(shownLayers -> rebuildShownMesh());
+    private final JComponent viewWithLayerCut = layerCut.floatingOver(viewport);
+    private final ObjectOverviewPanel overview = new ObjectOverviewPanel(this::showSeeThrough);
     private final StudioStatusBar statusBar = new StudioStatusBar();
     private final ExecutorService loader = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "Iris Object Loader");
@@ -61,11 +65,14 @@ final class ObjectExplorer {
         return thread;
     });
     private final AtomicLong objectRevision = new AtomicLong();
+    private final AtomicLong meshRevision = new AtomicLong();
     private final Map<String, BlockModel> models = new ConcurrentHashMap<>();
     private final Runnable hotloadHook = this::reloadPack;
     private volatile BlockTextures textures;
     private volatile BiomeTintColors tintColors;
     private String shownKey;
+    private LoadedObject shown;
+    private Set<String> seeThroughTypes = Set.of();
 
     ObjectExplorer(Engine engine, UUID worldId) {
         this.startEngine = engine;
@@ -73,6 +80,8 @@ final class ObjectExplorer {
         GuiHost.interruptOnPluginShutdown(loader);
         GuiHost.registerHotloadHook(hotloadHook);
         statusBar.showPosition(CAMERA_HINT);
+        viewport.bindKey(KeyEvent.VK_PAGE_UP, "show-layer-above", () -> layerCut.stepBy(1));
+        viewport.bindKey(KeyEvent.VK_PAGE_DOWN, "hide-top-layer", () -> layerCut.stepBy(-1));
     }
 
     JComponent browser() {
@@ -81,6 +90,13 @@ final class ObjectExplorer {
 
     ObjectViewport viewport() {
         return viewport;
+    }
+
+    /**
+     * The 3D view with the slider that cuts away its top layers.
+     */
+    JComponent view() {
+        return viewWithLayerCut;
     }
 
     JComponent overview() {
@@ -133,6 +149,7 @@ final class ObjectExplorer {
         if (key == null) {
             viewport.showMessage("This pack has no objects");
             overview.clear();
+            layerCut.showHeight(1);
             return;
         }
         browser.select(key);
@@ -141,6 +158,8 @@ final class ObjectExplorer {
 
     private void showObject(String key) {
         shownKey = key;
+        shown = null;
+        meshRevision.incrementAndGet();
         long revision = objectRevision.incrementAndGet();
         viewport.showMessage("Loading " + key + "...");
         statusBar.showActivity("Loading " + key + "...");
@@ -170,18 +189,73 @@ final class ObjectExplorer {
         });
         ObjectMesh mesh = ObjectMesh.build(blocks, this::modelOf);
         ObjectSummary summary = ObjectSummary.of(key, mesh.bounds(), blocks.values(), this::iconOf);
-        return new LoadedObject(mesh, summary);
+        return new LoadedObject(blocks, mesh, summary);
     }
 
     private void showLoaded(long revision, LoadedObject loaded) {
         if (revision != objectRevision.get()) {
             return;
         }
+        shown = loaded;
+        seeThroughTypes = Set.of();
         statusBar.showActivity("");
         viewport.show(loaded.mesh());
         overview.show(loaded.summary());
-        statusBar.showSummary(String.format(Locale.ROOT, "%s · %,d blocks · %,d faces drawn",
-                loaded.summary().key(), loaded.summary().blockCount(), loaded.mesh().faceCount()));
+        layerCut.showHeight(loaded.mesh().bounds().sizeY());
+        showMeshSummary(loaded.mesh());
+    }
+
+    private void showMeshSummary(ObjectMesh mesh) {
+        ObjectSummary summary = shown.summary();
+        String cut = layerCut.isCutting()
+                ? String.format(Locale.ROOT, " · showing layers 1-%d of %d", layerCut.shownLayerCount(), layerCut.layerCount())
+                : "";
+        statusBar.showSummary(String.format(Locale.ROOT, "%s · %,d blocks · %,d faces drawn%s",
+                summary.key(), summary.blockCount(), mesh.faceCount(), cut));
+    }
+
+    private void showSeeThrough(Set<String> blockTypes) {
+        seeThroughTypes = blockTypes;
+        rebuildShownMesh();
+    }
+
+    // Blocks under the cut that were covered by the ones above get their hidden faces back, so each floor shows, and
+    // blocks behind see-through ones get theirs back too.
+    private void rebuildShownMesh() {
+        LoadedObject object = shown;
+        if (object == null) {
+            return;
+        }
+        long revision = meshRevision.incrementAndGet();
+        ObjectMesh.Bounds bounds = object.mesh().bounds();
+        boolean cutting = layerCut.isCutting();
+        int highestShownY = bounds.minY() + layerCut.shownLayerCount() - 1;
+        Set<String> seeThrough = seeThroughTypes;
+        loader.execute(() -> {
+            if (revision != meshRevision.get()) {
+                return;
+            }
+            ObjectMesh mesh = !cutting && seeThrough.isEmpty()
+                    ? object.mesh()
+                    : ObjectMesh.build(cutting ? blocksUpTo(object.blocks(), highestShownY) : object.blocks(), this::modelOf, bounds,
+                    block -> seeThrough.contains(block.getMaterial().getKey().getKey()));
+            EventQueue.invokeLater(() -> {
+                if (revision == meshRevision.get() && shown == object) {
+                    viewport.replaceMesh(mesh);
+                    showMeshSummary(mesh);
+                }
+            });
+        });
+    }
+
+    private static Map<BlockVector, BlockData> blocksUpTo(Map<BlockVector, BlockData> blocks, int highestY) {
+        Map<BlockVector, BlockData> below = new HashMap<>();
+        blocks.forEach((position, block) -> {
+            if (position.getBlockY() <= highestY) {
+                below.put(position, block);
+            }
+        });
+        return below;
     }
 
     private void showFailure(long revision, String key, Throwable error) {
@@ -191,6 +265,7 @@ final class ObjectExplorer {
         statusBar.showActivity("");
         viewport.showMessage("Could not load " + key);
         overview.clear();
+        layerCut.showHeight(1);
         statusBar.showError(error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage());
     }
 
@@ -238,6 +313,6 @@ final class ObjectExplorer {
         return texture.tinted(colors.colorAt(texture.biomeTint(), 0, 0));
     }
 
-    private record LoadedObject(ObjectMesh mesh, ObjectSummary summary) {
+    private record LoadedObject(Map<BlockVector, BlockData> blocks, ObjectMesh mesh, ObjectSummary summary) {
     }
 }

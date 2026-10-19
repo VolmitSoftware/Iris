@@ -86,6 +86,26 @@ final class ObjectViewport extends JComponent {
         repaint();
     }
 
+    /**
+     * Swaps in another mesh of the same object, like one with its top layers cut away, keeping the camera.
+     */
+    void replaceMesh(ObjectMesh nextMesh) {
+        mesh = nextMesh;
+        message = nextMesh.isEmpty() ? "No visible blocks" : null;
+        requestFrame();
+        repaint();
+    }
+
+    void bindKey(int keyCode, String name, Runnable action) {
+        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(keyCode, 0), name);
+        getActionMap().put(name, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                action.run();
+            }
+        });
+    }
+
     void showMessage(String text) {
         mesh = null;
         message = text;
@@ -218,12 +238,6 @@ final class ObjectViewport extends JComponent {
     }
 
     private void bindKey(int keyCode, String name, UnaryOperator<ObjectCamera> move) {
-        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(keyCode, 0), name);
-        getActionMap().put(name, new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                moveCamera(move);
-            }
-        });
+        bindKey(keyCode, name, () -> moveCamera(move));
     }
 }

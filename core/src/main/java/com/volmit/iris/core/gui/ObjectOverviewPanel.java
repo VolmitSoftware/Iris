@@ -20,6 +20,8 @@ package com.volmit.iris.core.gui;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.SwingUtilities;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
@@ -28,18 +30,28 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Composite;
+import java.awt.Cursor;
+import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * The chosen object's size and the blocks it is made of, most used first, like the overview in Procedural Objects.
+ * Clicking a block makes it see-through in the 3D view, to look past walls into the object.
  */
 final class ObjectOverviewPanel extends JPanel {
     private static final long serialVersionUID = -8811407613645718290L;
@@ -50,6 +62,8 @@ final class ObjectOverviewPanel extends JPanel {
     private static final int ROW_PADDING = 10;
     private static final int SHARE_WIDTH = 92;
     private static final int SHARE_BAR_HEIGHT = 4;
+    private static final float SEE_THROUGH_ICON_OPACITY = 0.3F;
+    private static final String SEE_THROUGH_HINT = "Click a block to see through it";
 
     private final JLabel title = new JLabel(" ");
     private final JLabel path = new JLabel(" ");
@@ -65,10 +79,18 @@ final class ObjectOverviewPanel extends JPanel {
             return true;
         }
     };
+    private final JLabel seeThroughHint = new JLabel(SEE_THROUGH_HINT);
+    private final JButton showAllSolid = new JButton("Show all solid");
+    private final Set<String> seeThroughTypes = new LinkedHashSet<>();
+    private final Consumer<Set<String>> onSeeThroughChanged;
     private ObjectSummary summary;
 
-    ObjectOverviewPanel() {
+    /**
+     * @param onSeeThroughChanged told which block types to draw see-through whenever the user changes them
+     */
+    ObjectOverviewPanel(Consumer<Set<String>> onSeeThroughChanged) {
         super(new BorderLayout());
+        this.onSeeThroughChanged = onSeeThroughChanged;
         setPreferredSize(StudioTheme.scaledSize(PANEL_WIDTH, 0));
         setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
         setBackground(StudioTheme.PANEL_BACKGROUND);
@@ -85,6 +107,8 @@ final class ObjectOverviewPanel extends JPanel {
         blockCount.setText(formatCount(nextSummary.blockCount()));
         blockTypes.setText(formatCount(nextSummary.blockUses().size()));
         filled.setText(String.format(Locale.ROOT, "%.1f%%", nextSummary.filledFraction() * 100D));
+        seeThroughTypes.clear();
+        showSeeThroughState();
         refilter();
     }
 
@@ -96,6 +120,8 @@ final class ObjectOverviewPanel extends JPanel {
             value.setText("—");
         }
         rows.clear();
+        seeThroughTypes.clear();
+        showSeeThroughState();
     }
 
     private JPanel buildHeader() {
@@ -147,9 +173,66 @@ final class ObjectOverviewPanel extends JPanel {
         list.setCellRenderer(new BlockUseRenderer());
         list.setBackground(StudioTheme.PANEL_BACKGROUND);
         list.setBorder(StudioTheme.emptyBorder(0, 6, 4, 6));
-        blocks.add(StudioToolbar.padded(filterField, 4, 12, 6, 12), BorderLayout.NORTH);
+        list.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                int row = list.locationToIndex(event.getPoint());
+                if (SwingUtilities.isLeftMouseButton(event) && row >= 0 && list.getCellBounds(row, row).contains(event.getPoint())) {
+                    toggleSeeThrough(rows.get(row).blockType());
+                }
+            }
+        });
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+        top.add(leftAligned(StudioToolbar.padded(filterField, 4, 12, 4, 12)));
+        top.add(leftAligned(StudioToolbar.padded(seeThroughRow(), 0, 14, 6, 12)));
+        blocks.add(top, BorderLayout.NORTH);
         blocks.add(StudioToolbar.scroll(list), BorderLayout.CENTER);
         return blocks;
+    }
+
+    private JPanel seeThroughRow() {
+        seeThroughHint.setFont(StudioTheme.smallFont());
+        seeThroughHint.setForeground(StudioTheme.MUTED_TEXT);
+        showAllSolid.setFont(StudioTheme.smallFont());
+        showAllSolid.setForeground(StudioTheme.LINK);
+        showAllSolid.setBorderPainted(false);
+        showAllSolid.setContentAreaFilled(false);
+        showAllSolid.setFocusable(false);
+        showAllSolid.setMargin(new Insets(0, 0, 0, 0));
+        showAllSolid.setBorder(BorderFactory.createEmptyBorder());
+        showAllSolid.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        showAllSolid.addActionListener(event -> {
+            seeThroughTypes.clear();
+            seeThroughChanged();
+        });
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.add(seeThroughHint, BorderLayout.CENTER);
+        row.add(showAllSolid, BorderLayout.EAST);
+        showSeeThroughState();
+        return row;
+    }
+
+    private void toggleSeeThrough(String blockType) {
+        if (!seeThroughTypes.remove(blockType)) {
+            seeThroughTypes.add(blockType);
+        }
+        seeThroughChanged();
+    }
+
+    private void seeThroughChanged() {
+        showSeeThroughState();
+        list.repaint();
+        onSeeThroughChanged.accept(Set.copyOf(seeThroughTypes));
+    }
+
+    private void showSeeThroughState() {
+        int count = seeThroughTypes.size();
+        seeThroughHint.setText(count == 0 ? SEE_THROUGH_HINT : count == 1 ? "1 block see-through" : count + " blocks see-through");
+        showAllSolid.setVisible(count > 0);
     }
 
     private void refilter() {
@@ -199,6 +282,7 @@ final class ObjectOverviewPanel extends JPanel {
     private final class BlockUseRenderer extends DefaultListCellRenderer {
         private static final long serialVersionUID = 2785337045812613941L;
         private transient BufferedImage icon;
+        private boolean seeThrough;
         private double share;
         private String percent = "";
 
@@ -206,9 +290,12 @@ final class ObjectOverviewPanel extends JPanel {
         public Component getListCellRendererComponent(JList<?> owner, Object value, int index, boolean selected, boolean focused) {
             ObjectSummary.BlockUse use = (ObjectSummary.BlockUse) value;
             super.getListCellRendererComponent(owner, use.blockType(), index, false, false);
+            seeThrough = seeThroughTypes.contains(use.blockType());
             setFont(StudioTheme.font());
+            setForeground(seeThrough ? StudioTheme.MUTED_TEXT : StudioTheme.TEXT);
             setBorder(StudioTheme.emptyBorder(0, ROW_PADDING + ICON_SIZE + ICON_GAP, 0, ROW_PADDING + SHARE_WIDTH));
-            setToolTipText(use.blockType() + " · " + formatCount(use.count()) + " blocks");
+            setToolTipText(use.blockType() + " · " + formatCount(use.count()) + " blocks · click to "
+                    + (seeThrough ? "make solid again" : "see through it"));
             icon = use.icon();
             share = summary == null || summary.blockCount() == 0 ? 0D : use.count() / (double) summary.blockCount();
             percent = share > 0D && share < 0.001D ? "<0.1%" : String.format(Locale.ROOT, "%.1f%%", share * 100D);
@@ -225,7 +312,12 @@ final class ObjectOverviewPanel extends JPanel {
                 int iconY = (getHeight() - iconSize) / 2;
                 if (icon != null) {
                     canvas.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    Composite solid = canvas.getComposite();
+                    if (seeThrough) {
+                        canvas.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, SEE_THROUGH_ICON_OPACITY));
+                    }
                     canvas.drawImage(icon, iconX, iconY, iconSize, iconSize, null);
+                    canvas.setComposite(solid);
                 } else {
                     canvas.setColor(StudioTheme.CONTROL_BORDER);
                     canvas.drawRect(iconX, iconY, iconSize - 1, iconSize - 1);
@@ -248,7 +340,7 @@ final class ObjectOverviewPanel extends JPanel {
             int barY = (getHeight() - barHeight) / 2;
             canvas.setColor(StudioTheme.HOVER_BACKGROUND);
             canvas.fillRoundRect(barX, barY, barWidth, barHeight, barHeight, barHeight);
-            canvas.setColor(StudioTheme.ACCENT);
+            canvas.setColor(seeThrough ? StudioTheme.CONTROL_BORDER : StudioTheme.ACCENT);
             canvas.fillRoundRect(barX, barY, Math.max(barHeight, (int) Math.round(barWidth * share)), barHeight, barHeight, barHeight);
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
             int textWidth = canvas.getFontMetrics().stringWidth(percent);

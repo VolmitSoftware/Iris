@@ -270,7 +270,7 @@ public final class MapWindow implements MapCanvas.Listener {
                 viewport.setCoveredLeftWidth(sidebarIsland.getWidth());
             }
         });
-        content.add(viewport, OBJECTS_CARD);
+        content.add(objectExplorer.view(), OBJECTS_CARD);
         statusBars.add(objectExplorer.statusBar(), OBJECTS_CARD);
     }
 

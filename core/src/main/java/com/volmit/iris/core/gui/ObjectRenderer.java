@@ -193,7 +193,7 @@ final class ObjectRenderer {
                 }
                 int color = BlockPreviewColors.shade(texels[texel], shade);
                 if (blended) {
-                    pixels[index] = blend(color, pixels[index], alphas == null ? 1D : alphas[texel] / FULL_ALPHA);
+                    pixels[index] = blend(color, pixels[index], (alphas == null ? 1D : alphas[texel] / FULL_ALPHA) * quad.opacity());
                     continue;
                 }
                 depths[index] = depth;

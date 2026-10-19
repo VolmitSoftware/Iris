@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * The faces of an object's blocks that can be seen from outside. A face is left out when the neighbour on its side
@@ -34,22 +35,36 @@ import java.util.function.Function;
  * kept apart because they are drawn last, blended over everything behind them.
  */
 record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bounds) {
+    private static final double SEE_THROUGH_OPACITY = 0.22D;
+    private static final double FULL_OPACITY = 1D;
+
     static ObjectMesh build(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf) {
+        return build(blocks, modelOf, Bounds.of(blocks.keySet()), block -> false);
+    }
+
+    /**
+     * @param bounds       the whole object's extent, kept when only part of it is drawn so the view does not jump
+     * @param isSeeThrough blocks drawn faintly, which hide nothing behind them, to look past them into the object
+     */
+    static ObjectMesh build(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf, Bounds bounds,
+                            Predicate<BlockData> isSeeThrough) {
         List<Quad> solid = new ArrayList<>();
         List<Quad> translucent = new ArrayList<>();
         for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
             BlockVector position = entry.getKey();
             BlockData block = entry.getValue();
             BlockModel model = modelOf.apply(block);
+            boolean seeThrough = isSeeThrough.test(block);
             for (Face face : model.faces()) {
-                if (isHiddenByNeighbour(blocks, modelOf, position, block, model, face)) {
+                if (isHiddenByNeighbour(blocks, modelOf, isSeeThrough, position, block, model, face)) {
                     continue;
                 }
-                Quad quad = new Quad(face, position.getBlockX(), position.getBlockY(), position.getBlockZ());
-                (face.texture().isTranslucent() ? translucent : solid).add(quad);
+                Quad quad = new Quad(face, position.getBlockX(), position.getBlockY(), position.getBlockZ(),
+                        seeThrough ? SEE_THROUGH_OPACITY : FULL_OPACITY);
+                (seeThrough || face.texture().isTranslucent() ? translucent : solid).add(quad);
             }
         }
-        return new ObjectMesh(List.copyOf(solid), List.copyOf(translucent), Bounds.of(blocks.keySet()));
+        return new ObjectMesh(List.copyOf(solid), List.copyOf(translucent), bounds);
     }
 
     boolean isEmpty() {
@@ -60,9 +75,11 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bou
         return solidQuads.size() + translucentQuads.size();
     }
 
-    // Glass next to glass and water next to water hide the side between them too, as they do in the game.
+    // Glass next to glass and water next to water hide the side between them too, as they do in the game. A see-through
+    // block only hides sides of other see-through blocks, so whatever it covers shows through it.
     private static boolean isHiddenByNeighbour(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf,
-                                               BlockVector position, BlockData block, BlockModel model, Face face) {
+                                               Predicate<BlockData> isSeeThrough, BlockVector position, BlockData block,
+                                               BlockModel model, Face face) {
         CubeFace side = face.cullFace();
         if (side == null) {
             return false;
@@ -71,7 +88,7 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bou
                 position.getBlockX() + side.stepX(),
                 position.getBlockY() + side.stepY(),
                 position.getBlockZ() + side.stepZ()));
-        if (neighbour == null) {
+        if (neighbour == null || (isSeeThrough.test(neighbour) && !isSeeThrough.test(block))) {
             return false;
         }
         BlockModel neighbourModel = modelOf.apply(neighbour);
@@ -82,9 +99,9 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bou
     }
 
     /**
-     * A model face placed at a block in the object.
+     * A model face placed at a block in the object, drawn at the given opacity on top of its texture's own.
      */
-    record Quad(Face face, int x, int y, int z) {
+    record Quad(Face face, int x, int y, int z, double opacity) {
         double originX() {
             return x + face.origin().x();
         }

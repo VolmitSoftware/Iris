@@ -22,6 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
 import art.arcane.iris.engine.IrisEngine;
+import art.arcane.iris.engine.data.cache.AtomicCacheFailureReporting;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineAssignedComponent;
 import art.arcane.iris.engine.framework.EngineEffects;
@@ -366,6 +367,7 @@ public final class GenerationProbe {
         IrisServices.register(EnginePlatformHooks.class, new InertPlatformHooks());
         IrisPlatforms.unbind();
         IrisPlatforms.bind(new StubPlatform(new File(workRoot, "platform-data")));
+        AtomicCacheFailureReporting.bind();
     }
 
     private static void validatePack(File pack) {

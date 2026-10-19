@@ -18,27 +18,35 @@
 
 package com.volmit.iris.core.gui;
 
-import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.Icon;
 import javax.swing.JList;
 import javax.swing.ListSelectionModel;
+import javax.swing.UIManager;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * The map window's list of views, grouped under headers, each row showing the key that opens it.
+ * The map window's list of views, grouped under headers, each row with a picture of the view and the key that opens
+ * it.
  */
 final class MapViewList extends JList<MapViewList.Row> {
     private static final long serialVersionUID = -4130872409914437415L;
-    private static final int ROW_HEIGHT = 26;
+    private static final int ROW_HEIGHT = 28;
+    private static final int NO_ROW = -1;
 
     private final DefaultListModel<Row> rows = new DefaultListModel<>();
     private int lastViewRow;
+    private int hoveredRow = NO_ROW;
 
     MapViewList(Consumer<MapView> onViewChosen) {
         fillRows();
@@ -58,6 +66,43 @@ final class MapViewList extends JList<MapViewList.Row> {
             lastViewRow = getSelectedIndex();
             onViewChosen.accept(selected.view());
         });
+        MouseAdapter hover = new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent event) {
+                hover(viewRowAt(event));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent event) {
+                hover(NO_ROW);
+            }
+        };
+        addMouseListener(hover);
+        addMouseMotionListener(hover);
+    }
+
+    private int viewRowAt(MouseEvent event) {
+        int row = locationToIndex(event.getPoint());
+        if (row < 0 || rows.get(row).isHeader() || !getCellBounds(row, row).contains(event.getPoint())) {
+            return NO_ROW;
+        }
+        return row;
+    }
+
+    private void hover(int row) {
+        if (row == hoveredRow) {
+            return;
+        }
+        repaintRow(hoveredRow);
+        hoveredRow = row;
+        repaintRow(hoveredRow);
+    }
+
+    private void repaintRow(int row) {
+        Rectangle bounds = row == NO_ROW ? null : getCellBounds(row, row);
+        if (bounds != null) {
+            repaint(bounds);
+        }
     }
 
     void select(MapView view) {
@@ -123,7 +168,12 @@ final class MapViewList extends JList<MapViewList.Row> {
 
     private static final class RowRenderer extends DefaultListCellRenderer {
         private static final long serialVersionUID = 6302156810211578474L;
+        private static final int ICON_SIZE = 16;
+        private static final int ICON_TEXT_GAP = 8;
+        private static final int KEYCAP_SIZE = 17;
+        private static final int KEYCAP_ARC = 5;
         private String shortcut;
+        private boolean hovered;
 
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focused) {
@@ -133,35 +183,83 @@ final class MapViewList extends JList<MapViewList.Row> {
                 setText(row.group().label().toUpperCase(Locale.ROOT));
                 setFont(StudioTheme.sectionFont());
                 setForeground(StudioTheme.MUTED_TEXT);
-                setBorder(StudioTheme.emptyBorder(index == 0 ? 0 : 6, 6, 0, 6));
+                setBorder(StudioTheme.emptyBorder(index == 0 ? 2 : 10, 8, 0, 6));
+                setIcon(null);
                 setToolTipText(null);
                 shortcut = null;
+                hovered = false;
+                setOpaque(true);
                 return this;
             }
             setFont(StudioTheme.font());
-            setBorder(StudioTheme.emptyBorder(0, 10, 0, 10));
+            setBorder(StudioTheme.emptyBorder(0, 8, 0, 8));
+            setIcon(new ViewIcon(row.view()));
+            setIconTextGap(StudioTheme.scale(ICON_TEXT_GAP));
             setToolTipText(row.view().description());
             shortcut = row.view().shortcutText();
+            hovered = !selected && list instanceof MapViewList viewList && viewList.hoveredRow == index;
+            setOpaque(!hovered);
             return this;
         }
 
         @Override
         protected void paintComponent(Graphics graphics) {
-            super.paintComponent(graphics);
-            if (shortcut == null) {
-                return;
-            }
             Graphics2D canvas = (Graphics2D) graphics.create();
             try {
+                canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 canvas.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                canvas.setFont(StudioTheme.smallFont());
-                canvas.setColor(StudioTheme.MUTED_TEXT);
-                int textWidth = canvas.getFontMetrics().stringWidth(shortcut);
-                int baseline = (getHeight() + canvas.getFontMetrics().getAscent() - canvas.getFontMetrics().getDescent()) / 2;
-                canvas.drawString(shortcut, getWidth() - getInsets().right - textWidth, baseline);
+                if (hovered) {
+                    paintHoverBackground(canvas);
+                }
+                super.paintComponent(graphics);
+                if (shortcut != null) {
+                    paintKeycap(canvas);
+                }
             } finally {
                 canvas.dispose();
             }
+        }
+
+        // Shaped like the selection the look and feel paints, so moving between them doesn't jump.
+        private void paintHoverBackground(Graphics2D canvas) {
+            Insets inset = UIManager.getInsets("List.selectionInsets");
+            int left = inset == null ? 0 : StudioTheme.scale(inset.left);
+            int right = inset == null ? 0 : StudioTheme.scale(inset.right);
+            int arc = StudioTheme.scale(UIManager.getInt("List.selectionArc"));
+            canvas.setColor(StudioTheme.HOVER_BACKGROUND);
+            canvas.fillRoundRect(left, 0, getWidth() - left - right, getHeight(), arc, arc);
+        }
+
+        private void paintKeycap(Graphics2D canvas) {
+            canvas.setFont(StudioTheme.smallFont());
+            int textWidth = canvas.getFontMetrics().stringWidth(shortcut);
+            int height = StudioTheme.scale(KEYCAP_SIZE);
+            int width = Math.max(height, textWidth + StudioTheme.scale(8));
+            int x = getWidth() - getInsets().right - width;
+            int y = (getHeight() - height) / 2;
+            int arc = StudioTheme.scale(KEYCAP_ARC);
+            canvas.setColor(StudioTheme.CONTROL_BORDER);
+            canvas.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            canvas.setColor(StudioTheme.SECONDARY_TEXT);
+            int baseline = y + (height + canvas.getFontMetrics().getAscent() - canvas.getFontMetrics().getDescent()) / 2;
+            canvas.drawString(shortcut, x + (width - textWidth) / 2, baseline);
+        }
+    }
+
+    private record ViewIcon(MapView view) implements Icon {
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            MapViewIcon.paint((Graphics2D) graphics, view, x, y, getIconWidth());
+        }
+
+        @Override
+        public int getIconWidth() {
+            return StudioTheme.scale(RowRenderer.ICON_SIZE);
+        }
+
+        @Override
+        public int getIconHeight() {
+            return getIconWidth();
         }
     }
 }

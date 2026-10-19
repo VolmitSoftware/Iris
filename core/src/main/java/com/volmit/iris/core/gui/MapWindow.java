@@ -47,6 +47,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 /**
  * The studio map: one window showing the world as tiles in several views, with the palette, object and noise explorers
@@ -141,6 +142,7 @@ public final class MapWindow implements MapCanvas.Listener {
         frame.add(inspectorSlot, BorderLayout.EAST);
         frame.add(statusBars, BorderLayout.SOUTH);
         installShortcuts(frame.getRootPane());
+        keepClearOfIsland(canvas::setCoveredLeftWidth);
         frame.setSize(GuiHost.fitToScreen(StudioTheme.scaledSize(1440, 880)));
         frame.setMinimumSize(StudioTheme.scaledSize(820, 520));
         frame.setLocationRelativeTo(null);
@@ -260,16 +262,19 @@ public final class MapWindow implements MapCanvas.Listener {
         }
     }
 
-    private void createObjectExplorer() {
-        objectExplorer = new ObjectExplorer(start.engine(), start.worldId());
-        ObjectViewport viewport = objectExplorer.viewport();
-        viewport.setCoveredLeftWidth(sidebarIsland.getWidth());
+    private void keepClearOfIsland(IntConsumer setCoveredLeftWidth) {
+        setCoveredLeftWidth.accept(sidebarIsland.getWidth());
         sidebarIsland.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent event) {
-                viewport.setCoveredLeftWidth(sidebarIsland.getWidth());
+                setCoveredLeftWidth.accept(sidebarIsland.getWidth());
             }
         });
+    }
+
+    private void createObjectExplorer() {
+        objectExplorer = new ObjectExplorer(start.engine(), start.worldId());
+        keepClearOfIsland(objectExplorer.viewport()::setCoveredLeftWidth);
         content.add(objectExplorer.view(), OBJECTS_CARD);
         statusBars.add(objectExplorer.statusBar(), OBJECTS_CARD);
     }

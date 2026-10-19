@@ -80,6 +80,7 @@ final class StudioTheme {
             Map.entry("List.selectionInsets", "0,6,0,6"),
             Map.entry("Tree.selectionArc", "6"),
             Map.entry("Tree.selectionInsets", "0,6,0,6"),
+            Map.entry("Tree.border", "0,8,0,0"),
             Map.entry("ScrollBar.width", "10"),
             Map.entry("ScrollBar.thumbArc", "999"),
             Map.entry("ScrollBar.thumbInsets", "2,2,2,2"),

@@ -112,6 +112,7 @@ final class MapCanvas extends JPanel {
     private boolean entitiesVisible;
     private boolean follow;
     private boolean help;
+    private int coveredLeftWidth;
     private boolean debug;
     private boolean detailedHover;
     private boolean active = true;
@@ -335,6 +336,17 @@ final class MapCanvas extends JPanel {
             notifyUser("Stopped following");
         }
         listener.onTogglesChanged();
+    }
+
+    /**
+     * Keeps the help, debug and notification cards clear of a panel floating over the map's left side.
+     */
+    void setCoveredLeftWidth(int width) {
+        if (width == coveredLeftWidth) {
+            return;
+        }
+        coveredLeftWidth = width;
+        repaint();
     }
 
     void toggleHelp() {
@@ -814,15 +826,16 @@ final class MapCanvas extends JPanel {
         int lineHeight = canvas.getFontMetrics().getHeight() + StudioTheme.scale(4);
         int width = keyWidth + columnGap + descriptionWidth + padding * 2;
         int height = keys.size() * lineHeight + padding * 2;
-        StudioOverlay.drawCard(canvas, padding, padding, width, height);
+        int left = coveredLeftWidth + padding;
+        StudioOverlay.drawCard(canvas, left, padding, width, height);
         for (int index = 0; index < keys.size(); index++) {
             int y = padding * 2 + canvas.getFontMetrics().getAscent() + index * lineHeight;
             canvas.setFont(StudioTheme.boldFont());
             canvas.setColor(StudioTheme.LINK);
-            canvas.drawString(keys.get(index), padding * 2, y);
+            canvas.drawString(keys.get(index), left + padding, y);
             canvas.setFont(StudioTheme.font());
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
-            canvas.drawString(descriptions.get(index), padding * 2 + keyWidth + columnGap, y);
+            canvas.drawString(descriptions.get(index), left + padding + keyWidth + columnGap, y);
         }
     }
 
@@ -835,7 +848,7 @@ final class MapCanvas extends JPanel {
         lines.add("Tile scale " + (frame == null ? "-" : Form.f(frame.renderBlocksPerPixel(), 0)) + " blocks/px");
         lines.add(paintCadenceFps + " paints per second");
         int padding = StudioTheme.scale(CARD_PADDING);
-        drawCard(canvas, padding, getHeight() - padding, 0D, 1D, lines);
+        drawCard(canvas, coveredLeftWidth + padding, getHeight() - padding, 0D, 1D, lines);
     }
 
     private void renderNotifications(Graphics2D canvas) {
@@ -848,7 +861,7 @@ final class MapCanvas extends JPanel {
         int padding = StudioTheme.scale(CARD_PADDING);
         int width = textWidth + padding * 2;
         int height = canvas.getFontMetrics().getHeight() + padding;
-        int x = (getWidth() - width) / 2;
+        int x = coveredLeftWidth + (getWidth() - coveredLeftWidth - width) / 2;
         int y = getHeight() - height - StudioTheme.scale(16);
         StudioOverlay.drawCard(canvas, x, y, width, height);
         canvas.setColor(StudioTheme.TEXT);

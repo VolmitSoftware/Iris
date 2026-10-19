@@ -29,8 +29,10 @@ import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.data.BlockData;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 final class PaletteLayerPreview {
@@ -40,6 +42,7 @@ final class PaletteLayerPreview {
     private static final int MISSING_BLOCK_COLOR = 0x5A5F6B;
     private static final double FAR_FROM_WEIGHT_FACTOR = 2D;
     private static final int BLOCK_CACHE_SIZE = 1 << 16;
+    private static final int NO_OVERHANG = -1;
 
     private final BiomePalette palette;
     private final KList<IrisBlockData> blocks;
@@ -51,6 +54,8 @@ final class PaletteLayerPreview {
     private final int[] entryBySlot;
     private final BiomeTintField biomeTints;
     private final BlockTexture[] textureByEntry;
+    private final BlockTexture[] upperHalfByEntry;
+    private final boolean hasTallPlants;
     private final BlockTexture[] legendTextureByEntry;
     private final int[] legendColorByEntry;
     private final List<Entry> entries;
@@ -74,7 +79,9 @@ final class PaletteLayerPreview {
         this.biomeTints = biomeTints;
         this.showsGroundByEntry = resolveGroundShowingEntries();
         this.textureByEntry = resolveEntryTextures(textures);
-        this.legendTextureByEntry = tintForLegend(textureByEntry);
+        this.upperHalfByEntry = resolveUpperHalves(textures);
+        this.hasTallPlants = Arrays.stream(upperHalfByEntry).anyMatch(Objects::nonNull);
+        this.legendTextureByEntry = tintForLegend(legendTextures());
         this.legendColorByEntry = resolveLegendColors();
 
         Statistics statistics = measure();
@@ -146,6 +153,10 @@ final class PaletteLayerPreview {
     }
 
     int blockColorAt(double noise, double worldX, double worldZ, boolean showTexturePixels) {
+        int overhang = showTexturePixels ? overhangColorAt(worldX, worldZ) : NO_OVERHANG;
+        if (overhang != NO_OVERHANG) {
+            return overhang;
+        }
         int entry = entryIndexForNoise(noise);
         if (showsGroundByEntry[entry]) {
             return bareColorAt(worldX, worldZ, showTexturePixels);
@@ -158,18 +169,43 @@ final class PaletteLayerPreview {
             return groundColorAt(worldX, worldZ, true);
         }
         int untintedColor = showTexturePixels ? texture.texelAt(worldX, worldZ) : texture.averageColor();
-        if (texture.biomeTint() == null) {
-            return untintedColor;
-        }
-        int tint = biomeTints.colorAt(texture.biomeTint(), (int) Math.floor(worldX), (int) Math.floor(worldZ));
-        return BlockTexture.multiply(untintedColor, tint);
+        return tinted(texture, untintedColor, worldX, worldZ);
     }
 
     /**
      * The colour where the palette places nothing: the ground under a decorator, or plain dark otherwise.
      */
     int bareColorAt(double worldX, double worldZ, boolean showTexturePixels) {
-        return ground == null ? PaletteLayerScale.ABSENT_COLOR : groundColorAt(worldX, worldZ, showTexturePixels);
+        if (ground == null) {
+            return PaletteLayerScale.ABSENT_COLOR;
+        }
+        int overhang = showTexturePixels ? overhangColorAt(worldX, worldZ) : NO_OVERHANG;
+        return overhang != NO_OVERHANG ? overhang : groundColorAt(worldX, worldZ, showTexturePixels);
+    }
+
+    // A two block tall plant stands up on the map: its top half covers the block above it, which is one block north.
+    private int overhangColorAt(double worldX, double worldZ) {
+        if (!hasTallPlants) {
+            return NO_OVERHANG;
+        }
+        double plantZ = worldZ + 1D;
+        double noise = sample(worldX, plantZ);
+        if (Double.isNaN(noise)) {
+            return NO_OVERHANG;
+        }
+        BlockTexture upperHalf = upperHalfByEntry[entryIndexForNoise(noise)];
+        if (upperHalf == null || !upperHalf.isOpaqueAt(worldX, worldZ)) {
+            return NO_OVERHANG;
+        }
+        return tinted(upperHalf, upperHalf.texelAt(worldX, worldZ), worldX, plantZ);
+    }
+
+    private int tinted(BlockTexture texture, int untintedColor, double worldX, double worldZ) {
+        if (texture.biomeTint() == null) {
+            return untintedColor;
+        }
+        int tint = biomeTints.colorAt(texture.biomeTint(), (int) Math.floor(worldX), (int) Math.floor(worldZ));
+        return BlockTexture.multiply(untintedColor, tint);
     }
 
     private int groundColorAt(double worldX, double worldZ, boolean showTexturePixels) {
@@ -257,6 +293,29 @@ final class PaletteLayerPreview {
             resolved[entry] = block == null ? null : textureOf(block, textures).orElse(null);
         }
         return resolved;
+    }
+
+    private BlockTexture[] resolveUpperHalves(BlockTextures textures) {
+        BlockTexture[] resolved = new BlockTexture[blocks.size()];
+        if (textures == null || palette.kind() != BiomePalette.Kind.DECORATOR) {
+            return resolved;
+        }
+        for (int entry = 0; entry < blocks.size(); entry++) {
+            BlockData block = blocks.get(entry).getBlockData(data);
+            resolved[entry] = block == null ? null : textures.upperHalfIcon(block).orElse(null);
+        }
+        return resolved;
+    }
+
+    // Tall plants are known by their top half, the way Minecraft draws them in the inventory.
+    private BlockTexture[] legendTextures() {
+        BlockTexture[] legend = textureByEntry.clone();
+        for (int entry = 0; entry < legend.length; entry++) {
+            if (upperHalfByEntry[entry] != null) {
+                legend[entry] = upperHalfByEntry[entry];
+            }
+        }
+        return legend;
     }
 
     private Optional<BlockTexture> textureOf(BlockData block, BlockTextures textures) {

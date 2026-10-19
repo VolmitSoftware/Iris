@@ -295,7 +295,7 @@ abstract class BiomePalettePlacement {
                 notes.add("Where other decorators of this biome could place too, the world picks one of them at random.");
             }
             if (placesTwoBlockTallPlants()) {
-                notes.add("Two block tall plants show both halves squeezed into one block.");
+                notes.add("Two block tall plants stand up on the map: their top half covers the block above them.");
             }
             if (decorator.isStacking()) {
                 notes.add("It stacks " + decorator.getStackMin() + "–" + decorator.getStackMax()

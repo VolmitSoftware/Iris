@@ -16,9 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 package com.volmit.iris.core.gui;
 
-import com.volmit.iris.core.gui.BlockTextures.BlockTexture;
+import com.volmit.iris.core.gui.BlockModel.Face;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
@@ -28,154 +29,72 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * The sides of an object's blocks that can be seen from outside, as flat textured quads. Sides pressed against a solid
- * neighbour are left out, which is most of them in a large object.
+ * The faces of an object's blocks that can be seen from outside. A face is left out when the neighbour on its side
+ * covers that side, which is most of them in a large object. See-through faces, like water and stained glass, are
+ * kept apart because they are drawn last, blended over everything behind them.
  */
-record ObjectMesh(List<Quad> quads, Bounds bounds) {
-    private static final double CROSS_SHADE = 0.9D;
-
+record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bounds) {
     static ObjectMesh build(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf) {
-        List<Quad> quads = new ArrayList<>();
+        List<Quad> solid = new ArrayList<>();
+        List<Quad> translucent = new ArrayList<>();
         for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
             BlockVector position = entry.getKey();
             BlockData block = entry.getValue();
             BlockModel model = modelOf.apply(block);
-            if (model.isCross()) {
-                addCross(quads, position, model.crossSprite());
-                continue;
-            }
-            for (Map.Entry<CubeFace, BlockTexture> face : model.faces().entrySet()) {
-                if (!isCoveredByNeighbour(blocks, modelOf, position, block, model, face.getKey())) {
-                    quads.add(Quad.side(position, model.box(), face.getKey(), face.getValue()));
+            for (Face face : model.faces()) {
+                if (isHiddenByNeighbour(blocks, modelOf, position, block, model, face)) {
+                    continue;
                 }
+                Quad quad = new Quad(face, position.getBlockX(), position.getBlockY(), position.getBlockZ());
+                (face.texture().isTranslucent() ? translucent : solid).add(quad);
             }
         }
-        return new ObjectMesh(List.copyOf(quads), Bounds.of(blocks.keySet()));
+        return new ObjectMesh(List.copyOf(solid), List.copyOf(translucent), Bounds.of(blocks.keySet()));
     }
 
     boolean isEmpty() {
-        return quads.isEmpty();
+        return solidQuads.isEmpty() && translucentQuads.isEmpty();
     }
 
-    // Leaves next to leaves and glass next to glass hide the side between them too, as they do in the game.
-    private static boolean isCoveredByNeighbour(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf,
-                                                BlockVector position, BlockData block, BlockModel model, CubeFace face) {
-        if (!touchesBlockEdge(model.box(), face)) {
+    int faceCount() {
+        return solidQuads.size() + translucentQuads.size();
+    }
+
+    // Glass next to glass and water next to water hide the side between them too, as they do in the game.
+    private static boolean isHiddenByNeighbour(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf,
+                                               BlockVector position, BlockData block, BlockModel model, Face face) {
+        CubeFace side = face.cullFace();
+        if (side == null) {
             return false;
         }
         BlockData neighbour = blocks.get(new BlockVector(
-                position.getBlockX() + face.stepX(),
-                position.getBlockY() + face.stepY(),
-                position.getBlockZ() + face.stepZ()));
+                position.getBlockX() + side.stepX(),
+                position.getBlockY() + side.stepY(),
+                position.getBlockZ() + side.stepZ()));
         if (neighbour == null) {
             return false;
         }
-        if (neighbour.equals(block) && model.box().isFull()) {
+        BlockModel neighbourModel = modelOf.apply(neighbour);
+        if (neighbourModel.coveredSides().contains(side.opposite())) {
             return true;
         }
-        return modelOf.apply(neighbour).hidesTouchingSides();
-    }
-
-    private static boolean touchesBlockEdge(BlockModel.Box box, CubeFace face) {
-        return switch (face) {
-            case UP -> box.maxY() >= 1D;
-            case DOWN -> box.minY() <= 0D;
-            case NORTH -> box.minZ() <= 0D;
-            case SOUTH -> box.maxZ() >= 1D;
-            case EAST -> box.maxX() >= 1D;
-            case WEST -> box.minX() <= 0D;
-        };
-    }
-
-    private static void addCross(List<Quad> quads, BlockVector position, BlockTexture sprite) {
-        double x = position.getBlockX();
-        double y = position.getBlockY();
-        double z = position.getBlockZ();
-        quads.add(new Quad(x, y + 1D, z, 1D, 0D, 1D, 0D, -1D, 0D, sprite, 0D, 0D, 1D, 1D, CROSS_SHADE, 0D, 0D, 0D));
-        quads.add(new Quad(x, y + 1D, z + 1D, 1D, 0D, -1D, 0D, -1D, 0D, sprite, 0D, 0D, 1D, 1D, CROSS_SHADE, 0D, 0D, 0D));
+        return neighbour.getMaterial() == block.getMaterial() && model.hidesSameBlockSides() && neighbourModel.hidesSameBlockSides();
     }
 
     /**
-     * A parallelogram from its corner along two edges. Texture u runs along the first edge and v along the second,
-     * starting at {@code textureU}, {@code textureV} and covering {@code textureWidth} by {@code textureHeight} of
-     * the texture. A zero normal marks a quad seen from both sides, like a plant's sprite.
+     * A model face placed at a block in the object.
      */
-    record Quad(double originX, double originY, double originZ,
-                double edgeUX, double edgeUY, double edgeUZ,
-                double edgeVX, double edgeVY, double edgeVZ,
-                BlockTexture texture, double textureU, double textureV, double textureWidth, double textureHeight,
-                double shade, double normalX, double normalY, double normalZ) {
-
-        boolean isTwoSided() {
-            return normalX == 0D && normalY == 0D && normalZ == 0D;
+    record Quad(Face face, int x, int y, int z) {
+        double originX() {
+            return x + face.origin().x();
         }
 
-        // Each side is laid out as seen from outside the block: u to the right, v downwards, matching Minecraft's UVs.
-        static Quad side(BlockVector position, BlockModel.Box box, CubeFace face, BlockTexture texture) {
-            double[] origin = switch (face) {
-                case UP -> new double[]{box.minX(), box.maxY(), box.minZ()};
-                case DOWN -> new double[]{box.minX(), box.minY(), box.maxZ()};
-                case NORTH -> new double[]{box.maxX(), box.maxY(), box.minZ()};
-                case SOUTH -> new double[]{box.minX(), box.maxY(), box.maxZ()};
-                case EAST -> new double[]{box.maxX(), box.maxY(), box.maxZ()};
-                case WEST -> new double[]{box.minX(), box.maxY(), box.minZ()};
-            };
-            Edge u = switch (face) {
-                case UP, DOWN, SOUTH -> Edge.POSITIVE_X;
-                case NORTH -> Edge.NEGATIVE_X;
-                case EAST -> Edge.NEGATIVE_Z;
-                case WEST -> Edge.POSITIVE_Z;
-            };
-            Edge v = switch (face) {
-                case UP -> Edge.POSITIVE_Z;
-                case DOWN -> Edge.NEGATIVE_Z;
-                default -> Edge.NEGATIVE_Y;
-            };
-            double uLength = box.max(u.axis()) - box.min(u.axis());
-            double vLength = box.max(v.axis()) - box.min(v.axis());
-            return new Quad(
-                    position.getBlockX() + origin[0], position.getBlockY() + origin[1], position.getBlockZ() + origin[2],
-                    u.x() * uLength, u.y() * uLength, u.z() * uLength,
-                    v.x() * vLength, v.y() * vLength, v.z() * vLength,
-                    texture, u.textureStart(origin), v.textureStart(origin), uLength, vLength,
-                    face.shade(), face.stepX(), face.stepY(), face.stepZ());
-        }
-    }
-
-    private enum Edge {
-        POSITIVE_X(0, 1),
-        NEGATIVE_X(0, -1),
-        NEGATIVE_Y(1, -1),
-        POSITIVE_Z(2, 1),
-        NEGATIVE_Z(2, -1);
-
-        private final int axis;
-        private final int sign;
-
-        Edge(int axis, int sign) {
-            this.axis = axis;
-            this.sign = sign;
+        double originY() {
+            return y + face.origin().y();
         }
 
-        int axis() {
-            return axis;
-        }
-
-        double x() {
-            return axis == 0 ? sign : 0D;
-        }
-
-        double y() {
-            return axis == 1 ? sign : 0D;
-        }
-
-        double z() {
-            return axis == 2 ? sign : 0D;
-        }
-
-        // An edge running against its axis starts its texture at the far side, like Minecraft's default UVs.
-        double textureStart(double[] origin) {
-            return sign > 0 ? origin[axis] : 1D - origin[axis];
+        double originZ() {
+            return z + face.origin().z();
         }
     }
 

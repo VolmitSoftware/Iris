@@ -23,7 +23,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import javax.imageio.ImageIO;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
+import java.awt.image.Raster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -51,7 +53,30 @@ final class ClientJarFiles {
             return null;
         }
         try (InputStream input = clientJar.getInputStream(entry)) {
-            return ImageIO.read(input);
+            BufferedImage image = ImageIO.read(input);
+            return image != null && isGrey(image) ? withGreyKept(image) : image;
         }
+    }
+
+    private static boolean isGrey(BufferedImage image) {
+        return image.getColorModel().getColorSpace().getType() == ColorSpace.TYPE_GRAY;
+    }
+
+    // Java treats grey PNGs, like stone's, as linear light and brightens them when converting to RGB; Minecraft reads
+    // the stored values as they are.
+    private static BufferedImage withGreyKept(BufferedImage image) {
+        Raster raster = image.getRaster();
+        boolean hasAlpha = raster.getNumBands() > 1;
+        int greyMax = (1 << raster.getSampleModel().getSampleSize(0)) - 1;
+        int alphaMax = hasAlpha ? (1 << raster.getSampleModel().getSampleSize(1)) - 1 : 1;
+        BufferedImage converted = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                int grey = raster.getSample(x, y, 0) * 255 / greyMax;
+                int alpha = hasAlpha ? raster.getSample(x, y, 1) * 255 / alphaMax : 255;
+                converted.setRGB(x, y, alpha << 24 | grey << 16 | grey << 8 | grey);
+            }
+        }
+        return converted;
     }
 }

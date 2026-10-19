@@ -28,7 +28,6 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -43,7 +42,7 @@ final class BlockTextures {
     private static final String DEFAULT_NAMESPACE = "minecraft";
     private static final int MAX_MODEL_PARENTS = 16;
     private static final int MAX_TEXTURE_REFERENCES = 16;
-    private static final int NO_TINT_INDEX = -1;
+    static final int NO_TINT_INDEX = -1;
     private static final Object SHARED_LOCK = new Object();
     private static CompletableFuture<BlockTextures> shared;
 
@@ -51,6 +50,8 @@ final class BlockTextures {
     private final MinecraftBiomeColors biomeColors;
     private final Map<String, Optional<ResolvedTexture>> resolvedTextures = new ConcurrentHashMap<>();
     private final Map<String, Optional<BlockModel>> resolvedModels = new ConcurrentHashMap<>();
+    private final Map<String, Optional<BlockTexture>> faceTextures = new ConcurrentHashMap<>();
+    private final BlockModelBuilder modelBuilder = new BlockModelBuilder(this);
 
     private BlockTextures(ZipFile clientJar, MinecraftBiomeColors biomeColors) {
         this.clientJar = clientJar;
@@ -109,7 +110,7 @@ final class BlockTextures {
      * What the block looks like from every side, for drawing it in 3D.
      */
     Optional<BlockModel> model(BlockData block) {
-        return resolvedModels.computeIfAbsent(block.getAsString(false), this::resolveModel);
+        return resolvedModels.computeIfAbsent(block.getAsString(false), modelBuilder::build);
     }
 
     private static BlockData withHalf(BlockData block, Bisected.Half half) {
@@ -140,32 +141,6 @@ final class BlockTextures {
         }
     }
 
-    private Optional<BlockModel> resolveModel(String blockState) {
-        try {
-            BlockStateId state = BlockStateId.parse(blockState);
-            JsonObject variant = variantOf(state);
-            if (variant == null || !variant.has("model")) {
-                return Optional.empty();
-            }
-            ModelDefinition model = readModel(variant.get("model").getAsString());
-            if (model.isSprite()) {
-                return readTexture(state, model.spriteFace()).map(BlockModel::cross);
-            }
-            int rotationX = rotationOf(variant, "x");
-            int rotationY = rotationOf(variant, "y");
-            Map<CubeFace, BlockTexture> faces = new EnumMap<>(CubeFace.class);
-            for (CubeFace face : CubeFace.values()) {
-                ModelFace modelFace = model.sideFace(face.beforeRotation(rotationX, rotationY).modelName());
-                if (modelFace != null) {
-                    readTexture(state, modelFace).ifPresent(texture -> faces.put(face, texture));
-                }
-            }
-            return faces.isEmpty() ? Optional.empty() : Optional.of(BlockModel.box(model.box().rotated(rotationX, rotationY), faces));
-        } catch (IOException | RuntimeException error) {
-            return Optional.empty();
-        }
-    }
-
     private JsonObject variantOf(BlockStateId state) throws IOException {
         JsonObject definition = readJson(assetPath(state.namespace() + ":" + state.name(), "blockstates", ".json"));
         return definition == null ? null : pickVariant(definition, state.properties());
@@ -173,6 +148,35 @@ final class BlockTextures {
 
     private static int rotationOf(JsonObject variant, String axis) {
         return variant.has(axis) ? Math.floorMod(variant.get(axis).getAsInt(), 360) : 0;
+    }
+
+    /**
+     * One model face's texture with the block's tint, shared by every block state that uses it.
+     */
+    Optional<BlockTexture> faceTexture(BlockStateId state, String texture, int tintIndex) {
+        int fixedTint = MinecraftBlockTints.fixedTint(state.name(), state.properties(), tintIndex);
+        BiomeTint biomeTint = MinecraftBlockTints.biomeTint(state.name(), tintIndex).orElse(null);
+        return faceTextures.computeIfAbsent(texture + "|" + fixedTint + "|" + biomeTint, key -> {
+            try {
+                return readTexture(state, new ModelFace(List.of(texture), tintIndex, false));
+            } catch (IOException | RuntimeException error) {
+                return Optional.empty();
+            }
+        });
+    }
+
+    /**
+     * A texture drawn on a block entity, like a chest, whole and tinted with a fixed colour.
+     */
+    Optional<BlockTexture> entityTexture(String texture, int tint) {
+        return faceTextures.computeIfAbsent(texture + "|entity|" + tint, key -> {
+            try {
+                BufferedImage image = readImage(assetPath(texture, "textures", ".png"));
+                return image == null ? Optional.empty() : Optional.of(BlockTexture.fromWholeImage(image, tint));
+            } catch (IOException | RuntimeException error) {
+                return Optional.empty();
+            }
+        });
     }
 
     private Optional<BlockTexture> readTexture(BlockStateId state, ModelFace face) throws IOException {
@@ -191,16 +195,18 @@ final class BlockTextures {
         }
     }
 
-    // A block rotated on its x axis, like a sideways log, shows a side face on top.
+    // A block rotated on its x axis, like a sideways log, shows a side face on top. Blockstates turn the model
+    // against the right-hand rule, so 90 degrees brings the south side up.
     private static String faceSeenFromAbove(JsonObject variant) {
         return switch (rotationOf(variant, "x")) {
-            case 90, 270 -> "north";
+            case 90 -> "south";
+            case 270 -> "north";
             case 180 -> "down";
             default -> "up";
         };
     }
 
-    private ModelDefinition readModel(String modelReference) throws IOException {
+    ModelDefinition readModel(String modelReference) throws IOException {
         Map<String, String> textures = new HashMap<>();
         JsonArray elements = null;
         String current = modelReference;
@@ -211,7 +217,7 @@ final class BlockTextures {
             }
             if (model.has("textures")) {
                 for (Map.Entry<String, JsonElement> texture : model.getAsJsonObject("textures").entrySet()) {
-                    textures.putIfAbsent(texture.getKey(), texture.getValue().getAsString());
+                    textures.putIfAbsent(texture.getKey(), spriteName(texture.getValue()));
                 }
             }
             if (elements == null && model.has("elements")) {
@@ -220,6 +226,11 @@ final class BlockTextures {
             current = model.has("parent") ? model.get("parent").getAsString() : null;
         }
         return new ModelDefinition(textures, elements);
+    }
+
+    // Since 1.21.? a texture can also be an object naming its sprite, like glass's {"sprite": ..., "force_translucent": true}.
+    private static String spriteName(JsonElement texture) {
+        return texture.isJsonObject() ? texture.getAsJsonObject().get("sprite").getAsString() : texture.getAsString();
     }
 
     // Some plants draw a second sprite over the first, like the glowing fireflies on a firefly bush.
@@ -256,7 +267,7 @@ final class BlockTextures {
         return NO_TINT_INDEX;
     }
 
-    private static int tintIndexOf(JsonObject face) {
+    static int tintIndexOf(JsonObject face) {
         return face.has("tintindex") ? face.get("tintindex").getAsInt() : NO_TINT_INDEX;
     }
 
@@ -283,7 +294,7 @@ final class BlockTextures {
         return best;
     }
 
-    private static String dereference(String reference, Map<String, String> textures) {
+    static String dereference(String reference, Map<String, String> textures) {
         String resolved = reference;
         for (int hop = 0; resolved != null && resolved.startsWith("#") && hop < MAX_TEXTURE_REFERENCES; hop++) {
             resolved = textures.get(resolved.substring(1));
@@ -311,7 +322,7 @@ final class BlockTextures {
         return null;
     }
 
-    private static boolean variantMatches(String variantKey, Map<String, String> properties) {
+    static boolean variantMatches(String variantKey, Map<String, String> properties) {
         if (variantKey.isEmpty()) {
             return true;
         }
@@ -324,7 +335,7 @@ final class BlockTextures {
         return true;
     }
 
-    private static boolean conditionMatches(JsonObject condition, Map<String, String> properties) {
+    static boolean conditionMatches(JsonObject condition, Map<String, String> properties) {
         if (condition.has("OR")) {
             for (JsonElement option : condition.getAsJsonArray("OR")) {
                 if (conditionMatches(option.getAsJsonObject(), properties)) {
@@ -354,7 +365,7 @@ final class BlockTextures {
         return true;
     }
 
-    private static JsonObject firstModel(JsonElement models) {
+    static JsonObject firstModel(JsonElement models) {
         if (models.isJsonArray()) {
             JsonArray choices = models.getAsJsonArray();
             return choices.isEmpty() ? null : choices.get(0).getAsJsonObject();
@@ -362,14 +373,14 @@ final class BlockTextures {
         return models.getAsJsonObject();
     }
 
-    private static String assetPath(String resource, String folder, String extension) {
+    static String assetPath(String resource, String folder, String extension) {
         int separator = resource.indexOf(':');
         String namespace = separator < 0 ? DEFAULT_NAMESPACE : resource.substring(0, separator);
         String path = separator < 0 ? resource : resource.substring(separator + 1);
         return "assets/" + namespace + "/" + folder + "/" + path + extension;
     }
 
-    private JsonObject readJson(String path) throws IOException {
+    JsonObject readJson(String path) throws IOException {
         return ClientJarFiles.readJson(clientJar, path);
     }
 
@@ -407,7 +418,7 @@ final class BlockTextures {
     /**
      * A block model with its parents' textures merged in. Models drawn in code, like chests, have no elements.
      */
-    private record ModelDefinition(Map<String, String> textures, JsonArray elements) {
+    record ModelDefinition(Map<String, String> textures, JsonArray elements) {
         ModelFace visibleFace(String faceName) {
             ModelFace face = sideFace(faceName);
             if (face != null) {
@@ -430,14 +441,6 @@ final class BlockTextures {
             return texture == null ? null : new ModelFace(List.of(texture), tintIndexOf(face), false);
         }
 
-        // Plants have only upright planes, so nothing of them faces up or down.
-        boolean isSprite() {
-            return elements != null
-                    && topmostFace(elements, CubeFace.UP.modelName()) == null
-                    && topmostFace(elements, CubeFace.DOWN.modelName()) == null
-                    && !spriteLayers(elements, textures).isEmpty();
-        }
-
         ModelFace spriteFace() {
             return new ModelFace(spriteLayers(elements, textures), firstTintIndex(elements), true);
         }
@@ -447,25 +450,13 @@ final class BlockTextures {
             return particle == null ? null : new ModelFace(List.of(particle), NO_TINT_INDEX, false);
         }
 
-        // One box, like a slab or a carpet, keeps its shape; several, like stairs, become a full block.
-        BlockModel.Box box() {
-            if (elements == null || elements.size() != 1) {
-                return BlockModel.Box.FULL;
-            }
-            JsonObject element = elements.get(0).getAsJsonObject();
-            return BlockModel.Box.ofModelElement(coordinates(element.getAsJsonArray("from")), coordinates(element.getAsJsonArray("to")));
-        }
-
-        private static double[] coordinates(JsonArray values) {
-            return new double[]{values.get(0).getAsDouble(), values.get(1).getAsDouble(), values.get(2).getAsDouble()};
-        }
     }
 
     private record ResolvedTexture(BlockTexture texture, boolean isSideOnSprite) {
     }
 
-    private record BlockStateId(String namespace, String name, Map<String, String> properties) {
-        private static BlockStateId parse(String blockState) {
+    record BlockStateId(String namespace, String name, Map<String, String> properties) {
+        static BlockStateId parse(String blockState) {
             int propertiesStart = blockState.indexOf('[');
             String id = propertiesStart < 0 ? blockState : blockState.substring(0, propertiesStart);
             int separator = id.indexOf(':');
@@ -487,26 +478,45 @@ final class BlockTextures {
 
     // Biome tinted textures keep their grey pixels, because the biome colour changes from column to column.
     // See-through pixels get a darker shade of the average colour, and the opaque mask remembers which they were.
-    record BlockTexture(int size, int[] pixels, boolean[] opaque, int averageColor, BiomeTint biomeTint) {
-        private static final int OPAQUE_ALPHA = 128;
+    // Textures with partly see-through pixels, like stained glass, ice and water, keep each pixel's alpha too.
+    record BlockTexture(int width, int height, int[] pixels, boolean[] opaque, int[] alphas, int averageColor,
+                        BiomeTint biomeTint) {
         private static final double GAP_SHADE = 0.55D;
+        private static final int FULL_ALPHA = 255;
 
         // Animated textures stack their frames vertically, so only the first square frame is used.
         static BlockTexture fromImage(BufferedImage image, int fixedTint, BiomeTint biomeTint) {
-            int size = image.getWidth();
-            int[] pixels = new int[size * size];
+            return fromPixels(image, image.getWidth(), Math.min(image.getWidth(), image.getHeight()), fixedTint, biomeTint);
+        }
+
+        // Entity textures, like a chest's, are laid out for a model and can be wider than they are tall.
+        static BlockTexture fromWholeImage(BufferedImage image, int fixedTint) {
+            return fromPixels(image, image.getWidth(), image.getHeight(), fixedTint, null);
+        }
+
+        static BlockTexture solid(int color) {
+            return new BlockTexture(1, 1, new int[]{color}, new boolean[]{true}, null, color, null);
+        }
+
+        private static BlockTexture fromPixels(BufferedImage image, int width, int height, int fixedTint, BiomeTint biomeTint) {
+            int[] pixels = new int[width * height];
             boolean[] opaque = new boolean[pixels.length];
+            int[] alphas = new int[pixels.length];
+            boolean translucent = false;
             long red = 0;
             long green = 0;
             long blue = 0;
             int opaqueCount = 0;
-            for (int z = 0; z < size; z++) {
-                for (int x = 0; x < size; x++) {
-                    int argb = image.getRGB(x, Math.min(z, image.getHeight() - 1));
-                    int index = z * size + x;
-                    if ((argb >>> 24) < OPAQUE_ALPHA) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int argb = image.getRGB(x, y);
+                    int index = y * width + x;
+                    int alpha = argb >>> 24;
+                    alphas[index] = alpha;
+                    if (alpha == 0) {
                         continue;
                     }
+                    translucent |= alpha < FULL_ALPHA;
                     int color = multiply(argb & 0xFFFFFF, fixedTint);
                     pixels[index] = color;
                     opaque[index] = true;
@@ -526,7 +536,23 @@ final class BlockTextures {
                     pixels[index] = gapColor;
                 }
             }
-            return new BlockTexture(size, pixels, opaque, average, biomeTint);
+            return new BlockTexture(width, height, pixels, opaque, translucent ? alphas : null, average, biomeTint);
+        }
+
+        boolean isTranslucent() {
+            return alphas != null;
+        }
+
+        boolean isFullyOpaque() {
+            if (isTranslucent()) {
+                return false;
+            }
+            for (boolean pixelOpaque : opaque) {
+                if (!pixelOpaque) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         BlockTexture flattened() {
@@ -534,7 +560,7 @@ final class BlockTextures {
             Arrays.fill(flat, averageColor);
             boolean[] allOpaque = new boolean[pixels.length];
             Arrays.fill(allOpaque, true);
-            return new BlockTexture(size, flat, allOpaque, averageColor, biomeTint);
+            return new BlockTexture(width, height, flat, allOpaque, null, averageColor, biomeTint);
         }
 
         BlockTexture tinted(int tint) {
@@ -542,7 +568,7 @@ final class BlockTextures {
             for (int index = 0; index < pixels.length; index++) {
                 tintedPixels[index] = multiply(pixels[index], tint);
             }
-            return new BlockTexture(size, tintedPixels, opaque, multiply(averageColor, tint), null);
+            return new BlockTexture(width, height, tintedPixels, opaque, alphas, multiply(averageColor, tint), null);
         }
 
         int texelAt(double worldX, double worldZ) {
@@ -554,14 +580,14 @@ final class BlockTextures {
         }
 
         private int texelIndex(double worldX, double worldZ) {
-            int x = Math.min(size - 1, (int) ((worldX - Math.floor(worldX)) * size));
-            int z = Math.min(size - 1, (int) ((worldZ - Math.floor(worldZ)) * size));
-            return z * size + x;
+            int x = Math.min(width - 1, (int) ((worldX - Math.floor(worldX)) * width));
+            int z = Math.min(height - 1, (int) ((worldZ - Math.floor(worldZ)) * height));
+            return z * width + x;
         }
 
         BufferedImage toImage() {
-            BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-            image.setRGB(0, 0, size, size, pixels, 0, size);
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            image.setRGB(0, 0, width, height, pixels, 0, width);
             return image;
         }
 

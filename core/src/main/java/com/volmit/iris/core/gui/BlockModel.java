@@ -16,112 +16,198 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.core.gui.BlockTextures.BlockTexture;
 
-import java.util.EnumMap;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
- * A block as the object viewer draws it: a box with a texture on each side, or two crossed sprites for plants.
- * Models made of several boxes, like stairs, are drawn as a full block.
+ * A block as the object viewer draws it: the textured faces of its model, in block units, already turned the way the
+ * blockstate faces.
  *
- * @param box         the box in block units, from 0 to 1 on every axis for a full block
- * @param faces       the texture on each side of the box; a side the model leaves open is missing
- * @param crossSprite the sprite drawn on two crossed planes, or null for a box
+ * @param faces               every face of every box in the model
+ * @param coveredSides        the block's sides that a solid face fills completely, which hide whatever touches them
+ * @param hidesSameBlockSides whether the model fills the whole block, so like glass it hides the sides between two of
+ *                            the same blocks
  */
-record BlockModel(Box box, Map<CubeFace, BlockTexture> faces, BlockTexture crossSprite) {
-    static BlockModel box(Box box, Map<CubeFace, BlockTexture> faces) {
-        return new BlockModel(box, Map.copyOf(faces), null);
-    }
+record BlockModel(List<Face> faces, Set<CubeFace> coveredSides, boolean hidesSameBlockSides) {
+    static final BlockModel EMPTY = new BlockModel(List.of(), Set.of(), false);
+    private static final int SIDE_CELLS = 16;
+    private static final double ON_SIDE_TOLERANCE = 1e-4D;
 
-    static BlockModel cross(BlockTexture sprite) {
-        return new BlockModel(Box.FULL, Map.of(), sprite);
+    static BlockModel of(List<Face> faces) {
+        Set<CubeFace> coveredSides = EnumSet.noneOf(CubeFace.class);
+        boolean fillsEverySide = true;
+        for (CubeFace side : CubeFace.values()) {
+            if (sideIsFilled(faces, side, true)) {
+                coveredSides.add(side);
+            }
+            fillsEverySide &= sideIsFilled(faces, side, false);
+        }
+        return new BlockModel(List.copyOf(faces), Set.copyOf(coveredSides), fillsEverySide);
     }
 
     static BlockModel solidColor(int color) {
-        BlockTexture texture = new BlockTexture(1, new int[]{color}, new boolean[]{true}, color, null);
-        Map<CubeFace, BlockTexture> faces = new EnumMap<>(CubeFace.class);
-        for (CubeFace face : CubeFace.values()) {
-            faces.put(face, texture);
+        BlockTexture texture = BlockTexture.solid(color);
+        List<Face> faces = new ArrayList<>();
+        for (CubeFace side : CubeFace.values()) {
+            faces.add(Face.boxSide(Vec3.ZERO, new Vec3(1D, 1D, 1D), side, texture, side));
         }
-        return box(Box.FULL, faces);
+        return of(faces);
     }
 
-    boolean isCross() {
-        return crossSprite != null;
+    boolean isEmpty() {
+        return faces.isEmpty();
     }
 
-    /**
-     * Whether a neighbour's side touching this block can never be seen.
-     */
-    boolean hidesTouchingSides() {
-        if (isCross() || !box.isFull() || faces.size() < CubeFace.values().length) {
-            return false;
+    BlockModel withTextures(UnaryOperator<BlockTexture> change) {
+        Map<BlockTexture, BlockTexture> changed = new IdentityHashMap<>();
+        List<Face> changedFaces = new ArrayList<>(faces.size());
+        for (Face face : faces) {
+            changedFaces.add(face.withTexture(changed.computeIfAbsent(face.texture(), change)));
         }
-        for (BlockTexture texture : faces.values()) {
-            for (boolean opaque : texture.opaque()) {
-                if (!opaque) {
-                    return false;
-                }
+        return new BlockModel(List.copyOf(changedFaces), coveredSides, hidesSameBlockSides);
+    }
+
+    // The side is split into a grid, and every cell has to lie under a face pressed flat against it.
+    private static boolean sideIsFilled(List<Face> faces, CubeFace side, boolean onlySolidFaces) {
+        boolean[] filled = new boolean[SIDE_CELLS * SIDE_CELLS];
+        for (Face face : faces) {
+            if (face.liesOn(side) && (!onlySolidFaces || face.texture().isFullyOpaque())) {
+                face.fillCells(side, filled, SIDE_CELLS);
+            }
+        }
+        for (boolean cell : filled) {
+            if (!cell) {
+                return false;
             }
         }
         return true;
     }
 
-    record Box(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-        static final Box FULL = new Box(0D, 0D, 0D, 1D, 1D, 1D);
-        private static final double BLOCK_CENTER = 0.5D;
+    /**
+     * A parallelogram from {@code origin} along {@code edgeU} and {@code edgeV}. The texture point at the origin and
+     * how it moves along each edge are given as fractions of the texture.
+     *
+     * @param normal   the way the face looks out; it is hidden when seen from behind
+     * @param cullFace the block side whose neighbour hides this face when it covers that side, or null
+     */
+    record Face(Vec3 origin, Vec3 edgeU, Vec3 edgeV, Vec3 normal, BlockTexture texture, TextureMapping mapping,
+                double shade, CubeFace cullFace) {
 
-        static Box ofModelElement(double[] from, double[] to) {
-            double pixels = 16D;
-            return new Box(from[0] / pixels, from[1] / pixels, from[2] / pixels, to[0] / pixels, to[1] / pixels, to[2] / pixels);
+        // Laid out as seen from outside: u to the right and v downwards, matching Minecraft's UVs for a whole texture.
+        static Face boxSide(Vec3 from, Vec3 to, CubeFace side, BlockTexture texture, CubeFace cullFace) {
+            Vec3[] corners = BoxCorners.of(from, to, side);
+            return new Face(corners[0], corners[3].minus(corners[0]), corners[1].minus(corners[0]), side.direction(),
+                    texture, TextureMapping.WHOLE, side.shade(), cullFace);
         }
 
-        boolean isFull() {
-            return equals(FULL);
+        Face withTexture(BlockTexture changedTexture) {
+            return new Face(origin, edgeU, edgeV, normal, changedTexture, mapping, shade, cullFace);
         }
 
-        double min(int axis) {
-            return switch (axis) {
-                case 0 -> minX;
-                case 1 -> minY;
-                default -> minZ;
-            };
+        Face transformed(Transform transform) {
+            Vec3 turnedNormal = transform.direction(normal);
+            double length = Math.sqrt(turnedNormal.x() * turnedNormal.x() + turnedNormal.y() * turnedNormal.y() + turnedNormal.z() * turnedNormal.z());
+            return new Face(transform.point(origin), transform.direction(edgeU), transform.direction(edgeV),
+                    length == 0D ? turnedNormal : turnedNormal.times(1D / length), texture, mapping, shade,
+                    cullFace == null ? null : CubeFace.nearest(transform.direction(cullFace.direction())));
         }
 
-        double max(int axis) {
-            return switch (axis) {
-                case 0 -> maxX;
-                case 1 -> maxY;
-                default -> maxZ;
-            };
+        Face withCullFace(CubeFace side) {
+            return new Face(origin, edgeU, edgeV, normal, texture, mapping, shade, side);
         }
 
-        // Blockstates turn a model around the block's centre, the x axis first.
-        Box rotated(int rotationX, int rotationY) {
-            if (rotationX % 360 == 0 && rotationY % 360 == 0) {
-                return this;
+        Face withShade(double changedShade) {
+            return new Face(origin, edgeU, edgeV, normal, texture, mapping, changedShade, cullFace);
+        }
+
+        private boolean liesOn(CubeFace side) {
+            int axis = side.axis();
+            double plane = side.pointsPositive() ? 1D : 0D;
+            return CubeFace.nearest(normal) == side
+                    && Math.abs(normal.component(axis)) > 1D - ON_SIDE_TOLERANCE
+                    && Math.abs(origin.component(axis) - plane) < ON_SIDE_TOLERANCE
+                    && Math.abs(edgeU.component(axis)) < ON_SIDE_TOLERANCE
+                    && Math.abs(edgeV.component(axis)) < ON_SIDE_TOLERANCE;
+        }
+
+        private void fillCells(CubeFace side, boolean[] filled, int cells) {
+            int firstAxis = side.axis() == 0 ? 1 : 0;
+            int secondAxis = side.axis() == 2 ? 1 : 2;
+            double[] firstRange = range(firstAxis);
+            double[] secondRange = range(secondAxis);
+            for (int first = 0; first < cells; first++) {
+                double firstCenter = (first + 0.5D) / cells;
+                if (firstCenter < firstRange[0] || firstCenter > firstRange[1]) {
+                    continue;
+                }
+                for (int second = 0; second < cells; second++) {
+                    double secondCenter = (second + 0.5D) / cells;
+                    if (secondCenter >= secondRange[0] && secondCenter <= secondRange[1]) {
+                        filled[first * cells + second] = true;
+                    }
+                }
             }
-            double[] first = turned(minX, minY, minZ, rotationX, rotationY);
-            double[] second = turned(maxX, maxY, maxZ, rotationX, rotationY);
-            return new Box(Math.min(first[0], second[0]), Math.min(first[1], second[1]), Math.min(first[2], second[2]),
-                    Math.max(first[0], second[0]), Math.max(first[1], second[1]), Math.max(first[2], second[2]));
         }
 
-        private static double[] turned(double x, double y, double z, int rotationX, int rotationY) {
-            int[] axisX = CubeFace.turnAroundY(CubeFace.turnAroundX(new int[]{1, 0, 0}, rotationX), rotationY);
-            int[] axisY = CubeFace.turnAroundY(CubeFace.turnAroundX(new int[]{0, 1, 0}, rotationX), rotationY);
-            int[] axisZ = CubeFace.turnAroundY(CubeFace.turnAroundX(new int[]{0, 0, 1}, rotationX), rotationY);
-            double offsetX = x - BLOCK_CENTER;
-            double offsetY = y - BLOCK_CENTER;
-            double offsetZ = z - BLOCK_CENTER;
-            return new double[]{
-                    BLOCK_CENTER + axisX[0] * offsetX + axisY[0] * offsetY + axisZ[0] * offsetZ,
-                    BLOCK_CENTER + axisX[1] * offsetX + axisY[1] * offsetY + axisZ[1] * offsetZ,
-                    BLOCK_CENTER + axisX[2] * offsetX + axisY[2] * offsetY + axisZ[2] * offsetZ
+        private double[] range(int axis) {
+            double start = origin.component(axis);
+            double alongU = edgeU.component(axis);
+            double alongV = edgeV.component(axis);
+            double low = start + Math.min(0D, alongU) + Math.min(0D, alongV);
+            double high = start + Math.max(0D, alongU) + Math.max(0D, alongV);
+            return new double[]{low, high};
+        }
+    }
+
+    /**
+     * Where a face's corner sits in its texture and how the texture point moves along the face's two edges, all as
+     * fractions of the texture's width and height.
+     */
+    record TextureMapping(double u, double v, double uAlongU, double vAlongU, double uAlongV, double vAlongV) {
+        static final TextureMapping WHOLE = new TextureMapping(0D, 0D, 1D, 0D, 0D, 1D);
+    }
+
+    /**
+     * A box side's corners in Minecraft's order: top left, bottom left, bottom right and top right, as seen from
+     * outside the box.
+     */
+    static final class BoxCorners {
+        private BoxCorners() {
+        }
+
+        static Vec3[] of(Vec3 from, Vec3 to, CubeFace side) {
+            double minX = from.x();
+            double minY = from.y();
+            double minZ = from.z();
+            double maxX = to.x();
+            double maxY = to.y();
+            double maxZ = to.z();
+            return switch (side) {
+                case DOWN -> corners(minX, minY, maxZ, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ);
+                case UP -> corners(minX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ);
+                case NORTH -> corners(maxX, maxY, minZ, maxX, minY, minZ, minX, minY, minZ, minX, maxY, minZ);
+                case SOUTH -> corners(minX, maxY, maxZ, minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ);
+                case WEST -> corners(minX, maxY, minZ, minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ);
+                case EAST -> corners(maxX, maxY, maxZ, maxX, minY, maxZ, maxX, minY, minZ, maxX, maxY, minZ);
             };
+        }
+
+        private static Vec3[] corners(double... coordinates) {
+            Vec3[] corners = new Vec3[4];
+            for (int corner = 0; corner < 4; corner++) {
+                corners[corner] = new Vec3(coordinates[corner * 3], coordinates[corner * 3 + 1], coordinates[corner * 3 + 2]);
+            }
+            return corners;
         }
     }
 }

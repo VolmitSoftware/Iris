@@ -29,7 +29,6 @@ import javax.swing.JComponent;
 import java.awt.EventQueue;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -182,7 +181,7 @@ final class ObjectExplorer {
         viewport.show(loaded.mesh());
         overview.show(loaded.summary());
         statusBar.showSummary(String.format(Locale.ROOT, "%s · %,d blocks · %,d faces drawn",
-                loaded.summary().key(), loaded.summary().blockCount(), loaded.mesh().quads().size()));
+                loaded.summary().key(), loaded.summary().blockCount(), loaded.mesh().faceCount()));
     }
 
     private void showFailure(long revision, String key, Throwable error) {
@@ -228,12 +227,7 @@ final class ObjectExplorer {
 
     // Objects have no biome of their own, so grass and leaves get plains' colours.
     private BlockModel withBiomeTint(BlockModel model) {
-        if (model.isCross()) {
-            return BlockModel.cross(withBiomeTint(model.crossSprite()));
-        }
-        Map<CubeFace, BlockTexture> faces = new EnumMap<>(CubeFace.class);
-        model.faces().forEach((face, texture) -> faces.put(face, withBiomeTint(texture)));
-        return BlockModel.box(model.box(), faces);
+        return model.withTextures(this::withBiomeTint);
     }
 
     private BlockTexture withBiomeTint(BlockTexture texture) {

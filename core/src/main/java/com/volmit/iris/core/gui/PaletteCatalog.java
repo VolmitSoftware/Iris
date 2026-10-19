@@ -18,12 +18,21 @@
 
 package com.volmit.iris.core.gui;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisBlockData;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.collection.KList;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -73,8 +82,8 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         return regions.stream().filter(region -> region.key().equals(key)).findFirst().orElse(null);
     }
 
-    static String summarizeBlocks(IrisBiomePaletteLayer layer) {
-        List<String> names = layer.getPalette().stream()
+    static String summarizeBlocks(KList<IrisBlockData> blocks) {
+        List<String> names = blocks.stream()
                 .map(block -> block.getBlock().replace("minecraft:", "").toLowerCase(Locale.ROOT))
                 .distinct()
                 .toList();
@@ -117,10 +126,38 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         return parents;
     }
 
-    private static List<PaletteSummary> summarizePalettes(String key, IrisBiome biome) {
+    static List<PaletteSummary> summarizePalettes(String key, IrisBiome biome) {
+        JsonObject biomeSource = readSource(biome.getLoadFile());
         return BiomePalette.allOf(key, biome).stream()
-                .map(palette -> new PaletteSummary(palette, summarizeBlocks(palette.resolve(biome))))
+                .map(palette -> new PaletteSummary(palette, snippetName(biomeSource, palette),
+                        summarizeBlocks(palette.blocksIn(biome))))
                 .toList();
+    }
+
+    // Snippets are copied into the biome when it loads, so only its file still tells which palettes came from one.
+    private static String snippetName(JsonObject biomeSource, BiomePalette palette) {
+        JsonElement element = biomeSource == null ? null : biomeSource.get(palette.kind().jsonKey());
+        if (element instanceof JsonArray list) {
+            element = palette.index() < list.size() ? list.get(palette.index()) : null;
+        }
+        if (element == null || !element.isJsonPrimitive()) {
+            return null;
+        }
+        String reference = element.getAsString();
+        return reference.substring(reference.lastIndexOf('/') + 1);
+    }
+
+    private static JsonObject readSource(File file) {
+        if (file == null || !file.isFile()) {
+            return null;
+        }
+        try (JsonReader reader = new JsonReader(new FileReader(file))) {
+            reader.setLenient(true);
+            JsonElement source = JsonParser.parseReader(reader);
+            return source.isJsonObject() ? source.getAsJsonObject() : null;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
     }
 
     private static RegionEntry describeRegion(String key, IrisRegion region, Map<String, BiomeEntry> biomes) {
@@ -173,9 +210,14 @@ record PaletteCatalog(List<RegionEntry> regions, List<String> biomesOutsideRegio
         }
     }
 
-    record PaletteSummary(BiomePalette palette, String blocks) {
+    /**
+     * @param snippet the name of the snippet file the palette comes from, or null when the biome defines it itself
+     */
+    record PaletteSummary(BiomePalette palette, String snippet, String blocks) {
         String text() {
-            return palette.label() + " · " + blocks;
+            return snippet == null
+                    ? palette.label() + " · " + blocks
+                    : palette.label() + " · " + snippet + " snippet · " + blocks;
         }
     }
 }

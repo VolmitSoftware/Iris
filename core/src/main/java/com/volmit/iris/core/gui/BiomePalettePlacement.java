@@ -19,48 +19,69 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.decorator.IrisEngineDecorator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisBlockData;
+import com.volmit.iris.engine.object.IrisDecorationPart;
+import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * How thick one biome palette is at a spot and which noise picks its block there, sampled exactly the way the
  * generator does for that kind of palette. The generator seeds each palette's noise from the first call it makes,
- * so these use the same random sources the terrain, carving and post passes use.
+ * so these use the same random sources the terrain, carving, post and decorator passes use.
  */
 abstract class BiomePalettePlacement {
-    protected final IrisBiomePaletteLayer layer;
     protected final IrisData data;
 
-    private BiomePalettePlacement(IrisBiomePaletteLayer layer, IrisData data) {
-        this.layer = layer;
+    private BiomePalettePlacement(IrisData data) {
         this.data = data;
     }
 
-    static BiomePalettePlacement of(Engine engine, IrisBiome biome, BiomePalette palette, IrisBiomePaletteLayer layer) {
+    static BiomePalettePlacement of(Engine engine, IrisBiome biome, BiomePalette palette) {
         IrisData data = engine.getData();
         RNG terrainRandom = new RNG(engine.getSeedManager().getTerrain());
         RNG carveRandom = new RNG(engine.getSeedManager().getCarve());
         RNG postRandom = new RNG(engine.getSeedManager().getPost());
         int seaLevel = seaLevel(engine.getDimension());
         return switch (palette.kind()) {
-            case LAYER -> new SurfaceLayer(biome, palette.index(), layer, terrainRandom, data);
-            case SEA_LAYER -> new LegacyStackedLayer(layer, data, terrainRandom.nextParallelRNG(palette.index()),
+            case LAYER -> new SurfaceLayer(biome, palette.index(), palette.layerIn(biome), terrainRandom, data);
+            case SEA_LAYER -> new LegacyStackedLayer(palette.layerIn(biome), data, terrainRandom.nextParallelRNG(palette.index()),
                     biome.getLayerSeaHeightGenerators(terrainRandom, data), palette.index());
-            case CAVE_CEILING_LAYER -> new LegacyStackedLayer(layer, data, carveRandom.nextParallelRNG(palette.index()),
+            case CAVE_CEILING_LAYER -> new LegacyStackedLayer(palette.layerIn(biome), data, carveRandom.nextParallelRNG(palette.index()),
                     biome.getLayerHeightGenerators(terrainRandom, data), palette.index());
-            case WALL -> new SingleBlocks(layer, data, carveRandom, seaLevel);
-            case SLAB -> new SingleBlocks(layer, data, postRandom, seaLevel);
+            case WALL -> new SingleBlocks(palette.layerIn(biome), data, carveRandom, seaLevel);
+            case SLAB -> new SingleBlocks(palette.layerIn(biome), data, postRandom, seaLevel);
+            case DECORATOR -> new Decorations(biome, palette.decoratorIn(biome), engine.getSeedManager().getComponent(),
+                    seaLevel, data);
         };
     }
 
     private static int seaLevel(IrisDimension dimension) {
         return dimension == null ? 0 : dimension.getFluidHeight();
     }
+
+    abstract KList<IrisBlockData> blocks();
+
+    abstract double zoom();
+
+    int minThickness() {
+        return 1;
+    }
+
+    int maxThickness() {
+        return 1;
+    }
+
+    abstract boolean hasSlopeCondition();
 
     /**
      * How many blocks of this palette are stacked at the spot.
@@ -76,7 +97,41 @@ abstract class BiomePalettePlacement {
         return null;
     }
 
-    private static final class SurfaceLayer extends BiomePalettePlacement {
+    private abstract static class LayerPlacement extends BiomePalettePlacement {
+        protected final IrisBiomePaletteLayer layer;
+
+        private LayerPlacement(IrisBiomePaletteLayer layer, IrisData data) {
+            super(data);
+            this.layer = layer;
+        }
+
+        @Override
+        KList<IrisBlockData> blocks() {
+            return layer.getPalette();
+        }
+
+        @Override
+        double zoom() {
+            return layer.getZoom();
+        }
+
+        @Override
+        int minThickness() {
+            return layer.getMinHeight();
+        }
+
+        @Override
+        int maxThickness() {
+            return layer.getMaxHeight();
+        }
+
+        @Override
+        boolean hasSlopeCondition() {
+            return !layer.getSlopeCondition().isDefault();
+        }
+    }
+
+    private static final class SurfaceLayer extends LayerPlacement {
         private final IrisBiome biome;
         private final int index;
         private final RNG random;
@@ -103,7 +158,7 @@ abstract class BiomePalettePlacement {
      * Sea and cave ceiling layers go through the older sampling path, which divides by the zoom twice and borrows
      * its thickness noise from another list: a cave ceiling layer uses the surface layer at the same position's.
      */
-    private static final class LegacyStackedLayer extends BiomePalettePlacement {
+    private static final class LegacyStackedLayer extends LayerPlacement {
         private final RNG random;
         private final CNG thicknessNoise;
 
@@ -141,7 +196,7 @@ abstract class BiomePalettePlacement {
     /**
      * Wall and slab blocks are picked one at a time with noise that also changes with height.
      */
-    private static final class SingleBlocks extends BiomePalettePlacement {
+    private static final class SingleBlocks extends LayerPlacement {
         private final RNG random;
         private final int sampleHeight;
 
@@ -149,6 +204,16 @@ abstract class BiomePalettePlacement {
             super(layer, data);
             this.random = random;
             this.sampleHeight = sampleHeight;
+        }
+
+        @Override
+        int minThickness() {
+            return 1;
+        }
+
+        @Override
+        int maxThickness() {
+            return 1;
         }
 
         @Override
@@ -165,6 +230,87 @@ abstract class BiomePalettePlacement {
         @Override
         String simplification() {
             return "These blocks also change with height; the preview shows them at sea level (Y " + sampleHeight + ").";
+        }
+    }
+
+    /**
+     * A decorator places where its style noise stays under its chance, and its variance noise picks the block there.
+     * The generator seeds the variance noise from whichever block it decorates first, so the preview reuses that noise
+     * once the world has generated some decorations.
+     */
+    private static final class Decorations extends BiomePalettePlacement {
+        private final IrisDecorator decorator;
+        private final CNG placementNoise;
+        private final CNG blockNoise;
+        private final int sampleHeight;
+        private final boolean sharesSpotsWithOtherDecorators;
+
+        private Decorations(IrisBiome biome, IrisDecorator decorator, long componentSeed, int sampleHeight, IrisData data) {
+            super(data);
+            this.decorator = decorator;
+            RNG partRandom = new RNG(IrisEngineDecorator.partSeed(componentSeed, decorator.getPartOf()));
+            this.placementNoise = decorator.getGenerator(partRandom, data);
+            this.blockNoise = decorator.getVarianceGenerator(partRandom, data);
+            this.sampleHeight = sampleHeight;
+            this.sharesSpotsWithOtherDecorators = biome.getDecorators().stream()
+                    .anyMatch(other -> other != null && other != decorator && other.getPartOf() == decorator.getPartOf());
+        }
+
+        @Override
+        KList<IrisBlockData> blocks() {
+            return decorator.getPalette();
+        }
+
+        @Override
+        double zoom() {
+            return decorator.getStyle().getZoom();
+        }
+
+        @Override
+        boolean hasSlopeCondition() {
+            return !decorator.getSlopeCondition().isDefault();
+        }
+
+        @Override
+        int thickness(int blockX, int blockZ) {
+            double zoom = zoom();
+            return placementNoise.fitDouble(0D, 1D, blockX / zoom, blockZ / zoom) <= decorator.getChance() ? 1 : 0;
+        }
+
+        // The generator swaps X and Z when it picks the block.
+        @Override
+        double noise(int blockX, int blockZ, int depth) {
+            return blockNoise.noise(blockZ, sampleHeight, blockX);
+        }
+
+        @Override
+        String simplification() {
+            List<String> notes = new ArrayList<>();
+            String partNote = partNote(decorator.getPartOf());
+            if (partNote != null) {
+                notes.add(partNote);
+            }
+            if (sharesSpotsWithOtherDecorators) {
+                notes.add("Where other decorators of this biome could place too, the world picks one of them at random.");
+            }
+            if (decorator.isStacking()) {
+                notes.add("It stacks " + decorator.getStackMin() + "–" + decorator.getStackMax()
+                        + " blocks high; the preview shows the bottom block.");
+            }
+            if (blocks().size() > 1) {
+                notes.add("The block also changes with height; the preview picks it at sea level (Y " + sampleHeight + ").");
+            }
+            return notes.isEmpty() ? null : String.join(" ", notes);
+        }
+
+        private static String partNote(IrisDecorationPart part) {
+            return switch (part) {
+                case NONE -> null;
+                case SHORE_LINE -> "It only places along shore lines.";
+                case SEA_SURFACE -> "It only places on the sea surface.";
+                case SEA_FLOOR -> "It only places on the sea floor.";
+                case CEILING -> "It places on cave ceilings and the undersides of overhangs, not on the ground.";
+            };
         }
     }
 }

@@ -45,9 +45,16 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
     public IrisEngineDecorator(Engine engine, String name, IrisDecorationPart part) {
         super(engine, name + " Decorator");
         this.part = part;
-        this.seed = getSeed() + 29356788 - (part.ordinal() * 10439677L);
+        this.seed = partSeed(getSeed(), part);
         this.modX = 29356788 ^ (part.ordinal() + 6);
         this.modZ = 10439677 ^ (part.ordinal() + 1);
+    }
+
+    /**
+     * The seed each decorator of the given part decides where it places with.
+     */
+    public static long partSeed(long componentSeed, IrisDecorationPart part) {
+        return componentSeed + 29356788 - (part.ordinal() * 10439677L);
     }
 
     @BlockCoordinates

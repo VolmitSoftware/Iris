@@ -409,8 +409,7 @@ final class PaletteInspectorPanel extends JPanel {
                     PaletteLayerPreview.STATISTICS_GRID_SIZE, PaletteLayerPreview.STATISTICS_GRID_SIZE,
                     PaletteLayerPreview.statisticsAreaBlocks()));
             if (preview.absentShare() > 0D) {
-                notes.add("The layer doesn't reach this depth on " + percent(preview.absentShare())
-                        + " of the ground. That ground is dark on the map and left out of the shares.");
+                notes.add(absentText(preview) + " That ground is dark on the map and left out of the shares.");
             }
             if (preview.outOfRangeShare() > 0D) {
                 notes.add(percent(preview.outOfRangeShare()) + " of the noise values fall outside 0 to 1."
@@ -420,9 +419,24 @@ final class PaletteInspectorPanel extends JPanel {
                 notes.add(preview.simplification());
             }
             if (preview.hasSlopeCondition()) {
-                notes.add("This layer has a slope condition, which the preview ignores.");
+                notes.add("This " + paletteNoun(preview) + " has a slope condition, which the preview ignores.");
             }
             return notes;
+        }
+
+        private static String absentText(PaletteLayerPreview preview) {
+            if (isDecorator(preview)) {
+                return "The decorator leaves " + percent(preview.absentShare()) + " of the ground bare.";
+            }
+            return "The layer doesn't reach this depth on " + percent(preview.absentShare()) + " of the ground.";
+        }
+
+        private static String paletteNoun(PaletteLayerPreview preview) {
+            return isDecorator(preview) ? "decorator" : "layer";
+        }
+
+        private static boolean isDecorator(PaletteLayerPreview preview) {
+            return preview.palette().kind() == BiomePalette.Kind.DECORATOR;
         }
 
         private static String actualText(PaletteLayerPreview.Entry entry) {

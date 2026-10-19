@@ -613,10 +613,11 @@ public final class NoiseExplorerGUI extends JPanel {
             if (biome == null) {
                 continue;
             }
-            for (BiomePalette palette : BiomePalette.allOf(key, biome)) {
+            for (PaletteCatalog.PaletteSummary summary : PaletteCatalog.summarizePalettes(key, biome)) {
+                BiomePalette palette = summary.palette();
                 sources.add(new SourceItem(
                         palette.id(),
-                        palette.label() + " · " + PaletteCatalog.summarizeBlocks(palette.resolve(biome)),
+                        summary.text(),
                         key,
                         NoiseCategory.PACK_PALETTES,
                         false,

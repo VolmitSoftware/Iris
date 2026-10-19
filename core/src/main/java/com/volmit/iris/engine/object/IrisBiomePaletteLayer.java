@@ -130,6 +130,13 @@ public class IrisBiomePaletteLayer {
     }
 
     public KList<Integer> getPaletteEntryPerSlot(IrisData data) {
+        return paletteEntryPerSlot(palette, data);
+    }
+
+    /**
+     * Each block fills as many slots of the noise range as its weight; blocks that can't be found get none.
+     */
+    public static KList<Integer> paletteEntryPerSlot(KList<IrisBlockData> palette, IrisData data) {
         KList<Integer> entries = new KList<>();
         for (int entry = 0; entry < palette.size(); entry++) {
             IrisBlockData block = palette.get(entry);

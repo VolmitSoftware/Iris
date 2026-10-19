@@ -41,7 +41,7 @@ final class PaletteLayerPreview {
     private static final int BLOCK_CACHE_SIZE = 1 << 16;
 
     private final BiomePalette palette;
-    private final IrisBiomePaletteLayer paletteLayer;
+    private final KList<IrisBlockData> blocks;
     private final BiomePalettePlacement placement;
     private final int depth;
     private final IrisData data;
@@ -56,14 +56,14 @@ final class PaletteLayerPreview {
     private final double absentShare;
     private final double outOfRangeShare;
 
-    private PaletteLayerPreview(BiomePalette palette, IrisBiomePaletteLayer paletteLayer, BiomePalettePlacement placement,
-                                int depth, IrisData data, BlockTextures textures, BiomeTintField biomeTints) {
+    private PaletteLayerPreview(BiomePalette palette, BiomePalettePlacement placement, int depth, IrisData data,
+                                BlockTextures textures, BiomeTintField biomeTints) {
         this.palette = palette;
-        this.paletteLayer = paletteLayer;
+        this.blocks = placement.blocks();
         this.placement = placement;
         this.depth = depth;
         this.data = data;
-        this.entryBySlot = paletteLayer.getPaletteEntryPerSlot(data).stream().mapToInt(Integer::intValue).toArray();
+        this.entryBySlot = IrisBiomePaletteLayer.paletteEntryPerSlot(blocks, data).stream().mapToInt(Integer::intValue).toArray();
         if (entryBySlot.length == 0) {
             throw new IllegalStateException("No block of " + palette.biomeKey() + " " + palette.lowercaseLabel() + " could be found");
         }
@@ -85,15 +85,14 @@ final class PaletteLayerPreview {
         }
         IrisData data = engine.getData();
         IrisBiome biome = data.getBiomeLoader().load(palette.biomeKey());
-        IrisBiomePaletteLayer paletteLayer = biome == null ? null : palette.resolve(biome);
-        if (paletteLayer == null) {
+        if (biome == null || palette.blocksIn(biome) == null) {
             throw new IllegalStateException("Palette removed during hotload: " + palette.biomeKey() + " " + palette.lowercaseLabel());
         }
-        BiomePalettePlacement placement = BiomePalettePlacement.of(engine, biome, palette, paletteLayer);
+        BiomePalettePlacement placement = BiomePalettePlacement.of(engine, biome, palette);
         BiomeTintField biomeTints = textures == null
                 ? null
                 : new BiomeTintField(biome, new RNG(engine.getSeedManager().getBiome()), textures.biomeColors());
-        return new PaletteLayerPreview(palette, paletteLayer, placement, depth, data, textures, biomeTints);
+        return new PaletteLayerPreview(palette, placement, depth, data, textures, biomeTints);
     }
 
     // The world picks one block per whole coordinate, and zoomed in, many pixels fall on the same block.
@@ -161,19 +160,19 @@ final class PaletteLayerPreview {
     }
 
     int minThickness() {
-        return palette.kind().isStacked() ? paletteLayer.getMinHeight() : 1;
+        return placement.minThickness();
     }
 
     int maxThickness() {
-        return palette.kind().isStacked() ? paletteLayer.getMaxHeight() : 1;
+        return placement.maxThickness();
     }
 
     double zoom() {
-        return paletteLayer.getZoom();
+        return placement.zoom();
     }
 
     boolean hasSlopeCondition() {
-        return !paletteLayer.getSlopeCondition().isDefault();
+        return placement.hasSlopeCondition();
     }
 
     List<Entry> entries() {
@@ -201,13 +200,12 @@ final class PaletteLayerPreview {
     }
 
     private BlockTexture[] resolveEntryTextures(BlockTextures textures) {
-        KList<IrisBlockData> palette = paletteLayer.getPalette();
-        BlockTexture[] resolved = new BlockTexture[palette.size()];
+        BlockTexture[] resolved = new BlockTexture[blocks.size()];
         if (textures == null) {
             return resolved;
         }
-        for (int entry = 0; entry < palette.size(); entry++) {
-            BlockData block = palette.get(entry).getBlockData(data);
+        for (int entry = 0; entry < blocks.size(); entry++) {
+            BlockData block = blocks.get(entry).getBlockData(data);
             resolved[entry] = block == null ? null : textures.topTexture(block).orElse(null);
         }
         return resolved;
@@ -227,18 +225,17 @@ final class PaletteLayerPreview {
 
     // Blocks without a texture, like custom blocks or everything before the textures load, fall back to map colours.
     private int[] resolveLegendColors() {
-        KList<IrisBlockData> palette = paletteLayer.getPalette();
         List<BlockData> untexturedBlocks = new ArrayList<>();
-        for (int entry = 0; entry < palette.size(); entry++) {
-            BlockData block = palette.get(entry).getBlockData(data);
+        for (int entry = 0; entry < blocks.size(); entry++) {
+            BlockData block = blocks.get(entry).getBlockData(data);
             if (block != null && textureByEntry[entry] == null) {
                 untexturedBlocks.add(block);
             }
         }
         Map<String, Integer> mapColorsByBlock = BlockPreviewColors.colorsByBlock(untexturedBlocks);
-        int[] colors = new int[palette.size()];
-        for (int entry = 0; entry < palette.size(); entry++) {
-            BlockData block = palette.get(entry).getBlockData(data);
+        int[] colors = new int[blocks.size()];
+        for (int entry = 0; entry < blocks.size(); entry++) {
+            BlockData block = blocks.get(entry).getBlockData(data);
             if (block == null) {
                 colors[entry] = MISSING_BLOCK_COLOR;
             } else if (legendTextureByEntry[entry] != null) {
@@ -252,7 +249,7 @@ final class PaletteLayerPreview {
 
     private Statistics measure() {
         long[] values = new long[HISTOGRAM_BINS];
-        long[] samplesByEntry = new long[paletteLayer.getPalette().size()];
+        long[] samplesByEntry = new long[blocks.size()];
         long present = 0;
         long absent = 0;
         long outOfRange = 0;
@@ -281,11 +278,10 @@ final class PaletteLayerPreview {
     }
 
     private List<Entry> describeEntries(double[] sharesByEntry) {
-        KList<IrisBlockData> palette = paletteLayer.getPalette();
         int slotCount = entryBySlot.length;
-        List<Entry> described = new ArrayList<>(palette.size());
-        for (int entry = 0; entry < palette.size(); entry++) {
-            IrisBlockData block = palette.get(entry);
+        List<Entry> described = new ArrayList<>(blocks.size());
+        for (int entry = 0; entry < blocks.size(); entry++) {
+            IrisBlockData block = blocks.get(entry);
             int firstSlot = firstSlotOf(entry);
             int lastSlot = lastSlotOf(entry);
             boolean placed = firstSlot >= 0;

@@ -20,31 +20,40 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisBlockData;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.util.collection.KList;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * One of the block palettes a biome places: a surface, sea or cave ceiling layer, or its wall or slab blocks.
+ * One of the block palettes a biome places: a surface, sea or cave ceiling layer, its wall or slab blocks, or a
+ * decorator.
  */
 record BiomePalette(String biomeKey, Kind kind, int index) {
     private static final String ID_PREFIX = "palette:";
     private static final char ID_SEPARATOR = '#';
 
     enum Kind {
-        LAYER("Layer", true),
-        SEA_LAYER("Sea layer", true),
-        CAVE_CEILING_LAYER("Cave ceiling layer", true),
-        WALL("Wall", false),
-        SLAB("Slab", false);
+        LAYER("Layer", "layers", true, true),
+        SEA_LAYER("Sea layer", "seaLayers", true, true),
+        CAVE_CEILING_LAYER("Cave ceiling layer", "caveCeilingLayers", true, true),
+        WALL("Wall", "wall", false, false),
+        SLAB("Slab", "slab", false, false),
+        DECORATOR("Decorator", "decorators", false, true);
 
         private final String label;
+        private final String jsonKey;
         private final boolean stacked;
+        private final boolean numbered;
 
-        Kind(String label, boolean stacked) {
+        Kind(String label, String jsonKey, boolean stacked, boolean numbered) {
             this.label = label;
+            this.jsonKey = jsonKey;
             this.stacked = stacked;
+            this.numbered = numbered;
         }
 
         /**
@@ -54,24 +63,42 @@ record BiomePalette(String biomeKey, Kind kind, int index) {
             return stacked;
         }
 
+        /**
+         * The biome file's key holding these palettes: a list of them, or a single one for walls and slabs.
+         */
+        String jsonKey() {
+            return jsonKey;
+        }
+
         // A biome without wall or slab blocks still has those palettes, just empty.
-        List<IrisBiomePaletteLayer> palettesOf(IrisBiome biome) {
+        List<IrisBiomePaletteLayer> layersOf(IrisBiome biome) {
             return switch (this) {
                 case LAYER -> biome.getLayers();
                 case SEA_LAYER -> biome.getSeaLayers();
                 case CAVE_CEILING_LAYER -> biome.getCaveCeilingLayers();
                 case WALL -> biome.getWall().getPalette().isEmpty() ? List.of() : List.of(biome.getWall());
                 case SLAB -> biome.getSlab().getPalette().isEmpty() ? List.of() : List.of(biome.getSlab());
+                case DECORATOR -> List.of();
             };
+        }
+
+        // A decorator snippet that couldn't be found loads as an empty entry, which places nothing.
+        List<KList<IrisBlockData>> blockListsOf(IrisBiome biome) {
+            if (this != DECORATOR) {
+                return layersOf(biome).stream().map(IrisBiomePaletteLayer::getPalette).toList();
+            }
+            return biome.getDecorators().stream()
+                    .map(decorator -> decorator == null ? new KList<IrisBlockData>() : decorator.getPalette())
+                    .toList();
         }
     }
 
     static List<BiomePalette> allOf(String biomeKey, IrisBiome biome) {
         List<BiomePalette> palettes = new ArrayList<>();
         for (Kind kind : Kind.values()) {
-            List<IrisBiomePaletteLayer> layers = kind.palettesOf(biome);
-            for (int index = 0; index < layers.size(); index++) {
-                if (!layers.get(index).getPalette().isEmpty()) {
+            List<KList<IrisBlockData>> blockLists = kind.blockListsOf(biome);
+            for (int index = 0; index < blockLists.size(); index++) {
+                if (!blockLists.get(index).isEmpty()) {
                     palettes.add(new BiomePalette(biomeKey, kind, index));
                 }
             }
@@ -104,7 +131,7 @@ record BiomePalette(String biomeKey, Kind kind, int index) {
     }
 
     String label() {
-        return kind.isStacked() ? kind.label + " " + index : kind.label;
+        return kind.numbered ? kind.label + " " + index : kind.label;
     }
 
     String lowercaseLabel() {
@@ -112,10 +139,18 @@ record BiomePalette(String biomeKey, Kind kind, int index) {
     }
 
     /**
-     * The palette in the given copy of the biome, or null when a hotload removed it.
+     * The palette's blocks in the given copy of the biome, or null when a hotload removed it.
      */
-    IrisBiomePaletteLayer resolve(IrisBiome biome) {
-        List<IrisBiomePaletteLayer> layers = kind.palettesOf(biome);
-        return index < layers.size() ? layers.get(index) : null;
+    KList<IrisBlockData> blocksIn(IrisBiome biome) {
+        List<KList<IrisBlockData>> blockLists = kind.blockListsOf(biome);
+        return index < blockLists.size() ? blockLists.get(index) : null;
+    }
+
+    IrisBiomePaletteLayer layerIn(IrisBiome biome) {
+        return kind.layersOf(biome).get(index);
+    }
+
+    IrisDecorator decoratorIn(IrisBiome biome) {
+        return biome.getDecorators().get(index);
     }
 }

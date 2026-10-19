@@ -31,6 +31,8 @@ import art.arcane.iris.builtin.spawn.SpawnGroup;
 import art.arcane.iris.builtin.spawn.SpawnWeather;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.builtin.spawn.SpawnerSettings;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.FeatureAttachment.Target;
@@ -56,6 +58,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Files of the overworld pack exactly as they were before the loot and spawn fields became module settings (copied from
@@ -268,6 +273,21 @@ public class LootAndSpawnPackDecodingTest {
                 assertEquals(region.getJSONArray("effects").length(), written.getJSONArray("effects").length());
             }
         }
+    }
+
+    @Test
+    public void aLootTableOfTheWrongShapeFailsToReadSayingWhy() throws IOException {
+        Path brokenPack = folder.newFolder("broken-pack").toPath();
+        Files.createDirectories(brokenPack.resolve("loot"));
+        Files.writeString(brokenPack.resolve("loot/broken.json"), "{\"rarity\": [1], \"loot\": [{\"type\": \"stone\"}]}");
+        IrisData data = mock(IrisData.class, RETURNS_DEEP_STUBS);
+        when(data.getDataFolder()).thenReturn(brokenPack.toFile());
+        when(data.getModules().settings()).thenReturn(decoder);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> new ModuleResourceFiles<>(data, LootResources.TABLES).read("broken"));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("$.rarity"));
     }
 
     private JSONObject file(String relative) throws IOException {

@@ -42,8 +42,8 @@ import java.util.stream.Stream;
  * A file is read with the pack's module decoder, which hands Iris's own classes to the pack's Gson, so a built-in
  * kind such as structures reads exactly as Iris's loaders read. A resource that is one of Iris's registrants gets its
  * key, file and pack data, as a loader would set them. A file that fails to read is reported with the line at fault,
- * like a loader's, and gives no resource. Unknown keys are reported for Iris's own classes only: the check caches
- * field names per class, which would keep a pack module's classes loaded after the pack closes.
+ * like a loader's, and the read throws with the reason. Unknown keys are reported for Iris's own classes only: the
+ * check caches field names per class, which would keep a pack module's classes loaded after the pack closes.
  */
 public final class ModuleResourceFiles<T> {
     private static final String JSON_EXTENSION = ".json";
@@ -77,7 +77,10 @@ public final class ModuleResourceFiles<T> {
         }
     }
 
-    /** The file of {@code key} read into a new resource, or null when it fails to read, which is reported. */
+    /**
+     * The file of {@code key} read into a new resource. A file that fails to read is reported, and the call throws an
+     * {@link IllegalStateException} whose message says what is wrong with it.
+     */
     T read(String key) {
         File file = folder.resolve(key + JSON_EXTENSION).toFile();
         String json = null;
@@ -89,8 +92,13 @@ public final class ModuleResourceFiles<T> {
             return resource;
         } catch (IOException | RuntimeException failure) {
             JsonSchemaValidator.reportLoadFailure(file, json, typeName, failure);
-            return null;
+            throw new IllegalStateException(reasonOf(failure), failure);
         }
+    }
+
+    private static String reasonOf(Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 
     private String keyOf(Path file) {

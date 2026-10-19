@@ -60,6 +60,11 @@ final class PaletteLayerScale implements NoiseColorScale {
     }
 
     @Override
+    public int colorInvalidAt(double worldX, double worldZ) {
+        return view == View.NOISE ? ABSENT_COLOR : preview.bareColorAt(worldX, worldZ, showTexturePixels);
+    }
+
+    @Override
     public Color displayColorNormalized(double normalized) {
         return new Color(colorFinite(minimum() + normalized * (maximum() - minimum())));
     }

@@ -200,7 +200,7 @@ final class NoiseRenderCoordinator implements AutoCloseable {
                     pixels[pixelIndex++] = colorScale.colorAt(value, worldX, worldZ);
                     stats.acceptFinite(value, center, paletteMinimum, paletteMaximum);
                 } else {
-                    pixels[pixelIndex++] = colorScale.colorInvalid();
+                    pixels[pixelIndex++] = colorScale.colorInvalidAt(worldX, worldZ);
                     stats.acceptInvalid(value, center);
                 }
                 worldX += worldStep;

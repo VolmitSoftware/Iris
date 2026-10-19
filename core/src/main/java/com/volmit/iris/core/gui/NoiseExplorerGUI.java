@@ -1305,7 +1305,9 @@ public final class NoiseExplorerGUI extends JPanel {
     private static String describePaletteAt(PaletteLayerPreview preview, double worldX, double worldZ) {
         double noise = preview.sample(worldX, worldZ);
         if (Double.isNaN(noise)) {
-            return "The layer doesn't reach this depth here";
+            return preview.palette().kind() == BiomePalette.Kind.DECORATOR
+                    ? "The decorator places nothing here"
+                    : "The layer doesn't reach this depth here";
         }
         return preview.entryForNoise(noise).block() + "   noise " + formatNumber(noise);
     }

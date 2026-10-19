@@ -40,10 +40,13 @@ final class PaletteLayerPreview {
     private static final int MISSING_BLOCK_COLOR = 0x5A5F6B;
     private static final double FAR_FROM_WEIGHT_FACTOR = 2D;
     private static final int BLOCK_CACHE_SIZE = 1 << 16;
+    private static final double BARE_GROUND_SHADE = 0.6D;
 
     private final BiomePalette palette;
     private final KList<IrisBlockData> blocks;
     private final BiomePalettePlacement placement;
+    private final PaletteLayerPreview ground;
+    private final boolean[] showsGroundByEntry;
     private final int depth;
     private final IrisData data;
     private final int[] entryBySlot;
@@ -57,11 +60,12 @@ final class PaletteLayerPreview {
     private final double absentShare;
     private final double outOfRangeShare;
 
-    private PaletteLayerPreview(BiomePalette palette, BiomePalettePlacement placement, int depth, IrisData data,
-                                BlockTextures textures, BiomeTintField biomeTints) {
+    private PaletteLayerPreview(BiomePalette palette, BiomePalettePlacement placement, PaletteLayerPreview ground, int depth,
+                                IrisData data, BlockTextures textures, BiomeTintField biomeTints) {
         this.palette = palette;
         this.blocks = placement.blocks();
         this.placement = placement;
+        this.ground = ground;
         this.depth = depth;
         this.data = data;
         this.entryBySlot = IrisBiomePaletteLayer.paletteEntryPerSlot(blocks, data).stream().mapToInt(Integer::intValue).toArray();
@@ -69,6 +73,7 @@ final class PaletteLayerPreview {
             throw new IllegalStateException("No block of " + palette.biomeKey() + " " + palette.lowercaseLabel() + " could be found");
         }
         this.biomeTints = biomeTints;
+        this.showsGroundByEntry = resolveGroundShowingEntries();
         this.textureByEntry = resolveEntryTextures(textures);
         this.legendTextureByEntry = tintForLegend(textureByEntry);
         this.legendColorByEntry = resolveLegendColors();
@@ -93,7 +98,22 @@ final class PaletteLayerPreview {
         BiomeTintField biomeTints = textures == null
                 ? null
                 : new BiomeTintField(biome, new RNG(engine.getSeedManager().getBiome()), textures.biomeColors());
-        return new PaletteLayerPreview(palette, placement, depth, data, textures, biomeTints);
+        PaletteLayerPreview ground = palette.kind() == BiomePalette.Kind.DECORATOR
+                ? groundUnder(engine, palette.biomeKey(), biome, data, textures, biomeTints)
+                : null;
+        return new PaletteLayerPreview(palette, placement, ground, depth, data, textures, biomeTints);
+    }
+
+    // Decorations stand on the biome's top surface layer, so that is what shows around and between them.
+    private static PaletteLayerPreview groundUnder(Engine engine, String biomeKey, IrisBiome biome, IrisData data,
+                                                   BlockTextures textures, BiomeTintField biomeTints) {
+        BiomePalette topLayer = new BiomePalette(biomeKey, BiomePalette.Kind.LAYER, 0);
+        KList<IrisBlockData> blocks = topLayer.blocksIn(biome);
+        if (blocks == null || blocks.isEmpty()) {
+            return null;
+        }
+        return new PaletteLayerPreview(topLayer, BiomePalettePlacement.of(engine, biome, topLayer), null, 0, data, textures,
+                biomeTints);
     }
 
     // The world picks one block per whole coordinate, and zoomed in, many pixels fall on the same block.
@@ -128,9 +148,15 @@ final class PaletteLayerPreview {
 
     int blockColorAt(double noise, double worldX, double worldZ, boolean showTexturePixels) {
         int entry = entryIndexForNoise(noise);
+        if (showsGroundByEntry[entry]) {
+            return bareColorAt(worldX, worldZ, showTexturePixels);
+        }
         BlockTexture texture = textureByEntry[entry];
         if (texture == null) {
             return legendColorByEntry[entry];
+        }
+        if (ground != null && showTexturePixels && !texture.isOpaqueAt(worldX, worldZ)) {
+            return groundColorAt(worldX, worldZ, true);
         }
         int untintedColor = showTexturePixels ? texture.texelAt(worldX, worldZ) : texture.averageColor();
         if (texture.biomeTint() == null) {
@@ -138,6 +164,31 @@ final class PaletteLayerPreview {
         }
         int tint = biomeTints.colorAt(texture.biomeTint(), (int) Math.floor(worldX), (int) Math.floor(worldZ));
         return BlockTexture.multiply(untintedColor, tint);
+    }
+
+    /**
+     * The colour where the palette places nothing: the dimmed ground under a decorator, or plain dark otherwise.
+     */
+    int bareColorAt(double worldX, double worldZ, boolean showTexturePixels) {
+        if (ground == null) {
+            return PaletteLayerScale.ABSENT_COLOR;
+        }
+        return BlockPreviewColors.shade(groundColorAt(worldX, worldZ, showTexturePixels), BARE_GROUND_SHADE);
+    }
+
+    private int groundColorAt(double worldX, double worldZ, boolean showTexturePixels) {
+        double noise = ground.sample(worldX, worldZ);
+        return Double.isNaN(noise) ? PaletteLayerScale.ABSENT_COLOR : ground.blockColorAt(noise, worldX, worldZ, showTexturePixels);
+    }
+
+    // A decorator places air to leave gaps, which looks the same as placing nothing.
+    private boolean[] resolveGroundShowingEntries() {
+        boolean[] showsGround = new boolean[blocks.size()];
+        for (int entry = 0; entry < blocks.size(); entry++) {
+            BlockData block = blocks.get(entry).getBlockData(data);
+            showsGround[entry] = ground != null && block != null && block.getMaterial().isAir();
+        }
+        return showsGround;
     }
 
     Entry entryForNoise(double noise) {

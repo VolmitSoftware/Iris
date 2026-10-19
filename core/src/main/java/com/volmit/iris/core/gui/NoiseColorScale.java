@@ -29,6 +29,10 @@ interface NoiseColorScale {
 
     int colorInvalid();
 
+    default int colorInvalidAt(double worldX, double worldZ) {
+        return colorInvalid();
+    }
+
     Color displayColorNormalized(double normalized);
 
     String label();

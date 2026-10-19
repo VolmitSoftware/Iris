@@ -324,7 +324,8 @@ final class BlockTextures {
     }
 
     // Biome tinted textures keep their grey pixels, because the biome colour changes from column to column.
-    record BlockTexture(int size, int[] pixels, int averageColor, BiomeTint biomeTint) {
+    // See-through pixels get a darker shade of the average colour, and the opaque mask remembers which they were.
+    record BlockTexture(int size, int[] pixels, boolean[] opaque, int averageColor, BiomeTint biomeTint) {
         private static final int OPAQUE_ALPHA = 128;
         private static final double GAP_SHADE = 0.55D;
 
@@ -363,13 +364,15 @@ final class BlockTextures {
                     pixels[index] = gapColor;
                 }
             }
-            return new BlockTexture(size, pixels, average, biomeTint);
+            return new BlockTexture(size, pixels, opaque, average, biomeTint);
         }
 
         BlockTexture flattened() {
             int[] flat = new int[pixels.length];
             Arrays.fill(flat, averageColor);
-            return new BlockTexture(size, flat, averageColor, biomeTint);
+            boolean[] allOpaque = new boolean[pixels.length];
+            Arrays.fill(allOpaque, true);
+            return new BlockTexture(size, flat, allOpaque, averageColor, biomeTint);
         }
 
         BlockTexture tinted(int tint) {
@@ -377,13 +380,21 @@ final class BlockTextures {
             for (int index = 0; index < pixels.length; index++) {
                 tintedPixels[index] = multiply(pixels[index], tint);
             }
-            return new BlockTexture(size, tintedPixels, multiply(averageColor, tint), null);
+            return new BlockTexture(size, tintedPixels, opaque, multiply(averageColor, tint), null);
         }
 
         int texelAt(double worldX, double worldZ) {
+            return pixels[texelIndex(worldX, worldZ)];
+        }
+
+        boolean isOpaqueAt(double worldX, double worldZ) {
+            return opaque[texelIndex(worldX, worldZ)];
+        }
+
+        private int texelIndex(double worldX, double worldZ) {
             int x = Math.min(size - 1, (int) ((worldX - Math.floor(worldX)) * size));
             int z = Math.min(size - 1, (int) ((worldZ - Math.floor(worldZ)) * size));
-            return pixels[z * size + x];
+            return z * size + x;
         }
 
         BufferedImage toImage() {

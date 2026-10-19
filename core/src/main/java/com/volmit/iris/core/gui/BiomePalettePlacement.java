@@ -30,6 +30,7 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import org.bukkit.block.data.Bisected;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -293,6 +294,9 @@ abstract class BiomePalettePlacement {
             if (sharesSpotsWithOtherDecorators) {
                 notes.add("Where other decorators of this biome could place too, the world picks one of them at random.");
             }
+            if (placesTwoBlockTallPlants()) {
+                notes.add("Two block tall plants show both halves squeezed into one block.");
+            }
             if (decorator.isStacking()) {
                 notes.add("It stacks " + decorator.getStackMin() + "–" + decorator.getStackMax()
                         + " blocks high; the preview shows the bottom block.");
@@ -301,6 +305,11 @@ abstract class BiomePalettePlacement {
                 notes.add("The block also changes with height; the preview picks it at sea level (Y " + sampleHeight + ").");
             }
             return notes.isEmpty() ? null : String.join(" ", notes);
+        }
+
+        // The generator places any two-part block as a bottom half with its top half above it.
+        private boolean placesTwoBlockTallPlants() {
+            return !decorator.isStacking() && blocks().stream().anyMatch(block -> block.getBlockData(data) instanceof Bisected);
         }
 
         private static String partNote(IrisDecorationPart part) {

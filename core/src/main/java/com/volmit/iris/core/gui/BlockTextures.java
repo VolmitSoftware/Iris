@@ -21,6 +21,7 @@ package com.volmit.iris.core.gui;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 
 import java.awt.Graphics2D;
@@ -85,9 +86,24 @@ final class BlockTextures {
 
     /**
      * Like {@link #topTexture}, but plants keep their sprite, so single decorations on the ground stay recognisable.
+     * Two block tall plants show both halves squeezed into one block.
      */
     Optional<BlockTexture> iconTexture(BlockData block) {
-        return resolve(block).map(ResolvedTexture::texture);
+        if (!(block instanceof Bisected)) {
+            return resolve(block).map(ResolvedTexture::texture);
+        }
+        Optional<ResolvedTexture> bottom = resolve(withHalf(block, Bisected.Half.BOTTOM));
+        Optional<ResolvedTexture> top = resolve(withHalf(block, Bisected.Half.TOP));
+        if (bottom.isEmpty() || top.isEmpty() || !bottom.get().isSideOnSprite() || !top.get().isSideOnSprite()) {
+            return resolve(block).map(ResolvedTexture::texture);
+        }
+        return Optional.of(BlockTexture.stacked(top.get().texture(), bottom.get().texture()));
+    }
+
+    private static BlockData withHalf(BlockData block, Bisected.Half half) {
+        BlockData copy = block.clone();
+        ((Bisected) copy).setHalf(half);
+        return copy;
     }
 
     // Blockstate files match on every property, so defaults the pack left out have to be spelled out too.
@@ -413,6 +429,32 @@ final class BlockTextures {
                 }
             }
             return new BlockTexture(size, pixels, opaque, average, biomeTint);
+        }
+
+        /**
+         * The top texture above the bottom one, each at half height, or just the bottom when their sizes differ.
+         */
+        static BlockTexture stacked(BlockTexture top, BlockTexture bottom) {
+            if (top.size != bottom.size) {
+                return bottom;
+            }
+            int size = bottom.size;
+            int[] pixels = new int[size * size];
+            boolean[] opaque = new boolean[size * size];
+            for (int z = 0; z < size; z++) {
+                BlockTexture half = z < size / 2 ? top : bottom;
+                int sourceRow = (z * 2) % size;
+                System.arraycopy(half.pixels, sourceRow * size, pixels, z * size, size);
+                System.arraycopy(half.opaque, sourceRow * size, opaque, z * size, size);
+            }
+            return new BlockTexture(size, pixels, opaque, averageOf(top.averageColor, bottom.averageColor), bottom.biomeTint);
+        }
+
+        private static int averageOf(int first, int second) {
+            int red = (((first >>> 16) & 0xFF) + ((second >>> 16) & 0xFF)) / 2;
+            int green = (((first >>> 8) & 0xFF) + ((second >>> 8) & 0xFF)) / 2;
+            int blue = ((first & 0xFF) + (second & 0xFF)) / 2;
+            return red << 16 | green << 8 | blue;
         }
 
         BlockTexture flattened() {

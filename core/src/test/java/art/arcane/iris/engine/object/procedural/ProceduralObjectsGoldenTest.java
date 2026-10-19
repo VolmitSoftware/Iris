@@ -23,6 +23,7 @@ import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisObjectBuilder;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.PlatformBlockStates;
@@ -79,6 +80,7 @@ import static org.mockito.Mockito.when;
  */
 public class ProceduralObjectsGoldenTest {
     private static final String FIXTURE = "/procedural-golden";
+    private static final String PALETTE_TREE = "/procedural-palette-tree.json";
     /** Digests on a platform whose blocks have no properties and which knows no block by {@code blockOrNull}. */
     private static final Map<String, String> BLOCK_ONLY = Map.ofEntries(
             Map.entry("biomes-carving-frost-shards", "954613b558bd0e8b"),
@@ -152,6 +154,26 @@ public class ProceduralObjectsGoldenTest {
     public void onAGameLikePlatformEveryProceduralObjectOfTheOverworldPackBakesAsBefore() throws Exception {
         UsableBlockPlatform.bind(new GameLikeBlocks().registries());
         assertEquals(new TreeMap<>(GAME_LIKE), bakeAll());
+    }
+
+    /**
+     * A tree palette picks through Iris's own palette noise, seeded and positioned as before the port: the digest was
+     * taken from this build after a probe of the same tree gave one signature on it and on the build before the port.
+     */
+    @Test
+    public void treePalettesPickWithIrisPaletteNoiseAsBefore() throws Exception {
+        UsableBlockPlatform.bind();
+        IrisData data = mock(IrisData.class, withSettings().stubOnly().defaultAnswer(CALLS_REAL_METHODS));
+        doReturn(folder.getRoot()).when(data).getDataFolder();
+        doReturn(mock(ResourceLoader.class)).when(data).getBlockLoader();
+        doReturn(null).when(data).getEngine();
+        IrisPackResources resources = new IrisPackResources(data);
+        doReturn(resources).when(data).getPackResources();
+        String json = Files.readString(Path.of(ProceduralObjectsGoldenTest.class.getResource(PALETTE_TREE).toURI()));
+        ProceduralObjectSettings settings = new GsonBuilder().registerTypeAdapterFactory(data).create()
+                .fromJson(json, ProceduralObjectSettings.class);
+
+        assertEquals("393616b22e2dd257", bake(settings, data));
     }
 
     private Map<String, String> bakeAll() throws Exception {

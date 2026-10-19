@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.gui.components;
 
+import com.volmit.iris.core.gui.GuiHost;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -98,14 +99,7 @@ public final class IrisRenderer {
         checkCancelled(cancelled);
 
         int[] pixels = renderPixels(sx, sz, size, resolution, currentType, cancelled, studio);
-        return managedImage(pixels, resolution);
-    }
-
-    // Filled through the raster rather than its backing array, so Java2D may keep the image on the GPU between paints.
-    private static BufferedImage managedImage(int[] pixels, int resolution) {
-        BufferedImage image = new BufferedImage(resolution, resolution, BufferedImage.TYPE_INT_RGB);
-        image.getRaster().setDataElements(0, 0, resolution, resolution, pixels);
-        return image;
+        return GuiHost.uncachedImage(pixels, resolution, resolution);
     }
 
     private int[] renderPixels(

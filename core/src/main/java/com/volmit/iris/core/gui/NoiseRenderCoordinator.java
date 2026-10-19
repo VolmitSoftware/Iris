@@ -331,10 +331,8 @@ final class NoiseRenderCoordinator implements AutoCloseable {
             return remainingBands.decrementAndGet() == 0;
         }
 
-        // Copied into a fresh image instead of drawing into its buffer, so Java2D can keep the finished frame on the GPU.
         private Result result() {
-            BufferedImage image = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
-            image.getRaster().setDataElements(0, 0, outputWidth, outputHeight, pixels);
+            BufferedImage image = GuiHost.uncachedImage(pixels, outputWidth, outputHeight);
             RenderStats combined = combine(bandStats);
             double milliseconds = (System.nanoTime() - startedNanos) / 1_000_000D;
             return new Result(request, image, milliseconds, combined.samples, combined.minimum, combined.maximum,

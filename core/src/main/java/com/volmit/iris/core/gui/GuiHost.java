@@ -36,6 +36,7 @@ import java.awt.EventQueue;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.desktop.QuitResponse;
+import java.awt.image.BufferedImage;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
@@ -73,6 +74,18 @@ public final class GuiHost {
         });
         installMacQuitGuard();
         return frame;
+    }
+
+    /**
+     * Wraps rendered pixels in an image Java2D draws straight from memory. Left to itself Java2D copies every image it
+     * draws into a texture inside the display server; with a map's hundreds of tiles that crashed Xwayland's Intel driver
+     * and took every X window on the desktop down with it.
+     */
+    public static BufferedImage uncachedImage(int[] pixels, int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        image.getRaster().setDataElements(0, 0, width, height, pixels);
+        image.setAccelerationPriority(0F);
+        return image;
     }
 
     // A scaled-up default size can be bigger than a small or low resolution screen.

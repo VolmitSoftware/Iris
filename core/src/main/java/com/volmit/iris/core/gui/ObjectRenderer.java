@@ -31,7 +31,8 @@ import java.util.List;
 
 /**
  * Draws an object mesh with an orthographic camera into a picture, without a graphics card: each quad is filled pixel
- * by pixel, and a depth buffer keeps the nearest one. See-through quads come last, farthest first, each blended over
+ * by pixel, and a depth buffer keeps the nearest one. A cut-away part's faint ghost only fills pixels the object
+ * leaves empty, so it never hazes over what is shown. See-through quads come last, farthest first, each blended over
  * what is already drawn.
  */
 final class ObjectRenderer {
@@ -51,6 +52,7 @@ final class ObjectRenderer {
     private final int height;
     private final int[] pixels;
     private final double[] depths;
+    private final boolean[] showsObject;
     private final Projection projection;
 
     private ObjectRenderer(ObjectMesh mesh, ObjectCamera camera, BufferedImage image, int coveredLeftWidth) {
@@ -58,6 +60,7 @@ final class ObjectRenderer {
         this.height = image.getHeight();
         this.pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
         this.depths = new double[pixels.length];
+        this.showsObject = new boolean[pixels.length];
         this.projection = new Projection(mesh.bounds(), camera, width, height, coveredLeftWidth);
     }
 
@@ -72,10 +75,13 @@ final class ObjectRenderer {
         Arrays.fill(renderer.depths, Double.NEGATIVE_INFINITY);
         renderer.drawGrid(mesh.bounds());
         for (ObjectMesh.Quad quad : mesh.solidQuads()) {
-            renderer.drawQuad(quad, false);
+            renderer.drawQuad(quad, Pass.SOLID);
+        }
+        for (ObjectMesh.Quad quad : mesh.cutAwayQuads()) {
+            renderer.drawQuad(quad, Pass.CUT_AWAY_GHOST);
         }
         for (ObjectMesh.Quad quad : renderer.farthestFirst(mesh.translucentQuads())) {
-            renderer.drawQuad(quad, true);
+            renderer.drawQuad(quad, Pass.BLENDED);
         }
         return image;
     }
@@ -131,7 +137,7 @@ final class ObjectRenderer {
     }
 
     // Later faces win ties, so an overlay drawn on the same box, like grass on a grass block's side, shows on top.
-    private void drawQuad(ObjectMesh.Quad quad, boolean blended) {
+    private void drawQuad(ObjectMesh.Quad quad, Pass pass) {
         Face face = quad.face();
         if (!projection.facesCamera(face.normal().x(), face.normal().y(), face.normal().z())) {
             return;
@@ -182,7 +188,7 @@ final class ObjectRenderer {
                 }
                 int index = rowStart + x;
                 double depth = originDepth + alongU * edgeUDepth + alongV * edgeVDepth;
-                if (depth < depths[index]) {
+                if (depth < depths[index] || (pass == Pass.CUT_AWAY_GHOST && showsObject[index])) {
                     continue;
                 }
                 int texelX = columns.texelAt(mapping.u() + alongU * mapping.uAlongU() + alongV * mapping.uAlongV());
@@ -192,12 +198,13 @@ final class ObjectRenderer {
                     continue;
                 }
                 int color = BlockPreviewColors.shade(texels[texel], shade);
-                if (blended) {
+                if (pass != Pass.SOLID) {
                     pixels[index] = blend(color, pixels[index], (alphas == null ? 1D : alphas[texel] / FULL_ALPHA) * quad.opacity());
                     continue;
                 }
                 depths[index] = depth;
                 pixels[index] = color;
+                showsObject[index] = true;
             }
         }
     }
@@ -313,5 +320,11 @@ final class ObjectRenderer {
         boolean facesCamera(double normalX, double normalY, double normalZ) {
             return depthStep(normalX, normalY, normalZ) > 0D;
         }
+    }
+
+    private enum Pass {
+        SOLID,
+        CUT_AWAY_GHOST,
+        BLENDED
     }
 }

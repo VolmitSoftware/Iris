@@ -54,7 +54,7 @@ final class ObjectExplorer {
     private final UUID worldId;
     private final ObjectBrowser browser = new ObjectBrowser(this::showObject);
     private final ObjectViewport viewport = new ObjectViewport();
-    private final ObjectLayerCut layerCut = new ObjectLayerCut(shownLayers -> rebuildShownMesh());
+    private final ObjectLayerCut layerCut = new ObjectLayerCut(shownLayers -> showLayerCut());
     private final JComponent viewWithLayerCut = layerCut.floatingOver(viewport);
     private final ObjectOverviewPanel overview = new ObjectOverviewPanel(this::showSeeThrough);
     private final StudioStatusBar statusBar = new StudioStatusBar();
@@ -72,6 +72,7 @@ final class ObjectExplorer {
     private volatile BiomeTintColors tintColors;
     private String shownKey;
     private LoadedObject shown;
+    private ObjectMesh wholeMesh;
     private Set<String> seeThroughTypes = Set.of();
 
     ObjectExplorer(Engine engine, UUID worldId) {
@@ -159,6 +160,7 @@ final class ObjectExplorer {
     private void showObject(String key) {
         shownKey = key;
         shown = null;
+        wholeMesh = null;
         meshRevision.incrementAndGet();
         long revision = objectRevision.incrementAndGet();
         viewport.showMessage("Loading " + key + "...");
@@ -197,6 +199,7 @@ final class ObjectExplorer {
             return;
         }
         shown = loaded;
+        wholeMesh = loaded.mesh();
         seeThroughTypes = Set.of();
         statusBar.showActivity("");
         viewport.show(loaded.mesh());
@@ -216,46 +219,42 @@ final class ObjectExplorer {
 
     private void showSeeThrough(Set<String> blockTypes) {
         seeThroughTypes = blockTypes;
-        rebuildShownMesh();
+        rebuildWholeMesh();
     }
 
-    // Blocks under the cut that were covered by the ones above get their hidden faces back, so each floor shows, and
-    // blocks behind see-through ones get theirs back too.
-    private void rebuildShownMesh() {
+    // Blocks behind see-through ones get their hidden faces back, so the mesh is built again.
+    private void rebuildWholeMesh() {
         LoadedObject object = shown;
         if (object == null) {
             return;
         }
         long revision = meshRevision.incrementAndGet();
-        ObjectMesh.Bounds bounds = object.mesh().bounds();
-        boolean cutting = layerCut.isCutting();
-        int highestShownY = bounds.minY() + layerCut.shownLayerCount() - 1;
         Set<String> seeThrough = seeThroughTypes;
         loader.execute(() -> {
             if (revision != meshRevision.get()) {
                 return;
             }
-            ObjectMesh mesh = !cutting && seeThrough.isEmpty()
+            ObjectMesh mesh = seeThrough.isEmpty()
                     ? object.mesh()
-                    : ObjectMesh.build(cutting ? blocksUpTo(object.blocks(), highestShownY) : object.blocks(), this::modelOf, bounds,
+                    : ObjectMesh.build(object.blocks(), this::modelOf, object.mesh().bounds(),
                     block -> seeThrough.contains(block.getMaterial().getKey().getKey()));
             EventQueue.invokeLater(() -> {
                 if (revision == meshRevision.get() && shown == object) {
-                    viewport.replaceMesh(mesh);
-                    showMeshSummary(mesh);
+                    wholeMesh = mesh;
+                    showLayerCut();
                 }
             });
         });
     }
 
-    private static Map<BlockVector, BlockData> blocksUpTo(Map<BlockVector, BlockData> blocks, int highestY) {
-        Map<BlockVector, BlockData> below = new HashMap<>();
-        blocks.forEach((position, block) -> {
-            if (position.getBlockY() <= highestY) {
-                below.put(position, block);
-            }
-        });
-        return below;
+    private void showLayerCut() {
+        if (wholeMesh == null) {
+            return;
+        }
+        int highestShownY = wholeMesh.bounds().minY() + layerCut.shownLayerCount() - 1;
+        ObjectMesh mesh = layerCut.isCutting() ? wholeMesh.cutAbove(highestShownY) : wholeMesh;
+        viewport.replaceMesh(mesh);
+        showMeshSummary(mesh);
     }
 
     private void showFailure(long revision, String key, Throwable error) {

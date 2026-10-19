@@ -32,11 +32,15 @@ import java.util.function.Predicate;
 /**
  * The faces of an object's blocks that can be seen from outside. A face is left out when the neighbour on its side
  * covers that side, which is most of them in a large object. See-through faces, like water and stained glass, are
- * kept apart because they are drawn last, blended over everything behind them.
+ * kept apart because they are drawn last, blended over everything behind them. Top faces covered only by the block
+ * above are kept aside too, so the top layers can be cut away without building the mesh again; what is cut away stays
+ * as a faint ghost of the object's shape.
  */
-record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bounds) {
+record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, List<Quad> cutAwayQuads, List<Quad> topsUnderBlockAbove,
+                  Bounds bounds) {
     private static final double SEE_THROUGH_OPACITY = 0.22D;
     private static final double FULL_OPACITY = 1D;
+    private static final double CUT_AWAY_OPACITY = 0.1D;
 
     static ObjectMesh build(Map<BlockVector, BlockData> blocks, Function<BlockData, BlockModel> modelOf) {
         return build(blocks, modelOf, Bounds.of(blocks.keySet()), block -> false);
@@ -50,25 +54,57 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bou
                             Predicate<BlockData> isSeeThrough) {
         List<Quad> solid = new ArrayList<>();
         List<Quad> translucent = new ArrayList<>();
+        List<Quad> topsUnderBlockAbove = new ArrayList<>();
         for (Map.Entry<BlockVector, BlockData> entry : blocks.entrySet()) {
             BlockVector position = entry.getKey();
             BlockData block = entry.getValue();
             BlockModel model = modelOf.apply(block);
             boolean seeThrough = isSeeThrough.test(block);
             for (Face face : model.faces()) {
-                if (isHiddenByNeighbour(blocks, modelOf, isSeeThrough, position, block, model, face)) {
-                    continue;
-                }
                 Quad quad = new Quad(face, position.getBlockX(), position.getBlockY(), position.getBlockZ(),
                         seeThrough ? SEE_THROUGH_OPACITY : FULL_OPACITY);
-                (seeThrough || face.texture().isTranslucent() ? translucent : solid).add(quad);
+                if (!isHiddenByNeighbour(blocks, modelOf, isSeeThrough, position, block, model, face)) {
+                    (quad.isBlended() ? translucent : solid).add(quad);
+                } else if (face.cullFace() == CubeFace.UP) {
+                    topsUnderBlockAbove.add(quad);
+                }
             }
         }
-        return new ObjectMesh(List.copyOf(solid), List.copyOf(translucent), bounds);
+        return new ObjectMesh(List.copyOf(solid), List.copyOf(translucent), List.of(), List.copyOf(topsUnderBlockAbove), bounds);
+    }
+
+    /**
+     * This mesh with the blocks above the given layer faded to a ghost of the object's shape, and the tops of that
+     * layer's blocks showing again. Quick enough to follow a slider as it moves.
+     */
+    ObjectMesh cutAbove(int highestShownY) {
+        List<Quad> solid = new ArrayList<>();
+        List<Quad> translucent = new ArrayList<>();
+        List<Quad> cutAway = new ArrayList<>();
+        for (Quad quad : solidQuads) {
+            keepOrCutAway(quad, highestShownY, solid, cutAway);
+        }
+        for (Quad quad : translucentQuads) {
+            keepOrCutAway(quad, highestShownY, translucent, cutAway);
+        }
+        for (Quad quad : topsUnderBlockAbove) {
+            if (quad.y() == highestShownY) {
+                (quad.isBlended() ? translucent : solid).add(quad);
+            }
+        }
+        return new ObjectMesh(solid, translucent, cutAway, List.of(), bounds);
+    }
+
+    private static void keepOrCutAway(Quad quad, int highestShownY, List<Quad> kept, List<Quad> cutAway) {
+        if (quad.y() <= highestShownY) {
+            kept.add(quad);
+        } else {
+            cutAway.add(quad.faded(CUT_AWAY_OPACITY));
+        }
     }
 
     boolean isEmpty() {
-        return solidQuads.isEmpty() && translucentQuads.isEmpty();
+        return solidQuads.isEmpty() && translucentQuads.isEmpty() && cutAwayQuads.isEmpty();
     }
 
     int faceCount() {
@@ -102,6 +138,14 @@ record ObjectMesh(List<Quad> solidQuads, List<Quad> translucentQuads, Bounds bou
      * A model face placed at a block in the object, drawn at the given opacity on top of its texture's own.
      */
     record Quad(Face face, int x, int y, int z, double opacity) {
+        boolean isBlended() {
+            return opacity < FULL_OPACITY || face.texture().isTranslucent();
+        }
+
+        Quad faded(double factor) {
+            return new Quad(face, x, y, z, opacity * factor);
+        }
+
         double originX() {
             return x + face.origin().x();
         }

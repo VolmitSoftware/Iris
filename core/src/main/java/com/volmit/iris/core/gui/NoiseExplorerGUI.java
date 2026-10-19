@@ -209,18 +209,6 @@ public final class NoiseExplorerGUI extends JPanel {
         GuiHost.registerHotloadHook(hotloadHook);
     }
 
-    /**
-     * @param engine the engine whose pack generators to list, or null for the open studio or first Iris world
-     */
-    public static void launch(Engine engine) {
-        Engine sourceEngine = engine != null ? engine : GuiHost.findActiveEngine();
-        EventQueue.invokeLater(() -> {
-            StudioTheme.install();
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, sourceEngine, null, null, null, DEFAULT_SEED, null);
-            buildNoiseFrame("Noise Explorer", explorer);
-        });
-    }
-
     public static void launchGeneratorKey(Engine engine, String generatorKey, IrisGenerator fallbackGenerator, long initialSeed) {
         Engine sourceEngine = engine != null ? engine : GuiHost.findActiveEngine();
         String displayName = generatorKey == null || generatorKey.isBlank() ? "Custom Generator" : generatorKey;
@@ -244,11 +232,19 @@ public final class NoiseExplorerGUI extends JPanel {
         return new NoiseExplorerGUI(ExplorerMode.PALETTES, start.engine(), null, null, null, DEFAULT_SEED, start);
     }
 
+    // The map window shows the noise explorer as its Noise view.
+    static NoiseExplorerGUI createNoiseExplorer(Engine engine) {
+        return new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
+    }
+
     private static void buildNoiseFrame(String title, NoiseExplorerGUI explorer) {
         JFrame frame = GuiHost.createFrame(title);
         frame.setLayout(new BorderLayout());
         frame.add(explorer.buildNoiseToolbar(), BorderLayout.NORTH);
-        frame.add(explorer.buildNoiseSidebar(), BorderLayout.WEST);
+        JComponent sidebar = explorer.noiseSidebar();
+        sidebar.setPreferredSize(StudioTheme.scaledSize(SIDEBAR_WIDTH, 0));
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, StudioTheme.SEPARATOR));
+        frame.add(sidebar, BorderLayout.WEST);
         frame.add(explorer, BorderLayout.CENTER);
         frame.add(explorer.statusBar, BorderLayout.SOUTH);
         frame.getRootPane().getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('R'), "reset-view");
@@ -299,17 +295,17 @@ public final class NoiseExplorerGUI extends JPanel {
 
     private JToolBar buildNoiseToolbar() {
         JToolBar toolbar = StudioToolbar.create();
+        noiseControls().forEach(toolbar::add);
+        toolbar.add(Box.createHorizontalGlue());
+        toolbar.add(StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)", this::resetViewport));
+        return toolbar;
+    }
+
+    List<JComponent> noiseControls() {
         selectedLabel.setFont(StudioTheme.boldFont());
         selectedLabel.setBorder(StudioTheme.emptyBorder(0, 4, 0, 10));
-        toolbar.add(selectedLabel);
-        toolbar.addSeparator();
-        toolbar.add(StudioToolbar.label("Seed"));
         seedField.setMaximumSize(seedField.getPreferredSize());
         seedField.addActionListener(event -> applySeed());
-        toolbar.add(seedField);
-        toolbar.add(StudioToolbar.button("Apply", "Use this seed", this::applySeed));
-        toolbar.addSeparator();
-        toolbar.add(StudioToolbar.label("Colours"));
         palettePicker.setSelectedItem(palette);
         palettePicker.setMaximumSize(palettePicker.getPreferredSize());
         palettePicker.addActionListener(event -> {
@@ -319,16 +315,20 @@ public final class NoiseExplorerGUI extends JPanel {
                 requestPreview();
             }
         });
-        toolbar.add(palettePicker);
-        toolbar.add(Box.createHorizontalGlue());
-        toolbar.add(StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)", this::resetViewport));
-        return toolbar;
+        return List.of(
+                selectedLabel,
+                new JToolBar.Separator(),
+                StudioToolbar.label("Seed"),
+                seedField,
+                StudioToolbar.button("Apply", "Use this seed", this::applySeed),
+                new JToolBar.Separator(),
+                StudioToolbar.label("Colours"),
+                palettePicker
+        );
     }
 
-    private JPanel buildNoiseSidebar() {
+    JComponent noiseSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setPreferredSize(StudioTheme.scaledSize(SIDEBAR_WIDTH, 0));
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, StudioTheme.SEPARATOR));
         StudioToolbar.makeSearchField(searchField, "Search noise...");
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override

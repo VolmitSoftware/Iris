@@ -246,11 +246,26 @@ public class CommandStudio implements DecreeExecutor {
         engine().getExecution().execute(script.getLoadKey());
     }
 
-    @Decree(description = "Open the noise explorer (External GUI)", aliases = {"nmap", "n"})
+    @Decree(description = "Open the map on its noise explorer (External GUI)", aliases = {"nmap", "n"})
     public void noise() {
         if (noGUI()) return;
-        sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
-        NoiseExplorerGUI.launch(engine());
+        Engine playerEngine = engine();
+        Engine engine = playerEngine != null ? playerEngine : GuiHost.findActiveEngine();
+        World world = engine == null ? null : engine.getWorld().realWorld();
+        if (world == null) {
+            sender().sendMessage(C.RED + "Open a studio or stand in an Iris world to explore its noise!");
+            return;
+        }
+        Location center = playerEngine != null ? player().getLocation() : null;
+        sender().sendMessage(C.GREEN + "Opening the map on its noise!");
+        MapWindow.openNoise(new PaletteExplorerStart(
+                engine,
+                world.getUID(),
+                sender().isPlayer() ? player().getUniqueId() : null,
+                null,
+                center == null ? 0D : center.getX(),
+                center == null ? 0D : center.getZ()
+        ));
     }
 
     @Decree(description = "Preview the palettes around you (External GUI)", aliases = "pal", origin = DecreeOrigin.PLAYER)

@@ -43,7 +43,9 @@ enum MapView {
     LAYER_LOAD("Layers", "How many block layers each biome stacks, brighter is more",
             Group.LOAD, RenderType.LAYER_LOAD, KeyEvent.VK_0),
     PALETTES("Palettes", "The blocks each biome's palette layers place, with their textures",
-            Group.BLOCKS, null, KeyEvent.VK_P);
+            Group.BLOCKS, null, KeyEvent.VK_P),
+    NOISE("Noise", "The pack's noise generators and Iris' built-in noise styles",
+            Group.GENERATORS, null, KeyEvent.VK_N);
 
     private final String label;
     private final String description;
@@ -72,7 +74,7 @@ enum MapView {
     }
 
     /**
-     * The tile renderer's mode for this view, or null for the palette view, which draws itself.
+     * The tile renderer's mode for this view, or null for the palette and noise views, which draw themselves.
      */
     RenderType renderType() {
         return renderType;
@@ -103,7 +105,8 @@ enum MapView {
         WORLD("World"),
         BIOME_STREAMS("Biome layers"),
         LOAD("Generation load"),
-        BLOCKS("Blocks");
+        BLOCKS("Blocks"),
+        GENERATORS("Generators");
 
         private final String label;
 

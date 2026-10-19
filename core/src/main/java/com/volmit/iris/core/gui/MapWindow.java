@@ -47,16 +47,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The studio map: one window showing the world as tiles in several views, with the palette explorer as its Palettes view.
+ * The studio map: one window showing the world as tiles in several views, with the palette and noise explorers as its
+ * Palettes and Noise views.
  */
 public final class MapWindow implements MapCanvas.Listener {
     private static final String MAP_CARD = "map";
     private static final String PALETTES_CARD = "palettes";
+    private static final String NOISE_CARD = "noise";
     private static final int SIDEBAR_WIDTH = 270;
     private static final int SIDEBAR_MINIMUM_WIDTH = 200;
     private static final int CONTENT_MINIMUM_WIDTH = 320;
     private static final double PALETTE_RECENTER_DISTANCE_BLOCKS = 1D;
-    private static final double VIEW_LIST_SHARE_WITH_PALETTES = 0.34D;
+    private static final double VIEW_LIST_SHARE_WITH_EXPLORER = 0.34D;
 
     private final JFrame frame;
     private final PaletteExplorerStart start;
@@ -69,7 +71,11 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JPanel inspectorSlot = new JPanel(new BorderLayout());
     private final JComponent viewListScroll;
     private final List<JComponent> mapControls = new ArrayList<>();
-    private final List<JComponent> paletteControls = new ArrayList<>();
+    private final List<JComponent> explorerControls = new ArrayList<>();
+    private final List<JComponent> noiseControls = new ArrayList<>();
+    private final JToolBar toolbar = StudioToolbar.create();
+    private final JComponent resetViewButton = StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)",
+            this::resetExplorerView);
     private final JToggleButton gridToggle = StudioToolbar.toggle("Grid", "Show chunk and region borders (G)");
     private final JToggleButton entitiesToggle = StudioToolbar.toggle("Entities", "Show mobs and other entities (E)");
     private final JToggleButton followToggle = StudioToolbar.toggle("Follow", "Keep your player in the middle (F)");
@@ -78,6 +84,8 @@ public final class MapWindow implements MapCanvas.Listener {
     private final MapLegendPanel legendPanel;
 
     private NoiseExplorerGUI paletteExplorer;
+    private NoiseExplorerGUI noiseExplorer;
+    private JComponent noiseSidebar;
     private MapView currentView;
     private double paletteCenterX;
     private double paletteCenterZ;
@@ -99,6 +107,10 @@ public final class MapWindow implements MapCanvas.Listener {
 
     public static void openPalettes(PaletteExplorerStart start) {
         EventQueue.invokeLater(() -> open(start, MapView.PALETTES));
+    }
+
+    public static void openNoise(PaletteExplorerStart start) {
+        EventQueue.invokeLater(() -> open(start, MapView.NOISE));
     }
 
     private static void open(PaletteExplorerStart start, MapView initialView) {
@@ -133,7 +145,6 @@ public final class MapWindow implements MapCanvas.Listener {
     }
 
     private JToolBar buildToolbar() {
-        JToolBar toolbar = StudioToolbar.create();
         viewTitle.setFont(StudioTheme.titleFont());
         viewTitle.setBorder(StudioTheme.emptyBorder(0, 6, 0, 14));
         toolbar.add(viewTitle);
@@ -153,8 +164,8 @@ public final class MapWindow implements MapCanvas.Listener {
         bordersToggle.addActionListener(event -> canvas.toggleRegionBorders());
         mapControls.forEach(toolbar::add);
 
-        paletteControls.add(StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)", this::resetPaletteView));
-        paletteControls.forEach(toolbar::add);
+        explorerControls.add(resetViewButton);
+        explorerControls.forEach(toolbar::add);
 
         toolbar.add(Box.createHorizontalGlue());
         JComponent help = StudioToolbar.button("Shortcuts", "Show every mouse and key shortcut (/)", canvas::toggleHelp);
@@ -180,8 +191,10 @@ public final class MapWindow implements MapCanvas.Listener {
         viewTitle.setToolTipText(view.description());
         if (view.isTileMap()) {
             showMap(previousView, view);
-        } else {
+        } else if (view == MapView.PALETTES) {
             showPalettes(previousView);
+        } else {
+            showNoise();
         }
         frame.getRootPane().revalidate();
         frame.getRootPane().repaint();
@@ -193,8 +206,7 @@ public final class MapWindow implements MapCanvas.Listener {
         }
         canvas.showView(view);
         canvas.setActive(true);
-        setControlsVisible(mapControls, true);
-        setControlsVisible(paletteControls, false);
+        showControls(mapControls);
         useSidebar(viewListScroll);
         inspectorSlot.removeAll();
         inspectorSlot.add(legendPanel, BorderLayout.CENTER);
@@ -210,13 +222,8 @@ public final class MapWindow implements MapCanvas.Listener {
             followMapIntoPalettes();
         }
         canvas.setActive(false);
-        setControlsVisible(mapControls, false);
-        setControlsVisible(paletteControls, true);
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, viewListScroll, paletteExplorer.paletteSidebar());
-        split.setBorder(BorderFactory.createEmptyBorder());
-        split.setResizeWeight(0D);
-        split.setDividerLocation(viewListHeightBesidePalettes());
-        useSidebar(split);
+        showControls(explorerControls);
+        useSidebar(viewListAbove(paletteExplorer.paletteSidebar()));
         inspectorSlot.removeAll();
         inspectorSlot.add(paletteExplorer.paletteInspector(), BorderLayout.CENTER);
         showCard(PALETTES_CARD);
@@ -226,13 +233,46 @@ public final class MapWindow implements MapCanvas.Listener {
         }
     }
 
-    // The palettes need the room more than the view list, which scrolls once it is squeezed.
-    private int viewListHeightBesidePalettes() {
+    private void showNoise() {
+        boolean firstOpen = noiseExplorer == null;
+        if (firstOpen) {
+            createNoiseExplorer();
+        }
+        canvas.setActive(false);
+        showControls(noiseControls, explorerControls);
+        useSidebar(viewListAbove(noiseSidebar));
+        inspectorSlot.removeAll();
+        showCard(NOISE_CARD);
+        EventQueue.invokeLater(() -> viewList.select(currentView));
+        if (firstOpen) {
+            noiseExplorer.openViewer();
+        }
+    }
+
+    private JSplitPane viewListAbove(JComponent explorerSidebar) {
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, viewListScroll, explorerSidebar);
+        split.setBorder(BorderFactory.createEmptyBorder());
+        split.setResizeWeight(0D);
+        split.setDividerLocation(viewListHeightAboveExplorer());
+        return split;
+    }
+
+    // The explorer needs the room more than the view list, which scrolls once it is squeezed.
+    private int viewListHeightAboveExplorer() {
         int fullHeight = viewList.getPreferredSize().height + 4;
         if (sidebar.getHeight() < 1) {
             return fullHeight;
         }
-        return Math.min(fullHeight, (int) (sidebar.getHeight() * VIEW_LIST_SHARE_WITH_PALETTES));
+        return Math.min(fullHeight, (int) (sidebar.getHeight() * VIEW_LIST_SHARE_WITH_EXPLORER));
+    }
+
+    private void createNoiseExplorer() {
+        noiseExplorer = NoiseExplorerGUI.createNoiseExplorer(start.engine());
+        noiseSidebar = noiseExplorer.noiseSidebar();
+        noiseControls.addAll(noiseExplorer.noiseControls());
+        noiseControls.forEach(control -> toolbar.add(control, toolbar.getComponentIndex(resetViewButton)));
+        content.add(noiseExplorer, NOISE_CARD);
+        statusBars.add(noiseExplorer.statusBar(), NOISE_CARD);
     }
 
     private void createPaletteExplorer(boolean openedOnPalettes) {
@@ -293,9 +333,10 @@ public final class MapWindow implements MapCanvas.Listener {
         legendPanel.show(title, shares, highlight);
     }
 
-    private void resetPaletteView() {
-        if (paletteExplorer != null) {
-            paletteExplorer.resetViewport();
+    private void resetExplorerView() {
+        NoiseExplorerGUI explorer = currentView == MapView.NOISE ? noiseExplorer : paletteExplorer;
+        if (explorer != null) {
+            explorer.resetViewport();
         }
     }
 
@@ -309,8 +350,14 @@ public final class MapWindow implements MapCanvas.Listener {
         ((CardLayout) statusBars.getLayout()).show(statusBars, card);
     }
 
-    private static void setControlsVisible(List<JComponent> controls, boolean visible) {
-        controls.forEach(control -> control.setVisible(visible));
+    @SafeVarargs
+    private void showControls(List<JComponent>... visibleControls) {
+        for (List<JComponent> controls : List.of(mapControls, explorerControls, noiseControls)) {
+            controls.forEach(control -> control.setVisible(false));
+        }
+        for (List<JComponent> controls : visibleControls) {
+            controls.forEach(control -> control.setVisible(true));
+        }
     }
 
     private void installShortcuts(JRootPane rootPane) {
@@ -370,7 +417,7 @@ public final class MapWindow implements MapCanvas.Listener {
         if (currentView.isTileMap()) {
             canvas.refreshContent();
         } else {
-            resetPaletteView();
+            resetExplorerView();
         }
     }
 
@@ -378,6 +425,9 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.close();
         if (paletteExplorer != null) {
             paletteExplorer.close();
+        }
+        if (noiseExplorer != null) {
+            noiseExplorer.close();
         }
     }
 }

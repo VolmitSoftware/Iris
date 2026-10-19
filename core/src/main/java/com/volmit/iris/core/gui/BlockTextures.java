@@ -28,6 +28,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,6 +50,7 @@ final class BlockTextures {
     private final ZipFile clientJar;
     private final MinecraftBiomeColors biomeColors;
     private final Map<String, Optional<ResolvedTexture>> resolvedTextures = new ConcurrentHashMap<>();
+    private final Map<String, Optional<BlockModel>> resolvedModels = new ConcurrentHashMap<>();
 
     private BlockTextures(ZipFile clientJar, MinecraftBiomeColors biomeColors) {
         this.clientJar = clientJar;
@@ -103,6 +105,13 @@ final class BlockTextures {
         return resolve(withHalf(block, Bisected.Half.TOP)).filter(ResolvedTexture::isSideOnSprite).map(ResolvedTexture::texture);
     }
 
+    /**
+     * What the block looks like from every side, for drawing it in 3D.
+     */
+    Optional<BlockModel> model(BlockData block) {
+        return resolvedModels.computeIfAbsent(block.getAsString(false), this::resolveModel);
+    }
+
     private static BlockData withHalf(BlockData block, Bisected.Half half) {
         BlockData copy = block.clone();
         ((Bisected) copy).setHalf(half);
@@ -117,41 +126,81 @@ final class BlockTextures {
     private Optional<ResolvedTexture> resolveTopTexture(String blockState) {
         try {
             BlockStateId state = BlockStateId.parse(blockState);
-            JsonObject definition = readJson(assetPath(state.namespace() + ":" + state.name(), "blockstates", ".json"));
-            JsonObject variant = definition == null ? null : pickVariant(definition, state.properties());
+            JsonObject variant = variantOf(state);
             if (variant == null || !variant.has("model")) {
                 return Optional.empty();
             }
-            ModelFace face = findVisibleFace(variant.get("model").getAsString(), faceSeenFromAbove(variant));
+            ModelFace face = readModel(variant.get("model").getAsString()).visibleFace(faceSeenFromAbove(variant));
             if (face == null) {
                 return Optional.empty();
             }
-            BufferedImage image = readLayeredImage(face.textures());
-            if (image == null) {
+            return readTexture(state, face).map(texture -> new ResolvedTexture(texture, face.isSideOnSprite()));
+        } catch (IOException | RuntimeException error) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<BlockModel> resolveModel(String blockState) {
+        try {
+            BlockStateId state = BlockStateId.parse(blockState);
+            JsonObject variant = variantOf(state);
+            if (variant == null || !variant.has("model")) {
                 return Optional.empty();
             }
-            BlockTexture texture = BlockTexture.fromImage(
+            ModelDefinition model = readModel(variant.get("model").getAsString());
+            if (model.isSprite()) {
+                return readTexture(state, model.spriteFace()).map(BlockModel::cross);
+            }
+            int rotationX = rotationOf(variant, "x");
+            int rotationY = rotationOf(variant, "y");
+            Map<CubeFace, BlockTexture> faces = new EnumMap<>(CubeFace.class);
+            for (CubeFace face : CubeFace.values()) {
+                ModelFace modelFace = model.sideFace(face.beforeRotation(rotationX, rotationY).modelName());
+                if (modelFace != null) {
+                    readTexture(state, modelFace).ifPresent(texture -> faces.put(face, texture));
+                }
+            }
+            return faces.isEmpty() ? Optional.empty() : Optional.of(BlockModel.box(model.box().rotated(rotationX, rotationY), faces));
+        } catch (IOException | RuntimeException error) {
+            return Optional.empty();
+        }
+    }
+
+    private JsonObject variantOf(BlockStateId state) throws IOException {
+        JsonObject definition = readJson(assetPath(state.namespace() + ":" + state.name(), "blockstates", ".json"));
+        return definition == null ? null : pickVariant(definition, state.properties());
+    }
+
+    private static int rotationOf(JsonObject variant, String axis) {
+        return variant.has(axis) ? Math.floorMod(variant.get(axis).getAsInt(), 360) : 0;
+    }
+
+    private Optional<BlockTexture> readTexture(BlockStateId state, ModelFace face) throws IOException {
+        BufferedImage image = readLayeredImage(face.textures());
+        if (image == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(BlockTexture.fromImage(
                     image,
                     MinecraftBlockTints.fixedTint(state.name(), state.properties(), face.tintIndex()),
                     MinecraftBlockTints.biomeTint(state.name(), face.tintIndex()).orElse(null)
-            );
-            return Optional.of(new ResolvedTexture(texture, face.isSideOnSprite()));
-        } catch (IOException | RuntimeException error) {
+            ));
+        } catch (IllegalArgumentException invisibleTexture) {
             return Optional.empty();
         }
     }
 
     // A block rotated on its x axis, like a sideways log, shows a side face on top.
     private static String faceSeenFromAbove(JsonObject variant) {
-        int rotationX = variant.has("x") ? Math.floorMod(variant.get("x").getAsInt(), 360) : 0;
-        return switch (rotationX) {
+        return switch (rotationOf(variant, "x")) {
             case 90, 270 -> "north";
             case 180 -> "down";
             default -> "up";
         };
     }
 
-    private ModelFace findVisibleFace(String modelReference, String faceName) throws IOException {
+    private ModelDefinition readModel(String modelReference) throws IOException {
         Map<String, String> textures = new HashMap<>();
         JsonArray elements = null;
         String current = modelReference;
@@ -170,18 +219,7 @@ final class BlockTextures {
             }
             current = model.has("parent") ? model.get("parent").getAsString() : null;
         }
-
-        JsonObject face = elements == null ? null : topmostFace(elements, faceName);
-        if (face != null) {
-            String texture = dereference(face.get("texture").getAsString(), textures);
-            return texture == null ? null : new ModelFace(List.of(texture), tintIndexOf(face), false);
-        }
-        List<String> spriteLayers = elements == null ? List.of() : spriteLayers(elements, textures);
-        if (!spriteLayers.isEmpty()) {
-            return new ModelFace(spriteLayers, firstTintIndex(elements), true);
-        }
-        String particle = dereference("#particle", textures);
-        return particle == null ? null : new ModelFace(List.of(particle), NO_TINT_INDEX, false);
+        return new ModelDefinition(textures, elements);
     }
 
     // Some plants draw a second sprite over the first, like the glowing fireflies on a firefly bush.
@@ -364,6 +402,63 @@ final class BlockTextures {
 
     // Plants and other blocks without a top face only have a side-on sprite, which would read as stripes from above.
     private record ModelFace(List<String> textures, int tintIndex, boolean isSideOnSprite) {
+    }
+
+    /**
+     * A block model with its parents' textures merged in. Models drawn in code, like chests, have no elements.
+     */
+    private record ModelDefinition(Map<String, String> textures, JsonArray elements) {
+        ModelFace visibleFace(String faceName) {
+            ModelFace face = sideFace(faceName);
+            if (face != null) {
+                return face;
+            }
+            return elements != null && !spriteLayers(elements, textures).isEmpty() ? spriteFace() : particleFace();
+        }
+
+        // The face's texture on the model's topmost box, the particle texture for models without boxes, or null when
+        // the model leaves that side open.
+        ModelFace sideFace(String faceName) {
+            if (elements == null) {
+                return particleFace();
+            }
+            JsonObject face = topmostFace(elements, faceName);
+            if (face == null) {
+                return null;
+            }
+            String texture = dereference(face.get("texture").getAsString(), textures);
+            return texture == null ? null : new ModelFace(List.of(texture), tintIndexOf(face), false);
+        }
+
+        // Plants have only upright planes, so nothing of them faces up or down.
+        boolean isSprite() {
+            return elements != null
+                    && topmostFace(elements, CubeFace.UP.modelName()) == null
+                    && topmostFace(elements, CubeFace.DOWN.modelName()) == null
+                    && !spriteLayers(elements, textures).isEmpty();
+        }
+
+        ModelFace spriteFace() {
+            return new ModelFace(spriteLayers(elements, textures), firstTintIndex(elements), true);
+        }
+
+        private ModelFace particleFace() {
+            String particle = dereference("#particle", textures);
+            return particle == null ? null : new ModelFace(List.of(particle), NO_TINT_INDEX, false);
+        }
+
+        // One box, like a slab or a carpet, keeps its shape; several, like stairs, become a full block.
+        BlockModel.Box box() {
+            if (elements == null || elements.size() != 1) {
+                return BlockModel.Box.FULL;
+            }
+            JsonObject element = elements.get(0).getAsJsonObject();
+            return BlockModel.Box.ofModelElement(coordinates(element.getAsJsonArray("from")), coordinates(element.getAsJsonArray("to")));
+        }
+
+        private static double[] coordinates(JsonArray values) {
+            return new double[]{values.get(0).getAsDouble(), values.get(1).getAsDouble(), values.get(2).getAsDouble()};
+        }
     }
 
     private record ResolvedTexture(BlockTexture texture, boolean isSideOnSprite) {

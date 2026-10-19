@@ -38,6 +38,8 @@ enum MapView {
     CAVE_BIOMES("Cave biomes", "The cave biome under each spot", Group.BIOME_STREAMS, RenderType.CAVE_LAND, KeyEvent.VK_7),
     PALETTES("Palettes", "The blocks each biome's palette layers place, with their textures",
             Group.BLOCKS, null, KeyEvent.VK_P),
+    OBJECTS("Objects", "Every object in the pack in 3D, with the blocks it is made of",
+            Group.BLOCKS, null, KeyEvent.VK_O),
     NOISE("Noise", "The pack's noise generators and Iris' built-in noise styles",
             Group.GENERATORS, null, KeyEvent.VK_N);
 
@@ -68,7 +70,7 @@ enum MapView {
     }
 
     /**
-     * The tile renderer's mode for this view, or null for the palette and noise views, which draw themselves.
+     * The tile renderer's mode for this view, or null for the palette, object and noise views, which draw themselves.
      */
     RenderType renderType() {
         return renderType;

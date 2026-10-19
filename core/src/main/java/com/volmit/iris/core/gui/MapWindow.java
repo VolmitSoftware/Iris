@@ -40,6 +40,8 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -47,12 +49,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The studio map: one window showing the world as tiles in several views, with the palette and noise explorers as its
- * Palettes and Noise views.
+ * The studio map: one window showing the world as tiles in several views, with the palette, object and noise explorers
+ * as its Palettes, Objects and Noise views.
  */
 public final class MapWindow implements MapCanvas.Listener {
     private static final String MAP_CARD = "map";
     private static final String PALETTES_CARD = "palettes";
+    private static final String OBJECTS_CARD = "objects";
     private static final String NOISE_CARD = "noise";
     private static final int SIDEBAR_WIDTH = 270;
     private static final int SIDEBAR_MINIMUM_WIDTH = 200;
@@ -69,6 +72,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JPanel content = new JPanel(new CardLayout());
     private final JPanel statusBars = new JPanel(new CardLayout());
     private final JPanel sidebar = new JPanel(new BorderLayout());
+    private final IslandPanel sidebarIsland = new IslandPanel(sidebar);
     private final JPanel inspectorSlot = new JPanel(new BorderLayout());
     private final JComponent viewListScroll;
     private final JSplitPane explorerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -86,6 +90,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final MapLegendPanel legendPanel;
 
     private NoiseExplorerGUI paletteExplorer;
+    private ObjectExplorer objectExplorer;
     private NoiseExplorerGUI noiseExplorer;
     private JComponent noiseSidebar;
     private MapView currentView;
@@ -131,7 +136,7 @@ public final class MapWindow implements MapCanvas.Listener {
 
         frame.setLayout(new BorderLayout());
         frame.add(buildToolbar(), BorderLayout.NORTH);
-        frame.add(new IslandOverlay(new IslandPanel(sidebar), content, StudioTheme.scale(SIDEBAR_WIDTH),
+        frame.add(new IslandOverlay(sidebarIsland, content, StudioTheme.scale(SIDEBAR_WIDTH),
                 StudioTheme.scale(SIDEBAR_MINIMUM_WIDTH), StudioTheme.scale(CONTENT_MINIMUM_WIDTH)), BorderLayout.CENTER);
         frame.add(inspectorSlot, BorderLayout.EAST);
         frame.add(statusBars, BorderLayout.SOUTH);
@@ -196,6 +201,8 @@ public final class MapWindow implements MapCanvas.Listener {
             showMap(previousView, view);
         } else if (view == MapView.PALETTES) {
             showPalettes(previousView);
+        } else if (view == MapView.OBJECTS) {
+            showObjects();
         } else {
             showNoise();
         }
@@ -234,6 +241,37 @@ public final class MapWindow implements MapCanvas.Listener {
         if (firstOpen) {
             paletteExplorer.openViewer();
         }
+    }
+
+    private void showObjects() {
+        boolean firstOpen = objectExplorer == null;
+        if (firstOpen) {
+            createObjectExplorer();
+        }
+        canvas.setActive(false);
+        showControls(explorerControls);
+        useSidebar(viewListAbove(objectExplorer.browser()));
+        inspectorSlot.removeAll();
+        inspectorSlot.add(objectExplorer.overview(), BorderLayout.CENTER);
+        showCard(OBJECTS_CARD);
+        EventQueue.invokeLater(() -> viewList.select(currentView));
+        if (firstOpen) {
+            objectExplorer.open();
+        }
+    }
+
+    private void createObjectExplorer() {
+        objectExplorer = new ObjectExplorer(start.engine(), start.worldId());
+        ObjectViewport viewport = objectExplorer.viewport();
+        viewport.setCoveredLeftWidth(sidebarIsland.getWidth());
+        sidebarIsland.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent event) {
+                viewport.setCoveredLeftWidth(sidebarIsland.getWidth());
+            }
+        });
+        content.add(viewport, OBJECTS_CARD);
+        statusBars.add(objectExplorer.statusBar(), OBJECTS_CARD);
     }
 
     private void showNoise() {
@@ -349,6 +387,10 @@ public final class MapWindow implements MapCanvas.Listener {
     }
 
     private void resetExplorerView() {
+        if (currentView == MapView.OBJECTS) {
+            objectExplorer.resetCamera();
+            return;
+        }
         NoiseExplorerGUI explorer = currentView == MapView.NOISE ? noiseExplorer : paletteExplorer;
         if (explorer != null) {
             explorer.resetViewport();
@@ -440,6 +482,9 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.close();
         if (paletteExplorer != null) {
             paletteExplorer.close();
+        }
+        if (objectExplorer != null) {
+            objectExplorer.close();
         }
         if (noiseExplorer != null) {
             noiseExplorer.close();

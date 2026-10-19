@@ -59,6 +59,7 @@ public final class GuiHost {
 
     public static JFrame createFrame(String title) {
         XwaylandWindowManagerHint.apply();
+        StudioTheme.install();
         JFrame frame = new JFrame(title);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         MANAGED_FRAMES.add(frame);

@@ -36,6 +36,7 @@ caffeine = "3.2.1" # https://central.sonatype.com/artifact/com.github.ben-manes.
 byte-buddy = "1.17.6" # https://central.sonatype.com/artifact/net.bytebuddy/byte-buddy
 dom4j = "2.2.0" # https://central.sonatype.com/artifact/org.dom4j/dom4j
 jaxen = "2.0.0" # https://central.sonatype.com/artifact/jaxen/jaxen
+flatlaf = "3.7.2" # https://central.sonatype.com/artifact/com.formdev/flatlaf
 
 # Script Engine
 kotlin = "2.2.0"
@@ -84,6 +85,7 @@ byteBuddy-core = { module = "net.bytebuddy:byte-buddy", version.ref = "byte-budd
 byteBuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byte-buddy" }
 dom4j = { module = "org.dom4j:dom4j", version.ref = "dom4j" }
 jaxen = { module = "jaxen:jaxen", version.ref = "jaxen" }
+flatlaf = { module = "com.formdev:flatlaf", version.ref = "flatlaf" }
 
 # Script Engine
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }

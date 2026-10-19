@@ -98,6 +98,7 @@ dependencies {
     slim(libs.byteBuddy.agent)
     slim(libs.dom4j)
     slim(libs.jaxen)
+    slim(libs.flatlaf)
 
     // Script Engine
     slim(libs.kotlin.stdlib)

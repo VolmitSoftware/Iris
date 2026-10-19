@@ -33,7 +33,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.Color;
-import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -87,7 +86,6 @@ final class MapCanvas extends JPanel {
     private final Timer notificationTimer;
     private final Timer legendTimer;
     private final Map<String, Long> notifications = new LinkedHashMap<>();
-    private final HotloadComparison comparison = new HotloadComparison();
 
     private Engine engine;
     private IrisRenderer renderer;
@@ -95,7 +93,6 @@ final class MapCanvas extends JPanel {
     private VisionRenderController.Frame renderFrame;
     private BufferedImage tileLayer;
     private boolean tileLayerStale = true;
-    private long tileLayerVersion;
     private MapStyle style = MapStyle.PLAIN;
     private RenderType currentType = RenderType.BIOME;
     private String viewLabel = MapView.BIOMES.label();
@@ -105,7 +102,6 @@ final class MapCanvas extends JPanel {
     private MapHoverProbe.Details hoverDetails;
     private Point cursor;
     private Point dragOrigin;
-    private boolean draggingDivider;
     private double centerX;
     private double centerZ;
     private long contentRevision = 1L;
@@ -184,14 +180,6 @@ final class MapCanvas extends JPanel {
         return style;
     }
 
-    HotloadComparison.Mode comparisonMode() {
-        return comparison.hasBefore() ? comparison.mode() : HotloadComparison.Mode.OFF;
-    }
-
-    boolean hasBeforePicture() {
-        return comparison.hasBefore();
-    }
-
     void start() {
         refreshMarkers();
         requestRender();
@@ -238,25 +226,12 @@ final class MapCanvas extends JPanel {
             notifyUser("No active Iris engine");
             return;
         }
-        boolean captured = captureBeforePicture();
         renderer = new IrisRenderer(engine);
         overlay = new VisionOverlay(engine, openerId);
         contentRevision++;
         requestRender();
-        notifyUser(captured && comparison.mode() == HotloadComparison.Mode.OFF
-                ? "Refreshing · press C to compare with before"
-                : "Refreshing");
+        notifyUser("Refreshing");
         listener.onTogglesChanged();
-    }
-
-    // Only a finished picture is worth comparing against; a half drawn one would show its gaps as changes.
-    private boolean captureBeforePicture() {
-        if (tileLayer == null || controller.progress(renderFrame).completion() < 1D) {
-            comparison.forget();
-            return false;
-        }
-        comparison.capture(currentTileLayer(), currentScene());
-        return true;
     }
 
     void toggleShading() {
@@ -297,13 +272,11 @@ final class MapCanvas extends JPanel {
     }
 
     /**
-     * Esc steps back one layer of emphasis: the highlight first, then the comparison, then the help.
+     * Esc steps back one layer of emphasis: the highlight first, then the help.
      */
     void dismissEmphasis() {
         if (style.highlight() != null) {
             clearHighlight();
-        } else if (comparisonMode() != HotloadComparison.Mode.OFF) {
-            showComparison(HotloadComparison.Mode.OFF);
         } else if (help) {
             toggleHelp();
         }
@@ -312,26 +285,6 @@ final class MapCanvas extends JPanel {
     private void clearHighlight() {
         applyStyle(style.withHighlight(null));
         notifyUser("Highlight cleared");
-    }
-
-    void cycleComparison() {
-        showComparison(comparisonMode().next());
-    }
-
-    void showComparison(HotloadComparison.Mode mode) {
-        if (!comparison.hasBefore()) {
-            notifyUser("Refresh or hotload the pack first, then compare with before");
-            listener.onTogglesChanged();
-            return;
-        }
-        comparison.setMode(mode);
-        notifyUser(switch (mode) {
-            case OFF -> "Comparison off";
-            case SWIPE -> "Drag the divider to compare before and now";
-            case CHANGES -> "Showing what changed in the hotload";
-        });
-        repaint();
-        listener.onTogglesChanged();
     }
 
     private void applyStyle(MapStyle next) {
@@ -440,9 +393,6 @@ final class MapCanvas extends JPanel {
             public void mouseMoved(MouseEvent event) {
                 cursor = event.getPoint();
                 setDetailedHover(event.isShiftDown());
-                setCursor(comparison.isNearDivider(event.getX(), getWidth())
-                        ? Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
-                        : Cursor.getDefaultCursor());
                 showQuickHover();
                 hoverTimer.restart();
                 refreshStatus();
@@ -451,11 +401,6 @@ final class MapCanvas extends JPanel {
             @Override
             public void mouseDragged(MouseEvent event) {
                 cursor = event.getPoint();
-                if (draggingDivider) {
-                    comparison.moveDivider(event.getX(), getWidth());
-                    repaint();
-                    return;
-                }
                 if (dragOrigin == null) {
                     return;
                 }
@@ -480,8 +425,6 @@ final class MapCanvas extends JPanel {
                 cursor = event.getPoint();
                 if (event.isPopupTrigger()) {
                     showContextMenu(event);
-                } else if (SwingUtilities.isLeftMouseButton(event) && comparison.isNearDivider(event.getX(), getWidth())) {
-                    draggingDivider = true;
                 } else if (SwingUtilities.isLeftMouseButton(event)) {
                     dragOrigin = event.getPoint();
                 }
@@ -490,7 +433,6 @@ final class MapCanvas extends JPanel {
             @Override
             public void mouseReleased(MouseEvent event) {
                 dragOrigin = null;
-                draggingDivider = false;
                 if (event.isPopupTrigger()) {
                     showContextMenu(event);
                 }
@@ -628,17 +570,7 @@ final class MapCanvas extends JPanel {
 
     // The display server gets one finished picture per paint: handing it every tile separately made the map lag.
     private void renderTiles(Graphics2D canvas) {
-        BufferedImage layer = currentTileLayer();
-        if (!comparison.isShowing()) {
-            canvas.drawImage(layer, 0, 0, null);
-            return;
-        }
-        boolean complete = controller.progress(renderFrame).completion() >= 1D;
-        comparison.paint(canvas, layer, tileLayerVersion, currentScene(), complete);
-    }
-
-    private HotloadComparison.Scene currentScene() {
-        return new HotloadComparison.Scene(currentType, style, blocksPerPixel, centerX, centerZ);
+        canvas.drawImage(currentTileLayer(), 0, 0, null);
     }
 
     private BufferedImage currentTileLayer() {
@@ -657,7 +589,6 @@ final class MapCanvas extends JPanel {
                 layer.dispose();
             }
             tileLayerStale = false;
-            tileLayerVersion++;
         }
         return tileLayer;
     }
@@ -833,7 +764,7 @@ final class MapCanvas extends JPanel {
 
     private void renderHover(Graphics2D canvas) {
         QuickHover quick = quickHover;
-        if (quick == null || draggingDivider) {
+        if (quick == null) {
             return;
         }
         MapHoverProbe.Details details = hoverDetails;
@@ -846,7 +777,7 @@ final class MapCanvas extends JPanel {
 
     private void renderHelp(Graphics2D canvas) {
         List<String> keys = List.of("Drag", "Wheel / + -", "\\", "Double-click", "Right-click", "Ctrl+Click", "Alt+Click",
-                "Shift", "H", "Esc", "S", "B", "C", "R", "F", "G", "E", "M", "1 to 0, P", "/");
+                "Shift", "H", "Esc", "S", "B", "R", "F", "G", "E", "M", "1 to 0, P", "/");
         List<String> descriptions = List.of(
                 "Move the map",
                 "Zoom in and out",
@@ -860,7 +791,6 @@ final class MapCanvas extends JPanel {
                 "Clear the highlight",
                 "Terrain shading",
                 "Region borders",
-                "Compare with before the last hotload",
                 "Redraw the map",
                 "Follow your player",
                 "Chunk and region grid",

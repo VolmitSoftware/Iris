@@ -73,10 +73,6 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JToggleButton followToggle = StudioToolbar.toggle("Follow", "Keep your player in the middle (F)");
     private final JToggleButton shadingToggle = StudioToolbar.toggle("Shading", "Shade hills and valleys on every view (S)");
     private final JToggleButton bordersToggle = StudioToolbar.toggle("Borders", "Outline the regions on every view (B)");
-    private final JToggleButton swipeToggle = StudioToolbar.toggle("Before / after",
-            "Split the map between before and after the last hotload or refresh (C)");
-    private final JToggleButton changesToggle = StudioToolbar.toggle("Changes",
-            "Fade out everything the last hotload or refresh left the same (C twice)");
     private final MapLegendPanel legendPanel;
 
     private NoiseExplorerGUI paletteExplorer;
@@ -150,18 +146,11 @@ public final class MapWindow implements MapCanvas.Listener {
         mapControls.add(toolbarSeparator());
         mapControls.add(shadingToggle);
         mapControls.add(bordersToggle);
-        mapControls.add(toolbarSeparator());
-        mapControls.add(swipeToggle);
-        mapControls.add(changesToggle);
         gridToggle.addActionListener(event -> canvas.toggleGrid());
         entitiesToggle.addActionListener(event -> canvas.toggleEntities());
         followToggle.addActionListener(event -> canvas.toggleFollow());
         shadingToggle.addActionListener(event -> canvas.toggleShading());
         bordersToggle.addActionListener(event -> canvas.toggleRegionBorders());
-        swipeToggle.addActionListener(event -> canvas.showComparison(
-                swipeToggle.isSelected() ? HotloadComparison.Mode.SWIPE : HotloadComparison.Mode.OFF));
-        changesToggle.addActionListener(event -> canvas.showComparison(
-                changesToggle.isSelected() ? HotloadComparison.Mode.CHANGES : HotloadComparison.Mode.OFF));
         mapControls.forEach(toolbar::add);
 
         paletteControls.add(StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)", this::resetPaletteView));
@@ -297,8 +286,6 @@ public final class MapWindow implements MapCanvas.Listener {
         followToggle.setSelected(canvas.isFollowing());
         shadingToggle.setSelected(canvas.style().shading());
         bordersToggle.setSelected(canvas.style().regionBorders());
-        swipeToggle.setSelected(canvas.comparisonMode() == HotloadComparison.Mode.SWIPE);
-        changesToggle.setSelected(canvas.comparisonMode() == HotloadComparison.Mode.CHANGES);
     }
 
     @Override
@@ -340,7 +327,6 @@ public final class MapWindow implements MapCanvas.Listener {
         bindMap(rootPane, KeyEvent.VK_ESCAPE, 0, "dismiss", canvas::dismissEmphasis);
         bindMap(rootPane, KeyEvent.VK_S, 0, "shading", canvas::toggleShading);
         bindMap(rootPane, KeyEvent.VK_B, 0, "borders", canvas::toggleRegionBorders);
-        bindMap(rootPane, KeyEvent.VK_C, 0, "compare", canvas::cycleComparison);
         bindMap(rootPane, KeyEvent.VK_EQUALS, 0, "zoom-in", canvas::zoomIn);
         bindMap(rootPane, KeyEvent.VK_EQUALS, KeyEvent.SHIFT_DOWN_MASK, "zoom-in-plus", canvas::zoomIn);
         bindMap(rootPane, KeyEvent.VK_ADD, 0, "zoom-in-keypad", canvas::zoomIn);

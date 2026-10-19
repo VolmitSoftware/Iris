@@ -41,7 +41,7 @@ import java.util.function.BiFunction;
 /**
  * Module {@code iris:loot}'s check of a pack: every loot table has sane picks, tries and entries, and every loot
  * reference of a dimension, region or biome names a table the pack has. It checks the tables and settings as they
- * decoded; a file that is not valid JSON, or holds a value of the wrong type, is reported by the load that reads it.
+ * decoded; a file that is not valid JSON, or holds a value of the wrong type, fails to load, and the check reports why.
  */
 public final class LootValidator implements Validator {
     private static final String JSON_EXTENSION = ".json";
@@ -95,7 +95,7 @@ public final class LootValidator implements Validator {
         try {
             return resources.find(LootResources.TABLES.key(id)).orElse(null);
         } catch (IllegalStateException failedToLoad) {
-            errors.add("Loot table '" + key + "' cannot be read; the log says what is wrong with the file.");
+            errors.add("Loot table '" + key + "' cannot be read: " + failedToLoad.getMessage());
             return null;
         }
     }

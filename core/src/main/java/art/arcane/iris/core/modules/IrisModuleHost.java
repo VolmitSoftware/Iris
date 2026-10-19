@@ -74,9 +74,9 @@ public final class IrisModuleHost {
         return hostModules();
     }
 
-    /** Modules that are Iris itself, not features: they write the layout's platform biomes, record the platform's custom blocks, describe the classes Iris's placement settings hold and serve Iris's structure model. A pack never replaces them and the built-ins jar does not hold them. */
+    /** Modules that are Iris itself, not features: they write the layout's platform biomes, record the platform's custom blocks and serve Iris's structure model. A pack never replaces them and the built-ins jar does not hold them. */
     private static List<IrisModule> hostModules() {
-        return List.of(new BiomeModule(), new CustomModule(), new PlacementSettingsModule(), new StructureModelModule());
+        return List.of(new BiomeModule(), new CustomModule(), new StructureModelModule());
     }
 
     /** Iris's own log, labelled {@code [iris]}, for host code that calls module classes outside any module's stage, service or hook. */

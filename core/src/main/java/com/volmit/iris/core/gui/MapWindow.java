@@ -59,6 +59,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private static final int CONTENT_MINIMUM_WIDTH = 320;
     private static final double PALETTE_RECENTER_DISTANCE_BLOCKS = 1D;
     private static final double VIEW_LIST_SHARE_WITH_EXPLORER = 0.34D;
+    private static final int EXPLORER_DIVIDER_HEIGHT = 7;
 
     private final JFrame frame;
     private final PaletteExplorerStart start;
@@ -70,6 +71,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JPanel sidebar = new JPanel(new BorderLayout());
     private final JPanel inspectorSlot = new JPanel(new BorderLayout());
     private final JComponent viewListScroll;
+    private final JSplitPane explorerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
     private final List<JComponent> mapControls = new ArrayList<>();
     private final List<JComponent> explorerControls = new ArrayList<>();
     private final List<JComponent> noiseControls = new ArrayList<>();
@@ -122,6 +124,7 @@ public final class MapWindow implements MapCanvas.Listener {
     }
 
     private void buildFrame() {
+        styleExplorerSplit();
         content.add(canvas, MAP_CARD);
         statusBars.add(canvas.statusBar(), MAP_CARD);
         sidebar.add(viewListScroll, BorderLayout.CENTER);
@@ -249,15 +252,27 @@ public final class MapWindow implements MapCanvas.Listener {
         }
     }
 
+    // Both explorers share one split, so the divider stays where it was dragged when switching between them.
     private JSplitPane viewListAbove(JComponent explorerSidebar) {
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, viewListScroll, explorerSidebar);
-        split.setBorder(BorderFactory.createEmptyBorder());
-        split.setResizeWeight(0D);
-        split.setDividerLocation(viewListHeightAboveExplorer());
-        return split;
+        boolean firstUse = explorerSplit.getBottomComponent() == null;
+        explorerSplit.setTopComponent(viewListScroll);
+        explorerSplit.setBottomComponent(explorerSidebar);
+        if (firstUse) {
+            EventQueue.invokeLater(() -> explorerSplit.setDividerLocation(viewListHeightAboveExplorer()));
+        }
+        return explorerSplit;
     }
 
-    // The explorer needs the room more than the view list, which scrolls once it is squeezed.
+    private void styleExplorerSplit() {
+        explorerSplit.setBorder(BorderFactory.createEmptyBorder());
+        explorerSplit.setResizeWeight(0D);
+        explorerSplit.setBackground(StudioTheme.PANEL_BACKGROUND);
+        explorerSplit.setDividerSize(StudioTheme.scale(EXPLORER_DIVIDER_HEIGHT));
+        explorerSplit.putClientProperty("FlatLaf.style", "style: grip");
+    }
+
+    // The explorer needs the room more than the view list, which scrolls once it is squeezed. Measured once the sidebar
+    // is laid out, since the list's rows are taller before they know their width.
     private int viewListHeightAboveExplorer() {
         int fullHeight = viewList.getPreferredSize().height + 4;
         if (sidebar.getHeight() < 1) {

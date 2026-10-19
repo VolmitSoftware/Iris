@@ -45,6 +45,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         carve(writer, rng, x, z, region, biome);
+        new NoiseTerrainCarver(getEngineMantle().getEngine()).carve(writer, x, z);
     }
 
     @ChunkCoordinates

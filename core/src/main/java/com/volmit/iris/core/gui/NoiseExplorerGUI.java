@@ -29,6 +29,7 @@ import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import org.bukkit.World;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -208,23 +209,26 @@ public final class NoiseExplorerGUI extends JPanel {
         GuiHost.registerHotloadHook(hotloadHook);
     }
 
-    public static void launch() {
-        Engine engine = GuiHost.findActiveEngine();
+    /**
+     * @param engine the engine whose pack generators to list, or null for the open studio or first Iris world
+     */
+    public static void launch(Engine engine) {
+        Engine sourceEngine = engine != null ? engine : GuiHost.findActiveEngine();
         EventQueue.invokeLater(() -> {
             StudioTheme.install();
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
+            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, sourceEngine, null, null, null, DEFAULT_SEED, null);
             buildNoiseFrame("Noise Explorer", explorer);
         });
     }
 
-    public static void launchGeneratorKey(String generatorKey, IrisGenerator fallbackGenerator, long initialSeed) {
-        Engine engine = GuiHost.findActiveEngine();
+    public static void launchGeneratorKey(Engine engine, String generatorKey, IrisGenerator fallbackGenerator, long initialSeed) {
+        Engine sourceEngine = engine != null ? engine : GuiHost.findActiveEngine();
         String displayName = generatorKey == null || generatorKey.isBlank() ? "Custom Generator" : generatorKey;
         EventQueue.invokeLater(() -> {
             StudioTheme.install();
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(
                     ExplorerMode.NOISE,
-                    engine,
+                    sourceEngine,
                     generatorKey,
                     fallbackGenerator,
                     displayName,
@@ -1080,13 +1084,22 @@ public final class NoiseExplorerGUI extends JPanel {
         });
     }
 
+    // A hotload replaces the engine; the explorer stays on the world it was opened for.
+    private Engine engineAfterHotload() {
+        if (paletteStart != null) {
+            return GuiHost.findEngine(paletteStart.worldId());
+        }
+        World world = activeEngine == null ? null : activeEngine.getWorld().realWorld();
+        return world == null ? GuiHost.findActiveEngine() : GuiHost.findEngine(world.getUID());
+    }
+
     void resetViewport() {
         viewport = initialViewport;
         requestPreview();
     }
 
     private void handleHotload() {
-        Engine refreshedEngine = paletteStart == null ? GuiHost.findActiveEngine() : GuiHost.findEngine(paletteStart.worldId());
+        Engine refreshedEngine = engineAfterHotload();
         EventQueue.invokeLater(() -> {
             if (disposed) {
                 return;

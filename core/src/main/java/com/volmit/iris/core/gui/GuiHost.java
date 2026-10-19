@@ -20,7 +20,9 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -94,7 +96,15 @@ public final class GuiHost {
         return new Dimension(Math.min(preferred.width, usable.width), Math.min(preferred.height, usable.height));
     }
 
+    /**
+     * The engine of the open studio project, which reads the pack folder you edit, or else the first Iris world.
+     * A normal Iris world runs on its own copy of the pack, made when the world was created.
+     */
     public static Engine findActiveEngine() {
+        Engine studioEngine = findStudioEngine();
+        if (studioEngine != null) {
+            return studioEngine;
+        }
         try {
             for (World world : new ArrayList<>(Bukkit.getWorlds())) {
                 Engine engine = engineOf(world);
@@ -105,6 +115,18 @@ public final class GuiHost {
         } catch (Throwable ignored) {
         }
         return null;
+    }
+
+    private static Engine findStudioEngine() {
+        try {
+            StudioSVC studio = Iris.service(StudioSVC.class);
+            IrisProject project = studio == null || !studio.isProjectOpen() ? null : studio.getActiveProject();
+            PlatformChunkGenerator provider = project == null ? null : project.getActiveProvider();
+            Engine engine = provider == null ? null : provider.getEngine();
+            return engine == null || engine.isClosed() ? null : engine;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     public static Engine findEngine(UUID worldId) {

@@ -250,7 +250,7 @@ public class CommandStudio implements DecreeExecutor {
     public void noise() {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
-        NoiseExplorerGUI.launch();
+        NoiseExplorerGUI.launch(engine());
     }
 
     @Decree(description = "Preview the palettes around you (External GUI)", aliases = "pal", origin = DecreeOrigin.PLAYER)
@@ -293,7 +293,7 @@ public class CommandStudio implements DecreeExecutor {
     ) {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
-        NoiseExplorerGUI.launchGeneratorKey(generator == null ? null : generator.getLoadKey(), generator, seed);
+        NoiseExplorerGUI.launchGeneratorKey(engine(), generator == null ? null : generator.getLoadKey(), generator, seed);
     }
 
     @Decree(description = "Hotload a studio", aliases = {"reload", "h"})

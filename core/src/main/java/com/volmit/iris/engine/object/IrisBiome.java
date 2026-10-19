@@ -102,8 +102,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private int lockLayersMax = 7;
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
-    @Desc("Sculpts overhangs, arches and cliffs into this biome's terrain with 3D noise. Fades out toward the edges of the biome.")
-    private IrisNoiseCarving noiseCarving = null;
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
     @MinNumber(1)

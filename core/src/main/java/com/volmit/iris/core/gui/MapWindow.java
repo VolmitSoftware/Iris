@@ -87,7 +87,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private MapWindow(PaletteExplorerStart start) {
         this.start = start;
         this.frame = GuiHost.createFrame("Iris Map");
-        this.canvas = new MapCanvas(start.engine(), start.playerId(), this);
+        this.canvas = new MapCanvas(start.engine(), start.worldId(), start.playerId(), this);
         this.viewList = new MapViewList(this::showView);
         this.viewListScroll = StudioToolbar.scroll(viewList);
         this.legendPanel = new MapLegendPanel(share -> canvas.toggleHighlight(share.label()));

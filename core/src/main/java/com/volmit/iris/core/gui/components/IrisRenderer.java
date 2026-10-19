@@ -51,6 +51,8 @@ public final class IrisRenderer {
     private static final int UNKNOWN_SUBJECT = rgb(90, 92, 98);
     private static final int LARGEST_SAMPLE_BLOCK_PIXELS = 16;
     private static final double LARGEST_SAMPLE_BLOCK_BLOCKS = 64D;
+    private static final double DEFAULT_DEPTH_BELOW_SEA_BLOCKS = 48D;
+    private static final double DEFAULT_HEIGHT_ABOVE_SEA_BLOCKS = 160D;
 
     private final Engine engine;
     private final MapLabels labels = new MapLabels();
@@ -97,9 +99,9 @@ public final class IrisRenderer {
             subjects[index] = subjectOf(identities[index]);
             regions[index] = regionOf(identities[index]);
         }
-        int[] colors = tileColors(size, type, subjects, heights);
+        int[] colors = type == RenderType.HEIGHT ? null : tileColors(size, type, subjects);
         MapLabels.Kind subjectKind = type == RenderType.REGION ? MapLabels.Kind.REGION : MapLabels.Kind.BIOME;
-        return new MapTile(size, blocksPerPixel, labels, subjectKind, colors, subjects, regions, heights);
+        return new MapTile(size, blocksPerPixel, labels, subjectKind, colors, defaultHeightRange(), subjects, regions, heights);
     }
 
     /**
@@ -110,16 +112,24 @@ public final class IrisRenderer {
         return labelColor(label.id(), colorType);
     }
 
-    public static int heightColor(double height, double maximumHeight, double fluidHeight) {
-        double boundedMaximum = Math.max(1D, maximumHeight);
-        double boundedHeight = clamp(height, 0D, boundedMaximum);
-        double boundedFluid = clamp(fluidHeight, 0D, boundedMaximum);
-        if (boundedHeight <= boundedFluid && boundedFluid > 0D) {
-            return blend(DEEP_WATER, SHALLOW_WATER, boundedHeight / boundedFluid);
+    /**
+     * Until the map has measured the heights on screen, land colours cover the band most terrain sits in.
+     */
+    public MapStyle.HeightRange defaultHeightRange() {
+        double seaLevel = fluidHeight();
+        return new MapStyle.HeightRange(Math.max(0D, seaLevel - DEFAULT_DEPTH_BELOW_SEA_BLOCKS), seaLevel,
+                Math.min(engine.getHeight(), seaLevel + DEFAULT_HEIGHT_ABOVE_SEA_BLOCKS));
+    }
+
+    public static int heightColor(double height, MapStyle.HeightRange range) {
+        double seaLevel = range.seaLevel();
+        if (height <= seaLevel) {
+            double waterDepthRange = Math.max(1D, seaLevel - range.lowest());
+            return blend(DEEP_WATER, SHALLOW_WATER, (height - range.lowest()) / waterDepthRange);
         }
 
-        double landRange = Math.max(1D, boundedMaximum - boundedFluid);
-        double land = clamp((boundedHeight - boundedFluid) / landRange, 0D, 1D);
+        double landRange = Math.max(1D, range.highest() - seaLevel);
+        double land = clamp((height - seaLevel) / landRange, 0D, 1D);
         if (land < 0.45D) {
             return blend(LOWLAND, HIGHLAND, land / 0.45D);
         }
@@ -168,19 +178,13 @@ public final class IrisRenderer {
         };
     }
 
-    private int[] tileColors(int size, RenderType type, short[] subjects, double[] heights) {
+    private int[] tileColors(int size, RenderType type, short[] subjects) {
         int[] colors = new int[size * size];
-        double maximumHeight = engine.getHeight();
-        double fluidHeight = fluidHeight();
         short previousSubject = MapLabels.NONE;
         int previousColor = UNKNOWN_SUBJECT;
         for (int pixelZ = 0; pixelZ < size; pixelZ++) {
             for (int pixelX = 0; pixelX < size; pixelX++) {
                 int gridIndex = (pixelZ + 1) * (size + 2) + pixelX + 1;
-                if (type == RenderType.HEIGHT) {
-                    colors[pixelZ * size + pixelX] = heightColor(heights[gridIndex], maximumHeight, fluidHeight);
-                    continue;
-                }
                 short subject = subjects[gridIndex];
                 if (subject != previousSubject) {
                     previousSubject = subject;

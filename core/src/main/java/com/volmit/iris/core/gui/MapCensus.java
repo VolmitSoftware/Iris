@@ -19,9 +19,11 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.core.gui.components.MapLabels;
+import com.volmit.iris.core.gui.components.MapStyle;
 import com.volmit.iris.core.gui.components.MapTile;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -29,45 +31,84 @@ import java.util.Map;
 import java.util.function.ToIntFunction;
 
 /**
- * Counts how much of the visible map each biome or region covers, from the tiles already drawn.
+ * Measures the visible part of the map from the tiles already drawn: how much each biome or region covers, and which
+ * heights it spans.
  */
 final class MapCensus {
     private static final long MAXIMUM_COUNTED_PIXELS = 250_000L;
+    private static final int MINIMUM_HEIGHT_SAMPLES = 64;
+    private static final double LOW_HEIGHT_PERCENTILE = 0.01D;
+    private static final double HIGH_HEIGHT_PERCENTILE = 0.99D;
+    private static final double HEIGHT_RANGE_STEP_BLOCKS = 8D;
+    private static final double MINIMUM_WATER_DEPTH_BLOCKS = 8D;
+    private static final double MINIMUM_LAND_HEIGHT_BLOCKS = 16D;
 
     private MapCensus() {
     }
 
-    static List<Share> count(VisionRenderController.Frame frame, double minimumX, double minimumZ, double maximumX,
-                             double maximumZ, ToIntFunction<MapLabels.Label> colorOf) {
+    static List<Share> count(VisionRenderController.Frame frame, ViewArea area, ToIntFunction<MapLabels.Label> colorOf) {
+        Map<Short, long[]> counts = new HashMap<>();
+        MapLabels[] labels = new MapLabels[1];
+        long counted = visitVisiblePixels(frame, area, (tile, pixelX, pixelZ) -> {
+            labels[0] = tile.labels();
+            counts.computeIfAbsent(tile.subjectAt(pixelX, pixelZ), id -> new long[1])[0]++;
+        });
+        return shares(counts, labels[0], counted, colorOf);
+    }
+
+    /**
+     * The heights on screen, ignoring the highest and lowest few percent so one spike doesn't wash out every colour.
+     * Rounded to whole steps, so panning around doesn't recolour the map for every small change.
+     *
+     * @return the range, or null until enough of the map is drawn to tell
+     */
+    static MapStyle.HeightRange heightRange(VisionRenderController.Frame frame, ViewArea area, double seaLevel) {
+        DoubleList heights = new DoubleList();
+        visitVisiblePixels(frame, area, (tile, pixelX, pixelZ) -> {
+            if (tile.hasHeights()) {
+                heights.add(tile.heightAt(pixelX, pixelZ));
+            }
+        });
+        if (heights.size() < MINIMUM_HEIGHT_SAMPLES) {
+            return null;
+        }
+        double[] sorted = heights.sorted();
+        double low = sorted[(int) ((sorted.length - 1) * LOW_HEIGHT_PERCENTILE)];
+        double high = sorted[(int) ((sorted.length - 1) * HIGH_HEIGHT_PERCENTILE)];
+        double lowest = Math.floor(Math.min(low, seaLevel - MINIMUM_WATER_DEPTH_BLOCKS) / HEIGHT_RANGE_STEP_BLOCKS)
+                * HEIGHT_RANGE_STEP_BLOCKS;
+        double highest = Math.ceil(Math.max(high, seaLevel + MINIMUM_LAND_HEIGHT_BLOCKS) / HEIGHT_RANGE_STEP_BLOCKS)
+                * HEIGHT_RANGE_STEP_BLOCKS;
+        return new MapStyle.HeightRange(lowest, seaLevel, highest);
+    }
+
+    private static long visitVisiblePixels(VisionRenderController.Frame frame, ViewArea area, PixelVisitor visitor) {
         if (frame == null) {
-            return List.of();
+            return 0L;
         }
         double blocksPerPixel = frame.renderBlocksPerPixel();
-        int stride = countingStride(maximumX - minimumX, maximumZ - minimumZ, blocksPerPixel);
+        int stride = countingStride(area.maximumX() - area.minimumX(), area.maximumZ() - area.minimumZ(), blocksPerPixel);
         double tileSpan = VisionRenderController.TILE_PIXELS * blocksPerPixel;
-        Map<Short, long[]> counts = new HashMap<>();
-        MapLabels labels = null;
-        long counted = 0L;
+        long visited = 0L;
         for (VisionRenderController.VisibleTile visible : frame.tiles()) {
             MapTile tile = visible.tile();
             if (tile == null) {
                 continue;
             }
-            labels = tile.labels();
             double originX = visible.tileX() * tileSpan;
             double originZ = visible.tileZ() * tileSpan;
-            int firstX = firstPixel(minimumX - originX, blocksPerPixel, stride, visible.tileX());
-            int firstZ = firstPixel(minimumZ - originZ, blocksPerPixel, stride, visible.tileZ());
-            int endX = endPixel(maximumX - originX, blocksPerPixel, tile.size());
-            int endZ = endPixel(maximumZ - originZ, blocksPerPixel, tile.size());
+            int firstX = firstPixel(area.minimumX() - originX, blocksPerPixel, stride, visible.tileX());
+            int firstZ = firstPixel(area.minimumZ() - originZ, blocksPerPixel, stride, visible.tileZ());
+            int endX = endPixel(area.maximumX() - originX, blocksPerPixel, tile.size());
+            int endZ = endPixel(area.maximumZ() - originZ, blocksPerPixel, tile.size());
             for (int pixelZ = firstZ; pixelZ < endZ; pixelZ += stride) {
                 for (int pixelX = firstX; pixelX < endX; pixelX += stride) {
-                    counts.computeIfAbsent(tile.subjectAt(pixelX, pixelZ), id -> new long[1])[0]++;
-                    counted++;
+                    visitor.visit(tile, pixelX, pixelZ);
+                    visited++;
                 }
             }
         }
-        return shares(counts, labels, counted, colorOf);
+        return visited;
     }
 
     private static List<Share> shares(Map<Short, long[]> counts, MapLabels labels, long counted,
@@ -105,5 +146,38 @@ final class MapCensus {
     }
 
     record Share(MapLabels.Label label, int color, double fraction) {
+    }
+
+    /**
+     * The world area the screen shows, in blocks.
+     */
+    record ViewArea(double minimumX, double minimumZ, double maximumX, double maximumZ) {
+    }
+
+    @FunctionalInterface
+    private interface PixelVisitor {
+        void visit(MapTile tile, int pixelX, int pixelZ);
+    }
+
+    private static final class DoubleList {
+        private double[] values = new double[1024];
+        private int size;
+
+        void add(double value) {
+            if (size == values.length) {
+                values = Arrays.copyOf(values, size * 2);
+            }
+            values[size++] = value;
+        }
+
+        int size() {
+            return size;
+        }
+
+        double[] sorted() {
+            double[] sorted = Arrays.copyOf(values, size);
+            Arrays.sort(sorted);
+            return sorted;
+        }
     }
 }

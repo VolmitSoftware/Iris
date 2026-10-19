@@ -25,7 +25,6 @@ import com.volmit.iris.core.gui.components.MapStyle;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.format.Form;
 
 import javax.swing.JMenuItem;
@@ -77,6 +76,7 @@ final class MapCanvas extends JPanel {
     private static final double KEYBOARD_ZOOM_FACTOR = 1.189207115002721D;
     private static final int LEGEND_REFRESH_MILLIS = 200;
 
+    private final UUID worldId;
     private final UUID openerId;
     private final Listener listener;
     private final VisionRenderController controller;
@@ -108,8 +108,6 @@ final class MapCanvas extends JPanel {
     private boolean draggingDivider;
     private double centerX;
     private double centerZ;
-    private double heightMaximum;
-    private double fluidHeight;
     private long contentRevision = 1L;
     private long previousPaintStartedNanos;
     private double blocksPerPixel = DEFAULT_BLOCKS_PER_PIXEL;
@@ -123,15 +121,15 @@ final class MapCanvas extends JPanel {
     private boolean active = true;
     private boolean closed;
 
-    MapCanvas(Engine engine, UUID openerId, Listener listener) {
+    MapCanvas(Engine engine, UUID worldId, UUID openerId, Listener listener) {
         this.engine = Objects.requireNonNull(engine, "engine");
+        this.worldId = Objects.requireNonNull(worldId, "worldId");
         this.openerId = openerId;
         this.listener = Objects.requireNonNull(listener, "listener");
         this.renderer = new IrisRenderer(engine);
         this.overlay = new VisionOverlay(engine, openerId);
         this.controller = new VisionRenderController(this::onTilesChanged);
         this.hotloadHook = () -> EventQueue.invokeLater(this::refreshContent);
-        captureHeightRange();
 
         setBackground(StudioTheme.EDITOR_BACKGROUND);
         setFocusable(true);
@@ -214,6 +212,9 @@ final class MapCanvas extends JPanel {
             return;
         }
         currentType = view.renderType();
+        if (currentType != RenderType.HEIGHT) {
+            style = style.withHeightRange(null);
+        }
         requestRender();
     }
 
@@ -241,7 +242,6 @@ final class MapCanvas extends JPanel {
         renderer = new IrisRenderer(engine);
         overlay = new VisionOverlay(engine, openerId);
         contentRevision++;
-        captureHeightRange();
         requestRender();
         notifyUser(captured && comparison.mode() == HotloadComparison.Mode.OFF
                 ? "Refreshing · press C to compare with before"
@@ -796,6 +796,7 @@ final class MapCanvas extends JPanel {
         if (currentType != RenderType.HEIGHT) {
             return;
         }
+        MapStyle.HeightRange range = currentHeightRange();
         canvas.setFont(StudioTheme.smallFont());
         int padding = StudioTheme.scale(CARD_PADDING);
         int gradientHeight = StudioTheme.scale(14);
@@ -808,23 +809,24 @@ final class MapCanvas extends JPanel {
         int gradientX = x + padding;
         int gradientY = y + padding;
         int gradientWidth = width - padding * 2;
+        double span = Math.max(1D, range.highest() - range.lowest());
         for (int pixel = 0; pixel < gradientWidth; pixel++) {
-            double sampleHeight = heightMaximum * pixel / Math.max(1D, gradientWidth - 1D);
-            canvas.setColor(new Color(IrisRenderer.heightColor(sampleHeight, heightMaximum, fluidHeight)));
+            double sampleHeight = range.lowest() + span * pixel / Math.max(1D, gradientWidth - 1D);
+            canvas.setColor(new Color(IrisRenderer.heightColor(sampleHeight, range)));
             canvas.drawLine(gradientX + pixel, gradientY, gradientX + pixel, gradientY + gradientHeight);
         }
         canvas.setColor(StudioTheme.SECONDARY_TEXT);
         int labelBaseline = gradientY + gradientHeight + labelGap + canvas.getFontMetrics().getAscent();
-        String minimum = "0";
-        String fluid = Integer.toString((int) Math.round(fluidHeight));
-        String maximum = Integer.toString((int) Math.round(heightMaximum));
+        String minimum = Integer.toString((int) Math.round(range.lowest()));
+        String sea = "sea " + Math.round(range.seaLevel());
+        String maximum = Integer.toString((int) Math.round(range.highest()));
         int minimumRight = gradientX + canvas.getFontMetrics().stringWidth(minimum);
         int maximumX = gradientX + gradientWidth - canvas.getFontMetrics().stringWidth(maximum);
-        int fluidWidth = canvas.getFontMetrics().stringWidth(fluid);
-        int fluidX = gradientX + (int) Math.round(gradientWidth * fluidHeight / Math.max(1D, heightMaximum)) - fluidWidth / 2;
+        int seaWidth = canvas.getFontMetrics().stringWidth(sea);
+        int seaX = gradientX + (int) Math.round(gradientWidth * (range.seaLevel() - range.lowest()) / span) - seaWidth / 2;
         canvas.drawString(minimum, gradientX, labelBaseline);
-        if (fluidX > minimumRight + labelGap && fluidX + fluidWidth < maximumX - labelGap) {
-            canvas.drawString(fluid, fluidX, labelBaseline);
+        if (seaX > minimumRight + labelGap && seaX + seaWidth < maximumX - labelGap) {
+            canvas.drawString(sea, seaX, labelBaseline);
         }
         canvas.drawString(maximum, maximumX, labelBaseline);
     }
@@ -970,9 +972,25 @@ final class MapCanvas extends JPanel {
         }
         IrisRenderer legendRenderer = renderer;
         RenderType type = currentType;
-        List<MapCensus.Share> shares = MapCensus.count(renderFrame, screenToWorldX(0D), screenToWorldZ(0D),
-                screenToWorldX(getWidth()), screenToWorldZ(getHeight()), label -> legendRenderer.legendColor(label, type));
+        MapCensus.ViewArea area = new MapCensus.ViewArea(screenToWorldX(0D), screenToWorldZ(0D),
+                screenToWorldX(getWidth()), screenToWorldZ(getHeight()));
+        List<MapCensus.Share> shares = MapCensus.count(renderFrame, area, label -> legendRenderer.legendColor(label, type));
         listener.onLegendChanged(legendTitle(), shares, style.highlight());
+        if (type == RenderType.HEIGHT) {
+            fitHeightColorsToView(area);
+        }
+    }
+
+    // The height colours stretch over the heights on screen, so plains and mountains don't share one shade of green.
+    private void fitHeightColorsToView(MapCensus.ViewArea area) {
+        MapStyle.HeightRange measured = MapCensus.heightRange(renderFrame, area, renderer.defaultHeightRange().seaLevel());
+        if (measured != null && !measured.equals(style.heightRange())) {
+            applyStyle(style.withHeightRange(measured));
+        }
+    }
+
+    private MapStyle.HeightRange currentHeightRange() {
+        return style.heightRange() == null ? renderer.defaultHeightRange() : style.heightRange();
     }
 
     private void requestRender() {
@@ -1027,7 +1045,7 @@ final class MapCanvas extends JPanel {
             return true;
         }
         try {
-            Engine reacquired = GuiHost.findActiveEngine();
+            Engine reacquired = GuiHost.findEngine(worldId);
             if (reacquired == null || reacquired.isClosed() || reacquired.getComplex() == null) {
                 return false;
             }
@@ -1035,20 +1053,11 @@ final class MapCanvas extends JPanel {
             renderer = new IrisRenderer(reacquired);
             overlay = new VisionOverlay(reacquired, openerId);
             contentRevision++;
-            captureHeightRange();
             return true;
         } catch (Throwable error) {
             Iris.debug("Vision engine reacquisition failed: " + error.getClass().getSimpleName() + ": " + error.getMessage());
             return false;
         }
-    }
-
-    private void captureHeightRange() {
-        heightMaximum = Math.max(1D, engine.getHeight());
-        IrisDimension dimension = engine.getDimension();
-        fluidHeight = dimension == null
-                ? 0D
-                : Math.max(0D, Math.min(heightMaximum, dimension.getFluidHeight()));
     }
 
     private void refreshMarkers() {

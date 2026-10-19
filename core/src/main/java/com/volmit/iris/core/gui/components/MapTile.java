@@ -51,19 +51,25 @@ public final class MapTile {
     private final MapLabels labels;
     private final MapLabels.Kind subjectKind;
     private final int[] colors;
+    private final MapStyle.HeightRange defaultHeightRange;
     private final short[] subjects;
     private final short[] regions;
     private final double[] heights;
     private MapStyle styledFor;
     private BufferedImage styledImage;
 
-    MapTile(int size, double blocksPerPixel, MapLabels labels, MapLabels.Kind subjectKind, int[] colors, short[] subjects,
-            short[] regions, double[] heights) {
+    /**
+     * @param colors the colour of every pixel, or null to colour the pixels by their height when they are drawn
+     * @param defaultHeightRange the height colours to use until the map has measured the heights on screen
+     */
+    MapTile(int size, double blocksPerPixel, MapLabels labels, MapLabels.Kind subjectKind, int[] colors,
+            MapStyle.HeightRange defaultHeightRange, short[] subjects, short[] regions, double[] heights) {
         this.size = size;
         this.blocksPerPixel = blocksPerPixel;
         this.labels = labels;
         this.subjectKind = subjectKind;
         this.colors = colors;
+        this.defaultHeightRange = defaultHeightRange;
         this.subjects = subjects;
         this.regions = regions;
         this.heights = heights;
@@ -96,11 +102,16 @@ public final class MapTile {
         return regions[gridIndex(pixelX, pixelZ)];
     }
 
+    public double heightAt(int pixelX, int pixelZ) {
+        return heights[gridIndex(pixelX, pixelZ)];
+    }
+
     public long bytes() {
         long styledBytes = (long) size * size * Integer.BYTES;
         long gridCells = (long) (size + 2) * (size + 2);
         long heightBytes = heights == null ? 0L : gridCells * Double.BYTES;
-        return (long) colors.length * Integer.BYTES + gridCells * Short.BYTES * 2L + heightBytes + styledBytes;
+        long colorBytes = colors == null ? 0L : (long) colors.length * Integer.BYTES;
+        return colorBytes + gridCells * Short.BYTES * 2L + heightBytes + styledBytes;
     }
 
     /**
@@ -121,9 +132,12 @@ public final class MapTile {
         short highlighted = highlightGrid == null
                 ? MapLabels.NONE
                 : labels.idOf(style.highlight().kind(), style.highlight().key());
+        MapStyle.HeightRange heightRange = style.heightRange() == null ? defaultHeightRange : style.heightRange();
         for (int pixelZ = 0; pixelZ < size; pixelZ++) {
             for (int pixelX = 0; pixelX < size; pixelX++) {
-                int color = colors[pixelZ * size + pixelX];
+                int color = colors == null
+                        ? IrisRenderer.heightColor(heightAt(pixelX, pixelZ), heightRange)
+                        : colors[pixelZ * size + pixelX];
                 if (shading) {
                     color = shade(color, pixelX, pixelZ);
                 }

@@ -22,22 +22,33 @@ package com.volmit.iris.core.gui.components;
  * How map tiles are drawn on top of their plain colours: terrain shading, region borders and one highlighted biome or region.
  *
  * @param highlight the biome or region to keep bright while everything else dims, or null to show all
+ * @param heightRange the heights the height view spreads its colours over, or null outside the height view
  */
-public record MapStyle(boolean shading, boolean regionBorders, Highlight highlight) {
-    public static final MapStyle PLAIN = new MapStyle(false, false, null);
+public record MapStyle(boolean shading, boolean regionBorders, Highlight highlight, HeightRange heightRange) {
+    public static final MapStyle PLAIN = new MapStyle(false, false, null, null);
 
     public MapStyle withShading(boolean nextShading) {
-        return new MapStyle(nextShading, regionBorders, highlight);
+        return new MapStyle(nextShading, regionBorders, highlight, heightRange);
     }
 
     public MapStyle withRegionBorders(boolean nextRegionBorders) {
-        return new MapStyle(shading, nextRegionBorders, highlight);
+        return new MapStyle(shading, nextRegionBorders, highlight, heightRange);
     }
 
     public MapStyle withHighlight(Highlight nextHighlight) {
-        return new MapStyle(shading, regionBorders, nextHighlight);
+        return new MapStyle(shading, regionBorders, nextHighlight, heightRange);
+    }
+
+    public MapStyle withHeightRange(HeightRange nextHeightRange) {
+        return new MapStyle(shading, regionBorders, highlight, nextHeightRange);
     }
 
     public record Highlight(MapLabels.Kind kind, String key, String name) {
+    }
+
+    /**
+     * Water colours run from the lowest height up to sea level, land colours from sea level up to the highest.
+     */
+    public record HeightRange(double lowest, double seaLevel, double highest) {
     }
 }

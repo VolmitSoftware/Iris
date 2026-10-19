@@ -20,7 +20,6 @@ package com.volmit.iris.core.gui;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
-import javax.swing.Icon;
 import javax.swing.JList;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
@@ -168,7 +167,6 @@ final class MapViewList extends JList<MapViewList.Row> {
 
     private static final class RowRenderer extends DefaultListCellRenderer {
         private static final long serialVersionUID = 6302156810211578474L;
-        private static final int ICON_SIZE = 16;
         private static final int ICON_TEXT_GAP = 8;
         private static final int KEYCAP_SIZE = 17;
         private static final int KEYCAP_ARC = 5;
@@ -193,7 +191,7 @@ final class MapViewList extends JList<MapViewList.Row> {
             }
             setFont(StudioTheme.font());
             setBorder(StudioTheme.emptyBorder(0, 8, 0, 8));
-            setIcon(new ViewIcon(row.view()));
+            setIcon(MapViewIcon.of(row.view()));
             setIconTextGap(StudioTheme.scale(ICON_TEXT_GAP));
             setToolTipText(row.view().description());
             shortcut = row.view().shortcutText();
@@ -243,23 +241,6 @@ final class MapViewList extends JList<MapViewList.Row> {
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
             int baseline = y + (height + canvas.getFontMetrics().getAscent() - canvas.getFontMetrics().getDescent()) / 2;
             canvas.drawString(shortcut, x + (width - textWidth) / 2, baseline);
-        }
-    }
-
-    private record ViewIcon(MapView view) implements Icon {
-        @Override
-        public void paintIcon(Component component, Graphics graphics, int x, int y) {
-            MapViewIcon.paint((Graphics2D) graphics, view, x, y, getIconWidth());
-        }
-
-        @Override
-        public int getIconWidth() {
-            return StudioTheme.scale(RowRenderer.ICON_SIZE);
-        }
-
-        @Override
-        public int getIconHeight() {
-            return getIconWidth();
         }
     }
 }

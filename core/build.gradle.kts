@@ -99,6 +99,7 @@ dependencies {
     slim(libs.dom4j)
     slim(libs.jaxen)
     slim(libs.flatlaf)
+    slim(libs.flatlaf.extras)
 
     // Script Engine
     slim(libs.kotlin.stdlib)

@@ -86,6 +86,7 @@ byteBuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "by
 dom4j = { module = "org.dom4j:dom4j", version.ref = "dom4j" }
 jaxen = { module = "jaxen:jaxen", version.ref = "jaxen" }
 flatlaf = { module = "com.formdev:flatlaf", version.ref = "flatlaf" }
+flatlaf-extras = { module = "com.formdev:flatlaf-extras", version.ref = "flatlaf" }
 
 # Script Engine
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }

@@ -1,0 +1,3 @@
+These icons come from the IntelliJ Platform (https://github.com/JetBrains/intellij-community),
+platform/icons/src/expui, Copyright 2000-2023 JetBrains s.r.o. and contributors,
+used under the Apache License 2.0 (LICENSE-APACHE-2.0.txt).

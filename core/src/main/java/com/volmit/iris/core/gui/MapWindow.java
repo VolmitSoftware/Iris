@@ -178,6 +178,7 @@ public final class MapWindow implements MapCanvas.Listener {
         explorerControls.forEach(toolbar::add);
 
         toolbar.add(Box.createHorizontalGlue());
+        toolbar.add(StudioToolbar.themeButton());
         JComponent help = StudioToolbar.button("Shortcuts", "Show every mouse and key shortcut (/)", canvas::toggleHelp);
         mapControls.add(help);
         toolbar.add(help);

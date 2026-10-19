@@ -22,6 +22,7 @@ import com.volmit.iris.core.gui.BlockModel.Face;
 import com.volmit.iris.core.gui.BlockModel.TextureMapping;
 import com.volmit.iris.core.gui.BlockTextures.BlockTexture;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
@@ -36,8 +37,7 @@ import java.util.List;
  * what is already drawn.
  */
 final class ObjectRenderer {
-    private static final int BACKGROUND = StudioTheme.EDITOR_BACKGROUND.getRGB() & 0xFFFFFF;
-    private static final int GRID_COLOR = 0x34373C;
+    private static final Color GRID = new ThemeColor(0xE3E4E8, 0x34373C);
     private static final int GRID_LINES_PER_SIDE = 25;
     private static final double GRID_REACH = 0.7D;
     private static final double GRID_BELOW_OBJECT = 0.035D;
@@ -54,6 +54,7 @@ final class ObjectRenderer {
     private final double[] depths;
     private final boolean[] showsObject;
     private final Projection projection;
+    private final int gridColor = GRID.getRGB() & 0xFFFFFF;
 
     private ObjectRenderer(ObjectMesh mesh, ObjectCamera camera, BufferedImage image, int coveredLeftWidth) {
         this.width = image.getWidth();
@@ -71,7 +72,7 @@ final class ObjectRenderer {
     static BufferedImage render(ObjectMesh mesh, ObjectCamera camera, int width, int height, int coveredLeftWidth) {
         BufferedImage image = new BufferedImage(Math.max(1, width), Math.max(1, height), BufferedImage.TYPE_INT_RGB);
         ObjectRenderer renderer = new ObjectRenderer(mesh, camera, image, Math.max(0, Math.min(width - 1, coveredLeftWidth)));
-        Arrays.fill(renderer.pixels, BACKGROUND);
+        Arrays.fill(renderer.pixels, StudioTheme.EDITOR_BACKGROUND.getRGB() & 0xFFFFFF);
         Arrays.fill(renderer.depths, Double.NEGATIVE_INFINITY);
         renderer.drawGrid(mesh.bounds());
         for (ObjectMesh.Quad quad : mesh.solidQuads()) {
@@ -131,7 +132,7 @@ final class ObjectRenderer {
             double depth = startDepth + (endDepth - startDepth) * progress;
             if (depth > depths[index]) {
                 depths[index] = depth;
-                pixels[index] = GRID_COLOR;
+                pixels[index] = gridColor;
             }
         }
     }

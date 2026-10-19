@@ -57,7 +57,6 @@ final class PaletteNavigator extends JPanel {
     private static final long serialVersionUID = -6402313718430917284L;
     private static final String HERE_CARD = "here";
     private static final String OVERVIEW_CARD = "overview";
-    private static final String DETAIL_COLOR = StudioTheme.SECONDARY_TEXT_HTML;
     private static final int MESSAGE_WRAP_WIDTH_PIXELS = 190;
 
     private final Listener listener;
@@ -438,13 +437,13 @@ final class PaletteNavigator extends JPanel {
 
     private static String biomeText(BiomeEntry biome, String note) {
         String noteText = note == null ? "" : " · " + escape(note);
-        return "<html>" + escape(biome.name()) + noteText + " <font color='" + DETAIL_COLOR + "'>" + escape(biome.key())
+        return "<html>" + escape(biome.name()) + noteText + " <font color='" + StudioTheme.SECONDARY_TEXT.toHtml() + "'>" + escape(biome.key())
                 + "</font></html>";
     }
 
     private static String labeled(String title, String name, String key) {
-        return "<html><font color='" + DETAIL_COLOR + "'>" + title + "</font>&nbsp; " + escape(name)
-                + " <font color='" + DETAIL_COLOR + "'>" + escape(key) + "</font></html>";
+        return "<html><font color='" + StudioTheme.SECONDARY_TEXT.toHtml() + "'>" + title + "</font>&nbsp; " + escape(name)
+                + " <font color='" + StudioTheme.SECONDARY_TEXT.toHtml() + "'>" + escape(key) + "</font></html>";
     }
 
     private static String escape(String text) {
@@ -477,7 +476,7 @@ final class PaletteNavigator extends JPanel {
             if (detail == null) {
                 return escape(label);
             }
-            return "<html>" + escape(label) + " <font color='" + DETAIL_COLOR + "'>" + escape(detail) + "</font></html>";
+            return "<html>" + escape(label) + " <font color='" + StudioTheme.SECONDARY_TEXT.toHtml() + "'>" + escape(detail) + "</font></html>";
         }
     }
 

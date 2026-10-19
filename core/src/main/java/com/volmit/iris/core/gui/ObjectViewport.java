@@ -77,6 +77,13 @@ final class ObjectViewport extends JComponent {
         });
     }
 
+    // The theme changed, and the last frame was drawn on the old theme's background.
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        requestFrame();
+    }
+
     void show(ObjectMesh nextMesh) {
         mesh = nextMesh;
         camera = ObjectCamera.START;

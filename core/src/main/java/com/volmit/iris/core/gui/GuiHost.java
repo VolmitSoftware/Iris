@@ -73,6 +73,11 @@ public final class GuiHost {
             public void windowClosed(WindowEvent event) {
                 MANAGED_FRAMES.remove(frame);
             }
+
+            @Override
+            public void windowActivated(WindowEvent event) {
+                StudioTheme.followSystem();
+            }
         });
         installMacQuitGuard();
         return frame;

@@ -20,62 +20,64 @@ package com.volmit.iris.core.gui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.util.UIScale;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 
 import javax.swing.BorderFactory;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.Font;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * The colours of IntelliJ's dark "New UI", shared by FlatLaf's controls and everything the studio windows draw themselves.
+ * The colours of IntelliJ's "New UI", light and dark, shared by FlatLaf's controls and everything the studio windows
+ * draw themselves. The theme follows the system unless the user picked light or dark.
  */
 final class StudioTheme {
-    static final Color EDITOR_BACKGROUND = new Color(0x1E1F22);
-    static final Color PANEL_BACKGROUND = new Color(0x2B2D30);
-    static final Color HOVER_BACKGROUND = new Color(0x393B40);
-    static final Color INACTIVE_SELECTION = new Color(0x43454A);
-    static final Color SELECTION = new Color(0x2E436E);
-    static final Color CONTROL_BORDER = new Color(0x4E5157);
-    static final Color SEPARATOR = new Color(0x1E1F22);
-    static final Color TEXT = new Color(0xDFE1E5);
-    static final Color SECONDARY_TEXT = new Color(0x9DA0A8);
-    static final Color MUTED_TEXT = new Color(0x6F737A);
+    static final Color EDITOR_BACKGROUND = new ThemeColor(0xFFFFFF, 0x1E1F22);
+    static final Color PANEL_BACKGROUND = new ThemeColor(0xF7F8FA, 0x2B2D30);
+    static final Color HOVER_BACKGROUND = new ThemeColor(0xDFE1E5, 0x393B40);
+    static final Color INACTIVE_SELECTION = new ThemeColor(0xDFE1E5, 0x43454A);
+    static final Color SELECTION = new ThemeColor(0xD4E2FF, 0x2E436E);
+    static final Color CONTROL_BORDER = new ThemeColor(0xC9CCD6, 0x4E5157);
+    static final Color SEPARATOR = new ThemeColor(0xEBECF0, 0x1E1F22);
+    static final Color TEXT = new ThemeColor(0x000000, 0xDFE1E5);
+    static final ThemeColor SECONDARY_TEXT = new ThemeColor(0x6C707E, 0x9DA0A8);
+    static final Color MUTED_TEXT = new ThemeColor(0x818594, 0x6F737A);
     static final Color ACCENT = new Color(0x3574F0);
-    static final Color LINK = new Color(0x548AF7);
-    static final Color ERROR = new Color(0xF75464);
-    static final Color WARNING = new Color(0xF2C55C);
-    static final Color SUCCESS = new Color(0x5FB865);
-    static final Color OVERLAY_BACKGROUND = new Color(0x2B, 0x2D, 0x30, 236);
-    static final Color OVERLAY_BORDER = new Color(0x43454A);
-    static final String SECONDARY_TEXT_HTML = "#9DA0A8";
+    static final Color LINK = new ThemeColor(0x315FBD, 0x548AF7);
+    static final Color ERROR = new ThemeColor(0xDB3B4B, 0xF75464);
+    static final Color WARNING = new ThemeColor(0xC27D04, 0xF2C55C);
+    static final Color SUCCESS = new ThemeColor(0x208A3C, 0x5FB865);
+    static final Color OVERLAY_BACKGROUND = new ThemeColor(new Color(0xFF, 0xFF, 0xFF, 240), new Color(0x2B, 0x2D, 0x30, 236));
+    static final Color OVERLAY_BORDER = new ThemeColor(0xDFE1E5, 0x43454A);
     static final int OVERLAY_ARC = 10;
 
+    private static final boolean DARK_WITHOUT_SYSTEM_PREFERENCE = true;
     private static final AtomicBoolean INSTALLED = new AtomicBoolean();
+    private static final ExecutorService SYSTEM_CHECK = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "Iris Theme Check");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private static volatile boolean dark = DARK_WITHOUT_SYSTEM_PREFERENCE;
     private static volatile float pixelScale = 1F;
-    private static final Map<String, String> INTELLIJ_NEW_UI_DEFAULTS = Map.ofEntries(
-            Map.entry("@background", "#2B2D30"),
-            Map.entry("@foreground", "#DFE1E5"),
-            Map.entry("@accentColor", "#3574F0"),
-            Map.entry("@selectionBackground", "#2E436E"),
-            Map.entry("@selectionInactiveBackground", "#43454A"),
-            Map.entry("@disabledForeground", "#6F737A"),
-            Map.entry("Component.borderColor", "#4E5157"),
-            Map.entry("Component.focusedBorderColor", "#3574F0"),
+    private static final Map<String, String> SHARED_DEFAULTS = Map.ofEntries(
             Map.entry("Component.focusWidth", "1"),
             Map.entry("Component.innerFocusWidth", "0"),
             Map.entry("Component.arc", "8"),
             Map.entry("Button.arc", "8"),
             Map.entry("TextComponent.arc", "8"),
-            Map.entry("Button.toolbar.hoverBackground", "#393B40"),
-            Map.entry("Button.toolbar.pressedBackground", "#43454A"),
-            Map.entry("Button.toolbar.selectedBackground", "#43454A"),
-            Map.entry("ToggleButton.toolbar.selectedBackground", "#43454A"),
             Map.entry("List.selectionArc", "6"),
             Map.entry("List.selectionInsets", "0,6,0,6"),
             Map.entry("Tree.selectionArc", "6"),
@@ -85,16 +87,49 @@ final class StudioTheme {
             Map.entry("ScrollBar.thumbArc", "999"),
             Map.entry("ScrollBar.thumbInsets", "2,2,2,2"),
             Map.entry("ScrollBar.showButtons", "false"),
-            Map.entry("ScrollBar.track", "#2B2D30"),
             Map.entry("ScrollPane.border", "0,0,0,0"),
             Map.entry("SplitPane.dividerSize", "1"),
             Map.entry("SplitPaneDivider.style", "plain"),
-            Map.entry("SplitPane.background", "#1E1F22"),
-            Map.entry("Separator.foreground", "#1E1F22"),
-            Map.entry("ToolTip.background", "#393B40"),
             Map.entry("ProgressBar.arc", "999"),
             Map.entry("ProgressBar.horizontalSize", "120,4")
     );
+    private static final Map<String, String> DARK_DEFAULTS = withShared(Map.ofEntries(
+            Map.entry("@background", "#2B2D30"),
+            Map.entry("@foreground", "#DFE1E5"),
+            Map.entry("@accentColor", "#3574F0"),
+            Map.entry("@selectionBackground", "#2E436E"),
+            Map.entry("@selectionInactiveBackground", "#43454A"),
+            Map.entry("@disabledForeground", "#6F737A"),
+            Map.entry("Component.borderColor", "#4E5157"),
+            Map.entry("Component.focusedBorderColor", "#3574F0"),
+            Map.entry("Button.toolbar.hoverBackground", "#393B40"),
+            Map.entry("Button.toolbar.pressedBackground", "#43454A"),
+            Map.entry("Button.toolbar.selectedBackground", "#43454A"),
+            Map.entry("ToggleButton.toolbar.selectedBackground", "#43454A"),
+            Map.entry("ScrollBar.track", "#2B2D30"),
+            Map.entry("SplitPane.background", "#1E1F22"),
+            Map.entry("Separator.foreground", "#1E1F22"),
+            Map.entry("ToolTip.background", "#393B40")
+    ));
+    private static final Map<String, String> LIGHT_DEFAULTS = withShared(Map.ofEntries(
+            Map.entry("@background", "#F7F8FA"),
+            Map.entry("@foreground", "#000000"),
+            Map.entry("@accentColor", "#3574F0"),
+            Map.entry("@selectionBackground", "#D4E2FF"),
+            Map.entry("@selectionForeground", "#000000"),
+            Map.entry("@selectionInactiveBackground", "#DFE1E5"),
+            Map.entry("@selectionInactiveForeground", "#000000"),
+            Map.entry("@disabledForeground", "#A8ADBD"),
+            Map.entry("Component.borderColor", "#C9CCD6"),
+            Map.entry("Component.focusedBorderColor", "#3574F0"),
+            Map.entry("Button.toolbar.hoverBackground", "#DFE1E5"),
+            Map.entry("Button.toolbar.pressedBackground", "#C9CCD6"),
+            Map.entry("Button.toolbar.selectedBackground", "#DFE1E5"),
+            Map.entry("ToggleButton.toolbar.selectedBackground", "#DFE1E5"),
+            Map.entry("ScrollBar.track", "#F7F8FA"),
+            Map.entry("SplitPane.background", "#EBECF0"),
+            Map.entry("Separator.foreground", "#EBECF0")
+    ));
 
     private StudioTheme() {
     }
@@ -104,13 +139,77 @@ final class StudioTheme {
             return;
         }
         try {
-            FlatLaf.setGlobalExtraDefaults(INTELLIJ_NEW_UI_DEFAULTS);
-            FlatDarkLaf.setup();
+            applyLookAndFeel(darkFor(mode()));
             pixelScale = UIScale.getUserScaleFactor();
         } catch (Throwable error) {
             Iris.reportError(error);
             Iris.warn("Could not apply the Iris studio theme, the studio windows will use Java's default look.");
         }
+    }
+
+    static boolean isDark() {
+        return dark;
+    }
+
+    static Mode mode() {
+        return Mode.fromSetting(IrisSettings.get().getGui().getTheme());
+    }
+
+    /**
+     * Remembers the user's choice and switches every studio window to it.
+     */
+    static void choose(Mode next) {
+        IrisSettings settings = IrisSettings.get();
+        settings.getGui().setTheme(next.settingName());
+        settings.forceSave();
+        if (next == Mode.AUTO) {
+            followSystem();
+            return;
+        }
+        switchTo(next == Mode.DARK);
+    }
+
+    // Studio windows call this when they come to the front, so a change made in the system's settings shows up.
+    static void followSystem() {
+        if (!INSTALLED.get() || mode() != Mode.AUTO) {
+            return;
+        }
+        SYSTEM_CHECK.execute(() -> {
+            boolean systemDark = SystemAppearance.prefersDark().orElse(DARK_WITHOUT_SYSTEM_PREFERENCE);
+            EventQueue.invokeLater(() -> switchTo(systemDark));
+        });
+    }
+
+    private static boolean darkFor(Mode chosen) {
+        return switch (chosen) {
+            case LIGHT -> false;
+            case DARK -> true;
+            case AUTO -> SystemAppearance.prefersDark().orElse(DARK_WITHOUT_SYSTEM_PREFERENCE);
+        };
+    }
+
+    private static void switchTo(boolean nextDark) {
+        if (nextDark == dark) {
+            return;
+        }
+        applyLookAndFeel(nextDark);
+        FlatLaf.updateUI();
+    }
+
+    private static void applyLookAndFeel(boolean nextDark) {
+        dark = nextDark;
+        FlatLaf.setGlobalExtraDefaults(nextDark ? DARK_DEFAULTS : LIGHT_DEFAULTS);
+        if (nextDark) {
+            FlatDarkLaf.setup();
+        } else {
+            FlatLightLaf.setup();
+        }
+    }
+
+    private static Map<String, String> withShared(Map<String, String> themeDefaults) {
+        Map<String, String> merged = new HashMap<>(SHARED_DEFAULTS);
+        merged.putAll(themeDefaults);
+        return Map.copyOf(merged);
     }
 
     /**
@@ -159,5 +258,34 @@ final class StudioTheme {
     private static Font themeFont(String key, int fallbackStyle, int fallbackSize) {
         Font font = UIManager.getFont(key);
         return font != null ? font : new Font(Font.SANS_SERIF, fallbackStyle, fallbackSize);
+    }
+
+    enum Mode {
+        AUTO("Match system"),
+        LIGHT("Light"),
+        DARK("Dark");
+
+        private final String label;
+
+        Mode(String label) {
+            this.label = label;
+        }
+
+        String label() {
+            return label;
+        }
+
+        String settingName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        static Mode fromSetting(String setting) {
+            for (Mode mode : values()) {
+                if (mode.settingName().equalsIgnoreCase(setting)) {
+                    return mode;
+                }
+            }
+            return AUTO;
+        }
     }
 }

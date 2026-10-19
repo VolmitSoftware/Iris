@@ -22,10 +22,13 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.icons.FlatSearchIcon;
 
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
@@ -63,12 +66,39 @@ final class StudioToolbar {
     }
 
     static JButton button(String text, String tooltip, Runnable action) {
+        JButton button = toolbarButton(text, tooltip);
+        button.addActionListener(event -> action.run());
+        return button;
+    }
+
+    /**
+     * Opens a menu to pick light, dark or the system's theme.
+     */
+    static JButton themeButton() {
+        JButton button = toolbarButton("Theme", "Light, dark, or whatever the system uses");
+        button.addActionListener(event -> themeMenu().show(button, 0, button.getHeight()));
+        return button;
+    }
+
+    private static JPopupMenu themeMenu() {
+        JPopupMenu menu = new JPopupMenu();
+        ButtonGroup choices = new ButtonGroup();
+        StudioTheme.Mode current = StudioTheme.mode();
+        for (StudioTheme.Mode mode : StudioTheme.Mode.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(mode.label(), mode == current);
+            item.addActionListener(event -> StudioTheme.choose(mode));
+            choices.add(item);
+            menu.add(item);
+        }
+        return menu;
+    }
+
+    private static JButton toolbarButton(String text, String tooltip) {
         JButton button = new JButton(text);
         button.setToolTipText(tooltip);
         button.setFocusable(false);
         button.setMargin(new Insets(4, 8, 4, 8));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        button.addActionListener(event -> action.run());
         return button;
     }
 

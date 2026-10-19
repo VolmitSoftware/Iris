@@ -66,8 +66,8 @@ final class MapCanvas extends JPanel {
     private static final Color MOB_COLOR = StudioTheme.ERROR;
     private static final Color GRID_MINOR = new Color(255, 255, 255, 18);
     private static final Color GRID_MAJOR = new Color(255, 255, 255, 38);
-    private static final Color TILE_EMPTY_A = new Color(0x232427);
-    private static final Color TILE_EMPTY_B = new Color(0x26272B);
+    private static final Color TILE_EMPTY_A = new ThemeColor(0xF0F1F3, 0x232427);
+    private static final Color TILE_EMPTY_B = new ThemeColor(0xEBECEF, 0x26272B);
     private static final int CARD_PADDING = 12;
     private static final int NOTIFICATION_MILLIS = 2_500;
     private static final double DEFAULT_BLOCKS_PER_PIXEL = 4D;
@@ -583,6 +583,13 @@ final class MapCanvas extends JPanel {
     // The display server gets one finished picture per paint: handing it every tile separately made the map lag.
     private void renderTiles(Graphics2D canvas) {
         canvas.drawImage(currentTileLayer(), 0, 0, null);
+    }
+
+    // The theme changed: the cached layer holds the old theme's background.
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        tileLayerStale = true;
     }
 
     private BufferedImage currentTileLayer() {

@@ -51,7 +51,7 @@ import java.util.List;
 final class StickyFolderHeaders extends LayerUI<JScrollPane> {
     private static final long serialVersionUID = -2205474187531254372L;
     private static final int SHADOW_HEIGHT = 4;
-    private static final Color SHADOW = new Color(0, 0, 0, 90);
+    private static final Color SHADOW = new ThemeColor(new Color(0, 0, 0, 28), new Color(0, 0, 0, 90));
     private static final Color NO_SHADOW = new Color(0, 0, 0, 0);
     // The folder handle sits one indent to the left of the folder's name, as the tree draws it.
     private static final int HANDLE_NUDGE = 1;

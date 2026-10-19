@@ -55,7 +55,6 @@ public final class MapWindow implements MapCanvas.Listener {
     private static final int SIDEBAR_WIDTH = 270;
     private static final int SIDEBAR_MINIMUM_WIDTH = 200;
     private static final int CONTENT_MINIMUM_WIDTH = 320;
-    private static final int SIDEBAR_DIVIDER_WIDTH = 6;
     private static final double PALETTE_RECENTER_DISTANCE_BLOCKS = 1D;
     private static final double VIEW_LIST_SHARE_WITH_PALETTES = 0.34D;
 
@@ -117,7 +116,8 @@ public final class MapWindow implements MapCanvas.Listener {
 
         frame.setLayout(new BorderLayout());
         frame.add(buildToolbar(), BorderLayout.NORTH);
-        frame.add(buildSidebarSplit(), BorderLayout.CENTER);
+        frame.add(new IslandOverlay(new IslandPanel(sidebar), content, StudioTheme.scale(SIDEBAR_WIDTH),
+                StudioTheme.scale(SIDEBAR_MINIMUM_WIDTH), StudioTheme.scale(CONTENT_MINIMUM_WIDTH)), BorderLayout.CENTER);
         frame.add(inspectorSlot, BorderLayout.EAST);
         frame.add(statusBars, BorderLayout.SOUTH);
         installShortcuts(frame.getRootPane());
@@ -224,20 +224,6 @@ public final class MapWindow implements MapCanvas.Listener {
         if (firstOpen) {
             paletteExplorer.openViewer();
         }
-    }
-
-    // Dragging the gap beside the sidebar island makes it wider, so long palette names fit.
-    private JSplitPane buildSidebarSplit() {
-        IslandPanel island = new IslandPanel(sidebar);
-        island.setMinimumSize(StudioTheme.scaledSize(SIDEBAR_MINIMUM_WIDTH, 0));
-        content.setMinimumSize(StudioTheme.scaledSize(CONTENT_MINIMUM_WIDTH, 0));
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, island, content);
-        split.setBorder(BorderFactory.createEmptyBorder());
-        split.setBackground(StudioTheme.EDITOR_BACKGROUND);
-        split.setDividerSize(StudioTheme.scale(SIDEBAR_DIVIDER_WIDTH));
-        split.setResizeWeight(0D);
-        split.setDividerLocation(StudioTheme.scale(SIDEBAR_WIDTH));
-        return split;
     }
 
     // The palettes need the room more than the view list, which scrolls once it is squeezed.

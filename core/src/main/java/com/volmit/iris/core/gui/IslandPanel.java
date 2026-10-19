@@ -28,8 +28,9 @@ import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * A rounded panel set apart from the window edges, like the tool windows of IntelliJ's islands theme. Its right edge
- * meets a split pane divider, which provides the gap there.
+ * A rounded panel floating over the window content with a gap all around it, like the tool windows of IntelliJ's
+ * islands theme. The gap belongs to the content behind it, except for the strip along the right edge, which grabs the
+ * island to resize it.
  */
 final class IslandPanel extends JPanel {
     private static final long serialVersionUID = 7313084027614358519L;
@@ -40,8 +41,20 @@ final class IslandPanel extends JPanel {
     IslandPanel(JComponent content) {
         super(new BorderLayout());
         setOpaque(false);
-        setBorder(StudioTheme.emptyBorder(GAP + INNER_PADDING, GAP + INNER_PADDING, GAP + INNER_PADDING, INNER_PADDING));
+        int inset = GAP + INNER_PADDING;
+        setBorder(StudioTheme.emptyBorder(inset, inset, inset, inset));
         add(content, BorderLayout.CENTER);
+    }
+
+    boolean isOnResizeEdge(int x, int y) {
+        int edgeWidth = StudioTheme.scale(GAP + INNER_PADDING);
+        return x >= getWidth() - edgeWidth && x < getWidth() && y >= 0 && y < getHeight();
+    }
+
+    // Clicks in the gap reach the content behind the island instead of the island itself.
+    @Override
+    public boolean contains(int x, int y) {
+        return island().contains(x, y) || isOnResizeEdge(x, y);
     }
 
     @Override
@@ -50,11 +63,15 @@ final class IslandPanel extends JPanel {
         try {
             canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             canvas.setColor(StudioTheme.PANEL_BACKGROUND);
-            int gap = StudioTheme.scale(GAP);
-            int arc = StudioTheme.scale(CORNER_ARC);
-            canvas.fill(new RoundRectangle2D.Double(gap, gap, getWidth() - gap, getHeight() - gap * 2D, arc, arc));
+            canvas.fill(island());
         } finally {
             canvas.dispose();
         }
+    }
+
+    private RoundRectangle2D island() {
+        double gap = StudioTheme.scale(GAP);
+        double arc = StudioTheme.scale(CORNER_ARC);
+        return new RoundRectangle2D.Double(gap, gap, getWidth() - gap * 2D, getHeight() - gap * 2D, arc, arc);
     }
 }

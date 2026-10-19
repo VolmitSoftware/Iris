@@ -28,7 +28,6 @@ import com.volmit.iris.util.stream.ProceduralStream;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -98,17 +97,36 @@ public final class IrisRenderer {
         Objects.requireNonNull(cancelled, "cancelled");
         checkCancelled(cancelled);
 
+        int[] pixels = renderPixels(sx, sz, size, resolution, currentType, cancelled, studio);
+        return managedImage(pixels, resolution);
+    }
+
+    // Filled through the raster rather than its backing array, so Java2D may keep the image on the GPU between paints.
+    private static BufferedImage managedImage(int[] pixels, int resolution) {
         BufferedImage image = new BufferedImage(resolution, resolution, BufferedImage.TYPE_INT_RGB);
-        int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        image.getRaster().setDataElements(0, 0, resolution, resolution, pixels);
+        return image;
+    }
+
+    private int[] renderPixels(
+            double sx,
+            double sz,
+            double size,
+            int resolution,
+            RenderType currentType,
+            BooleanSupplier cancelled,
+            boolean studio
+    ) {
+        int[] pixels = new int[resolution * resolution];
         double step = size / resolution;
         if (studio && currentType == RenderType.HEIGHT) {
             renderHeightAtlas(pixels, resolution, sx, sz, step, renderer, cancelled);
-            return image;
+            return pixels;
         }
         PixelShader shader = shader(currentType, studio);
         if (studio && adaptiveStudioType(currentType)) {
             renderAdaptiveAtlas(pixels, resolution, sx, sz, step, shader, cancelled);
-            return image;
+            return pixels;
         }
         int groupSize = sampleGroup(step, resolution);
 
@@ -130,7 +148,7 @@ public final class IrisRenderer {
             }
         }
 
-        return image;
+        return pixels;
     }
 
     public static int heightColor(double height, double maximumHeight, double fluidHeight) {

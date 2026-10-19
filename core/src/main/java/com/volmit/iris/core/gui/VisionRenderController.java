@@ -26,6 +26,8 @@ import java.awt.EventQueue;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,9 +37,7 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -47,50 +47,49 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+/**
+ * Renders the map as tiles on fixed zoom levels, so zooming within a level and panning reuse tiles that are already drawn.
+ * Tiles keep rendering while the view moves, as long as they are still on screen.
+ */
 final class VisionRenderController implements AutoCloseable {
     static final int TILE_PIXELS = 64;
-    static final double MINIMUM_BLOCKS_PER_PIXEL = 1D;
+    static final double MINIMUM_VIEW_BLOCKS_PER_PIXEL = 1D / 8D;
     static final double MAXIMUM_BLOCKS_PER_PIXEL = 4_096D;
 
-    private static final int MAXIMUM_WORKERS = 3;
+    private static final double MINIMUM_RENDER_BLOCKS_PER_PIXEL = 1D;
     private static final int MAXIMUM_VISIBLE_TILES = 32_768;
-    private static final int RENDER_QUEUE_CAPACITY = 12;
     private static final int PROBE_QUEUE_CAPACITY = 1;
-    private static final long CACHE_BYTES = 64L * 1024L * 1024L;
+    private static final int COARSER_FALLBACK_LEVELS = 6;
+    private static final long CACHE_BYTES = 128L * 1024L * 1024L;
 
     private final Runnable listener;
-    private final int renderWorkerCount;
+    private final int workerCount;
     private final ThreadPoolExecutor renderExecutor;
     private final ThreadPoolExecutor probeExecutor;
     private final WeightedTileCache cache;
-    private final AtomicLong viewSequence;
-    private final AtomicLong probeSequence;
-    private final AtomicBoolean closed;
-    private final AtomicBoolean publicationQueued;
-    private final AtomicBoolean publicationDirty;
-    private final Set<Future<?>> activeRenderTasks;
+    private final Set<TileKey> tilesInFlight = new HashSet<>();
+    private final AtomicInteger activeWorkers = new AtomicInteger();
+    private final AtomicLong viewSequence = new AtomicLong();
+    private final AtomicLong probeSequence = new AtomicLong();
+    private final AtomicBoolean closed = new AtomicBoolean();
+    private final AtomicBoolean publicationQueued = new AtomicBoolean();
+    private final AtomicBoolean publicationDirty = new AtomicBoolean();
     private volatile Frame currentFrame;
-    private volatile WorkState currentWork;
-    private volatile CancellationToken currentToken;
 
     VisionRenderController(Runnable listener) {
-        this(listener, RuntimeOptions.production());
-    }
-
-    VisionRenderController(Runnable listener, RuntimeOptions options) {
         this.listener = Objects.requireNonNull(listener, "listener");
-        Objects.requireNonNull(options, "options");
+        int processors = Math.max(1, Runtime.getRuntime().availableProcessors());
+        this.workerCount = Math.max(1, Math.min(6, processors / 2));
         AtomicInteger threadSequence = new AtomicInteger();
-        this.renderWorkerCount = options.workers();
         this.renderExecutor = new ThreadPoolExecutor(
-                options.workers(),
-                options.workers(),
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(options.renderQueueCapacity()),
-                daemonFactory("Iris Vision Render", Thread.NORM_PRIORITY, threadSequence),
-                new ThreadPoolExecutor.AbortPolicy()
+                workerCount,
+                workerCount,
+                30L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(),
+                daemonFactory("Iris Vision Render", Thread.NORM_PRIORITY, threadSequence)
         );
+        this.renderExecutor.allowCoreThreadTimeOut(true);
         this.probeExecutor = new ThreadPoolExecutor(
                 1,
                 1,
@@ -101,60 +100,46 @@ final class VisionRenderController implements AutoCloseable {
                 new ThreadPoolExecutor.DiscardOldestPolicy()
         );
         this.cache = new WeightedTileCache(CACHE_BYTES);
-        this.viewSequence = new AtomicLong();
-        this.probeSequence = new AtomicLong();
-        this.closed = new AtomicBoolean();
-        this.publicationQueued = new AtomicBoolean();
-        this.publicationDirty = new AtomicBoolean();
-        this.activeRenderTasks = ConcurrentHashMap.newKeySet();
         GuiHost.interruptOnPluginShutdown(renderExecutor);
         GuiHost.interruptOnPluginShutdown(probeExecutor);
     }
 
-    synchronized Frame request(RenderSpec spec) {
+    // Snapping to powers of two keeps every zoom within a level on the same tiles; nearest keeps tiles within 1.41x of screen size.
+    static double renderBlocksPerPixel(double viewBlocksPerPixel) {
+        double level = Math.pow(2D, Math.round(Math.log(viewBlocksPerPixel) / Math.log(2D)));
+        return Math.max(MINIMUM_RENDER_BLOCKS_PER_PIXEL, Math.min(MAXIMUM_BLOCKS_PER_PIXEL, level));
+    }
+
+    Frame request(RenderSpec spec) {
         Objects.requireNonNull(spec, "spec");
         if (closed.get()) {
             throw new IllegalStateException("Vision render controller is closed");
         }
-
-        CancellationToken previousToken = currentToken;
-        if (previousToken != null) {
-            previousToken.cancel();
+        double renderScale = renderBlocksPerPixel(spec.blocksPerPixel());
+        List<VisibleTile> tiles = visibleTiles(spec, renderScale);
+        Frame frame = new Frame(viewSequence.incrementAndGet(), spec, renderScale, tiles);
+        for (VisibleTile tile : tiles) {
+            tile.setImage(cache.get(tile.key()));
         }
-        renderExecutor.getQueue().clear();
-        cancelActiveRenderTasks();
+        currentFrame = frame;
         probeSequence.incrementAndGet();
         probeExecutor.getQueue().clear();
-
-        List<VisibleTile> tiles = visibleTiles(spec);
-        Frame frame = new Frame(viewSequence.incrementAndGet(), spec, tiles);
-        for (VisibleTile tile : tiles) {
-            tile.setImage(cache.get(frame.key(tile)));
-        }
-        CancellationToken token = new CancellationToken();
-        WorkState work = new WorkState(frame, token);
-        currentFrame = frame;
-        currentToken = token;
-        currentWork = work;
-        schedule(work);
-        publish(frame, token);
+        startWorkers();
+        publish();
         return frame;
     }
 
-    Frame currentFrame() {
-        return currentFrame;
-    }
-
-    BufferedImage image(Frame frame, VisibleTile tile) {
-        if (frame == null || tile == null) {
-            return null;
-        }
-        return tile.image();
+    /**
+     * A tile from another zoom level covering the given one, to draw while the real tile renders.
+     */
+    Fallback fallback(Frame frame, VisibleTile tile) {
+        Fallback coarser = coarserFallback(frame, tile);
+        return coarser != null ? coarser : finerFallback(frame, tile);
     }
 
     Progress progress(Frame frame) {
         if (frame == null) {
-            return new Progress(0, 0, 0, 0);
+            return new Progress(0, 0, 0);
         }
         int ready = 0;
         for (VisibleTile tile : frame.tiles()) {
@@ -162,7 +147,7 @@ final class VisionRenderController implements AutoCloseable {
                 ready++;
             }
         }
-        return new Progress(frame.tiles().size(), ready, renderExecutor.getActiveCount(), renderExecutor.getQueue().size());
+        return new Progress(frame.tiles().size(), ready, activeWorkers.get());
     }
 
     <T> void submitProbe(Frame frame, Callable<T> probe, Consumer<T> consumer) {
@@ -174,35 +159,27 @@ final class VisionRenderController implements AutoCloseable {
         long probeRevision = probeSequence.incrementAndGet();
         probeExecutor.getQueue().clear();
         try {
-            probeExecutor.execute(() -> runProbe(frame, probeRevision, probe, consumer));
+            probeExecutor.execute(() -> runProbe(probeRevision, probe, consumer));
         } catch (RejectedExecutionException ignored) {
             probeExecutor.getQueue().clear();
         }
     }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
-        CancellationToken token = currentToken;
-        if (token != null) {
-            token.cancel();
-        }
-        currentWork = null;
         currentFrame = null;
-        renderExecutor.getQueue().clear();
-        cancelActiveRenderTasks();
-        probeExecutor.getQueue().clear();
         renderExecutor.shutdownNow();
         probeExecutor.shutdownNow();
         cache.clear();
     }
 
-    static List<VisibleTile> visibleTiles(RenderSpec spec) {
+    static List<VisibleTile> visibleTiles(RenderSpec spec, double renderScale) {
         Objects.requireNonNull(spec, "spec");
         double blocksPerPixel = spec.blocksPerPixel();
-        double tileSpan = TILE_PIXELS * blocksPerPixel;
+        double tileSpan = TILE_PIXELS * renderScale;
         double halfWidth = spec.width() * blocksPerPixel * 0.5D;
         double halfHeight = spec.height() * blocksPerPixel * 0.5D;
         long minimumX = floorTile(spec.centerX() - halfWidth, tileSpan);
@@ -217,32 +194,18 @@ final class VisionRenderController implements AutoCloseable {
         ArrayList<VisibleTile> tiles = new ArrayList<>((int) tileCount);
         double centerTileX = spec.centerX() / tileSpan;
         double centerTileZ = spec.centerZ() / tileSpan;
-        for (long tileZ = minimumZ; ; tileZ++) {
-            for (long tileX = minimumX; ; tileX++) {
-                int screenX = (int) Math.round(spec.width() * 0.5D + (tileX * tileSpan - spec.centerX()) / blocksPerPixel);
-                int screenY = (int) Math.round(spec.height() * 0.5D + (tileZ * tileSpan - spec.centerZ()) / blocksPerPixel);
+        for (long tileZ = minimumZ; tileZ <= maximumZ; tileZ++) {
+            for (long tileX = minimumX; tileX <= maximumX; tileX++) {
                 double deltaX = tileX + 0.5D - centerTileX;
                 double deltaZ = tileZ + 0.5D - centerTileZ;
-                tiles.add(new VisibleTile(tileX, tileZ, screenX, screenY, deltaX * deltaX + deltaZ * deltaZ));
-                if (tileX == maximumX) {
-                    break;
-                }
-            }
-            if (tileZ == maximumZ) {
-                break;
+                TileKey key = new TileKey(spec.contentRevision(), spec.type(), renderScale, tileX, tileZ);
+                tiles.add(new VisibleTile(key, deltaX * deltaX + deltaZ * deltaZ));
             }
         }
         tiles.sort(Comparator.comparingDouble(VisibleTile::distanceSquared)
                 .thenComparingLong(VisibleTile::tileZ)
                 .thenComparingLong(VisibleTile::tileX));
         return List.copyOf(tiles);
-    }
-
-    static long sampleCount(int tileCount) {
-        if (tileCount < 1) {
-            throw new IllegalArgumentException("Vision tile count must be positive");
-        }
-        return Math.multiplyExact((long) tileCount, (long) TILE_PIXELS * TILE_PIXELS);
     }
 
     private static long floorTile(double coordinate, double tileSpan) {
@@ -263,81 +226,142 @@ final class VisionRenderController implements AutoCloseable {
         };
     }
 
-    private void schedule(WorkState work) {
-        synchronized (work) {
-            if (!isCurrent(work)) {
+    private void startWorkers() {
+        while (!closed.get()) {
+            int active = activeWorkers.get();
+            if (active >= workerCount || !hasWork()) {
                 return;
             }
-            while (work.inFlight() < renderWorkerCount) {
-                VisibleTile tile = work.nextMissing();
-                if (tile == null) {
-                    return;
-                }
-                work.incrementInFlight();
-                TrackedRenderTask task = new TrackedRenderTask(() -> render(work, tile), activeRenderTasks);
-                activeRenderTasks.add(task);
-                try {
-                    renderExecutor.execute(task);
-                } catch (RejectedExecutionException ignored) {
-                    task.cancel(false);
-                    work.decrementInFlight();
-                    return;
-                }
+            if (!activeWorkers.compareAndSet(active, active + 1)) {
+                continue;
+            }
+            try {
+                renderExecutor.execute(this::renderUntilIdle);
+            } catch (RejectedExecutionException ignored) {
+                activeWorkers.decrementAndGet();
+                return;
             }
         }
     }
 
-    private void render(WorkState work, VisibleTile tile) {
-        Frame frame = work.frame();
-        CancellationToken token = work.token();
+    // Each worker keeps taking the most central missing tile of whatever frame is current, until the screen is covered.
+    private void renderUntilIdle() {
         try {
-            if (!isCurrent(frame, token)) {
-                return;
+            TileJob job;
+            while ((job = claimNextTile()) != null) {
+                render(job);
             }
-            double tileSpan = TILE_PIXELS * frame.spec().blocksPerPixel();
-            BufferedImage image = frame.spec().renderer().renderStudio(
-                    tile.tileX() * tileSpan,
-                    tile.tileZ() * tileSpan,
+        } finally {
+            activeWorkers.decrementAndGet();
+        }
+        startWorkers();
+    }
+
+    private synchronized boolean hasWork() {
+        Frame frame = currentFrame;
+        return frame != null && frame.nextMissing(tilesInFlight, false) != null;
+    }
+
+    private synchronized TileJob claimNextTile() {
+        Frame frame = currentFrame;
+        if (frame == null || closed.get()) {
+            return null;
+        }
+        VisibleTile tile = frame.nextMissing(tilesInFlight, true);
+        if (tile == null) {
+            return null;
+        }
+        tilesInFlight.add(tile.key());
+        return new TileJob(frame.spec().renderer(), tile.key());
+    }
+
+    private synchronized void release(TileKey key) {
+        tilesInFlight.remove(key);
+    }
+
+    private void render(TileJob job) {
+        TileKey key = job.key();
+        try {
+            double tileSpan = TILE_PIXELS * key.blocksPerPixel();
+            BufferedImage image = job.renderer().renderStudio(
+                    key.tileX() * tileSpan,
+                    key.tileZ() * tileSpan,
                     tileSpan,
                     TILE_PIXELS,
-                    frame.spec().type(),
-                    () -> !isCurrent(frame, token)
+                    key.type(),
+                    () -> !isWanted(key)
             );
-            if (!isCurrent(frame, token)) {
-                return;
+            cache.put(key, image);
+            Frame frame = currentFrame;
+            VisibleTile visible = frame == null ? null : frame.tile(key);
+            if (visible != null) {
+                visible.setImage(image);
+                publish();
             }
-            cache.put(frame.key(tile), image);
-            tile.setImage(image);
-            publish(frame, token);
         } catch (CancellationException ignored) {
         } catch (Throwable error) {
             Iris.debug("Vision tile render failed: " + error.getClass().getSimpleName() + ": " + error.getMessage());
         } finally {
-            complete(work);
+            release(key);
         }
     }
 
-    private void complete(WorkState work) {
-        synchronized (work) {
-            work.decrementInFlight();
-            if (!isCurrent(work)) {
-                return;
+    private boolean isWanted(TileKey key) {
+        Frame frame = currentFrame;
+        return !closed.get() && frame != null && frame.tile(key) != null;
+    }
+
+    private Fallback coarserFallback(Frame frame, VisibleTile tile) {
+        TileKey key = tile.key();
+        for (int level = 1; level <= COARSER_FALLBACK_LEVELS; level++) {
+            long scale = 1L << level;
+            int sourceSize = TILE_PIXELS >> level;
+            double parentScale = key.blocksPerPixel() * scale;
+            if (sourceSize < 1 || parentScale > MAXIMUM_BLOCKS_PER_PIXEL) {
+                return null;
+            }
+            long parentX = Math.floorDiv(key.tileX(), scale);
+            long parentZ = Math.floorDiv(key.tileZ(), scale);
+            BufferedImage parent = cache.get(new TileKey(key.contentRevision(), key.type(), parentScale, parentX, parentZ));
+            if (parent != null) {
+                int sourceX = (int) (key.tileX() - parentX * scale) * sourceSize;
+                int sourceZ = (int) (key.tileZ() - parentZ * scale) * sourceSize;
+                return new Fallback(List.of(new FallbackPiece(parent, sourceX, sourceZ, sourceSize, 0D, 0D, 1D)));
             }
         }
-        schedule(work);
+        return null;
     }
 
-    private <T> void runProbe(Frame frame, long probeRevision, Callable<T> probe, Consumer<T> consumer) {
+    private Fallback finerFallback(Frame frame, VisibleTile tile) {
+        TileKey key = tile.key();
+        double childScale = key.blocksPerPixel() / 2D;
+        if (childScale < MINIMUM_RENDER_BLOCKS_PER_PIXEL) {
+            return null;
+        }
+        List<FallbackPiece> pieces = new ArrayList<>(4);
+        for (int childZ = 0; childZ < 2; childZ++) {
+            for (int childX = 0; childX < 2; childX++) {
+                BufferedImage child = cache.get(new TileKey(key.contentRevision(), key.type(), childScale,
+                        key.tileX() * 2L + childX, key.tileZ() * 2L + childZ));
+                if (child != null) {
+                    pieces.add(new FallbackPiece(child, 0, 0, TILE_PIXELS, childX * 0.5D, childZ * 0.5D, 0.5D));
+                }
+            }
+        }
+        return pieces.isEmpty() ? null : new Fallback(List.copyOf(pieces));
+    }
+
+    private <T> void runProbe(long probeRevision, Callable<T> probe, Consumer<T> consumer) {
         try {
-            if (!isProbeCurrent(frame, probeRevision)) {
+            if (!isProbeCurrent(probeRevision)) {
                 return;
             }
             T result = probe.call();
-            if (!isProbeCurrent(frame, probeRevision)) {
+            if (!isProbeCurrent(probeRevision)) {
                 return;
             }
             EventQueue.invokeLater(() -> {
-                if (isProbeCurrent(frame, probeRevision)) {
+                if (isProbeCurrent(probeRevision)) {
                     consumer.accept(result);
                 }
             });
@@ -348,20 +372,12 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    private boolean isProbeCurrent(Frame frame, long probeRevision) {
-        return !closed.get() && currentFrame == frame && probeSequence.get() == probeRevision;
+    private boolean isProbeCurrent(long probeRevision) {
+        return !closed.get() && probeSequence.get() == probeRevision;
     }
 
-    private boolean isCurrent(Frame frame, CancellationToken token) {
-        return !closed.get() && !token.cancelled() && currentFrame == frame;
-    }
-
-    private boolean isCurrent(WorkState work) {
-        return currentWork == work && isCurrent(work.frame(), work.token());
-    }
-
-    private void publish(Frame frame, CancellationToken token) {
-        if (!isCurrent(frame, token)) {
+    private void publish() {
+        if (closed.get()) {
             return;
         }
         publicationDirty.set(true);
@@ -386,13 +402,6 @@ final class VisionRenderController implements AutoCloseable {
         });
     }
 
-    private void cancelActiveRenderTasks() {
-        for (Future<?> task : activeRenderTasks) {
-            task.cancel(true);
-        }
-        activeRenderTasks.clear();
-    }
-
     record RenderSpec(
             IrisRenderer renderer,
             RenderType type,
@@ -410,7 +419,7 @@ final class VisionRenderController implements AutoCloseable {
                 throw new IllegalArgumentException("Vision center must be finite");
             }
             if (!Double.isFinite(blocksPerPixel)
-                    || blocksPerPixel < MINIMUM_BLOCKS_PER_PIXEL
+                    || blocksPerPixel < MINIMUM_VIEW_BLOCKS_PER_PIXEL
                     || blocksPerPixel > MAXIMUM_BLOCKS_PER_PIXEL) {
                 throw new IllegalArgumentException("Vision scale is outside the supported range");
             }
@@ -418,50 +427,85 @@ final class VisionRenderController implements AutoCloseable {
                 throw new IllegalArgumentException("Vision viewport must be positive");
             }
         }
-
     }
 
-    record Frame(long viewRevision, RenderSpec spec, List<VisibleTile> tiles) {
-        Frame {
-            Objects.requireNonNull(spec, "spec");
-            tiles = List.copyOf(tiles);
+    static final class Frame {
+        private final long viewRevision;
+        private final RenderSpec spec;
+        private final double renderBlocksPerPixel;
+        private final List<VisibleTile> tiles;
+        private final Map<TileKey, VisibleTile> tilesByKey;
+        private int nextCandidate;
+
+        private Frame(long viewRevision, RenderSpec spec, double renderBlocksPerPixel, List<VisibleTile> tiles) {
+            this.viewRevision = viewRevision;
+            this.spec = Objects.requireNonNull(spec, "spec");
+            this.renderBlocksPerPixel = renderBlocksPerPixel;
+            this.tiles = tiles;
+            this.tilesByKey = new HashMap<>(tiles.size() * 2);
+            for (VisibleTile tile : tiles) {
+                tilesByKey.put(tile.key(), tile);
+            }
         }
 
-        TileKey key(VisibleTile tile) {
-            return new TileKey(spec.contentRevision(), spec.type(), spec.blocksPerPixel(), tile.tileX(), tile.tileZ());
+        long viewRevision() {
+            return viewRevision;
+        }
+
+        RenderSpec spec() {
+            return spec;
+        }
+
+        double renderBlocksPerPixel() {
+            return renderBlocksPerPixel;
+        }
+
+        List<VisibleTile> tiles() {
+            return tiles;
+        }
+
+        private VisibleTile tile(TileKey key) {
+            return tilesByKey.get(key);
+        }
+
+        // Tiles are sorted centre first, and everything before the cursor is drawn or claimed, so each search resumes there.
+        private VisibleTile nextMissing(Set<TileKey> inFlight, boolean advance) {
+            for (int index = nextCandidate; index < tiles.size(); index++) {
+                VisibleTile tile = tiles.get(index);
+                if (tile.image() == null && !inFlight.contains(tile.key())) {
+                    if (advance) {
+                        nextCandidate = index + 1;
+                    }
+                    return tile;
+                }
+            }
+            if (advance) {
+                nextCandidate = tiles.size();
+            }
+            return null;
         }
     }
 
     static final class VisibleTile {
-        private final long tileX;
-        private final long tileZ;
-        private final int screenX;
-        private final int screenY;
+        private final TileKey key;
         private final double distanceSquared;
         private volatile BufferedImage image;
 
-        private VisibleTile(long tileX, long tileZ, int screenX, int screenY, double distanceSquared) {
-            this.tileX = tileX;
-            this.tileZ = tileZ;
-            this.screenX = screenX;
-            this.screenY = screenY;
+        private VisibleTile(TileKey key, double distanceSquared) {
+            this.key = key;
             this.distanceSquared = distanceSquared;
         }
 
+        TileKey key() {
+            return key;
+        }
+
         long tileX() {
-            return tileX;
+            return key.tileX();
         }
 
         long tileZ() {
-            return tileZ;
-        }
-
-        int screenX() {
-            return screenX;
-        }
-
-        int screenY() {
-            return screenY;
+            return key.tileZ();
         }
 
         double distanceSquared() {
@@ -472,7 +516,7 @@ final class VisionRenderController implements AutoCloseable {
             return image;
         }
 
-        void setImage(BufferedImage image) {
+        private void setImage(BufferedImage image) {
             this.image = image;
         }
     }
@@ -486,7 +530,17 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    record Progress(int total, int ready, int active, int queued) {
+    /**
+     * Pieces of cached tiles that together cover a missing tile; offsets and size are fractions of the tile.
+     */
+    record Fallback(List<FallbackPiece> pieces) {
+    }
+
+    record FallbackPiece(BufferedImage image, int sourceX, int sourceZ, int sourceSize, double offsetX, double offsetZ,
+                         double size) {
+    }
+
+    record Progress(int total, int ready, int activeWorkers) {
         double completion() {
             if (total == 0) {
                 return 1D;
@@ -495,86 +549,7 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    record RuntimeOptions(int workers, int renderQueueCapacity) {
-        RuntimeOptions {
-            if (workers < 1 || renderQueueCapacity < 1) {
-                throw new IllegalArgumentException("Vision render runtime options are invalid");
-            }
-        }
-
-        static RuntimeOptions production() {
-            int processors = Math.max(1, Runtime.getRuntime().availableProcessors());
-            int workers = Math.max(1, Math.min(MAXIMUM_WORKERS, processors));
-            return new RuntimeOptions(workers, RENDER_QUEUE_CAPACITY);
-        }
-    }
-
-    private static final class CancellationToken {
-        private final AtomicBoolean cancelled = new AtomicBoolean();
-
-        void cancel() {
-            cancelled.set(true);
-        }
-
-        boolean cancelled() {
-            return cancelled.get();
-        }
-    }
-
-    private static final class TrackedRenderTask extends FutureTask<Void> {
-        private final Set<Future<?>> tasks;
-
-        private TrackedRenderTask(Runnable task, Set<Future<?>> tasks) {
-            super(task, null);
-            this.tasks = tasks;
-        }
-
-        @Override
-        protected void done() {
-            tasks.remove(this);
-        }
-    }
-
-    private static final class WorkState {
-        private final Frame frame;
-        private final CancellationToken token;
-        private int index;
-        private int inFlight;
-
-        private WorkState(Frame frame, CancellationToken token) {
-            this.frame = frame;
-            this.token = token;
-        }
-
-        Frame frame() {
-            return frame;
-        }
-
-        CancellationToken token() {
-            return token;
-        }
-
-        VisibleTile nextMissing() {
-            while (index < frame.tiles().size()) {
-                VisibleTile tile = frame.tiles().get(index++);
-                if (tile.image() == null) {
-                    return tile;
-                }
-            }
-            return null;
-        }
-
-        int inFlight() {
-            return inFlight;
-        }
-
-        void incrementInFlight() {
-            inFlight++;
-        }
-
-        void decrementInFlight() {
-            inFlight--;
-        }
+    private record TileJob(IrisRenderer renderer, TileKey key) {
     }
 
     private static final class WeightedTileCache {

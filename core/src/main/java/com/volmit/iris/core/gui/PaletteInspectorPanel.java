@@ -24,13 +24,11 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -40,30 +38,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.ACCENT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.BORDER;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.FIELD_BACKGROUND;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.HEADER_FONT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.ITEM_FONT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.LEGEND_FONT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.PANEL_BACKGROUND;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.PRIMARY_TEXT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.SECONDARY_TEXT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.SIDEBAR_BACKGROUND;
 
 final class PaletteInspectorPanel extends JPanel {
     private static final long serialVersionUID = 4473102938518712001L;
     private static final int PANEL_WIDTH = 310;
-    private static final Color WARNING = new Color(255, 196, 92);
-    private static final Color HISTOGRAM_BAR = new Color(151, 160, 178, 170);
+    private static final Color HISTOGRAM_BAR = new Color(0x9D, 0xA0, 0xA8, 150);
     private static final Color BAND_DIVIDER = new Color(255, 255, 255, 70);
 
     private final Listener listener;
     private final JLabel titleLabel = new JLabel();
     private final JLabel detailLabel = new JLabel();
     private final JLabel depthLabel = new JLabel("", SwingConstants.CENTER);
-    private final JButton shallowerButton = ExplorerStyle.button("‹");
-    private final JButton deeperButton = ExplorerStyle.button("›");
+    private final JButton shallowerButton = new JButton("‹");
+    private final JButton deeperButton = new JButton("›");
     private final JPanel depthRow = new JPanel(new BorderLayout(6, 0));
     private final StatisticsView statisticsView = new StatisticsView();
     private PaletteLayerScale.View selectedView = PaletteLayerScale.View.BLOCKS;
@@ -74,13 +61,9 @@ final class PaletteInspectorPanel extends JPanel {
         super(new BorderLayout());
         this.listener = listener;
         setPreferredSize(new Dimension(PANEL_WIDTH, 0));
-        setBackground(SIDEBAR_BACKGROUND);
-        setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, BORDER));
+        setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
         add(buildControls(), BorderLayout.NORTH);
-        JScrollPane statisticsScroll = new JScrollPane(statisticsView);
-        statisticsScroll.setBorder(BorderFactory.createEmptyBorder());
-        statisticsScroll.getVerticalScrollBar().setUnitIncrement(18);
-        add(statisticsScroll, BorderLayout.CENTER);
+        add(StudioToolbar.scroll(statisticsView), BorderLayout.CENTER);
         setVisible(false);
     }
 
@@ -109,15 +92,13 @@ final class PaletteInspectorPanel extends JPanel {
 
     private JPanel buildControls() {
         JPanel controls = new JPanel(new GridLayout(0, 1, 0, 6));
-        controls.setBackground(PANEL_BACKGROUND);
         controls.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
+                BorderFactory.createMatteBorder(0, 0, 1, 0, StudioTheme.SEPARATOR),
                 BorderFactory.createEmptyBorder(12, 14, 12, 14)
         ));
-        titleLabel.setForeground(PRIMARY_TEXT);
-        titleLabel.setFont(ITEM_FONT.deriveFont(Font.BOLD, 14F));
-        detailLabel.setForeground(SECONDARY_TEXT);
-        detailLabel.setFont(ITEM_FONT);
+        titleLabel.setFont(StudioTheme.titleFont());
+        detailLabel.setForeground(StudioTheme.SECONDARY_TEXT);
+        detailLabel.setFont(StudioTheme.smallFont());
         controls.add(titleLabel);
         controls.add(detailLabel);
 
@@ -133,7 +114,8 @@ final class PaletteInspectorPanel extends JPanel {
         row.setOpaque(false);
         ButtonGroup group = new ButtonGroup();
         for (PaletteLayerScale.View view : PaletteLayerScale.View.values()) {
-            JToggleButton button = ExplorerStyle.toggleButton(view.toString());
+            JToggleButton button = new JToggleButton(view.toString());
+            button.setFocusable(false);
             button.setSelected(view == selectedView);
             button.addActionListener(event -> {
                 selectedView = view;
@@ -147,8 +129,8 @@ final class PaletteInspectorPanel extends JPanel {
 
     private JPanel buildDepthRow() {
         depthRow.setOpaque(false);
-        depthLabel.setForeground(PRIMARY_TEXT);
-        depthLabel.setFont(ITEM_FONT);
+        shallowerButton.setToolTipText("Show the block one higher up");
+        deeperButton.setToolTipText("Show the block one further down");
         shallowerButton.addActionListener(event -> changeDepth(-1));
         deeperButton.addActionListener(event -> changeDepth(1));
         depthRow.add(shallowerButton, BorderLayout.WEST);
@@ -174,9 +156,9 @@ final class PaletteInspectorPanel extends JPanel {
     }
 
     private static JLabel sectionLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setForeground(SECONDARY_TEXT);
-        label.setFont(HEADER_FONT);
+        JLabel label = new JLabel(text.toUpperCase(Locale.ROOT));
+        label.setForeground(StudioTheme.MUTED_TEXT);
+        label.setFont(StudioTheme.sectionFont());
         return label;
     }
 
@@ -227,7 +209,7 @@ final class PaletteInspectorPanel extends JPanel {
 
         private StatisticsView() {
             setOpaque(true);
-            setBackground(SIDEBAR_BACKGROUND);
+            setBackground(StudioTheme.PANEL_BACKGROUND);
         }
 
         private void show(PaletteLayerPreview nextPreview) {
@@ -248,7 +230,7 @@ final class PaletteInspectorPanel extends JPanel {
                 return new Dimension(PANEL_WIDTH - 20, 0);
             }
             int width = Math.max(getWidth(), PANEL_WIDTH - 20) - MARGIN * 2;
-            FontMetrics noteMetrics = getFontMetrics(LEGEND_FONT);
+            FontMetrics noteMetrics = getFontMetrics(StudioTheme.smallFont());
             int noteLines = 0;
             for (String note : notes()) {
                 noteLines += wrap(note, noteMetrics, width).size() + 1;
@@ -265,7 +247,7 @@ final class PaletteInspectorPanel extends JPanel {
             try {
                 canvas.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                canvas.setColor(SIDEBAR_BACKGROUND);
+                canvas.setColor(StudioTheme.PANEL_BACKGROUND);
                 canvas.fillRect(0, 0, getWidth(), getHeight());
                 if (preview == null) {
                     return;
@@ -280,7 +262,7 @@ final class PaletteInspectorPanel extends JPanel {
         }
 
         private int drawValueSpread(Graphics2D canvas, int x, int y, int width) {
-            drawSectionTitle(canvas, "NOISE VALUES THIS LAYER PRODUCES", x, y + 10);
+            drawSectionTitle(canvas, "Noise values this layer produces", x, y + 10);
             int histogramTop = y + 18;
             long[] histogram = preview.histogram();
             long peak = 1L;
@@ -310,8 +292,8 @@ final class PaletteInspectorPanel extends JPanel {
                 }
             }
 
-            canvas.setFont(LEGEND_FONT);
-            canvas.setColor(SECONDARY_TEXT);
+            canvas.setFont(StudioTheme.smallFont());
+            canvas.setColor(StudioTheme.SECONDARY_TEXT);
             FontMetrics metrics = canvas.getFontMetrics();
             int labelY = bandTop + BAND_HEIGHT + 13;
             canvas.drawString("0", x, labelY);
@@ -323,19 +305,19 @@ final class PaletteInspectorPanel extends JPanel {
         private int drawBlockTable(Graphics2D canvas, int x, int y, int width) {
             int actualRight = x + width;
             int weightRight = actualRight - ACTUAL_COLUMN_WIDTH;
-            drawSectionTitle(canvas, "BLOCKS", x, y);
+            drawSectionTitle(canvas, "Blocks", x, y);
             drawRightAligned(canvas, "weight", weightRight, y);
             drawRightAligned(canvas, "actual", actualRight, y);
 
             int rowY = y + ROW_HEIGHT;
             for (PaletteLayerPreview.Entry entry : preview.entries()) {
                 drawSwatch(canvas, entry, x, rowY - SWATCH_SIZE + 2);
-                canvas.setFont(ITEM_FONT);
-                canvas.setColor(entry.found() ? PRIMARY_TEXT : NoiseExplorerGUI.ERROR);
+                canvas.setFont(StudioTheme.font());
+                canvas.setColor(entry.found() ? StudioTheme.TEXT : StudioTheme.ERROR);
                 String name = entry.found() ? shortBlockName(entry.block()) : shortBlockName(entry.block()) + " (not found)";
                 int nameLeft = x + SWATCH_SIZE + 7;
                 canvas.drawString(fit(canvas, name, weightRight - WEIGHT_COLUMN_WIDTH - nameLeft), nameLeft, rowY);
-                canvas.setColor(SECONDARY_TEXT);
+                canvas.setColor(StudioTheme.SECONDARY_TEXT);
                 drawRightAligned(canvas, percent(entry.weightShare()), weightRight, rowY);
                 canvas.setColor(actualColor(entry));
                 drawRightAligned(canvas, actualText(entry), actualRight, rowY);
@@ -354,8 +336,8 @@ final class PaletteInspectorPanel extends JPanel {
         }
 
         private void drawNotes(Graphics2D canvas, int x, int y, int width) {
-            canvas.setFont(LEGEND_FONT);
-            canvas.setColor(SECONDARY_TEXT);
+            canvas.setFont(StudioTheme.smallFont());
+            canvas.setColor(StudioTheme.SECONDARY_TEXT);
             FontMetrics metrics = canvas.getFontMetrics();
             int lineY = y;
             for (String note : notes()) {
@@ -401,13 +383,13 @@ final class PaletteInspectorPanel extends JPanel {
         }
 
         private static Color actualColor(PaletteLayerPreview.Entry entry) {
-            return entry.isFarBelowWeight() || entry.isFarAboveWeight() ? WARNING : PRIMARY_TEXT;
+            return entry.isFarBelowWeight() || entry.isFarAboveWeight() ? StudioTheme.WARNING : StudioTheme.TEXT;
         }
 
         private static void drawSectionTitle(Graphics2D canvas, String title, int x, int y) {
-            canvas.setFont(HEADER_FONT);
-            canvas.setColor(ACCENT);
-            canvas.drawString(title, x, y);
+            canvas.setFont(StudioTheme.sectionFont());
+            canvas.setColor(StudioTheme.MUTED_TEXT);
+            canvas.drawString(title.toUpperCase(Locale.ROOT), x, y);
         }
 
         private static void drawRightAligned(Graphics2D canvas, String text, int right, int y) {

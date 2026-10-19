@@ -21,10 +21,8 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.util.function.NoiseProvider;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -35,10 +33,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 final class NoiseRenderCoordinator implements AutoCloseable {
+    private static final int BANDS_PER_WORKER = 4;
+
     private final int workerCount;
     private final Listener listener;
-    private final ThreadFactory workerThreadFactory;
-    private final ThreadFactory coordinatorThreadFactory;
+    private final ThreadPoolExecutor workers;
     private final AtomicReference<RenderGeneration> latestRequested = new AtomicReference<>();
     private final AtomicLong latestRevision = new AtomicLong();
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -51,18 +50,16 @@ final class NoiseRenderCoordinator implements AutoCloseable {
         this.workerCount = Math.max(1, workerCount);
         this.listener = Objects.requireNonNull(listener, "listener");
         AtomicInteger threadIds = new AtomicInteger();
-        workerThreadFactory = runnable -> {
+        ThreadFactory workerThreadFactory = runnable -> {
             Thread thread = new Thread(runnable, "Iris Noise Renderer " + threadIds.incrementAndGet());
             thread.setDaemon(true);
             thread.setPriority(Thread.MIN_PRIORITY);
             return thread;
         };
-        coordinatorThreadFactory = runnable -> {
-            Thread thread = new Thread(runnable, "Iris Noise Coordinator " + threadIds.incrementAndGet());
-            thread.setDaemon(true);
-            thread.setPriority(Thread.MIN_PRIORITY);
-            return thread;
-        };
+        workers = new ThreadPoolExecutor(this.workerCount, this.workerCount, 30L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(), workerThreadFactory);
+        workers.allowCoreThreadTimeOut(true);
+        GuiHost.interruptOnPluginShutdown(workers);
     }
 
     void request(Request request) {
@@ -71,15 +68,23 @@ final class NoiseRenderCoordinator implements AutoCloseable {
             return;
         }
         latestRevision.accumulateAndGet(request.revision(), Math::max);
-        cancelActiveRender();
-        RenderGeneration generation = createGeneration(request);
+        RenderGeneration generation = new RenderGeneration(request, Math.min(workerCount * BANDS_PER_WORKER, outputHeight(request)));
         latestRequested.set(generation);
-        generation.start();
+        listener.onRenderStarted(request);
+        for (int band = 0; band < generation.bandCount(); band++) {
+            int bandIndex = band;
+            try {
+                workers.execute(() -> renderBand(generation, bandIndex));
+            } catch (RejectedExecutionException rejected) {
+                generation.fail(rejected);
+                finishBand(generation);
+            }
+        }
     }
 
     void cancel(long revision) {
         latestRevision.accumulateAndGet(revision, Math::max);
-        cancelActiveRender();
+        latestRequested.set(null);
     }
 
     boolean isClosed() {
@@ -136,89 +141,43 @@ final class NoiseRenderCoordinator implements AutoCloseable {
             return;
         }
         latestRevision.incrementAndGet();
-        cancelActiveRender();
+        latestRequested.set(null);
+        workers.shutdownNow();
     }
 
-    private void renderGeneration(RenderGeneration generation) {
-        Request request = generation.request();
-        if (!isCurrent(request)) {
-            generation.close();
-            return;
-        }
-        listener.onRenderStarted(request);
+    // Bands of a frame that was replaced are skipped, so a new frame only waits for the rows already being drawn.
+    private void renderBand(RenderGeneration generation, int bandIndex) {
         try {
-            Result result = render(generation);
-            if (result != null && isCurrent(request)) {
-                listener.onRenderCompleted(result);
+            if (isCurrent(generation)) {
+                renderRows(generation, bandIndex);
             }
         } catch (Throwable error) {
-            if (isCurrent(request)) {
-                listener.onRenderFailed(request, error);
-            }
+            generation.fail(error);
         } finally {
-            latestRequested.compareAndSet(generation, null);
-            generation.close();
+            finishBand(generation);
         }
     }
 
-    private Result render(RenderGeneration generation) throws InterruptedException {
+    private void finishBand(RenderGeneration generation) {
+        if (!generation.completeBand() || !isCurrent(generation)) {
+            return;
+        }
+        Throwable failure = generation.failure();
+        if (failure != null) {
+            listener.onRenderFailed(generation.request(), failure);
+            return;
+        }
+        listener.onRenderCompleted(generation.result());
+    }
+
+    private void renderRows(RenderGeneration generation, int bandIndex) {
         Request request = generation.request();
-        long started = System.nanoTime();
-        int outputWidth = Math.max(1, (request.width() + request.sampleStep() - 1) / request.sampleStep());
-        int outputHeight = Math.max(1, (request.height() + request.sampleStep() - 1) / request.sampleStep());
-        BufferedImage image = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
-        int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
-        int bandCount = Math.min(workerCount, outputHeight);
-        BandStats[] bandStats = new BandStats[bandCount];
-        CountDownLatch completion = new CountDownLatch(bandCount);
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        for (int band = 0; band < bandCount; band++) {
-            bandStats[band] = new BandStats();
-        }
-        for (int band = 0; band < bandCount; band++) {
-            int bandIndex = band;
-            Runnable task = () -> {
-                try {
-                    renderBand(request, image, pixels, bandIndex, bandCount, bandStats[bandIndex]);
-                } catch (Throwable error) {
-                    failure.compareAndSet(null, error);
-                } finally {
-                    completion.countDown();
-                }
-            };
-            try {
-                generation.executor().execute(task);
-            } catch (RejectedExecutionException exception) {
-                failure.compareAndSet(null, exception);
-                completion.countDown();
-            }
-        }
-        completion.await();
-        Throwable renderFailure = failure.get();
-        if (renderFailure != null) {
-            if (renderFailure instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            if (renderFailure instanceof Error error) {
-                throw error;
-            }
-            throw new IllegalStateException("Noise rendering failed", renderFailure);
-        }
-        if (!isCurrent(request)) {
-            return null;
-        }
-        RenderStats combined = combine(bandStats);
-        double milliseconds = (System.nanoTime() - started) / 1_000_000D;
-        return new Result(request, image, milliseconds, combined.samples, combined.minimum, combined.maximum,
-                combined.centerValue, combined.underflow, combined.overflow, combined.invalid);
-    }
-
-    private void renderBand(Request request, BufferedImage image, int[] pixels, int bandIndex, int bandCount,
-                            BandStats stats) {
-        int outputWidth = image.getWidth();
-        int outputHeight = image.getHeight();
-        int fromY = (outputHeight * bandIndex) / bandCount;
-        int toY = (outputHeight * (bandIndex + 1)) / bandCount;
+        int outputWidth = generation.outputWidth();
+        int outputHeight = generation.outputHeight();
+        int[] pixels = generation.pixels();
+        BandStats stats = generation.bandStats(bandIndex);
+        int fromY = (outputHeight * bandIndex) / generation.bandCount();
+        int toY = (outputHeight * (bandIndex + 1)) / generation.bandCount();
         double sampleOffset = request.sampleStep() * 0.5D;
         double startWorldX = request.viewport().worldX(sampleOffset, request.width());
         double worldStep = request.viewport().blocksPerPixel() * request.sampleStep();
@@ -232,7 +191,7 @@ final class NoiseRenderCoordinator implements AutoCloseable {
             int pixelIndex = y * outputWidth;
             boolean centerRow = y == outputHeight / 2;
             for (int x = 0; x < outputWidth; x++) {
-                if ((x & 31) == 0 && (!isCurrent(request) || Thread.currentThread().isInterrupted())) {
+                if ((x & 31) == 0 && (!isCurrent(generation) || Thread.currentThread().isInterrupted())) {
                     return;
                 }
                 double value = request.sampler().noise(worldX, worldZ);
@@ -249,36 +208,18 @@ final class NoiseRenderCoordinator implements AutoCloseable {
         }
     }
 
-    private boolean isCurrent(Request request) {
+    private boolean isCurrent(RenderGeneration generation) {
         return !closed.get()
-                && latestRequested.get() != null
-                && latestRequested.get().request() == request
-                && request.revision() >= latestRevision.get();
+                && latestRequested.get() == generation
+                && generation.request().revision() >= latestRevision.get();
     }
 
-    private void cancelActiveRender() {
-        RenderGeneration generation = latestRequested.getAndSet(null);
-        if (generation != null) {
-            generation.close();
-        }
+    private static int outputWidth(Request request) {
+        return Math.max(1, (request.width() + request.sampleStep() - 1) / request.sampleStep());
     }
 
-    private RenderGeneration createGeneration(Request request) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(
-                workerCount,
-                workerCount,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(Math.max(1, workerCount)),
-                workerThreadFactory,
-                new ThreadPoolExecutor.AbortPolicy()
-        );
-        GuiHost.interruptOnPluginShutdown(executor);
-        RenderGeneration generation = new RenderGeneration(request, executor);
-        Thread actualRunner = coordinatorThreadFactory.newThread(() -> renderGeneration(generation));
-        generation.setRunner(actualRunner);
-        GuiHost.interruptOnPluginShutdown(actualRunner);
-        return generation;
+    private static int outputHeight(Request request) {
+        return Math.max(1, (request.height() + request.sampleStep() - 1) / request.sampleStep());
     }
 
     private static RenderStats combine(BandStats[] bands) {
@@ -333,36 +274,71 @@ final class NoiseRenderCoordinator implements AutoCloseable {
 
     private static final class RenderGeneration {
         private final Request request;
-        private final ThreadPoolExecutor executor;
-        private volatile Thread runner;
+        private final long startedNanos = System.nanoTime();
+        private final int outputWidth;
+        private final int outputHeight;
+        private final int[] pixels;
+        private final BandStats[] bandStats;
+        private final AtomicInteger remainingBands;
+        private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
-        private RenderGeneration(Request request, ThreadPoolExecutor executor) {
-            this.request = Objects.requireNonNull(request, "request");
-            this.executor = Objects.requireNonNull(executor, "executor");
+        private RenderGeneration(Request request, int bandCount) {
+            this.request = request;
+            this.outputWidth = NoiseRenderCoordinator.outputWidth(request);
+            this.outputHeight = NoiseRenderCoordinator.outputHeight(request);
+            this.pixels = new int[outputWidth * outputHeight];
+            this.bandStats = new BandStats[Math.max(1, bandCount)];
+            for (int band = 0; band < bandStats.length; band++) {
+                bandStats[band] = new BandStats();
+            }
+            this.remainingBands = new AtomicInteger(bandStats.length);
         }
 
         private Request request() {
             return request;
         }
 
-        private ThreadPoolExecutor executor() {
-            return executor;
+        private int bandCount() {
+            return bandStats.length;
         }
 
-        private void setRunner(Thread runner) {
-            this.runner = Objects.requireNonNull(runner, "runner");
+        private int outputWidth() {
+            return outputWidth;
         }
 
-        private void start() {
-            runner.start();
+        private int outputHeight() {
+            return outputHeight;
         }
 
-        private void close() {
-            Thread activeRunner = runner;
-            if (activeRunner != null) {
-                activeRunner.interrupt();
-            }
-            executor.shutdownNow();
+        private int[] pixels() {
+            return pixels;
+        }
+
+        private BandStats bandStats(int band) {
+            return bandStats[band];
+        }
+
+        private void fail(Throwable error) {
+            failure.compareAndSet(null, error);
+        }
+
+        private Throwable failure() {
+            return failure.get();
+        }
+
+        // True for the band that finishes last, which is the one that publishes the frame.
+        private boolean completeBand() {
+            return remainingBands.decrementAndGet() == 0;
+        }
+
+        // Copied into a fresh image instead of drawing into its buffer, so Java2D can keep the finished frame on the GPU.
+        private Result result() {
+            BufferedImage image = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
+            image.getRaster().setDataElements(0, 0, outputWidth, outputHeight, pixels);
+            RenderStats combined = combine(bandStats);
+            double milliseconds = (System.nanoTime() - startedNanos) / 1_000_000D;
+            return new Result(request, image, milliseconds, combined.samples, combined.minimum, combined.maximum,
+                    combined.centerValue, combined.underflow, combined.overflow, combined.invalid);
         }
     }
 

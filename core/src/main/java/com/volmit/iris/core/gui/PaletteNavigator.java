@@ -30,12 +30,10 @@ import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.JTree;
 import javax.swing.ListSelectionModel;
-import javax.swing.ScrollPaneConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -53,21 +51,13 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.ACCENT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.BORDER;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.FIELD_BACKGROUND;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.HEADER_FONT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.ITEM_FONT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.PANEL_BACKGROUND;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.PRIMARY_TEXT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.SECONDARY_TEXT;
-import static com.volmit.iris.core.gui.NoiseExplorerGUI.SIDEBAR_BACKGROUND;
 
 final class PaletteNavigator extends JPanel {
     private static final long serialVersionUID = -6402313718430917284L;
     private static final String HERE_CARD = "here";
     private static final String OVERVIEW_CARD = "overview";
-    private static final String DETAIL_COLOR = "#8890A0";
+    private static final String DETAIL_COLOR = StudioTheme.SECONDARY_TEXT_HTML;
+    private static final int MESSAGE_WRAP_WIDTH_PIXELS = 190;
 
     private final Listener listener;
     private final CardLayout cards = new CardLayout();
@@ -84,11 +74,11 @@ final class PaletteNavigator extends JPanel {
     private String selectedBiome;
     private int selectedLayer;
     private boolean updatingSelection;
+    private boolean untracked;
 
     PaletteNavigator(Listener listener) {
         super(new BorderLayout());
         this.listener = listener;
-        setBackground(SIDEBAR_BACKGROUND);
         cardPanel.add(buildHereCard(), HERE_CARD);
         cardPanel.add(buildOverviewCard(), OVERVIEW_CARD);
         add(buildTabBar(), BorderLayout.NORTH);
@@ -107,6 +97,12 @@ final class PaletteNavigator extends JPanel {
         refreshHere();
     }
 
+    // Without a player there is nowhere to call "here", so the Here tab explains how to get one instead.
+    void showUntracked() {
+        untracked = true;
+        refreshHere();
+    }
+
     void markSelected(String biomeKey, int layer) {
         selectedBiome = biomeKey;
         selectedLayer = layer;
@@ -120,9 +116,8 @@ final class PaletteNavigator extends JPanel {
     }
 
     private JPanel buildTabBar() {
-        JPanel bar = new JPanel(new GridLayout(1, 2, 6, 0));
-        bar.setBackground(SIDEBAR_BACKGROUND);
-        bar.setBorder(BorderFactory.createEmptyBorder(0, 12, 8, 12));
+        JPanel bar = new JPanel(new GridLayout(1, 2, 0, 0));
+        bar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, StudioTheme.SEPARATOR));
         ButtonGroup group = new ButtonGroup();
         JToggleButton here = createTab("Here", HERE_CARD, group);
         JToggleButton overview = createTab("Overview", OVERVIEW_CARD, group);
@@ -133,7 +128,7 @@ final class PaletteNavigator extends JPanel {
     }
 
     private JToggleButton createTab(String text, String card, ButtonGroup group) {
-        JToggleButton tab = ExplorerStyle.toggleButton(text);
+        JToggleButton tab = StudioToolbar.tab(text);
         tab.addActionListener(event -> cards.show(cardPanel, card));
         group.add(tab);
         return tab;
@@ -141,18 +136,10 @@ final class PaletteNavigator extends JPanel {
 
     private JPanel buildHereCard() {
         JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(SIDEBAR_BACKGROUND);
         JPanel location = new JPanel(new GridLayout(0, 1, 0, 3));
-        location.setBackground(PANEL_BACKGROUND);
-        location.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER),
-                BorderFactory.createEmptyBorder(9, 12, 9, 12)
-        ));
-        regionLabel.setForeground(PRIMARY_TEXT);
-        regionLabel.setFont(ITEM_FONT);
+        location.setBorder(BorderFactory.createEmptyBorder(9, 12, 5, 12));
         location.add(regionLabel);
 
-        hereList.setBackground(SIDEBAR_BACKGROUND);
         hereList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         hereList.setCellRenderer(new HereRowRenderer());
         hereList.addListSelectionListener(event -> {
@@ -162,23 +149,13 @@ final class PaletteNavigator extends JPanel {
             }
         });
         card.add(location, BorderLayout.NORTH);
-        card.add(scroll(hereList), BorderLayout.CENTER);
+        card.add(StudioToolbar.scroll(hereList), BorderLayout.CENTER);
         return card;
     }
 
     private JPanel buildOverviewCard() {
         JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(SIDEBAR_BACKGROUND);
-        searchField.setBackground(FIELD_BACKGROUND);
-        searchField.setForeground(PRIMARY_TEXT);
-        searchField.setCaretColor(PRIMARY_TEXT);
-        searchField.setFont(ITEM_FONT);
-        searchField.putClientProperty("JTextField.placeholderText", "Search biomes or blocks...");
-        searchField.setToolTipText("Search biomes or blocks");
-        searchField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
+        StudioToolbar.makeSearchField(searchField, "Search biomes or blocks...");
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent event) {
@@ -198,8 +175,7 @@ final class PaletteNavigator extends JPanel {
 
         overviewTree.setRootVisible(false);
         overviewTree.setShowsRootHandles(true);
-        overviewTree.setBackground(SIDEBAR_BACKGROUND);
-        overviewTree.setRowHeight(22);
+        overviewTree.setRowHeight(24);
         overviewTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         overviewTree.setCellRenderer(new OverviewRenderer());
         overviewTree.addTreeSelectionListener(event -> {
@@ -207,18 +183,9 @@ final class PaletteNavigator extends JPanel {
                 chooseBiome(node.biomeKey(), Math.max(0, node.layer()));
             }
         });
-        card.add(searchField, BorderLayout.NORTH);
-        card.add(scroll(overviewTree), BorderLayout.CENTER);
+        card.add(StudioToolbar.padded(searchField, 8, 8, 8, 8), BorderLayout.NORTH);
+        card.add(StudioToolbar.scroll(overviewTree), BorderLayout.CENTER);
         return card;
-    }
-
-    private static JScrollPane scroll(Component content) {
-        JScrollPane scrollPane = new JScrollPane(content);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getViewport().setBackground(SIDEBAR_BACKGROUND);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
-        return scrollPane;
     }
 
     private void chooseBiome(String biomeKey, int preferredLayer) {
@@ -233,6 +200,10 @@ final class PaletteNavigator extends JPanel {
         updatingSelection = true;
         try {
             hereRows.clear();
+            if (untracked) {
+                showHereMessage("Run /iris std pal in-game to see the palettes where you stand.");
+                return;
+            }
             if (location == null || catalog == null) {
                 showHereMessage("Finding where you are...");
                 return;
@@ -249,7 +220,7 @@ final class PaletteNavigator extends JPanel {
     }
 
     private void showHereMessage(String message) {
-        regionLabel.setText(message);
+        regionLabel.setText("<html><body style='width:" + MESSAGE_WRAP_WIDTH_PIXELS + "px'>" + message + "</body></html>");
     }
 
     private void showHereRows(PlayerLocation here) {
@@ -445,11 +416,12 @@ final class PaletteNavigator extends JPanel {
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
             HereRow row = (HereRow) value;
             boolean selectable = row.biomeKey() != null;
-            super.getListCellRendererComponent(list, row.text(), index, selected && selectable, false);
-            setOpaque(true);
-            setFont(row.header() ? HEADER_FONT : ITEM_FONT);
-            setForeground(row.header() ? ACCENT : selected ? PRIMARY_TEXT : SECONDARY_TEXT);
-            setBackground(selected && selectable ? FIELD_BACKGROUND.brighter() : SIDEBAR_BACKGROUND);
+            super.getListCellRendererComponent(list, row.header() ? row.text().toUpperCase(Locale.ROOT) : row.text(), index,
+                    selected && selectable, false);
+            setFont(row.header() ? StudioTheme.sectionFont() : StudioTheme.font());
+            if (row.header()) {
+                setForeground(StudioTheme.MUTED_TEXT);
+            }
             int indent = row.header() ? HEADER_INDENT : row.layer() >= 0 ? LAYER_INDENT : BIOME_INDENT;
             setBorder(BorderFactory.createEmptyBorder(row.header() ? 11 : 4, indent, 4, 10));
             return this;
@@ -463,11 +435,6 @@ final class PaletteNavigator extends JPanel {
             setLeafIcon(null);
             setOpenIcon(null);
             setClosedIcon(null);
-            setBackgroundNonSelectionColor(SIDEBAR_BACKGROUND);
-            setBackgroundSelectionColor(FIELD_BACKGROUND.brighter());
-            setBorderSelectionColor(null);
-            setTextNonSelectionColor(SECONDARY_TEXT);
-            setTextSelectionColor(PRIMARY_TEXT);
         }
 
         @Override
@@ -476,7 +443,7 @@ final class PaletteNavigator extends JPanel {
             Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
             String text = userObject instanceof OverviewNode node ? node.html() : "";
             super.getTreeCellRendererComponent(tree, text, selected, expanded, leaf, row, false);
-            setFont(userObject instanceof OverviewNode node && node.biomeKey() == null ? HEADER_FONT : ITEM_FONT);
+            setFont(userObject instanceof OverviewNode node && node.biomeKey() == null ? StudioTheme.boldFont() : StudioTheme.font());
             return this;
         }
     }

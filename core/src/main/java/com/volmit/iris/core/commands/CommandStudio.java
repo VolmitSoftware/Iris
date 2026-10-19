@@ -21,9 +21,9 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.GuiHost;
+import com.volmit.iris.core.gui.MapWindow;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.PaletteExplorerStart;
-import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
@@ -263,8 +263,8 @@ public class CommandStudio implements DecreeExecutor {
         }
         Location location = player().getLocation();
         IrisBiome surfaceBiome = engine.getSurfaceBiome(location.getBlockX(), location.getBlockZ());
-        sender().sendMessage(C.GREEN + "Opening Palette Explorer!");
-        NoiseExplorerGUI.launchPalettes(new PaletteExplorerStart(
+        sender().sendMessage(C.GREEN + "Opening the map on its palettes!");
+        MapWindow.openPalettes(new PaletteExplorerStart(
                 engine,
                 location.getWorld().getUID(),
                 player().getUniqueId(),
@@ -468,7 +468,15 @@ public class CommandStudio implements DecreeExecutor {
             return;
         }
 
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), sender().isPlayer() ? player().getUniqueId() : null);
+        Location center = sender().isPlayer() && player().getWorld().equals(world) ? player().getLocation() : null;
+        MapWindow.openMap(new PaletteExplorerStart(
+                IrisToolbelt.access(world).getEngine(),
+                world.getUID(),
+                sender().isPlayer() ? player().getUniqueId() : null,
+                null,
+                center == null ? 0D : center.getX(),
+                center == null ? 0D : center.getZ()
+        ));
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 

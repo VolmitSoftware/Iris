@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.gui;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
@@ -31,16 +32,18 @@ import com.volmit.iris.util.noise.CNG;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
@@ -53,15 +56,14 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -82,31 +84,16 @@ import java.util.function.LongFunction;
 
 public final class NoiseExplorerGUI extends JPanel {
     private static final long serialVersionUID = 2094606939770332040L;
-    private static final Color BACKGROUND = new Color(12, 15, 22);
-    static final Color SIDEBAR_BACKGROUND = new Color(17, 20, 29);
-    static final Color PANEL_BACKGROUND = new Color(23, 27, 38);
-    static final Color FIELD_BACKGROUND = new Color(29, 34, 47);
-    private static final Color SELECTED_BACKGROUND = new Color(42, 55, 78);
-    static final Color PRIMARY_TEXT = new Color(230, 234, 242);
-    static final Color SECONDARY_TEXT = new Color(151, 160, 178);
-    static final Color ACCENT = new Color(99, 161, 255);
-    static final Color BORDER = new Color(48, 55, 72);
-    static final Color ERROR = new Color(255, 116, 116);
-    private static final Color GRID = new Color(255, 255, 255, 15);
+    private static final Color GRID = new Color(255, 255, 255, 12);
     private static final Color CROSSHAIR = new Color(255, 255, 255, 125);
-    private static final Color LEGEND_BACKGROUND = new Color(10, 12, 18, 215);
-    private static final Font MONOSPACED_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-    static final Font HEADER_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 11);
-    static final Font ITEM_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
-    static final Font LEGEND_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
     private static final int SIDEBAR_WIDTH = 270;
-    private static final int STATUS_HEIGHT = 50;
+    private static final int LEGEND_WIDTH = 190;
+    private static final int LEGEND_HEIGHT = 40;
     private static final int REFINEMENT_DELAY_MILLIS = 180;
     private static final long DEFAULT_SEED = 12345L;
     private static final double TEXTURE_PIXELS_MAX_BLOCKS_PER_PIXEL = 0.25D;
     private static final double PALETTE_START_BLOCKS_PER_PIXEL = 1D / 16D;
     private static final long COARSE_SAMPLE_BUDGET = 4_096L;
-    private static final long MAX_REFINED_SAMPLE_BUDGET = 48_000L;
     private static final double REFINEMENT_TARGET_MILLIS = 250D;
     private static final double PALETTE_REFINEMENT_TARGET_MILLIS = 2_000D;
     private static final double INTERACTIVE_FRAME_TARGET_MILLIS = 33D;
@@ -151,11 +138,11 @@ public final class NoiseExplorerGUI extends JPanel {
     private final DefaultListModel<ListItem> sourceModel = new DefaultListModel<>();
     private final JList<ListItem> sourceList = new JList<>(sourceModel);
     private final JTextField searchField = new JTextField();
-    private final JTextField seedField = new JTextField();
+    private final JTextField seedField = new JTextField(9);
     private final JLabel selectedLabel = new JLabel("No source selected");
-    private final JLabel progressLabel = new JLabel("Opening noise explorer...");
     private final JLabel catalogLabel = new JLabel("Pack catalog waiting");
     private final JComboBox<NoisePalette> palettePicker = new JComboBox<>(NoisePalette.values());
+    private final StudioStatusBar statusBar = new StudioStatusBar();
     private final PaletteInspectorPanel paletteInspector = new PaletteInspectorPanel(new PaletteInspectorListener());
     private final PaletteNavigator paletteNavigator;
     private PlayerLocationTracker locationTracker;
@@ -175,11 +162,13 @@ public final class NoiseExplorerGUI extends JPanel {
     private Point dragPoint;
     private long seed;
     private long viewRevision;
+    private int lastSourceRow = -1;
     private boolean catalogLoading;
     private boolean sourceLoading;
     private boolean rendering;
     private boolean disposed;
     private boolean awaitingInitialPackSource;
+    private String requestedPaletteBiome;
     private String errorMessage;
 
     private NoiseExplorerGUI(ExplorerMode mode, Engine engine, String customGeneratorKey, IrisGenerator fallbackGenerator,
@@ -188,6 +177,7 @@ public final class NoiseExplorerGUI extends JPanel {
         this.paletteStart = paletteStart;
         this.paletteNavigator = new PaletteNavigator(this::selectPaletteLayer);
         this.awaitingInitialPackSource = mode == ExplorerMode.PALETTES;
+        this.requestedPaletteBiome = paletteStart == null ? null : paletteStart.biomeKey();
         this.initialViewport = paletteStart == null
                 ? new NoiseViewport(0D, 0D, 1D)
                 : new NoiseViewport(paletteStart.centerX(), paletteStart.centerZ(), PALETTE_START_BLOCKS_PER_PIXEL);
@@ -210,9 +200,12 @@ public final class NoiseExplorerGUI extends JPanel {
         this.resizeTimer = new Timer(RESIZE_SETTLE_MILLIS, event -> requestPreview());
         this.resizeTimer.setRepeats(false);
         this.fixedSources = buildFixedSources();
-        setBackground(BACKGROUND);
+        setBackground(StudioTheme.EDITOR_BACKGROUND);
         setFocusable(true);
         installInputHandlers();
+        catalogLabel.setFont(StudioTheme.smallFont());
+        catalogLabel.setForeground(StudioTheme.SECONDARY_TEXT);
+        statusBar.showActivity(mode == ExplorerMode.PALETTES ? "Opening palettes..." : "Opening noise explorer...");
         GuiHost.registerHotloadHook(hotloadHook);
     }
 
@@ -220,14 +213,7 @@ public final class NoiseExplorerGUI extends JPanel {
         Engine engine = GuiHost.findActiveEngine();
         EventQueue.invokeLater(() -> {
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
-            buildFrame("Noise Explorer", explorer);
-        });
-    }
-
-    public static void launchPalettes(PaletteExplorerStart start) {
-        EventQueue.invokeLater(() -> {
-            NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.PALETTES, start.engine(), null, null, null, DEFAULT_SEED, start);
-            buildFrame("Palette Explorer", explorer);
+            buildNoiseFrame("Noise Explorer", explorer);
         });
     }
 
@@ -244,18 +230,30 @@ public final class NoiseExplorerGUI extends JPanel {
                     initialSeed,
                     null
             );
-            buildFrame("Noise Explorer: " + displayName, explorer);
+            buildNoiseFrame("Noise Explorer: " + displayName, explorer);
         });
     }
 
-    private static void buildFrame(String title, NoiseExplorerGUI explorer) {
+    // The palette explorer has no window of its own: the map window shows it as its Palettes view.
+    static NoiseExplorerGUI createPaletteExplorer(PaletteExplorerStart start) {
+        return new NoiseExplorerGUI(ExplorerMode.PALETTES, start.engine(), null, null, null, DEFAULT_SEED, start);
+    }
+
+    private static void buildNoiseFrame(String title, NoiseExplorerGUI explorer) {
         JFrame frame = GuiHost.createFrame(title);
-        frame.getContentPane().setBackground(BACKGROUND);
         frame.setLayout(new BorderLayout());
-        frame.add(explorer.buildSidebar(), BorderLayout.WEST);
+        frame.add(explorer.buildNoiseToolbar(), BorderLayout.NORTH);
+        frame.add(explorer.buildNoiseSidebar(), BorderLayout.WEST);
         frame.add(explorer, BorderLayout.CENTER);
-        frame.add(explorer.paletteInspector, BorderLayout.EAST);
-        frame.setSize(1440, 820);
+        frame.add(explorer.statusBar, BorderLayout.SOUTH);
+        frame.getRootPane().getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('R'), "reset-view");
+        frame.getRootPane().getActionMap().put("reset-view", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                explorer.resetViewport();
+            }
+        });
+        frame.setSize(1440, 860);
         frame.setMinimumSize(new Dimension(760, 500));
         frame.setLocationRelativeTo(null);
         frame.addWindowListener(new WindowAdapter() {
@@ -294,28 +292,39 @@ public final class NoiseExplorerGUI extends JPanel {
         return executor;
     }
 
-    JPanel buildSidebar() {
+    private JToolBar buildNoiseToolbar() {
+        JToolBar toolbar = StudioToolbar.create();
+        selectedLabel.setFont(StudioTheme.boldFont());
+        selectedLabel.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 10));
+        toolbar.add(selectedLabel);
+        toolbar.addSeparator();
+        toolbar.add(StudioToolbar.label("Seed"));
+        seedField.setMaximumSize(seedField.getPreferredSize());
+        seedField.addActionListener(event -> applySeed());
+        toolbar.add(seedField);
+        toolbar.add(StudioToolbar.button("Apply", "Use this seed", this::applySeed));
+        toolbar.addSeparator();
+        toolbar.add(StudioToolbar.label("Colours"));
+        palettePicker.setSelectedItem(palette);
+        palettePicker.setMaximumSize(palettePicker.getPreferredSize());
+        palettePicker.addActionListener(event -> {
+            NoisePalette nextPalette = (NoisePalette) palettePicker.getSelectedItem();
+            if (nextPalette != null && nextPalette != palette) {
+                palette = nextPalette;
+                requestPreview();
+            }
+        });
+        toolbar.add(palettePicker);
+        toolbar.add(Box.createHorizontalGlue());
+        toolbar.add(StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)", this::resetViewport));
+        return toolbar;
+    }
+
+    private JPanel buildNoiseSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 0));
-        sidebar.setBackground(SIDEBAR_BACKGROUND);
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER));
-
-        JPanel heading = new JPanel(new BorderLayout());
-        heading.setBackground(SIDEBAR_BACKGROUND);
-        heading.setBorder(BorderFactory.createEmptyBorder(12, 12, 10, 12));
-        selectedLabel.setForeground(PRIMARY_TEXT);
-        selectedLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-        progressLabel.setForeground(SECONDARY_TEXT);
-        progressLabel.setFont(ITEM_FONT);
-        heading.add(selectedLabel, BorderLayout.NORTH);
-        heading.add(progressLabel, BorderLayout.SOUTH);
-
-        configureTextField(searchField);
-        searchField.putClientProperty("JTextField.placeholderText", "Search...");
-        searchField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, StudioTheme.SEPARATOR));
+        StudioToolbar.makeSearchField(searchField, "Search noise...");
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent event) {
@@ -332,125 +341,126 @@ public final class NoiseExplorerGUI extends JPanel {
                 populateSourceList();
             }
         });
+        // Down or Enter in the search box jumps to the results, so the list can be searched without the mouse.
+        searchField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "focus-results");
+        searchField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "focus-results");
+        searchField.getActionMap().put("focus-results", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                focusFirstSource();
+            }
+        });
 
-        JPanel north = new JPanel(new BorderLayout());
-        north.setBackground(SIDEBAR_BACKGROUND);
-        north.add(heading, BorderLayout.NORTH);
-        if (mode == ExplorerMode.NOISE) {
-            north.add(searchField, BorderLayout.SOUTH);
-        }
-
-        sourceList.setBackground(SIDEBAR_BACKGROUND);
-        sourceList.setForeground(SECONDARY_TEXT);
         sourceList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         sourceList.setCellRenderer(new SourceCellRenderer());
         sourceList.addListSelectionListener(event -> {
             if (event.getValueIsAdjusting()) {
                 return;
             }
+            if (skipHeaderRow()) {
+                return;
+            }
             ListItem item = sourceList.getSelectedValue();
+            lastSourceRow = sourceList.getSelectedIndex();
             if (item != null && item.source() != null) {
                 selectSource(item.source());
             }
         });
-        JScrollPane scrollPane = new JScrollPane(sourceList);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
 
-        JPanel controls = buildControls();
-        sidebar.add(north, BorderLayout.NORTH);
-        sidebar.add(mode == ExplorerMode.PALETTES ? paletteNavigator : scrollPane, BorderLayout.CENTER);
-        sidebar.add(controls, BorderLayout.SOUTH);
+        sidebar.add(StudioToolbar.padded(searchField, 8, 8, 8, 8), BorderLayout.NORTH);
+        sidebar.add(StudioToolbar.scroll(sourceList), BorderLayout.CENTER);
+        sidebar.add(StudioToolbar.padded(catalogLabel, 6, 12, 8, 12), BorderLayout.SOUTH);
         populateSourceList();
         return sidebar;
     }
 
-    private JPanel buildControls() {
-        JPanel controls = new JPanel(new GridLayout(0, 1, 0, 7));
-        controls.setBackground(PANEL_BACKGROUND);
-        controls.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER),
-                BorderFactory.createEmptyBorder(10, 12, 12, 12)
-        ));
+    JComponent paletteSidebar() {
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.add(paletteNavigator, BorderLayout.CENTER);
+        sidebar.add(StudioToolbar.padded(catalogLabel, 6, 12, 8, 12), BorderLayout.SOUTH);
+        return sidebar;
+    }
 
-        catalogLabel.setForeground(SECONDARY_TEXT);
-        catalogLabel.setFont(ITEM_FONT);
-        controls.add(catalogLabel);
+    PaletteInspectorPanel paletteInspector() {
+        return paletteInspector;
+    }
 
-        if (mode == ExplorerMode.NOISE) {
-            addSeedControls(controls);
-            addPaletteControls(controls);
+    StudioStatusBar statusBar() {
+        return statusBar;
+    }
+
+    double centerX() {
+        return viewport.centerX();
+    }
+
+    double centerZ() {
+        return viewport.centerZ();
+    }
+
+    void centerOn(double worldX, double worldZ) {
+        viewport = new NoiseViewport(worldX, worldZ, viewport.blocksPerPixel());
+        requestPreview();
+    }
+
+    // Jumps to a spot and opens the palette of the biome there, once the catalog has loaded if it hasn't yet.
+    void showPalettesAt(double worldX, double worldZ, String biomeKey) {
+        centerOn(worldX, worldZ);
+        if (biomeKey == null) {
+            return;
         }
-
-        JButton resetView = createButton("Reset view");
-        resetView.addActionListener(event -> resetViewport());
-        controls.add(resetView);
-        return controls;
+        requestedPaletteBiome = biomeKey;
+        if (!packSources.isEmpty()) {
+            selectPaletteLayer(biomeKey, 0);
+        }
     }
 
-    private void addPaletteControls(JPanel controls) {
-        JLabel paletteTitle = new JLabel("Palette");
-        paletteTitle.setForeground(SECONDARY_TEXT);
-        paletteTitle.setFont(HEADER_FONT);
-        controls.add(paletteTitle);
-        palettePicker.setSelectedItem(palette);
-        palettePicker.setBackground(FIELD_BACKGROUND);
-        palettePicker.setForeground(PRIMARY_TEXT);
-        palettePicker.addActionListener(event -> {
-            NoisePalette nextPalette = (NoisePalette) palettePicker.getSelectedItem();
-            if (nextPalette != null && nextPalette != palette) {
-                palette = nextPalette;
-                requestPreview();
+    // Header rows can't be chosen, so moving onto one with the arrow keys carries on to the next real source.
+    private boolean skipHeaderRow() {
+        int row = sourceList.getSelectedIndex();
+        if (row < 0 || sourceModel.get(row).source() != null) {
+            return false;
+        }
+        int step = row >= lastSourceRow ? 1 : -1;
+        int next = nextSourceRow(row, step);
+        if (next < 0) {
+            next = nextSourceRow(row, -step);
+        }
+        if (next < 0) {
+            sourceList.clearSelection();
+        } else {
+            sourceList.setSelectedIndex(next);
+            sourceList.ensureIndexIsVisible(next);
+        }
+        return true;
+    }
+
+    private int nextSourceRow(int from, int step) {
+        for (int row = from + step; row >= 0 && row < sourceModel.size(); row += step) {
+            if (sourceModel.get(row).source() != null) {
+                return row;
             }
-        });
-        controls.add(palettePicker);
+        }
+        return -1;
     }
 
-    private void addSeedControls(JPanel controls) {
-        JLabel seedTitle = new JLabel("Seed");
-        seedTitle.setForeground(SECONDARY_TEXT);
-        seedTitle.setFont(HEADER_FONT);
-        controls.add(seedTitle);
-        JPanel seedRow = new JPanel(new BorderLayout(7, 0));
-        seedRow.setOpaque(false);
-        configureTextField(seedField);
-        JButton applySeed = createButton("Apply");
-        applySeed.addActionListener(event -> applySeed());
-        seedField.addActionListener(event -> applySeed());
-        seedRow.add(seedField, BorderLayout.CENTER);
-        seedRow.add(applySeed, BorderLayout.EAST);
-        controls.add(seedRow);
-    }
-
-    private static JButton createButton(String text) {
-        JButton button = new JButton(text);
-        button.setBackground(FIELD_BACKGROUND);
-        button.setForeground(PRIMARY_TEXT);
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                BorderFactory.createEmptyBorder(5, 9, 5, 9)
-        ));
-        return button;
-    }
-
-    private static void configureTextField(JTextField field) {
-        field.setBackground(FIELD_BACKGROUND);
-        field.setForeground(PRIMARY_TEXT);
-        field.setCaretColor(PRIMARY_TEXT);
-        field.setFont(ITEM_FONT);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
-        ));
+    private void focusFirstSource() {
+        int row = sourceList.getSelectedIndex() >= 0 ? sourceList.getSelectedIndex() : nextSourceRow(-1, 1);
+        if (row < 0) {
+            return;
+        }
+        sourceList.setSelectedIndex(row);
+        sourceList.ensureIndexIsVisible(row);
+        sourceList.requestFocusInWindow();
     }
 
     void openViewer() {
         loadCatalog();
         if (mode == ExplorerMode.PALETTES) {
             loadBlockTextures();
-            if (paletteStart != null) {
+            if (paletteStart != null && paletteStart.playerId() != null) {
                 locationTracker = PlayerLocationTracker.follow(paletteStart.playerId(), paletteStart.worldId(), paletteNavigator::showLocation);
+            } else {
+                paletteNavigator.showUntracked();
             }
         }
         SourceItem initial = findInitialSource();
@@ -512,7 +522,7 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         long revision = catalogLoadRevision.incrementAndGet();
         catalogLoading = true;
-        catalogLabel.setForeground(SECONDARY_TEXT);
+        catalogLabel.setForeground(StudioTheme.SECONDARY_TEXT);
         catalogLabel.setText("Loading pack catalog...");
         submitLatest(catalogExecutor, () -> {
             try {
@@ -664,10 +674,10 @@ public final class NoiseExplorerGUI extends JPanel {
             paletteNavigator.showCatalog(paletteCatalog);
         }
         if (error != null) {
-            catalogLabel.setForeground(ERROR);
+            catalogLabel.setForeground(StudioTheme.ERROR);
             catalogLabel.setText("Pack catalog unavailable");
         } else {
-            catalogLabel.setForeground(SECONDARY_TEXT);
+            catalogLabel.setForeground(StudioTheme.SECONDARY_TEXT);
             catalogLabel.setText(catalogSummary(sources));
         }
         boolean reloadSelectedPack = false;
@@ -693,7 +703,7 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private void selectInitialPackSource(List<SourceItem> sources) {
-        String initialSourceId = paletteStart == null || paletteStart.biomeKey() == null ? null : paletteSourceId(paletteStart.biomeKey(), 0);
+        String initialSourceId = requestedPaletteBiome == null ? null : paletteSourceId(requestedPaletteBiome, 0);
         SourceItem requested = initialSourceId == null ? null : findSourceById(initialSourceId, sources);
         SourceItem initial = requested == null ? sources.get(0) : requested;
         if (!selectSourceInList(initial.id())) {
@@ -724,9 +734,8 @@ public final class NoiseExplorerGUI extends JPanel {
         rendering = false;
         errorMessage = "Pack source removed during hotload: " + removedSource.text();
         selectedLabel.setText("No source selected");
-        progressLabel.setForeground(ERROR);
-        progressLabel.setText("Selected pack source was removed");
         sourceList.clearSelection();
+        refreshStatus();
         repaint();
     }
 
@@ -817,8 +826,7 @@ public final class NoiseExplorerGUI extends JPanel {
         sourceLoading = true;
         rendering = false;
         errorMessage = null;
-        progressLabel.setForeground(SECONDARY_TEXT);
-        progressLabel.setText("Loading source...");
+        refreshStatus();
         repaint();
         submitLatest(sourceExecutor, () -> {
             try {
@@ -844,8 +852,7 @@ public final class NoiseExplorerGUI extends JPanel {
         sourceLoading = false;
         errorMessage = null;
         renderResult = null;
-        progressLabel.setForeground(SECONDARY_TEXT);
-        progressLabel.setText(source.usesSeed() ? "Ready · seed " + seed : "Ready");
+        refreshStatus();
         requestPreview();
     }
 
@@ -857,8 +864,7 @@ public final class NoiseExplorerGUI extends JPanel {
         sourceLoading = false;
         rendering = false;
         errorMessage = readableError(error);
-        progressLabel.setForeground(ERROR);
-        progressLabel.setText("Source failed to load");
+        refreshStatus();
         repaint();
     }
 
@@ -892,7 +898,7 @@ public final class NoiseExplorerGUI extends JPanel {
         String rawSeed = seedField.getText().trim();
         try {
             long nextSeed = Long.parseLong(rawSeed);
-            seedField.setForeground(PRIMARY_TEXT);
+            seedField.putClientProperty(FlatClientProperties.OUTLINE, null);
             if (nextSeed == seed) {
                 return;
             }
@@ -901,9 +907,8 @@ public final class NoiseExplorerGUI extends JPanel {
                 loadSelectedSource();
             }
         } catch (NumberFormatException error) {
-            seedField.setForeground(ERROR);
-            progressLabel.setForeground(ERROR);
-            progressLabel.setText("Seed must be a whole number");
+            seedField.putClientProperty(FlatClientProperties.OUTLINE, FlatClientProperties.OUTLINE_ERROR);
+            statusBar.showError("Seed must be a whole number");
         }
     }
 
@@ -966,7 +971,7 @@ public final class NoiseExplorerGUI extends JPanel {
         requestRender(sampleStep);
     }
 
-    // Smooth noise looks fine upscaled, but blocks and their textures only read correctly at full resolution.
+    // Blocks and their textures are slower to sample, so palettes get longer refinement passes than plain noise.
     private long refinedSampleBudget(NoiseRenderCoordinator.Result currentResult) {
         double targetMilliseconds = mode == ExplorerMode.PALETTES ? PALETTE_REFINEMENT_TARGET_MILLIS : REFINEMENT_TARGET_MILLIS;
         return timedSampleBudget(currentResult, targetMilliseconds);
@@ -988,10 +993,7 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private long maximumSampleBudget() {
-        if (mode == ExplorerMode.PALETTES) {
-            return Math.max(COARSE_SAMPLE_BUDGET, (long) getWidth() * renderHeight());
-        }
-        return MAX_REFINED_SAMPLE_BUDGET;
+        return Math.max(COARSE_SAMPLE_BUDGET, (long) getWidth() * renderHeight());
     }
 
     private NoiseRenderCoordinator.Request requestRender(int sampleStep) {
@@ -1042,13 +1044,13 @@ public final class NoiseExplorerGUI extends JPanel {
             @Override
             public void mouseMoved(MouseEvent event) {
                 pointer = event.getPoint();
-                repaint();
+                refreshPointerStatus();
             }
 
             @Override
             public void mouseExited(MouseEvent event) {
                 pointer = null;
-                repaint();
+                refreshPointerStatus();
             }
 
             @Override
@@ -1075,16 +1077,9 @@ public final class NoiseExplorerGUI extends JPanel {
                 resizeTimer.restart();
             }
         });
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke('R'), "reset-view");
-        getActionMap().put("reset-view", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                resetViewport();
-            }
-        });
     }
 
-    private void resetViewport() {
+    void resetViewport() {
         viewport = initialViewport;
         requestPreview();
     }
@@ -1137,7 +1132,6 @@ public final class NoiseExplorerGUI extends JPanel {
             }
             drawCrosshair(canvas, getWidth(), renderHeight);
             drawLegend(canvas, getWidth());
-            drawStatus(canvas, getWidth(), renderHeight);
         } finally {
             canvas.dispose();
         }
@@ -1176,7 +1170,7 @@ public final class NoiseExplorerGUI extends JPanel {
     }
 
     private static void drawEmptyState(Graphics2D canvas, int width, int height) {
-        canvas.setColor(BACKGROUND);
+        canvas.setColor(StudioTheme.EDITOR_BACKGROUND);
         canvas.fillRect(0, 0, width, height);
         canvas.setColor(GRID);
         for (int x = 0; x < width; x += 48) {
@@ -1198,101 +1192,110 @@ public final class NoiseExplorerGUI extends JPanel {
 
     private void drawLegend(Graphics2D canvas, int width) {
         NoiseColorScale colorScale = activeColorScale();
-        int legendWidth = 190;
-        int legendHeight = 40;
-        int legendX = Math.max(10, width - legendWidth - 12);
+        int legendX = Math.max(10, width - LEGEND_WIDTH - 12);
         int legendY = 12;
-        canvas.setColor(LEGEND_BACKGROUND);
-        canvas.fillRoundRect(legendX, legendY, legendWidth, legendHeight, 10, 10);
+        canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        StudioOverlay.drawCard(canvas, legendX, legendY, LEGEND_WIDTH, LEGEND_HEIGHT);
         int gradientX = legendX + 9;
         int gradientY = legendY + 8;
-        int gradientWidth = legendWidth - 18;
+        int gradientWidth = LEGEND_WIDTH - 18;
         for (int x = 0; x < gradientWidth; x++) {
             double normalized = x / (double) Math.max(1, gradientWidth - 1);
             canvas.setColor(colorScale.displayColorNormalized(normalized));
             canvas.drawLine(gradientX + x, gradientY, gradientX + x, gradientY + 8);
         }
-        canvas.setFont(LEGEND_FONT);
-        canvas.setColor(PRIMARY_TEXT);
+        canvas.setFont(StudioTheme.smallFont());
+        canvas.setColor(StudioTheme.TEXT);
         canvas.drawString(formatNumber(colorScale.minimum()), gradientX, legendY + 31);
         String maximum = formatNumber(colorScale.maximum());
         int maximumWidth = canvas.getFontMetrics().stringWidth(maximum);
         canvas.drawString(maximum, gradientX + gradientWidth - maximumWidth, legendY + 31);
         String label = colorScale.label();
         int labelWidth = canvas.getFontMetrics().stringWidth(label);
-        canvas.drawString(label, legendX + ((legendWidth - labelWidth) / 2), legendY + 31);
+        canvas.drawString(label, legendX + ((LEGEND_WIDTH - labelWidth) / 2), legendY + 31);
     }
 
-    private void drawStatus(Graphics2D canvas, int width, int renderHeight) {
-        canvas.setColor(PANEL_BACKGROUND);
-        canvas.fillRect(0, renderHeight, width, STATUS_HEIGHT);
-        canvas.setColor(BORDER);
-        canvas.drawLine(0, renderHeight, width, renderHeight);
-        canvas.setFont(MONOSPACED_FONT);
-        canvas.setColor(errorMessage == null ? PRIMARY_TEXT : ERROR);
-        canvas.drawString(primaryStatus(), 10, renderHeight + 19);
-        canvas.setColor(SECONDARY_TEXT);
-        canvas.drawString(secondaryStatus(width, renderHeight), 10, renderHeight + 38);
-    }
-
-    private String primaryStatus() {
+    private void refreshStatus() {
         if (errorMessage != null) {
-            return "Error: " + errorMessage;
+            statusBar.showError("Error: " + errorMessage);
+        } else {
+            statusBar.showSummary(primaryStatus());
         }
-        String sourceName = selectedSource == null ? "No source" : selectedSource.text();
-        if (sourceLoading) {
-            return sourceName + " · loading source";
-        }
-        if (rendering) {
-            return sourceName + " · rendering preview";
-        }
-        if (renderResult == null) {
-            return sourceName + " · waiting for preview";
+        refreshPointerStatus();
+    }
+
+    // Only the status bar changes when the pointer moves, so moving the mouse never redraws the map.
+    private void refreshPointerStatus() {
+        int renderHeight = renderHeight();
+        Point currentPointer = pointer;
+        double screenX = currentPointer == null ? getWidth() / 2D : currentPointer.getX();
+        double screenZ = currentPointer == null ? renderHeight / 2D : Math.min(currentPointer.getY(), renderHeight);
+        double worldX = viewport.worldX(screenX, getWidth());
+        double worldZ = viewport.worldZ(screenZ, renderHeight);
+        statusBar.showPosition(String.format(Locale.ROOT, "X %.1f  Z %.1f   %s blocks/px", worldX, worldZ,
+                formatScale(viewport.blocksPerPixel())));
+        statusBar.showActivity(pointerDetail(worldX, worldZ));
+    }
+
+    private String pointerDetail(double worldX, double worldZ) {
+        if (catalogLoading && renderResult == null) {
+            return "Loading catalog...";
         }
         NoiseRenderCoordinator.Result result = renderResult;
-        String quality = result.request().sampleStep() == 1
-                ? "full"
-                : "sample 1:" + result.request().sampleStep();
-        return sourceName + " · " + quality + " · " + formatNumber(result.centerValue())
-                + " center · " + String.format(Locale.ROOT, "%.1f ms", result.milliseconds());
-    }
-
-    private String secondaryStatus(int width, int renderHeight) {
-        Point currentPointer = pointer;
-        double screenX = currentPointer == null ? width / 2D : currentPointer.getX();
-        double screenZ = currentPointer == null ? renderHeight / 2D : Math.min(currentPointer.getY(), renderHeight);
-        double worldX = viewport.worldX(screenX, width);
-        double worldZ = viewport.worldZ(screenZ, renderHeight);
-        String coordinates = String.format(
-                Locale.ROOT,
-                "X %.2f  Z %.2f  ·  %.5f blocks/px",
-                worldX,
-                worldZ,
-                viewport.blocksPerPixel()
-        );
-        if (renderResult == null) {
-            return coordinates + (catalogLoading ? "  ·  loading catalog" : "");
+        if (result == null) {
+            return "";
         }
         PaletteLayerPreview preview = palettePreview;
         if (preview != null) {
-            return coordinates + "  ·  " + describePaletteAt(preview, worldX, worldZ);
+            return describePaletteAt(preview, worldX, worldZ);
+        }
+        long clipped = result.underflow() + result.overflow();
+        return "range " + formatNumber(result.minimum()) + " to " + formatNumber(result.maximum())
+                + "   clipped " + clipped + "   invalid " + result.invalid();
+    }
+
+    private String primaryStatus() {
+        String sourceName = selectedSource == null ? "No source" : sourceTitle(selectedSource);
+        if (sourceLoading) {
+            return sourceName + " · loading";
+        }
+        if (rendering && renderResult == null) {
+            return sourceName + " · rendering";
+        }
+        if (renderResult == null) {
+            return sourceName;
         }
         NoiseRenderCoordinator.Result result = renderResult;
-        long clipped = result.underflow() + result.overflow();
-        return coordinates + "  ·  range " + formatNumber(result.minimum()) + ".." + formatNumber(result.maximum())
-                + "  ·  clipped " + clipped + "  invalid " + result.invalid();
+        String quality = result.request().sampleStep() == 1
+                ? "full detail"
+                : "1 sample per " + result.request().sampleStep() + " px";
+        String seedText = selectedSource != null && selectedSource.usesSeed() ? " · seed " + seed : "";
+        return sourceName + seedText + " · " + quality + " · " + String.format(Locale.ROOT, "%.0f ms", result.milliseconds());
+    }
+
+    private static String sourceTitle(SourceItem source) {
+        return source.category() == NoiseCategory.PACK_PALETTES
+                ? source.rawName() + " · layer " + paletteLayerOf(source)
+                : source.text();
     }
 
     private static String describePaletteAt(PaletteLayerPreview preview, double worldX, double worldZ) {
         double noise = preview.sample(worldX, worldZ);
         if (Double.isNaN(noise)) {
-            return "layer doesn't reach this depth here";
+            return "The layer doesn't reach this depth here";
         }
-        return preview.entryForNoise(noise).block() + "  ·  noise " + formatNumber(noise);
+        return preview.entryForNoise(noise).block() + "   noise " + formatNumber(noise);
     }
 
     private int renderHeight() {
-        return Math.max(1, getHeight() - STATUS_HEIGHT);
+        return Math.max(1, getHeight());
+    }
+
+    private static String formatScale(double blocksPerPixel) {
+        if (blocksPerPixel >= 1D) {
+            return String.format(Locale.ROOT, "%.2f", blocksPerPixel);
+        }
+        return "1/" + String.format(Locale.ROOT, "%.0f", 1D / blocksPerPixel);
     }
 
     private static String formatNumber(double value) {
@@ -1445,7 +1448,7 @@ public final class NoiseExplorerGUI extends JPanel {
             EventQueue.invokeLater(() -> {
                 if (!disposed && request.revision() == viewRevision) {
                     rendering = true;
-                    repaint();
+                    refreshStatus();
                 }
             });
         }
@@ -1460,6 +1463,7 @@ public final class NoiseExplorerGUI extends JPanel {
                 errorMessage = null;
                 renderResult = result;
                 repaint();
+                refreshStatus();
                 if (finishInteractiveFrame(result.request())) {
                     return;
                 }
@@ -1493,6 +1497,7 @@ public final class NoiseExplorerGUI extends JPanel {
                 rendering = false;
                 errorMessage = readableError(error);
                 repaint();
+                refreshStatus();
             });
         }
     }
@@ -1503,18 +1508,15 @@ public final class NoiseExplorerGUI extends JPanel {
                                                        boolean selected, boolean focus) {
             ListItem item = (ListItem) value;
             boolean header = item.source() == null;
-            super.getListCellRendererComponent(list, item.text(), index, selected && !header, false);
-            setOpaque(true);
+            super.getListCellRendererComponent(list, header ? item.text().toUpperCase(Locale.ROOT) : item.text(), index,
+                    selected && !header, false);
             if (header) {
-                setFont(HEADER_FONT);
-                setForeground(ACCENT);
-                setBackground(SIDEBAR_BACKGROUND);
-                setBorder(BorderFactory.createEmptyBorder(11, 11, 4, 11));
+                setFont(StudioTheme.sectionFont());
+                setForeground(StudioTheme.MUTED_TEXT);
+                setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
             } else {
-                setFont(ITEM_FONT);
-                setForeground(selected ? Color.WHITE : SECONDARY_TEXT);
-                setBackground(selected ? SELECTED_BACKGROUND : SIDEBAR_BACKGROUND);
-                setBorder(BorderFactory.createEmptyBorder(4, 20, 4, 10));
+                setFont(StudioTheme.font());
+                setBorder(BorderFactory.createEmptyBorder(3, 20, 3, 12));
             }
             setHorizontalAlignment(SwingConstants.LEFT);
             return this;

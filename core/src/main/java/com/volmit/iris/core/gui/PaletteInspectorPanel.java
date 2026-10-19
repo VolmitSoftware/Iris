@@ -51,7 +51,7 @@ final class PaletteInspectorPanel extends JPanel {
     private final JLabel depthLabel = new JLabel("", SwingConstants.CENTER);
     private final JButton shallowerButton = new JButton("‹");
     private final JButton deeperButton = new JButton("›");
-    private final JPanel depthRow = new JPanel(new BorderLayout(6, 0));
+    private final JPanel depthRow = new JPanel(new BorderLayout(StudioTheme.scale(6), 0));
     private final StatisticsView statisticsView = new StatisticsView();
     private PaletteLayerScale.View selectedView = PaletteLayerScale.View.BLOCKS;
     private int depth;
@@ -60,7 +60,7 @@ final class PaletteInspectorPanel extends JPanel {
     PaletteInspectorPanel(Listener listener) {
         super(new BorderLayout());
         this.listener = listener;
-        setPreferredSize(new Dimension(PANEL_WIDTH, 0));
+        setPreferredSize(StudioTheme.scaledSize(PANEL_WIDTH, 0));
         setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
         add(buildControls(), BorderLayout.NORTH);
         add(StudioToolbar.scroll(statisticsView), BorderLayout.CENTER);
@@ -91,10 +91,10 @@ final class PaletteInspectorPanel extends JPanel {
     }
 
     private JPanel buildControls() {
-        JPanel controls = new JPanel(new GridLayout(0, 1, 0, 6));
+        JPanel controls = new JPanel(new GridLayout(0, 1, 0, StudioTheme.scale(6)));
         controls.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, StudioTheme.SEPARATOR),
-                BorderFactory.createEmptyBorder(12, 14, 12, 14)
+                StudioTheme.emptyBorder(12, 14, 12, 14)
         ));
         titleLabel.setFont(StudioTheme.titleFont());
         detailLabel.setForeground(StudioTheme.SECONDARY_TEXT);
@@ -110,7 +110,7 @@ final class PaletteInspectorPanel extends JPanel {
     }
 
     private JPanel buildViewButtons() {
-        JPanel row = new JPanel(new GridLayout(1, 0, 4, 0));
+        JPanel row = new JPanel(new GridLayout(1, 0, StudioTheme.scale(4), 0));
         row.setOpaque(false);
         ButtonGroup group = new ButtonGroup();
         for (PaletteLayerScale.View view : PaletteLayerScale.View.values()) {
@@ -198,11 +198,11 @@ final class PaletteInspectorPanel extends JPanel {
         private static final int MARGIN = 14;
         private static final int HISTOGRAM_HEIGHT = 84;
         private static final int BAND_HEIGHT = 12;
-        private static final int ROW_HEIGHT = 20;
-        private static final int SWATCH_SIZE = 14;
-        private static final int WEIGHT_COLUMN_WIDTH = 48;
-        private static final int ACTUAL_COLUMN_WIDTH = 70;
-        private static final int NOTE_LINE_HEIGHT = 15;
+        private static final int SECTION_GAP = 18;
+        private static final int TITLE_GAP = 6;
+        private static final int NOTE_GAP = 4;
+        private static final String WIDEST_WEIGHT = "100.0%";
+        private static final String WIDEST_ACTUAL = "▲ 100.0%";
 
         private PaletteLayerPreview preview;
         private String textureStatus;
@@ -226,19 +226,15 @@ final class PaletteInspectorPanel extends JPanel {
 
         @Override
         public Dimension getPreferredSize() {
+            int preferredWidth = StudioTheme.scale(PANEL_WIDTH - 20);
             if (preview == null) {
-                return new Dimension(PANEL_WIDTH - 20, 0);
+                return new Dimension(preferredWidth, 0);
             }
-            int width = Math.max(getWidth(), PANEL_WIDTH - 20) - MARGIN * 2;
-            FontMetrics noteMetrics = getFontMetrics(StudioTheme.smallFont());
-            int noteLines = 0;
-            for (String note : notes()) {
-                noteLines += wrap(note, noteMetrics, width).size() + 1;
-            }
-            int height = MARGIN + 18 + HISTOGRAM_HEIGHT + BAND_HEIGHT + 30
-                    + 22 + ROW_HEIGHT * (preview.entries().size() + 1)
-                    + 16 + noteLines * NOTE_LINE_HEIGHT + MARGIN;
-            return new Dimension(PANEL_WIDTH - 20, height);
+            int margin = StudioTheme.scale(MARGIN);
+            int width = Math.max(getWidth(), preferredWidth) - margin * 2;
+            int height = margin + valueSpreadHeight() + StudioTheme.scale(SECTION_GAP) + blockTableHeight()
+                    + StudioTheme.scale(SECTION_GAP) + notesHeight(width) + margin;
+            return new Dimension(preferredWidth, height);
         }
 
         @Override
@@ -252,18 +248,58 @@ final class PaletteInspectorPanel extends JPanel {
                 if (preview == null) {
                     return;
                 }
-                int width = getWidth() - MARGIN * 2;
-                int y = drawValueSpread(canvas, MARGIN, MARGIN, width);
-                y = drawBlockTable(canvas, MARGIN, y + 22, width);
-                drawNotes(canvas, MARGIN, y + 16, width);
+                int margin = StudioTheme.scale(MARGIN);
+                int width = getWidth() - margin * 2;
+                int top = margin;
+                drawValueSpread(canvas, margin, top, width);
+                top += valueSpreadHeight() + StudioTheme.scale(SECTION_GAP);
+                drawBlockTable(canvas, margin, top, width);
+                top += blockTableHeight() + StudioTheme.scale(SECTION_GAP);
+                drawNotes(canvas, margin, top, width);
             } finally {
                 canvas.dispose();
             }
         }
 
-        private int drawValueSpread(Graphics2D canvas, int x, int y, int width) {
-            drawSectionTitle(canvas, "Noise values this layer produces", x, y + 10);
-            int histogramTop = y + 18;
+        private int valueSpreadHeight() {
+            return sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP) + StudioTheme.scale(HISTOGRAM_HEIGHT)
+                    + StudioTheme.scale(2) + StudioTheme.scale(BAND_HEIGHT) + StudioTheme.scale(3) + smallMetrics().getHeight();
+        }
+
+        private int blockTableHeight() {
+            return sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP) + rowHeight() * preview.entries().size();
+        }
+
+        private int notesHeight(int width) {
+            FontMetrics metrics = smallMetrics();
+            int height = 0;
+            for (String note : notes()) {
+                height += wrap(note, metrics, width).size() * metrics.getHeight() + StudioTheme.scale(NOTE_GAP);
+            }
+            return height;
+        }
+
+        private int rowHeight() {
+            return textMetrics().getHeight() + StudioTheme.scale(4);
+        }
+
+        private FontMetrics textMetrics() {
+            return getFontMetrics(StudioTheme.font());
+        }
+
+        private FontMetrics smallMetrics() {
+            return getFontMetrics(StudioTheme.smallFont());
+        }
+
+        private FontMetrics sectionMetrics() {
+            return getFontMetrics(StudioTheme.sectionFont());
+        }
+
+        private void drawValueSpread(Graphics2D canvas, int x, int top, int width) {
+            drawSectionTitle(canvas, "Noise values this layer produces", x, top + sectionMetrics().getAscent());
+            int histogramTop = top + sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP);
+            int histogramHeight = StudioTheme.scale(HISTOGRAM_HEIGHT);
+            int bandHeight = StudioTheme.scale(BAND_HEIGHT);
             long[] histogram = preview.histogram();
             long peak = 1L;
             for (long count : histogram) {
@@ -273,11 +309,11 @@ final class PaletteInspectorPanel extends JPanel {
             for (int bin = 0; bin < histogram.length; bin++) {
                 int barLeft = x + (bin * width) / histogram.length;
                 int barRight = x + ((bin + 1) * width) / histogram.length;
-                int barHeight = (int) Math.round(HISTOGRAM_HEIGHT * (histogram[bin] / (double) peak));
-                canvas.fillRect(barLeft, histogramTop + HISTOGRAM_HEIGHT - barHeight, Math.max(1, barRight - barLeft - 1), barHeight);
+                int barHeight = (int) Math.round(histogramHeight * (histogram[bin] / (double) peak));
+                canvas.fillRect(barLeft, histogramTop + histogramHeight - barHeight, Math.max(1, barRight - barLeft - 1), barHeight);
             }
 
-            int bandTop = histogramTop + HISTOGRAM_HEIGHT + 2;
+            int bandTop = histogramTop + histogramHeight + StudioTheme.scale(2);
             for (PaletteLayerPreview.Entry entry : preview.entries()) {
                 if (Double.isNaN(entry.lowestNoise())) {
                     continue;
@@ -285,67 +321,73 @@ final class PaletteInspectorPanel extends JPanel {
                 int bandLeft = x + (int) Math.round(entry.lowestNoise() * width);
                 int bandRight = x + (int) Math.round(entry.highestNoise() * width);
                 canvas.setColor(new Color(entry.color()));
-                canvas.fillRect(bandLeft, bandTop, Math.max(1, bandRight - bandLeft), BAND_HEIGHT);
+                canvas.fillRect(bandLeft, bandTop, Math.max(1, bandRight - bandLeft), bandHeight);
                 if (entry.highestNoise() < 1D) {
                     canvas.setColor(BAND_DIVIDER);
-                    canvas.drawLine(bandRight, histogramTop, bandRight, bandTop + BAND_HEIGHT - 1);
+                    canvas.drawLine(bandRight, histogramTop, bandRight, bandTop + bandHeight - 1);
                 }
             }
 
             canvas.setFont(StudioTheme.smallFont());
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
             FontMetrics metrics = canvas.getFontMetrics();
-            int labelY = bandTop + BAND_HEIGHT + 13;
+            int labelY = bandTop + bandHeight + StudioTheme.scale(3) + metrics.getAscent();
             canvas.drawString("0", x, labelY);
             canvas.drawString("0.5", x + (width - metrics.stringWidth("0.5")) / 2, labelY);
             canvas.drawString("1", x + width - metrics.stringWidth("1"), labelY);
-            return labelY;
         }
 
-        private int drawBlockTable(Graphics2D canvas, int x, int y, int width) {
+        private void drawBlockTable(Graphics2D canvas, int x, int top, int width) {
+            int columnGap = StudioTheme.scale(10);
             int actualRight = x + width;
-            int weightRight = actualRight - ACTUAL_COLUMN_WIDTH;
-            drawSectionTitle(canvas, "Blocks", x, y);
-            drawRightAligned(canvas, "weight", weightRight, y);
-            drawRightAligned(canvas, "actual", actualRight, y);
+            int weightRight = actualRight - textMetrics().stringWidth(WIDEST_ACTUAL) - columnGap;
+            int nameRight = weightRight - textMetrics().stringWidth(WIDEST_WEIGHT) - columnGap;
+            int titleBaseline = top + sectionMetrics().getAscent();
+            drawSectionTitle(canvas, "Blocks", x, titleBaseline);
+            drawRightAligned(canvas, "weight", weightRight, titleBaseline);
+            drawRightAligned(canvas, "actual", actualRight, titleBaseline);
 
-            int rowY = y + ROW_HEIGHT;
+            int rowHeight = rowHeight();
+            FontMetrics text = textMetrics();
+            int swatchSize = text.getAscent() - text.getDescent();
+            int rowTop = top + sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP);
             for (PaletteLayerPreview.Entry entry : preview.entries()) {
-                drawSwatch(canvas, entry, x, rowY - SWATCH_SIZE + 2);
+                int baseline = rowTop + (rowHeight + text.getAscent() - text.getDescent()) / 2;
+                drawSwatch(canvas, entry, x, rowTop + (rowHeight - swatchSize) / 2, swatchSize);
                 canvas.setFont(StudioTheme.font());
                 canvas.setColor(entry.found() ? StudioTheme.TEXT : StudioTheme.ERROR);
                 String name = entry.found() ? shortBlockName(entry.block()) : shortBlockName(entry.block()) + " (not found)";
-                int nameLeft = x + SWATCH_SIZE + 7;
-                canvas.drawString(fit(canvas, name, weightRight - WEIGHT_COLUMN_WIDTH - nameLeft), nameLeft, rowY);
+                int nameLeft = x + swatchSize + StudioTheme.scale(7);
+                canvas.drawString(fit(canvas, name, nameRight - nameLeft), nameLeft, baseline);
                 canvas.setColor(StudioTheme.SECONDARY_TEXT);
-                drawRightAligned(canvas, percent(entry.weightShare()), weightRight, rowY);
+                drawRightAligned(canvas, percent(entry.weightShare()), weightRight, baseline);
                 canvas.setColor(actualColor(entry));
-                drawRightAligned(canvas, actualText(entry), actualRight, rowY);
-                rowY += ROW_HEIGHT;
+                drawRightAligned(canvas, actualText(entry), actualRight, baseline);
+                rowTop += rowHeight;
             }
-            return rowY - ROW_HEIGHT;
         }
 
-        private static void drawSwatch(Graphics2D canvas, PaletteLayerPreview.Entry entry, int x, int y) {
+        private static void drawSwatch(Graphics2D canvas, PaletteLayerPreview.Entry entry, int x, int y, int size) {
             if (entry.texture() != null) {
-                canvas.drawImage(entry.texture().toImage(), x, y, SWATCH_SIZE, SWATCH_SIZE, null);
+                canvas.drawImage(entry.texture().toImage(), x, y, size, size, null);
                 return;
             }
             canvas.setColor(new Color(entry.color()));
-            canvas.fillRoundRect(x, y, SWATCH_SIZE, SWATCH_SIZE, 3, 3);
+            int arc = StudioTheme.scale(3);
+            canvas.fillRoundRect(x, y, size, size, arc, arc);
         }
 
-        private void drawNotes(Graphics2D canvas, int x, int y, int width) {
+        private void drawNotes(Graphics2D canvas, int x, int top, int width) {
             canvas.setFont(StudioTheme.smallFont());
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
             FontMetrics metrics = canvas.getFontMetrics();
-            int lineY = y;
+            int lineY = top + metrics.getAscent();
             for (String note : notes()) {
                 for (String line : wrap(note, metrics, width)) {
                     canvas.drawString(line, x, lineY);
-                    lineY += NOTE_LINE_HEIGHT;
+                    lineY += metrics.getHeight();
                 }
-                lineY += 4;
+                lineY += StudioTheme.scale(NOTE_GAP);
             }
         }
 

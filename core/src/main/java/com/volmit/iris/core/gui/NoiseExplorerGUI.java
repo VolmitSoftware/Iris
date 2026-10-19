@@ -88,7 +88,6 @@ public final class NoiseExplorerGUI extends JPanel {
     private static final Color CROSSHAIR = new Color(255, 255, 255, 125);
     private static final int SIDEBAR_WIDTH = 270;
     private static final int LEGEND_WIDTH = 190;
-    private static final int LEGEND_HEIGHT = 40;
     private static final int REFINEMENT_DELAY_MILLIS = 180;
     private static final long DEFAULT_SEED = 12345L;
     private static final double TEXTURE_PIXELS_MAX_BLOCKS_PER_PIXEL = 0.25D;
@@ -212,6 +211,7 @@ public final class NoiseExplorerGUI extends JPanel {
     public static void launch() {
         Engine engine = GuiHost.findActiveEngine();
         EventQueue.invokeLater(() -> {
+            StudioTheme.install();
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(ExplorerMode.NOISE, engine, null, null, null, DEFAULT_SEED, null);
             buildNoiseFrame("Noise Explorer", explorer);
         });
@@ -221,6 +221,7 @@ public final class NoiseExplorerGUI extends JPanel {
         Engine engine = GuiHost.findActiveEngine();
         String displayName = generatorKey == null || generatorKey.isBlank() ? "Custom Generator" : generatorKey;
         EventQueue.invokeLater(() -> {
+            StudioTheme.install();
             NoiseExplorerGUI explorer = new NoiseExplorerGUI(
                     ExplorerMode.NOISE,
                     engine,
@@ -253,8 +254,8 @@ public final class NoiseExplorerGUI extends JPanel {
                 explorer.resetViewport();
             }
         });
-        frame.setSize(1440, 860);
-        frame.setMinimumSize(new Dimension(760, 500));
+        frame.setSize(GuiHost.fitToScreen(StudioTheme.scaledSize(1440, 860)));
+        frame.setMinimumSize(StudioTheme.scaledSize(760, 500));
         frame.setLocationRelativeTo(null);
         frame.addWindowListener(new WindowAdapter() {
             @Override
@@ -295,7 +296,7 @@ public final class NoiseExplorerGUI extends JPanel {
     private JToolBar buildNoiseToolbar() {
         JToolBar toolbar = StudioToolbar.create();
         selectedLabel.setFont(StudioTheme.boldFont());
-        selectedLabel.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 10));
+        selectedLabel.setBorder(StudioTheme.emptyBorder(0, 4, 0, 10));
         toolbar.add(selectedLabel);
         toolbar.addSeparator();
         toolbar.add(StudioToolbar.label("Seed"));
@@ -322,7 +323,7 @@ public final class NoiseExplorerGUI extends JPanel {
 
     private JPanel buildNoiseSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 0));
+        sidebar.setPreferredSize(StudioTheme.scaledSize(SIDEBAR_WIDTH, 0));
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, StudioTheme.SEPARATOR));
         StudioToolbar.makeSearchField(searchField, "Search noise...");
         searchField.getDocument().addDocumentListener(new DocumentListener() {
@@ -1186,33 +1187,42 @@ public final class NoiseExplorerGUI extends JPanel {
         int centerZ = height / 2;
         canvas.setColor(CROSSHAIR);
         canvas.setStroke(new BasicStroke(1F));
-        canvas.drawLine(centerX - 8, centerZ, centerX + 8, centerZ);
-        canvas.drawLine(centerX, centerZ - 8, centerX, centerZ + 8);
+        int armLength = StudioTheme.scale(8);
+        canvas.drawLine(centerX - armLength, centerZ, centerX + armLength, centerZ);
+        canvas.drawLine(centerX, centerZ - armLength, centerX, centerZ + armLength);
     }
 
     private void drawLegend(Graphics2D canvas, int width) {
         NoiseColorScale colorScale = activeColorScale();
-        int legendX = Math.max(10, width - LEGEND_WIDTH - 12);
-        int legendY = 12;
+        canvas.setFont(StudioTheme.smallFont());
+        String minimum = formatNumber(colorScale.minimum());
+        String maximum = formatNumber(colorScale.maximum());
+        String label = colorScale.label();
+        int padding = StudioTheme.scale(9);
+        int labelGap = StudioTheme.scale(12);
+        int gradientHeight = StudioTheme.scale(8);
+        int textWidth = canvas.getFontMetrics().stringWidth(minimum) + canvas.getFontMetrics().stringWidth(label)
+                + canvas.getFontMetrics().stringWidth(maximum) + labelGap * 2;
+        int legendWidth = Math.max(StudioTheme.scale(LEGEND_WIDTH), textWidth + padding * 2);
+        int legendHeight = padding * 2 + gradientHeight + StudioTheme.scale(4) + canvas.getFontMetrics().getHeight();
+        int legendX = Math.max(StudioTheme.scale(10), width - legendWidth - StudioTheme.scale(12));
+        int legendY = StudioTheme.scale(12);
         canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        StudioOverlay.drawCard(canvas, legendX, legendY, LEGEND_WIDTH, LEGEND_HEIGHT);
-        int gradientX = legendX + 9;
-        int gradientY = legendY + 8;
-        int gradientWidth = LEGEND_WIDTH - 18;
+        StudioOverlay.drawCard(canvas, legendX, legendY, legendWidth, legendHeight);
+        int gradientX = legendX + padding;
+        int gradientY = legendY + padding;
+        int gradientWidth = legendWidth - padding * 2;
         for (int x = 0; x < gradientWidth; x++) {
             double normalized = x / (double) Math.max(1, gradientWidth - 1);
             canvas.setColor(colorScale.displayColorNormalized(normalized));
-            canvas.drawLine(gradientX + x, gradientY, gradientX + x, gradientY + 8);
+            canvas.drawLine(gradientX + x, gradientY, gradientX + x, gradientY + gradientHeight);
         }
-        canvas.setFont(StudioTheme.smallFont());
+        int baseline = gradientY + gradientHeight + StudioTheme.scale(4) + canvas.getFontMetrics().getAscent();
         canvas.setColor(StudioTheme.TEXT);
-        canvas.drawString(formatNumber(colorScale.minimum()), gradientX, legendY + 31);
-        String maximum = formatNumber(colorScale.maximum());
-        int maximumWidth = canvas.getFontMetrics().stringWidth(maximum);
-        canvas.drawString(maximum, gradientX + gradientWidth - maximumWidth, legendY + 31);
-        String label = colorScale.label();
+        canvas.drawString(minimum, gradientX, baseline);
+        canvas.drawString(maximum, gradientX + gradientWidth - canvas.getFontMetrics().stringWidth(maximum), baseline);
         int labelWidth = canvas.getFontMetrics().stringWidth(label);
-        canvas.drawString(label, legendX + ((LEGEND_WIDTH - labelWidth) / 2), legendY + 31);
+        canvas.drawString(label, legendX + (legendWidth - labelWidth) / 2, baseline);
     }
 
     private void refreshStatus() {
@@ -1513,10 +1523,10 @@ public final class NoiseExplorerGUI extends JPanel {
             if (header) {
                 setFont(StudioTheme.sectionFont());
                 setForeground(StudioTheme.MUTED_TEXT);
-                setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
+                setBorder(StudioTheme.emptyBorder(12, 12, 4, 12));
             } else {
                 setFont(StudioTheme.font());
-                setBorder(BorderFactory.createEmptyBorder(3, 20, 3, 12));
+                setBorder(StudioTheme.emptyBorder(3, 20, 3, 12));
             }
             setHorizontalAlignment(SwingConstants.LEFT);
             return this;

@@ -31,8 +31,10 @@ import org.bukkit.event.Listener;
 
 import javax.swing.JFrame;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
 import java.awt.desktop.QuitResponse;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -71,6 +73,12 @@ public final class GuiHost {
         });
         installMacQuitGuard();
         return frame;
+    }
+
+    // A scaled-up default size can be bigger than a small or low resolution screen.
+    static Dimension fitToScreen(Dimension preferred) {
+        Rectangle usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        return new Dimension(Math.min(preferred.width, usable.width), Math.min(preferred.height, usable.height));
     }
 
     public static Engine findActiveEngine() {

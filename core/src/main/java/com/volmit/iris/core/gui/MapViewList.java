@@ -44,9 +44,9 @@ final class MapViewList extends JList<MapViewList.Row> {
         fillRows();
         setModel(rows);
         setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        setFixedCellHeight(ROW_HEIGHT);
+        setFixedCellHeight(StudioTheme.scale(ROW_HEIGHT));
         setCellRenderer(new RowRenderer());
-        setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+        setBorder(StudioTheme.emptyBorder(4, 6, 4, 6));
         addListSelectionListener(event -> {
             if (event.getValueIsAdjusting() || skipHeaderRow()) {
                 return;
@@ -133,13 +133,13 @@ final class MapViewList extends JList<MapViewList.Row> {
                 setText(row.group().label().toUpperCase(Locale.ROOT));
                 setFont(StudioTheme.sectionFont());
                 setForeground(StudioTheme.MUTED_TEXT);
-                setBorder(BorderFactory.createEmptyBorder(index == 0 ? 0 : 6, 6, 0, 6));
+                setBorder(StudioTheme.emptyBorder(index == 0 ? 0 : 6, 6, 0, 6));
                 setToolTipText(null);
                 shortcut = null;
                 return this;
             }
             setFont(StudioTheme.font());
-            setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+            setBorder(StudioTheme.emptyBorder(0, 10, 0, 10));
             setToolTipText(row.view().description());
             shortcut = row.view().shortcutText();
             return this;

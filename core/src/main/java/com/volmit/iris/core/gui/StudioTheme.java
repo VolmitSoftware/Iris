@@ -20,10 +20,14 @@ package com.volmit.iris.core.gui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.util.UIScale;
 import com.volmit.iris.Iris;
 
+import javax.swing.BorderFactory;
 import javax.swing.UIManager;
+import javax.swing.border.Border;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,6 +57,7 @@ final class StudioTheme {
     static final int OVERLAY_ARC = 10;
 
     private static final AtomicBoolean INSTALLED = new AtomicBoolean();
+    private static volatile float pixelScale = 1F;
     private static final Map<String, String> INTELLIJ_NEW_UI_DEFAULTS = Map.ofEntries(
             Map.entry("@background", "#2B2D30"),
             Map.entry("@foreground", "#DFE1E5"),
@@ -100,10 +105,30 @@ final class StudioTheme {
         try {
             FlatLaf.setGlobalExtraDefaults(INTELLIJ_NEW_UI_DEFAULTS);
             FlatDarkLaf.setup();
+            pixelScale = UIScale.getUserScaleFactor();
         } catch (Throwable error) {
             Iris.reportError(error);
             Iris.warn("Could not apply the Iris studio theme, the studio windows will use Java's default look.");
         }
+    }
+
+    /**
+     * FlatLaf grows fonts and its own controls to the screen's DPI; every size the studio sets itself has to grow with them.
+     */
+    static int scale(int pixels) {
+        return Math.round(pixels * pixelScale);
+    }
+
+    static double scale(double pixels) {
+        return pixels * pixelScale;
+    }
+
+    static Dimension scaledSize(int width, int height) {
+        return new Dimension(scale(width), scale(height));
+    }
+
+    static Border emptyBorder(int top, int left, int bottom, int right) {
+        return BorderFactory.createEmptyBorder(scale(top), scale(left), scale(bottom), scale(right));
     }
 
     static Font font() {

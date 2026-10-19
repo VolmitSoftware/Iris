@@ -33,7 +33,7 @@ final class StudioOverlay {
         Object antialiasing = canvas.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
         canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         RoundRectangle2D card = new RoundRectangle2D.Double(x + 0.5D, y + 0.5D, width - 1D, height - 1D,
-                StudioTheme.OVERLAY_ARC, StudioTheme.OVERLAY_ARC);
+                StudioTheme.scale(StudioTheme.OVERLAY_ARC), StudioTheme.scale(StudioTheme.OVERLAY_ARC));
         canvas.setColor(StudioTheme.OVERLAY_BACKGROUND);
         canvas.fill(card);
         canvas.setColor(StudioTheme.OVERLAY_BORDER);

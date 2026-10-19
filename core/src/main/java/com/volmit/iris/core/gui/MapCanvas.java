@@ -529,7 +529,7 @@ final class MapCanvas extends JPanel {
             for (GuiMarker marker : entities) {
                 int screenX = (int) Math.round(worldToScreenX(marker.worldX()));
                 int screenY = (int) Math.round(worldToScreenZ(marker.worldZ()));
-                canvas.fillOval(screenX - 3, screenY - 3, 6, 6);
+                fillDot(canvas, screenX, screenY, 3);
             }
         }
 
@@ -538,16 +538,21 @@ final class MapCanvas extends JPanel {
             int screenX = (int) Math.round(worldToScreenX(marker.worldX()));
             int screenY = (int) Math.round(worldToScreenZ(marker.worldZ()));
             canvas.setColor(PLAYER_HALO);
-            canvas.fillOval(screenX - 12, screenY - 12, 24, 24);
+            fillDot(canvas, screenX, screenY, 12);
             canvas.setColor(PLAYER_COLOR);
-            canvas.fillOval(screenX - 5, screenY - 5, 10, 10);
+            fillDot(canvas, screenX, screenY, 5);
             canvas.setColor(StudioTheme.TEXT);
             int labelWidth = canvas.getFontMetrics().stringWidth(marker.label());
-            canvas.drawString(marker.label(), screenX - labelWidth / 2, screenY - 15);
+            canvas.drawString(marker.label(), screenX - labelWidth / 2, screenY - StudioTheme.scale(15));
         }
         if (entitiesVisible && detailedHover) {
             renderNearestEntity(canvas);
         }
+    }
+
+    private static void fillDot(Graphics2D canvas, int centerX, int centerY, int logicalRadius) {
+        int radius = StudioTheme.scale(logicalRadius);
+        canvas.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
     }
 
     private void renderNearestEntity(Graphics2D canvas) {
@@ -577,34 +582,45 @@ final class MapCanvas extends JPanel {
         if (nearest.maxHealth() > 0D) {
             lines.add("Health " + Form.f(nearest.health(), 1) + " / " + Form.f(nearest.maxHealth(), 1));
         }
-        drawCard(canvas, getWidth() - CARD_PADDING, CARD_PADDING, 1D, 0D, lines);
+        int padding = StudioTheme.scale(CARD_PADDING);
+        drawCard(canvas, getWidth() - padding, padding, 1D, 0D, lines);
     }
 
     private void renderLegend(Graphics2D canvas) {
         if (currentType != RenderType.HEIGHT) {
             return;
         }
-        int width = 244;
-        int height = 54;
-        int x = getWidth() - width - CARD_PADDING;
-        int y = getHeight() - height - CARD_PADDING;
+        canvas.setFont(StudioTheme.smallFont());
+        int padding = StudioTheme.scale(CARD_PADDING);
+        int gradientHeight = StudioTheme.scale(14);
+        int labelGap = StudioTheme.scale(4);
+        int width = StudioTheme.scale(244);
+        int height = padding * 2 + gradientHeight + labelGap + canvas.getFontMetrics().getHeight();
+        int x = getWidth() - width - padding;
+        int y = getHeight() - height - padding;
         StudioOverlay.drawCard(canvas, x, y, width, height);
-        int gradientX = x + CARD_PADDING;
-        int gradientY = y + CARD_PADDING;
-        int gradientWidth = width - CARD_PADDING * 2;
+        int gradientX = x + padding;
+        int gradientY = y + padding;
+        int gradientWidth = width - padding * 2;
         for (int pixel = 0; pixel < gradientWidth; pixel++) {
             double sampleHeight = heightMaximum * pixel / Math.max(1D, gradientWidth - 1D);
             canvas.setColor(new Color(IrisRenderer.heightColor(sampleHeight, heightMaximum, fluidHeight)));
-            canvas.drawLine(gradientX + pixel, gradientY, gradientX + pixel, gradientY + 14);
+            canvas.drawLine(gradientX + pixel, gradientY, gradientX + pixel, gradientY + gradientHeight);
         }
-        canvas.setFont(StudioTheme.smallFont());
         canvas.setColor(StudioTheme.SECONDARY_TEXT);
-        canvas.drawString("0", gradientX, gradientY + 32);
+        int labelBaseline = gradientY + gradientHeight + labelGap + canvas.getFontMetrics().getAscent();
+        String minimum = "0";
         String fluid = Integer.toString((int) Math.round(fluidHeight));
-        int fluidX = gradientX + (int) Math.round(gradientWidth * fluidHeight / Math.max(1D, heightMaximum));
-        canvas.drawString(fluid, Math.max(gradientX, fluidX - canvas.getFontMetrics().stringWidth(fluid) / 2), gradientY + 32);
         String maximum = Integer.toString((int) Math.round(heightMaximum));
-        canvas.drawString(maximum, gradientX + gradientWidth - canvas.getFontMetrics().stringWidth(maximum), gradientY + 32);
+        int minimumRight = gradientX + canvas.getFontMetrics().stringWidth(minimum);
+        int maximumX = gradientX + gradientWidth - canvas.getFontMetrics().stringWidth(maximum);
+        int fluidWidth = canvas.getFontMetrics().stringWidth(fluid);
+        int fluidX = gradientX + (int) Math.round(gradientWidth * fluidHeight / Math.max(1D, heightMaximum)) - fluidWidth / 2;
+        canvas.drawString(minimum, gradientX, labelBaseline);
+        if (fluidX > minimumRight + labelGap && fluidX + fluidWidth < maximumX - labelGap) {
+            canvas.drawString(fluid, fluidX, labelBaseline);
+        }
+        canvas.drawString(maximum, maximumX, labelBaseline);
     }
 
     private void renderHover(Graphics2D canvas) {
@@ -624,7 +640,7 @@ final class MapCanvas extends JPanel {
         } else {
             lines.add("Hold Shift for more, double-click for palettes");
         }
-        int screenX = (int) Math.round(worldToScreenX(info.worldX())) + 16;
+        int screenX = (int) Math.round(worldToScreenX(info.worldX())) + StudioTheme.scale(16);
         int screenY = (int) Math.round(worldToScreenZ(info.worldZ()));
         drawCard(canvas, screenX, screenY, 0D, 0D, lines);
     }
@@ -659,18 +675,20 @@ final class MapCanvas extends JPanel {
         for (String description : descriptions) {
             descriptionWidth = Math.max(descriptionWidth, canvas.getFontMetrics().stringWidth(description));
         }
-        int lineHeight = 22;
-        int width = keyWidth + descriptionWidth + CARD_PADDING * 3 + 8;
-        int height = keys.size() * lineHeight + CARD_PADDING * 2;
-        StudioOverlay.drawCard(canvas, CARD_PADDING, CARD_PADDING, width, height);
+        int padding = StudioTheme.scale(CARD_PADDING);
+        int columnGap = StudioTheme.scale(18);
+        int lineHeight = canvas.getFontMetrics().getHeight() + StudioTheme.scale(4);
+        int width = keyWidth + columnGap + descriptionWidth + padding * 2;
+        int height = keys.size() * lineHeight + padding * 2;
+        StudioOverlay.drawCard(canvas, padding, padding, width, height);
         for (int index = 0; index < keys.size(); index++) {
-            int y = CARD_PADDING * 2 + 10 + index * lineHeight;
+            int y = padding * 2 + canvas.getFontMetrics().getAscent() + index * lineHeight;
             canvas.setFont(StudioTheme.boldFont());
             canvas.setColor(StudioTheme.LINK);
-            canvas.drawString(keys.get(index), CARD_PADDING * 2, y);
+            canvas.drawString(keys.get(index), padding * 2, y);
             canvas.setFont(StudioTheme.font());
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
-            canvas.drawString(descriptions.get(index), CARD_PADDING * 2 + keyWidth + 18, y);
+            canvas.drawString(descriptions.get(index), padding * 2 + keyWidth + columnGap, y);
         }
     }
 
@@ -682,7 +700,8 @@ final class MapCanvas extends JPanel {
         lines.add("Render threads busy " + progress.activeWorkers());
         lines.add("Tile scale " + (frame == null ? "-" : Form.f(frame.renderBlocksPerPixel(), 0)) + " blocks/px");
         lines.add(paintCadenceFps + " paints per second");
-        drawCard(canvas, CARD_PADDING, getHeight() - CARD_PADDING, 0D, 1D, lines);
+        int padding = StudioTheme.scale(CARD_PADDING);
+        drawCard(canvas, padding, getHeight() - padding, 0D, 1D, lines);
     }
 
     private void renderNotifications(Graphics2D canvas) {
@@ -692,13 +711,14 @@ final class MapCanvas extends JPanel {
         String text = String.join("  ·  ", notifications.keySet());
         canvas.setFont(StudioTheme.font());
         int textWidth = canvas.getFontMetrics().stringWidth(text);
-        int width = textWidth + CARD_PADDING * 2;
-        int height = 34;
+        int padding = StudioTheme.scale(CARD_PADDING);
+        int width = textWidth + padding * 2;
+        int height = canvas.getFontMetrics().getHeight() + padding;
         int x = (getWidth() - width) / 2;
-        int y = getHeight() - height - 16;
+        int y = getHeight() - height - StudioTheme.scale(16);
         StudioOverlay.drawCard(canvas, x, y, width, height);
         canvas.setColor(StudioTheme.TEXT);
-        canvas.drawString(text, x + CARD_PADDING, y + 22);
+        canvas.drawString(text, x + padding, y + padding / 2 + canvas.getFontMetrics().getAscent());
     }
 
     private void drawCard(Graphics2D canvas, int anchorX, int anchorY, double pushX, double pushY, List<String> lines) {
@@ -709,18 +729,19 @@ final class MapCanvas extends JPanel {
             canvas.setFont(index == 0 ? StudioTheme.boldFont() : StudioTheme.font());
             width = Math.max(width, canvas.getFontMetrics().stringWidth(lines.get(index)));
         }
-        width += CARD_PADDING * 2;
-        int height = lines.size() * lineHeight + CARD_PADDING * 2 - 2;
+        int padding = StudioTheme.scale(CARD_PADDING);
+        width += padding * 2;
+        int height = lines.size() * lineHeight + padding * 2;
         int x = (int) Math.round(anchorX - width * pushX);
         int y = (int) Math.round(anchorY - height * pushY);
-        x = Math.max(CARD_PADDING, Math.min(getWidth() - width - CARD_PADDING, x));
-        y = Math.max(CARD_PADDING, Math.min(getHeight() - height - CARD_PADDING, y));
+        x = Math.max(padding, Math.min(getWidth() - width - padding, x));
+        y = Math.max(padding, Math.min(getHeight() - height - padding, y));
         StudioOverlay.drawCard(canvas, x, y, width, height);
         for (int index = 0; index < lines.size(); index++) {
             boolean title = index == 0;
             canvas.setFont(title ? StudioTheme.boldFont() : StudioTheme.font());
             canvas.setColor(title ? StudioTheme.TEXT : StudioTheme.SECONDARY_TEXT);
-            canvas.drawString(lines.get(index), x + CARD_PADDING, y + CARD_PADDING + lineHeight - 3 + index * lineHeight);
+            canvas.drawString(lines.get(index), x + padding, y + padding + canvas.getFontMetrics().getAscent() + index * lineHeight);
         }
     }
 

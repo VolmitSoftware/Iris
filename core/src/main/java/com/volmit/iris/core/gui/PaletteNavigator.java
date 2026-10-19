@@ -136,8 +136,8 @@ final class PaletteNavigator extends JPanel {
 
     private JPanel buildHereCard() {
         JPanel card = new JPanel(new BorderLayout());
-        JPanel location = new JPanel(new GridLayout(0, 1, 0, 3));
-        location.setBorder(BorderFactory.createEmptyBorder(9, 12, 5, 12));
+        JPanel location = new JPanel(new GridLayout(0, 1, 0, StudioTheme.scale(3)));
+        location.setBorder(StudioTheme.emptyBorder(9, 12, 5, 12));
         location.add(regionLabel);
 
         hereList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -175,7 +175,7 @@ final class PaletteNavigator extends JPanel {
 
         overviewTree.setRootVisible(false);
         overviewTree.setShowsRootHandles(true);
-        overviewTree.setRowHeight(24);
+        overviewTree.setRowHeight(StudioTheme.scale(24));
         overviewTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         overviewTree.setCellRenderer(new OverviewRenderer());
         overviewTree.addTreeSelectionListener(event -> {
@@ -220,7 +220,7 @@ final class PaletteNavigator extends JPanel {
     }
 
     private void showHereMessage(String message) {
-        regionLabel.setText("<html><body style='width:" + MESSAGE_WRAP_WIDTH_PIXELS + "px'>" + message + "</body></html>");
+        regionLabel.setText("<html><body style='width:" + StudioTheme.scale(MESSAGE_WRAP_WIDTH_PIXELS) + "px'>" + message + "</body></html>");
     }
 
     private void showHereRows(PlayerLocation here) {
@@ -423,7 +423,7 @@ final class PaletteNavigator extends JPanel {
                 setForeground(StudioTheme.MUTED_TEXT);
             }
             int indent = row.header() ? HEADER_INDENT : row.layer() >= 0 ? LAYER_INDENT : BIOME_INDENT;
-            setBorder(BorderFactory.createEmptyBorder(row.header() ? 11 : 4, indent, 4, 10));
+            setBorder(StudioTheme.emptyBorder(row.header() ? 11 : 4, indent, 4, 10));
             return this;
         }
     }

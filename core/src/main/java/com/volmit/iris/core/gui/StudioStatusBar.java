@@ -45,18 +45,20 @@ final class StudioStatusBar extends JPanel {
         setBackground(StudioTheme.PANEL_BACKGROUND);
         setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, StudioTheme.SEPARATOR),
-                BorderFactory.createEmptyBorder(0, 10, 0, 10)
+                StudioTheme.emptyBorder(0, 10, 0, 10)
         ));
-        setPreferredSize(new Dimension(0, HEIGHT));
-        progress.setMaximumSize(new Dimension(120, 4));
-        progress.setPreferredSize(new Dimension(120, 4));
+        setPreferredSize(StudioTheme.scaledSize(0, HEIGHT));
+        progress.setMaximumSize(StudioTheme.scaledSize(120, 4));
+        progress.setPreferredSize(StudioTheme.scaledSize(120, 4));
         progress.setVisible(false);
+        allowShrinking(summary);
+        allowShrinking(activity);
         add(summary);
         add(Box.createHorizontalGlue());
         add(activity);
-        add(Box.createHorizontalStrut(8));
+        add(Box.createHorizontalStrut(StudioTheme.scale(8)));
         add(progress);
-        add(Box.createHorizontalStrut(18));
+        add(Box.createHorizontalStrut(StudioTheme.scale(18)));
         add(position);
     }
 
@@ -84,6 +86,11 @@ final class StudioStatusBar extends JPanel {
 
     void showPosition(String text) {
         setTextIfChanged(position, text);
+    }
+
+    // Long text gives way with an ellipsis instead of pushing the other parts of the bar out of view.
+    private static void allowShrinking(JLabel label) {
+        label.setMinimumSize(new Dimension(0, 0));
     }
 
     private static JLabel statusLabel() {

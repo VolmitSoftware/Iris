@@ -93,6 +93,7 @@ public final class MapWindow implements MapCanvas.Listener {
     }
 
     private static void open(PaletteExplorerStart start, MapView initialView) {
+        StudioTheme.install();
         MapWindow window = new MapWindow(start);
         window.frame.setVisible(true);
         window.canvas.start();
@@ -102,7 +103,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private void buildFrame() {
         content.add(canvas, MAP_CARD);
         statusBars.add(canvas.statusBar(), MAP_CARD);
-        sidebar.setPreferredSize(new Dimension(SIDEBAR_WIDTH, 0));
+        sidebar.setPreferredSize(StudioTheme.scaledSize(SIDEBAR_WIDTH, 0));
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, StudioTheme.SEPARATOR));
         sidebar.add(viewListScroll, BorderLayout.CENTER);
 
@@ -113,8 +114,8 @@ public final class MapWindow implements MapCanvas.Listener {
         frame.add(inspectorSlot, BorderLayout.EAST);
         frame.add(statusBars, BorderLayout.SOUTH);
         installShortcuts(frame.getRootPane());
-        frame.setSize(1440, 880);
-        frame.setMinimumSize(new Dimension(820, 520));
+        frame.setSize(GuiHost.fitToScreen(StudioTheme.scaledSize(1440, 880)));
+        frame.setMinimumSize(StudioTheme.scaledSize(820, 520));
         frame.setLocationRelativeTo(null);
         frame.addWindowListener(new WindowAdapter() {
             @Override
@@ -127,7 +128,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private JToolBar buildToolbar() {
         JToolBar toolbar = StudioToolbar.create();
         viewTitle.setFont(StudioTheme.titleFont());
-        viewTitle.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 14));
+        viewTitle.setBorder(StudioTheme.emptyBorder(0, 6, 0, 14));
         toolbar.add(viewTitle);
 
         mapControls.add(StudioToolbar.button("Refresh", "Redraw the map with the latest pack files (R)", canvas::refreshContent));

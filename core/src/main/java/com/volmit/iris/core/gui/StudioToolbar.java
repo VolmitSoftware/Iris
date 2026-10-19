@@ -50,7 +50,7 @@ final class StudioToolbar {
         toolbar.setBackground(StudioTheme.PANEL_BACKGROUND);
         toolbar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, StudioTheme.SEPARATOR),
-                BorderFactory.createEmptyBorder(TOOLBAR_HEIGHT_PADDING, 8, TOOLBAR_HEIGHT_PADDING, 8)
+                StudioTheme.emptyBorder(TOOLBAR_HEIGHT_PADDING, 8, TOOLBAR_HEIGHT_PADDING, 8)
         ));
         return toolbar;
     }
@@ -58,7 +58,7 @@ final class StudioToolbar {
     static JLabel label(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(StudioTheme.SECONDARY_TEXT);
-        label.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
+        label.setBorder(StudioTheme.emptyBorder(0, 6, 0, 6));
         return label;
     }
 
@@ -99,7 +99,7 @@ final class StudioToolbar {
     static JPanel padded(JComponent content, int top, int left, int bottom, int right) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(top, left, bottom, right));
+        panel.setBorder(StudioTheme.emptyBorder(top, left, bottom, right));
         panel.add(content, BorderLayout.CENTER);
         return panel;
     }

@@ -246,8 +246,12 @@ final class PaletteNavigator extends JPanel {
         }
         hereRows.addElement(HereRow.header(title));
         hereRows.addElement(HereRow.biome(biomeText(biome, childOfText(biome)), biomeKey, 0));
+        addPaletteRows(biome, 0);
+    }
+
+    private void addPaletteRows(BiomeEntry biome, int nesting) {
         for (PaletteCatalog.PaletteSummary summary : biome.palettes()) {
-            hereRows.addElement(HereRow.palette(summary.text(), summary.palette()));
+            hereRows.addElement(HereRow.palette(summary.text(), summary.palette(), nesting));
         }
     }
 
@@ -259,6 +263,7 @@ final class PaletteNavigator extends JPanel {
         }
         boolean standingHere = biomeKey.equals(here.surfaceBiomeKey()) || biomeKey.equals(here.biomeAtPositionKey());
         hereRows.addElement(HereRow.biome(biomeText(biome, standingHere ? "you are here" : null), biomeKey, nesting));
+        addPaletteRows(biome, nesting);
         for (String childKey : biome.childKeys()) {
             addRegionBiome(childKey, nesting + 1, new HashSet<>(ancestors), here);
         }
@@ -408,7 +413,7 @@ final class PaletteNavigator extends JPanel {
     }
 
     /**
-     * @param nesting how many parent biomes deep a child biome sits
+     * @param nesting how many parent biomes deep the row's biome sits
      */
     private record HereRow(String text, String biomeKey, BiomePalette palette, int nesting, boolean header) {
         private static HereRow header(String text) {
@@ -419,8 +424,8 @@ final class PaletteNavigator extends JPanel {
             return new HereRow(text, biomeKey, null, nesting, false);
         }
 
-        private static HereRow palette(String text, BiomePalette palette) {
-            return new HereRow(text, palette.biomeKey(), palette, 0, false);
+        private static HereRow palette(String text, BiomePalette palette, int nesting) {
+            return new HereRow(text, palette.biomeKey(), palette, nesting, false);
         }
     }
 
@@ -451,8 +456,7 @@ final class PaletteNavigator extends JPanel {
                 setForeground(StudioTheme.MUTED_TEXT);
             }
             int indent = row.header() ? HEADER_INDENT
-                    : row.palette() != null ? PALETTE_INDENT
-                    : BIOME_INDENT + row.nesting() * CHILD_INDENT;
+                    : (row.palette() != null ? PALETTE_INDENT : BIOME_INDENT) + row.nesting() * CHILD_INDENT;
             setBorder(StudioTheme.emptyBorder(row.header() ? 11 : 4, indent, 4, 10));
             return this;
         }
